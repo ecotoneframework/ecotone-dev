@@ -56,7 +56,8 @@ class AutoCollectionConversionService implements ConversionService
             return $source;
         }
 
-        [$converter, $targetPHPType] = $this->getConverter($sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
+        $targetPHPType = $this->getTargetType($sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
+        $converter = $this->getConverter($sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
         if (! is_object($converter)) {
             throw ConversionException::create("Converter was not found for {$sourceMediaType}:{$sourcePHPType} to {$targetMediaType}:{$targetPHPType};");
         }
@@ -86,34 +87,25 @@ class AutoCollectionConversionService implements ConversionService
      * @param MediaType $sourceMediaType
      * @param Type $targetType
      * @param MediaType $targetMediaType
+     * @return Converter|null
      */
-    private function getConverter(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): ?array
+    private function getConverter(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): ?Converter
     {
-        /** @var TypeDescriptor[] $targetTypesToCheck */
-        $targetTypesToCheck = [];
-        if (! $targetType->isUnionType()) {
-            $targetTypesToCheck[] = $targetType;
-        } else {
-            $targetTypesToCheck = $targetType->getUnionTypes();
+        $targetType = $this->getTargetType($sourceType, $sourceMediaType, $targetType, $targetMediaType);
+        if (! $targetType) {
+            return null;
         }
 
         foreach ($this->converters as $converter) {
-
-            foreach ($targetTypesToCheck as $targetTypeToCheck) {
-                if ($targetTypeToCheck->isNullType()) {
-                    continue;
-                }
-
-                if ($converter->matches($sourceType, $sourceMediaType, $targetTypeToCheck, $targetMediaType)) {
-                    return [$converter, $targetTypeToCheck];
-                }
+            if ($converter->matches($sourceType, $sourceMediaType, $targetType, $targetMediaType)) {
+                return $converter;
             }
         }
 
         return null;
     }
 
-    private function getTargetType(TypeDescriptor $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): TypeDescriptor
+    private function getTargetType(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): TypeDescriptor
     {
         foreach ($this->converters as $converter) {
             /** @var TypeDescriptor[] $targetTypesToCheck */

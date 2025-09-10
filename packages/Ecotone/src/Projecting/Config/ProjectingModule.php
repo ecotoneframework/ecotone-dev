@@ -248,7 +248,6 @@ class ProjectingModule implements AnnotationModule
             ProjectionStateStorage::class,
             match ($projectingConfiguration->projectionStateStorageReference) {
                 InMemoryProjectionStateStorage::class => new Definition(InMemoryProjectionStateStorage::class),
-                // @phpstan-ignore class.notFound
                 DbalProjectionStateStorage::class => new Definition(DbalProjectionStateStorage::class, [new Reference(DbalConnectionFactory::class)]),
                 default => new Reference($projectingConfiguration->projectionStateStorageReference)
             }

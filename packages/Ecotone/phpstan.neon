@@ -13,5 +13,11 @@ parameters:
 			message: '#^Class .* not found.$#'
 			path: src/Lite/EcotoneLite.php
 		-
+			message: '#(Doctrine\\DBAL|Enqueue\\Dbal)#'
+			path: src/Projecting/Dbal/DbalProjectionStateStorage.php
+		-
+			message: '#^Class .* not found.$#'
+			path: src/Projecting/Config/ProjectingModule.php
+		-
 			message: '#^Call to static method#'
 			path: src/Lite/EcotoneLite.php

@@ -15,7 +15,7 @@ use Prooph\EventStore\StreamName;
 class ProjectionEventHandler
 {
     public const PROJECTION_STATE = ProjectingHeaders::PROJECTION_STATE;
-    public const PROJECTION_EVENT_NAME = 'projection.event_name';
+    public const PROJECTION_EVENT_NAME = ProjectingHeaders::PROJECTION_EVENT_NAME;
     public const PROJECTION_IS_REBUILDING = ProjectingHeaders::PROJECTION_IS_REBUILDING;
     public const PROJECTION_NAME = ProjectingHeaders::PROJECTION_NAME;
 

@@ -38,14 +38,14 @@ class TicketProjection
         $this->projectedEvents[] = $event;
     }
 
-    #[EventHandler]
-    public function whenTicketAssigned(TicketAssigned $event, #[ProjectionState] int $assignmentCount = 0): int
+    #[EventHandler(TicketAssigned::NAME)]
+    public function whenTicketAssigned(array $event, #[ProjectionState] int $assignmentCount = 0): int
     {
         if ($assignmentCount >= self::MAX_ASSIGNMENT_COUNT) {
             return $assignmentCount;
         }
 
-        $this->projectedEvents[] = $event;
+        $this->projectedEvents[] = new TicketAssigned($event['ticketId']);
 
         return $assignmentCount + 1;
     }

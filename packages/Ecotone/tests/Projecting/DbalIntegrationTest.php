@@ -64,7 +64,7 @@ class DbalIntegrationTest extends TestCase
     public function test_it_can_use_user_projection_state(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [TicketProjection::class, Ticket::class],
+            [TicketProjection::class, Ticket::class, TicketAssigned::class],
             [
                 TicketProjection::class => $projection = new TicketProjection(),
                 DbalConnectionFactory::class => $this->getConnectionFactory()

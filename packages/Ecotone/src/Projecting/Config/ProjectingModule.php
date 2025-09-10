@@ -48,6 +48,7 @@ use Ecotone\Projecting\Config\ProjectionBuilder\ProjectionBuilder;
 use Ecotone\Projecting\Dbal\DbalProjectionStateStorage;
 use Ecotone\Projecting\EcotoneProjectorExecutor;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
+use Ecotone\Projecting\ProjectingHeaders;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Projecting\ProjectionStateStorage;
@@ -221,7 +222,7 @@ class ProjectingModule implements AnnotationModule
                     ->chain(new Definition(RouterProcessor::class, [
                         new Definition(BusRouteSelector::class, [
                             $routerMap->compile(),
-                            new Definition(BusRoutingKeyResolver::class, [ProjectionEventHandler::PROJECTION_EVENT_NAME]),
+                            new Definition(BusRoutingKeyResolver::class, [ProjectingHeaders::PROJECTION_EVENT_NAME]),
                         ]),
                         new Definition(RouteToChannelResolver::class, [new Reference(ChannelResolver::class)]),
                         false,

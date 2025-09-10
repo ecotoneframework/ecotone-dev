@@ -56,13 +56,13 @@ class DbalTicketProjection
         ]);
     }
 
-    #[EventHandler]
-    public function whenTicketAssigned(TicketAssigned $event): void
+    #[EventHandler(TicketAssigned::NAME)]
+    public function whenTicketAssigned(array $event): void
     {
         $this->connection->update('tickets_projection', [
             'status' => 'assigned',
         ], [
-            'ticketId' => $event->ticketId,
+            'ticketId' => $event['ticketId'],
         ]);
     }
 

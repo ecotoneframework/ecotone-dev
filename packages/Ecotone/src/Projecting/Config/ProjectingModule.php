@@ -184,7 +184,7 @@ class ProjectingModule implements AnnotationModule
                     new Reference(ProjectionStateStorage::class),
                     $projector,
                     new Reference($projectionNameToStreamSourceReferenceMap[$projectionName]),
-                    $projectionNameToPartitionProviderMap[$projectionName] ? new Reference($projectionNameToPartitionProviderMap[$projectionName]) : new Definition(NullPartitionProvider::class),
+                    isset($projectionNameToPartitionProviderMap[$projectionName]) ? new Reference($projectionNameToPartitionProviderMap[$projectionName]) : new Definition(NullPartitionProvider::class),
                     $projectionName,
                 ])
             );

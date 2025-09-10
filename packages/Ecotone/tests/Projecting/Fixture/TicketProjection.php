@@ -7,13 +7,14 @@ declare(strict_types=1);
 namespace Test\Ecotone\Projecting\Fixture;
 
 use Ecotone\EventSourcing\Attribute\ProjectionState;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Projection;
 use Test\Ecotone\Projecting\Fixture\Ticket\TicketAssigned;
 use Test\Ecotone\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\Projecting\Fixture\Ticket\TicketUnassigned;
 
-#[Projection(self::NAME)]
+#[Projection(self::NAME, MessageHeaders::EVENT_AGGREGATE_ID)]
 class TicketProjection
 {
     public const NAME = 'ticket_projection';

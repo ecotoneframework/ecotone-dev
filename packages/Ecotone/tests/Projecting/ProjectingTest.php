@@ -7,6 +7,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Projecting;
 
 use Ecotone\Modelling\Event;
+use Ecotone\Projecting\Backfilling\NullPartitionProvider;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
 use Ecotone\Projecting\InMemory\InMemoryProjector;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;
@@ -30,6 +31,7 @@ class ProjectingTest extends TestCase
             $projectionStateStorage,
             $projectorExecutor,
             $source,
+            new NullPartitionProvider(),
             "projection-name",
         );
     }

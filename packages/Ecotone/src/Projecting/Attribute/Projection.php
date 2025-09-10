@@ -15,7 +15,7 @@ class Projection extends StreamBasedSource
 {
     public function __construct(
         public readonly string  $name,
-        public readonly ?string $partitionHeaderName = MessageHeaders::EVENT_AGGREGATE_ID,
+        public readonly ?string $partitionHeaderName = null,
     ) {
     }
 }

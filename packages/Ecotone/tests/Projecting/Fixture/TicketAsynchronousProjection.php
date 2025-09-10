@@ -7,11 +7,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Projecting\Fixture;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Projection;
 use Test\Ecotone\Projecting\Fixture\Ticket\TicketCreated;
 
-#[Projection(self::NAME)]
+#[Projection(self::NAME, MessageHeaders::EVENT_AGGREGATE_ID)]
 #[Asynchronous(self::ASYNC_CHANNEL)]
 class TicketAsynchronousProjection
 {

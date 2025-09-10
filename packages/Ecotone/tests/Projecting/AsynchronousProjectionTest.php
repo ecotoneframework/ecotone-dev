@@ -26,7 +26,7 @@ class AsynchronousProjectionTest extends TestCase
         $streamSource = new InMemoryStreamSource();
         $projection = new TicketAsynchronousProjection();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [TicketAsynchronousProjection::class],
             ['ticket_stream_source' => $streamSource, TicketAsynchronousProjection::class => $projection],
             ServiceConfiguration::createWithDefaults()

@@ -24,6 +24,9 @@ class DbalIntegrationTest extends TestCase
 {
     public function test_it_can_project_events(): void
     {
+        if (! \class_exists(DbalConnectionFactory::class)) {
+            self::markTestSkipped('Dbal not installed');
+        }
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [TicketProjection::class],
             [
@@ -63,6 +66,9 @@ class DbalIntegrationTest extends TestCase
 
     public function test_it_can_use_user_projection_state(): void
     {
+        if (! \class_exists(DbalConnectionFactory::class)) {
+            self::markTestSkipped('Dbal not installed');
+        }
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [TicketProjection::class, Ticket::class, TicketAssigned::class],
             [

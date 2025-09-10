@@ -21,6 +21,9 @@ class IntegrationTest extends ProjectingTestCase
 {
     public function test_it_can_project_events(): void
     {
+        if (! \class_exists(DbalConnectionFactory::class)) {
+            self::markTestSkipped('Dbal not installed');
+        }
         $streamSource = new InMemoryStreamSource();
         $projection = new TicketProjection();
 

@@ -22,6 +22,9 @@ class LifecycleManagerTest extends ProjectingTestCase
 {
     public function test_it_can_init_projection_lifecycle_state(): void
     {
+        if (! \class_exists(DbalConnectionFactory::class)) {
+            self::markTestSkipped('Dbal not installed');
+        }
         $streamSource = new InMemoryStreamSource();
         $projection = new TicketProjectionWithLifecycle();
 

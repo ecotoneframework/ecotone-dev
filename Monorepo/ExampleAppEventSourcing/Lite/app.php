@@ -15,7 +15,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
         ],
         configuration: ServiceConfiguration::createWithDefaults()
             ->doNotLoadCatalog()
-            ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\'])
+            ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\ProophProjection\\'])
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withDefaultErrorChannel('errorChannel')
             ->withSkippedModulePackageNames(\json_decode(\getenv('APP_SKIPPED_PACKAGES'), true)),

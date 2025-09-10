@@ -11,16 +11,18 @@ use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Enqueue\Dbal\DbalConnectionFactory;
-
 class DbalProjectionStateStorage implements ProjectionStateStorage
 {
     private const STATE_INITIALIZED = 'initialized';
 
     private ?string $saveStateQuery = null;
+
+    // @phpstan-ignore class.notFound
     private Connection $connection;
     private bool $initialized = false;
 
     public function __construct(
+        // @phpstan-ignore class.notFound
         DbalConnectionFactory $connectionFactory,
         private string        $stateTable = 'ecotone_projection_state',
         private string        $lifecycleTable = 'ecotone_projection_lifecycle_state'
@@ -59,6 +61,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
         if (!$this->saveStateQuery) {
             $this->saveStateQuery = match(true) {
+                // @phpstan-ignore class.notFound
                 $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
                     INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state)
                     VALUES (:projectionName, :partitionKey, :lastPosition, :userState)
@@ -85,6 +88,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         $this->createSchema();
 
         $statement = match(true) {
+            // @phpstan-ignore class.notFound
             $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
                     INSERT INTO {$this->lifecycleTable} (projection_name, state) VALUES (:projectionName, :state)
                     ON DUPLICATE KEY UPDATE projection_name = projection_name

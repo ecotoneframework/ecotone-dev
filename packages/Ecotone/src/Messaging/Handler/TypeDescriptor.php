@@ -490,7 +490,6 @@ final class TypeDescriptor implements Type, DefinedObject
     public function isClassOfType(string $interfaceName): bool
     {
         return \is_a($this->type, $interfaceName, true);
-//        return self::isItTypeOfExistingClassOrInterface($this->type) && ($this->type === $interfaceName || $this->type === '\\' . $interfaceName || is_subclass_of($this->type, $interfaceName));
     }
 
     /**

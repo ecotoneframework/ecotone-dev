@@ -69,7 +69,7 @@ class ProophProjectingModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return \array_values($this->extensions);
+        return $this->extensions;
     }
 
     public function getModulePackageName(): string

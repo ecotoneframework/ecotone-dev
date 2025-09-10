@@ -95,9 +95,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
      * @param array<string, string> $namedEvents key is class name, value is event name
      * @param ServiceActivatorBuilder[] $projectionLifeCycleServiceActivators
      * @param GatewayProxyBuilder[] $projectionStateGateways
-     * @param Projection[] $projectionsWithNewProjectingSystem
      */
-    private function __construct(private array $projectionSetupConfigurations, private array $projectionEventHandlers, private array $namedEvents, private array $projectionLifeCycleServiceActivators, private AggregateStreamMapping $aggregateToStreamMapping, private AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways, private array $projectionsWithNewProjectingSystem)
+    private function __construct(private array $projectionSetupConfigurations, private array $projectionEventHandlers, private array $namedEvents, private array $projectionLifeCycleServiceActivators, private AggregateStreamMapping $aggregateToStreamMapping, private AggregateTypeMapping $aggregateTypeMapping, private array $projectionStateGateways)
     {
     }
 
@@ -141,7 +140,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $projectionEventHandlers = $annotationRegistrationService->findCombined(Projection::class, EventHandler::class);
         $projectionSetupConfigurations = [];
         $projectionLifeCyclesServiceActivators = [];
-        $projectionsWithNewProjectingSystem = [];
 
         foreach ($projectionClassNames as $projectionClassName) {
             $attributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName);
@@ -158,11 +156,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     Assert::isTrue(count($asynchronousChannelName) === 1, "Make use of single channel name in Asynchronous annotation for Projection: {$projectionClassName}");
                     $asynchronousChannelName = array_pop($asynchronousChannelName);
                 }
-            }
-
-            if ($projectionAttribute->useNewProjectingSystem()) {
-                $projectionsWithNewProjectingSystem[] = $projectionAttribute;
-                continue;
             }
 
             Assert::keyNotExists($projectionSetupConfigurations, $projectionAttribute->getName(), "Can't define projection with name {$projectionAttribute->getName()} twice");
@@ -253,7 +246,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $namedEvents[$className] = $attribute->getName();
         }
 
-        return new self($projectionSetupConfigurations, $projectionEventHandlers, $namedEvents, $projectionLifeCyclesServiceActivators, AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $projectionStateGateways, $projectionsWithNewProjectingSystem);
+        return new self($projectionSetupConfigurations, $projectionEventHandlers, $namedEvents, $projectionLifeCyclesServiceActivators, AggregateStreamMapping::createWith($aggregateToStreamMapping), AggregateTypeMapping::createWith($aggregateTypeMapping), $projectionStateGateways);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

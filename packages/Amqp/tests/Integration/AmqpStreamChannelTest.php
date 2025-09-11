@@ -146,4 +146,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
         $this->assertEquals(['bread', 'cheese'], $orders);
     }
+
+    public function test_filtering_out_messages(): void
+    {
+
+    }
 }

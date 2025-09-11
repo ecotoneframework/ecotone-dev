@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Ecotone\Amqp;
 
 use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
+use Ecotone\Amqp\AmqpStreamAcknowledgeCallback;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
@@ -155,8 +158,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
     private function startStreamConsuming(AmqpContext $context): void
     {
         $libChannel = $context->getLibChannel();
-//        $libChannel->basic_qos(0, 3, false);
-        $libChannel->basic_qos(0, 1, false);
+        $libChannel->basic_qos(0, 100, false);
 
         // Convert numeric string offsets to integers for RabbitMQ streams
         $offset = $this->streamOffset;
@@ -199,6 +201,17 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
                 $this->cachedConnectionFactory
             );
             $message = $this->enrichMessage($enqueueMessage, $message);
+
+            $message = $message->setHeader(
+                EnqueueHeader::HEADER_ACKNOWLEDGE,
+                AmqpStreamAcknowledgeCallback::create(
+                    $amqpMessage,
+                    $this->loggingGateway,
+                    $this->cachedConnectionFactory,
+                    FinalFailureStrategy::RESEND,
+                    true // Auto-acknowledge for streams
+                )
+            );
 
             $this->queueChannel->send($message->build());
 

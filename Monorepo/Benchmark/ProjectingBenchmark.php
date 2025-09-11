@@ -74,7 +74,9 @@ class ProjectingBenchmark
         );
 
         $eventStore = self::$prooph->getGatewayByName(EventStore::class);
-        $eventStore->delete(Product::class);
+        if ($eventStore->hasStream(Product::class)) {
+            $eventStore->delete(Product::class);
+        }
         self::deleteEcotoneProjection();
         self::deleteProophProjection();
     }

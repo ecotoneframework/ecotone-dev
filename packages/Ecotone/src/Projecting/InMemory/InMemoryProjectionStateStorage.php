@@ -8,6 +8,8 @@ namespace Ecotone\Projecting\InMemory;
 
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
+use Ecotone\Projecting\Transaction\NoOpTransaction;
+use Ecotone\Projecting\Transaction\Transaction;
 
 class InMemoryProjectionStateStorage implements ProjectionStateStorage
 {
@@ -65,5 +67,10 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
         $this->projectionLifecycleState[$projectionName] = true;
 
         return true;
+    }
+
+    public function beginTransaction(): Transaction
+    {
+        return new NoOpTransaction();
     }
 }

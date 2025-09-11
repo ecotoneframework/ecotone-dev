@@ -27,20 +27,27 @@ class ProjectingManager
         $this->init();
 
         do {
-            $projectionState = $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
+            $transaction = $this->projectionStateStorage->beginTransaction();
+            try {
+                $projectionState = $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
 
-            $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKey);
+                $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKey);
 
-            $userState = $projectionState->userState;
-            foreach ($streamPage->events as $event) {
-                $userState = $this->projectorExecutor->project($event, $userState);
+                $userState = $projectionState->userState;
+                foreach ($streamPage->events as $event) {
+                    $userState = $this->projectorExecutor->project($event, $userState);
+                }
+
+                $this->projectionStateStorage->savePartition(
+                    $projectionState
+                        ->withLastPosition($streamPage->lastPosition)
+                        ->withUserState($userState)
+                );
+                $transaction->commit();
+            } catch (\Throwable $e) {
+                $transaction->rollBack();
+                throw $e;
             }
-
-            $this->projectionStateStorage->savePartition(
-                $projectionState
-                    ->withLastPosition($streamPage->lastPosition)
-                    ->withUserState($userState)
-            );
         } while (count($streamPage->events) > 0); // TODO: we should handle the transaction lifecycle here or ignore batch size
     }
 

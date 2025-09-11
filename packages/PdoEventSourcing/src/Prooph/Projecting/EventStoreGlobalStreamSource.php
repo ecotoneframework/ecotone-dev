@@ -11,6 +11,9 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 use Ecotone\Projecting\Tracking\SequenceAccessor\GapAwarePosition;
+use Prooph\EventStore\Metadata\FieldType;
+use Prooph\EventStore\Metadata\MetadataMatcher;
+use Prooph\EventStore\Metadata\Operator;
 
 class EventStoreGlobalStreamSource implements StreamSource
 {
@@ -25,14 +28,14 @@ class EventStoreGlobalStreamSource implements StreamSource
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
         $tracking = GapAwarePosition::fromString($lastPosition);
 
-        // Dumbly query for all events  in gaps
-        $eventsInGaps = [];
-        foreach ($tracking->getGaps() as $gap) {
-            $eventsInGaps = array_merge($eventsInGaps, $this->eventStore->load(
+        if (count($tracking->getGaps()) === 0) {
+            $eventsInGaps = [];
+        } else {
+            $eventsInGaps = $this->eventStore->load(
                 $this->streamName,
-                $gap,
-                1,
-            ));
+                metadataMatcher: (new MetadataMatcher())
+                    ->withMetadataMatch('no', Operator::IN(), $tracking->getGaps(), FieldType::MESSAGE_PROPERTY())
+            );
         }
 
         $events = $this->eventStore->load(

@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
+use Ecotone\Projecting\Transaction\Transaction;
 use Enqueue\Dbal\DbalConnectionFactory;
 class DbalProjectionStateStorage implements ProjectionStateStorage
 {
@@ -150,5 +151,11 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             )
             SQL
         );
+    }
+
+    public function beginTransaction(): Transaction
+    {
+        $this->connection->beginTransaction();
+        return new DbalTransaction($this->connection);
     }
 }

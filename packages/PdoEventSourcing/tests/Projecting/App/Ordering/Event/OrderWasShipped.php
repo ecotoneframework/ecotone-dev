@@ -1,6 +1,6 @@
 <?php
 /*
- * licence Apache-2.0
+ * licence Enterprise
  */
 declare(strict_types=1);
 

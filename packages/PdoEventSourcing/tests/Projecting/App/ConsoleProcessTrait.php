@@ -58,7 +58,7 @@ trait ConsoleProcessTrait
 
         $process = new Process(
             command: $command,
-            env: [...\getenv(), 'COMPOSER_AUTOLOAD_FILE='.$this->getCurrentComposerAutoloadPath()],
+            env: [...\getenv(), 'COMPOSER_AUTOLOAD_FILE' => $this->getCurrentComposerAutoloadPath()],
             input: $input = new InputStream(),
             timeout: 10,
         );

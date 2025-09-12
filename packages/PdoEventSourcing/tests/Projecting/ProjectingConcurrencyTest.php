@@ -8,7 +8,6 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Console\Command\Command;
 use Test\Ecotone\EventSourcing\Projecting\App\ConsoleProcessTrait;
 
 class ProjectingConcurrencyTest extends TestCase
@@ -28,7 +27,7 @@ class ProjectingConcurrencyTest extends TestCase
         $process1 = $this->placeOrder($orderId);
 
         $process1->wait();
-        self::assertSame(Command::SUCCESS, $process1->getExitCode());
+        self::assertTrue($process1->isSuccessful(), $process1->getErrorOutput());
 
         $order = self::$ecotone->getQueryBus()->sendWithRouting('order.get', $orderId);
         self::assertSame([
@@ -64,30 +63,34 @@ class ProjectingConcurrencyTest extends TestCase
             $orderId1,
             manualProjection: true
         );
+        self::assertTrue($tx1->isRunning(), $tx1->getErrorOutput());
         $tx1->waitUntil($this->waitingToExecuteProjection(...));
 
         $tx2 = $this->placeOrder(
             $orderId2,
         );
         $tx2->wait();
-        self::assertSame(Command::SUCCESS, $tx2->getExitCode());
+        self::assertTrue($tx2->isSuccessful());
 
         self::assertAnOrderIsPlacedWithId($orderId2);
 
         $this->continueProcess($tx1);
         $tx1->wait();
-        self::assertSame(Command::SUCCESS, $tx1->getExitCode());
+        self::assertTrue($tx1->isSuccessful());
         self::assertAnOrderIsPlacedWithId($orderId1);
     }
 
-    public static function assertAnOrderIsPlacedWithId(string $orderId): void
+    public static function assertAnOrderIsPlacedWithId(string $orderId, int $maxRetries = 3, int $baseDelayMicroseconds = 5_000): void
     {
+        $order = null;
         $retries = 0;
-        $order = self::$ecotone->getQueryBus()->sendWithRouting('order.get', $orderId);
-        while ($order === null && $retries < 3) {
-            $retries++;
-            usleep(100_000);
+        while ($order === null && $retries < $maxRetries) {
             $order = self::$ecotone->getQueryBus()->sendWithRouting('order.get', $orderId);
+            if ($order !== null) {
+                break;
+            }
+            usleep($baseDelayMicroseconds * (2 ** $retries));
+            $retries++;
         }
         self::assertNotNull($order, "Failed asserting that order with ID $orderId is placed");
     }

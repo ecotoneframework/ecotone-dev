@@ -9,10 +9,10 @@ namespace Ecotone\Projecting\InMemory;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Projecting\Attribute\Projection;
-use Ecotone\Projecting\Config\StreamSourceBuilder;
+use Ecotone\Projecting\Config\ProjectionComponentBuilder;
+use Ecotone\Projecting\StreamSource;
 
-class ReferenceStreamSourceBuilder implements StreamSourceBuilder
+class ReferenceStreamSourceBuilder implements ProjectionComponentBuilder
 {
     /**
      * @param array<string> $streams projection names
@@ -21,9 +21,9 @@ class ReferenceStreamSourceBuilder implements StreamSourceBuilder
     {
     }
 
-    public function canHandle(string $projectionName): bool
+    public function canHandle(string $projectionName, string $component): bool
     {
-        return \in_array($projectionName, $this->projectionNames, true);
+        return $component === StreamSource::class && \in_array($projectionName, $this->projectionNames, true);
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference

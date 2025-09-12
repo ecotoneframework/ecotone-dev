@@ -8,11 +8,8 @@ namespace Ecotone\Projecting\Config;
 
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Dbal\Configuration\DbalPublisherModule;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
@@ -27,7 +24,6 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
-use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
@@ -43,16 +39,17 @@ use Ecotone\Modelling\Config\Routing\BusRouteSelector;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Projecting\Attribute\Projection;
-use Ecotone\Projecting\Backfilling\NullPartitionProvider;
 use Ecotone\Projecting\Config\ProjectionBuilder\ProjectionBuilder;
-use Ecotone\Projecting\Dbal\DbalProjectionStateStorage;
 use Ecotone\Projecting\EcotoneProjectorExecutor;
+use Ecotone\Projecting\InMemory\InMemoryProjectionRegistry;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
+use Ecotone\Projecting\NullPartitionProvider;
+use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\ProjectingHeaders;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Projecting\ProjectionStateStorage;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Projecting\StreamSource;
 use Ramsey\Uuid\Uuid;
 
 #[ModuleAnnotation]
@@ -117,45 +114,25 @@ class ProjectingModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
-        $streamSourceBuilders = ExtensionObjectResolver::resolve(StreamSourceBuilder::class, $extensionObjects);
-        $partitionProviderBuilders = ExtensionObjectResolver::resolve(PartitionProviderBuilder::class, $extensionObjects);
-
+        $componentBuilders = ExtensionObjectResolver::resolve(ProjectionComponentBuilder::class, $extensionObjects);
         $projectionNames = array_keys($this->configuredProjections);
 
-        /** @var array<string, string> $projectionNameToStreamSourceReferenceMap */
-        $projectionNameToStreamSourceReferenceMap = [];
-        foreach ($streamSourceBuilders as $streamSourceBuilder) {
+        /** @var array<string, array<string, string>> $components [projection name][component name][reference] */
+        $components = [];
+        foreach ($componentBuilders as $componentBuilder) {
             $reference = Uuid::uuid4()->toString();
-            $moduleReferenceSearchService->store($reference, $streamSourceBuilder);
+            $moduleReferenceSearchService->store($reference, $componentBuilder);
             foreach ($projectionNames as $projectionName) {
-                if ($streamSourceBuilder->canHandle($projectionName)) {
-                    if (isset($projectionNameToStreamSourceReferenceMap[$projectionName])) {
-                        throw ConfigurationException::create(
-                            "Projection with name {$projectionName} is already registered for stream source with reference {$projectionNameToStreamSourceReferenceMap[$projectionName]}."
-                            . " You can only register one stream source per projection. Please check your configuration."
-                        );
+                foreach ([StreamSource::class, PartitionProvider::class, ProjectionStateStorage::class] as $component) {
+                    if ($componentBuilder->canHandle($projectionName, $component)) {
+                        if (isset($components[$projectionName][$component])) {
+                            throw ConfigurationException::create(
+                                "Projection with name {$projectionName} is already registered for component {$component} with reference {$components[$projectionName][$component]}."
+                                . " You can only register one component of each type per projection. Please check your configuration."
+                            );
+                        }
+                        $components[$projectionName][$component] = new Reference($reference);
                     }
-                    $projectionNameToStreamSourceReferenceMap[$projectionName] = $reference;
-                    break;
-                }
-            }
-        }
-
-        /** @var array<string, string> $projectionNameToPartitionProviderMap */
-        $projectionNameToPartitionProviderMap = [];
-        foreach ($partitionProviderBuilders as $partitionProviderBuilder) {
-            $reference = Uuid::uuid4()->toString();
-            $moduleReferenceSearchService->store($reference, $partitionProviderBuilder);
-            foreach ($projectionNames as $projectionName) {
-                if ($partitionProviderBuilder->canHandle($projectionName)) {
-                    if (isset($projectionNameToPartitionProviderMap[$projectionName])) {
-                        throw ConfigurationException::create(
-                            "Projection with name {$projectionName} is already registered for partition provider with reference {$projectionNameToPartitionProviderMap[$projectionName]}."
-                            . " You can only register one partition provider per projection. Please check your configuration."
-                        );
-                    }
-                    $projectionNameToPartitionProviderMap[$projectionName] = $reference;
-                    break;
                 }
             }
         }
@@ -165,12 +142,6 @@ class ProjectingModule implements AnnotationModule
 
         $projectionRegistryMap = [];
         foreach ($this->configuredProjections as $projectionName => $projectionBuilder) {
-            if (!isset($projectionNameToStreamSourceReferenceMap[$projectionName])) {
-                throw ConfigurationException::create(
-                    "Projection with name {$projectionName} is not registered for any stream source. Please check your configuration."
-                );
-            }
-
             $projector = new Definition(EcotoneProjectorExecutor::class, [
                 new Reference(MessagingEntrypoint::class), // Headers propagation is required for EventStreamEmitter
                 $projectionName,
@@ -182,10 +153,10 @@ class ProjectingModule implements AnnotationModule
             $messagingConfiguration->registerServiceDefinition(
                 $projectingManagerReference = ProjectingManager::class . ':' . $projectionName,
                 new Definition(ProjectingManager::class, [
-                    new Reference(ProjectionStateStorage::class),
+                    $components[$projectionName][ProjectionStateStorage::class] ?? new Definition(InMemoryProjectionStateStorage::class),
                     $projector,
-                    new Reference($projectionNameToStreamSourceReferenceMap[$projectionName]),
-                    isset($projectionNameToPartitionProviderMap[$projectionName]) ? new Reference($projectionNameToPartitionProviderMap[$projectionName]) : new Definition(NullPartitionProvider::class),
+                    $components[$projectionName][StreamSource::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have stream source configured. Please check your configuration."),
+                    $components[$projectionName][PartitionProvider::class] ?? new Definition(NullPartitionProvider::class),
                     $projectionName,
                 ])
             );
@@ -241,18 +212,6 @@ class ProjectingModule implements AnnotationModule
             }
         }
 
-        // Register projection state implementations
-        $defaultProjectingConfiguration = $serviceConfiguration->isModulePackageEnabled(ModulePackageList::DBAL_PACKAGE) ? ProjectingConfiguration::createDbal() : ProjectingConfiguration::createInMemory();
-        $projectingConfiguration = ExtensionObjectResolver::resolveUnique(ProjectingConfiguration::class, $extensionObjects, $defaultProjectingConfiguration);
-        $messagingConfiguration->registerServiceDefinition(
-            ProjectionStateStorage::class,
-            match ($projectingConfiguration->projectionStateStorageReference) {
-                InMemoryProjectionStateStorage::class => new Definition(InMemoryProjectionStateStorage::class),
-                DbalProjectionStateStorage::class => new Definition(DbalProjectionStateStorage::class, [new Reference(DbalConnectionFactory::class)]),
-                default => new Reference($projectingConfiguration->projectionStateStorageReference)
-            }
-        );
-
         // Register ProjectionRegistry
         $messagingConfiguration->registerServiceDefinition(
             ProjectionRegistry::class,
@@ -263,9 +222,7 @@ class ProjectingModule implements AnnotationModule
     public function canHandle($extensionObject): bool
     {
         return $extensionObject instanceof ServiceConfiguration
-            || $extensionObject instanceof ProjectingConfiguration
-            || $extensionObject instanceof StreamSourceBuilder
-            || $extensionObject instanceof PartitionProviderBuilder;
+            || $extensionObject instanceof ProjectionComponentBuilder;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions, ?InterfaceToCallRegistry $interfaceToCallRegistry = null): array

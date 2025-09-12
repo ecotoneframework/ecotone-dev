@@ -6,8 +6,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting;
 
-use Ecotone\Projecting\Transaction\Transaction;
-
 interface ProjectionStateStorage
 {
     public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionPartitionState;

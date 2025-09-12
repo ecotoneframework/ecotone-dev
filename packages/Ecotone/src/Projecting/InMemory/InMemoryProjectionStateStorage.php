@@ -6,10 +6,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\InMemory;
 
+use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
-use Ecotone\Projecting\Transaction\NoOpTransaction;
-use Ecotone\Projecting\Transaction\Transaction;
+use Ecotone\Projecting\Transaction;
 
 class InMemoryProjectionStateStorage implements ProjectionStateStorage
 {

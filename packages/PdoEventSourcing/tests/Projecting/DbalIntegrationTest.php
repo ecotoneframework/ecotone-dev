@@ -1,0 +1,130 @@
+<?php
+/*
+ * licence Apache-2.0
+ */
+declare(strict_types=1);
+
+namespace Test\Ecotone\EventSourcing\Projecting;
+
+use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Projecting\ProjectionRegistry;
+use Enqueue\Dbal\DbalConnectionFactory;
+use PHPUnit\Framework\TestCase;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketUnassigned;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\TicketProjection;
+
+class DbalIntegrationTest extends TestCase
+{
+    public function test_it_can_project_events(): void
+    {
+        if (! \class_exists(DbalConnectionFactory::class)) {
+            self::markTestSkipped('Dbal not installed');
+        }
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [TicketProjection::class],
+            [
+                TicketProjection::class => $projection = new TicketProjection(),
+                DbalConnectionFactory::class => $this->getConnectionFactory()
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder(TicketProjection::NAME, Ticket::class, Ticket::STREAM_NAME))
+                ->addExtensionObject(new DbalProjectionStateStorageBuilder([TicketProjection::NAME]))
+                ->withNamespaces(['Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket'])
+            ,
+            runForProductionEventStore: true,
+        );
+
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME);
+        $projectionRegistry = $ecotone->getGateway(ProjectionRegistry::class);
+        $projectionRegistry->get(TicketProjection::NAME)->delete();
+
+        self::assertEquals([], $projection->getProjectedEvents());
+
+        $ecotone->sendCommand(new CreateTicketCommand("ticket-10"));
+        $ecotone->sendCommand(new CreateTicketCommand("ticket-20"));
+
+        self::assertEquals([
+            new TicketCreated('ticket-10'),
+            new TicketCreated('ticket-20'),
+        ], $projection->getProjectedEvents());
+
+        $ecotone->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
+
+        self::assertEquals([
+            new TicketCreated('ticket-10'),
+            new TicketCreated('ticket-20'),
+            new TicketAssigned('ticket-10'),
+        ], $projection->getProjectedEvents());
+    }
+
+    public function test_it_can_use_user_projection_state(): void
+    {
+        if (! \class_exists(DbalConnectionFactory::class)) {
+            self::markTestSkipped('Dbal not installed');
+        }
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [TicketProjection::class, Ticket::class, TicketAssigned::class],
+            [
+                TicketProjection::class => $projection = new TicketProjection(),
+                DbalConnectionFactory::class => $this->getConnectionFactory()
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder(TicketProjection::NAME, Ticket::class, Ticket::STREAM_NAME))
+                ->addExtensionObject(new DbalProjectionStateStorageBuilder([TicketProjection::NAME]))
+            ,
+            runForProductionEventStore: true,
+        );
+
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME);
+        $projectionRegistry = $ecotone->getGateway(ProjectionRegistry::class);
+        $projectionRegistry->get(TicketProjection::NAME)->delete();
+
+        self::assertEquals([], $projection->getProjectedEvents());
+
+        $ecotone->sendCommand(new CreateTicketCommand("ticket-10"));
+        $ecotone->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
+        $ecotone->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
+
+        self::assertEquals([
+            new TicketCreated('ticket-10'),
+            new TicketAssigned('ticket-10'),
+            new TicketAssigned('ticket-10'),
+        ], $projection->getProjectedEvents());
+
+        $ecotone->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
+
+        self::assertEquals(
+            [
+                new TicketCreated('ticket-10'),
+                new TicketAssigned('ticket-10'),
+                new TicketAssigned('ticket-10'),
+            ],
+            $projection->getProjectedEvents(),
+        'A maximum of ' . TicketProjection::MAX_ASSIGNMENT_COUNT . ' successive assignment on the same ticket should be recorded'
+        );
+
+        $ecotone->sendCommandWithRoutingKey(Ticket::UNASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
+
+        self::assertEquals(
+            [
+                new TicketCreated('ticket-10'),
+                new TicketAssigned('ticket-10'),
+                new TicketAssigned('ticket-10'),
+                new TicketUnassigned('ticket-10'),
+            ],
+            $projection->getProjectedEvents(),
+        );
+    }
+
+    private function getConnectionFactory(): DbalConnectionFactory
+    {
+        return new DbalConnectionFactory(getenv('DATABASE_DSN'));
+    }
+}

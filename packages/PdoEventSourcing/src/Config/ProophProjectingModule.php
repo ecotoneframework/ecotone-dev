@@ -8,9 +8,10 @@ namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Prooph\Projecting\AggregateIdPartitionProviderBuilder;
-use Ecotone\EventSourcing\Prooph\Projecting\EventStoreAggregateStreamSourceBuilder;
-use Ecotone\EventSourcing\Prooph\Projecting\EventStoreGlobalStreamSourceBuilder;
+use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
+use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSourceBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -31,6 +32,7 @@ class ProophProjectingModule implements AnnotationModule
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
+        $handledProjections = [];
         $extensions = [];
         foreach($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($classname, Projection::class);
@@ -40,6 +42,7 @@ class ProophProjectingModule implements AnnotationModule
             }
 
             $projectionName = $projectionAttribute->name;
+            $handledProjections[] = $projectionName;
             if ($projectionAttribute->partitionHeaderName) {
                 $aggregateType = $streamAttribute->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
                 $extensions[] = new EventStoreAggregateStreamSourceBuilder(
@@ -54,6 +57,9 @@ class ProophProjectingModule implements AnnotationModule
                     [$projectionName],
                 );
             }
+        }
+        if (! empty($handledProjections)) {
+            $extensions[] = new DbalProjectionStateStorageBuilder($handledProjections);
         }
         return new self($extensions);
     }

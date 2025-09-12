@@ -217,6 +217,9 @@ class ProjectingModule implements AnnotationModule
             ProjectionRegistry::class,
             new Definition(InMemoryProjectionRegistry::class, [$projectionRegistryMap])
         );
+
+        // Register console commands
+        $messagingConfiguration->registerServiceDefinition(ProjectingConsoleCommands::class, new Definition(ProjectingConsoleCommands::class, [new Reference(ProjectionRegistry::class)]));
     }
 
     public function canHandle($extensionObject): bool

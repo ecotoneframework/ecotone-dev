@@ -61,6 +61,7 @@ use Ecotone\Modelling\MessageHandling\Distribution\Module\DistributedHandlerModu
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\QueryBus;
 use Ecotone\OpenTelemetry\Configuration\OpenTelemetryModule;
+use Ecotone\Projecting\Config\ProjectingConsoleCommands;
 use Ecotone\Projecting\Config\ProjectingModule;
 use Ecotone\Redis\Configuration\RedisMessageConsumerModule;
 use Ecotone\Redis\Configuration\RedisMessagePublisherModule;
@@ -111,6 +112,7 @@ class ModuleClassList
         CommandBus::class,
         QueryBus::class,
         EventBus::class,
+        ProjectingConsoleCommands::class
     ];
 
     public const ASYNCHRONOUS_MODULE = [

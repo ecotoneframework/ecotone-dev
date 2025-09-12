@@ -56,8 +56,12 @@ trait ConsoleProcessTrait
             $command[] = '--manual-projection';
         }
 
-        $process = new Process($command, input: $input = new InputStream());
-        $process->setEnv(['COMPOSER_AUTOLOAD_FILE'=>$this->getCurrentComposerAutoloadPath()]);
+        $process = new Process(
+            command: $command,
+            env: [...\getenv(), 'COMPOSER_AUTOLOAD_FILE='.$this->getCurrentComposerAutoloadPath()],
+            input: $input = new InputStream(),
+            timeout: 10,
+        );
         $this->processesInputs[spl_object_id($process)] = $input;
 
         $process->start();
@@ -67,8 +71,6 @@ trait ConsoleProcessTrait
 
     public function waitingToExecuteProjection($type, string $output): bool
     {
-        echo $output;
-        echo "\n---";
         return \str_contains($output, WaitBeforeExecutingProjectionInterceptor::getMessage());
     }
 

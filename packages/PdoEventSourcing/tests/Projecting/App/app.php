@@ -9,6 +9,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\EventsConverter;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\OrderListProjection;
 use Test\Ecotone\EventSourcing\Projecting\App\Tooling\CommitOnUserInputInterceptor;
 use Test\Ecotone\EventSourcing\Projecting\App\Tooling\WaitBeforeExecutingProjectionInterceptor;
@@ -24,6 +25,7 @@ $services = [
     DbalConnectionFactory::class => $dbalFactory,
     CommitOnUserInputInterceptor::class => new CommitOnUserInputInterceptor(),
     WaitBeforeExecutingProjectionInterceptor::class => new WaitBeforeExecutingProjectionInterceptor(),
+    EventsConverter::class => new EventsConverter(),
 ];
 
 return EcotoneLite::bootstrap(

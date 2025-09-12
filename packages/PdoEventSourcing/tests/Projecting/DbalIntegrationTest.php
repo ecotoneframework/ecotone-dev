@@ -12,15 +12,15 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Projecting\ProjectionRegistry;
 use Enqueue\Dbal\DbalConnectionFactory;
-use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketUnassigned;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\TicketProjection;
 
-class DbalIntegrationTest extends TestCase
+class DbalIntegrationTest extends ProjectingTestCase
 {
     public function test_it_can_project_events(): void
     {
@@ -28,10 +28,11 @@ class DbalIntegrationTest extends TestCase
             self::markTestSkipped('Dbal not installed');
         }
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [TicketProjection::class],
+            [TicketProjection::class, TicketEventConverter::class],
             [
                 TicketProjection::class => $projection = new TicketProjection(),
-                DbalConnectionFactory::class => $this->getConnectionFactory()
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+                TicketEventConverter::class => new TicketEventConverter(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder(TicketProjection::NAME, Ticket::class, Ticket::STREAM_NAME))
@@ -121,10 +122,5 @@ class DbalIntegrationTest extends TestCase
             ],
             $projection->getProjectedEvents(),
         );
-    }
-
-    private function getConnectionFactory(): DbalConnectionFactory
-    {
-        return new DbalConnectionFactory(getenv('DATABASE_DSN'));
     }
 }

@@ -12,6 +12,7 @@ use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
 
 class ProophIntegrationTest extends ProjectingTestCase
 {
@@ -22,8 +23,12 @@ class ProophIntegrationTest extends ProjectingTestCase
         }
         $connectionFactory = self::getConnectionFactory();
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [DbalTicketProjection::class, Ticket::class],
-            [DbalConnectionFactory::class => $connectionFactory, DbalTicketProjection::class => new DbalTicketProjection($connectionFactory->establishConnection())],
+            [DbalTicketProjection::class, Ticket::class, TicketEventConverter::class],
+            [
+                DbalConnectionFactory::class => $connectionFactory,
+                DbalTicketProjection::class => new DbalTicketProjection($connectionFactory->establishConnection()),
+                TicketEventConverter::class => new TicketEventConverter(),
+            ],
             runForProductionEventStore: true
         );
 

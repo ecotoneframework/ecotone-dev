@@ -71,10 +71,11 @@ class DbalIntegrationTest extends ProjectingTestCase
             self::markTestSkipped('Dbal not installed');
         }
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [TicketProjection::class, Ticket::class, TicketAssigned::class],
+            [TicketProjection::class, Ticket::class, TicketAssigned::class, TicketEventConverter::class],
             [
                 TicketProjection::class => $projection = new TicketProjection(),
-                DbalConnectionFactory::class => $this->getConnectionFactory()
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+                TicketEventConverter::class => new TicketEventConverter(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder(TicketProjection::NAME, Ticket::class, Ticket::STREAM_NAME))

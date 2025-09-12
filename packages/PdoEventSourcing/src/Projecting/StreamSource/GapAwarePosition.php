@@ -59,21 +59,6 @@ class GapAwarePosition
         return $this->gaps;
     }
 
-    public function addGap(int $gap): void
-    {
-        if ($gap > $this->position) {
-            throw new \InvalidArgumentException('Cannot add a gap greater than the current position. Current position: ' . $this->position . ', gap: ' . $gap);
-        }
-//        if ($gap === 0) {
-//            // ignore position 0
-//            return;
-//        }
-        if (!in_array($gap, $this->gaps, true)) {
-            $this->gaps[] = $gap;
-            sort($this->gaps);
-        }
-    }
-
     public function advanceTo(int $position): void
     {
         if ($position === $this->position + 1) {
@@ -90,5 +75,24 @@ class GapAwarePosition
         } else {
             throw new \InvalidArgumentException('Cannot advance to a position less than or equal to the current position. Current position: ' . $this->position . ', new position: ' . $position);
         }
+    }
+
+    public function cleanByMaxOffset(int $maxOffset): void
+    {
+        if ($maxOffset <= 0) {
+            return;
+        }
+        $threshold = $this->position - $maxOffset;
+        
+        // Find first gap > threshold, then slice
+        foreach ($this->gaps as $index => $gap) {
+            if ($gap > $threshold) {
+                $this->gaps = array_slice($this->gaps, $index);
+                return;
+            }
+        }
+        
+        // All gaps are <= threshold, remove all
+        $this->gaps = [];
     }
 }

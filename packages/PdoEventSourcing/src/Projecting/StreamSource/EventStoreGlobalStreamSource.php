@@ -19,6 +19,7 @@ class EventStoreGlobalStreamSource implements StreamSource
     public function __construct(
         private EventStore      $eventStore,
         private string          $streamName,
+        private int             $maxGapOffset = 5_000,
     ) {
     }
 
@@ -48,9 +49,10 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         foreach ($allEvents as $event) {
             $position = $event->getMetadata()['_position'] ?? throw new \RuntimeException('Event does not have a position');
-
             $tracking->advanceTo((int) $position);
         }
+
+        $tracking->cleanByMaxOffset($this->maxGapOffset);
 
         return new StreamPage($allEvents, (string) $tracking);
     }

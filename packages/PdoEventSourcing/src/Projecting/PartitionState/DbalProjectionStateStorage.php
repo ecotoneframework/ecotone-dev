@@ -8,6 +8,7 @@ namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Ecotone\Projecting\Transaction;
@@ -156,7 +157,11 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function beginTransaction(): Transaction
     {
-        $this->connection->beginTransaction();
-        return new DbalTransaction($this->connection);
+        if ($this->connection->isTransactionActive()) {
+            return new NoOpTransaction();
+        } else {
+            $this->connection->beginTransaction();
+            return new DbalTransaction($this->connection);
+        }
     }
 }

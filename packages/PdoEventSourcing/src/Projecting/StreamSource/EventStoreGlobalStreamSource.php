@@ -35,7 +35,8 @@ class EventStoreGlobalStreamSource implements StreamSource
             $eventsInGaps = $this->eventStore->load(
                 $this->streamName,
                 metadataMatcher: (new MetadataMatcher())
-                    ->withMetadataMatch('no', Operator::IN(), $tracking->getGaps(), FieldType::MESSAGE_PROPERTY())
+                    ->withMetadataMatch('no', Operator::IN(), $tracking->getGaps(), FieldType::MESSAGE_PROPERTY()),
+                deserialize: false,
             );
         }
 
@@ -43,6 +44,7 @@ class EventStoreGlobalStreamSource implements StreamSource
             $this->streamName,
             $tracking->getPosition() + 1,
             $count,
+            deserialize: false,
         );
 
 
@@ -77,7 +79,9 @@ class EventStoreGlobalStreamSource implements StreamSource
         $interleavedEvents = $this->eventStore->load(
             $this->streamName,
             metadataMatcher: (new MetadataMatcher())
-                ->withMetadataMatch('no', Operator::BETWEEN(), [$minGap, $maxGap], FieldType::MESSAGE_PROPERTY())
+                ->withMetadataMatch('no', Operator::GREATER_THAN_EQUALS(), $minGap, FieldType::MESSAGE_PROPERTY())
+                ->withMetadataMatch('no', Operator::LOWER_THAN_EQUALS(), $maxGap, FieldType::MESSAGE_PROPERTY()),
+            deserialize: false,
         );
 
         $nowMs = (int) floor(microtime(true) * 1000);

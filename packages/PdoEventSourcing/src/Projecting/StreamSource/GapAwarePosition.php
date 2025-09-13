@@ -83,7 +83,7 @@ class GapAwarePosition
 
     public function cleanByMaxOffset(int $maxOffset): void
     {
-        if ($maxOffset <= 0) {
+        if ($maxOffset <= 0 || empty($this->gaps)) {
             return;
         }
         $cutoff = $this->position - $maxOffset;
@@ -92,6 +92,9 @@ class GapAwarePosition
 
     public function cutoffGapsBelow(int $cutoffPosition): void
     {
+        if (empty($this->gaps)) {
+            return;
+        }
         // Find first gap > cutoff, then slice
         foreach ($this->gaps as $index => $gap) {
             if ($gap > $cutoffPosition) {

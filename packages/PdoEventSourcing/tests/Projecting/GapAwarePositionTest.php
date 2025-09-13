@@ -84,4 +84,25 @@ class GapAwarePositionTest extends TestCase
         $gapAware->cleanByMaxOffset(-10);
         $this->assertSame([2,5,9], $gapAware->getGaps());
     }
+
+    public function test_cutoff_gaps_below_removes_gaps_below_cutoff(): void
+    {
+        $gapAware = new GapAwarePosition(15, [2,5,7,9,12]);
+        $gapAware->cutoffGapsBelow(6);
+        $this->assertSame([7,9,12], $gapAware->getGaps());
+    }
+
+    public function test_cutoff_gaps_below_removes_all_when_cutoff_above_max_gap(): void
+    {
+        $gapAware = new GapAwarePosition(10, [2,5,7,9]);
+        $gapAware->cutoffGapsBelow(15);
+        $this->assertSame([], $gapAware->getGaps());
+    }
+
+    public function test_cutoff_gaps_below_keeps_all_when_cutoff_below_min_gap(): void
+    {
+        $gapAware = new GapAwarePosition(15, [5,7,9,12]);
+        $gapAware->cutoffGapsBelow(3);
+        $this->assertSame([5,7,9,12], $gapAware->getGaps());
+    }
 }

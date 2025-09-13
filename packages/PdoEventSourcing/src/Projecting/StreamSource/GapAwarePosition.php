@@ -20,6 +20,10 @@ class GapAwarePosition
         Assert::isTrue($this->position >= 0, 'Position must be a non-negative integer');
         $this->gaps = array_values(array_unique($gaps));
         \sort($this->gaps);
+        if (!empty($this->gaps)) {
+            $maxGap = last($this->gaps);
+            Assert::isTrue($maxGap <= $this->position, 'Max gap must be less than or equal to position');
+        }
     }
 
     public static function fromString(?string $position): self

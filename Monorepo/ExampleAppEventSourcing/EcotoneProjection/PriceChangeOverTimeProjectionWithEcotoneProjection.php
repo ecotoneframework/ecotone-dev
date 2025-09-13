@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 /*
- * licence Apache-2.0
+ * licence Enterprise
  */
 namespace Monorepo\ExampleAppEventSourcing\EcotoneProjection;
 

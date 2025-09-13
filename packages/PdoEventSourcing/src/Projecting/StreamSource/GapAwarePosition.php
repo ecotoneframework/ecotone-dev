@@ -82,17 +82,21 @@ class GapAwarePosition
         if ($maxOffset <= 0) {
             return;
         }
-        $threshold = $this->position - $maxOffset;
-        
-        // Find first gap > threshold, then slice
+        $cutoff = $this->position - $maxOffset;
+        $this->cutoffGapsBelow($cutoff);
+    }
+
+    public function cutoffGapsBelow(int $cutoffPosition): void
+    {
+        // Find first gap > cutoff, then slice
         foreach ($this->gaps as $index => $gap) {
-            if ($gap > $threshold) {
+            if ($gap > $cutoffPosition) {
                 $this->gaps = array_slice($this->gaps, $index);
                 return;
             }
         }
         
-        // All gaps are <= threshold, remove all
+        // All gaps are <= cutoff, remove all
         $this->gaps = [];
     }
 }

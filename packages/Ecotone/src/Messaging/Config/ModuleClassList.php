@@ -61,6 +61,7 @@ use Ecotone\Modelling\MessageHandling\Distribution\Module\DistributedHandlerModu
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\QueryBus;
 use Ecotone\OpenTelemetry\Configuration\OpenTelemetryModule;
+use Ecotone\Projecting\Config\ProjectingAttributeModule;
 use Ecotone\Projecting\Config\ProjectingConsoleCommands;
 use Ecotone\Projecting\Config\ProjectingModule;
 use Ecotone\Redis\Configuration\RedisMessageConsumerModule;
@@ -105,6 +106,7 @@ class ModuleClassList
         DynamicMessageChannelModule::class,
         EventSourcedRepositoryModule::class,
         ProjectingModule::class,
+        ProjectingAttributeModule::class,
 
         /** Attribute based configurations */
         MessageHeadersPropagatorInterceptor::class,

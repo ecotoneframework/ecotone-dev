@@ -14,6 +14,9 @@ use Ecotone\Modelling\Config\Routing\RoutingEvent;
 use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
 use Ecotone\Projecting\Attribute\Projection;
 
+/**
+ * This routing extension is responsible for changing destination channel to projection triggering channel
+ */
 class ProjectingModuleRoutingExtension implements RoutingEventHandler
 {
     /**

@@ -51,6 +51,11 @@ class ProjectingManager
         } while (count($streamPage->events) > 0); // TODO: we should handle the transaction lifecycle here or ignore batch size
     }
 
+    public function loadState(?string $partitionKey = null): ProjectionPartitionState
+    {
+        return $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
+    }
+
     public function init(): void
     {
         $hasBeenInit = $this->projectionStateStorage->init($this->projectionName);

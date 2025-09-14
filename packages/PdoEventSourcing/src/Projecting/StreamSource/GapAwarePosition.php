@@ -21,7 +21,7 @@ class GapAwarePosition
         $this->gaps = array_values(array_unique($gaps));
         \sort($this->gaps);
         if (!empty($this->gaps)) {
-            $maxGap = last($this->gaps);
+            $maxGap = $this->gaps[\array_key_last($this->gaps)];
             Assert::isTrue($maxGap <= $this->position, 'Max gap must be less than or equal to position');
         }
     }

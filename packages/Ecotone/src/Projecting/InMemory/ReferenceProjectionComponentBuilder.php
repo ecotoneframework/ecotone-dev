@@ -12,18 +12,18 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\StreamSource;
 
-class ReferenceStreamSourceBuilder implements ProjectionComponentBuilder
+class ReferenceProjectionComponentBuilder implements ProjectionComponentBuilder
 {
     /**
      * @param array<string> $streams projection names
      */
-    public function __construct(private array $projectionNames, private string $referenceName)
+    public function __construct(private array $projectionNames, private string $referenceName, private string $componentClass)
     {
     }
 
     public function canHandle(string $projectionName, string $component): bool
     {
-        return $component === StreamSource::class && \in_array($projectionName, $this->projectionNames, true);
+        return $component === $this->componentClass && \in_array($projectionName, $this->projectionNames, true);
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference

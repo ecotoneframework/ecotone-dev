@@ -13,7 +13,8 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;
-use Ecotone\Projecting\InMemory\ReferenceStreamSourceBuilder;
+use Ecotone\Projecting\InMemory\ReferenceProjectionComponentBuilder;
+use Ecotone\Projecting\StreamSource;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\TicketAsynchronousProjection;
@@ -29,7 +30,7 @@ class AsynchronousProjectionTest extends TestCase
             [TicketAsynchronousProjection::class],
             ['ticket_stream_source' => $streamSource, TicketAsynchronousProjection::class => $projection],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new ReferenceStreamSourceBuilder([TicketAsynchronousProjection::NAME], 'ticket_stream_source'))
+                ->addExtensionObject(new ReferenceProjectionComponentBuilder([TicketAsynchronousProjection::NAME], 'ticket_stream_source', StreamSource::class))
             ,
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel(TicketAsynchronousProjection::ASYNC_CHANNEL),

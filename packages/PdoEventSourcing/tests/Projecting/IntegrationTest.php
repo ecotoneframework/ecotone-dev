@@ -11,7 +11,8 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\InMemory\InMemoryStreamSource;
-use Ecotone\Projecting\InMemory\ReferenceStreamSourceBuilder;
+use Ecotone\Projecting\InMemory\ReferenceProjectionComponentBuilder;
+use Ecotone\Projecting\StreamSource;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\TicketProjection;
@@ -30,7 +31,7 @@ class IntegrationTest extends ProjectingTestCase
             [TicketProjection::class],
             ['ticket_stream_source' => $streamSource, TicketProjection::class => $projection, DbalConnectionFactory::class => self::getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new ReferenceStreamSourceBuilder([TicketProjection::NAME], 'ticket_stream_source'))
+                ->addExtensionObject(new ReferenceProjectionComponentBuilder([TicketProjection::NAME], 'ticket_stream_source', StreamSource::class))
         );
 
         $streamSource->append(

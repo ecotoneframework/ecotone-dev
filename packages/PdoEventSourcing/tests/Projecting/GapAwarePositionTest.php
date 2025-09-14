@@ -68,12 +68,12 @@ class GapAwarePositionTest extends TestCase
     {
         $gapAware = new GapAwarePosition(0);
         $gapAware->advanceTo(10); // gaps [1..9]
-        // position = 10, threshold = 10 - 4 = 6 -> remove gaps <= 6 => keep [7,8,9]
+        // position = 10, threshold = 10 - 4 = 6 -> remove gaps < 6 => keep [6,7,8,9]
         $gapAware->cleanByMaxOffset(4);
-        $this->assertSame([7,8,9], $gapAware->getGaps());
+        $this->assertSame([6,7,8,9], $gapAware->getGaps());
         // Ensure idempotency
         $gapAware->cleanByMaxOffset(4);
-        $this->assertSame([7,8,9], $gapAware->getGaps());
+        $this->assertSame([6,7,8,9], $gapAware->getGaps());
     }
 
     public function test_clean_by_max_offset_noop_when_non_positive(): void

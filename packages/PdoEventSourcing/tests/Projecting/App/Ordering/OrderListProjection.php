@@ -94,6 +94,6 @@ class OrderListProjection
     #[ProjectionDelete]
     public function delete(): void
     {
-        $this->connection->executeStatement('DROP TABLE order_list_projection;');
+        $this->connection->executeStatement('DROP TABLE IF EXISTS order_list_projection;');
     }
 }

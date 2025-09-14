@@ -58,20 +58,16 @@ class ProjectingManager
 
     public function init(): void
     {
-        $hasBeenInit = $this->projectionStateStorage->init($this->projectionName);
+        $this->projectionStateStorage->init($this->projectionName);
 
-        if ($hasBeenInit) {
-            $this->projectorExecutor->init();
-        }
+        $this->projectorExecutor->init();
     }
 
     public function delete(): void
     {
-        $hasBeenDeleted = $this->projectionStateStorage->delete($this->projectionName);
+        $this->projectionStateStorage->delete($this->projectionName);
 
-        if ($hasBeenDeleted) {
-            $this->projectorExecutor->delete();
-        }
+        $this->projectorExecutor->delete();
     }
 
     public function backfill(): void

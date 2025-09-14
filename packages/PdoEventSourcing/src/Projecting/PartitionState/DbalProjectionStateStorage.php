@@ -26,7 +26,6 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     public function __construct(
         DbalConnectionFactory $connectionFactory,
         private string        $stateTable = 'ecotone_projection_state',
-        private string        $lifecycleTable = 'ecotone_projection_lifecycle_state'
     )
     {
         $this->connection = $connectionFactory->createContext()->getDbalConnection();
@@ -83,50 +82,20 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         ]);
     }
 
-    public function init(string $projectionName): bool
+    public function init(string $projectionName): void
     {
         $this->createSchema();
-
-        $statement = match(true) {
-            $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
-                    INSERT INTO {$this->lifecycleTable} (projection_name, state) VALUES (:projectionName, :state)
-                    ON DUPLICATE KEY UPDATE projection_name = projection_name
-                    SQL,
-            default => <<<SQL
-                    INSERT INTO {$this->lifecycleTable} (projection_name, state) VALUES (:projectionName, :state)
-                    ON CONFLICT DO NOTHING
-                    SQL,
-        };
-
-        $rowsAffected = $this->connection->executeStatement($statement, [
-            'projectionName' => $projectionName,
-            'state' => self::STATE_INITIALIZED,
-        ]);
-
-        return $rowsAffected > 0;
     }
 
-    public function delete(string $projectionName): bool
+    public function delete(string $projectionName): void
     {
         $this->createSchema();
 
-        $rowsAffected = $this->connection->executeStatement(<<<SQL
-            DELETE FROM {$this->lifecycleTable} WHERE projection_name = :projectionName
+        $this->connection->executeStatement(<<<SQL
+            DELETE FROM {$this->stateTable} WHERE projection_name = :projectionName
             SQL, [
             'projectionName' => $projectionName,
         ]);
-
-        if ($rowsAffected > 0) {
-            $this->connection->executeStatement(<<<SQL
-                DELETE FROM {$this->stateTable} WHERE projection_name = :projectionName
-                SQL, [
-                'projectionName' => $projectionName,
-            ]);
-
-            return true;
-        } else {
-            return false;
-        }
     }
 
     public function createSchema(): void
@@ -144,14 +113,6 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
                 user_state JSON,
                 PRIMARY KEY (projection_name, partition_key)
             )'
-        );
-        $this->connection->executeStatement(<<<SQL
-            CREATE TABLE IF NOT EXISTS {$this->lifecycleTable} (
-                projection_name VARCHAR(255) NOT NULL,
-                state VARCHAR(255) NOT NULL,
-                PRIMARY KEY (projection_name)
-            )
-            SQL
         );
     }
 

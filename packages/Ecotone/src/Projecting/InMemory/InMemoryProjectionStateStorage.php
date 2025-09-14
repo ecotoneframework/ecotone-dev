@@ -14,10 +14,6 @@ use Ecotone\Projecting\Transaction;
 class InMemoryProjectionStateStorage implements ProjectionStateStorage
 {
     /**
-     * @var array<string, true> key is projection name
-     */
-    private array $projectionLifecycleState = [];
-    /**
      * @var array<string, ProjectionPartitionState> key is projection name
      */
     private array $projectionStates = [];
@@ -42,31 +38,18 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
         return $projectionName . '-' . $partitionKey;
     }
 
-    public function delete(string $projectionName): bool
+    public function delete(string $projectionName): void
     {
-        if (!isset($this->projectionLifecycleState[$projectionName])) {
-            return false;
-        }
-
         $projectionStartKey = $this->getKey($projectionName, null);
         foreach ($this->projectionStates as $key => $value) {
             if (str_starts_with($key, $projectionStartKey)) {
                 unset($this->projectionStates[$key]);
             }
         }
-        unset($this->projectionLifecycleState[$projectionName]);
-        return true;
     }
 
-    public function init(string $projectionName): bool
+    public function init(string $projectionName): void
     {
-        if (isset($this->projectionLifecycleState[$projectionName])) {
-            return false;
-        }
-
-        $this->projectionLifecycleState[$projectionName] = true;
-
-        return true;
     }
 
     public function beginTransaction(): Transaction

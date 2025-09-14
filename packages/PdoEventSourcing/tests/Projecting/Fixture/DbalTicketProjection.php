@@ -32,7 +32,7 @@ class DbalTicketProjection
     public function init(): void
     {
         $this->connection->executeQuery(<<<SQL
-            CREATE TABLE tickets_projection (
+            CREATE TABLE IF NOT EXISTS tickets_projection (
                 ticketId VARCHAR(255) PRIMARY KEY,
                 status VARCHAR(255) NOT NULL
             )
@@ -43,7 +43,7 @@ class DbalTicketProjection
     public function delete(): void
     {
         $this->connection->executeQuery(<<<SQL
-            DROP TABLE tickets_projection
+            DROP TABLE IF EXISTS tickets_projection
             SQL);
     }
 

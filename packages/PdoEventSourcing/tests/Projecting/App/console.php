@@ -129,6 +129,8 @@ $app->register('order:place')
             return Command::FAILURE;
         }
         $io->success("Order $orderId placed");
+
+        return Command::SUCCESS;
     });
 
 $app->register('order:ship')

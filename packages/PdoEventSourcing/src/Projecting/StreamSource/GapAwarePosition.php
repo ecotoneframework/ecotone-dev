@@ -97,7 +97,7 @@ class GapAwarePosition
         }
         // Find first gap > cutoff, then slice
         foreach ($this->gaps as $index => $gap) {
-            if ($gap > $cutoffPosition) {
+            if ($gap >= $cutoffPosition) {
                 $this->gaps = array_slice($this->gaps, $index);
                 return;
             }

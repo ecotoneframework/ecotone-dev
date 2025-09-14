@@ -7,6 +7,8 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
@@ -18,9 +20,10 @@ class EventStoreGlobalStreamSource implements StreamSource
 {
     public function __construct(
         private EventStore      $eventStore,
+        private EcotoneClockInterface  $clock,
         private string          $streamName,
         private int             $maxGapOffset = 5_000,
-        private ?int            $gapTimeoutMs = null,
+        private ?Duration            $gapTimeout = null,
     ) {
     }
 
@@ -57,16 +60,16 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);
 
-        // Apply gap timeout cleaning if configured
-        if ($this->gapTimeoutMs !== null && !empty($tracking->getGaps())) {
-            $this->cleanGapsByTimeout($tracking);
-        }
+        $this->cleanGapsByTimeout($tracking);
 
         return new StreamPage($allEvents, (string) $tracking);
     }
 
     private function cleanGapsByTimeout(GapAwarePosition $tracking): void
     {
+        if ($this->gapTimeout === null) {
+            return;
+        }
         $gaps = $tracking->getGaps();
         if (empty($gaps)) {
             return;
@@ -84,8 +87,7 @@ class EventStoreGlobalStreamSource implements StreamSource
             deserialize: false,
         );
 
-        $nowMs = (int) floor(microtime(true) * 1000);
-        $timeThreshold = $nowMs - $this->gapTimeoutMs;
+        $timestampThreshold = $this->clock->now()->unixTime()->sub($this->gapTimeout)->inSeconds();
         
         // Find the highest position with timestamp < timeThreshold
         $cutoffPosition = $minGap; // default: keep all gaps
@@ -95,12 +97,7 @@ class EventStoreGlobalStreamSource implements StreamSource
             $timestamp = $metadata['timestamp'] ?? null;
             
             if ($position !== null && $timestamp !== null) {
-                // Convert timestamp to milliseconds if needed
-                $timestampMs = is_int($timestamp) && $timestamp > 1e10 
-                    ? $timestamp 
-                    : (int) $timestamp * 1000;
-                    
-                if ($timestampMs < $timeThreshold && $position > $cutoffPosition) {
+                if ($timestamp < $timestampThreshold && $position > $cutoffPosition) {
                     $cutoffPosition = $position + 1; // Remove gaps below this position
                 }
             }

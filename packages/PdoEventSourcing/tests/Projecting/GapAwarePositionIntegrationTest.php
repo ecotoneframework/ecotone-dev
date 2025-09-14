@@ -7,11 +7,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\EventSourcing\Projecting\StreamSource\GapAwarePosition;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\ProjectingManager;
@@ -23,6 +25,7 @@ use Psr\Clock\ClockInterface;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
 
 class GapAwarePositionIntegrationTest extends TestCase
@@ -80,6 +83,114 @@ class GapAwarePositionIntegrationTest extends TestCase
         self::assertSame([1,3,5,7,9,11], $position->getGaps());
     }
 
+    public function test_max_gap_offset_cleaning(): void
+    {
+        // Create a stream source with small max gap offset
+        $streamSource = new EventStoreGlobalStreamSource(
+            self::$eventStore,
+            self::$clock,
+            Ticket::STREAM_NAME,
+            maxGapOffset: 3, // Only keep gaps within 3 positions
+            gapTimeout: null
+        );
+
+        // Create a position with gaps that exceed the max offset
+        $tracking = new GapAwarePosition(10, [2, 5, 7, 9]);
+        
+        // Execute
+        $result = $streamSource->load((string) $tracking, 100);
+        
+        // Verify: Only gaps within 3 positions should remain (7, 9)
+        $newTracking = GapAwarePosition::fromString($result->lastPosition);
+        self::assertSame([7, 9], $newTracking->getGaps());
+    }
+
+    public function test_gap_timeout_cleaning(): void
+    {
+        // Create events with specific timestamps
+        $now = self::$clock->now()->getTimestamp();
+
+        // Create events at specific positions with timestamps
+        $this->createEventWithTimestamp(Ticket::STREAM_NAME, $now);
+        $this->insertGaps(Ticket::STREAM_NAME); // Gap at position 2
+        $this->createEventWithTimestamp(Ticket::STREAM_NAME, $now);
+        $this->insertGaps(Ticket::STREAM_NAME); // Gap at position 4
+        $this->createEventWithTimestamp(Ticket::STREAM_NAME, $now);
+        $this->insertGaps(Ticket::STREAM_NAME); // Gap at position 6
+
+        self::$clock->sleep(Duration::seconds(4));
+        $now = self::$clock->now()->getTimestamp();
+        $this->createEventWithTimestamp(Ticket::STREAM_NAME, $now);
+
+        // Create a stream source with gap timeout
+        $streamSource = new EventStoreGlobalStreamSource(
+            self::$eventStore,
+            self::$clock,
+            Ticket::STREAM_NAME,
+            maxGapOffset: 1000,
+            gapTimeout: Duration::seconds(5)
+        );
+
+        // Execute
+        $result = $streamSource->load(null, 100);
+
+        // All gaps should be present initially
+        $tracking = GapAwarePosition::fromString($result->lastPosition);
+        self::assertSame([2, 4, 6], $tracking->getGaps());
+
+        // Delay 2 more seconds to exceed timeout for first gaps
+        self::$clock->sleep(Duration::seconds(2));
+
+        // Execute
+        $result = $streamSource->load(null, 100);
+
+        // Verify: Gaps 2, 7 should be removed (old timestamps), gaps 5, 9 should remain (recent timestamps)
+        $newTracking = GapAwarePosition::fromString($result->lastPosition);
+        self::assertSame([6], $newTracking->getGaps());
+    }
+
+    public function test_gap_cleaning_noop_when_no_gaps(): void
+    {
+        $streamSource = new EventStoreGlobalStreamSource(
+            self::$eventStore,
+            self::$clock,
+            Ticket::STREAM_NAME,
+            maxGapOffset: 1000,
+            gapTimeout: Duration::seconds(5)
+        );
+
+        // Create a position with no gaps
+        $tracking = new GapAwarePosition(10, []);
+
+        // Execute
+        $result = $streamSource->load((string) $tracking, 100);
+
+        // Verify: No gaps should remain
+        $newTracking = GapAwarePosition::fromString($result->lastPosition);
+        self::assertSame([], $newTracking->getGaps());
+    }
+
+    public function test_gap_cleaning_noop_when_timeout_disabled(): void
+    {
+        $streamSource = new EventStoreGlobalStreamSource(
+            self::$eventStore,
+            self::$clock,
+            Ticket::STREAM_NAME,
+            maxGapOffset: 1000,
+            gapTimeout: null // No timeout
+        );
+
+        // Create a position with gaps
+        $tracking = new GapAwarePosition(10, [2, 5, 7]);
+
+        // Execute
+        $result = $streamSource->load((string) $tracking, 100);
+
+        // Verify: All gaps should remain (no timeout cleaning)
+        $newTracking = GapAwarePosition::fromString($result->lastPosition);
+        self::assertSame([2, 5, 7], $newTracking->getGaps());
+    }
+
     private function insertGaps(string $stream, int $count = 1): void
     {
         self::$connectionFactory->establishConnection()->beginTransaction();
@@ -89,6 +200,19 @@ class GapAwarePositionIntegrationTest extends TestCase
             ]);
         }
         self::$connectionFactory->establishConnection()->rollBack();
+    }
+
+    private function createEventWithTimestamp(string $stream, int $timestamp): void
+    {
+        // Create an event and manually set its position and timestamp in the database
+        $event = Event::createWithType(TicketCreated::class, [], [
+            'timestamp' => $timestamp,
+            '_aggregate_type' => Ticket::class,
+            '_aggregate_id' => uniqid('test-'),
+            '_aggregate_version' => 0,
+        ]);
+
+        self::$eventStore->appendTo($stream, [$event]);
     }
 
     protected function createConnectionFactory(): DbalConnectionFactory

@@ -30,7 +30,6 @@ class EventSourcingModuleRoutingExtension implements RoutingEventHandler
         $registration = $event->getRegistration();
         $isCommandOrEventHandler = $registration->hasAnnotation(CommandHandler::class) || $registration->hasAnnotation(EventHandler::class);
         if ($isCommandOrEventHandler && $event->getRegistration()->hasAnnotation(Projection::class)) {
-            /** @var Projection $projectionAttribute */
             $projectionAttribute = $event->getRegistration()->getClassAnnotationsWithType(Projection::class)[0];
 
             if (in_array($projectionAttribute->getName(), $this->pollingProjectionNames, true)) {

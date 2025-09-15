@@ -24,7 +24,6 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Projecting\Attribute\Projection;
 
 #[ModuleAnnotation]
-
 class ProophProjectingModule implements AnnotationModule
 {
     public function __construct(private array $extensions)

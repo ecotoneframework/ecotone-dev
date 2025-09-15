@@ -20,8 +20,6 @@ use Ecotone\Modelling\Event;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionRegistry;
 use Enqueue\Dbal\DbalConnectionFactory;
-use InvalidArgumentException;
-use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
@@ -32,7 +30,7 @@ use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
 /**
  * @internal
  */
-class GapAwarePositionIntegrationTest extends TestCase
+class GapAwarePositionIntegrationTest extends ProjectingTestCase
 {
     private static DbalConnectionFactory $connectionFactory;
     private static StubUTCClock $clock;
@@ -43,14 +41,14 @@ class GapAwarePositionIntegrationTest extends TestCase
 
     protected function setUp(): void
     {
-        self::$connectionFactory = self::createConnectionFactory();
+        self::$connectionFactory = self::getConnectionFactory();
         self::$clock = new StubUTCClock();
         self::$ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: [DbalTicketProjection::class],
             containerOrAvailableServices: [
                 self::$projection = new DbalTicketProjection(self::$connectionFactory->establishConnection()),
                 new TicketEventConverter(),
-                DbalConnectionFactory::class => self::$connectionFactory,
+                self::$connectionFactory,
                 ClockInterface::class => self::$clock,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -217,14 +215,5 @@ class GapAwarePositionIntegrationTest extends TestCase
         ]);
 
         self::$eventStore->appendTo($stream, [$event]);
-    }
-
-    protected function createConnectionFactory(): DbalConnectionFactory
-    {
-        $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@127.0.0.1:5432/ecotone';
-        if (! $dsn) {
-            throw new InvalidArgumentException('Missing env `DATABASE_DSN` pointing to test database');
-        }
-        return new DbalConnectionFactory($dsn);
     }
 }

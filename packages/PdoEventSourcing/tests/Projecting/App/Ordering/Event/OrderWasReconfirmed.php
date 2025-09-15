@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -15,5 +16,6 @@ class OrderWasReconfirmed
 
     public function __construct(
         public readonly string $orderId
-        ) {}
+    ) {
+    }
 }

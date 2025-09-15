@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -34,10 +35,10 @@ class ProophProjectingModule implements AnnotationModule
     {
         $handledProjections = [];
         $extensions = [];
-        foreach($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
+        foreach ($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($classname, Projection::class);
             $streamAttribute = $annotationRegistrationService->getAttributeForClass($classname, FromStream::class);
-            if (!$projectionAttribute || !$streamAttribute) {
+            if (! $projectionAttribute || ! $streamAttribute) {
                 continue;
             }
 

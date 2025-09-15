@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -8,6 +9,7 @@ namespace Ecotone\Projecting\Config;
 
 use Ecotone\Messaging\Attribute\ConsoleCommand;
 use Ecotone\Projecting\ProjectionRegistry;
+use InvalidArgumentException;
 
 class ProjectingConsoleCommands
 {
@@ -18,8 +20,8 @@ class ProjectingConsoleCommands
     #[ConsoleCommand('ecotone:projection:init')]
     public function initProjection(string $name): void
     {
-        if (!$this->registry->has($name)) {
-            throw new \InvalidArgumentException("There is no projection with name {$name}");
+        if (! $this->registry->has($name)) {
+            throw new InvalidArgumentException("There is no projection with name {$name}");
         }
         $this->registry->get($name)->init();
     }
@@ -27,8 +29,8 @@ class ProjectingConsoleCommands
     #[ConsoleCommand('ecotone:projection:backfill')]
     public function backfillProjection(string $name): void
     {
-        if (!$this->registry->has($name)) {
-            throw new \InvalidArgumentException("There is no projection with name {$name}");
+        if (! $this->registry->has($name)) {
+            throw new InvalidArgumentException("There is no projection with name {$name}");
         }
         $this->registry->get($name)->backfill();
     }
@@ -36,8 +38,8 @@ class ProjectingConsoleCommands
     #[ConsoleCommand('ecotone:projection:delete')]
     public function deleteProjection(string $name): void
     {
-        if (!$this->registry->has($name)) {
-            throw new \InvalidArgumentException("There is no projection with name {$name}");
+        if (! $this->registry->has($name)) {
+            throw new InvalidArgumentException("There is no projection with name {$name}");
         }
         $this->registry->get($name)->delete();
     }

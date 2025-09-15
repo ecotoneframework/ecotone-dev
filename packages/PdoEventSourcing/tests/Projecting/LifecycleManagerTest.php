@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -10,28 +11,24 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
-use Ecotone\Projecting\InMemory\InMemoryStreamSource;
-use Ecotone\Projecting\InMemory\ReferenceProjectionComponentBuilder;
-use Ecotone\Projecting\StreamSource;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\TicketProjectionWithLifecycle;
 
+/**
+ * @internal
+ */
 class LifecycleManagerTest extends ProjectingTestCase
 {
     public function test_it_can_init_projection_lifecycle_state(): void
     {
-        if (! \class_exists(DbalConnectionFactory::class)) {
-            self::markTestSkipped('Dbal not installed');
-        }
-        $streamSource = new InMemoryStreamSource();
         $projection = new TicketProjectionWithLifecycle();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [TicketProjectionWithLifecycle::class],
-            ['ticket_stream_source' => $streamSource, TicketProjectionWithLifecycle::class => $projection, DbalConnectionFactory::class => self::getConnectionFactory()],
+            [$projection, self::getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new ReferenceProjectionComponentBuilder([TicketProjectionWithLifecycle::NAME], 'ticket_stream_source', StreamSource::class))
+                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder())
         );
 
         $streamSource->append(

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -12,6 +13,8 @@ use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Event;
+
+use function is_null;
 
 class EcotoneProjectorExecutor implements ProjectorExecutor
 {
@@ -43,7 +46,7 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         $response = $responseQueue->receive();
         $newUserState = $response?->getPayload();
 
-        if (!\is_null($newUserState)) {
+        if (! is_null($newUserState)) {
             return $newUserState;
         } else {
             return $userState;

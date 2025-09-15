@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -15,7 +16,8 @@ use Ecotone\Projecting\StreamSource;
 
 class EventStoreAggregateStreamSourceBuilder implements ProjectionComponentBuilder
 {
-    public function __construct(public readonly string $handledProjectionName, public ?string $aggregateType, private string $streamName) {
+    public function __construct(public readonly string $handledProjectionName, public ?string $aggregateType, private string $streamName)
+    {
     }
 
     public function canHandle(string $projectionName, string $component): bool

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -9,6 +10,9 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 class ProjectingTestCase extends TestCase
 {
     public static function getConnectionFactory(): DbalConnectionFactory

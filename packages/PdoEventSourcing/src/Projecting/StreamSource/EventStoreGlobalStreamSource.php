@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -15,6 +16,7 @@ use Ecotone\Projecting\StreamSource;
 use Prooph\EventStore\Metadata\FieldType;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
+use RuntimeException;
 
 class EventStoreGlobalStreamSource implements StreamSource
 {
@@ -54,7 +56,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         $allEvents = [...$eventsInGaps, ...$events];
 
         foreach ($allEvents as $event) {
-            $position = $event->getMetadata()['_position'] ?? throw new \RuntimeException('Event does not have a position');
+            $position = $event->getMetadata()['_position'] ?? throw new RuntimeException('Event does not have a position');
             $tracking->advanceTo((int) $position);
         }
 
@@ -77,7 +79,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $minGap = min($gaps);
         $maxGap = max($gaps);
-        
+
         // Query interleaved events in the gap range
         $interleavedEvents = $this->eventStore->load(
             $this->streamName,
@@ -88,14 +90,14 @@ class EventStoreGlobalStreamSource implements StreamSource
         );
 
         $timestampThreshold = $this->clock->now()->unixTime()->sub($this->gapTimeout)->inSeconds();
-        
+
         // Find the highest position with timestamp < timeThreshold
         $cutoffPosition = $minGap; // default: keep all gaps
         foreach ($interleavedEvents as $event) {
             $metadata = $event->getMetadata();
             $position = $metadata['_position'] ?? null;
             $timestamp = $metadata['timestamp'] ?? null;
-            
+
             if ($position !== null && $timestamp !== null) {
                 if ($timestamp < $timestampThreshold && $position > $cutoffPosition) {
                     $cutoffPosition = $position + 1; // Remove gaps below this position

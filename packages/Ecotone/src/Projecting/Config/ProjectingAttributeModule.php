@@ -1,10 +1,13 @@
 <?php
+
 /*
  * licence Enterprise
  */
 declare(strict_types=1);
 
 namespace Ecotone\Projecting\Config;
+
+use function array_merge;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
@@ -26,6 +29,7 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Projecting\Attribute\Projection;
+use LogicException;
 
 /**
  * This module register projection based on attributes
@@ -40,8 +44,7 @@ class ProjectingAttributeModule implements AnnotationModule
     public function __construct(
         private array $projectionBuilders = [],
         private array $lifecycleHandlers = []
-    )
-    {
+    ) {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
@@ -69,20 +72,20 @@ class ProjectingAttributeModule implements AnnotationModule
         foreach ($annotationRegistrationService->findCombined(Projection::class, EventHandler::class) as $projectionEventHandler) {
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
-            $projectionBuilder = $projectionBuilders[$projectionAttribute->name] ?? throw new \LogicException();
+            $projectionBuilder = $projectionBuilders[$projectionAttribute->name] ?? throw new LogicException();
             $projectionBuilder->addEventHandler($projectionEventHandler);
         }
 
-        $lifecycleAnnotations = \array_merge(
+        $lifecycleAnnotations = array_merge(
             $annotationRegistrationService->findCombined(Projection::class, ProjectionInitialization::class),
             $annotationRegistrationService->findCombined(Projection::class, ProjectionDelete::class),
         );
         foreach ($lifecycleAnnotations as $lifecycleAnnotation) {
             /** @var Projection $projectionAttribute */
             $projectionAttribute = $lifecycleAnnotation->getAnnotationForClass();
-            $projectionBuilder = $projectionBuilders[$projectionAttribute->name] ?? throw new \LogicException();
+            $projectionBuilder = $projectionBuilders[$projectionAttribute->name] ?? throw new LogicException();
             $projectionReferenceName = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $lifecycleAnnotation->getClassName());
-            $inputChannel = "projecting_lifecycle_handler:" . $projectionAttribute->name . ":" . $lifecycleAnnotation->getMethodName();
+            $inputChannel = 'projecting_lifecycle_handler:' . $projectionAttribute->name . ':' . $lifecycleAnnotation->getMethodName();
             if ($lifecycleAnnotation->getAnnotationForMethod() instanceof ProjectionInitialization) {
                 $projectionBuilder->setInitChannel($inputChannel);
             } elseif ($lifecycleAnnotation->getAnnotationForMethod() instanceof ProjectionDelete) {

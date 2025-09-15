@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -9,16 +10,18 @@ namespace Ecotone\EventSourcing\Projecting;
 use Ecotone\Projecting\PartitionProvider;
 use Enqueue\Dbal\DbalConnectionFactory;
 
+use function sha1;
+
 class AggregateIdPartitionProvider implements PartitionProvider
 {
     private string $streamTable;
     public function __construct(
         private DbalConnectionFactory $connectionFactory,
         private string $aggregateType,
-        private string $streamName)
-    {
+        private string $streamName
+    ) {
         // This is the name Prooph uses to store events in the database
-        $this->streamTable = '_' . \sha1($this->streamName);
+        $this->streamTable = '_' . sha1($this->streamName);
     }
 
     public function partitions(): iterable

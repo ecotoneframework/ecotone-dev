@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -27,10 +28,9 @@ use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasShipped;
 #[AggregateType(self::AGGREGATE_TYPE)]
 class Order
 {
+    use WithAggregateVersioning;
     public const STREAM_NAME = 'ordering';
     public const AGGREGATE_TYPE = 'order';
-
-    use WithAggregateVersioning;
     #[Identifier]
     private string $orderId;
     private string $product;

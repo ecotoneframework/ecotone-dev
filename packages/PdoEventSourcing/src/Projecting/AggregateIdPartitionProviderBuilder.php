@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -29,7 +30,7 @@ class AggregateIdPartitionProviderBuilder implements ProjectionComponentBuilder
         return new Definition(AggregateIdPartitionProvider::class, [
             Reference::to(DbalConnectionFactory::class),
             $this->aggregateType,
-            $this->streamName
+            $this->streamName,
         ]);
     }
 }

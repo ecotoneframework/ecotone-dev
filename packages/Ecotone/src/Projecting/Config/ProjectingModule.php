@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -64,7 +65,7 @@ class ProjectingModule implements AnnotationModule
                         if (isset($components[$projectionName][$component])) {
                             throw ConfigurationException::create(
                                 "Projection with name {$projectionName} is already registered for component {$component} with reference {$components[$projectionName][$component]}."
-                                . " You can only register one component of each type per projection. Please check your configuration."
+                                . ' You can only register one component of each type per projection. Please check your configuration.'
                             );
                         }
                         $components[$projectionName][$component] = new Reference($reference);

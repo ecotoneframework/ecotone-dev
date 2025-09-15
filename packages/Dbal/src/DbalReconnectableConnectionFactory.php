@@ -5,12 +5,10 @@ namespace Ecotone\Dbal;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Enqueue\Dbal\DbalContext;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
-use ReflectionClass;
 use ReflectionMethod;
 
 /**

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -76,14 +77,14 @@ class DbalTicketProjection
         ]);
     }
 
-    #[QueryHandler("getTicketStatus")]
+    #[QueryHandler('getTicketStatus')]
     public function getTicketStatus(string $ticketId): ?string
     {
         $result = $this->connection->fetchOne('SELECT status FROM tickets_projection WHERE ticketId = ?', [$ticketId]);
         return $result === false ? null : $result;
     }
 
-    #[QueryHandler("getTicketsCount")]
+    #[QueryHandler('getTicketsCount')]
     public function getTicketsCount(): int
     {
         return (int)$this->connection->fetchOne('SELECT COUNT(*) FROM tickets_projection');

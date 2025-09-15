@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -8,6 +9,9 @@ namespace Ecotone\Projecting\InMemory;
 
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionRegistry;
+use InvalidArgumentException;
+
+use function sprintf;
 
 class InMemoryProjectionRegistry implements ProjectionRegistry
 {
@@ -16,8 +20,7 @@ class InMemoryProjectionRegistry implements ProjectionRegistry
      */
     public function __construct(
         private array $projectionManagers,
-    )
-    {
+    ) {
     }
 
     public function has(string $id): bool
@@ -27,8 +30,8 @@ class InMemoryProjectionRegistry implements ProjectionRegistry
 
     public function get(string $id): ProjectingManager
     {
-        if (!$this->has($id)) {
-            throw new \InvalidArgumentException(\sprintf('Projection with name "%s" does not exist', $id));
+        if (! $this->has($id)) {
+            throw new InvalidArgumentException(sprintf('Projection with name "%s" does not exist', $id));
         }
 
         return $this->projectionManagers[$id];

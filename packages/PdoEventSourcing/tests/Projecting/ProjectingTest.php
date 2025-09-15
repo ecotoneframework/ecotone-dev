@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -15,6 +16,9 @@ use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectorExecutor;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 class ProjectingTest extends TestCase
 {
     protected function buildProjectingManager(ProjectorExecutor $projectorExecutor): ProjectingManager
@@ -32,11 +36,11 @@ class ProjectingTest extends TestCase
             $projectorExecutor,
             $source,
             new NullPartitionProvider(),
-            "projection-name",
+            'projection-name',
         );
     }
 
-    public function testProjecting(): void
+    public function test_projecting(): void
     {
         $projector = new InMemoryProjector();
         $projectingManager = $this->buildProjectingManager($projector);

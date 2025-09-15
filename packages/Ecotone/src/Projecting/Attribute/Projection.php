@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -8,7 +9,6 @@ namespace Ecotone\Projecting\Attribute;
 
 use Attribute;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
-use Ecotone\Messaging\MessageHeaders;
 
 #[Attribute]
 class Projection extends StreamBasedSource

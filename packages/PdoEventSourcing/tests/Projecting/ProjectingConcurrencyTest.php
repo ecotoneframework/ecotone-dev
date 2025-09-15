@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -10,6 +11,9 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Projecting\App\ConsoleProcessTrait;
 
+/**
+ * @internal
+ */
 class ProjectingConcurrencyTest extends TestCase
 {
     use ConsoleProcessTrait;
@@ -21,7 +25,7 @@ class ProjectingConcurrencyTest extends TestCase
         self::$ecotone = self::bootEcotone();
     }
 
-    public function testItCanPlaceOrder(): void
+    public function test_it_can_place_order(): void
     {
         $orderId = uniqid('order-');
         $process1 = $this->placeOrder($orderId);
@@ -55,7 +59,7 @@ class ProjectingConcurrencyTest extends TestCase
      * processes event at position 10
      * releases lock
      */
-    public function testInterleavedCommandsSeesGaps(): void
+    public function test_interleaved_commands_sees_gaps(): void
     {
         $orderId1 = uniqid('order-');
         $orderId2 = uniqid('order-');

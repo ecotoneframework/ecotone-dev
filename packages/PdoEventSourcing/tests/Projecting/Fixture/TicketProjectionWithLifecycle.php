@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -9,6 +10,7 @@ namespace Test\Ecotone\EventSourcing\Projecting\Fixture;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Projection;
+use RuntimeException;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 
 #[Projection(self::NAME)]
@@ -20,8 +22,8 @@ class TicketProjectionWithLifecycle
     #[EventHandler]
     public function on(TicketCreated $event): void
     {
-        if (!$this->initialized) {
-            throw new \RuntimeException('Projection not initialized');
+        if (! $this->initialized) {
+            throw new RuntimeException('Projection not initialized');
         }
         $this->projectedEvents[] = $event;
     }
@@ -30,7 +32,7 @@ class TicketProjectionWithLifecycle
     public function init(): void
     {
         if ($this->initialized) {
-            throw new \RuntimeException('Projection already initialized');
+            throw new RuntimeException('Projection already initialized');
         }
         $this->initialized = true;
     }

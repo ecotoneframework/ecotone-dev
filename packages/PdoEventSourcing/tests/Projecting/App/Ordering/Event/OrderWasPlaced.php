@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -18,5 +19,6 @@ class OrderWasPlaced
         public readonly string $product,
         public readonly int $quantity,
         public readonly bool $fail = false
-    ) {}
+    ) {
+    }
 }

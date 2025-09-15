@@ -1,11 +1,11 @@
 <?php
+
 /*
  * licence Enterprise
  */
 declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
-
 
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\Container\Definition;

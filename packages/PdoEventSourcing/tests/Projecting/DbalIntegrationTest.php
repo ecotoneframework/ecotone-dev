@@ -1,10 +1,13 @@
 <?php
+
 /*
  * licence Enterprise
  */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
+
+use function class_exists;
 
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
@@ -20,11 +23,14 @@ use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketUnassigned;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\TicketProjection;
 
+/**
+ * @internal
+ */
 class DbalIntegrationTest extends ProjectingTestCase
 {
     public function test_it_can_project_events(): void
     {
-        if (! \class_exists(DbalConnectionFactory::class)) {
+        if (! class_exists(DbalConnectionFactory::class)) {
             self::markTestSkipped('Dbal not installed');
         }
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
@@ -37,8 +43,7 @@ class DbalIntegrationTest extends ProjectingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder(TicketProjection::NAME, Ticket::class, Ticket::STREAM_NAME))
                 ->addExtensionObject(new DbalProjectionStateStorageBuilder([TicketProjection::NAME]))
-                ->withNamespaces(['Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket'])
-            ,
+                ->withNamespaces(['Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket']),
             runForProductionEventStore: true,
         );
 
@@ -48,8 +53,8 @@ class DbalIntegrationTest extends ProjectingTestCase
 
         self::assertEquals([], $projection->getProjectedEvents());
 
-        $ecotone->sendCommand(new CreateTicketCommand("ticket-10"));
-        $ecotone->sendCommand(new CreateTicketCommand("ticket-20"));
+        $ecotone->sendCommand(new CreateTicketCommand('ticket-10'));
+        $ecotone->sendCommand(new CreateTicketCommand('ticket-20'));
 
         self::assertEquals([
             new TicketCreated('ticket-10'),
@@ -67,7 +72,7 @@ class DbalIntegrationTest extends ProjectingTestCase
 
     public function test_it_can_use_user_projection_state(): void
     {
-        if (! \class_exists(DbalConnectionFactory::class)) {
+        if (! class_exists(DbalConnectionFactory::class)) {
             self::markTestSkipped('Dbal not installed');
         }
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
@@ -79,8 +84,7 @@ class DbalIntegrationTest extends ProjectingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder(TicketProjection::NAME, Ticket::class, Ticket::STREAM_NAME))
-                ->addExtensionObject(new DbalProjectionStateStorageBuilder([TicketProjection::NAME]))
-            ,
+                ->addExtensionObject(new DbalProjectionStateStorageBuilder([TicketProjection::NAME])),
             runForProductionEventStore: true,
         );
 
@@ -90,7 +94,7 @@ class DbalIntegrationTest extends ProjectingTestCase
 
         self::assertEquals([], $projection->getProjectedEvents());
 
-        $ecotone->sendCommand(new CreateTicketCommand("ticket-10"));
+        $ecotone->sendCommand(new CreateTicketCommand('ticket-10'));
         $ecotone->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
         $ecotone->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
 
@@ -109,7 +113,7 @@ class DbalIntegrationTest extends ProjectingTestCase
                 new TicketAssigned('ticket-10'),
             ],
             $projection->getProjectedEvents(),
-        'A maximum of ' . TicketProjection::MAX_ASSIGNMENT_COUNT . ' successive assignment on the same ticket should be recorded'
+            'A maximum of ' . TicketProjection::MAX_ASSIGNMENT_COUNT . ' successive assignment on the same ticket should be recorded'
         );
 
         $ecotone->sendCommandWithRoutingKey(Ticket::UNASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);

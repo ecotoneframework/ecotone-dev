@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -16,5 +17,7 @@ class OrderWasCancelled
     public function __construct(
         public readonly string $orderId,
         public readonly string $reason,
-        public readonly bool $fail = false) {}
+        public readonly bool $fail = false
+    ) {
+    }
 }

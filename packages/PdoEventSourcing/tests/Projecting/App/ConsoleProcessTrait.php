@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -7,8 +8,18 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\App;
 
 use Composer\Autoload\ClassLoader;
+
+use function dirname;
+
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+
+use function getenv;
+
+use LogicException;
 use ReflectionClass;
+
+use function str_contains;
+
 use Symfony\Component\Process\InputStream;
 use Symfony\Component\Process\Process;
 use Test\Ecotone\EventSourcing\Projecting\App\Tooling\WaitBeforeExecutingProjectionInterceptor;
@@ -34,8 +45,7 @@ trait ConsoleProcessTrait
         bool $shouldFail = false,
         bool $manualCommit = false,
         bool $manualProjection = false,
-    ): Process
-    {
+    ): Process {
         $orderId ??= uniqid('order-');
         $command = [
             'php',
@@ -58,7 +68,7 @@ trait ConsoleProcessTrait
 
         $process = new Process(
             command: $command,
-            env: [...\getenv(), 'COMPOSER_AUTOLOAD_FILE' => $this->getCurrentComposerAutoloadPath()],
+            env: [...getenv(), 'COMPOSER_AUTOLOAD_FILE' => $this->getCurrentComposerAutoloadPath()],
             input: $input = new InputStream(),
             timeout: 10,
         );
@@ -71,14 +81,14 @@ trait ConsoleProcessTrait
 
     public function waitingToExecuteProjection($type, string $output): bool
     {
-        return \str_contains($output, WaitBeforeExecutingProjectionInterceptor::getMessage());
+        return str_contains($output, WaitBeforeExecutingProjectionInterceptor::getMessage());
     }
 
     public function continueProcess(Process $process): void
     {
         $inputStream = $this->processesInputs[spl_object_id($process)] ?? null;
         if ($inputStream === null) {
-            throw new \LogicException('Process not found');
+            throw new LogicException('Process not found');
         }
         $inputStream->write("\n");
     }
@@ -86,6 +96,6 @@ trait ConsoleProcessTrait
     private function getCurrentComposerAutoloadPath(): string
     {
         $reflect = new ReflectionClass(ClassLoader::class);
-        return \dirname($reflect->getFileName(), 2) . '/autoload.php';
+        return dirname($reflect->getFileName(), 2) . '/autoload.php';
     }
 }

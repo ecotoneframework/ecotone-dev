@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -13,5 +14,7 @@ class OrderWasReturned
 {
     public const EVENT_NAME = 'order_was_returned';
 
-    public function __construct(public readonly string $orderId) {}
+    public function __construct(public readonly string $orderId)
+    {
+    }
 }

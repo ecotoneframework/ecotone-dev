@@ -1,4 +1,7 @@
 <?php
+/*
+ * licence Enterprise
+ */
 declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\App\Ordering\Command;
@@ -10,5 +13,6 @@ class PlaceOrder
         public readonly string $product,
         public readonly int $quantity,
         public readonly bool $fail = false
-    ) {}
+    ) {
+    }
 }

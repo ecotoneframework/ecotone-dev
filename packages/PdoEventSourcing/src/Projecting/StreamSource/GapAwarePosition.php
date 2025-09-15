@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -6,7 +7,17 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
+use function array_key_last;
+
 use Ecotone\Messaging\Support\Assert;
+
+use function implode;
+use function in_array;
+
+use InvalidArgumentException;
+
+use function sort;
+use function sprintf;
 
 class GapAwarePosition
 {
@@ -19,9 +30,9 @@ class GapAwarePosition
     ) {
         Assert::isTrue($this->position >= 0, 'Position must be a non-negative integer');
         $this->gaps = array_values(array_unique($gaps));
-        \sort($this->gaps);
-        if (!empty($this->gaps)) {
-            $maxGap = $this->gaps[\array_key_last($this->gaps)];
+        sort($this->gaps);
+        if (! empty($this->gaps)) {
+            $maxGap = $this->gaps[array_key_last($this->gaps)];
             Assert::isTrue($maxGap <= $this->position, 'Max gap must be less than or equal to position');
         }
     }
@@ -37,7 +48,7 @@ class GapAwarePosition
 
         $position = (int) $parts[0];
         if (empty($parts[1])) {
-            $gaps= [];
+            $gaps = [];
         } else {
             $gaps = array_map('intval', explode(',', $parts[1]));
         }
@@ -47,7 +58,7 @@ class GapAwarePosition
 
     public function __toString(): string
     {
-        return \sprintf('%d:%s', $this->position, \implode(',', $this->gaps));
+        return sprintf('%d:%s', $this->position, implode(',', $this->gaps));
     }
 
     public function getPosition(): int
@@ -67,17 +78,17 @@ class GapAwarePosition
     {
         if ($position === $this->position + 1) {
             $this->position++;
-        } else if (\in_array($position, $this->gaps, true)) {
+        } elseif (in_array($position, $this->gaps, true)) {
             // if the position is already in gaps, remove it
             $this->gaps = array_values(array_diff($this->gaps, [$position]));
-        } else if ($position > $this->position + 1) {
+        } elseif ($position > $this->position + 1) {
             // add all gaps between current position and new position
             for ($i = $this->position + 1; $i < $position; $i++) {
                 $this->gaps[] = $i;
             }
             $this->position = $position;
         } else {
-            throw new \InvalidArgumentException('Cannot advance to a position less than or equal to the current position. Current position: ' . $this->position . ', new position: ' . $position);
+            throw new InvalidArgumentException('Cannot advance to a position less than or equal to the current position. Current position: ' . $this->position . ', new position: ' . $position);
         }
     }
 
@@ -102,7 +113,7 @@ class GapAwarePosition
                 return;
             }
         }
-        
+
         // All gaps are <= cutoff, remove all
         $this->gaps = [];
     }

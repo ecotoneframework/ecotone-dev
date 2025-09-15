@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -27,7 +28,7 @@ $messagingSystem = require __DIR__ . '/app.php';
 
 $app = new Application();
 
-$app->setName("Order Management tool");
+$app->setName('Order Management tool');
 
 $app->register('stream:load')
     ->setDescription('Load data fixtures to database')
@@ -36,7 +37,7 @@ $app->register('stream:load')
     ->addOption('--clean', '-c', null, 'Clean database before loading')
     ->setCode(static function (InputInterface $input, OutputInterface $output) use ($messagingSystem) {
         $io = new SymfonyStyle($input, $output);
-        
+
         if ($input->getOption('clean')) {
             $io->section('Cleaning database');
             $eventStore = $messagingSystem->getGatewayByName(EventStore::class);
@@ -143,7 +144,7 @@ $app->register('order:ship')
         try {
             $messagingSystem->getCommandBus()->send(new ShipOrder($orderId));
         } catch (Throwable $exception) {
-            $io->error("Error shipping order: " . $exception->getMessage());
+            $io->error('Error shipping order: ' . $exception->getMessage());
             return Command::FAILURE;
         }
         $io->success("Order $orderId shipped");
@@ -160,7 +161,7 @@ $app->register('order:cancel')
         try {
             $messagingSystem->getCommandBus()->send(new CancelOrder($orderId, (string)$input->getOption('reason')));
         } catch (Throwable $exception) {
-            $io->error("Error cancelling order: " . $exception->getMessage());
+            $io->error('Error cancelling order: ' . $exception->getMessage());
             return Command::FAILURE;
         }
         $io->success("Order $orderId cancelled");

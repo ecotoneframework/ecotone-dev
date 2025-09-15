@@ -13,7 +13,6 @@ use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamSt
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Event;
 use Interop\Queue\ConnectionFactory;
 use Iterator;
 use PDO;

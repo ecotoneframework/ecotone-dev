@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -13,6 +14,7 @@ use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
+use RuntimeException;
 
 class EventStoreAggregateStreamSource implements StreamSource
 {
@@ -25,24 +27,27 @@ class EventStoreAggregateStreamSource implements StreamSource
 
     public function load(?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
     {
-        Assert::notNull($partitionKey, "Partition key cannot be null for aggregate stream source");
+        Assert::notNull($partitionKey, 'Partition key cannot be null for aggregate stream source');
 
         $metadataMatcher = new MetadataMatcher();
         if ($this->aggregateType !== null) {
             // @todo: watch out ! Prooph's event store has an index on (aggregate_type, aggregate_id). Not adding aggregate type here will result in a full table scan
             $metadataMatcher = $metadataMatcher->withMetadataMatch(
-                    MessageHeaders::EVENT_AGGREGATE_TYPE,
-                    Operator::EQUALS(),
-                    $this->aggregateType);
+                MessageHeaders::EVENT_AGGREGATE_TYPE,
+                Operator::EQUALS(),
+                $this->aggregateType
+            );
         }
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
             MessageHeaders::EVENT_AGGREGATE_ID,
             Operator::EQUALS(),
-            $partitionKey);
+            $partitionKey
+        );
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
             MessageHeaders::EVENT_AGGREGATE_VERSION,
             Operator::GREATER_THAN_EQUALS(),
-            (int)$lastPosition + 1);
+            (int)$lastPosition + 1
+        );
 
         $events = $this->eventStore->load(
             $this->streamName,
@@ -60,6 +65,6 @@ class EventStoreAggregateStreamSource implements StreamSource
         if ($lastEvent === false) {
             return $lastPosition;
         }
-        return (string) $lastEvent->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? throw new \RuntimeException("Last event does not have aggregate version");
+        return (string) $lastEvent->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? throw new RuntimeException('Last event does not have aggregate version');
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -103,5 +104,3 @@ class EventsConverter
         return new OrderWasReturned($data['orderId']);
     }
 }
-
-

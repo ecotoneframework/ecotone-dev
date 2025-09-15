@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -16,5 +17,6 @@ class OrderWasShipped
     public function __construct(
         public readonly string $orderId,
         public readonly bool $fail = false
-    ) {}
+    ) {
+    }
 }

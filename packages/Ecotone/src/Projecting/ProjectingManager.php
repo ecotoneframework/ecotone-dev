@@ -1,10 +1,14 @@
 <?php
+
 /*
  * licence Enterprise
  */
 declare(strict_types=1);
 
 namespace Ecotone\Projecting;
+
+use InvalidArgumentException;
+use Throwable;
 
 class ProjectingManager
 {
@@ -17,7 +21,7 @@ class ProjectingManager
         private int                    $batchSize = 1000,
     ) {
         if ($batchSize < 1) {
-            throw new \InvalidArgumentException('Batch size must be at least 1');
+            throw new InvalidArgumentException('Batch size must be at least 1');
         }
     }
 
@@ -44,7 +48,7 @@ class ProjectingManager
                         ->withUserState($userState)
                 );
                 $transaction->commit();
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $transaction->rollBack();
                 throw $e;
             }

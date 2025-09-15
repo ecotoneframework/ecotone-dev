@@ -114,7 +114,7 @@ class ModuleClassList
         CommandBus::class,
         QueryBus::class,
         EventBus::class,
-        ProjectingConsoleCommands::class
+        ProjectingConsoleCommands::class,
     ];
 
     public const ASYNCHRONOUS_MODULE = [
@@ -155,7 +155,7 @@ class ModuleClassList
 
     public const EVENT_SOURCING_MODULES = [
         EventSourcingModule::class,
-        ProophProjectingModule::class
+        ProophProjectingModule::class,
     ];
 
     public const JMS_CONVERTER_MODULES = [

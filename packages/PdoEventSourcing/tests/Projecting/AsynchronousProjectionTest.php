@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -17,6 +18,9 @@ use PHPUnit\Framework\TestCase;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\TicketAsynchronousProjection;
 
+/**
+ * @internal
+ */
 class AsynchronousProjectionTest extends TestCase
 {
     public function test_it_can_init_projection_lifecycle_state(): void
@@ -27,8 +31,7 @@ class AsynchronousProjectionTest extends TestCase
             [TicketAsynchronousProjection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: MessageHeaders::EVENT_AGGREGATE_ID))
-            ,
+                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: MessageHeaders::EVENT_AGGREGATE_ID)),
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel(TicketAsynchronousProjection::ASYNC_CHANNEL),
             ],

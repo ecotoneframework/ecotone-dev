@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -33,8 +34,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         private ?string $deleteChannel = null,
         private array   $projectionEventHandlers = [],
         private ?string $asyncChannelName = null,
-    )
-    {
+    ) {
     }
 
     public function projectionName(): string

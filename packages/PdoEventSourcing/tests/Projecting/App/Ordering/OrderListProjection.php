@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -13,6 +14,7 @@ use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\Projection;
+use RuntimeException;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasCancelled;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasPlaced;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasShipped;
@@ -30,7 +32,7 @@ class OrderListProjection
         $this->connection = $connection;
     }
 
-    #[QueryHandler("order.get")]
+    #[QueryHandler('order.get')]
     public function get(string $orderId): ?array
     {
         return $this->connection->fetchAssociative('SELECT * FROM order_list_projection WHERE order_id = ?', [$orderId]) ?: null;
@@ -40,7 +42,7 @@ class OrderListProjection
     public function onOrderWasPlaced(OrderWasPlaced $event): void
     {
         if ($event->fail) {
-            throw new \RuntimeException("Simulated failure during handling OrderWasPlaced for {$event->orderId}");
+            throw new RuntimeException("Simulated failure during handling OrderWasPlaced for {$event->orderId}");
         }
         $this->connection->insert('order_list_projection', [
             'order_id' => $event->orderId,
@@ -54,7 +56,7 @@ class OrderListProjection
     public function onOrderWasShipped(OrderWasShipped $event): void
     {
         if ($event->fail) {
-            throw new \RuntimeException("Simulated failure during handling OrderWasShipped for {$event->orderId}");
+            throw new RuntimeException("Simulated failure during handling OrderWasShipped for {$event->orderId}");
         }
         $this->connection->update('order_list_projection', [
             'status' => 'shipped',
@@ -67,7 +69,7 @@ class OrderListProjection
     public function onOrderWasCancelled(OrderWasCancelled $event): void
     {
         if ($event->fail) {
-            throw new \RuntimeException("Simulated failure during handling OrderWasCancelled for {$event->orderId}");
+            throw new RuntimeException("Simulated failure during handling OrderWasCancelled for {$event->orderId}");
         }
         $this->connection->update('order_list_projection', [
             'status' => 'cancelled',

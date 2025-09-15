@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -14,6 +15,9 @@ use Ecotone\Projecting\ProjectionStateStorage;
 use Ecotone\Projecting\Transaction;
 use Enqueue\Dbal\DbalConnectionFactory;
 
+use function json_decode;
+use function json_encode;
+
 class DbalProjectionStateStorage implements ProjectionStateStorage
 {
     private const STATE_INITIALIZED = 'initialized';
@@ -26,8 +30,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     public function __construct(
         DbalConnectionFactory $connectionFactory,
         private string        $stateTable = 'ecotone_projection_state',
-    )
-    {
+    ) {
         $this->connection = $connectionFactory->createContext()->getDbalConnection();
     }
 
@@ -48,18 +51,18 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             'projectionName' => $projectionName,
             'partitionKey' => $partitionKey ?? '',
         ]);
-        if (!$row) {
+        if (! $row) {
             return new ProjectionPartitionState($projectionName, $partitionKey);
         }
 
-        return new ProjectionPartitionState($projectionName, $partitionKey, $row['last_position'], \json_decode($row['user_state'], true));
+        return new ProjectionPartitionState($projectionName, $partitionKey, $row['last_position'], json_decode($row['user_state'], true));
     }
 
     public function savePartition(ProjectionPartitionState $projectionState): void
     {
         $this->createSchema();
 
-        if (!$this->saveStateQuery) {
+        if (! $this->saveStateQuery) {
             $this->saveStateQuery = match(true) {
                 $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
                     INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state)
@@ -78,7 +81,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             'projectionName' => $projectionState->projectionName,
             'partitionKey' => $projectionState->partitionKey ?? '',
             'lastPosition' => $projectionState->lastPosition,
-            'userState' => \json_encode($projectionState->userState),
+            'userState' => json_encode($projectionState->userState),
         ]);
     }
 

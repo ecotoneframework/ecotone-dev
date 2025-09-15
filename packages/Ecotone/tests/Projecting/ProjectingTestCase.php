@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -16,8 +17,14 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
+
+use function get_class;
+
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @internal
+ */
 class ProjectingTestCase extends TestCase
 {
     public function test_asynchronous_projection(): void
@@ -32,7 +39,7 @@ class ProjectingTestCase extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [\get_class($projection)],
+            [get_class($projection)],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -63,7 +70,7 @@ class ProjectingTestCase extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [\get_class($projection)],
+            [get_class($projection)],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
@@ -95,7 +102,7 @@ class ProjectingTestCase extends TestCase
             }
         };
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [\get_class($projection)],
+            [get_class($projection)],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))

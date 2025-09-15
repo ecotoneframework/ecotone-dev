@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -28,6 +29,9 @@ use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
 
+/**
+ * @internal
+ */
 class GapAwarePositionIntegrationTest extends TestCase
 {
     private static DbalConnectionFactory $connectionFactory;
@@ -47,7 +51,7 @@ class GapAwarePositionIntegrationTest extends TestCase
                 self::$projection = new DbalTicketProjection(self::$connectionFactory->establishConnection()),
                 new TicketEventConverter(),
                 DbalConnectionFactory::class => self::$connectionFactory,
-                ClockInterface::class => self::$clock
+                ClockInterface::class => self::$clock,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -70,7 +74,7 @@ class GapAwarePositionIntegrationTest extends TestCase
 
     public function test_gaps_are_added_to_position(): void
     {
-        for($i = 1; $i <= 6; $i++) {
+        for ($i = 1; $i <= 6; $i++) {
             $this->insertGaps(Ticket::STREAM_NAME);
             self::$ecotone->sendCommand(new CreateTicketCommand('ticket-' . $i));
         }
@@ -80,7 +84,7 @@ class GapAwarePositionIntegrationTest extends TestCase
         self::assertSame(6, self::$projection->getTicketsCount());
         $position = GapAwarePosition::fromString(self::$projectionManager->loadState()->lastPosition);
         self::assertSame(12, $position->getPosition());
-        self::assertSame([1,3,5,7,9,11], $position->getGaps());
+        self::assertSame([1, 3, 5, 7, 9, 11], $position->getGaps());
     }
 
     public function test_max_gap_offset_cleaning(): void
@@ -96,10 +100,10 @@ class GapAwarePositionIntegrationTest extends TestCase
 
         // Create a position with gaps that exceed the max offset
         $tracking = new GapAwarePosition(10, [2, 5, 7, 9]);
-        
+
         // Execute
         $result = $streamSource->load((string) $tracking, 100);
-        
+
         // Verify: Only gaps within 3 positions should remain (7, 9)
         $newTracking = GapAwarePosition::fromString($result->lastPosition);
         self::assertSame([7, 9], $newTracking->getGaps());

@@ -121,7 +121,7 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function resetProjection(string $name): void
     {
-        if (!isset($this->projectionSetupConfigurations[$name])) {
+        if (! isset($this->projectionSetupConfigurations[$name])) {
             throw new InvalidArgumentException("Projection with name '$name' is not configured.");
         }
         $this->getProjectionManager()->resetProjection($name);
@@ -130,7 +130,7 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function triggerProjection(string $name): void
     {
-        if (!isset($this->projectionSetupConfigurations[$name])) {
+        if (! isset($this->projectionSetupConfigurations[$name])) {
             throw new InvalidArgumentException("Projection with name '$name' is not configured.");
         }
         $this->triggerActionOnProjection($name);
@@ -138,7 +138,7 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function initializeProjection(string $name): void
     {
-        if (!isset($this->projectionSetupConfigurations[$name])) {
+        if (! isset($this->projectionSetupConfigurations[$name])) {
             throw new InvalidArgumentException("Projection with name '$name' is not configured.");
         }
         $this->messagingEntrypoint->send([], $this->projectionSetupConfigurations[$name]->getInitializationChannelName());

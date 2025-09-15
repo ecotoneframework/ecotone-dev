@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -14,6 +15,9 @@ use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\TicketProjection;
 
+/**
+ * @internal
+ */
 class IntegrationTest extends ProjectingTestCase
 {
     public function test_it_can_project_events(): void

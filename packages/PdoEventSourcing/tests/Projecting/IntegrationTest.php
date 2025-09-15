@@ -10,10 +10,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
-use Ecotone\Projecting\InMemory\InMemoryStreamSource;
-use Ecotone\Projecting\InMemory\ReferenceProjectionComponentBuilder;
-use Ecotone\Projecting\StreamSource;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\TicketProjection;
 
@@ -21,17 +18,13 @@ class IntegrationTest extends ProjectingTestCase
 {
     public function test_it_can_project_events(): void
     {
-        if (! \class_exists(DbalConnectionFactory::class)) {
-            self::markTestSkipped('Dbal not installed');
-        }
-        $streamSource = new InMemoryStreamSource();
         $projection = new TicketProjection();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [TicketProjection::class],
-            ['ticket_stream_source' => $streamSource, TicketProjection::class => $projection, DbalConnectionFactory::class => self::getConnectionFactory()],
+            [$projection, self::getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new ReferenceProjectionComponentBuilder([TicketProjection::NAME], 'ticket_stream_source', StreamSource::class))
+                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder([TicketProjection::NAME], partitionField: MessageHeaders::EVENT_AGGREGATE_ID))
         );
 
         $streamSource->append(

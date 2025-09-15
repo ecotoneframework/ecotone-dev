@@ -12,6 +12,7 @@ use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
 
 class ProophIntegrationTest extends ProjectingTestCase
@@ -23,12 +24,8 @@ class ProophIntegrationTest extends ProjectingTestCase
         }
         $connectionFactory = self::getConnectionFactory();
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [DbalTicketProjection::class, Ticket::class, TicketEventConverter::class],
-            [
-                DbalConnectionFactory::class => $connectionFactory,
-                DbalTicketProjection::class => new DbalTicketProjection($connectionFactory->establishConnection()),
-                TicketEventConverter::class => new TicketEventConverter(),
-            ],
+            [DbalTicketProjection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+            [$connectionFactory, new DbalTicketProjection($connectionFactory->establishConnection()), new TicketEventConverter()],
             runForProductionEventStore: true
         );
 
@@ -39,6 +36,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->sendQueryWithRouting("getTicketsCount");
 
         self::assertSame(1, $ticketsCount);
+        self::assertSame("assigned", $ecotone->sendQueryWithRouting("getTicketStatus", $ticketId));
 
         $ticketsCount = $ecotone->deleteProjection(DbalTicketProjection::NAME)
             ->initializeProjection(DbalTicketProjection::NAME)
@@ -50,5 +48,6 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->sendQueryWithRouting("getTicketsCount");
 
         self::assertSame(1, $ticketsCount);
+        self::assertSame("assigned", $ecotone->sendQueryWithRouting("getTicketStatus", $ticketId));
     }
 }

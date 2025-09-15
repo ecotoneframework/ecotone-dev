@@ -17,7 +17,8 @@ class InMemoryStreamSource implements StreamSource
      * @param Event[] $events
      */
     public function __construct(
-        private array $events = []
+        private ?string $partitionHeader = null,
+        private array   $events = [],
     ) {
     }
 
@@ -33,7 +34,7 @@ class InMemoryStreamSource implements StreamSource
         $from = $lastPosition !== null ? (int) $lastPosition : 0;
 
         if ($partitionKey) {
-            $events = array_filter($this->events, fn (Event $event) => $event->getMetadata()[MessageHeaders::EVENT_AGGREGATE_ID] === $partitionKey);
+            $events = array_filter($this->events, fn (Event $event) => $event->getMetadata()[$this->partitionHeader] === $partitionKey);
         } else {
             $events = $this->events;
         }

@@ -14,11 +14,6 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Event;
-use Ecotone\Projecting\Attribute\Projection;
-use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
@@ -66,45 +61,35 @@ class ProophIntegrationTest extends ProjectingTestCase
         self::assertSame('assigned', $ecotone->sendQueryWithRouting('getTicketStatus', $ticketId));
     }
 
-    public function test_partitioned_asynchronous_projection(): void
+    public function test_asynchronous_projection(): void
     {
-        $projection = new #[Projection(self::NAME, MessageHeaders::EVENT_AGGREGATE_ID), Asynchronous(self::ASYNC_CHANNEL)] class {
-            public const NAME = 'projection_with_async';
+        $connectionFactory = self::getConnectionFactory();
+        $projection = new #[Asynchronous(self::ASYNC_CHANNEL)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const ASYNC_CHANNEL = 'async_projection';
-
-            public array $projectedEvents = [];
-            #[EventHandler]
-            public function on(TicketCreated $event): void
-            {
-                $this->projectedEvents[] = $event;
-            }
         };
-
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
-            [$projection],
-            ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: MessageHeaders::EVENT_AGGREGATE_ID)),
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+            [$connectionFactory, $projection, new TicketEventConverter()],
+            runForProductionEventStore: true,
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL),
             ],
         );
 
-        $streamSource->append(
-            Event::create(new TicketCreated('ticket-1'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']),
-            Event::create(new TicketCreated('ticket-4'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-4']),
-        );
-        $ecotone->publishEvent(new TicketCreated('ticket-that-triggers-projection'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
-        self::assertEquals([], $projection->projectedEvents);
+        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+            ->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME)
+            ->sendCommand(new CreateTicketCommand($ticketId = Uuid::uuid4()->toString()))
+            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
+            ->sendQueryWithRouting('getTicketsCount');
 
-        $ecotone->run($projection::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup());
+        self::assertSame(0, $ticketsCount);
 
-        self::assertEquals([new TicketCreated('ticket-1')], $projection->projectedEvents);
+        $ticketsCount = $ecotone->run($projection::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup())
+            ->sendQueryWithRouting('getTicketsCount');
 
-        $ecotone->publishEvent(new TicketCreated('ticket-that-triggers-projection'), [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
-        $ecotone->run($projection::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup()->withFinishWhenNoMessages(true));
-
-        self::assertEquals([new TicketCreated('ticket-1')], $projection->projectedEvents);
+        self::assertSame(1, $ticketsCount);
+        self::assertSame('assigned', $ecotone->sendQueryWithRouting('getTicketStatus', $ticketId));
     }
 
     public function test_it_can_use_user_projection_state(): void

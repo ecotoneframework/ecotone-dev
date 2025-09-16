@@ -11,6 +11,7 @@ use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -19,6 +20,7 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -43,6 +45,7 @@ class ProjectingTest extends TestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder())
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
@@ -74,6 +77,7 @@ class ProjectingTest extends TestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: 'id'))
         );
 
@@ -106,6 +110,7 @@ class ProjectingTest extends TestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: 'id'))
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
@@ -156,6 +161,7 @@ class ProjectingTest extends TestCase
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder())
         );
 
@@ -167,5 +173,25 @@ class ProjectingTest extends TestCase
 
         $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
         self::assertCount(2, $projection->projectedEvents);
+    }
+
+    public function test_it_throws_exception_when_no_licence(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Projections are part of Ecotone Enterprise. To use projections, please acquire an enterprise licence.');
+
+        $projection = new #[Projection('test')] class {
+            #[EventHandler('*')]
+            public function handle(array $event): void
+            {
+            }
+        };
+        EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->addExtensionObject(new InMemoryStreamSourceBuilder())
+        );
     }
 }

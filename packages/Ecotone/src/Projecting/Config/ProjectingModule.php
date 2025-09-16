@@ -53,6 +53,10 @@ class ProjectingModule implements AnnotationModule
         $projectionBuilders = ExtensionObjectResolver::resolve(ProjectionExecutorBuilder::class, $extensionObjects);
         $componentBuilders = ExtensionObjectResolver::resolve(ProjectionComponentBuilder::class, $extensionObjects);
 
+        if (! empty($projectionBuilders) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw ConfigurationException::create('Projections are part of Ecotone Enterprise. To use projections, please acquire an enterprise licence.');
+        }
+
         /** @var array<string, array<string, string>> $components [projection name][component name][reference] */
         $components = [];
         foreach ($componentBuilders as $componentBuilder) {

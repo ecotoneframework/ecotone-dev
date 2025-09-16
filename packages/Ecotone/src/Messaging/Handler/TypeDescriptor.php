@@ -797,6 +797,11 @@ final class TypeDescriptor implements Type, DefinedObject
         return $this->type === self::NULL;
     }
 
+    public function isEnum(): bool
+    {
+        return enum_exists($this->type);
+    }
+
     /**
      * @param string $type
      * @return string

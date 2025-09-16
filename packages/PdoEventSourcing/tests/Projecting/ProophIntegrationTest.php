@@ -15,6 +15,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Projecting\ProjectionRegistry;
+use Ecotone\Test\LicenceTesting;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
@@ -36,7 +37,8 @@ class ProophIntegrationTest extends ProjectingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [DbalTicketProjection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, new DbalTicketProjection($connectionFactory->establishConnection()), new TicketEventConverter()],
-            runForProductionEventStore: true
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
@@ -74,6 +76,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL),
             ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
@@ -101,6 +104,7 @@ class ProophIntegrationTest extends ProjectingTestCase
                 ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder(TicketProjection::NAME, Ticket::class, Ticket::STREAM_NAME))
                 ->addExtensionObject(new DbalProjectionStateStorageBuilder([TicketProjection::NAME])),
             runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotone->deleteEventStream(Ticket::STREAM_NAME);

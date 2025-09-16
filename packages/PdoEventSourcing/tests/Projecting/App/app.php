@@ -9,6 +9,7 @@ use Composer\Autoload\ClassLoader;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\EventsConverter;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\OrderListProjection;
@@ -34,6 +35,7 @@ return EcotoneLite::bootstrap(
     configuration: ServiceConfiguration::createWithDefaults()
         ->doNotLoadCatalog()
         ->withFailFast(false)
+        ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         ->withDefaultErrorChannel('errorChannel')
         ->withNamespaces(['Test\\Ecotone\\EventSourcing\\Projecting\\App'])
         ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])),

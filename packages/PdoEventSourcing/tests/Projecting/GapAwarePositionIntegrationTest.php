@@ -19,6 +19,7 @@ use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionRegistry;
+use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Psr\Clock\ClockInterface;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
@@ -53,6 +54,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',

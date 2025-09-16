@@ -5,12 +5,11 @@ namespace Monorepo\Benchmark;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
-use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Projecting\ProjectionRegistry;
+use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
@@ -46,6 +45,7 @@ class ProjectingBenchmark
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->doNotLoadCatalog()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', ...$namespaces])
                 ->withCacheDirectoryPath(self::getProjectDir() . "/var/cache/$name")
                 ->withDefaultErrorChannel('errorChannel')

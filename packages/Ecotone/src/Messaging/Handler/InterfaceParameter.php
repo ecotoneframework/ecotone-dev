@@ -187,7 +187,7 @@ final class InterfaceParameter
      */
     public function isObjectTypeHint(): bool
     {
-        return class_exists($this->getTypeHint());
+        return class_exists($this->getTypeHint()) || interface_exists($this->getTypeHint());
     }
 
     public function __toString()

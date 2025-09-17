@@ -7,6 +7,7 @@ use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
+use Ecotone\EventSourcing\InMemory\StreamIteratorWithPosition;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamStrategy;
 use Ecotone\EventSourcing\ProophEventMapper;
@@ -99,7 +100,12 @@ class LazyProophEventStore implements EventStore
 
     public function load(StreamName $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null): Iterator
     {
-        return $this->getEventStore($streamName)->load($streamName, $fromNumber, $count, $metadataMatcher);
+        if ($this->eventSourcingConfiguration->isInMemory()) {
+            $events = $this->getEventStore($streamName)->load($streamName, $fromNumber, $count, $metadataMatcher);
+            return new StreamIteratorWithPosition($events, $fromNumber);
+        } else {
+            return $this->getEventStore($streamName)->load($streamName, $fromNumber, $count, $metadataMatcher);
+        }
     }
 
     public function loadReverse(StreamName $streamName, ?int $fromNumber = null, ?int $count = null, ?MetadataMatcher $metadataMatcher = null): Iterator
@@ -296,7 +302,7 @@ class LazyProophEventStore implements EventStore
         return $eventStoreType;
     }
 
-    public function getConnection(): \Doctrine\DBAL\Connection
+    private function getConnection(): \Doctrine\DBAL\Connection
     {
         $connectionFactory = new DbalReconnectableConnectionFactory($this->connectionFactory);
 

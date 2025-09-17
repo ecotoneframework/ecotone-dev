@@ -1,18 +1,22 @@
 <?php declare(strict_types=1);
+/*
+ * licence Apache-2.0
+ */
+namespace Monorepo\ExampleAppEventSourcing\ProophProjection;
 
-namespace Monorepo\ExampleAppEventSourcing\Common;
-
-use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
-use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
-use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
+use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
+use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
+use Monorepo\ExampleAppEventSourcing\Common\PriceChange;
+use Monorepo\ExampleAppEventSourcing\Common\Product;
 
-#[Projection("price_change_over_time", Product::class)]
+#[\Ecotone\EventSourcing\Attribute\Projection(self::NAME, Product::class)]
 class PriceChangeOverTimeProjection
 {
-    /** @var PriceChange[][] */
+    public const NAME = "price_change_over_time";
+
     private array $priceChangeOverTime = [];
 
     /**
@@ -39,5 +43,11 @@ class PriceChangeOverTimeProjection
     {
         $lastPrice = end($this->priceChangeOverTime[$event->getProductId()]);
         $this->priceChangeOverTime[$event->getProductId()][] = new PriceChange($event->getPrice(), $event->getPrice() - $lastPrice->getPrice());
+    }
+
+    #[ProjectionDelete]
+    public function deleteProjection(): void
+    {
+        $this->priceChangeOverTime = [];
     }
 }

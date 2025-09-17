@@ -4,7 +4,7 @@ namespace Monorepo\ExampleAppEventSourcing\Laravel\app\Providers;
 
 use Enqueue\Dbal\DbalConnectionFactory;
 use Illuminate\Support\ServiceProvider;
-use Monorepo\ExampleAppEventSourcing\Common\PriceChangeOverTimeProjection;
+use Monorepo\ExampleAppEventSourcing\ProophProjection\PriceChangeOverTimeProjection;
 use Psr\Log\NullLogger;
 
 class AppServiceProvider extends ServiceProvider

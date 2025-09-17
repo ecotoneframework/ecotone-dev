@@ -13,4 +13,11 @@ class EcotoneConfiguration
     {
         return DbalConfiguration::createWithDefaults();
     }
+
+    #[ServiceContext]
+    public function es(): EventSourcingConfiguration
+    {
+        return EventSourcingConfiguration::createWithDefaults()
+            ->withInitializeEventStoreOnStart(true);
+    }
 }

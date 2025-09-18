@@ -165,13 +165,13 @@ jobs:
             if [ "$has_dbal" -eq 1 ]; then
               # Derive unique DB names per component execution to avoid cross-test conflicts
               local slug=$(echo "$dir" | tr '/.-' '___' | tr '[:upper:]' '[:lower:]')
-              local db_name="ecotone_${slug}"
-
-              psql "postgresql://ecotone:secret@${db_host}:5432/postgres" -v ON_ERROR_STOP=1 -c "CREATE DATABASE ${db_name} OWNER ecotone"
-              mysql -h "${db_host}" -uroot -psecret -e "CREATE DATABASE ${db_name}; GRANT ALL PRIVILEGES ON ${db_name}.* TO 'ecotone'@'%'; FLUSH PRIVILEGES;"
-
+          
+              local db_name
               # Run Postgres pass
+              db_name="ecotone_${slug}_pg"
               _run_tests "$dir (Postgres)" "\
+                psql 'postgresql://ecotone:secret@${db_host}:5432/postgres' -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ${db_name} OWNER ecotone' && \
+                mysql -h '${db_host}' -uroot -psecret -e \"CREATE DATABASE ${db_name}; GRANT ALL PRIVILEGES ON ${db_name}.* TO 'ecotone'@'%'; FLUSH PRIVILEGES;\" && \
                 cd '${dir}' && \
                 DATABASE_DSN='pgsql://ecotone:secret@${db_host}:5432/${db_name}?serverVersion=16' \
                 SECONDARY_DATABASE_DSN='mysql://ecotone:secret@${db_host}:3306/${db_name}?serverVersion=8' \
@@ -179,7 +179,10 @@ jobs:
                 ${run_tests_cmd}"
 
               # Run MySQL pass
+              db_name="ecotone_${slug}_mysql"
               _run_tests "$dir (MySQL)" "\
+                psql 'postgresql://ecotone:secret@${db_host}:5432/postgres' -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ${db_name} OWNER ecotone' && \
+                mysql -h '${db_host}' -uroot -psecret -e \"CREATE DATABASE ${db_name}; GRANT ALL PRIVILEGES ON ${db_name}.* TO 'ecotone'@'%'; FLUSH PRIVILEGES;\" && \
                 cd '${dir}' && \
                 DATABASE_DSN='mysql://ecotone:secret@${db_host}:3306/${db_name}?serverVersion=8' \
                 SECONDARY_DATABASE_DSN='pgsql://ecotone:secret@${db_host}:5432/${db_name}?serverVersion=16' \

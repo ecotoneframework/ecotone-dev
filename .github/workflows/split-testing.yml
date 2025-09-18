@@ -175,7 +175,6 @@ jobs:
                 cd '${dir}' && \
                 DATABASE_DSN='pgsql://ecotone:secret@${db_host}:5432/${db_name}?serverVersion=16' \
                 SECONDARY_DATABASE_DSN='mysql://ecotone:secret@${db_host}:3306/${db_name}?serverVersion=8' \
-                APP_DB_HOST=${db_host} APP_DB_PORT=5432 APP_DB_DRIVER=pdo_pgsql APP_DB_SERVER_VERSION=16 \
                 ${run_tests_cmd}"
 
               # Run MySQL pass
@@ -186,7 +185,6 @@ jobs:
                 cd '${dir}' && \
                 DATABASE_DSN='mysql://ecotone:secret@${db_host}:3306/${db_name}?serverVersion=8' \
                 SECONDARY_DATABASE_DSN='pgsql://ecotone:secret@${db_host}:5432/${db_name}?serverVersion=16' \
-                APP_DB_HOST=${db_host} APP_DB_PORT=3306 APP_DB_DRIVER=pdo_mysql APP_DB_SERVER_VERSION=8 \
                 ${run_tests_cmd}"
             else
               # No DB dependency: run tests with no DB env vars

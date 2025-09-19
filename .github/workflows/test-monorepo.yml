@@ -11,13 +11,13 @@ concurrency:
 jobs:
   run:
     name: "Monorepo"
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.operating-system }}
     strategy:
       fail-fast: true # Fail the entire workflow if any job fails
       matrix:
-        include:
-          - php-version: '8.4'
-            stability: prefer-stable
+        operating-system: [ ubuntu-latest ]
+        php-versions: [ '8.4' ]
+        stability: [prefer-stable]
     services:
       kafka:
         image: bitnami/kafka:latest
@@ -88,20 +88,17 @@ jobs:
       REDIS_DSN: redis://127.0.0.1:6379
       KAFKA_DSN: 127.0.0.1:9092
     steps:
-    - name: PHP ${{ matrix.php-version }} - ${{ matrix.stability }}
+    - name: PHP ${{ matrix.php-versions }} - ${{ matrix.stability }}
       uses: shivammathur/setup-php@v2
       with:
-        php-version: ${{ matrix.php-version }}
+        php-version: ${{ matrix.php-versions }}
         extensions: grpc, rdkafka
         coverage: none
 
     - name: Install OpenSSH (For Kafka)
       run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client
 
-    - name: Install DB clients
-      run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client mysql-client
-
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v2
 
     - name: Validate composer.json and composer.lock
       run: composer validate --strict
@@ -109,21 +106,29 @@ jobs:
     - name: Install dependencies
       run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 
-    - name: Run tests
-      run: |
-        source .github/scripts/run-tests.sh
-        
-        # Create secondary databases
-        psql 'postgresql://ecotone:secret@127.0.0.1:5432/postgres' -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ecotone_secondary OWNER ecotone'
-        mysql -h '127.0.0.1' -uroot -psecret -e "CREATE DATABASE ecotone_secondary; GRANT ALL PRIVILEGES ON ecotone_secondary.* TO 'ecotone'@'%'; FLUSH PRIVILEGES;"
-        
-        PG_ENV="DATABASE_DSN='pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16' SECONDARY_DATABASE_DSN='mysql://ecotone:secret@127.0.0.1:3306/ecotone_secondary?serverVersion=8.0'"
-        MYSQL_ENV="DATABASE_DSN='mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0' SECONDARY_DATABASE_DSN='pgsql://ecotone:secret@127.0.0.1:5432/ecotone_secondary?serverVersion=16'"
-        
-        parallel -j +3 <<EOF
-        _run_tests 'PHPStan' 'vendor/bin/phpstan analyse -c phpstan.neon'
-        _run_tests 'PHPUnit (Postgres)' "$PG_ENV vendor/bin/phpunit --no-coverage"
-        _run_tests 'Behat (Postgres)' "$PG_ENV vendor/bin/behat -vvv"
-        _run_tests 'PHPUnit (MySQL)' "$MYSQL_ENV vendor/bin/phpunit --no-coverage"
-        _run_tests 'Behat (MySQL)' "$MYSQL_ENV vendor/bin/behat -vvv"
-        EOF
+    - name: Test PHPStan
+      run: vendor/bin/phpstan
+
+    - name: Test PHPUnit on Postgres
+      run: vendor/bin/phpunit --no-coverage
+      env:
+        DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+        SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+
+    - name: Test Behat on Postgres
+      run: vendor/bin/behat -vvv
+      env:
+        DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+        SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+
+    - name: Test PHPUnit on Mysql
+      run: vendor/bin/phpunit --no-coverage
+      env:
+        DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+        SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
+
+    - name: Test Behat on Mysql
+      run: vendor/bin/behat -vvv
+      env:
+        DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
+        SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16

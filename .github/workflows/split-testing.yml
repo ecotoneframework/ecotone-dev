@@ -118,7 +118,36 @@ jobs:
 
       - name: Run tests
         run: |
-          source .github/scripts/run-tests.sh
+          COMPONENTS=$(find packages -maxdepth 2 -type f -name phpunit.xml.dist | xargs -I{} dirname {})
+          RUN_TESTS="composer tests:ci"
+
+          if [ "${{ matrix.stability }}" = "prefer-lowest" ]; then
+            COMPOSER_UP="composer update --${{ matrix.stability }}"
+          else
+            COMPOSER_UP="composer update"
+          fi
+
+          _run_tests() {
+            local ok=0
+            local title="$1"
+            local start=$(date -u +%s)
+
+            OUTPUT=$(bash -xc "$2" 2>&1) || ok=$?
+            local end=$(date -u +%s)
+
+            if [[ $ok -ne 0 ]]; then
+              printf "\n%-70s%10s\n" "$title" $(($end-$start))s
+              echo "$OUTPUT"
+              echo "Job exited with: $ok"
+              echo -e "\n::error::KO $title\n"
+            else
+              printf "::group::%-68s%10s\n" "$title" $(($end-$start))s
+              echo "$OUTPUT"
+              echo -e "\n\e[32mOK\e[0m $title\n\n::endgroup::"
+            fi
+
+            (exit $ok)
+          }
 
           _run_component_tests() {
             local db_host="127.0.0.1"
@@ -162,13 +191,5 @@ jobs:
               _run_tests "$dir" "cd '${dir}' && ${run_tests_cmd}"
             fi
           }
-          export -f _run_component_tests
-          
-          COMPONENTS=$(find packages -maxdepth 2 -type f -name phpunit.xml.dist | xargs -I{} dirname {})
-
-          if [ "${{ matrix.stability }}" = "prefer-lowest" ]; then
-            COMPOSER_UP="composer update --${{ matrix.stability }}"
-          else
-            COMPOSER_UP="composer update"
-          fi
-          echo "$COMPONENTS" | xargs -n1 | parallel -j +3 "_run_component_tests {} '$COMPOSER_UP' 'composer tests:ci'"
+          export -f _run_tests _run_component_tests
+          echo "$COMPONENTS" | xargs -n1 | parallel -j +3 "_run_component_tests {} '$COMPOSER_UP' '$RUN_TESTS'"

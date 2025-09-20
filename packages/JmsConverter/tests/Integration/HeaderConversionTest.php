@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Integration;
@@ -17,6 +18,7 @@ use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\StringEnum;
 
 /**
  * licence Apache-2.0
+ * @internal
  */
 class HeaderConversionTest extends TestCase
 {
@@ -30,7 +32,7 @@ class HeaderConversionTest extends TestCase
                 ->withExtensionObjects([
                     JMSConverterConfiguration::createWithDefaults()
                         ->withDefaultNullSerialization(true)
-                        ->withDefaultEnumSupport(true)
+                        ->withDefaultEnumSupport(true),
                 ])
                 ->withNamespaces(['Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion']),
         );
@@ -52,9 +54,11 @@ class HeaderConversionTest extends TestCase
                 'nonTypeHintedIntBackedEnum' => NumericEnum::ONE,
                 'typeHintedBasicEnum' => BasicEnum::ONE,
                 'nonTypeHintedBasicEnum' => BasicEnum::ONE,
-            ]);
+            ]
+        );
 
-        self::assertEquals(StringEnum::foo, $playground->typeHintedStringBackedEnum);;
+        self::assertEquals(StringEnum::foo, $playground->typeHintedStringBackedEnum);
+        ;
         self::assertEquals(StringEnum::foo, $playground->nonTypeHintedStringBackedEnum);
         self::assertEquals(NumericEnum::ONE, $playground->typeHintedIntBackedEnum);
         self::assertEquals(NumericEnum::ONE, $playground->nonTypeHintedIntBackedEnum);
@@ -97,12 +101,14 @@ class HeaderConversionTest extends TestCase
                 'nonTypeHintedIntBackedEnum' => NumericEnum::ONE,
                 'typeHintedBasicEnum' => BasicEnum::ONE,
                 'nonTypeHintedBasicEnum' => BasicEnum::ONE,
-            ])
+            ]
+        )
         ;
 
         $ecotone->run('async');
 
-        self::assertEquals(StringEnum::foo, $playground->typeHintedStringBackedEnum);;
+        self::assertEquals(StringEnum::foo, $playground->typeHintedStringBackedEnum);
+        ;
         self::assertEquals(StringEnum::foo->value, $playground->nonTypeHintedStringBackedEnum);
         self::assertEquals(NumericEnum::ONE, $playground->typeHintedIntBackedEnum);
         self::assertEquals(NumericEnum::ONE->value, $playground->nonTypeHintedIntBackedEnum);

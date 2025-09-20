@@ -55,10 +55,10 @@ class AttributeResolver implements AnnotationResolver
         while ($currentClass) {
             $currentLevelAttributes = [];
             foreach ($currentClass->getAttributes() as $attribute) {
-                if (!class_exists($attribute->getName())) {
+                if (! class_exists($attribute->getName())) {
                     continue;
                 }
-                if (in_array($attribute->getName(), array_map(fn($attr) => $attr::class, $attributes))) {
+                if (in_array($attribute->getName(), array_map(fn ($attr) => $attr::class, $attributes))) {
                     continue; // Avoid duplicate attributes from parent classes
                 }
                 $currentLevelAttributes[] = $attribute->newInstance();
@@ -66,7 +66,7 @@ class AttributeResolver implements AnnotationResolver
 
             $attributes = array_merge($attributes, $currentLevelAttributes);
 
-            if ($level === 0 && $currentClass->isAbstract() && !$currentClass->isInterface()) {
+            if ($level === 0 && $currentClass->isAbstract() && ! $currentClass->isInterface()) {
                 $attributes[] = new IsAbstract();
             }
 

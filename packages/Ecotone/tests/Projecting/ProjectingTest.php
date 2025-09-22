@@ -10,6 +10,7 @@ namespace Test\Ecotone\Projecting;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\Endpoint\Priority;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -183,6 +184,28 @@ class ProjectingTest extends TestCase
         $projection = new #[Projection('test')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
+            {
+            }
+        };
+        EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->addExtensionObject(new InMemoryStreamSourceBuilder())
+        );
+    }
+
+    public function test_it_with_event_handler_priority(): void
+    {
+        $projection = new #[Projection('test')] class {
+            #[EventHandler('*')]
+            public function handle(array $event): void
+            {
+            }
+            #[Priority(42)]
+            #[EventHandler('*')]
+            public function handleHighPriority(array $event): void
             {
             }
         };

@@ -198,23 +198,62 @@ class ProjectingTest extends TestCase
 
     public function test_it_with_event_handler_priority(): void
     {
-        $projection = new #[Projection('test')] class {
-            #[EventHandler('*')]
+        $db = [];
+        $projectionA = new #[Projection('A')] class ($db) {
+            public function __construct(private array &$db)
+            {
+            }
+            #[EventHandler('no-priority')]
             public function handle(array $event): void
             {
+                $this->db[] = 'projectionA-no-priority';
             }
-            #[Priority(42)]
-            #[EventHandler('*')]
+            #[Priority(-42)]
+            #[EventHandler('with-priority')]
             public function handleHighPriority(array $event): void
             {
+                $this->db[] = 'projectionA-with-priority';
             }
         };
-        EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
-            [$projection],
+        $projectionB = new #[Projection('B')] class ($db) {
+
+            public function __construct(private array &$db)
+            {
+            }
+
+            #[EventHandler('no-priority')]
+            public function handle(array $event): void
+            {
+                $this->db[] = 'projectionB-no-priority';
+            }
+            #[Priority(10)]
+            #[EventHandler('with-priority')]
+            public function handleHighPriority(array $event): void
+            {
+                $this->db[] = 'projectionB-with-priority';
+            }
+        };
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projectionA::class, $projectionB::class],
+            [$projectionA, $projectionB],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
-                ->addExtensionObject(new InMemoryStreamSourceBuilder())
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder())
         );
+
+        $streamSource->append(
+            Event::createWithType('no-priority', []),
+        );
+
+        $ecotone->publishEventWithRoutingKey('no-priority');
+        self::assertEquals(['projectionA-no-priority', 'projectionB-no-priority'], $db);
+
+        $db = [];
+        $streamSource->append(
+            Event::createWithType('with-priority', []),
+        );
+        $ecotone->publishEventWithRoutingKey('with-priority');
+        self::assertEquals(['projectionB-with-priority', 'projectionA-with-priority'], $db);
     }
 }

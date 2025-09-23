@@ -96,7 +96,7 @@ jobs:
 
       - name: Remove cached files but keep phpbench results
         run: |
-          git clean -fXd -e .phpbench
+          git clean -fxd -e .phpbench -e vendor
 
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction

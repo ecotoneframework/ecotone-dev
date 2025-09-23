@@ -94,11 +94,9 @@ jobs:
         with:
           clean: false
 
-      - name: Remove cached files
+      - name: Remove cached files but keep phpbench results
         run: |
-          rm -rf Monorepo/ExampleApp/Lite/var/cache
-          rm -rf Monorepo/ExampleApp/Symfony/var/cache
-          rm -rf Monorepo/ExampleApp/Laravel/framework/cache
+          git clean -fXd -e .phpbench
 
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction

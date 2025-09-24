@@ -11,7 +11,7 @@ use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Prooph\Common\Messaging\Message;
@@ -242,13 +242,13 @@ class LazyProophProjectionManager implements ProjectionManager
             );
 
             if (! is_null($state)) {
-                $stateType = TypeDescriptor::createFromVariable($state);
+                $stateType = Type::createFromVariable($state);
                 if (! $stateType->isArrayButNotClassBasedCollection()) {
                     $state = $conversionService->convert(
                         $state,
                         $stateType,
                         MediaType::createApplicationXPHP(),
-                        TypeDescriptor::createArrayType(),
+                        Type::array(),
                         MediaType::createApplicationXPHP()
                     );
                 }

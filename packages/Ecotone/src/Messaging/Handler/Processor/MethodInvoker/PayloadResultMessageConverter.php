@@ -4,8 +4,7 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Handler\UnionTypeDescriptor;
+use Ecotone\Messaging\Handler\Type\UnionType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 
@@ -33,12 +32,12 @@ class PayloadResultMessageConverter implements ResultToMessageConverter
             ->build();
     }
 
-    private function getReturnTypeFromResult(mixed $result): TypeDescriptor
+    private function getReturnTypeFromResult(mixed $result): Type
     {
-        $returnValueType = TypeDescriptor::createFromVariable($result);
+        $returnValueType = Type::createFromVariable($result);
         $returnType = $this->returnType;
         if ($returnType->isUnionType()) {
-            /** @var UnionTypeDescriptor $returnType */
+            /** @var UnionType $returnType */
             $foundUnionType = null;
             foreach ($returnType->getUnionTypes() as $type) {
                 if ($type->equals($returnValueType)) {
@@ -53,7 +52,7 @@ class PayloadResultMessageConverter implements ResultToMessageConverter
                             $collectionOf = $type->resolveGenericTypes();
                             $firstKey = array_key_first($result);
                             if (count($collectionOf) === 1 && ! is_null($firstKey)) {
-                                if (! $collectionOf[0]->isCompatibleWith(TypeDescriptor::createFromVariable($result[$firstKey]))) {
+                                if (! $collectionOf[0]->isCompatibleWith(Type::createFromVariable($result[$firstKey]))) {
                                     continue;
                                 }
                             }

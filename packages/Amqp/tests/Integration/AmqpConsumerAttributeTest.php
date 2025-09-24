@@ -14,7 +14,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
@@ -310,7 +310,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
 #[MediaTypeConverter]
 class StdClassConvert implements \Ecotone\Messaging\Conversion\Converter
 {
-    public function convert($source, TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType)
+    public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
         $stdClass = new stdClass();
         $stdClass->data = $source;
@@ -318,8 +318,8 @@ class StdClassConvert implements \Ecotone\Messaging\Conversion\Converter
         return $stdClass;
     }
 
-    public function matches(TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType): bool
+    public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
     {
-        return $targetType->equals(TypeDescriptor::create(stdClass::class));
+        return $targetType->equals(Type::object(stdClass::class));
     }
 }

@@ -25,7 +25,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         private EcotoneClockInterface  $clock,
         private string          $streamName,
         private int             $maxGapOffset = 5_000,
-        private ?Duration            $gapTimeout = null,
+        private ?Duration       $gapTimeout = null,
     ) {
     }
 
@@ -39,6 +39,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         } else {
             $eventsInGaps = $this->eventStore->load(
                 $this->streamName,
+                count: count($tracking->getGaps()),
                 metadataMatcher: (new MetadataMatcher())
                     ->withMetadataMatch('no', Operator::IN(), $tracking->getGaps(), FieldType::MESSAGE_PROPERTY()),
                 deserialize: false,
@@ -55,9 +56,13 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $allEvents = [...$eventsInGaps, ...$events];
 
+        $now = $this->clock->now();
+        $cutoffTimestamp = $this->gapTimeout ? $now->sub($this->gapTimeout)->getTimestamp() : 0;
         foreach ($allEvents as $event) {
             $position = $event->getMetadata()['_position'] ?? throw new RuntimeException('Event does not have a position');
-            $tracking->advanceTo((int) $position);
+            $timestamp = $event->getMetadata()['timestamp'] ?? throw new RuntimeException('Event does not have a timestamp');
+            $insertGaps = $timestamp > $cutoffTimestamp;
+            $tracking->advanceTo((int) $position, $insertGaps);
         }
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);
@@ -77,31 +82,41 @@ class EventStoreGlobalStreamSource implements StreamSource
             return;
         }
 
-        $minGap = min($gaps);
-        $maxGap = max($gaps);
+        $minGap = $gaps[0];
+        $maxGap = $gaps[count($gaps) - 1];
 
         // Query interleaved events in the gap range
         $interleavedEvents = $this->eventStore->load(
             $this->streamName,
+            count: count($gaps),
             metadataMatcher: (new MetadataMatcher())
                 ->withMetadataMatch('no', Operator::GREATER_THAN_EQUALS(), $minGap, FieldType::MESSAGE_PROPERTY())
-                ->withMetadataMatch('no', Operator::LOWER_THAN_EQUALS(), $maxGap, FieldType::MESSAGE_PROPERTY()),
+                ->withMetadataMatch('no', Operator::LOWER_THAN_EQUALS(), $maxGap + 1, FieldType::MESSAGE_PROPERTY()),
             deserialize: false,
         );
 
-        $timestampThreshold = $this->clock->now()->unixTime()->sub($this->gapTimeout)->inSeconds();
+        $timestampThreshold = $this->clock->now()->sub($this->gapTimeout)->unixTime()->inSeconds();
 
         // Find the highest position with timestamp < timeThreshold
         $cutoffPosition = $minGap; // default: keep all gaps
         foreach ($interleavedEvents as $event) {
             $metadata = $event->getMetadata();
-            $position = $metadata['_position'] ?? null;
+            $interleavedEventPosition = ((int)$metadata['_position']) ?? null;
             $timestamp = $metadata['timestamp'] ?? null;
 
-            if ($position !== null && $timestamp !== null) {
-                if ($timestamp < $timestampThreshold && $position > $cutoffPosition) {
-                    $cutoffPosition = $position + 1; // Remove gaps below this position
-                }
+            if ($interleavedEventPosition === null || $timestamp === null) {
+                break;
+            }
+            if ($timestamp > $timestampThreshold) {
+                // Event is recent, do not remove any gaps below this position
+                break;
+            }
+            if (in_array($interleavedEventPosition, $gaps, true)) {
+                // This position is a gap, stop cleaning
+                break;
+            }
+            if ($timestamp < $timestampThreshold && $interleavedEventPosition > $cutoffPosition) {
+                $cutoffPosition = $interleavedEventPosition + 1; // Remove gaps below this position
             }
         }
 

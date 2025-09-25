@@ -65,7 +65,7 @@ class ManagerRegistryConnectionFactory implements ConnectionFactory
         // The connection will be closed when the registry is destroyed
     }
 
-    private function establishConnection(): Connection
+    public function establishConnection(): Connection
     {
         $connection = $this->registry->getConnection($this->config['connection_name']);
 

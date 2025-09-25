@@ -113,7 +113,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
@@ -122,26 +122,23 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         );
 
         /** @var EventStore $eventStore */
-        $eventStore = $ecotoneTestSupport->getGatewayByName(EventStore::class);
-
-        /** @var ProjectionManager $projectionManager */
-        $projectionManager = $ecotoneTestSupport->getGatewayByName(ProjectionManager::class);
+        $eventStore = $ecotoneTestSupport->getGateway(EventStore::class);
 
         if ($eventStore->hasStream(Ticket::class)) {
             $eventStore->delete(Ticket::class);
         }
 
-        $projectionManager->initializeProjection('inProgressTicketList');
+        $ecotoneTestSupport->initializeProjection('inProgressTicketList');
 
-        $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
+        $ecotoneTestSupport->sendCommand(new RegisterTicket('1', 'johny', 'alert'));
 
-        $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
+        $this->assertCount(1, $ecotoneTestSupport->sendQueryWithRouting('getInProgressTickets'));
 
-        $projectionManager->resetProjection('inProgressTicketList');
+        $ecotoneTestSupport->resetProjection('inProgressTicketList');
         $eventStore->delete(Ticket::class);
-        $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
+        $ecotoneTestSupport->sendCommand(new RegisterTicket('1', 'johny', 'alert'));
 
-        $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
+        $this->assertCount(1, $ecotoneTestSupport->sendQueryWithRouting('getInProgressTickets'));
     }
 
     public function test_triggering_projection_to_catch_up(): void

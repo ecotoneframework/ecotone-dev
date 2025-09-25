@@ -114,37 +114,21 @@ jobs:
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
-        APP_DB_HOST: 127.0.0.1
-        APP_DB_PORT: 5432
-        APP_DB_DRIVER: pdo_pgsql
-        APP_DB_SERVER_VERSION: 16
 
     - name: Test Behat on Postgres
       run: vendor/bin/behat -vvv
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
-        APP_DB_HOST: 127.0.0.1
-        APP_DB_PORT: 5432
-        APP_DB_DRIVER: pdo_pgsql
-        APP_DB_SERVER_VERSION: 16
 
     - name: Test PHPUnit on Mysql
       run: vendor/bin/phpunit --no-coverage
       env:
         DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
         SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
-        APP_DB_HOST: 127.0.0.1
-        APP_DB_PORT: 3306
-        APP_DB_DRIVER: pdo_mysql
-        APP_DB_SERVER_VERSION: 8
 
     - name: Test Behat on Mysql
       run: vendor/bin/behat -vvv
       env:
         DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
         SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
-        APP_DB_HOST: 127.0.0.1
-        APP_DB_PORT: 3306
-        APP_DB_DRIVER: pdo_mysql
-        APP_DB_SERVER_VERSION: 8

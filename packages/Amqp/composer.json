@@ -42,7 +42,8 @@
     },
     "require": {
         "enqueue/amqp-lib": "^0.10.25",
-        "ecotone/enqueue": "~1.264.0",
+        "ecotone/enqueue": "~1.266.0",
+        "enqueue/amqp-ext": "^0.10.18",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0"
     },

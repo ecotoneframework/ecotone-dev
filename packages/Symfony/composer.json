@@ -27,7 +27,7 @@
     ],
     "description": "Extends Ecotone with Symfony integration",
     "require": {
-        "ecotone/ecotone": "~1.266.0",
+        "ecotone/ecotone": "~1.267.0-ALPHA1",
         "symfony/console": "^5.4|^6.0|^7.0",
         "symfony/dependency-injection": ">=v5.4.19 <6.0.0 || >=v6.0.19 <6.1.0 || >=v6.1.11 <6.2.0 || >=v6.2.5 <7.0.0 || >=v7.0.0 <8.0.0",
         "symfony/framework-bundle": "^5.4|^6.0|^7.0"
@@ -36,7 +36,7 @@
         "behat/behat": "^3.10",
         "doctrine/doctrine-bundle": "^2.7.2",
         "doctrine/orm": "^2.11|^3.0",
-        "ecotone/dbal": "~1.266.0",
+        "ecotone/dbal": "~1.267.0-ALPHA1",
         "friends-of-behat/symfony-extension": "<=2.4.2|^2.5",
         "monolog/monolog": "^2.9|^3.3.1",
         "phpstan/phpstan": "^1.8",
@@ -91,7 +91,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.266.0-dev"
+            "dev-main": "1.267.0-ALPHA1-dev"
         },
         "ecotone": {
             "repository": "symfony"
@@ -112,6 +112,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2025-09-25 15:11:01"
+        "release-time": "2025-09-25 18:20:03"
     }
 }

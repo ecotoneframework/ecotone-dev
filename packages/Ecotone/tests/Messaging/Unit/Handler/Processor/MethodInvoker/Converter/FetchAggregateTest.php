@@ -196,7 +196,7 @@ class FetchAggregateTest extends TestCase
 
         try {
             $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
-            self::fail("Should throw exception");
+            self::fail('Should throw exception');
         } catch (MethodInvocationException $e) {
             $this->assertInstanceOf(AggregateNotFoundException::class, $e->getPrevious());
 
@@ -226,7 +226,7 @@ class FetchAggregateTest extends TestCase
 
         try {
             $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
-            self::fail("Should throw exception");
+            self::fail('Should throw exception');
         } catch (MethodInvocationException $e) {
             // This will throw Ecotone's exception, as interface does not allow for null
             $this->assertInstanceOf(AggregateNotFoundException::class, $e->getPrevious());
@@ -252,7 +252,7 @@ class FetchAggregateTest extends TestCase
 
         try {
             $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
-            self::fail("Should throw exception");
+            self::fail('Should throw exception');
         } catch (MethodInvocationException $e) {
             $this->assertInstanceOf(LicensingException::class, $e->getPrevious());
 

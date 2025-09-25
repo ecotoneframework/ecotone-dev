@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Config\Routing;
 
-use function array_map;
 use function array_unique;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;

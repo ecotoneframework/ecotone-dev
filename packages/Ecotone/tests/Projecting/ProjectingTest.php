@@ -216,7 +216,6 @@ class ProjectingTest extends TestCase
             }
         };
         $projectionB = new #[Projection('B')] class ($db) {
-
             public function __construct(private array &$db)
             {
             }

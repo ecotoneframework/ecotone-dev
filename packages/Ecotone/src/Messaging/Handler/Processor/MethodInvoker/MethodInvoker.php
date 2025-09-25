@@ -5,7 +5,7 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Support\InvalidArgumentException;
+use Throwable;
 
 /**
  * @licence Apache-2.0
@@ -60,14 +60,16 @@ final class MethodInvoker implements AroundInterceptable
             $parameterName = $this->methodParameterNames[$index];
             try {
                 $data = $this->methodParameterConverters[$index]->getArgumentFrom($message);
-            } catch (\Throwable $exception) {
+            } catch (Throwable $exception) {
                 $objectToInvokeOn = $this->getObjectToInvokeOn($message);
                 $classToInvokeOn = is_string($objectToInvokeOn) ? $objectToInvokeOn : $objectToInvokeOn::class;
-                throw MethodInvocationException::createFromPreviousException(<<<TEXT
-                    Cannot resolve parameter '{$parameterName}' while calling {$classToInvokeOn}::{$this->getMethodName()}
-                    Reason: {$exception->getMessage()}
-                    TEXT,
-                    $exception);
+                throw MethodInvocationException::createFromPreviousException(
+                    <<<TEXT
+                        Cannot resolve parameter '{$parameterName}' while calling {$classToInvokeOn}::{$this->getMethodName()}
+                        Reason: {$exception->getMessage()}
+                        TEXT,
+                    $exception
+                );
             }
 
             $methodArguments[$parameterName] = $data;

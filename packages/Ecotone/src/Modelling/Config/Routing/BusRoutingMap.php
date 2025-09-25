@@ -7,10 +7,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Config\Routing;
 
-use function array_unique;
+use function array_keys;
 use function class_exists;
 use function interface_exists;
-use function usort;
 
 class BusRoutingMap
 {
@@ -96,7 +95,7 @@ class BusRoutingMap
 
         uasort($resultingChannels, $this->sortByChannelPriority(...));
 
-        return \array_keys($resultingChannels);
+        return array_keys($resultingChannels);
     }
 
     public static function globMatch(string $pattern, string $route): bool

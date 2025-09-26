@@ -727,20 +727,4 @@ class TypeDescriptorTest extends TestCase
             Type::createWithDocBlock('array|int', 'stdClass[]')
         );
     }
-
-    public function test_symfony_type_resolver_does_not_try_to_change_phpdoc_if_it_does_match_declared(): void
-    {
-        $typeResolver = \Symfony\Component\TypeInfo\TypeResolver\TypeResolver::create();
-        $class = new class {
-            /**
-             * @return stdClass[]
-             */
-            public function method(): array|int {return [];}
-        };
-
-        $this->assertEquals(
-            \Symfony\Component\TypeInfo\Type::list(\Symfony\Component\TypeInfo\Type::object(stdClass::class)),
-            $typeResolver->resolve(new ReflectionMethod($class, 'method'))
-        );
-    }
 }

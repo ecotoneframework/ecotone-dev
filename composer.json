@@ -166,8 +166,7 @@
         "moneyphp/money": "^4.1.0",
         "timacdonald/log-fake": "^2.0",
         "symfony/monolog-bundle": "^3.10",
-        "kwn/php-rdkafka-stubs": "^2.2",
-        "symfony/type-info": "^7.3"
+        "kwn/php-rdkafka-stubs": "^2.2"
     },
     "conflict": {
         "symfony/doctrine-messenger": ">7.0.5 < 7.1.0",

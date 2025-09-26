@@ -85,7 +85,7 @@ class ArrayShapeType extends Type implements DefinedObject
         return true;
     }
 
-    public function toString(): string
+    public function __toString(): string
     {
         $fields = [];
         foreach ($this->shape as $fieldName => $fieldType) {

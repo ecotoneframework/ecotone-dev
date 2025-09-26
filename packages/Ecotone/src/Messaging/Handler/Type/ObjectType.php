@@ -79,7 +79,7 @@ class ObjectType extends Type implements DefinedObject
         return $value instanceof $this->className;
     }
 
-    public function toString(): string
+    public function __toString(): string
     {
         return ltrim($this->className, '\\');
     }

@@ -153,7 +153,7 @@ class GenericType extends Type implements DefinedObject
         return $this->type->isAttribute();
     }
 
-    public function toString(): string
+    public function __toString(): string
     {
         $genericTypesString = implode(",", array_map(fn (Type $type) => $type->toString(), $this->genericTypes));
         return "{$this->type->toString()}<{$genericTypesString}>";

@@ -66,7 +66,7 @@ class BuiltinType extends Type implements DefinedObject
         return $toCompare instanceof self && $toCompare->typeIdentifier === $this->typeIdentifier;
     }
 
-    public function toString(): string
+    public function __toString(): string
     {
         return $this->typeIdentifier->value;
     }

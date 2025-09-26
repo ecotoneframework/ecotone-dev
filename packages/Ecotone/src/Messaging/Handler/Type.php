@@ -11,12 +11,13 @@ use Ecotone\Messaging\Handler\Type\TypeFactory;
 use Ecotone\Messaging\Handler\Type\TypeIdentifier;
 use Ecotone\Messaging\Handler\Type\TypeParser;
 use Ecotone\Messaging\Handler\Type\UnionType;
+use Stringable;
 use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\Message;
 
 /**
  * licence Apache-2.0
  */
-abstract class Type
+abstract class Type implements Stringable
 {
     use TypeFactory;
 
@@ -244,14 +245,14 @@ abstract class Type
         return $this->isIdentifiedBy(TypeIdentifier::NULL);
     }
 
-    final public function __toString(): string
+    final public function toString(): string
     {
-        return $this->toString();
+        return (string) $this;
     }
 
     final public function getTypeHint(): string
     {
-        return $this->toString();
+        return (string) $this;
     }
 
     ///

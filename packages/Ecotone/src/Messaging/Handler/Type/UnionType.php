@@ -222,7 +222,7 @@ class UnionType extends Type implements DefinedObject
     /**
      * @inheritDoc
      */
-    public function toString(): string
+    public function __toString(): string
     {
         return implode("|", array_map(fn (Type $typeDescriptor) => $typeDescriptor->toString(), $this->typeDescriptors));
     }

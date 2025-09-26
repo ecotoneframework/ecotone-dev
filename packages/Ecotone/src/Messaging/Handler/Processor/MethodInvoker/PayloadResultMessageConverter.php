@@ -48,8 +48,8 @@ class PayloadResultMessageConverter implements ResultToMessageConverter
             if (! $foundUnionType) {
                 foreach ($returnType->getUnionTypes() as $type) {
                     if ($type->isCompatibleWith($returnValueType)) {
-                        if ($type->isCollection()) {
-                            $collectionOf = $type->resolveGenericTypes();
+                        if ($type instanceof Type\GenericType && $type->isCollection()) {
+                            $collectionOf = $type->genericTypes;
                             $firstKey = array_key_first($result);
                             if (count($collectionOf) === 1 && ! is_null($firstKey)) {
                                 if (! $collectionOf[0]->isCompatibleWith(Type::createFromVariable($result[$firstKey]))) {

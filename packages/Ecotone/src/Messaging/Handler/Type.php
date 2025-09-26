@@ -11,8 +11,8 @@ use Ecotone\Messaging\Handler\Type\TypeFactory;
 use Ecotone\Messaging\Handler\Type\TypeIdentifier;
 use Ecotone\Messaging\Handler\Type\TypeParser;
 use Ecotone\Messaging\Handler\Type\UnionType;
+use Ecotone\Messaging\Message;
 use Stringable;
-use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\Message;
 
 /**
  * licence Apache-2.0

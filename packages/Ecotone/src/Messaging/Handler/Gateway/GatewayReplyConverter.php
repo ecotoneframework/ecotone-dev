@@ -124,10 +124,8 @@ class GatewayReplyConverter
     {
         foreach ($data as $result) {
             if ($expectedType !== null) {
-                $sourceType = Type::createFromVariable($result);
-
                 if ($isCollection && ! $expectedType->accepts($result)) {
-                    $result = $this->conversionService->convert($result, $sourceType, MediaType::createApplicationXPHP(), $expectedType, MediaType::createApplicationXPHP());
+                    $result = $this->conversionService->convert($result, Type::createFromVariable($result), MediaType::createApplicationXPHP(), $expectedType, MediaType::createApplicationXPHP());
                 }
             }
 

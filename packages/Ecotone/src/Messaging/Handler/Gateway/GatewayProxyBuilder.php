@@ -445,7 +445,7 @@ class GatewayProxyBuilder implements InterceptedEndpoint, CompilableBuilder, Pro
     public function getAsynchronousChannels(InterfaceToCall $interfaceToCall): array
     {
         /** @var Asynchronous[] $asynchronous */
-        $asynchronous = $interfaceToCall->getAnnotationsByImportanceOrder(Type::create(Asynchronous::class));
+        $asynchronous = $interfaceToCall->getAnnotationsByImportanceOrder(Type::attribute(Asynchronous::class));
         $channelNames = $asynchronous ? $asynchronous[0]->getChannelName() : [];
 
         if ($channelNames === []) {

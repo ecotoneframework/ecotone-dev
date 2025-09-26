@@ -26,7 +26,7 @@ final class EnterpriseGatewayErrorChannelResolver implements GatewayErrorChannel
         }
 
         /** @var ErrorChannel[] $errorChannel */
-        $errorChannel = $interfaceToCall->getAnnotationsByImportanceOrder(Type::create(ErrorChannel::class));
+        $errorChannel = $interfaceToCall->getAnnotationsByImportanceOrder(Type::attribute(ErrorChannel::class));
 
         return $errorChannel ? $errorChannel[0]->errorChannelName : null;
     }
@@ -34,7 +34,7 @@ final class EnterpriseGatewayErrorChannelResolver implements GatewayErrorChannel
     public function getErrorChannelRoutingSlip(InterfaceToCall $interfaceToCall, array $endpointAnnotations, string $requestChannelName): ?string
     {
         /** @var ErrorChannel[] $errorChannelAttributes */
-        $errorChannelAttributes = $interfaceToCall->getAnnotationsByImportanceOrder(Type::create(ErrorChannel::class));
+        $errorChannelAttributes = $interfaceToCall->getAnnotationsByImportanceOrder(Type::attribute(ErrorChannel::class));
 
         foreach ($endpointAnnotations as $endpointAnnotation) {
             if ($endpointAnnotation->getClassName() === ErrorChannel::class) {

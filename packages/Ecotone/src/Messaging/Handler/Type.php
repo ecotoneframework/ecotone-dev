@@ -29,9 +29,12 @@ abstract class Type implements Stringable
     /** @deprecated  */
     public const         OBJECT = 'object';
 
-    private static $cachedTypes = [];
+    private static array $cachedTypes = [];
 
     abstract public function isIdentifiedBy(string ...$typeIdentifiers): bool;
+    abstract public function acceptType(Type $otherType): bool;
+    abstract public function equals(Type $toCompare): bool;
+    abstract public function accepts(mixed $value): bool;
 
     public static function createFromVariable(mixed $variable): Type
     {

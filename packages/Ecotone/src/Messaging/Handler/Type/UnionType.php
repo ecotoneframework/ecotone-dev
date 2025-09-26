@@ -243,6 +243,12 @@ class UnionType extends Type implements DefinedObject
 
     public function isEnum(): bool
     {
+        foreach ($this->typeDescriptors as $typeDescriptor) {
+            if ($typeDescriptor->isEnum()) {
+                return true;
+            }
+        }
+
         return false;
     }
 

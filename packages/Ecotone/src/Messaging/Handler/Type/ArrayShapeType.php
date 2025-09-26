@@ -95,36 +95,6 @@ class ArrayShapeType extends Type implements DefinedObject
         return 'array{' . implode(', ', $fields) . '}';
     }
 
-    public function isArray(): bool
-    {
-        return true;
-    }
-
-    public function isCollection(): bool
-    {
-        return true;
-    }
-
-    public function isClassOrInterface(): bool
-    {
-        return false;
-    }
-
-    public function isClassNotInterface(): bool
-    {
-        return false;
-    }
-
-    public function isUnionType(): bool
-    {
-        return false;
-    }
-
-    public function getUnionTypes(): array
-    {
-        return [];
-    }
-
     /**
      * Check if this array shape is compatible with another array shape
      */

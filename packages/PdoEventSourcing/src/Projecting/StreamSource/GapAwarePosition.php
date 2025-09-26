@@ -74,8 +74,18 @@ class GapAwarePosition
         return $this->gaps;
     }
 
-    public function advanceTo(int $position): void
+    public function advanceTo(int $position, bool $processGaps = true): void
     {
+        if ($processGaps === false) {
+            if ($position > $this->position) {
+                $this->position = $position;
+            } elseif ($position <= $this->position) {
+                throw new InvalidArgumentException('Cannot advance to a position less than or equal to the current position. Current position: ' . $this->position . ', new position: ' . $position);
+            }
+            return;
+        }
+
+        // With gap processing
         if ($position === $this->position + 1) {
             $this->position++;
         } elseif (in_array($position, $this->gaps, true)) {

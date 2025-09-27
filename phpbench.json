@@ -3,6 +3,8 @@
   "runner.bootstrap": "./vendor/autoload.php",
   "runner.file_pattern": "*Benchmark.php",
   "runner.path": "Monorepo/Benchmark",
+  "runner.remote_script_path": ".phpbench/script",
+  "runner.remote_script_remove": false,
   "core.profiles": {
     "opcache_disabled": {
       "runner.php_config": {

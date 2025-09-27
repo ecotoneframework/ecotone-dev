@@ -7,7 +7,7 @@ namespace Ecotone\SymfonyBundle\Messenger;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
@@ -38,9 +38,9 @@ final class SymfonyMessageConverter
         $headers = MessageHeaders::unsetEnqueueMetadata($message->getHeaders()->headers());
         $headers = $this->headerMapper->mapFromMessageHeaders($headers, $this->conversionService);
 
-        $type = TypeDescriptor::createFromVariable($payload);
+        $type = Type::createFromVariable($payload);
         $contentType = MediaType::createApplicationXPHPWithTypeParameter($type->toString());
-        if (! TypeDescriptor::createFromVariable($payload)->isClassOrInterface()) {
+        if (! Type::createFromVariable($payload)->isClassOrInterface()) {
             $payload = new WrappedPayload($payload);
             if ($message->getHeaders()->hasContentType()) {
                 $contentType = $message->getHeaders()->getContentType();

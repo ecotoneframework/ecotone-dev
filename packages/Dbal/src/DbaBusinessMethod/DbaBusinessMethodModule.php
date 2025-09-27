@@ -28,7 +28,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\AllHeadersBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 
 #[ModuleAnnotation]
@@ -198,8 +198,8 @@ final class DbaBusinessMethodModule implements AnnotationModule
 
         /** @var DbalParameter $dbalParameterAttribute */
         foreach (array_merge(
-            $interface->getClassAnnotationOf(TypeDescriptor::create(DbalParameter::class)),
-            $interface->getMethodAnnotationsOf(TypeDescriptor::create(DbalParameter::class))
+            $interface->getClassAnnotationOf(Type::object(DbalParameter::class)),
+            $interface->getMethodAnnotationsOf(Type::object(DbalParameter::class))
         ) as $dbalParameterAttribute) {
             Assert::isFalse(isset($parameterConverters[$dbalParameterAttribute->getName()]), "Parameter {$dbalParameterAttribute->getName()} is defined twice in {$dbalParameterAttribute->getName()}");
             Assert::isTrue($dbalParameterAttribute->getName() !== null, "Parameter name must be defined in {$dbalParameterAttribute->getName()}");

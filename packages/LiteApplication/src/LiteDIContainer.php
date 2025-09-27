@@ -8,7 +8,6 @@ use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Handler\TypeDescriptor;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Psr\Container\ContainerInterface;
 
@@ -59,6 +58,6 @@ class LiteDIContainer implements ContainerInterface
 
     public function resolve(string $referenceName): Type
     {
-        return TypeDescriptor::create($referenceName);
+        return Type::create($referenceName);
     }
 }

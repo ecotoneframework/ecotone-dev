@@ -12,7 +12,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentNotFound;
 use Ecotone\Messaging\Store\Document\DocumentStore;
@@ -54,7 +54,7 @@ final class DbalDocumentStore implements DocumentStore
         $this->createDataBaseTable();
 
         try {
-            $type = TypeDescriptor::createFromVariable($document);
+            $type = Type::createFromVariable($document);
 
             $rowsAffected = $this->getConnection()->insert(
                 $this->getTableName(),
@@ -247,14 +247,14 @@ final class DbalDocumentStore implements DocumentStore
         return $tableExists;
     }
 
-    private function convertToJSONDocument(TypeDescriptor $type, object|array|string $document): mixed
+    private function convertToJSONDocument(Type $type, object|array|string $document): mixed
     {
         if (! $type->isString()) {
             $document = $this->conversionService->convert(
                 $document,
                 $type,
                 MediaType::createApplicationXPHP(),
-                TypeDescriptor::createStringType(),
+                Type::string(),
                 MediaType::createApplicationJson()
             );
         }
@@ -264,7 +264,7 @@ final class DbalDocumentStore implements DocumentStore
     private function updateDocumentInternally(object|array|string $document, string $documentId, string $collectionName): int
     {
         try {
-            $type = TypeDescriptor::createFromVariable($document);
+            $type = Type::createFromVariable($document);
 
             $rowsAffected = $this->getConnection()->update(
                 $this->getTableName(),
@@ -303,7 +303,7 @@ final class DbalDocumentStore implements DocumentStore
 
     private function convertFromJSONDocument(mixed $select): mixed
     {
-        $documentType = TypeDescriptor::create($select['document_type']);
+        $documentType = Type::create($select['document_type']);
         if ($documentType->isString()) {
             return $select['document'];
         }
@@ -311,7 +311,7 @@ final class DbalDocumentStore implements DocumentStore
         try {
             $data = $this->conversionService->convert(
                 $select['document'],
-                TypeDescriptor::createStringType(),
+                Type::string(),
                 MediaType::createApplicationJson(),
                 $documentType,
                 MediaType::createApplicationXPHP()

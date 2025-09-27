@@ -16,6 +16,7 @@ use Test\Ecotone\EventSourcing\Fixture\InstantRetry\Aggregate\Customer;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\RegisterCustomer;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\CustomerRegistered;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\EventsConverter;
+use Test\Ecotone\EventSourcing\Fixture\InstantRetry\Nested\CreateCustomerCaller;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\TestRetryLogger;
 
 final class InstantRetryTransactionInteractionTest extends EventSourcingMessagingTestCase
@@ -66,5 +67,50 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
             'Expected InstantRetry to log a retry attempt'
         );
     }
+
+    public function test_retry_with_nested_command_handlers_on_factory_conflict(): void
+    {
+        $logger = new TestRetryLogger();
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [Customer::class, RegisterCustomer::class, CustomerRegistered::class, EventsConverter::class, CreateCustomerCaller::class],
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => self::getConnectionFactory(),
+                new EventsConverter(),
+                new CreateCustomerCaller(),
+                'logger' => $logger,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::CORE_PACKAGE,
+                ]))
+                ->withExtensionObjects([
+                    EventSourcingConfiguration::createWithDefaults(),
+                    \Ecotone\Dbal\Configuration\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+                    InstantRetryConfiguration::createWithDefaults()
+                        ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class]),
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
+        );
+
+        $id = 'cust-nested-1';
+        $ecotone->sendCommand(new RegisterCustomer($id));
+
+        try {
+            $ecotone->sendCommandWithRoutingKey('customer.create.via.caller', new RegisterCustomer($id));
+            self::fail('Expected ConcurrencyException to be thrown');
+        } catch (ConcurrencyException $e) {
+            // ok
+        }
+
+        self::assertTrue(
+            $logger->containsInfoSubstring('Trying to self-heal by doing instant try'),
+            'Expected InstantRetry to log a retry attempt'
+        );
+    }
+
 }
 

@@ -4,7 +4,7 @@ namespace Ecotone\JMSConverter;
 
 use Closure;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use JMS\Serializer\GraphNavigator;
 
@@ -13,39 +13,18 @@ use JMS\Serializer\GraphNavigator;
  */
 class JMSHandlerAdapter
 {
-    /**
-     * @var TypeDescriptor
-     */
-    private $fromType;
-    /**
-     * @var TypeDescriptor
-     */
-    private $toType;
-
-    private string|object $object;
-    /**
-     * @var string
-     */
-    private $methodName;
-
-    public function __construct(TypeDescriptor $fromType, TypeDescriptor $toType, object $object, string $methodName)
+    public function __construct(private Type $fromType, private Type $toType, private object $object, private string $methodName)
     {
-        Assert::isTrue($fromType->isClassOrInterface() || $toType->isClassOrInterface(), 'Atleast one side of converter must be class');
+        Assert::isTrue($fromType->isClassOrInterface() || $toType->isClassOrInterface(), 'At least one side of converter must be class');
         Assert::isFalse($fromType->isClassOrInterface() && $toType->isClassOrInterface(), 'Both sides of converter cannot to be classes');
-
-        $this->fromType = $fromType;
-        $this->toType = $toType;
-
-        $this->object = $object;
-        $this->methodName = $methodName;
     }
 
-    public static function create(TypeDescriptor $fromType, TypeDescriptor $toType, string $referenceName, string $methodName): self
+    public static function create(Type $fromType, Type $toType, string $referenceName, string $methodName): self
     {
         return new self($fromType, $toType, $referenceName, $methodName);
     }
 
-    public static function createWithDefinition(TypeDescriptor $fromType, TypeDescriptor $toType, Definition $definition, string $methodName): self
+    public static function createWithDefinition(Type $fromType, Type $toType, Definition $definition, string $methodName): self
     {
         return new self($fromType, $toType, $definition, $methodName);
     }

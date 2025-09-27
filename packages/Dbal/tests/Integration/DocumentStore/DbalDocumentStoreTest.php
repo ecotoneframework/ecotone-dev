@@ -6,7 +6,7 @@ use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Test\InMemoryConversionService;
@@ -85,12 +85,12 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
                 MediaType::APPLICATION_X_PHP,
                 stdClass::class,
                 MediaType::APPLICATION_JSON,
-                TypeDescriptor::STRING,
+                Type::STRING,
                 '{"name":"johny"}'
             )->registerConversion(
                 '{"name": "johny"}',
                 MediaType::APPLICATION_JSON,
-                TypeDescriptor::STRING,
+                Type::STRING,
                 MediaType::APPLICATION_X_PHP,
                 stdClass::class,
                 new stdClass()
@@ -113,16 +113,16 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             InMemoryConversionService::createWithConversion(
                 $document,
                 MediaType::APPLICATION_X_PHP,
-                TypeDescriptor::createCollection(stdClass::class),
+                Type::createCollection(stdClass::class),
                 MediaType::APPLICATION_JSON,
-                TypeDescriptor::STRING,
+                Type::STRING,
                 '[{"name":"johny"},{"name":"franco"}]'
             )->registerConversion(
                 '[{"name": "johny"}, {"name": "franco"}]',
                 MediaType::APPLICATION_JSON,
-                TypeDescriptor::STRING,
+                Type::STRING,
                 MediaType::APPLICATION_X_PHP,
-                TypeDescriptor::createCollection(stdClass::class),
+                Type::createCollection(stdClass::class),
                 $document
             )
         );
@@ -143,16 +143,16 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             InMemoryConversionService::createWithConversion(
                 $document,
                 MediaType::APPLICATION_X_PHP,
-                TypeDescriptor::ARRAY,
+                Type::ARRAY,
                 MediaType::APPLICATION_JSON,
-                TypeDescriptor::STRING,
+                Type::STRING,
                 '[1,2,5]'
             )->registerConversion(
                 '[1, 2, 5]',
                 MediaType::APPLICATION_JSON,
-                TypeDescriptor::STRING,
+                Type::STRING,
                 MediaType::APPLICATION_X_PHP,
-                TypeDescriptor::ARRAY,
+                Type::ARRAY,
                 $document
             )
         );
@@ -260,12 +260,12 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
                 MediaType::APPLICATION_X_PHP,
                 stdClass::class,
                 MediaType::APPLICATION_JSON,
-                TypeDescriptor::STRING,
+                Type::STRING,
                 '{"name":"johny"}'
             )->registerConversion(
                 '{"name": "johny"}',
                 MediaType::APPLICATION_JSON,
-                TypeDescriptor::STRING,
+                Type::STRING,
                 MediaType::APPLICATION_X_PHP,
                 stdClass::class,
                 new stdClass()

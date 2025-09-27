@@ -6,27 +6,22 @@ namespace Test\Ecotone\Messaging\Unit\Handler;
 
 use Closure;
 use Countable;
-use Doctrine\Common\Collections\ArrayCollection;
-use Ecotone\Messaging\Attribute\Endpoint\AddHeader;
-use Ecotone\Messaging\Attribute\Endpoint\Delayed;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\ArrayShapeType;
-use Ecotone\Messaging\Handler\Type\GenericType;
 use Ecotone\Messaging\Handler\Type\TypeContext;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessagingException;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
-use ReflectionMethod;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Dto\OrderExample;
 use Test\Ecotone\Messaging\Fixture\Handler\DumbMessageHandlerBuilder;
+use Traversable;
 
 /**
  * Class TypeDescriptorTest
@@ -192,21 +187,27 @@ class TypeDescriptorTest extends TestCase
         );
     }
 
-    /**
-     * @throws TypeDefinitionException
-     * @throws MessagingException
-     */
     public function test_choosing_doc_block_collection_type_hint_over_compound()
     {
-        $typeDescriptor = Type::createWithDocBlock('iterable', "\Doctrine\Common\Collections\ArrayCollection<\stdClass>");
+        $typeDescriptor = Type::createWithDocBlock('iterable', "\Traversable<\stdClass>");
 
         $this->assertEquals(
-            'Doctrine\Common\Collections\ArrayCollection<stdClass>',
+            'Traversable<stdClass>',
             $typeDescriptor->getTypeHint()
         );
 
         $this->assertEquals(
-            Type::object(ArrayCollection::class, Type::object(stdClass::class)),
+            Type::object(Traversable::class, Type::object(stdClass::class)),
+            $typeDescriptor
+        );
+    }
+
+    public function test_choosing_native_type_if_docblock_does_not_exists()
+    {
+        $typeDescriptor = Type::createWithDocBlock('iterable', "\ANonExistentClass<\stdClass>");
+
+        $this->assertEquals(
+            Type::iterable(),
             $typeDescriptor
         );
     }

@@ -29,6 +29,11 @@ class BuiltinType extends Type implements DefinedObject
             return true;
         }
 
+        // Two scalers are always compatible with each other
+        if ($this->typeIdentifier->isScalar() && $otherType->isIdentifiedBy(...TypeIdentifier::scalars())) {
+            return true;
+        }
+
         return match ($this->typeIdentifier) {
             TypeIdentifier::ANYTHING => true,
             TypeIdentifier::NEVER, TypeIdentifier::VOID => false,
@@ -43,6 +48,11 @@ class BuiltinType extends Type implements DefinedObject
 
     public function accepts(mixed $value): bool
     {
+        // Compatibility note: Two scalers are always compatible with each other
+        if ($this->typeIdentifier->isScalar() && is_scalar($value)) {
+            return true;
+        }
+
         return match ($this->typeIdentifier) {
             TypeIdentifier::INTEGER => is_int($value),
             TypeIdentifier::STRING => is_string($value) || $value instanceof Stringable,

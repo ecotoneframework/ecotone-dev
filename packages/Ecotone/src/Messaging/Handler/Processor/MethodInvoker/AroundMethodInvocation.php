@@ -67,6 +67,7 @@ class AroundMethodInvocation implements MethodInvocation
             $returnValue = $referenceToCall->{$methodName}(...$arguments);
         } while (! $aroundMethodInterceptor->hasMethodInvocation());
 
+        $this->aroundMethodInterceptors->rewind();
         return $returnValue;
     }
 

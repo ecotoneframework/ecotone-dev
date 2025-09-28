@@ -6,6 +6,7 @@ namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
+use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Interop\Queue\Consumer;
@@ -253,6 +254,7 @@ class DbalContext implements Context
 
         $schemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
         $schemaManager->createTable($table);
+        DbalReconnectableConnectionFactory::handleImplicitCommitAfterDDLOperation($connection);
     }
 
     public function getClock(): EcotoneClockInterface

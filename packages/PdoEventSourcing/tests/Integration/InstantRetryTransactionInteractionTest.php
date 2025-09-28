@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Doctrine\DBAL\Exception\NoActiveTransaction;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -17,6 +18,7 @@ use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\RegisterCu
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\CustomerRegistered;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\EventsConverter;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\Nested\CreateCustomerCaller;
+use Test\Ecotone\EventSourcing\Fixture\InstantRetry\ConnectionClosingInterceptor;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\TestRetryLogger;
 
 final class InstantRetryTransactionInteractionTest extends EventSourcingMessagingTestCase
@@ -112,5 +114,58 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
         );
     }
 
+
+    public function test_reconnects_after_connection_closed_between_retry_attempts(): void
+    {
+        $logger = new TestRetryLogger();
+        $connectionFactory = self::getConnectionFactory();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [
+                Customer::class,
+                RegisterCustomer::class,
+                CustomerRegistered::class,
+                EventsConverter::class,
+                CreateCustomerCaller::class,
+                ConnectionClosingInterceptor::class,
+            ],
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $connectionFactory,
+                new EventsConverter(),
+                new CreateCustomerCaller(),
+                new ConnectionClosingInterceptor([true, false]),
+                'logger' => $logger,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::CORE_PACKAGE,
+                ]))
+                ->withExtensionObjects([
+                    EventSourcingConfiguration::createWithDefaults(),
+                    \Ecotone\Dbal\Configuration\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+                    InstantRetryConfiguration::createWithDefaults()
+                        ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class, NoActiveTransaction::class]),
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
+        );
+
+        $id = 'cust-reconnect-1';
+        // Seed aggregate
+        $ecotone->sendCommand(new RegisterCustomer($id));
+
+        // Verify InstantRetry performed a retry (implying the second attempt executed after connection close)
+        self::assertTrue(
+            $logger->containsInfoSubstring('Trying to self-heal by doing instant try'),
+            'Expected InstantRetry to log a retry attempt after closing the connection'
+        );
+        self::assertNotNull(
+            $ecotone->getAggregate(Customer::class, $id),
+            'Expected aggregate to be created after retry'
+        );
+    }
 }
 

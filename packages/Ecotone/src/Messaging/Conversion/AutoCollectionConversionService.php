@@ -7,11 +7,6 @@ namespace Ecotone\Messaging\Conversion;
 use Ecotone\Messaging\Handler\Type;
 
 /**
- * Class ConversionService
- * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
-/**
  * licence Apache-2.0
  */
 class AutoCollectionConversionService implements ConversionService
@@ -56,18 +51,11 @@ class AutoCollectionConversionService implements ConversionService
             return $converter->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
         }
 
-        if (\is_iterable($source)
-            && $targetPHPType->isIterable() && $targetPHPType instanceof Type\GenericType) {
+        if (\is_iterable($source) && $targetPHPType->isIterable() && $targetPHPType instanceof Type\GenericType) {
             $converted = [];
             $targetValueType = $this->getValueTypeFromCollectionType($targetPHPType);
             foreach ($source as $k => $v) {
-                $converted[$k] = $this->convert(
-                    $v,
-                    Type::createFromVariable($v),
-                    MediaType::createApplicationXPHP(),
-                    $targetValueType,
-                    $targetMediaType
-                );
+                $converted[$k] = $this->convert($v, Type::createFromVariable($v), MediaType::createApplicationXPHP(), $targetValueType, $targetMediaType);
             }
             return $converted;
         }
@@ -106,7 +94,7 @@ class AutoCollectionConversionService implements ConversionService
      */
     private function getConverter(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): ?Converter
     {
-        $cacheKey = self::makeCacheKey($sourceType, $sourceMediaType, $targetType, $targetMediaType);
+        $cacheKey = $sourceType->toString() . '|' . $sourceMediaType->toString() . '->' . $targetType->toString() . '|' . $targetMediaType->toString();
         if (isset($this->convertersCache[$cacheKey])) {
             if ($this->convertersCache[$cacheKey] === false) {
                 return null;
@@ -121,23 +109,8 @@ class AutoCollectionConversionService implements ConversionService
             }
         }
 
+        $this->convertersCache[$cacheKey] = false;
+
         return null;
     }
-
-    public static function makeCacheKey(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): string
-    {
-        return $sourceType->toString() . '|' . $sourceMediaType->toString() . '->' . $targetType->toString() . '|' . $targetMediaType->toString();
-    }
-
-//    /**
-//     * @param Converter[] $converters
-//     */
-//    private function initialize(array $converters): void
-//    {
-//        $this->converters = $converters;
-//
-//        foreach ($converters as $converter) {
-//            $this->converters[] = CollectionConverter::createForConverter($converter);
-//        }
-//    }
 }

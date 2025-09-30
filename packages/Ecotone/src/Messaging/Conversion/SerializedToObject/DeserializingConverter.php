@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Conversion\SerializedToObject;
 
+use Ecotone\Messaging\Conversion\ConversionException;
+use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Conversion\ConversionServiceAware;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
@@ -16,14 +19,24 @@ use Ecotone\Messaging\Handler\Type;
 /**
  * licence Apache-2.0
  */
-class DeserializingConverter implements Converter
+class DeserializingConverter implements Converter, ConversionServiceAware
 {
+    private ?ConversionService $conversionService = null;
+
     /**
      * @inheritDoc
      */
     public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
-        return unserialize(stripslashes($source));
+        $phpVar = unserialize(stripslashes($source));
+        if (! $targetType->accepts($phpVar)) {
+            if ($this->conversionService === null) {
+                throw ConversionException::create("To convert serialized data to different type than original, you need to set conversion service in " . self::class);
+            }
+            return $this->conversionService->convert($phpVar, Type::createFromVariable($phpVar), MediaType::createApplicationXPHP(), $targetType, MediaType::createApplicationXPHP());
+        }
+
+        return $phpVar;
     }
 
     /**
@@ -33,5 +46,10 @@ class DeserializingConverter implements Converter
     {
         return $sourceMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP_SERIALIZED)
             && $targetMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP);
+    }
+
+    public function setConversionService(ConversionService $conversionService): void
+    {
+        $this->conversionService = $conversionService;
     }
 }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Conversion;
 
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Support\Assert;
 
 /**
  * Class ConversionService
@@ -18,10 +17,10 @@ use Ecotone\Messaging\Support\Assert;
 class AutoCollectionConversionService implements ConversionService
 {
     /**
-     * ConversionService constructor.
      * @param Converter[] $converters
+     * @param array<string, int|false> $convertersCache value is index of converter in $this->converters or false if not found
      */
-    private function __construct(private array $converters)
+    public function __construct(private array $converters, private array $convertersCache = [])
     {
         foreach ($this->converters as $converter) {
             if ($converter instanceof ConversionServiceAware) {
@@ -107,13 +106,27 @@ class AutoCollectionConversionService implements ConversionService
      */
     private function getConverter(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): ?Converter
     {
-        foreach ($this->converters as $converter) {
+        $cacheKey = self::makeCacheKey($sourceType, $sourceMediaType, $targetType, $targetMediaType);
+        if (isset($this->convertersCache[$cacheKey])) {
+            if ($this->convertersCache[$cacheKey] === false) {
+                return null;
+            }
+            return $this->converters[$this->convertersCache[$cacheKey]];
+        }
+
+        foreach ($this->converters as $index => $converter) {
             if ($converter->matches($sourceType, $sourceMediaType, $targetType, $targetMediaType)) {
+                $this->convertersCache[$cacheKey] = $index;
                 return $converter;
             }
         }
 
         return null;
+    }
+
+    public static function makeCacheKey(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): string
+    {
+        return $sourceType->toString() . '|' . $sourceMediaType->toString() . '->' . $targetType->toString() . '|' . $targetMediaType->toString();
     }
 
 //    /**

@@ -76,6 +76,6 @@ class ReferenceServiceConverter implements Converter
         return $sourceMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)
             && $targetMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)
             && $sourceType->isCompatibleWith($this->sourceType)
-            && $targetType->equals($this->targetType);
+            && $targetType->acceptType($this->targetType);
     }
 }

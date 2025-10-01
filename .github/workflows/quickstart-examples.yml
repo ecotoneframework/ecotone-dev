@@ -38,10 +38,6 @@ jobs:
           --env KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
           --env KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
           --env KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
-          --health-cmd="kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"
-          --health-interval=10s
-          --health-timeout=10s
-          --health-retries=10
         ports:
           - 9092:9092
       rabbitmq:
@@ -109,6 +105,20 @@ jobs:
 
       - name: Install OpenSSH (For Kafka)
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends openssh-client
+
+      - name: Wait for Kafka to be ready
+        run: |
+          echo "Waiting for Kafka to start..."
+          for i in {1..30}; do
+            if timeout 5 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/9092' 2>/dev/null; then
+              echo "Kafka is ready!"
+              exit 0
+            fi
+            echo "Attempt $i: Kafka not ready yet, waiting 2 seconds..."
+            sleep 2
+          done
+          echo "Kafka failed to start within 60 seconds"
+          exit 1
 
       - name: Enable merge-plugin
         run: composer global config --no-interaction allow-plugins.wikimedia/composer-merge-plugin true && composer global require wikimedia/composer-merge-plugin

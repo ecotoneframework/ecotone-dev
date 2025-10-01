@@ -41,10 +41,6 @@ jobs:
           --env KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
           --env KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
           --env KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
-          --health-cmd="kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"
-          --health-interval=10s
-          --health-timeout=10s
-          --health-retries=10
         ports:
           - 9092:9092
       rabbitmq:

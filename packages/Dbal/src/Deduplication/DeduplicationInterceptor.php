@@ -167,7 +167,6 @@ class DeduplicationInterceptor
 
         $schemaManager->createTable($table);
         $this->logger->info('Deduplication table was created');
-        DbalReconnectableConnectionFactory::handleImplicitCommitAfterDDLOperation($connection);
     }
 
     private function getConnection(ConnectionFactory $connectionFactory): Connection

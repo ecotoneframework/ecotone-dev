@@ -117,6 +117,12 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
 
     public function test_reconnects_after_connection_closed_between_retry_attempts(): void
     {
+        if (!str_contains(getenv('DATABASE_DSN'), 'pgsql')) {
+            self::markTestSkipped('Only supported on PostgreSQL');
+
+            return;
+        }
+
         $logger = new TestRetryLogger();
         $connectionFactory = self::getConnectionFactory();
 
@@ -154,7 +160,6 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
         );
 
         $id = 'cust-reconnect-1';
-        // Seed aggregate
         $ecotone->sendCommand(new RegisterCustomer($id));
 
         // Verify InstantRetry performed a retry (implying the second attempt executed after connection close)

@@ -112,6 +112,20 @@ jobs:
       - name: Install DB clients
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends postgresql-client mysql-client
 
+      - name: Wait for Kafka to be ready
+        run: |
+          echo "Waiting for Kafka to start..."
+          for i in {1..30}; do
+            if timeout 5 bash -c 'cat < /dev/null > /dev/tcp/127.0.0.1/9092' 2>/dev/null; then
+              echo "Kafka is ready!"
+              exit 0
+            fi
+            echo "Attempt $i: Kafka not ready yet, waiting 2 seconds..."
+            sleep 2
+          done
+          echo "Kafka failed to start within 60 seconds"
+          exit 1
+
       - name: Enable merge-plugin
         run: composer global config --no-interaction allow-plugins.wikimedia/composer-merge-plugin true && composer global require wikimedia/composer-merge-plugin
 

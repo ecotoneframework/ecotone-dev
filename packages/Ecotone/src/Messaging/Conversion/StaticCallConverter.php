@@ -5,21 +5,13 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Conversion;
 
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Support\Assert;
-use Ecotone\Messaging\Support\InvalidArgumentException;
-use ReflectionMethod;
 
-/**
- * Class ReferenceConverter
- * @package Ecotone\Messaging\Conversion
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
 /**
  * licence Apache-2.0
  */
-class ReferenceServiceConverter implements Converter
+class StaticCallConverter implements Converter
 {
-    public function __construct(private object $object, private string $method, private Type $sourceType, private Type $targetType)
+    public function __construct(private string $classname, private string $method, private Type $sourceType, private Type $targetType)
     {
     }
 
@@ -28,7 +20,7 @@ class ReferenceServiceConverter implements Converter
      */
     public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
-        return $this->object->{$this->method}($source);
+        return $this->classname::{$this->method}($source);
     }
 
     /**
@@ -39,6 +31,6 @@ class ReferenceServiceConverter implements Converter
         return $sourceMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)
             && $targetMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)
             && $sourceType->isCompatibleWith($this->sourceType)
-            && $targetType->equals($this->targetType);
+            && $targetType->acceptType($this->targetType);
     }
 }

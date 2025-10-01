@@ -3,7 +3,6 @@
 namespace Ecotone\JMSConverter;
 
 use Closure;
-use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use JMS\Serializer\GraphNavigator;
@@ -13,27 +12,23 @@ use JMS\Serializer\GraphNavigator;
  */
 class JMSHandlerAdapter
 {
-    public function __construct(private Type $fromType, private Type $toType, private object $object, private string $methodName)
+    public function __construct(private Type $fromType, private Type $toType, private string|object $object, private string $methodName)
     {
         Assert::isTrue($fromType->isClassOrInterface() || $toType->isClassOrInterface(), 'At least one side of converter must be class');
         Assert::isFalse($fromType->isClassOrInterface() && $toType->isClassOrInterface(), 'Both sides of converter cannot to be classes');
     }
 
-    public static function create(Type $fromType, Type $toType, string $referenceName, string $methodName): self
-    {
-        return new self($fromType, $toType, $referenceName, $methodName);
-    }
-
-    public static function createWithDefinition(Type $fromType, Type $toType, Definition $definition, string $methodName): self
-    {
-        return new self($fromType, $toType, $definition, $methodName);
-    }
-
     public function getSerializerClosure(): Closure
     {
-        return function ($visitor, $data) {
-            return $this->object->{$this->methodName}($data);
-        };
+        if (is_string($this->object)) {
+            return function ($visitor, $data) {
+                return $this->object::{$this->methodName}($data);
+            };
+        } else {
+            return function ($visitor, $data) {
+                return $this->object->{$this->methodName}($data);
+            };
+        }
     }
 
     public function getRelatedClass(): string

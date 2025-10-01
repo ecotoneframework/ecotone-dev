@@ -16,7 +16,7 @@ class JMSHandlerAdapterBuilder implements CompilableBuilder
     public function __construct(
         private Type $fromType,
         private Type $toType,
-        private Definition|Reference $objectToCallOn,
+        private Definition|Reference|string $objectToCallOn,
         private string $methodName,
     ) {
     }

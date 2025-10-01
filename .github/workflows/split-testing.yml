@@ -27,17 +27,20 @@ jobs:
 
     services:
       kafka:
-        image: bitnami/kafka:latest
+        image: apache/kafka:3.9.0
         options: >-
-          --env ALLOW_PLAINTEXT_LISTENER=yes
-          --env KAFKA_ENABLE_KRAFT=yes
-          --env KAFKA_CFG_NODE_ID=0
-          --env KAFKA_CFG_PROCESS_ROLES=controller,broker
-          --env KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
-          --env KAFKA_CFG_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093
-          --env KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
-          --env KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
-          --env KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=0@127.0.0.1:9093
+          --env KAFKA_NODE_ID=0
+          --env KAFKA_PROCESS_ROLES=broker,controller
+          --env KAFKA_CONTROLLER_QUORUM_VOTERS=0@127.0.0.1:9093
+          --env KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+          --env KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093
+          --env KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
+          --env KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          --env KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+          --env KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+          --env KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+          --env KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+          --env KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
           --health-cmd="kafka-topics.sh --bootstrap-server 127.0.0.1:9092 --list || exit 1"
           --health-interval=10s
           --health-timeout=5s

@@ -2,6 +2,8 @@
 
 namespace Monorepo\ExampleAppEventSourcing\Common\Event;
 
+use Ecotone\Messaging\Attribute\Converter;
+
 class PriceWasChanged
 {
     public function __construct(private string $productId, private float $price) {}
@@ -14,5 +16,20 @@ class PriceWasChanged
     public function getPrice(): float
     {
         return $this->price;
+    }
+
+    #[Converter]
+    public static function fromArray(array $data): self
+    {
+        return new self($data['productId'], $data['price']);
+    }
+
+    #[Converter]
+    public static function toArray(self $object): array
+    {
+        return [
+            'productId' => $object->productId,
+            'price' => $object->price,
+        ];
     }
 }

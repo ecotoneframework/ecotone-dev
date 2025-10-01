@@ -254,7 +254,6 @@ class DbalContext implements Context
 
         $schemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
         $schemaManager->createTable($table);
-        DbalReconnectableConnectionFactory::handleImplicitCommitAfterDDLOperation($connection);
     }
 
     public function getClock(): EcotoneClockInterface

@@ -159,9 +159,6 @@ class LazyProophEventStore implements EventStore
     {
         if (! isset($this->ensuredExistingStreams[$this->getContextName()][$streamName->toString()]) && ! $this->hasStream($streamName)) {
             $this->create(new Stream($streamName, new \ArrayIterator([]), []));
-            if (!$this->eventSourcingConfiguration->isInMemory()) {
-                DbalReconnectableConnectionFactory::handleImplicitCommitAfterDDLOperation($this->getConnection());
-            }
         }
 
         try {
@@ -210,8 +207,6 @@ class LazyProophEventStore implements EventStore
                 self::EVENT_STORE_TYPE_MYSQL => $this->createMysqlProjectionTable()
             };
         }
-
-        DbalReconnectableConnectionFactory::handleImplicitCommitAfterDDLOperation($this->getConnection());
     }
 
     public function getEventStore(?StreamName $streamName = null, string|null $streamStrategy = null): EventStore

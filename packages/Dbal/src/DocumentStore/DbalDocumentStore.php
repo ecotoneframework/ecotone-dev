@@ -217,7 +217,6 @@ final class DbalDocumentStore implements DocumentStore
         $table->setPrimaryKey(['collection', 'document_id']);
 
         $schemaManager->createTable($table);
-        DbalReconnectableConnectionFactory::handleImplicitCommitAfterDDLOperation($this->getConnection());
     }
 
     private function getConnection(): Connection

@@ -112,35 +112,4 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
             return $connection->establishConnection();
         }
     }
-
-    private static function isConnectionWorkingWithImplicitCommit(Connection $connection): bool
-    {
-        return $connection->getDriver() instanceof Driver;
-    }
-
-    public static function handleImplicitCommitAfterDDLOperation(?Connection $connection): void
-    {
-//        @TODO think whatever to replace transaction interceptor implicit commit handling with this
-        return;
-        if (! $connection) {
-            return;
-        }
-
-        if (
-            DbalReconnectableConnectionFactory::isConnectionWorkingWithImplicitCommit($connection)
-            && $connection->isTransactionActive()
-        ) {
-            try {
-                $connection->commit();
-            }catch (\Exception $exception) {
-                // ignore
-            }
-            try {
-                $connection->rollBack();
-            }catch (\Exception $exception){
-                // ignore
-            }
-            $connection->beginTransaction();
-        }
-    }
 }

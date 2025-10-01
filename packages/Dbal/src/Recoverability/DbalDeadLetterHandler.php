@@ -222,7 +222,6 @@ class DbalDeadLetterHandler
         $table->addIndex(['failed_at']);
 
         $schemaManager->createTable($table);
-        DbalReconnectableConnectionFactory::handleImplicitCommitAfterDDLOperation($connection);
     }
 
     private function doesDeadLetterTableExists(): bool

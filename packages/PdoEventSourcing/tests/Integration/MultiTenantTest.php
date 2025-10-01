@@ -53,13 +53,6 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true
         );
 
-        $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION, [
-            'tenant' => 'tenant_a',
-        ]);
-        $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION, [
-            'tenant' => 'tenant_b',
-        ]);
-
         $ecotone->sendCommand(
             new RegisterTicket('123', 'Johnny', 'alert'),
             metadata: ['tenant' => 'tenant_a']

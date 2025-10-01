@@ -22,7 +22,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 class AroundMethodInvocation implements MethodInvocation
 {
     /**
-     * @var ArrayIterator|AroundMethodInterceptor[]
+     * @var AroundMethodInterceptor[]
      */
     private iterable $aroundMethodInterceptors;
 
@@ -35,9 +35,20 @@ class AroundMethodInvocation implements MethodInvocation
         private Message $requestMessage,
         array $aroundMethodInterceptors,
         private AroundInterceptable $interceptedMethodInvocation,
+        private int $currentExecutionIndex = 0
     ) {
-        $this->aroundMethodInterceptors = new ArrayIterator($aroundMethodInterceptors);
+        $this->aroundMethodInterceptors = $aroundMethodInterceptors;
         $this->arguments = $interceptedMethodInvocation->getArguments($this->requestMessage);
+    }
+
+    public function cloneCurrentState(): self
+    {
+        return new self(
+            $this->requestMessage,
+            $this->aroundMethodInterceptors,
+            $this->interceptedMethodInvocation,
+            $this->currentExecutionIndex,
+        );
     }
 
     /**
@@ -47,8 +58,8 @@ class AroundMethodInvocation implements MethodInvocation
     {
         do {
             /** @var AroundMethodInterceptor $aroundMethodInterceptor */
-            $aroundMethodInterceptor = $this->aroundMethodInterceptors->current();
-            $this->aroundMethodInterceptors->next();
+            $aroundMethodInterceptor = $this->aroundMethodInterceptors[$this->currentExecutionIndex] ?? null;
+            $this->currentExecutionIndex++;
 
             if (! $aroundMethodInterceptor) {
                 $objectToInvokeOn = $this->getObjectToInvokeOn();
@@ -67,7 +78,6 @@ class AroundMethodInvocation implements MethodInvocation
             $returnValue = $referenceToCall->{$methodName}(...$arguments);
         } while (! $aroundMethodInterceptor->hasMethodInvocation());
 
-        $this->aroundMethodInterceptors->rewind();
         return $returnValue;
     }
 

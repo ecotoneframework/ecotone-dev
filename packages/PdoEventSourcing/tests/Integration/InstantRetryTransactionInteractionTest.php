@@ -118,7 +118,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
     public function test_reconnects_after_connection_closed_between_retry_attempts(): void
     {
         if (!str_contains(getenv('DATABASE_DSN'), 'pgsql')) {
-            self::markTestSkipped('Only supported on PostgreSQL');
+            self::markTestSkipped('Only supported on PostgreSQL, because of implicit commits in mysql');
 
             return;
         }
@@ -167,6 +167,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
             $logger->containsInfoSubstring('Trying to self-heal by doing instant try'),
             'Expected InstantRetry to log a retry attempt after closing the connection'
         );
+
         self::assertNotNull(
             $ecotone->getAggregate(Customer::class, $id),
             'Expected aggregate to be created after retry'

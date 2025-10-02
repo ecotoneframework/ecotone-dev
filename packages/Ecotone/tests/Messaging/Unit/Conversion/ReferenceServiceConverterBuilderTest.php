@@ -73,7 +73,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
             ->build();
     }
 
-    public function test_not_throwing_exception_if_converter_containing_union_source_type()
+    public function test_not_throwing_exception_if_converter_containing_source_union_source_type()
     {
         ComponentTestBuilder::create([ExampleIncorrectUnionSourceTypeConverterService::class])
             ->withReference(ExampleIncorrectUnionSourceTypeConverterService::class, new ExampleIncorrectUnionSourceTypeConverterService())
@@ -85,6 +85,19 @@ class ReferenceServiceConverterBuilderTest extends TestCase
             ->build();
 
         $this->expectNotToPerformAssertions();
+    }
+
+    public function test_throwing_exception_if_converter_returning_union_source_type()
+    {
+        $this->expectException(InvalidArgumentException::class);
+        ComponentTestBuilder::create([ExampleIncorrectUnionReturnTypeConverterService::class])
+            ->withReference(ExampleIncorrectUnionReturnTypeConverterService::class, new ExampleIncorrectUnionReturnTypeConverterService())
+            ->withMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withArrayStdClasses')
+                    ->withInputChannelName($inputChannel = 'inputChannel')
+                    ->withPassThroughMessageOnVoidInterface(true)
+            )
+            ->build();
     }
 
     public function test_throwing_exception_if_converter_containing_union_target_type()

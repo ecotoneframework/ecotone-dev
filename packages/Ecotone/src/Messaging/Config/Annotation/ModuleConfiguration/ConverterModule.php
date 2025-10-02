@@ -52,7 +52,7 @@ class ConverterModule extends NoExternalConfigurationModule implements Annotatio
             if (!$interfaceToCall->hasSingleParameter()) {
                 throw InvalidArgumentException::create("Converter should have only single parameter: {$interfaceToCall}");
             }
-            if ($interfaceToCall->getReturnType()->isVoid() || $interfaceToCall->getReturnType()->isUnionType()) {
+            if ($interfaceToCall->getReturnType()->isVoid()) {
                 throw InvalidArgumentException::create("Converter cannot have void return type: {$interfaceToCall}");
             }
             if ($interfaceToCall->getReturnType()->isUnionType()) {

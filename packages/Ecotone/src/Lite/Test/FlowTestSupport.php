@@ -235,13 +235,13 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function initializeProjection(string $projectionName): self
+    public function initializeProjection(string $projectionName, array $metadata = []): self
     {
         $projectionRegistry = $this->getGateway(ProjectionRegistry::class);
         if ($projectionRegistry->has($projectionName)) {
             $projectionRegistry->get($projectionName)->init();
         } else {
-            $this->getGateway(ProjectionManager::class)->initializeProjection($projectionName);
+            $this->getGateway(ProjectionManager::class)->initializeProjection($projectionName, $metadata);
         }
 
         return $this;

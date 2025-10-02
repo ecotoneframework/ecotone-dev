@@ -9,6 +9,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut\PointcutParser;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\UnionType;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+
 use function is_null;
 
 /**

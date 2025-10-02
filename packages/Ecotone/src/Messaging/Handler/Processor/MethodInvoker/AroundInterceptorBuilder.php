@@ -27,8 +27,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Pointcut\IncorrectPointcutException;
 use Ecotone\Messaging\Handler\ReferenceSearchService;
-use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;

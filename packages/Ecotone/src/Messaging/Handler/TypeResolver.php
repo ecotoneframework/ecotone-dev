@@ -14,7 +14,6 @@ use Ecotone\Messaging\Config\Container\InterfaceParameterReference;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\Type\TypeContext;
-use Ecotone\Messaging\Handler\Type\TypeIdentifier;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Error;
 use ReflectionClass;
@@ -308,7 +307,8 @@ class TypeResolver
             $declaringClass->getName(),
             $parentClass?->getName(),
             $thisClass->getNamespaceName(),
-            aliases: $statements);
+            aliases: $statements
+        );
     }
 
     private function getGroupUseStatements(string $classContents): array

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -10,7 +11,6 @@ use Ecotone\Messaging\Handler\Type;
 
 trait TypeFactory
 {
-
     public static function boolean(): Type
     {
         return new BuiltinType(TypeIdentifier::BOOL);
@@ -75,7 +75,7 @@ trait TypeFactory
     public static function object(?string $className = null, Type ...$genericTypes): BuiltinType|ObjectType|GenericType
     {
         if ($className) {
-            if (!empty($genericTypes)) {
+            if (! empty($genericTypes)) {
                 return new GenericType(new ObjectType($className), ...$genericTypes);
             } else {
                 return new ObjectType($className);

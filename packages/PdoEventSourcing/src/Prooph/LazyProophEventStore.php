@@ -2,6 +2,7 @@
 
 namespace Ecotone\EventSourcing\Prooph;
 
+use ArrayIterator;
 use Doctrine\DBAL\Driver\PDOConnection;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
@@ -13,13 +14,13 @@ use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamSt
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Iterator;
 use PDO;
 use Prooph\Common\Messaging\MessageConverter;
 use Prooph\EventStore\EventStore;
 use Prooph\EventStore\Exception\ConcurrencyException as ProophConcurrencyException;
-use Prooph\EventStore\Exception\StreamNotFound;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Pdo\MariaDbEventStore;
 use Prooph\EventStore\Pdo\MySqlEventStore;
@@ -32,6 +33,7 @@ use Prooph\EventStore\Pdo\WriteLockStrategy\PostgresAdvisoryLockStrategy;
 use Prooph\EventStore\Stream;
 use Prooph\EventStore\StreamName;
 
+use function spl_object_id;
 use function str_contains;
 
 use Throwable;
@@ -95,7 +97,13 @@ class LazyProophEventStore implements EventStore
 
     public function hasStream(StreamName $streamName): bool
     {
-        return $this->getEventStore($streamName)->hasStream($streamName);
+        $hasStream = $this->getEventStore($streamName)->hasStream($streamName);
+
+        if ($hasStream) {
+            $this->ensuredExistingStreams[$this->getContextName()][$streamName->toString()] = true;
+        }
+
+        return $hasStream;
     }
 
     public function load(StreamName $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null): Iterator
@@ -145,67 +153,80 @@ class LazyProophEventStore implements EventStore
         } catch (ProophConcurrencyException $exception) {
             throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
         }
-        $this->ensuredExistingStreams[$this->getContextName()][$stream->streamName()->toString()] = true;
     }
 
     public function appendTo(StreamName $streamName, Iterator $streamEvents): void
     {
         if (! isset($this->ensuredExistingStreams[$this->getContextName()][$streamName->toString()]) && ! $this->hasStream($streamName)) {
-            $this->create(new Stream($streamName, $streamEvents, []));
-        } else {
-            try {
-                $this->getEventStore($streamName)->appendTo($streamName, $streamEvents);
-            } catch (StreamNotFound) {
-                $this->create(new Stream($streamName, $streamEvents, []));
-            } catch (ProophConcurrencyException $exception) {
-                throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
-            }
+            $this->create(new Stream($streamName, new ArrayIterator([]), []));
+        }
+
+        try {
+            $this->getEventStore($streamName)->appendTo($streamName, $streamEvents);
+        } catch (ProophConcurrencyException $exception) {
+            throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
         }
     }
 
     public function delete(StreamName $streamName): void
     {
         $this->getEventStore()->delete($streamName);
-        unset($this->ensuredExistingStreams[$streamName->toString()]);
+        unset($this->ensuredExistingStreams[$this->getContextName()][$streamName->toString()]);
     }
 
     public function prepareEventStore(): void
     {
+        /**
+         * @TODO expose CLI for setting up all required tables (including deduplication tables)
+         */
+
         $connectionName = $this->getContextName();
         if (! $this->canBeInitialized || isset($this->initializated[$connectionName]) || $this->eventSourcingConfiguration->isInMemory()) {
             return;
         }
 
-        if (! SchemaManagerCompatibility::tableExists($this->getConnection(), $this->eventSourcingConfiguration->getEventStreamTableName())) {
+        $projectionTableExists = SchemaManagerCompatibility::tableExists($this->getConnection(), $this->eventSourcingConfiguration->getProjectionsTable());
+        $eventStreamTableExists = SchemaManagerCompatibility::tableExists($this->getConnection(), $this->eventSourcingConfiguration->getEventStreamTableName());
+
+        if ($eventStreamTableExists && $projectionTableExists) {
+            $this->initializated[$connectionName] = true;
+            return;
+        }
+
+        if (! $eventStreamTableExists) {
             match ($this->getEventStoreType()) {
                 self::EVENT_STORE_TYPE_POSTGRES => $this->createPostgresEventStreamTable(),
                 self::EVENT_STORE_TYPE_MARIADB => $this->createMariadbEventStreamTable(),
                 self::EVENT_STORE_TYPE_MYSQL => $this->createMysqlEventStreamTable()
             };
         }
-        if (! SchemaManagerCompatibility::tableExists($this->getConnection(), $this->eventSourcingConfiguration->getProjectionsTable())) {
+        if (! $projectionTableExists) {
             match ($this->getEventStoreType()) {
                 self::EVENT_STORE_TYPE_POSTGRES => $this->createPostgresProjectionTable(),
                 self::EVENT_STORE_TYPE_MARIADB => $this->createMariadbProjectionTable(),
                 self::EVENT_STORE_TYPE_MYSQL => $this->createMysqlProjectionTable()
             };
         }
-
-        $this->initializated[$connectionName] = true;
     }
 
     public function getEventStore(?StreamName $streamName = null, string|null $streamStrategy = null): EventStore
     {
         $contextName = $this->getContextName($streamName);
         if (isset($this->initializedEventStore[$contextName])) {
-            return $this->initializedEventStore[$contextName];
+            if ($this->eventSourcingConfiguration->isInMemory()) {
+                return $this->initializedEventStore[$contextName]['eventStore'];
+            }
+
+            if (! $this->hasConnectionChanged($contextName)) {
+                return $this->initializedEventStore[$contextName]['eventStore'];
+            }
         }
         $this->prepareEventStore();
 
         if ($this->eventSourcingConfiguration->isInMemory()) {
-            $this->initializedEventStore[$contextName] = $this->eventSourcingConfiguration->getInMemoryEventStore();
+            $this->initializedEventStore[$contextName]['eventStore'] = $this->eventSourcingConfiguration->getInMemoryEventStore();
 
-            return $this->initializedEventStore[$contextName];
+            return $this->initializedEventStore[$contextName]['eventStore'];
         }
 
         $eventStoreType =  $this->getEventStoreType();
@@ -243,7 +264,10 @@ class LazyProophEventStore implements EventStore
             $writeLockStrategy
         );
 
-        $this->initializedEventStore[$contextName] = $eventStore;
+        $this->initializedEventStore[$contextName] = [
+            'eventStore' => $eventStore,
+            'connection_reference' => spl_object_id($connection),
+        ];
 
         return $eventStore;
     }
@@ -302,11 +326,13 @@ class LazyProophEventStore implements EventStore
         return $eventStoreType;
     }
 
-    private function getConnection(): \Doctrine\DBAL\Connection
+    public function getConnection(): \Doctrine\DBAL\Connection
     {
         $connectionFactory = new DbalReconnectableConnectionFactory($this->connectionFactory);
 
-        return $connectionFactory->getConnection();
+        /** @var DbalContext $context */
+        $context = $connectionFactory->createContext();
+        return $context->getDbalConnection();
     }
 
     /**
@@ -324,7 +350,7 @@ class LazyProophEventStore implements EventStore
     private function createMysqlEventStreamTable(): void
     {
         $this->getConnection()->executeStatement(<<<SQL
-                CREATE TABLE `event_streams` (
+               CREATE TABLE IF NOT EXISTS `event_streams` (
               `no` BIGINT(20) NOT NULL AUTO_INCREMENT,
               `real_stream_name` VARCHAR(150) NOT NULL,
               `stream_name` CHAR(41) NOT NULL,
@@ -340,7 +366,7 @@ class LazyProophEventStore implements EventStore
     private function createMariadbEventStreamTable(): void
     {
         $this->getConnection()->executeStatement(<<<SQL
-            CREATE TABLE `event_streams` (
+            CREATE TABLE IF NOT EXISTS `event_streams` (
                 `no` BIGINT(20) NOT NULL AUTO_INCREMENT,
                 `real_stream_name` VARCHAR(150) NOT NULL,
                 `stream_name` CHAR(41) NOT NULL,
@@ -357,7 +383,7 @@ class LazyProophEventStore implements EventStore
     private function createPostgresEventStreamTable(): void
     {
         $this->getConnection()->executeStatement(<<<SQL
-            CREATE TABLE event_streams (
+            CREATE TABLE IF NOT EXISTS event_streams (
               no BIGSERIAL,
               real_stream_name VARCHAR(150) NOT NULL,
               stream_name CHAR(41) NOT NULL,
@@ -374,7 +400,7 @@ class LazyProophEventStore implements EventStore
     {
         $this->getConnection()->executeStatement(
             <<<SQL
-                CREATE TABLE `projections` (
+                CREATE TABLE IF NOT EXISTS `projections` (
                   `no` BIGINT(20) NOT NULL AUTO_INCREMENT,
                   `name` VARCHAR(150) NOT NULL,
                   `position` JSON,
@@ -392,7 +418,7 @@ class LazyProophEventStore implements EventStore
     {
         $this->getConnection()->executeStatement(
             <<<SQL
-                CREATE TABLE `projections` (
+                CREATE TABLE IF NOT EXISTS `projections` (
                   `no` BIGINT(20) NOT NULL AUTO_INCREMENT,
                   `name` VARCHAR(150) NOT NULL,
                   `position` LONGTEXT,
@@ -412,7 +438,7 @@ class LazyProophEventStore implements EventStore
     {
         $this->getConnection()->executeStatement(
             <<<SQL
-                CREATE TABLE projections (
+                CREATE TABLE IF NOT EXISTS projections (
                   no BIGSERIAL,
                   name VARCHAR(150) NOT NULL,
                   position JSONB,
@@ -424,6 +450,11 @@ class LazyProophEventStore implements EventStore
                 );
                 SQL
         );
+    }
+
+    private function hasConnectionChanged(string $contextName): bool
+    {
+        return $this->initializedEventStore[$contextName]['connection_reference'] !== spl_object_id($this->getWrappedConnection());
     }
 
     /**

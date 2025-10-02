@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -6,23 +7,21 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Type;
 
-use Ecotone\Messaging\Config\Container\DefinedObject;
-
 enum TypeIdentifier: string
 {
     //    scalar types
-    case         INTEGER = 'int';
-    case         FLOAT = 'float';
-    case         BOOL = 'bool';
+    case INTEGER = 'int';
+    case FLOAT = 'float';
+    case BOOL = 'bool';
     case FALSE = 'false';
     case TRUE = 'true';
-    case         STRING = 'string';
+    case STRING = 'string';
 
     //    compound types
     case ARRAY = 'array';
-    case         ITERABLE = 'iterable';
+    case ITERABLE = 'iterable';
     case CALLABLE = 'callable';
-    case         OBJECT = 'object';
+    case OBJECT = 'object';
 
     //    resource
     case RESOURCE = 'resource';

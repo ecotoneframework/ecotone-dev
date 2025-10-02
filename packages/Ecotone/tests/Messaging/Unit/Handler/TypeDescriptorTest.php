@@ -79,7 +79,7 @@ class TypeDescriptorTest extends TestCase
     {
         $this->assertEquals(
             'mixed',
-           Type::createWithDocBlock('    ', '    ')
+            Type::createWithDocBlock('    ', '    ')
         );
     }
 
@@ -106,38 +106,38 @@ class TypeDescriptorTest extends TestCase
         Type::create('bla');
     }
 
-//    /**
-//     * @throws TypeDefinitionException
-//     * @throws MessagingException
-//     */
-//    public function test_passing_incompatible_resource_type_hint_and_scalar_union_type()
-//    {
-//        $this->expectException(TypeDefinitionException::class);
-//
-//        TypeDescriptor::create(TypeDescriptor::RESOURCE.'|'.TypeDescriptor::INTEGER);
-//    }
-//
-//    /**
-//     * @throws TypeDefinitionException
-//     * @throws MessagingException
-//     */
-//    public function test_passing_incompatible_resource_hint_and_compound_union_type()
-//    {
-//        $this->expectException(TypeDefinitionException::class);
-//
-//        TypeDescriptor::create(TypeDescriptor::RESOURCE.'|'.  TypeDescriptor::ARRAY);
-//    }
-//
-//    /**
-//     * @throws TypeDefinitionException
-//     * @throws MessagingException
-//     */
-//    public function test_passing_incompatible_compound_hint_and_resource_union_type()
-//    {
-//        $this->expectException(TypeDefinitionException::class);
-//
-//        TypeDescriptor::create(TypeDescriptor::ITERABLE.'|'.  TypeDescriptor::RESOURCE);
-//    }
+    //    /**
+    //     * @throws TypeDefinitionException
+    //     * @throws MessagingException
+    //     */
+    //    public function test_passing_incompatible_resource_type_hint_and_scalar_union_type()
+    //    {
+    //        $this->expectException(TypeDefinitionException::class);
+    //
+    //        TypeDescriptor::create(TypeDescriptor::RESOURCE.'|'.TypeDescriptor::INTEGER);
+    //    }
+    //
+    //    /**
+    //     * @throws TypeDefinitionException
+    //     * @throws MessagingException
+    //     */
+    //    public function test_passing_incompatible_resource_hint_and_compound_union_type()
+    //    {
+    //        $this->expectException(TypeDefinitionException::class);
+    //
+    //        TypeDescriptor::create(TypeDescriptor::RESOURCE.'|'.  TypeDescriptor::ARRAY);
+    //    }
+    //
+    //    /**
+    //     * @throws TypeDefinitionException
+    //     * @throws MessagingException
+    //     */
+    //    public function test_passing_incompatible_compound_hint_and_resource_union_type()
+    //    {
+    //        $this->expectException(TypeDefinitionException::class);
+    //
+    //        TypeDescriptor::create(TypeDescriptor::ITERABLE.'|'.  TypeDescriptor::RESOURCE);
+    //    }
 
     /**
      * @throws TypeDefinitionException
@@ -618,7 +618,8 @@ class TypeDescriptorTest extends TestCase
         $expectedArrayShape = new ArrayShapeType(['person_id' => Type::string()]);
         $this->assertEquals(
             Type::array(Type::int(), $expectedArrayShape),
-            Type::create('array<int, array{person_id: string}>'));
+            Type::create('array<int, array{person_id: string}>')
+        );
         $this->assertEquals($expectedArrayShape, Type::create('array{person_id: string}'));
     }
 

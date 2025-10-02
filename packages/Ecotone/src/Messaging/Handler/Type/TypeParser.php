@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -6,9 +7,13 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Type;
 
+use function class_exists;
+
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+
+use function interface_exists;
 
 /**
  * Parser for complex type strings like "array<int, iterable<MyClass<string>>>"
@@ -101,7 +106,7 @@ class TypeParser
             $this->nextToken(); // consume the '{'
             $shape = $this->parseArrayShape();
             $this->expect(self::CLOSE_BRACE);
-            
+
             return new ArrayShapeType($shape);
         }
 
@@ -137,21 +142,21 @@ class TypeParser
             } catch (TypeDefinitionException $e) {
                 $types[] = new BuiltinType(TypeIdentifier::ANYTHING);
             }
-            
+
             if ($this->peekToken() === self::COMMA) {
                 $this->nextToken(); // consume the ','
             } else {
                 break;
             }
         }
-        
+
         return $types;
     }
 
     private function createSimpleType(string $typeName): Type
     {
         $typeName = trim($typeName);
-        
+
         // Handle builtin types
         if ($typeIdentifier = $this->getTypeIdentifier($typeName)) {
             return new BuiltinType($typeIdentifier);
@@ -175,7 +180,7 @@ class TypeParser
         }
 
         // Handle class names
-        if (\class_exists($resolvedClassName) || \interface_exists($resolvedClassName)) {
+        if (class_exists($resolvedClassName) || interface_exists($resolvedClassName)) {
             return new ObjectType($resolvedClassName);
         } else {
             throw TypeDefinitionException::create("Error while parsing '{$this->originalExpression}'. Unknown type or class '{$typeName}' (resolved to '{$resolvedClassName}')");
@@ -187,7 +192,7 @@ class TypeParser
         $typeName = trim($typeName);
         $baseType = $this->createSimpleType($typeName);
 
-        if($baseType instanceof ObjectType || ($baseType instanceof BuiltinType && $baseType->isIterable())) {
+        if ($baseType instanceof ObjectType || ($baseType instanceof BuiltinType && $baseType->isIterable())) {
             return GenericType::from($baseType, ...$genericTypes);
         } else {
             throw TypeDefinitionException::create("Error while parsing '{$this->originalExpression}'. Only collection types and object types can be generic, got '{$typeName}'");
@@ -228,14 +233,14 @@ class TypeParser
     {
         // Match "<", ">", ",", "[", "]", "{", "}", ":", "|", "?", or whitespace
         $pattern = '/(<|>|,|\[|\]|\{|\}|:|\||\?|\s+)/';
-        
+
         $parts = preg_split($pattern, $expression, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
-        
+
         $parts = array_filter(
             array_map('trim', $parts),
             fn ($token) => $token !== ''
         );
-        
+
         return array_values($parts);
     }
 
@@ -246,27 +251,27 @@ class TypeParser
     private function parseArrayShape(): array
     {
         $shape = [];
-        
+
         // Handle empty array shape
         if ($this->peekToken() === self::CLOSE_BRACE) {
             return $shape;
         }
-        
+
         do {
             // Parse field name
             $fieldName = $this->nextToken();
             if ($fieldName === null) {
                 throw InvalidArgumentException::create("Error while parsing '{$this->originalExpression}'. Expected field name in array shape");
             }
-            
+
             // Expect colon
             $this->expect(self::COLON);
-            
+
             // Parse field type
             $fieldType = $this->parseUnion();
-            
+
             $shape[$fieldName] = $fieldType;
-            
+
             // Check if there are more fields
             if ($this->peekToken() === self::COMMA) {
                 $this->nextToken(); // consume the ','
@@ -274,7 +279,7 @@ class TypeParser
                 break;
             }
         } while (true);
-        
+
         return $shape;
     }
 }

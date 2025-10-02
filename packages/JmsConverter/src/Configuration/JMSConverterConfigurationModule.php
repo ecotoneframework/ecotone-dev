@@ -42,7 +42,6 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
 
         $converters = [];
         foreach ($registrations as $registration) {
-            $reference = AnnotatedDefinitionReference::getReferenceFor($registration);
             $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
 
             $fromTypes = $interfaceToCall->getFirstParameter()->getTypeDescriptor();
@@ -63,7 +62,7 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
                     $converters[] = new JMSHandlerAdapterBuilder(
                         $fromType,
                         $toType,
-                        Reference::to($reference),
+                        $interfaceToCall->isStaticallyCalled() ? $interfaceToCall->getInterfaceName() : Reference::to(AnnotatedDefinitionReference::getReferenceFor($registration)),
                         $registration->getMethodName(),
                     );
                 }

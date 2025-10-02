@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -12,6 +13,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use ReflectionClass;
+use Traversable;
 
 class ObjectType extends Type implements DefinedObject
 {
@@ -30,7 +32,7 @@ class ObjectType extends Type implements DefinedObject
             return $className;
         }
         $className = trim($className);
-        if (!self::itExists($className)) {
+        if (! self::itExists($className)) {
             throw TypeDefinitionException::create("Given class or interface {$className} does not exist");
         }
 
@@ -53,7 +55,7 @@ class ObjectType extends Type implements DefinedObject
             if ($identifier instanceof TypeIdentifier) {
                 if ($identifier === TypeIdentifier::OBJECT) {
                     return true;
-                } elseif ($identifier === TypeIdentifier::ITERABLE && is_a($this->className, \Traversable::class, true)) {
+                } elseif ($identifier === TypeIdentifier::ITERABLE && is_a($this->className, Traversable::class, true)) {
                     return true;
                 }
             } elseif (\is_a($this->className, $identifier, true)) {
@@ -106,7 +108,7 @@ class ObjectType extends Type implements DefinedObject
 
     public function isAttribute(): bool
     {
-        return $this->isAttribute ??= !empty((new ReflectionClass($this->className))->getAttributes(Attribute::class));
+        return $this->isAttribute ??= ! empty((new ReflectionClass($this->className))->getAttributes(Attribute::class));
     }
 
     public function __sleep(): array

@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -9,6 +10,7 @@ namespace Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\Type;
+use InvalidArgumentException;
 
 class GenericType extends Type implements DefinedObject
 {
@@ -19,11 +21,11 @@ class GenericType extends Type implements DefinedObject
 
     public function __construct(public readonly BuiltinType|ObjectType $type, Type ...$genericTypes)
     {
-        if ($type instanceof BuiltinType && !$type->isIterable()) {
-            throw new \InvalidArgumentException("Only collection types can be generic");
+        if ($type instanceof BuiltinType && ! $type->isIterable()) {
+            throw new InvalidArgumentException('Only collection types can be generic');
         }
         if (empty($genericTypes)) {
-            throw new \InvalidArgumentException("Generic types cannot be empty");
+            throw new InvalidArgumentException('Generic types cannot be empty');
         }
         $this->genericTypes = $genericTypes;
     }
@@ -155,7 +157,7 @@ class GenericType extends Type implements DefinedObject
 
     public function __toString(): string
     {
-        $genericTypesString = implode(",", array_map(fn (Type $type) => $type->toString(), $this->genericTypes));
+        $genericTypesString = implode(',', array_map(fn (Type $type) => $type->toString(), $this->genericTypes));
         return "{$this->type->toString()}<{$genericTypesString}>";
     }
 
@@ -163,7 +165,7 @@ class GenericType extends Type implements DefinedObject
     {
         return new Definition(self::class, [
             $this->type,
-            ...$this->genericTypes
+            ...$this->genericTypes,
         ]);
     }
 }

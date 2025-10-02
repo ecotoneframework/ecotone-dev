@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -99,7 +100,7 @@ class BuiltinType extends Type implements DefinedObject
     public function getDefinition(): Definition
     {
         return new Definition(self::class, [
-            $this->typeIdentifier
+            $this->typeIdentifier,
         ]);
     }
 }

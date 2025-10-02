@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -44,44 +45,44 @@ class ArrayShapeType extends Type implements DefinedObject
 
     public function accepts(mixed $value): bool
     {
-        if (!is_array($value)) {
+        if (! is_array($value)) {
             return false;
         }
-        
+
         // Check if the array has the required structure
         foreach ($this->shape as $fieldName => $fieldType) {
-            if (!array_key_exists($fieldName, $value)) {
+            if (! array_key_exists($fieldName, $value)) {
                 return false;
             }
-            
-            if (!$fieldType->accepts($value[$fieldName])) {
+
+            if (! $fieldType->accepts($value[$fieldName])) {
                 return false;
             }
         }
-        
+
         return true;
     }
 
     public function equals(Type $toCompare): bool
     {
-        if (!$toCompare instanceof self) {
+        if (! $toCompare instanceof self) {
             return false;
         }
-        
+
         if (count($this->shape) !== count($toCompare->shape)) {
             return false;
         }
-        
+
         foreach ($this->shape as $fieldName => $fieldType) {
-            if (!array_key_exists($fieldName, $toCompare->shape)) {
+            if (! array_key_exists($fieldName, $toCompare->shape)) {
                 return false;
             }
-            
-            if (!$fieldType->equals($toCompare->shape[$fieldName])) {
+
+            if (! $fieldType->equals($toCompare->shape[$fieldName])) {
                 return false;
             }
         }
-        
+
         return true;
     }
 
@@ -91,7 +92,7 @@ class ArrayShapeType extends Type implements DefinedObject
         foreach ($this->shape as $fieldName => $fieldType) {
             $fields[] = $fieldName . ': ' . $fieldType->toString();
         }
-        
+
         return 'array{' . implode(', ', $fields) . '}';
     }
 
@@ -102,15 +103,15 @@ class ArrayShapeType extends Type implements DefinedObject
     {
         // This shape is compatible if it has all the required fields of the other shape
         foreach ($this->shape as $fieldName => $fieldType) {
-            if (!array_key_exists($fieldName, $other->shape)) {
+            if (! array_key_exists($fieldName, $other->shape)) {
                 return false;
             }
-            
-            if (!$this->shape[$fieldName]->acceptType($fieldType)) {
+
+            if (! $this->shape[$fieldName]->acceptType($fieldType)) {
                 return false;
             }
         }
-        
+
         return true;
     }
 

@@ -39,4 +39,3 @@ final class TestRetryLogger extends AbstractLogger
         return false;
     }
 }
-

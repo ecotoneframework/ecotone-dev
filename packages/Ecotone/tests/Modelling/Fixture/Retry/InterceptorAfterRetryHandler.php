@@ -26,7 +26,7 @@ final class InterceptorAfterRetryHandler
     public function handleCommand(int $stopThrowingAtAttempt): void
     {
         $this->calls[] = 'commandHandler';
-        
+
         if ($this->commandCalled < $stopThrowingAtAttempt) {
             $this->commandCalled++;
             throw new RuntimeException('test');
@@ -38,7 +38,7 @@ final class InterceptorAfterRetryHandler
     public function handleAsyncCommand(int $stopThrowingAtAttempt): void
     {
         $this->calls[] = 'asyncCommandHandler';
-        
+
         if ($this->commandCalled < $stopThrowingAtAttempt) {
             $this->commandCalled++;
             throw new RuntimeException('test');

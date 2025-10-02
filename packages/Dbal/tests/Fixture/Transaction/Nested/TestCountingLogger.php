@@ -35,12 +35,23 @@ final class TestCountingLogger implements LoggingGateway
     }
 
     // PSR-3 interface stubs
-    public function emergency($message, array $context = []): void {}
-    public function alert($message, array $context = []): void {}
-    public function warning($message, array $context = []): void {}
-    public function notice($message, array $context = []): void {}
-    public function debug($message, array $context = []): void {}
-    public function log($level, $message, array $context = []): void {
+    public function emergency($message, array $context = []): void
+    {
+    }
+    public function alert($message, array $context = []): void
+    {
+    }
+    public function warning($message, array $context = []): void
+    {
+    }
+    public function notice($message, array $context = []): void
+    {
+    }
+    public function debug($message, array $context = []): void
+    {
+    }
+    public function log($level, $message, array $context = []): void
+    {
         if ($level === \Psr\Log\LogLevel::INFO) {
             $msg = (string) $message;
             if ($msg === 'Database Transaction started') {
@@ -68,4 +79,3 @@ final class TestCountingLogger implements LoggingGateway
         $this->committed = 0;
     }
 }
-

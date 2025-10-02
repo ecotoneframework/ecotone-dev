@@ -3,7 +3,6 @@
 namespace Ecotone\Dbal\DbalTransaction;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Driver\PDO\MySQL\Driver;
 use Doctrine\DBAL\Exception\ConnectionException;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
@@ -138,7 +137,7 @@ class DbalTransactionInterceptor
 
     private function isImplicitCommitException(Throwable $exception, Connection $connection): bool
     {
-        if (!($connection->getDriver()->getDatabasePlatform($connection) instanceof MySQLPlatform)) {
+        if (! ($connection->getDriver()->getDatabasePlatform($connection) instanceof MySQLPlatform)) {
             return false;
         }
 

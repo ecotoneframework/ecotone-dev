@@ -32,4 +32,3 @@ final class Customer
         $this->id = $event->id;
     }
 }
-

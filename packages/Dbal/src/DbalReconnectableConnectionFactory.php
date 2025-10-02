@@ -3,7 +3,6 @@
 namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Driver\PDO\MySQL\Driver;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Enqueue\Dbal\DbalContext;

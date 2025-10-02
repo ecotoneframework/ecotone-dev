@@ -12,6 +12,15 @@ use Ecotone\Messaging\Handler\Type\TypeIdentifier;
 use Ecotone\Messaging\Handler\Type\TypeParser;
 use Ecotone\Messaging\Handler\Type\UnionType;
 use Ecotone\Messaging\Message;
+
+use function get_debug_type;
+use function is_array;
+use function is_callable;
+use function is_iterable;
+use function is_object;
+use function is_resource;
+use function is_string;
+
 use Stringable;
 
 /**
@@ -47,7 +56,7 @@ abstract class Type implements Stringable
         if ($variable === false) {
             return self::false();
         }
-        switch (\get_debug_type($variable)) {
+        switch (get_debug_type($variable)) {
             case 'int':
                 return self::int();
             case 'float':
@@ -56,10 +65,10 @@ abstract class Type implements Stringable
                 return self::string();
             default:
         }
-        if (\is_object($variable)) {
+        if (is_object($variable)) {
             return self::object($variable::class);
         }
-        if (\is_array($variable)) {
+        if (is_array($variable)) {
             // Check only the first element for performance reasons
             if (empty($variable)) {
                 return self::array();
@@ -67,7 +76,7 @@ abstract class Type implements Stringable
             $genericTypes = [];
             $firstKey = array_key_first($variable);
             $lastKey = array_key_last($variable);
-            if (\is_string($lastKey) && \is_string($firstKey)) {
+            if (is_string($lastKey) && is_string($firstKey)) {
                 $genericTypes[] = self::string();
             }
             $firstValue = $variable[$firstKey];
@@ -82,13 +91,13 @@ abstract class Type implements Stringable
 
             return GenericType::from(self::array(), ...$genericTypes);
         }
-        if (\is_iterable($variable)) {
+        if (is_iterable($variable)) {
             return self::iterable();
         }
-        if (\is_resource($variable)) {
+        if (is_resource($variable)) {
             return self::resource();
         }
-        if (\is_callable($variable)) {
+        if (is_callable($variable)) {
             return self::callable();
         }
 
@@ -109,10 +118,10 @@ abstract class Type implements Stringable
     {
         $type = trim($type ?? '');
         $docBlockTypeDescription = trim($docBlockTypeDescription ?? '');
-        if (!empty($type)) {
+        if (! empty($type)) {
             $baseType = self::create($type, $context);
         }
-        if (!empty($docBlockTypeDescription)) {
+        if (! empty($docBlockTypeDescription)) {
             try {
                 $docBlockType = self::create($docBlockTypeDescription, $context);
                 if ($docBlockType->isIdentifiedBy(TypeIdentifier::ANYTHING)) {

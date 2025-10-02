@@ -38,7 +38,7 @@ class EventStoreGlobalStreamSourceBuilder implements ProjectionComponentBuilder
                 Reference::to(EcotoneClockInterface::class),
                 $this->streamName,
                 5_000,
-                new Definition(Duration::class, [60], 'seconds')
+                new Definition(Duration::class, [60], 'seconds'),
             ],
         );
     }

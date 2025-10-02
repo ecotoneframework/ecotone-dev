@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\InstantRetry;
 
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Ecotone\Messaging\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Precedence;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Exception;
 use Interop\Queue\ConnectionFactory;
 
 /**
@@ -38,8 +36,7 @@ final class ConnectionClosingInterceptor
         MethodInvocation $methodInvocation,
         Message $message,
         #[Reference] DbalConnectionFactory $connectionFactory
-    ): mixed
-    {
+    ): mixed {
         $current = $this->callIndex++;
         try {
             return $methodInvocation->proceed();
@@ -58,10 +55,10 @@ final class ConnectionClosingInterceptor
         $context = $connectionFactory->createContext();
         $connection = $context->getDbalConnection();
 
-        try{
+        try {
             $connection->rollBack();
-        }catch (\Exception){}
+        } catch (Exception) {
+        }
         $connection->close();
     }
 }
-

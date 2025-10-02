@@ -6,6 +6,7 @@ namespace Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages;
 
 final class RegisterCustomer
 {
-    public function __construct(public string $id) {}
+    public function __construct(public string $id)
+    {
+    }
 }
-

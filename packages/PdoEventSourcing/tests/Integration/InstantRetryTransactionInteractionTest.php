@@ -14,13 +14,16 @@ use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\Aggregate\Customer;
-use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\RegisterCustomer;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\CustomerRegistered;
+use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\RegisterCustomer;
+use Test\Ecotone\EventSourcing\Fixture\InstantRetry\ConnectionClosingInterceptor;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\EventsConverter;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\Nested\CreateCustomerCaller;
-use Test\Ecotone\EventSourcing\Fixture\InstantRetry\ConnectionClosingInterceptor;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\TestRetryLogger;
 
+/**
+ * @internal
+ */
 final class InstantRetryTransactionInteractionTest extends EventSourcingMessagingTestCase
 {
     public function test_retry_happens_inside_aborted_transaction_with_prooph_conflict(): void
@@ -117,7 +120,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
 
     public function test_reconnects_after_connection_closed_between_retry_attempts(): void
     {
-        if (!str_contains(getenv('DATABASE_DSN'), 'pgsql')) {
+        if (! str_contains(getenv('DATABASE_DSN'), 'pgsql')) {
             self::markTestSkipped('Only supported on PostgreSQL, because of implicit commits in mysql');
 
             return;
@@ -174,4 +177,3 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
         );
     }
 }
-

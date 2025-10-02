@@ -8,13 +8,14 @@ use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-
 use Enqueue\Dbal\DbalConnectionFactory;
-use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\Nested\NestedDbalHandlers;
 use Test\Ecotone\Dbal\Fixture\Transaction\Nested\TestCountingLogger;
 
+/**
+ * @internal
+ */
 final class NestedDbalTransactionTest extends DbalMessagingTestCase
 {
     public function test_avoids_nested_transactions_on_command_bus(): void
@@ -54,4 +55,3 @@ final class NestedDbalTransactionTest extends DbalMessagingTestCase
         self::assertSame(1, $ecotone->sendQueryWithRouting('nested.count'));
     }
 }
-

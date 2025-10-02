@@ -21,4 +21,3 @@ final class EventsConverter
         return new CustomerRegistered($payload['id']);
     }
 }
-

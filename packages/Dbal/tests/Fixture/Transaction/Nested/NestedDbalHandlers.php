@@ -29,7 +29,7 @@ final class NestedDbalHandlers
     }
 
     #[CommandHandler('nested.outer')]
-    public function outer(#[\Ecotone\Messaging\Attribute\Parameter\Reference] CommandBus $commandBus): void
+    public function outer(#[Reference] CommandBus $commandBus): void
     {
         // Trigger a nested synchronous command bus call
         $commandBus->sendWithRouting('nested.inner');
@@ -42,4 +42,3 @@ final class NestedDbalHandlers
         return (int) $connection->executeQuery('SELECT COUNT(*) FROM nested_events')->fetchOne();
     }
 }
-

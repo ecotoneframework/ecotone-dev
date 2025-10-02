@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -27,7 +28,7 @@ class UnionType extends Type implements DefinedObject
     public function __construct(private readonly array $typeDescriptors)
     {
         if (count($typeDescriptors) < 2) {
-            throw InvalidArgumentException::create("Union type must consist of at least 2 types");
+            throw InvalidArgumentException::create('Union type must consist of at least 2 types');
         }
     }
 
@@ -224,7 +225,7 @@ class UnionType extends Type implements DefinedObject
      */
     public function __toString(): string
     {
-        return implode("|", array_map(fn (Type $typeDescriptor) => $typeDescriptor->toString(), $this->typeDescriptors));
+        return implode('|', array_map(fn (Type $typeDescriptor) => $typeDescriptor->toString(), $this->typeDescriptors));
     }
 
     /**

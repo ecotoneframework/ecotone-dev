@@ -13,8 +13,8 @@ use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Test\Ecotone\Modelling\Fixture\Retry\RetriedCommandHandler;
 use Test\Ecotone\Modelling\Fixture\Retry\InterceptorAfterRetryHandler;
+use Test\Ecotone\Modelling\Fixture\Retry\RetriedCommandHandler;
 
 /**
  * licence Apache-2.0

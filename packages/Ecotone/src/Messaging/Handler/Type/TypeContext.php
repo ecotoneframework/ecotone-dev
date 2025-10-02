@@ -1,4 +1,5 @@
 <?php
+
 /**
  * licence Apache-2.0
  */
@@ -71,7 +72,7 @@ class TypeContext
             if (class_exists($className) || interface_exists($className)) {
                 return $className;
             }
-            
+
             $namespacedClass = $this->namespace . '\\' . $className;
             // For testing purposes, we'll assume the namespaced class exists
             // In real usage, this would be checked with class_exists()

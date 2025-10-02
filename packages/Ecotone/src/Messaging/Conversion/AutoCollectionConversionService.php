@@ -17,11 +17,6 @@ class AutoCollectionConversionService implements ConversionService
      */
     public function __construct(private array $converters, private array $convertersCache = [])
     {
-        foreach ($this->converters as $converter) {
-            if ($converter instanceof ConversionServiceAware) {
-                $converter->setConversionService($this);
-            }
-        }
     }
 
     /**
@@ -48,7 +43,7 @@ class AutoCollectionConversionService implements ConversionService
         }
 
         if ($converter = $this->getConverter($sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType)) {
-            return $converter->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
+            return $converter->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType, $this);
         }
 
         if (\is_iterable($source) && $targetPHPType->isIterable() && $targetPHPType instanceof Type\GenericType) {

@@ -24,6 +24,11 @@ class StubMethodInvocation implements MethodInvocation
         return new self();
     }
 
+    public function cloneCurrentState(): MethodInvocation
+    {
+        return clone $this;
+    }
+
     public function getCalledTimes(): int
     {
         return $this->calledTimes;

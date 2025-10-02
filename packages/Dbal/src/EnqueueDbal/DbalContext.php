@@ -6,6 +6,7 @@ namespace Enqueue\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
+use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Interop\Queue\Consumer;

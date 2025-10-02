@@ -68,7 +68,7 @@ class ObjectManagerModule implements AnnotationModule
                     AroundInterceptorBuilder::create(
                         ObjectManagerInterceptor::class,
                         $interfaceToCallRegistry->getFor(ObjectManagerInterceptor::class, 'transactional'),
-                        Precedence::DATABASE_TRANSACTION_PRECEDENCE + 1,
+                        Precedence::DATABASE_OBJECT_MANAGER_PRECEDENCE,
                         implode('||', $pointcut)
                     )
                 );

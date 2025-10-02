@@ -42,6 +42,8 @@ class InstantRetryInterceptor
 
             $result = null;
             while (! $isSuccessful) {
+                $retryableInvocationState = $methodInvocation->cloneCurrentState();
+
                 try {
                     $result = $methodInvocation->proceed();
                     $isSuccessful = true;
@@ -66,6 +68,7 @@ class InstantRetryInterceptor
                         $message,
                         ['exception' => $exception]
                     );
+                    $methodInvocation = $retryableInvocationState;
                 }
             }
         } finally {

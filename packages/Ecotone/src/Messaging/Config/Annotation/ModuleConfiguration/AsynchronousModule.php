@@ -70,7 +70,7 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
 
                     if ($endpoint->hasClassAnnotation(StreamBasedSource::class)) {
                         $streamSourcesAsyncEndpoints[$annotationForMethod->getEndpointId()] = $asyncClass->getChannelName();
-                    }else {
+                    } else {
                         if (in_array(get_class($annotationForMethod), [CommandHandler::class, EventHandler::class])) {
                             if ($annotationForMethod->isEndpointIdGenerated()) {
                                 throw ConfigurationException::create("{$endpoint} should have endpointId defined for handling asynchronously");
@@ -263,7 +263,7 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
         /** Default polling metadata for tests */
         if ($serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)) {
             foreach ($asyncChannels as $asyncEndpointChannel) {
-                if (!$this->hasPollingMetadata($pollingMetadata, $asyncEndpointChannel)) {
+                if (! $this->hasPollingMetadata($pollingMetadata, $asyncEndpointChannel)) {
                     if ($this->isInMemoryPollableChannel($polingChannelBuilders, $asyncEndpointChannel)) {
                         $messagingConfiguration->registerPollingMetadata(
                             PollingMetadata::create($asyncEndpointChannel)

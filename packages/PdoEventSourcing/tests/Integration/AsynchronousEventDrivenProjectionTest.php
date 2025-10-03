@@ -208,8 +208,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
             'Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection',
         ],
         array $extensionObjects = [],
-    ): FlowTestSupport
-    {
+    ): FlowTestSupport {
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: $classesToResolve,
             containerOrAvailableServices: [new InProgressTicketList(self::getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => self::getConnectionFactory()],

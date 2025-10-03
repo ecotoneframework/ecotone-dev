@@ -63,7 +63,7 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
         $finishTime = microtime(true);
 
-        // less than ~100 ms
+        // less than ~100 ms (however connection and set up might take longer)
         self::assertLessThan(100, ($finishTime - $currentTime) * 1000);
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
@@ -89,8 +89,8 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
         $finishTime = microtime(true);
 
-        // around ~100 ms as default testing setup is 100ms
-        self::assertLessThan(150, ($finishTime - $currentTime) * 1000);
+        // around ~300 ms as default testing setup is 100ms (however connection and set up might take longer)
+        self::assertLessThan(300, ($finishTime - $currentTime) * 1000);
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }

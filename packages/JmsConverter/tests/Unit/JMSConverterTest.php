@@ -445,7 +445,7 @@ class JMSConverterTest extends TestCase
 
     public function test_it_works_with_union_converters(): void
     {
-        $converter = new class {
+        $converter = new class () {
             #[Converter]
             public function convert(Status|stdClass $status): string
             {
@@ -454,8 +454,8 @@ class JMSConverterTest extends TestCase
         };
 
         $this->assertSame(
-            '{"status":"custom active"}'
-             ,$this->getJMSConverter([$converter])->convert(
+            '{"status":"custom active"}',
+            $this->getJMSConverter([$converter])->convert(
                 new Person(new Status('active')),
                 Type::createFromVariable(new Person(new Status('active'))),
                 MediaType::createApplicationXPHP(),

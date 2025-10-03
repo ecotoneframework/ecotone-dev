@@ -49,7 +49,7 @@ class ConverterModule extends NoExternalConfigurationModule implements Annotatio
         foreach ($registrations as $registration) {
             $interfaceToCall     = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
 
-            if (!$interfaceToCall->hasSingleParameter()) {
+            if (! $interfaceToCall->hasSingleParameter()) {
                 throw InvalidArgumentException::create("Converter should have only single parameter: {$interfaceToCall}");
             }
             if ($interfaceToCall->getReturnType()->isVoid()) {

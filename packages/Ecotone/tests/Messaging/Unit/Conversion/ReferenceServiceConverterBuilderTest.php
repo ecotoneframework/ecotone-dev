@@ -116,7 +116,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
 
     public function test_static_converter(): void
     {
-        $staticConverter = new class {
+        $staticConverter = new class () {
             /**
              * @param string[] $data
              * @return stdClass[]

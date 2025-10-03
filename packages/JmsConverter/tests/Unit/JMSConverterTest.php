@@ -8,6 +8,7 @@ use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverter;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Attribute\Converter;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionException;
@@ -439,6 +440,28 @@ class JMSConverterTest extends TestCase
         );
         $this->assertTrue(
             $this->getJMSConverter([])->canConvert(Type::create(stdClass::class), MediaType::createApplicationXPHP(), Type::array(), MediaType::createApplicationXPHP())
+        );
+    }
+
+    public function test_it_works_with_union_converters(): void
+    {
+        $converter = new class {
+            #[Converter]
+            public function convert(Status|stdClass $status): string
+            {
+                return $status instanceof Status ? 'custom ' . $status->getType() : 'stdClass';
+            }
+        };
+
+        $this->assertSame(
+            '{"status":"custom active"}'
+             ,$this->getJMSConverter([$converter])->convert(
+                new Person(new Status('active')),
+                Type::createFromVariable(new Person(new Status('active'))),
+                MediaType::createApplicationXPHP(),
+                Type::string(),
+                MediaType::createApplicationJson()
+            )
         );
     }
 

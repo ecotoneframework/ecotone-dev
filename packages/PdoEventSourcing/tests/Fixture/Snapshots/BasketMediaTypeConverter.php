@@ -5,7 +5,7 @@ namespace Test\Ecotone\EventSourcing\Fixture\Snapshots;
 use Ecotone\Messaging\Attribute\MediaTypeConverter;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 
 use function json_decode;
 use function json_encode;
@@ -21,7 +21,7 @@ final class BasketMediaTypeConverter implements Converter
     /**
      * @param Basket $source
      */
-    public function convert($source, TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType)
+    public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
         if ($targetMediaType->isCompatibleWith(MediaType::createApplicationJson())) {
             return json_encode($source->toArray());
@@ -30,7 +30,7 @@ final class BasketMediaTypeConverter implements Converter
         return Basket::fromArray(json_decode($source, true));
     }
 
-    public function matches(TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType): bool
+    public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
     {
         return $sourceType->getTypeHint() === Basket::class || $targetType->getTypeHint() === Basket::class;
     }

@@ -11,6 +11,7 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\StreamSource;
@@ -36,6 +37,8 @@ class EventStoreGlobalStreamSourceBuilder implements ProjectionComponentBuilder
                 Reference::to(EventStore::class),
                 Reference::to(EcotoneClockInterface::class),
                 $this->streamName,
+                5_000,
+                new Definition(Duration::class, [60], 'seconds'),
             ],
         );
     }

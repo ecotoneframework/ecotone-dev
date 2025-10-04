@@ -5,7 +5,7 @@ namespace Ecotone\JMSConverter;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use InvalidArgumentException;
 use JMS\Serializer\SerializationContext;
 use JMS\Serializer\Serializer;
@@ -28,7 +28,7 @@ class JMSConverter implements Converter
         $this->jmsConverterConfiguration = $jmsConverterConfiguration;
     }
 
-    public function convert($source, TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType)
+    public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
         $serializeNulls = $targetMediaType->hasParameter(self::SERIALIZE_NULL_PARAMETER) ? $targetMediaType->getParameter(self::SERIALIZE_NULL_PARAMETER) === 'true' : $this->jmsConverterConfiguration->getDefaultNullSerialization();
 
@@ -70,7 +70,7 @@ class JMSConverter implements Converter
         }
     }
 
-    public function matches(TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType): bool
+    public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
     {
         if ($sourceMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP) && $targetMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)) {
             return $sourceType->isIterable() && ($targetType->isClassOrInterface() || $targetType->isIterable())

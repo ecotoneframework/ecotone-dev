@@ -9,7 +9,7 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Iterator;
@@ -73,7 +73,7 @@ class EcotoneEventStoreProophWrapper implements EventStore
             $proophEvents[] = new ProophMessage(
                 array_key_exists(MessageHeaders::MESSAGE_ID, $metadata) ? Uuid::fromString($metadata[MessageHeaders::MESSAGE_ID]) : Uuid::uuid4(),
                 array_key_exists(MessageHeaders::TIMESTAMP, $metadata) ? new DateTimeImmutable('@' . $metadata[MessageHeaders::TIMESTAMP], new DateTimeZone('UTC')) : new DateTimeImmutable('now', new DateTimeZone('UTC')),
-                is_array($payload) ? $payload : $this->conversionService->convert($payload, TypeDescriptor::createFromVariable($payload), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP()),
+                is_array($payload) ? $payload : $this->conversionService->convert($payload, Type::createFromVariable($payload), MediaType::createApplicationXPHP(), Type::array(), MediaType::createApplicationXPHP()),
                 $metadata,
                 $this->eventMapper->mapEventToName($eventToConvert)
             );
@@ -126,11 +126,11 @@ class EcotoneEventStoreProophWrapper implements EventStore
     private function convertToEcotoneEvents(Iterator $streamEvents, bool $deserialize): array
     {
         $events = [];
-        $sourcePHPType = TypeDescriptor::createArrayType();
+        $sourcePHPType = Type::array();
         $PHPMediaType = MediaType::createApplicationXPHP();
         /** @var ProophMessage $event */
         while ($event = $streamEvents->current()) {
-            $eventName = TypeDescriptor::create($this->eventMapper->mapNameToEventType($event->messageName()));
+            $eventName = Type::create($this->eventMapper->mapNameToEventType($event->messageName()));
             $events[] = Event::createWithType(
                 $eventName,
                 $deserialize ? $this->conversionService->convert($event->payload(), $sourcePHPType, $PHPMediaType, $eventName, $PHPMediaType) : $event->payload(),

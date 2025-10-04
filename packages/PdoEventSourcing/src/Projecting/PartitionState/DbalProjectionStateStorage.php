@@ -14,6 +14,7 @@ use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Ecotone\Projecting\Transaction;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 
 use function json_decode;
 use function json_encode;
@@ -28,7 +29,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     private bool $initialized = false;
 
     public function __construct(
-        DbalConnectionFactory $connectionFactory,
+        DbalConnectionFactory|ManagerRegistryConnectionFactory $connectionFactory,
         private string        $stateTable = 'ecotone_projection_state',
     ) {
         $this->connection = $connectionFactory->createContext()->getDbalConnection();

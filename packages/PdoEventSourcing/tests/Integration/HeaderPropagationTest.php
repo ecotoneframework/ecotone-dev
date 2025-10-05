@@ -9,9 +9,12 @@ use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
+use Ramsey\Uuid\UuidFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\Balance;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\Order;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\OrderWasPlacedConverter;
+use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\UuidV4Converter;
 
 /**
  * @internal
@@ -86,5 +89,27 @@ final class HeaderPropagationTest extends TestCase
         $this->assertNotSame($messageId, $headers[MessageHeaders::MESSAGE_ID]);
         $this->assertSame($messageId, $headers[MessageHeaders::PARENT_MESSAGE_ID]);
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);
+    }
+
+    public function test_with_custom_converter()
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [Balance::class, UuidV4Converter::class],
+            [new UuidV4Converter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()]
+        );
+
+        $factory = new UuidFactory();
+        $balanceId = $factory->fromString(Uuid::uuid4()->toString());
+        $userId = $factory->fromString(Uuid::uuid4()->toString());
+
+        $flowTestSupport = $ecotoneTestSupport
+            ->sendCommandWithRoutingKey(
+                'create',
+                $balanceId,
+                metadata: ['userId' => $userId]
+            );
+
+        $headers = $flowTestSupport->getEventStreamEvents(Balance::class)[0]->getMetadata();
+        $this->assertSame($userId->toString(), $headers['userId']);
     }
 }

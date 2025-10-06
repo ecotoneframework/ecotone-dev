@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Conversion;
 
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Handler\Type\BuiltinType;
 use Ecotone\Messaging\Handler\Type\ObjectType;
 use Ecotone\Messaging\Handler\Type\UnionType;
 
@@ -40,6 +41,10 @@ class StaticCallConverter implements Converter
             &&  ! $this->sourceType instanceof ObjectType
             && ! $this->sourceType instanceof UnionType
         ) {
+            return false;
+        }
+
+        if ($this->sourceType instanceof BuiltinType && $sourceType instanceof ObjectType) {
             return false;
         }
 

@@ -10,7 +10,6 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -172,7 +171,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
             }
         };
 
-        $stringableObject = new class {
+        $stringableObject = new class () {
             public function __toString(): string
             {
                 return 'some';

@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Conversion;
 
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\ObjectType;
+use Ecotone\Messaging\Handler\Type\UnionType;
 
 /**
  * licence Apache-2.0
@@ -35,7 +36,10 @@ class StaticCallConverter implements Converter
             return false;
         }
 
-        if ($sourceType instanceof ObjectType && ! $this->sourceType instanceof ObjectType) {
+        if ($sourceType instanceof ObjectType
+            &&  ! $this->sourceType instanceof ObjectType
+            && ! $this->sourceType instanceof UnionType
+        ) {
             return false;
         }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Conversion;
 
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Handler\Type\ObjectType;
 
 /**
  * licence Apache-2.0
@@ -28,9 +29,21 @@ class StaticCallConverter implements Converter
      */
     public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
     {
-        return $sourceMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)
-            && $targetMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)
-            && $sourceType->isCompatibleWith($this->sourceType)
+        if (! $sourceMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)
+            || ! $targetMediaType->isCompatibleWithParsed(MediaType::APPLICATION_X_PHP)
+        ) {
+            return false;
+        }
+
+        if ($sourceType instanceof ObjectType && ! $this->sourceType instanceof ObjectType) {
+            return false;
+        }
+
+        if ($this->targetType instanceof ObjectType && ! $targetType instanceof ObjectType) {
+            return false;
+        }
+
+        return $sourceType->isCompatibleWith($this->sourceType)
             && $targetType->acceptType($this->targetType);
     }
 }

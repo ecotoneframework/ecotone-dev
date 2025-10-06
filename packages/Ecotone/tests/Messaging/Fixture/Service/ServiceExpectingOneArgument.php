@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Message;
 use Ramsey\Uuid\UuidInterface;
 use stdClass;
+use Stringable;
 
 /**
  * Class ServiceExpectingOneArgument
@@ -111,6 +112,11 @@ class ServiceExpectingOneArgument implements DefinedObject
     public function withMessage(Message $message): Message
     {
         return $message;
+    }
+
+    public function withStringable(Stringable $value): string
+    {
+        return (string) $value;
     }
 
     /**

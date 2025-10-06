@@ -12,11 +12,13 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use stdClass;
+use Stringable;
 use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleConverterService;
 use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleIncorrectConverterService;
 use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleIncorrectUnionReturnTypeConverterService;
 use Test\Ecotone\Messaging\Fixture\Annotation\Converter\ExampleIncorrectUnionSourceTypeConverterService;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
+use function array_map;
 
 /**
  * Class ReferenceServiceConverterBuilderTest
@@ -122,14 +124,24 @@ class ReferenceServiceConverterBuilderTest extends TestCase
              * @return stdClass[]
              */
             #[Converter]
-            public static function convert(array $data): iterable
+            public static function convertArray(array $data): iterable
             {
-                $converted = [];
-                foreach ($data as $str) {
-                    $converted[] = new stdClass();
-                }
+                return array_map(fn () => new stdClass(), $data);
+            }
 
-                return $converted;
+            #[Converter]
+            public static function convertToStringable(string $value): Stringable
+            {
+                return new class ($value) implements Stringable {
+                    public function __construct(private string $value)
+                    {
+                    }
+
+                    public function __toString(): string
+                    {
+                        return $this->value;
+                    }
+                };
             }
         };
 
@@ -141,6 +153,10 @@ class ReferenceServiceConverterBuilderTest extends TestCase
                     ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withArrayStdClasses')
                         ->withInputChannelName($inputChannel = 'inputChannel')
                 )
+                ->addExtensionObject(
+                    ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withStringable')
+                        ->withInputChannelName($inputChannel2 = 'inputChannel2')
+                )
         );
 
         $this->assertEquals(
@@ -148,6 +164,15 @@ class ReferenceServiceConverterBuilderTest extends TestCase
             $ecotone->sendDirectToChannel(
                 $inputChannel,
                 ['some']
+            )
+        );
+
+        $value = 'bar';
+        $this->assertSame(
+            $value,
+            $ecotone->sendDirectToChannel(
+                $inputChannel2,
+                $value
             )
         );
     }

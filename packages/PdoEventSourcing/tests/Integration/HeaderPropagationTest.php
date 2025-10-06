@@ -12,6 +12,7 @@ use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\Balance;
+use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\BalanceCreatedConverter;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\Order;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\OrderWasPlacedConverter;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\UuidV4Converter;
@@ -91,11 +92,15 @@ final class HeaderPropagationTest extends TestCase
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);
     }
 
-    public function test_with_custom_converter()
+    public function test_with_stringable_header_converter()
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [Balance::class, UuidV4Converter::class],
-            [new UuidV4Converter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()]
+            [Balance::class, UuidV4Converter::class, BalanceCreatedConverter::class],
+            [
+                new UuidV4Converter(),
+                new BalanceCreatedConverter(),
+                DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory(),
+            ],
         );
 
         $factory = new UuidFactory();
@@ -104,7 +109,7 @@ final class HeaderPropagationTest extends TestCase
 
         $flowTestSupport = $ecotoneTestSupport
             ->sendCommandWithRoutingKey(
-                'create',
+                'createBalance',
                 $balanceId,
                 metadata: ['userId' => $userId]
             );

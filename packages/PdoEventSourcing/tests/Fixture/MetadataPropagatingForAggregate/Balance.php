@@ -20,7 +20,7 @@ class Balance
     #[Identifier]
     private UuidV4 $balanceId;
 
-    #[CommandHandler('create')]
+    #[CommandHandler('createBalance')]
     public static function create(UuidV4 $balanceId): array
     {
         return [new BalanceCreated($balanceId)];

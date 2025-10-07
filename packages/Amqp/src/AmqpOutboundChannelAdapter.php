@@ -96,7 +96,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             if ($context instanceof AmqpLibContext) {
                 $context->getLibChannel()->wait_for_pending_acks(5000);
             } elseif ($context instanceof AmqpExtContext) {
-                $context->getExtChannel()->waitForConfirm();
+                $context->getExtChannel()->waitForConfirm(5);
             }
         }
     }

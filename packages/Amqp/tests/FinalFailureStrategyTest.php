@@ -13,7 +13,6 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
-use Enqueue\AmqpLib\AmqpConnectionFactory;
 use Exception;
 
 /**
@@ -29,7 +28,10 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
-            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(), ],
+            array_merge(
+                [new FailingService()],
+                $this->getConnectionFactoryReferences()
+            ),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
@@ -50,7 +52,10 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
-            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(), ],
+            array_merge(
+                [new FailingService()],
+                $this->getConnectionFactoryReferences()
+            ),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
@@ -72,7 +77,10 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [FailingService::class],
-            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(), ],
+            array_merge(
+                [new FailingService()],
+                $this->getConnectionFactoryReferences()
+            ),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([

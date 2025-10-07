@@ -34,6 +34,27 @@ abstract class AmqpMessagingTestCase extends TestCase
     }
 
     /**
+     * Get connection factory references for dependency injection container
+     * Returns an array with all possible connection factory class names pointing to the same instance
+     * This ensures compatibility with both AmqpExt and AmqpLib implementations
+     * 
+     * @return array<string, AmqpConnectionFactory>
+     */
+    public function getConnectionFactoryReferences(array $config = []): array
+    {
+        $connectionFactory = $this->getCachedConnectionFactory($config);
+        
+        // Provide both the interface and both concrete implementations
+        // Even though only AmqpExt is installed, some modules (like AmqpTransactionModule)
+        // default to AmqpLib, so we need to provide it as well
+        return [
+            AmqpConnectionFactory::class => $connectionFactory,
+            AmqpExtConnection::class => $connectionFactory,
+            AmqpLibConnection::class => $connectionFactory,
+        ];
+    }
+
+    /**
      * @return AmqpConnectionFactory
      */
     public static function getRabbitConnectionFactory(array $config = []): AmqpConnectionFactory
@@ -42,11 +63,14 @@ abstract class AmqpMessagingTestCase extends TestCase
         $config = array_merge($dsn, $config);
 
         // Use AMQP_IMPLEMENTATION env var to choose between ext and lib
-        // Default to ext for backward compatibility, but tests can override
+        // Default to ext for backward compatibility
         $implementation = getenv('AMQP_IMPLEMENTATION') ?: 'ext';
 
         if ($implementation === 'lib') {
-            return new AmqpLibConnection($config);
+            // Check if AmqpLib is available
+            if (class_exists(AmqpLibConnection::class)) {
+                return new AmqpLibConnection($config);
+            }
         }
 
         return new AmqpExtConnection($config);

@@ -52,6 +52,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
             if ($context instanceof AmqpLibContext) {
                 $context->getLibChannel()->confirm_select();
             } elseif ($context instanceof AmqpExtContext) {
+                $context->getExtChannel()->confirmSelect();
                 $context->getExtChannel()->setConfirmCallback(fn () => false, fn () => throw new RuntimeException('Message was failed to be persisted in RabbitMQ instance. Check RabbitMQ server logs.'));
             }
         }

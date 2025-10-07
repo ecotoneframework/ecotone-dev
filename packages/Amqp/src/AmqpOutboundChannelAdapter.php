@@ -11,7 +11,8 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
-use Enqueue\AmqpLib\AmqpContext;
+use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
+use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
 
@@ -83,7 +84,6 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             Assert::isFalse($this->amqpTransactionInterceptor->isRunningInTransaction(), 'Cannot use publisher acknowledgments together with transactions. Please disable one of them.');
         }
 
-        /** @var AmqpContext $context */
         $context = $this->connectionFactory->createContext();
         $this->connectionFactory->getProducer()
             ->setTimeToLive($outboundMessage->getTimeToLive())
@@ -93,7 +93,11 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             ->send(new AmqpTopic($exchangeName), $messageToSend);
 
         if ($this->publisherAcknowledgments && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
-            $context->getLibChannel()->wait_for_pending_acks(5000);
+            if ($context instanceof AmqpLibContext) {
+                $context->getLibChannel()->wait_for_pending_acks(5000);
+            } elseif ($context instanceof AmqpExtContext) {
+                $context->getExtChannel()->waitForConfirm();
+            }
         }
     }
 }

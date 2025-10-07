@@ -4,6 +4,7 @@ namespace Test\Ecotone\Amqp;
 
 use AMQPQueueException;
 use Ecotone\Amqp\Distribution\AmqpDistributionModule;
+use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnection;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
@@ -37,12 +38,18 @@ abstract class AmqpMessagingTestCase extends TestCase
      */
     public static function getRabbitConnectionFactory(array $config = []): AmqpConnectionFactory
     {
-        return new AmqpLibConnection(
-            array_merge(
-                ['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f'],
-                $config,
-            )
-        );
+        $dsn = ['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f'];
+        $config = array_merge($dsn, $config);
+
+        // Use AMQP_IMPLEMENTATION env var to choose between ext and lib
+        // Default to ext for backward compatibility, but tests can override
+        $implementation = getenv('AMQP_IMPLEMENTATION') ?: 'ext';
+
+        if ($implementation === 'lib') {
+            return new AmqpLibConnection($config);
+        }
+
+        return new AmqpExtConnection($config);
     }
 
     public function setUp(): void

@@ -2,17 +2,19 @@
 
 namespace Ecotone\Amqp;
 
+use AMQPChannel as ExtAMQPChannel;
 use AMQPConnection;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
-use Ecotone\Messaging\Support\Assert;
-use Enqueue\AmqpLib\AmqpConnectionFactory;
+use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
 use Enqueue\AmqpExt\AmqpConsumer;
-use Enqueue\AmqpLib\AmqpContext;
+use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
+use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
+use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use Interop\Queue\SubscriptionConsumer;
-use PhpAmqpLib\Channel\AMQPChannel;
+use PhpAmqpLib\Channel\AMQPChannel as LibAMQPChannel;
 use PhpAmqpLib\Connection\AMQPLazyConnection;
 use ReflectionClass;
 use ReflectionProperty;
@@ -24,14 +26,18 @@ use RuntimeException;
 class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFactory
 {
     private string $connectionInstanceId;
-    private AmqpConnectionFactory $connectionFactory;
+    private AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory;
     private ?SubscriptionConsumer $subscriptionConsumer = null;
 
-    public function __construct(AmqpConnectionFactory $connectionFactory, ?string $connectionInstanceId = null, private bool $publisherAcknowledgments = false)
+    public function __construct(AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory, ?string $connectionInstanceId = null, private bool $publisherAcknowledgments = false)
     {
         $this->connectionInstanceId = $connectionInstanceId !== null ? $connectionInstanceId : spl_object_id($connectionFactory);
         /** Each consumer and publisher requires separate connection to work correctly in all cases: https://www.rabbitmq.com/connections.html#flow-control */
-        $this->connectionFactory = new AmqpConnectionFactory($connectionFactory->getConfig()->getConfig());
+        if ($connectionFactory instanceof AmqpExtConnectionFactory) {
+            $this->connectionFactory = new AmqpExtConnectionFactory($connectionFactory->getConfig()->getConfig());
+        } else {
+            $this->connectionFactory = new AmqpLibConnectionFactory($connectionFactory->getConfig()->getConfig());
+        }
     }
 
     public function createContext(): Context
@@ -43,7 +49,11 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         $context = $this->connectionFactory->createContext();
 
         if ($this->publisherAcknowledgments) {
-            $context->getLibChannel()->confirm_select();
+            if ($context instanceof AmqpLibContext) {
+                $context->getLibChannel()->confirm_select();
+            } elseif ($context instanceof AmqpExtContext) {
+                $context->getExtChannel()->setConfirmCallback(fn () => false, fn () => throw new RuntimeException('Message was failed to be persisted in RabbitMQ instance. Check RabbitMQ server logs.'));
+            }
         }
 
         return $context;
@@ -62,7 +72,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
      * In that scenarios triggering an action on the connection will do nothing and will not throw an exception.
      * It makes the feeling like anything is fine, yet in reality it is not.
      * In those situations it's better to use this method.
-     * @param Context|AmqpContext|null $context
+     * @param Context|AmqpExtContext|AmqpLibContext|null $context
      */
     public function isDisconnected(?Context $context): bool
     {
@@ -70,15 +80,21 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
             return false;
         }
 
-        Assert::isSubclassOf($context, AmqpContext::class, 'Context must be ' . AmqpContext::class);
-
-        /** @var AMQPChannel $libChannel */
-        $libChannel = $context->getLibChannel();
-        if ($libChannel->getConnection() !== null && !$libChannel->getConnection()->isConnected()) {
-            return true;
+        if ($context instanceof AmqpLibContext) {
+            /** @var LibAMQPChannel $libChannel */
+            $libChannel = $context->getLibChannel();
+            if ($libChannel->getConnection() !== null && !$libChannel->getConnection()->isConnected()) {
+                return true;
+            }
+            return ! $libChannel->is_open();
+        } elseif ($context instanceof AmqpExtContext) {
+            if (! $context->getExtChannel()->getConnection()->isConnected()) {
+                return true;
+            }
+            return ! $context->getExtChannel()->isConnected();
         }
 
-        return ! $libChannel->is_open();
+        return false;
     }
 
     public function reconnect(): void
@@ -123,7 +139,6 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     public function getSubscriptionConsumer(string $queueName, callable $subscriptionCallback): SubscriptionConsumer
     {
         if ($this->subscriptionConsumer === null) {
-            /** @var AmqpContext $context */
             $context = $this->createContext();
 
             $this->subscriptionConsumer = $context->createSubscriptionConsumer();

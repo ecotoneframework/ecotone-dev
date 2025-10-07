@@ -178,7 +178,7 @@ jobs:
             if [ "$has_dbal" -eq 1 ]; then
               # Derive unique DB names per component execution to avoid cross-test conflicts
               local slug=$(echo "$dir" | tr '/.-' '___' | tr '[:upper:]' '[:lower:]')
-          
+
               local db_name
               # Run Postgres pass
               db_name="ecotone_${slug}_pg"

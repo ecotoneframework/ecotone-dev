@@ -3,7 +3,7 @@
 namespace Ecotone\Amqp\Configuration;
 
 use Ecotone\Enqueue\EnqueueMessageConsumerConfiguration;
-use Enqueue\AmqpLib\AmqpConnectionFactory;
+use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 /**
  * licence Apache-2.0

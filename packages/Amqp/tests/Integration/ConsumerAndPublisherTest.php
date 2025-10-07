@@ -33,7 +33,7 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTestCase
             [AmqpConsumerExample::class],
             [
                 new AmqpConsumerExample(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))

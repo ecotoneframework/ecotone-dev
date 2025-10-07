@@ -28,7 +28,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
     public function test_exception_handling_with_retries_and_dead_letter(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: [new OrderService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory()],
+            containerOrAvailableServices: [new OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -66,7 +66,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OrderService::class],
-            containerOrAvailableServices: [new OrderService(1), AmqpConnectionFactory::class => $this->getCachedConnectionFactory()],
+            containerOrAvailableServices: [new OrderService(1), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($amqpDeadLetter = 'amqp_dead_letter')
@@ -97,7 +97,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OrderService::class],
-            containerOrAvailableServices: [new OrderService(1), AmqpConnectionFactory::class => $this->getCachedConnectionFactory()],
+            containerOrAvailableServices: [new OrderService(1), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(ErrorConfigurationContext::INPUT_CHANNEL)
@@ -113,7 +113,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
     public function test_exception_handling_with_retries(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: [new \Test\Ecotone\Amqp\Fixture\ErrorChannel\OrderService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory()],
+            containerOrAvailableServices: [new \Test\Ecotone\Amqp\Fixture\ErrorChannel\OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))

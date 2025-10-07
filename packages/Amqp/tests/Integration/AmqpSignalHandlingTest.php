@@ -37,7 +37,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
             [AmqpSignalSendingMessageHandler::class],
             [
                 $signalHandler,
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -72,7 +72,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
             [AmqpAsyncCommandHandler::class],
             [
                 new AmqpAsyncCommandHandler(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -107,7 +107,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
             [AmqpAsyncCommandHandler::class],
             [
                 new AmqpAsyncCommandHandler(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -142,7 +142,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
 //        $ecotoneLite = EcotoneLite::bootstrapForTesting(
 //            [],
 //            [
-//                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+//                ...$this->getConnectionFactoryReferences(),
 //            ],
 //            ServiceConfiguration::createWithDefaults()
 //                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))

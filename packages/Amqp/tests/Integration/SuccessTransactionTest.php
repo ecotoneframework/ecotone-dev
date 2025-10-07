@@ -23,7 +23,7 @@ final class SuccessTransactionTest extends AmqpMessagingTestCase
     public function test_order_is_placed_when_transaction_is_successful(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: [new OrderService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory()],
+            containerOrAvailableServices: [new OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))

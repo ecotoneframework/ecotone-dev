@@ -56,7 +56,7 @@
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": [
-            "vendor/bin/phpunit --no-coverage"
+            "vendor/bin/phpunit --no-coverage --testdox"
         ],
         "tests:ci": [
             "@tests:phpstan",

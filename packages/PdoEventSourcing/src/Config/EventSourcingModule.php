@@ -67,7 +67,7 @@ use Ecotone\Messaging\Handler\Router\RouteToChannelResolver;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
@@ -164,14 +164,14 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
             $projectionLifeCycle = ProjectionLifeCycleConfiguration::create();
 
-            $classDefinition = ClassDefinition::createUsingAnnotationParser(TypeDescriptor::create($projectionClassName), $annotationRegistrationService);
-            $projectionInitialization = TypeDescriptor::create(ProjectionInitialization::class);
-            $projectionDelete = TypeDescriptor::create(ProjectionDelete::class);
-            $projectionReset = TypeDescriptor::create(ProjectionReset::class);
+            $classDefinition = ClassDefinition::createUsingAnnotationParser(Type::object($projectionClassName), $annotationRegistrationService);
+            $projectionInitialization = Type::attribute(ProjectionInitialization::class);
+            $projectionDelete = Type::attribute(ProjectionDelete::class);
+            $projectionReset = Type::attribute(ProjectionReset::class);
             $parameterConverterFactory = ParameterConverterAnnotationFactory::create();
             foreach ($classDefinition->getPublicMethodNames() as $publicMethodName) {
                 foreach ($annotationRegistrationService->getAnnotationsForMethod($projectionClassName, $publicMethodName) as $attribute) {
-                    $attributeType = TypeDescriptor::createFromVariable($attribute);
+                    $attributeType = Type::createFromVariable($attribute);
                     $interfaceToCall = $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName);
                     if ($attributeType->equals($projectionInitialization)) {
                         $requestChannel = Uuid::uuid4()->toString();

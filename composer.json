@@ -133,7 +133,7 @@
         "symfony/framework-bundle": "^5.4|^6.0|^7.0",
         "symfony/dependency-injection": ">=v5.4.19 <6.0.0 || >=v6.0.19 <6.1.0 || >=v6.1.11 <6.2.0 || >=v6.2.5 <7.0.0 || >=v7.0.0 <8.0.0",
         "wikimedia/composer-merge-plugin": "^2.1",
-        "php-di/php-di": "^7.0.1",
+        "php-di/php-di": "^7.0.5",
         "open-telemetry/sdk": "^1.0.0",
         "psr/container": "^1.1.1|^2.0.1",
         "psr/clock": "^1.0"

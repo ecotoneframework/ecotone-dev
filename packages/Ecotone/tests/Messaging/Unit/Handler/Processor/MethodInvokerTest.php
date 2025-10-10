@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\MessageConverterBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker;
 use Ecotone\Messaging\Handler\ReferenceNotFoundException;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -229,14 +230,20 @@ class MethodInvokerTest extends MessagingTestCase
             )
             ->build();
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(MethodInvocationException::class);
 
-        $messaging->sendMessageDirectToChannelWithMessageReply(
-            $inputChannel,
-            MessageBuilder::withPayload(addslashes(serialize(Order::create('1', 'correct'))))
-                ->setContentType(MediaType::createApplicationXml())
-                ->build()
-        );
+        try {
+            $messaging->sendMessageDirectToChannelWithMessageReply(
+                $inputChannel,
+                MessageBuilder::withPayload(addslashes(serialize(Order::create('1', 'correct'))))
+                    ->setContentType(MediaType::createApplicationXml())
+                    ->build()
+            );
+        } catch (MethodInvocationException $e) {
+            self::assertInstanceOf(InvalidArgumentException::class, $e->getPrevious());
+
+            throw $e;
+        }
     }
 
     public function test_calling_if_media_type_is_incompatible_but_types_are_fine()
@@ -318,9 +325,9 @@ class MethodInvokerTest extends MessagingTestCase
                 InMemoryConversionService::createWithConversion(
                     $data = '["893a660c-0208-4140-8be6-95fb2dcd2fdd"]',
                     MediaType::createApplicationJson(),
-                    TypeDescriptor::STRING,
+                    Type::STRING,
                     MediaType::createApplicationXPHP(),
-                    TypeDescriptor::ARRAY,
+                    Type::ARRAY,
                     $result = ['893a660c-0208-4140-8be6-95fb2dcd2fdd']
                 )
             )
@@ -336,7 +343,7 @@ class MethodInvokerTest extends MessagingTestCase
                 $inputChannel,
                 $data,
                 metadata: [
-                    MessageHeaders::TYPE_ID => TypeDescriptor::ARRAY,
+                    MessageHeaders::TYPE_ID => Type::ARRAY,
                     MessageHeaders::CONTENT_TYPE => MediaType::createApplicationJson()->toString(),
                 ]
             )
@@ -350,7 +357,7 @@ class MethodInvokerTest extends MessagingTestCase
                 InMemoryConversionService::createWithConversion(
                     $data = '893a660c-0208-4140-8be6-95fb2dcd2fdd',
                     MediaType::createApplicationJson(),
-                    TypeDescriptor::STRING,
+                    Type::STRING,
                     MediaType::createApplicationXPHP(),
                     stdClass::class,
                     $result = new stdClass()
@@ -382,9 +389,9 @@ class MethodInvokerTest extends MessagingTestCase
                 InMemoryConversionService::createWithConversion(
                     $data = '["893a660c-0208-4140-8be6-95fb2dcd2fdd"]',
                     MediaType::createApplicationJson(),
-                    TypeDescriptor::STRING,
+                    Type::STRING,
                     MediaType::createApplicationXPHP(),
-                    TypeDescriptor::ARRAY,
+                    Type::ARRAY,
                     $result = ['893a660c-0208-4140-8be6-95fb2dcd2fdd']
                 )
             )
@@ -394,12 +401,18 @@ class MethodInvokerTest extends MessagingTestCase
             )
             ->build();
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(MethodInvocationException::class);
 
-        $messaging->sendDirectToChannel(
-            $inputChannel,
-            $data,
-        );
+        try {
+            $messaging->sendDirectToChannel(
+                $inputChannel,
+                $data,
+            );
+        } catch (MethodInvocationException $e) {
+            self::assertInstanceOf(InvalidArgumentException::class, $e->getPrevious());
+
+            throw $e;
+        }
     }
 
     public function test_invoking_with_header_conversion_for_union_type_parameter()

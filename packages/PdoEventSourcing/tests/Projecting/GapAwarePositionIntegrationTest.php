@@ -131,7 +131,6 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             self::$eventStore,
             self::$clock,
             Ticket::STREAM_NAME,
-            maxGapOffset: 1000,
             gapTimeout: Duration::seconds(5)
         );
 
@@ -142,15 +141,21 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $tracking = GapAwarePosition::fromString($result->lastPosition);
         self::assertSame([2, 4, 6], $tracking->getGaps());
 
-        // Delay 2 more seconds to exceed timeout for first gaps
+        // Delay 2 more seconds to exceed timeout for first gaps (6 seconds since insertion)
         self::$clock->sleep(Duration::seconds(2));
 
         // Execute
         $result = $streamSource->load(null, 100);
 
-        // Verify: Gaps 2, 7 should be removed (old timestamps), gaps 5, 9 should remain (recent timestamps)
+        // Verify: Gaps 2, 4 should be removed (old timestamps), gap 6 should remain (recent timestamps)
         $newTracking = GapAwarePosition::fromString($result->lastPosition);
         self::assertSame([6], $newTracking->getGaps());
+
+        // Delay 3 more second to exceed timeout for all gaps (6 seconds since insertion of the last event)
+        self::$clock->sleep(Duration::seconds(4));
+        $result = $streamSource->load($result->lastPosition, 100);
+        $newTracking = GapAwarePosition::fromString($result->lastPosition);
+        self::assertSame([], $newTracking->getGaps());
     }
 
     public function test_gap_cleaning_noop_when_no_gaps(): void

@@ -4,6 +4,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Processor\MethodInvoker\Converter;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Test\LicenceTesting;
@@ -11,6 +12,7 @@ use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\ComplexCommand;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\ComplexService;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\IdentifierMapper;
+use Test\Ecotone\Messaging\Fixture\FetchAggregate\IncorrectService;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\OrderService;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\PlaceOrder;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\User;
@@ -191,10 +193,16 @@ class FetchAggregateTest extends TestCase
         );
 
         // This will throw Ecotone's exception, as interface does not allow for null
-        $this->expectException(AggregateNotFoundException::class);
+        $this->expectException(MethodInvocationException::class);
 
-        $command = new ComplexCommand('johny@wp.pl');
-        $ecotoneLite->sendCommand($command);
+        try {
+            $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
+            self::fail('Should throw exception');
+        } catch (MethodInvocationException $e) {
+            $this->assertInstanceOf(AggregateNotFoundException::class, $e->getPrevious());
+
+            throw $e;
+        }
     }
 
     public function test_reference_is_providing_identifier_yet_aggregate_is_missing_ending_up_with_aggregate_not_found(): void
@@ -215,10 +223,17 @@ class FetchAggregateTest extends TestCase
         );
 
         // This will throw Ecotone's exception, as interface does not allow for null
-        $this->expectException(AggregateNotFoundException::class);
+        $this->expectException(MethodInvocationException::class);
 
-        $command = new ComplexCommand('johny@wp.pl');
-        $ecotoneLite->sendCommand($command);
+        try {
+            $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
+            self::fail('Should throw exception');
+        } catch (MethodInvocationException $e) {
+            // This will throw Ecotone's exception, as interface does not allow for null
+            $this->assertInstanceOf(AggregateNotFoundException::class, $e->getPrevious());
+
+            throw $e;
+        }
     }
 
     public function test_throwing_exception_when_using_fetch_aggregate_in_non_enterprise_mode(): void
@@ -234,27 +249,32 @@ class FetchAggregateTest extends TestCase
             ],
         );
 
-        $this->expectException(LicensingException::class);
+        $this->expectException(MethodInvocationException::class);
 
-        $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
+        try {
+            $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
+            self::fail('Should throw exception');
+        } catch (MethodInvocationException $e) {
+            $this->assertInstanceOf(LicensingException::class, $e->getPrevious());
+
+            throw $e;
+        }
     }
 
     public function test_throwing_exception_when_using_fetch_with_non_aggregate(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [User::class, ComplexService::class, UserRepository::class],
+        $this->expectException(ConfigurationException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            [User::class, IncorrectService::class, UserRepository::class],
             [
                 UserRepository::class => new UserRepository([]),
-                ComplexService::class => new ComplexService(),
+                IncorrectService::class => new IncorrectService(),
                 'identifierMapper' => new IdentifierMapper([
                     'johny@wp.pl' => 'user-1',
                 ]),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-
-        $this->expectException(ConfigurationException::class);
-
-        $ecotoneLite->sendCommandWithRoutingKey('incorrectFetchAggregate', new ComplexCommand('johny@wp.pl'));
     }
 }

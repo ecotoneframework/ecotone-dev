@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -39,6 +41,58 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
 
         self::assertEquals([], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_asynchronous_projection_runs_on_default_testing_pollable_setup(): void
+    {
+        $ecotone = self::bootstrapEcotone(
+            classesToResolve: [
+                InProgressTicketList::class,
+            ],
+            namespaces: [
+                'Test\Ecotone\EventSourcing\Fixture\Ticket',
+            ],
+            extensionObjects: [
+                SimpleMessageChannelBuilder::createQueueChannel(InProgressTicketList::PROJECTION_CHANNEL, true),
+            ]
+        );
+
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+
+        $currentTime = microtime(true);
+        $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
+        $finishTime = microtime(true);
+
+        // less than ~100 ms (however connection and set up might take longer)
+        self::assertLessThan(100, ($finishTime - $currentTime) * 1000);
+
+        self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_asynchronous_projection_runs_on_default_testing_pollable_setup_with_dbal_channel(): void
+    {
+        $ecotone = self::bootstrapEcotone(
+            classesToResolve: [
+                InProgressTicketList::class,
+            ],
+            namespaces: [
+                'Test\Ecotone\EventSourcing\Fixture\Ticket',
+            ],
+            extensionObjects: [
+                DbalBackedMessageChannelBuilder::create(InProgressTicketList::PROJECTION_CHANNEL),
+            ]
+        );
+
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+
+        $currentTime = microtime(true);
+        $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
+        $finishTime = microtime(true);
+
+        // around ~300 ms as default testing setup is 100ms (however connection and set up might take longer)
+        self::assertLessThan(300, ($finishTime - $currentTime) * 1000);
+
+        self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
 
     public function test_operations_on_asynchronous_event_driven_projection(): void
@@ -147,22 +201,26 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
 
     }
 
-    private static function bootstrapEcotone(): FlowTestSupport
-    {
+    private static function bootstrapEcotone(
+        $classesToResolve = [],
+        $namespaces = [
+            'Test\Ecotone\EventSourcing\Fixture\Ticket',
+            'Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection',
+        ],
+        array $extensionObjects = [],
+    ): FlowTestSupport {
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: $classesToResolve,
             containerOrAvailableServices: [new InProgressTicketList(self::getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withNamespaces([
-                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
-                    'Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection',
-                ])
-                ->withExtensionObjects([
+                ->withNamespaces($namespaces)
+                ->withExtensionObjects(array_merge([
                     EventSourcingConfiguration::createWithDefaults(),
-                ]),
+                ], $extensionObjects)),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            runForProductionEventStore: true,
         );
     }
 }

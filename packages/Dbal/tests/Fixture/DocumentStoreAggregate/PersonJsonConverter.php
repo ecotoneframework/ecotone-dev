@@ -5,7 +5,7 @@ namespace Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate;
 use Ecotone\Messaging\Attribute\MediaTypeConverter;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 
 use function json_decode;
 use function json_encode;
@@ -16,7 +16,7 @@ use function json_encode;
  */
 final class PersonJsonConverter implements Converter
 {
-    public function convert($source, TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType)
+    public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
         if ($sourceMediaType->isCompatibleWith(MediaType::createApplicationXPHP())) {
             /** @var Person $source */
@@ -30,7 +30,7 @@ final class PersonJsonConverter implements Converter
         return Person::register(new RegisterPerson($data['personId'], $data['name']));
     }
 
-    public function matches(TypeDescriptor $sourceType, MediaType $sourceMediaType, TypeDescriptor $targetType, MediaType $targetMediaType): bool
+    public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
     {
         return ($sourceType->getTypeHint() === Person::class
                 && $targetMediaType->isCompatibleWith(MediaType::createApplicationJson()))

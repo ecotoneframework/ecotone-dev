@@ -20,7 +20,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 
 #[ModuleAnnotation]
 /**
@@ -42,7 +42,6 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
 
         $converters = [];
         foreach ($registrations as $registration) {
-            $reference = AnnotatedDefinitionReference::getReferenceFor($registration);
             $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
 
             $fromTypes = $interfaceToCall->getFirstParameter()->getTypeDescriptor();
@@ -63,7 +62,7 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
                     $converters[] = new JMSHandlerAdapterBuilder(
                         $fromType,
                         $toType,
-                        Reference::to($reference),
+                        $interfaceToCall->isStaticallyCalled() ? $interfaceToCall->getInterfaceName() : Reference::to(AnnotatedDefinitionReference::getReferenceFor($registration)),
                         $registration->getMethodName(),
                     );
                 }
@@ -71,14 +70,14 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
         }
 
         $converters[] = new JMSHandlerAdapterBuilder(
-            TypeDescriptor::create(ArrayObject::class),
-            TypeDescriptor::createArrayType(),
+            Type::object(ArrayObject::class),
+            Type::array(),
             new Definition(ArrayObjectConverter::class),
             'from'
         );
         $converters[] = new JMSHandlerAdapterBuilder(
-            TypeDescriptor::createArrayType(),
-            TypeDescriptor::create(ArrayObject::class),
+            Type::array(),
+            Type::object(ArrayObject::class),
             new Definition(ArrayObjectConverter::class),
             'to'
         );

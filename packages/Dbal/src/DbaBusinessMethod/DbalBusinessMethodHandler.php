@@ -11,8 +11,9 @@ use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
-use Ecotone\Messaging\Handler\TypeDescriptor;
-use Ecotone\Messaging\Handler\UnionTypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Handler\Type\GenericType;
+use Ecotone\Messaging\Handler\Type\UnionType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalContext;
@@ -68,7 +69,7 @@ final class DbalBusinessMethodHandler
         }
 
         return MessageBuilder::withPayload($result)
-                    ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::createFromVariable($result)->toString()))
+                    ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($result)->toString()))
                     ->build();
     }
 
@@ -83,7 +84,7 @@ final class DbalBusinessMethodHandler
     }
 
     /**
-     * @return array<string, array<string, mixed>, array<string, string>>
+     * @return array{0: string, 1: array<string, mixed>, 2: array<string, string>}
      */
     private function prepareExecution(string $sql, array $headers): array
     {
@@ -171,9 +172,9 @@ final class DbalBusinessMethodHandler
         if ($dbalParameter->getConvertToMediaType()) {
             $parameterValue = $this->conversionService->convert(
                 $parameterValue,
-                TypeDescriptor::createFromVariable($parameterValue),
+                Type::createFromVariable($parameterValue),
                 MediaType::createApplicationXPHP(),
-                TypeDescriptor::createStringType(),
+                Type::string(),
                 MediaType::parseMediaType($dbalParameter->getConvertToMediaType())
             );
         }
@@ -185,9 +186,9 @@ final class DbalBusinessMethodHandler
     {
         foreach ($preparedParameters as $parameterName => $parameterValue) {
             if (! isset($preparedParameterTypes[$parameterName])) {
-                $typeDescriptor = TypeDescriptor::createFromVariable($parameterValue);
-                if ($typeDescriptor->isCollection() && $typeDescriptor->isSingleTypeCollection()) {
-                    $typeDescriptor = $typeDescriptor->resolveGenericTypes()[0];
+                $typeDescriptor = Type::createFromVariable($parameterValue);
+                if ($typeDescriptor instanceof GenericType && $typeDescriptor->isCollection()) {
+                    $typeDescriptor = $typeDescriptor->genericTypes[0];
                     if ($typeDescriptor->isInteger()) {
                         $preparedParameterTypes[$parameterName] = $this->getArrayIntegerTypeValue();
                     } else {
@@ -216,18 +217,18 @@ final class DbalBusinessMethodHandler
 
     private function getParameterValueWithDefaultConversion(mixed $parameterValue): mixed
     {
-        $type = TypeDescriptor::createFromVariable($parameterValue);
+        $type = Type::createFromVariable($parameterValue);
         if ($type->isClassOrInterface() && $this->conversionService->canConvert(
             $type,
             MediaType::createApplicationXPHP(),
-            UnionTypeDescriptor::createWith([TypeDescriptor::createStringType(), TypeDescriptor::createIntegerType()]),
+            UnionType::createWith([Type::string(), Type::int()]),
             MediaType::createApplicationXPHP()
         )) {
             return $this->conversionService->convert(
                 $parameterValue,
                 $type,
                 MediaType::createApplicationXPHP(),
-                UnionTypeDescriptor::createWith([TypeDescriptor::createStringType(), TypeDescriptor::createIntegerType()]),
+                UnionType::createWith([Type::string(), Type::int()]),
                 MediaType::createApplicationXPHP(),
             );
         }

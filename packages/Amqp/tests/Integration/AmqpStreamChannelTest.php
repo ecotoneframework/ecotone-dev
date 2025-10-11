@@ -207,6 +207,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         // Send a message - 'next' offset means it will be available for future consumers
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
 
+        /** @TODO if we can't make this work, we should disallow `next` */
         // Note: With 'next' offset, the consumer is already positioned at the "next" offset
         // from the first run. Messages sent after that are not consumed in the same consumer instance
         // This test verifies that consuming from empty stream with 'next' doesn't fail

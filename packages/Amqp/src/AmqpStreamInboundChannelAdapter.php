@@ -125,9 +125,9 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
                     $this->loggingGateway->info('Stream consumption timeout reached');
                 }
 
-                // For 'first' offset, we need to continue waiting for all historical messages
+                // For 'first' offset or numeric offsets, we need to continue waiting for all historical messages
                 // For other offsets like 'last' or 'next', we only wait for the initial batch
-                if ($this->streamOffset === 'first') {
+                if ($this->streamOffset === 'first' || is_numeric($this->streamOffset)) {
                     // Continue waiting for additional messages until no more arrive
                     while (true) {
                         try {

@@ -36,7 +36,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
     public function test_consuming_stream_messages_from_first_position()
     {
-        $queueName = 'orders';
+        $channelName = 'orders';
+        $queueName = 'stream_queue_first_' . Uuid::uuid4()->toString();
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [OrderService::class],
@@ -49,7 +50,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
-                        channelName: $queueName,
+                        channelName: $channelName,
                         startPosition: 'first',
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
@@ -66,7 +67,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
         // Consume from first position - should get all three messages
-        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
         // Verify all three messages were consumed from first position
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
@@ -83,6 +84,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
     public function test_consuming_stream_messages_from_last_position()
     {
+        $channelName = 'orders';
         $queueName = 'stream_queue_last_' . Uuid::uuid4()->toString();
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
@@ -96,9 +98,10 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
-                        $queueName,
+                        $channelName,
                         'last',
                         amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
                     ),
                 ])
         );
@@ -112,7 +115,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
         // Consume from last position - should get only the last message
-        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithDefaults()
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()
             ->withTestingSetup()
             ->withHandledMessageLimit(1)
             ->withExecutionTimeLimitInMilliseconds(5000)
@@ -125,6 +128,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
     public function test_consuming_stream_messages_from_specific_offset()
     {
+        $channelName = 'orders';
         $queueName = 'stream_queue_offset_' . Uuid::uuid4()->toString();
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
@@ -138,9 +142,10 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
-                        $queueName,
+                        $channelName,
                         '1',
                         amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
                     ), // Start from second message (0-indexed)
                 ])
         );
@@ -154,7 +159,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
         // Consume from offset 1 - should get second and third messages
-        $ecotoneLite->run($queueName, ExecutionPollingMetadata::createWithDefaults()
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()
             ->withTestingSetup()
             ->withHandledMessageLimit(2)
             ->withExecutionTimeLimitInMilliseconds(5000)

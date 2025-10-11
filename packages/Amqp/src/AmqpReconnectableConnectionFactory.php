@@ -111,6 +111,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         /** @var AMQPConnection|AMQPLazyConnection $connection */
         $connection = $connectionProperty->getValue($this->connectionFactory);
         if ($connection) {
+            $context = $this->createContext();
             if ($context instanceof AmqpLibContext) {
                 $connection->close();
             } elseif ($context instanceof AmqpExtContext) {

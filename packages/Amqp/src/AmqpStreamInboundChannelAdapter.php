@@ -87,6 +87,19 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
 
     /**
      * Stream-specific receive implementation using direct basic_consume with stream offset
+     *
+     * How this works:
+     * 1. basic_consume registers a callback that gets invoked for each message
+     * 2. wait() processes one AMQP frame at a time from the socket
+     * 3. Each message delivery is one frame, so wait() processes one message per call
+     * 4. The callback stores messages in queueChannel for retrieval
+     * 5. We call wait() in a loop to drain all available messages from the stream
+     *
+     * Why the loop is necessary:
+     * - When consuming from "first" or numeric offset, RabbitMQ sends all historical messages rapidly
+     * - Each wait() call processes only ONE message frame
+     * - Without the loop, we'd only get one message per receiveWithTimeout() call
+     * - The loop with short timeout drains all buffered messages efficiently
      */
     public function receiveWithTimeout(int $timeout = 0): ?Message
     {
@@ -104,7 +117,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
             Assert::isTrue(method_exists($context, 'getLibChannel'), 'Stream consumption requires AMQP library connection.');
             $libChannel = $context->getLibChannel();
 
-            // Check if we already have messages in the queue channel
+            // Check if we already have messages in the queue channel from previous wait() calls
             $existingMessage = $this->queueChannel->receive();
             if ($existingMessage !== null) {
                 return $existingMessage;
@@ -113,39 +126,30 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
             // Start consuming if not already started
             if ($this->consumerTag === null) {
                 $this->startStreamConsuming($context);
+            }
 
-                $timeout = $timeout ?: $this->receiveTimeoutInMilliseconds;
-                $timeoutInSeconds = $timeout > 0 ? $timeout / 1000.0 : 10.0;
+            // Wait for messages with the specified timeout
+            $timeout = $timeout ?: $this->receiveTimeoutInMilliseconds;
+            $timeoutInSeconds = $timeout > 0 ? $timeout / 1000.0 : 10.0;
 
-                // Wait for initial batch of messages
+            try {
+                // First wait with full timeout - this processes ONE message frame
+                // As it process one frame (one message), it's not enough to trigger it only once as we won't fetch everything from tcp buffer
+                $libChannel->wait(null, false, $timeoutInSeconds);
+            } catch (AMQPTimeoutException) {
+                // No messages arrived within timeout
+                return null;
+            }
+
+            // Drain any additional messages that are already buffered
+            // This is important for stream offsets like "first" where many messages arrive rapidly
+            // We use a short timeout (50ms) to quickly drain buffered messages without blocking (no network wait!)
+            while (true) {
                 try {
-                    $libChannel->wait(null, false, $timeoutInSeconds);
+                    $libChannel->wait(null, false, 0.05);
                 } catch (AMQPTimeoutException) {
-                    // Expected timeout for running out of time
-                    $this->loggingGateway->info('Stream consumption timeout reached');
-                }
-
-                // For 'first' offset or numeric offsets, we need to continue waiting for all historical messages
-                // For other offsets like 'last' or 'next', we only wait for the initial batch
-                if ($this->streamOffset === 'first' || is_numeric($this->streamOffset)) {
-                    // Continue waiting for additional messages until no more arrive
-                    while (true) {
-                        try {
-                            $libChannel->wait(null, false, 0.05); // 50ms wait for additional messages
-                        } catch (AMQPTimeoutException) {
-                            break; // No more messages available
-                        }
-                    }
-                }
-            } else {
-                // Consumer already started, just wait for new messages
-                $timeout = $timeout ?: $this->receiveTimeoutInMilliseconds;
-                $timeoutInSeconds = $timeout > 0 ? $timeout / 1000.0 : 10.0;
-
-                try {
-                    $libChannel->wait(null, false, $timeoutInSeconds);
-                } catch (AMQPTimeoutException) {
-                    // No more messages available
+                    // No more buffered messages
+                    break;
                 }
             }
 

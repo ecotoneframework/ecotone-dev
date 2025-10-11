@@ -235,7 +235,8 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 
         $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
 
-        $this->expectException(AMQPException::class);
+        // AMQP Ext throws AMQPException, AMQP Lib throws AMQPProtocolChannelException
+        $this->expectException(\Throwable::class);
 
         $messageChannel->receiveWithTimeout(1);
     }

@@ -67,12 +67,9 @@ abstract class AmqpMessagingTestCase extends TestCase
         $implementation = getenv('AMQP_IMPLEMENTATION') ?: 'ext';
 
         if ($implementation === 'lib') {
-            // Check if AmqpLib is available
-            if (class_exists(AmqpLibConnection::class)) {
-                return new AmqpLibConnection($config);
-            }
+            return new AmqpLibConnection($config);
         }
-
+        
         return new AmqpExtConnection($config);
     }
 

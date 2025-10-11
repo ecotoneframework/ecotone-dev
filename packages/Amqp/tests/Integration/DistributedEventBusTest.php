@@ -11,7 +11,6 @@ use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Enqueue\AmqpLib\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\AsynchronousEventHandler\TicketNotificationSubscriber;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher\UserService;

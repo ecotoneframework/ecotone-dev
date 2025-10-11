@@ -272,7 +272,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                     ->withExecutionTimeLimitInMilliseconds(100)
                     ->withStopOnError(false)
             );
-        } catch (AMQPIOException) {
+        } catch (AMQPIOException|AMQPConnectionException) {
             $wasFinallyRethrown = true;
         }
 

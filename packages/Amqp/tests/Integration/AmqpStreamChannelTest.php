@@ -11,7 +11,9 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 
+use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnection;
 use Enqueue\AmqpLib\AmqpConnectionFactory;
+use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
@@ -25,6 +27,13 @@ use Test\Ecotone\Amqp\Fixture\Order\OrderService;
  */
 final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 {
+    public function setUp(): void
+    {
+        if (getenv('AMQP_IMPLEMENTATION') !== 'lib') {
+            $this->markTestSkipped('Stream tests require AMQP lib');
+        }
+    }
+
     public function test_consuming_stream_messages_from_first_position()
     {
         $queueName = 'orders';
@@ -42,6 +51,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                     AmqpStreamChannelBuilder::create(
                         channelName: $queueName,
                         startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
                     )
                 ])
@@ -85,7 +95,11 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
-                    AmqpStreamChannelBuilder::create($queueName, 'last'),
+                    AmqpStreamChannelBuilder::create(
+                        $queueName,
+                        'last',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                    ),
                 ])
         );
 
@@ -123,7 +137,11 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
-                    AmqpStreamChannelBuilder::create($queueName, '1'), // Start from second message (0-indexed)
+                    AmqpStreamChannelBuilder::create(
+                        $queueName,
+                        '1',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                    ), // Start from second message (0-indexed)
                 ])
         );
 

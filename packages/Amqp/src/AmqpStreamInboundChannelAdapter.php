@@ -17,6 +17,7 @@ use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpLib\AmqpContext;
 use Interop\Amqp\AmqpMessage;
@@ -100,6 +101,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
 
             /** @var AmqpContext $context */
             $context = $connectionFactory->createContext();
+            Assert::isTrue(method_exists($context, 'getLibChannel'), 'Stream consumption requires AMQP library connection.');
             $libChannel = $context->getLibChannel();
 
             // Check if we already have messages in the queue channel

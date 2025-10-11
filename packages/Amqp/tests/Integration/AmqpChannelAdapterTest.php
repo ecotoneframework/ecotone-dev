@@ -37,8 +37,8 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
-use Enqueue\AmqpLib\AmqpConnectionFactory;
 use Exception;
+use Interop\Amqp\AmqpConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use RuntimeException;
 use stdClass;
@@ -203,16 +203,21 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     private function prepareMessaging(string $amqpConnectionReferenceName, array $amqpExchanges, array $amqpQueues, array $amqpBindings, array $converters): ComponentTestBuilder
     {
-        return ComponentTestBuilder::create(
+        $builder = ComponentTestBuilder::create(
             configuration: ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
                 ->withExtensionObjects(array_merge(
                     $amqpExchanges,
                     $amqpQueues,
                     $amqpBindings
                 ))
-        )
-            ->withReference($amqpConnectionReferenceName, $this->getCachedConnectionFactory())
-            ->withConverters($converters);
+        );
+
+        // Register all connection factory references to support both implementations
+        foreach ($this->getConnectionFactoryReferences() as $referenceName => $connectionFactory) {
+            $builder = $builder->withReference($referenceName, $connectionFactory);
+        }
+
+        return $builder->withConverters($converters);
     }
 
     /**

@@ -19,6 +19,7 @@ use Ecotone\Test\StubLogger;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use PhpAmqpLib\Exception\AMQPIOException;
+use PhpAmqpLib\Exception\AMQPProtocolChannelException;
 use AMQPException;
 use PHPUnit\Framework\Attributes\TestWith;
 use Ramsey\Uuid\Uuid;
@@ -113,7 +114,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 
         try {
             $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
-        } catch (AMQPException|AMQPQueueException) {
+        } catch (AMQPException|AMQPQueueException|AMQPProtocolChannelException) {
         }
 
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');

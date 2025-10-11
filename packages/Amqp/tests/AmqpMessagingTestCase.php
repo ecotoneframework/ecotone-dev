@@ -69,7 +69,7 @@ abstract class AmqpMessagingTestCase extends TestCase
         if ($implementation === 'lib') {
             return new AmqpLibConnection($config);
         }
-        
+
         return new AmqpExtConnection($config);
     }
 

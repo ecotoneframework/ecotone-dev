@@ -65,7 +65,8 @@ class DeduplicationInterceptor
             ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP)
             : ($identifiedAnnotation === null ? '' : $identifiedAnnotation->getEndpointId());
 
-        $select = $this->getConnection($connectionFactory)->createQueryBuilder()
+        $connection = $this->getConnection($connectionFactory);
+        $select = $connection->createQueryBuilder()
             ->select('message_id')
             ->from($this->getTableName())
             ->andWhere('message_id = :messageId')
@@ -88,8 +89,15 @@ class DeduplicationInterceptor
         }
 
         try {
+            $isTransactionActive = $connection->isTransactionActive();
+            // ensure that concurrent message handling will fail before proceeding
+            if ($isTransactionActive) {
+                $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
+            }
             $result = $methodInvocation->proceed();
-            $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
+            if (! $isTransactionActive) {
+                $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
+            }
             $this->logger->info('Message was stored in deduplication table.', [
                 'message_id' => $messageId,
                 'consumer_endpoint_id' => $consumerEndpointId,

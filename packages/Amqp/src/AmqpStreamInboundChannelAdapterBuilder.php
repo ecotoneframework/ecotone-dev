@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Enqueue\AmqpLib\AmqpConnectionFactory;
@@ -32,7 +33,8 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
     {
         $instance = new self($queueName, $endpointId, null, $amqpConnectionReferenceName);
         $instance->streamOffset = $streamOffset;
-        return $instance;
+
+        return $instance->withFinalFailureStrategy(FinalFailureStrategy::RELEASE);
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition

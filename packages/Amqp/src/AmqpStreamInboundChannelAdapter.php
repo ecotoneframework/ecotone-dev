@@ -11,6 +11,7 @@ use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
@@ -43,6 +44,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
     private bool $initialized = false;
     private QueueChannel $queueChannel;
     private ?string $consumerTag = null;
+    private ?string $lastProcessedOffset = null;
 
     public function __construct(
         private CachedConnectionFactory $cachedConnectionFactory,
@@ -53,6 +55,8 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
         InboundMessageConverter $inboundMessageConverter,
         ConversionService $conversionService,
         private LoggingGateway $loggingGateway,
+        private ConsumerPositionTracker $positionTracker,
+        private string $endpointId,
         private string $streamOffset = 'next',
     ) {
         parent::__construct(
@@ -71,6 +75,12 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
     public function initialize(): void
     {
         $this->amqpAdmin->declareQueueWithBindings($this->queueName, $this->connectionFactory->createContext());
+
+        // Load last committed position
+        $savedPosition = $this->positionTracker->loadPosition($this->endpointId);
+        if ($savedPosition !== null) {
+            $this->streamOffset = $savedPosition;
+        }
     }
 
     /**
@@ -192,9 +202,14 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
         return function (PhpAmqpLibMessage $amqpMessage) use ($context) {
             /** @var AMQPTable $amqpHeaders */
             $amqpHeaders = $amqpMessage->get_properties()['application_headers'];
+            $headers = $amqpHeaders->getNativeData();
+
+            // Extract stream offset from message headers (convert to string)
+            $streamOffset = isset($headers['x-stream-offset']) ? (string)$headers['x-stream-offset'] : null;
+
             $enqueueMessage = $context->createMessage(
                 $amqpMessage->getBody(),
-                $amqpHeaders->getNativeData(),
+                $headers,
                 [],
             );
 
@@ -208,15 +223,21 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
             );
             $message = $this->enrichMessage($enqueueMessage, $message);
 
+            // Create acknowledge callback with position tracking
+            $acknowledgeCallback = AmqpStreamAcknowledgeCallback::create(
+                $amqpMessage,
+                $this->loggingGateway,
+                $this->cachedConnectionFactory,
+                FinalFailureStrategy::RESEND,
+                true, // Auto-acknowledge for streams
+                $this->positionTracker,
+                $this->endpointId,
+                $streamOffset
+            );
+
             $message = $message->setHeader(
                 EnqueueHeader::HEADER_ACKNOWLEDGE,
-                AmqpStreamAcknowledgeCallback::create(
-                    $amqpMessage,
-                    $this->loggingGateway,
-                    $this->cachedConnectionFactory,
-                    FinalFailureStrategy::RESEND,
-                    true // Auto-acknowledge for streams
-                )
+                $acknowledgeCallback
             );
 
             $this->queueChannel->send($message->build());

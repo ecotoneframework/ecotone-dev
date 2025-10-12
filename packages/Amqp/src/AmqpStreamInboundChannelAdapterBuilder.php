@@ -12,6 +12,7 @@ use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
@@ -61,6 +62,8 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
             $inboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
             new Reference(LoggingGateway::class),
+            new Reference(ConsumerPositionTracker::class),
+            $this->endpointId,
             $this->streamOffset,
         ]);
     }

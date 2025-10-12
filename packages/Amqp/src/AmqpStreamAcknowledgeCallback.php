@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Amqp;
 
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -24,28 +25,31 @@ use PhpAmqpLib\Message\AMQPMessage as PhpAmqpLibMessage;
 class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 {
     private bool $isAcknowledged = false;
+    private bool $isPositionCommitted = false;
 
     private function __construct(
         private PhpAmqpLibMessage $amqpMessage,
         private LoggingGateway $loggingGateway,
         private CachedConnectionFactory $connectionFactory,
         private FinalFailureStrategy $failureStrategy,
-        private bool $isAutoAcked
+        private bool $isAutoAcked,
+        private ConsumerPositionTracker $positionTracker,
+        private string $endpointId,
+        private ?string $streamOffset
     ) {
-        // For streams, we auto-acknowledge immediately to allow QoS to work
-        if ($this->isAutoAcked) {
-            $this->accept();
-        }
     }
 
     public static function create(
         PhpAmqpLibMessage $amqpMessage,
         LoggingGateway $loggingGateway,
         CachedConnectionFactory $connectionFactory,
-        FinalFailureStrategy $failureStrategy = FinalFailureStrategy::RESEND,
-        bool $isAutoAcked = true
+        FinalFailureStrategy $failureStrategy,
+        bool $isAutoAcked,
+        ConsumerPositionTracker $positionTracker,
+        string $endpointId,
+        ?string $streamOffset
     ): self {
-        return new self($amqpMessage, $loggingGateway, $connectionFactory, $failureStrategy, $isAutoAcked);
+        return new self($amqpMessage, $loggingGateway, $connectionFactory, $failureStrategy, $isAutoAcked, $positionTracker, $endpointId, $streamOffset);
     }
 
     public function getFailureStrategy(): FinalFailureStrategy
@@ -59,6 +63,32 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
     }
 
     public function accept(): void
+    {
+        $this->acknowledgeAmqpMessage();
+        $this->commitPosition();
+    }
+
+    public function reject(): void
+    {
+        $this->rejectAmqpMessage();
+        $this->commitPosition();
+    }
+
+    public function resend(): void
+    {
+        // For streams, resend is not applicable in the traditional sense
+        // We'll just reject the message as streams don't support traditional requeuing
+        $this->reject();
+    }
+
+    public function release(): void
+    {
+        // For streams, release is not applicable in the traditional sense
+        // We'll just reject the message as streams don't support traditional requeuing
+        $this->reject();
+    }
+
+    private function acknowledgeAmqpMessage(): void
     {
         if ($this->isAcknowledged) {
             return;
@@ -76,7 +106,7 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         }
     }
 
-    public function reject(): void
+    private function rejectAmqpMessage(): void
     {
         if ($this->isAcknowledged) {
             return;
@@ -95,17 +125,15 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         }
     }
 
-    public function resend(): void
+    private function commitPosition(): void
     {
-        // For streams, resend is not applicable in the traditional sense
-        // We'll just reject the message as streams don't support traditional requeuing
-        $this->reject();
-    }
+        if ($this->isPositionCommitted || $this->streamOffset === null) {
+            return;
+        }
 
-    public function release(): void
-    {
-        // For streams, release is not applicable in the traditional sense
-        // We'll just reject the message as streams don't support traditional requeuing
-        $this->reject();
+        // Commit next offset (current + 1) so we resume from the next message
+        $nextOffset = (string)((int)$this->streamOffset + 1);
+        $this->positionTracker->savePosition($this->endpointId, $nextOffset);
+        $this->isPositionCommitted = true;
     }
 }

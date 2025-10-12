@@ -47,16 +47,16 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
     public function __construct(
         private CachedConnectionFactory $cachedConnectionFactory,
-        private AmqpAdmin $amqpAdmin,
-        bool $declareOnStartup,
-        string $queueName,
-        int $receiveTimeoutInMilliseconds,
-        InboundMessageConverter $inboundMessageConverter,
-        ConversionService $conversionService,
-        private LoggingGateway $loggingGateway,
+        private AmqpAdmin               $amqpAdmin,
+        bool                            $declareOnStartup,
+        string                          $queueName,
+        int                             $receiveTimeoutInMilliseconds,
+        InboundMessageConverter         $inboundMessageConverter,
+        ConversionService               $conversionService,
+        private LoggingGateway          $loggingGateway,
         private ConsumerPositionTracker $positionTracker,
-        private string $endpointId,
-        private string $streamOffset = 'next',
+        private string                  $endpointId,
+        private string                  $startingPositionOffset = 'next',
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -74,12 +74,6 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     public function initialize(): void
     {
         $this->amqpAdmin->declareQueueWithBindings($this->queueName, $this->connectionFactory->createContext());
-
-        // Load last committed position
-        $savedPosition = $this->positionTracker->loadPosition($this->endpointId);
-        if ($savedPosition !== null) {
-            $this->streamOffset = $savedPosition;
-        }
     }
 
     /**
@@ -176,9 +170,14 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         $libChannel->basic_qos(0, 100, false);
 
         // Convert numeric string offsets to integers for RabbitMQ streams
-        $offset = $this->streamOffset;
+        $offset = $this->startingPositionOffset;
         if (is_numeric($offset)) {
             $offset = (int) $offset;
+        }
+
+        $savedPosition = $this->positionTracker->loadPosition($this->endpointId);
+        if ($savedPosition !== null) {
+            $offset = (int)$savedPosition;
         }
 
         $arguments = new AMQPTable(['x-stream-offset' => $offset]);

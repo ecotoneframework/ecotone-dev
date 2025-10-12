@@ -24,7 +24,6 @@ use PhpAmqpLib\Message\AMQPMessage as PhpAmqpLibMessage;
  */
 class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 {
-    private bool $isAcknowledged = false;
     private bool $isPositionCommitted = false;
 
     private function __construct(
@@ -90,13 +89,8 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 
     private function acknowledgeAmqpMessage(): void
     {
-        if ($this->isAcknowledged) {
-            return;
-        }
-
         try {
             $this->amqpMessage->ack();
-            $this->isAcknowledged = true;
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to acknowledge AMQP stream message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 
@@ -108,14 +102,9 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 
     private function rejectAmqpMessage(): void
     {
-        if ($this->isAcknowledged) {
-            return;
-        }
-
         try {
             // For streams, reject without requeue (streams don't support traditional requeuing)
             $this->amqpMessage->reject(false);
-            $this->isAcknowledged = true;
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to reject AMQP stream message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 

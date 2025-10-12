@@ -692,9 +692,10 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals(2, $attemptCount);
 
         // Verify messages after the failed one were still processed
-        $this->assertContains('order6', $orders);
-        $this->assertContains('order7', $orders);
-        $this->assertContains('order10', $orders);
+        $this->assertEquals(
+            ['order1', 'order2', 'order3', 'order4', 'fail_order5', 'order6', 'order7', 'order8', 'order9', 'order10'],
+            $orders
+        );
     }
 
 }

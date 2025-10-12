@@ -698,4 +698,50 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         );
     }
 
+    public function test_resend_moves_failed_message_to_end()
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_queue_resend_' . Uuid::uuid4()->toString();
+
+        $orderService = new OrderServiceWithFailures();
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderServiceWithFailures::class],
+            [
+                $orderService,
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        $channelName,
+                        'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )->withFinalFailureStrategy(FinalFailureStrategy::RESEND),
+                ])
+        );
+
+        // Send 3 messages: success, fail, success
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'order1');
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'fail_order2');
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'order3');
+
+        // Run consumer
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: false)->withExecutionTimeLimitInMilliseconds(5000));
+
+        // Verify all messages were processed
+        // With RESEND: order1 succeeds, fail_order2 fails and goes to end, order3 succeeds, fail_order2 retried and succeeds
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $attemptCounts = $ecotoneLite->getQueryBus()->sendWithRouting('order.getAllAttemptCounts');
+
+        $this->assertEquals(['order1', 'order3', 'fail_order2'], $orders);
+
+        // Verify attempt counts - fail_order2 should have been tried twice
+        $this->assertEquals(1, $attemptCounts['order1']); // Succeeded first time
+        $this->assertEquals(2, $attemptCounts['fail_order2']); // Failed once, retried at end and succeeded
+        $this->assertEquals(1, $attemptCounts['order3']); // Succeeded first time
+    }
+
 }

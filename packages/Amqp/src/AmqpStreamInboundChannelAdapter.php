@@ -57,6 +57,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         private ConsumerPositionTracker $positionTracker,
         private string                  $endpointId,
         private string                  $startingPositionOffset,
+        private CachedConnectionFactory $publisherConnectionFactory,
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -231,7 +232,9 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
                 $this->positionTracker,
                 $this->getConsumerId(),
                 $streamOffset,
-                $this
+                $this,
+                $this->queueName,
+                $this->publisherConnectionFactory
             );
 
             $message = $message->setHeader(

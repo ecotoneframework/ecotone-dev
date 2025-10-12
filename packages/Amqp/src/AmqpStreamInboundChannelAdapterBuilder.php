@@ -45,7 +45,16 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
                 Uuid::uuid4()->toString(),
             ]),
         ], 'createFor');
-        
+
+        // Create a separate connection factory for sending resent messages with publisher confirms enabled
+        $publisherConnectionFactory = new Definition(CachedConnectionFactory::class, [
+            new Definition(AmqpReconnectableConnectionFactory::class, [
+                new Reference($this->connectionReferenceName),
+                Uuid::uuid4()->toString(),
+                true, // Enable publisher confirms
+            ]),
+        ], 'createFor');
+
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [
             $this->endpointId,
             $this->acknowledgeMode,
@@ -67,6 +76,7 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
             new Reference(ConsumerPositionTracker::class),
             $this->endpointId,
             $this->streamOffset,
+            $publisherConnectionFactory,
         ]);
     }
 }

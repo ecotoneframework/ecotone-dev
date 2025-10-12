@@ -56,7 +56,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         private LoggingGateway          $loggingGateway,
         private ConsumerPositionTracker $positionTracker,
         private string                  $endpointId,
-        private string                  $startingPositionOffset = 'next',
+        private string                  $startingPositionOffset,
     ) {
         parent::__construct(
             $cachedConnectionFactory,

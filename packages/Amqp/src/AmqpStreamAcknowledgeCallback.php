@@ -24,8 +24,6 @@ use PhpAmqpLib\Message\AMQPMessage as PhpAmqpLibMessage;
  */
 class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 {
-    private bool $isPositionCommitted = false;
-
     private function __construct(
         private PhpAmqpLibMessage $amqpMessage,
         private LoggingGateway $loggingGateway,
@@ -34,7 +32,8 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         private bool $isAutoAcked,
         private ConsumerPositionTracker $positionTracker,
         private string $endpointId,
-        private ?string $streamOffset
+        private ?string $streamOffset,
+        private CancellableAmqpStreamConsumer $streamConsumer
     ) {
     }
 
@@ -46,9 +45,10 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         bool $isAutoAcked,
         ConsumerPositionTracker $positionTracker,
         string $endpointId,
-        ?string $streamOffset
+        ?string $streamOffset,
+        CancellableAmqpStreamConsumer $streamConsumer
     ): self {
-        return new self($amqpMessage, $loggingGateway, $connectionFactory, $failureStrategy, $isAutoAcked, $positionTracker, $endpointId, $streamOffset);
+        return new self($amqpMessage, $loggingGateway, $connectionFactory, $failureStrategy, $isAutoAcked, $positionTracker, $endpointId, $streamOffset, $streamConsumer);
     }
 
     public function getFailureStrategy(): FinalFailureStrategy
@@ -82,9 +82,10 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 
     public function release(): void
     {
-        // For streams, release is not applicable in the traditional sense
-        // We'll just reject the message as streams don't support traditional requeuing
-        $this->reject();
+        $this->rejectAmqpMessage();
+
+        // Cancel the consumer to force restart from current offset
+        $this->streamConsumer->cancelStreamConsumer();
     }
 
     private function acknowledgeAmqpMessage(): void
@@ -116,13 +117,12 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 
     private function commitPosition(): void
     {
-        if ($this->isPositionCommitted || $this->streamOffset === null) {
+        if ($this->streamOffset === null) {
             return;
         }
 
         // Commit next offset (current + 1) so we resume from the next message
         $nextOffset = (string)((int)$this->streamOffset + 1);
         $this->positionTracker->savePosition($this->endpointId, $nextOffset);
-        $this->isPositionCommitted = true;
     }
 }

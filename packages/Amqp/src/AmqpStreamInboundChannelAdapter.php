@@ -39,12 +39,11 @@ use PhpAmqpLib\Wire\AMQPTable;
  *
  * licence Apache-2.0
  */
-class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
+class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter implements CancellableAmqpStreamConsumer
 {
     private bool $initialized = false;
     private QueueChannel $queueChannel;
     private ?string $consumerTag = null;
-    private ?string $lastProcessedOffset = null;
 
     public function __construct(
         private CachedConnectionFactory $cachedConnectionFactory,
@@ -228,11 +227,12 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
                 $amqpMessage,
                 $this->loggingGateway,
                 $this->cachedConnectionFactory,
-                FinalFailureStrategy::RESEND,
+                $this->inboundMessageConverter->getFinalFailureStrategy(),
                 true, // Auto-acknowledge for streams
                 $this->positionTracker,
                 $this->endpointId,
-                $streamOffset
+                $streamOffset,
+                $this
             );
 
             $message = $message->setHeader(
@@ -244,6 +244,21 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter
 
             return false;
         };
+    }
+
+    /**
+     * Cancel the stream consumer and clear buffered messages
+     * This allows the consumer to restart from the last committed position
+     */
+    public function cancelStreamConsumer(): void
+    {
+        $this->stopStreamConsuming();
+
+        // Clear any buffered messages in the queue channel
+        // This ensures we restart fresh from the committed offset
+        while ($this->queueChannel->receive() !== null) {
+            // Drain all buffered messages
+        }
     }
 
     private function stopStreamConsuming(): void

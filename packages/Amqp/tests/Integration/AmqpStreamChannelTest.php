@@ -10,6 +10,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 
 use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnection;
 use Enqueue\AmqpLib\AmqpConnectionFactory;
@@ -17,6 +18,7 @@ use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
+use Test\Ecotone\Amqp\Fixture\Order\OrderServiceWithFailures;
 
 /**
  * @internal
@@ -561,6 +563,138 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
         $this->assertGreaterThanOrEqual(1, count($orders));
         $this->assertContains('milk', $orders); // At least first message should be consumed
+    }
+
+    public function test_release_retries_same_message()
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_queue_release_retry_' . Uuid::uuid4()->toString();
+
+        $orderService = new OrderServiceWithFailures();
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderServiceWithFailures::class],
+            [
+                $orderService,
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        $channelName,
+                        'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )->withFinalFailureStrategy(FinalFailureStrategy::RELEASE),
+                ])
+        );
+
+        // Send a message that will fail on first attempt
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'fail_order1');
+
+        // Run consumer - should fail first time, then retry and succeed
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: false)->withExecutionTimeLimitInMilliseconds(1000));
+
+        // Verify the order was eventually processed
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertEquals(['fail_order1'], $orders);
+
+        // Verify it was attempted twice (failed once, succeeded on retry)
+        $attemptCount = $ecotoneLite->getQueryBus()->sendWithRouting('order.getAttemptCount', 'fail_order1');
+        $this->assertEquals(2, $attemptCount);
+    }
+
+    public function test_release_with_multiple_messages()
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_queue_release_multiple_' . Uuid::uuid4()->toString();
+
+        $orderService = new OrderServiceWithFailures();
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderServiceWithFailures::class],
+            [
+                $orderService,
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        $channelName,
+                        'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )->withFinalFailureStrategy(FinalFailureStrategy::RELEASE),
+                ])
+        );
+
+        // Send 3 messages: success, fail, success
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'order1');
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'fail_order2');
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'order3');
+
+        // Run consumer
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: false)->withExecutionTimeLimitInMilliseconds(1000));
+
+        // Verify all messages were processed in order
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertEquals(['order1', 'fail_order2', 'order3'], $orders);
+
+        // Verify attempt counts
+        $attemptCounts = $ecotoneLite->getQueryBus()->sendWithRouting('order.getAllAttemptCounts');
+        $this->assertEquals(1, $attemptCounts['order1']); // Succeeded first time
+        $this->assertEquals(2, $attemptCounts['fail_order2']); // Failed once, retried
+        $this->assertEquals(1, $attemptCounts['order3']); // Succeeded first time
+    }
+
+    public function test_release_maintains_offset_position()
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_queue_release_offset_' . Uuid::uuid4()->toString();
+
+        $orderService = new OrderServiceWithFailures();
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderServiceWithFailures::class],
+            [
+                $orderService,
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        $channelName,
+                        'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )->withFinalFailureStrategy(FinalFailureStrategy::RELEASE),
+                ])
+        );
+
+        // Send 10 messages, with message 5 failing
+        for ($i = 1; $i <= 10; $i++) {
+            $order = $i === 5 ? 'fail_order5' : "order{$i}";
+            $ecotoneLite->getCommandBus()->sendWithRouting('order.register', $order);
+        }
+
+        // Run consumer
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: false)->withExecutionTimeLimitInMilliseconds(1000));
+
+        // Verify all messages were processed
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertCount(10, $orders);
+
+        // Verify order5 was retried
+        $attemptCount = $ecotoneLite->getQueryBus()->sendWithRouting('order.getAttemptCount', 'fail_order5');
+        $this->assertEquals(2, $attemptCount);
+
+        // Verify messages after the failed one were still processed
+        $this->assertContains('order6', $orders);
+        $this->assertContains('order7', $orders);
+        $this->assertContains('order10', $orders);
     }
 
 }

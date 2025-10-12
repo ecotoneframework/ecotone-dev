@@ -31,7 +31,7 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         private FinalFailureStrategy $failureStrategy,
         private bool $isAutoAcked,
         private ConsumerPositionTracker $positionTracker,
-        private string $endpointId,
+        private string $consumerId,
         private ?string $streamOffset,
         private CancellableAmqpStreamConsumer $streamConsumer
     ) {
@@ -44,11 +44,11 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         FinalFailureStrategy $failureStrategy,
         bool $isAutoAcked,
         ConsumerPositionTracker $positionTracker,
-        string $endpointId,
+        string $consumerId,
         ?string $streamOffset,
         CancellableAmqpStreamConsumer $streamConsumer
     ): self {
-        return new self($amqpMessage, $loggingGateway, $connectionFactory, $failureStrategy, $isAutoAcked, $positionTracker, $endpointId, $streamOffset, $streamConsumer);
+        return new self($amqpMessage, $loggingGateway, $connectionFactory, $failureStrategy, $isAutoAcked, $positionTracker, $consumerId, $streamOffset, $streamConsumer);
     }
 
     public function getFailureStrategy(): FinalFailureStrategy
@@ -123,6 +123,7 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 
         // Commit next offset (current + 1) so we resume from the next message
         $nextOffset = (string)((int)$this->streamOffset + 1);
-        $this->positionTracker->savePosition($this->endpointId, $nextOffset);
+
+        $this->positionTracker->savePosition($this->consumerId, $nextOffset);
     }
 }

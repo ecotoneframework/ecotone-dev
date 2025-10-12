@@ -169,13 +169,13 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         $libChannel = $context->getLibChannel();
         $libChannel->basic_qos(0, 100, false);
 
-        // Convert numeric string offsets to integers for RabbitMQ streams
         $offset = $this->startingPositionOffset;
         if (is_numeric($offset)) {
             $offset = (int) $offset;
         }
 
-        $savedPosition = $this->positionTracker->loadPosition($this->endpointId);
+        $consumerId = $this->getConsumerId();
+        $savedPosition = $this->positionTracker->loadPosition($consumerId);
         if ($savedPosition !== null) {
             $offset = (int)$savedPosition;
         }
@@ -184,7 +184,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
         $this->consumerTag = $libChannel->basic_consume(
             queue: $this->queueName,
-            consumer_tag: '',
+            consumer_tag: $consumerId,
             no_local: false,
             no_ack: false, // Important: we need manual ack for Ecotone's system
             exclusive: false,
@@ -229,7 +229,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
                 $this->inboundMessageConverter->getFinalFailureStrategy(),
                 true, // Auto-acknowledge for streams
                 $this->positionTracker,
-                $this->endpointId,
+                $this->getConsumerId(),
                 $streamOffset,
                 $this
             );
@@ -243,6 +243,15 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
             return false;
         };
+    }
+
+    /**
+     * Get consumer ID for position tracking (endpointId:queueName)
+     * This allows the same endpoint to track position across multiple queues
+     */
+    private function getConsumerId(): string
+    {
+        return $this->endpointId . ':' . $this->queueName;
     }
 
     /**

@@ -79,7 +79,9 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
         $this->assertGreaterThan(0, $processedCount1, 'Should have processed at least one message');
 
         // Check that position was committed
-        $committedPosition = $sharedPositionTracker->loadPosition($channelName);
+        // Position is tracked using combined consumer ID: endpointId:queueName
+        $consumerId = $channelName . ':' . $queueName;
+        $committedPosition = $sharedPositionTracker->loadPosition($consumerId);
         $this->assertNotNull($committedPosition, 'Position should be committed after processing messages');
 
         // Second application instance - should resume from where first left off

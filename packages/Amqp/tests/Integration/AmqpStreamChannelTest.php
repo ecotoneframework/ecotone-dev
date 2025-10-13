@@ -73,11 +73,6 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         // Verify all three messages were consumed from first position
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
-
-        // Debug output
-        echo "Orders received: " . json_encode($orders) . "\n";
-        echo "Expected 3 orders from 'first' position\n";
-
         $this->assertCount(3, $orders);
         $this->assertContains('milk', $orders);
         $this->assertContains('bread', $orders);
@@ -742,6 +737,74 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals(1, $attemptCounts['order1']); // Succeeded first time
         $this->assertEquals(2, $attemptCounts['fail_order2']); // Failed once, retried at end and succeeded
         $this->assertEquals(1, $attemptCounts['order3']); // Succeeded first time
+    }
+
+    public function test_consuming_with_prefetch_limit_across_multiple_batches()
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_queue_prefetch_' . Uuid::uuid4()->toString();
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )
+                        ->withPrefetchCount(1), // Set prefetch to 1
+                ])
+        );
+
+        // Send first batch of 10 messages
+        for ($i = 1; $i <= 10; $i++) {
+            $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "batch1_order_{$i}");
+        }
+
+        // Consume all messages from first batch
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertCount(10, $orders);
+
+        // Send second batch of 10 messages
+        for ($i = 1; $i <= 10; $i++) {
+            $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "batch2_order_{$i}");
+        }
+
+        // Consume all messages from second batch
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertCount(20, $orders);
+
+        // Send third batch of 10 messages
+        for ($i = 1; $i <= 10; $i++) {
+            $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "batch3_order_{$i}");
+        }
+
+        // Consume all messages from third batch
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertCount(30, $orders);
+
+        // Verify all messages were consumed in order
+        $expectedOrders = [];
+        for ($batch = 1; $batch <= 3; $batch++) {
+            for ($i = 1; $i <= 10; $i++) {
+                $expectedOrders[] = "batch{$batch}_order_{$i}";
+            }
+        }
+        $this->assertEquals($expectedOrders, $orders);
     }
 
 }

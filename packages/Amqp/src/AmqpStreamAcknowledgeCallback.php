@@ -16,12 +16,6 @@ use PhpAmqpLib\Wire\AMQPTable;
 
 /**
  * AMQP Stream Acknowledge Callback
- *
- * For stream consumption, messages need to be acknowledged immediately
- * to allow RabbitMQ to deliver subsequent messages when using QoS limits.
- * This callback implements the same interface as EnqueueAcknowledgementCallback
- * but handles immediate acknowledgment for stream messages.
- *
  * licence Apache-2.0
  */
 class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback

@@ -28,6 +28,7 @@ use Ramsey\Uuid\Uuid;
 class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
     private string $streamOffset = 'next';
+    private int $prefetchCount = 100;
 
     public static function create(string $endpointId, string $queueName, string $streamOffset = 'next', string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
     {
@@ -35,6 +36,13 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
         $instance->streamOffset = $streamOffset;
 
         return $instance->withFinalFailureStrategy(FinalFailureStrategy::RELEASE);
+    }
+
+    public function withPrefetchCount(int $prefetchCount): self
+    {
+        $this->prefetchCount = $prefetchCount;
+
+        return $this;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition
@@ -77,6 +85,7 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
             $this->endpointId,
             $this->streamOffset,
             $publisherConnectionFactory,
+            $this->prefetchCount,
         ]);
     }
 }

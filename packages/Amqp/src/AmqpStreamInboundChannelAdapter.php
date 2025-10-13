@@ -58,6 +58,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         private string                  $endpointId,
         private string                  $startingPositionOffset,
         private CachedConnectionFactory $publisherConnectionFactory,
+        private int                     $prefetchCount = 100,
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -136,23 +137,20 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             $timeout = $timeout ?: $this->receiveTimeoutInMilliseconds;
             $timeoutInSeconds = $timeout > 0 ? $timeout / 1000.0 : 10.0;
 
-            try {
-                // First wait with full timeout - this processes ONE message frame
-                // As it process one frame (one message), it's not enough to trigger it only once as we won't fetch everything from tcp buffer
-                $libChannel->wait(null, false, $timeoutInSeconds);
-            } catch (AMQPTimeoutException) {
-                // No messages arrived within timeout
-                return null;
-            }
-
-            // Drain any additional messages that are already buffered
-            // This is important for stream offsets like "first" where many messages arrive rapidly
-            // We use a short timeout (50ms) to quickly drain buffered messages without blocking (no network wait!)
-            while (true) {
+            // Keep calling wait() in a loop while the consumer is active
+            // This is crucial for low prefetch values - each wait() processes one message frame
+            // With prefetch=1, we need to loop to process multiple messages
+            while ($libChannel->is_consuming()) {
                 try {
-                    $libChannel->wait(null, false, 0.05);
+                    $libChannel->wait(null, false, $timeoutInSeconds);
+
+                    // After first successful wait, use short timeout for draining buffered messages
+                    $timeoutInSeconds = 0.05;
                 } catch (AMQPTimeoutException) {
-                    // No more buffered messages
+                    // No more messages available
+                    // Cancel the consumer so it can be restarted on next call
+                    // This is important for streams: once a consumer catches up, it needs to be restarted to see new messages
+                    $this->stopStreamConsuming();
                     break;
                 }
             }
@@ -168,7 +166,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     private function startStreamConsuming(AmqpContext $context): void
     {
         $libChannel = $context->getLibChannel();
-        $libChannel->basic_qos(0, 100, false);
+        $libChannel->basic_qos(0, $this->prefetchCount, false);
 
         $offset = $this->startingPositionOffset;
         if (is_numeric($offset)) {

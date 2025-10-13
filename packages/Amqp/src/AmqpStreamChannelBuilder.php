@@ -51,6 +51,25 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
         return new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition);
     }
 
+    /**
+     * Set the prefetch count (QoS) for stream consumption
+     *
+     * Controls how many unacknowledged messages RabbitMQ will deliver to the consumer.
+     * Lower values (e.g., 1) provide better flow control but may reduce throughput.
+     * Higher values allow faster consumption but use more memory.
+     *
+     * @param int $prefetchCount Number of messages to prefetch (default: 100)
+     * @return self
+     */
+    public function withPrefetchCount(int $prefetchCount): self
+    {
+        /** @var AmqpStreamInboundChannelAdapterBuilder $inboundAdapter */
+        $inboundAdapter = $this->getInboundChannelAdapter();
+        $inboundAdapter->withPrefetchCount($prefetchCount);
+
+        return $this;
+    }
+
     public function getMessageChannelName(): string
     {
         return $this->channelName;

@@ -58,7 +58,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         private string                  $endpointId,
         private string                  $startingPositionOffset,
         private CachedConnectionFactory $publisherConnectionFactory,
-        private int                     $prefetchCount = 100,
+        private int                     $prefetchCount,
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -152,6 +152,10 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
                     // This is important for streams: once a consumer catches up, it needs to be restarted to see new messages
                     $this->stopStreamConsuming();
                     break;
+                }catch (\Exception $exception) {
+                    $this->stopStreamConsuming();
+
+                    throw $exception;
                 }
             }
 
@@ -185,7 +189,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             queue: $this->queueName,
             consumer_tag: $consumerId,
             no_local: false,
-            no_ack: false, // Important: we need manual ack for Ecotone's system
+            no_ack: false,
             exclusive: false,
             nowait: false,
             callback: $this->createStreamCallback($context),

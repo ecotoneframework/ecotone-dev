@@ -63,13 +63,13 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 
     public function accept(): void
     {
-        $this->acknowledgeAmqpMessage();
+//        $this->acknowledgeAmqpMessage();
         $this->commitPosition();
     }
 
     public function reject(): void
     {
-        $this->rejectAmqpMessage();
+//        $this->rejectAmqpMessage();
         $this->commitPosition();
     }
 

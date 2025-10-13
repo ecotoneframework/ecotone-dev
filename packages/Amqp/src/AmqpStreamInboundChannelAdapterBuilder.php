@@ -28,7 +28,7 @@ use Ramsey\Uuid\Uuid;
 class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
     private string $streamOffset = 'next';
-    private int $prefetchCount = 100;
+    private int $prefetchCount = 1000;
 
     public static function create(string $endpointId, string $queueName, string $streamOffset = 'next', string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
     {

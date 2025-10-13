@@ -6,7 +6,6 @@ namespace Ecotone\Dbal\Consumer;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -43,9 +42,7 @@ class DbalConsumerPositionModule extends NoExternalConfigurationModule implement
             $messagingConfiguration->registerServiceDefinition(
                 ConsumerPositionTracker::class,
                 new Definition(DbalConsumerPositionTracker::class, [
-                    new Definition(DbalReconnectableConnectionFactory::class, [
-                        new Reference($dbalConfiguration->getConsumerPositionTrackingConnectionReference())
-                    ])
+                    new Reference($dbalConfiguration->getDbalDocumentStoreReference())
                 ])
             );
         }

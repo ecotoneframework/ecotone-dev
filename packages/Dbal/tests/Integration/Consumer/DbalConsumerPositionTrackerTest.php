@@ -6,7 +6,10 @@ namespace Test\Ecotone\Dbal\Integration\Consumer;
 
 use Ecotone\Dbal\Consumer\DbalConsumerPositionTracker;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
+use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Store\Document\DocumentStore;
+use Ecotone\Test\InMemoryConversionService;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -16,22 +19,19 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
 final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
 {
     private DbalConsumerPositionTracker $tracker;
+    private DocumentStore $documentStore;
 
     public function setUp(): void
     {
         parent::setUp();
 
-        $connectionFactory = new DbalReconnectableConnectionFactory(
-            $this->getConnectionFactory()
+        $this->documentStore = new DbalDocumentStore(
+            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
+            true,
+            InMemoryConversionService::createWithoutConversion()
         );
 
-        $this->tracker = new DbalConsumerPositionTracker($connectionFactory);
-
-        // Clean up table
-        $connection = $this->getConnection();
-        if (self::checkIfTableExists($connection, 'ecotone_consumer_position')) {
-            $connection->executeStatement('DROP TABLE ecotone_consumer_position');
-        }
+        $this->tracker = new DbalConsumerPositionTracker($this->documentStore);
     }
 
     public function test_saving_and_loading_position()
@@ -109,10 +109,12 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
         $this->tracker->savePosition($consumerId, $position);
 
         // Create new tracker instance (simulates reconnection)
-        $connectionFactory = new DbalReconnectableConnectionFactory(
-            $this->getConnectionFactory()
+        $newDocumentStore = new DbalDocumentStore(
+            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
+            true,
+            InMemoryConversionService::createWithoutConversion()
         );
-        $newTracker = new DbalConsumerPositionTracker($connectionFactory);
+        $newTracker = new DbalConsumerPositionTracker($newDocumentStore);
 
         // Position should still be there
         $this->assertEquals($position, $newTracker->loadPosition($consumerId));
@@ -140,32 +142,10 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
         $this->assertEquals('300', $this->tracker->loadPosition($consumerId));
     }
 
-    public function test_custom_table_name()
-    {
-        $connectionFactory = new DbalReconnectableConnectionFactory(
-            $this->getConnectionFactory()
-        );
-        $customTracker = new DbalConsumerPositionTracker($connectionFactory, 'custom_positions');
-
-        $consumerId = 'test_consumer';
-        $position = '12345';
-
-        $customTracker->savePosition($consumerId, $position);
-        $this->assertEquals($position, $customTracker->loadPosition($consumerId));
-
-        // Verify custom table was created
-        $this->assertTrue(self::checkIfTableExists($this->getConnection(), 'custom_positions'));
-
-        // Clean up
-        $this->getConnection()->executeStatement('DROP TABLE custom_positions');
-    }
-
     public function tearDown(): void
     {
-        $connection = $this->getConnection();
-        if (self::checkIfTableExists($connection, 'ecotone_consumer_position')) {
-            $connection->executeStatement('DROP TABLE ecotone_consumer_position');
-        }
+        // Clean up consumer positions collection
+        $this->documentStore->dropCollection('consumer_positions');
 
         parent::tearDown();
     }

@@ -21,6 +21,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Support\LicensingException;
 
 #[ModuleAnnotation]
 /**
@@ -67,11 +68,13 @@ class AmqpModule implements AnnotationModule
         $amqpExchanges = [];
         $amqpQueues = [];
         $amqpBindings = [];
+        $hasAmqpStreamChannelBuilder = false;
 
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof AmqpBackedMessageChannelBuilder) {
                 $amqpQueues[] = AmqpQueue::createWith($extensionObject->getQueueName());
             }   elseif ($extensionObject instanceof AmqpStreamChannelBuilder) {
+                $hasAmqpStreamChannelBuilder = true;
                 $amqpQueues[] = AmqpQueue::createStreamQueue($extensionObject->queueName);
             } elseif ($extensionObject instanceof AmqpExchange) {
                 $amqpExchanges[] = $extensionObject;
@@ -80,6 +83,10 @@ class AmqpModule implements AnnotationModule
             } elseif ($extensionObject instanceof AmqpBinding) {
                 $amqpBindings[] = $extensionObject;
             }
+        }
+
+        if ($hasAmqpStreamChannelBuilder && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw LicensingException::create('AmqpStreamChannelBuilder is available only with Ecotone Enterprise licence.');
         }
 
         foreach ($this->amqpQueuesFromMessageConsumers as $amqpQueue) {

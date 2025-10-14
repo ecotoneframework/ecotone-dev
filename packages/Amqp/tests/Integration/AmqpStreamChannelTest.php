@@ -11,7 +11,8 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-
+use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnection;
 use Enqueue\AmqpLib\AmqpConnectionFactory;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
@@ -21,10 +22,7 @@ use Test\Ecotone\Amqp\Fixture\Order\OrderService;
 use Test\Ecotone\Amqp\Fixture\Order\OrderServiceWithFailures;
 
 /**
- * @internal
- */
-/**
- * licence Apache-2.0
+ * licence Enterprise
  * @internal
  */
 final class AmqpStreamChannelTest extends AmqpMessagingTestCase
@@ -34,6 +32,30 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         if (getenv('AMQP_IMPLEMENTATION') !== 'lib') {
             $this->markTestSkipped('Stream tests require AMQP lib');
         }
+    }
+
+    public function test_throwing_exception_if_no_licence_for_amqp_stream_channel(): void
+    {
+        $this->expectException(LicensingException::class);
+
+        EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue('test_queue'),
+                    AmqpStreamChannelBuilder::create(
+                        'test_channel',
+                        'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: 'test_queue',
+                    ),
+                ])
+        );
     }
 
     public function test_consuming_stream_messages_from_first_position()
@@ -49,6 +71,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -92,6 +115,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -136,6 +160,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -180,6 +205,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -224,6 +250,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -259,6 +286,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -303,6 +331,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -342,6 +371,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -375,6 +405,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -415,6 +446,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -454,6 +486,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -491,6 +524,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -533,6 +567,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -574,6 +609,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -614,6 +650,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -658,6 +695,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -707,6 +745,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -752,6 +791,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(

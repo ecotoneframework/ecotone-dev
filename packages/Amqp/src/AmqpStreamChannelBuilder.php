@@ -8,7 +8,7 @@ use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Enqueue\AmqpLib\AmqpConnectionFactory;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
 {

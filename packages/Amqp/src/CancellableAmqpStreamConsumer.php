@@ -10,7 +10,7 @@ namespace Ecotone\Amqp;
  * This allows acknowledgement callbacks to trigger consumer restart for scenarios
  * like message release/retry where the consumer needs to restart from a specific offset.
  * 
- * licence Apache-2.0
+ * licence Enterprise
  */
 interface CancellableAmqpStreamConsumer
 {

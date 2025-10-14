@@ -16,7 +16,7 @@ use PhpAmqpLib\Wire\AMQPTable;
 
 /**
  * AMQP Stream Acknowledge Callback
- * licence Apache-2.0
+ * licence Enterprise
  */
 class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 {
@@ -63,13 +63,11 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 
     public function accept(): void
     {
-//        $this->acknowledgeAmqpMessage();
         $this->commitPosition();
     }
 
     public function reject(): void
     {
-//        $this->rejectAmqpMessage();
         $this->commitPosition();
     }
 
@@ -119,37 +117,8 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 
     public function release(): void
     {
-        $this->rejectAmqpMessage();
-
         // Cancel the consumer to force restart from current offset
         $this->streamConsumer->cancelStreamConsumer();
-    }
-
-    private function acknowledgeAmqpMessage(): void
-    {
-        try {
-            $this->amqpMessage->ack();
-        } catch (Exception $exception) {
-            $this->loggingGateway->info('Failed to acknowledge AMQP stream message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
-
-            $this->connectionFactory->reconnect();
-
-            throw $exception;
-        }
-    }
-
-    private function rejectAmqpMessage(): void
-    {
-        try {
-            // For streams, reject without requeue (streams don't support traditional requeuing)
-            $this->amqpMessage->reject(false);
-        } catch (Exception $exception) {
-            $this->loggingGateway->info('Failed to reject AMQP stream message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
-
-            $this->connectionFactory->reconnect();
-
-            throw $exception;
-        }
     }
 
     private function commitPosition(): void

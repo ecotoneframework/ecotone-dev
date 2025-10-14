@@ -37,7 +37,7 @@ use PhpAmqpLib\Wire\AMQPTable;
  * AMQP Stream Inbound Channel Adapter
  * Handles stream-specific consumption using direct basic_consume with stream offset support
  *
- * licence Apache-2.0
+ * licence Enterprise
  */
 class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter implements CancellableAmqpStreamConsumer
 {

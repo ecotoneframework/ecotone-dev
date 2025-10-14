@@ -23,7 +23,7 @@ use Ramsey\Uuid\Uuid;
 /**
  * AMQP Stream Inbound Channel Adapter Builder
  * 
- * licence Apache-2.0
+ * licence Enterprise
  */
 class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {

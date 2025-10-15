@@ -109,6 +109,10 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     public function receiveWithTimeout(int $timeout = 0): ?Message
     {
         try {
+            if ($message = $this->queueChannel->receive()) {
+                return $message;
+            }
+
             if ($this->declareOnStartup && $this->initialized === false) {
                 $this->initialize();
                 $this->initialized = true;

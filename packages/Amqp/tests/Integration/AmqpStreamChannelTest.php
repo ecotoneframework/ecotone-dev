@@ -849,7 +849,6 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
     public function test_commit_interval_with_prefetch_count(): void
     {
-        LicenceTesting::enable();
         $channelName = 'orders';
         $queueName = 'stream_queue_commit_interval_' . Uuid::uuid4()->toString();
 
@@ -864,6 +863,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(
@@ -901,7 +901,6 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
     public function test_commit_interval_with_single_message_polling(): void
     {
-        LicenceTesting::enable();
         $channelName = 'orders';
         $queueName = 'stream_queue_single_poll_' . Uuid::uuid4()->toString();
 
@@ -916,6 +915,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
                     AmqpStreamChannelBuilder::create(

@@ -70,6 +70,29 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
         return $this;
     }
 
+    /**
+     * Set the commit interval for position tracking
+     *
+     * Controls how often the consumer position is committed to the position tracker.
+     * - commitInterval=1: Commit after every message (default, safest but slowest)
+     * - commitInterval=10: Commit after every 10 messages (better performance, small risk of reprocessing)
+     * - The last message in a batch is always committed, even if the interval hasn't been reached
+     *
+     * Example with commitInterval=2 and 5 messages:
+     * - Commits happen at offsets: 2, 4, 5 (5 is committed because it's the last in the batch)
+     *
+     * @param int $commitInterval Number of messages to process before committing position (default: 1)
+     * @return self
+     */
+    public function withCommitInterval(int $commitInterval): self
+    {
+        /** @var AmqpStreamInboundChannelAdapterBuilder $inboundAdapter */
+        $inboundAdapter = $this->getInboundChannelAdapter();
+        $inboundAdapter->withCommitInterval($commitInterval);
+
+        return $this;
+    }
+
     public function getMessageChannelName(): string
     {
         return $this->channelName;

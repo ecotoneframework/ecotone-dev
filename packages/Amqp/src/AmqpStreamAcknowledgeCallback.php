@@ -31,7 +31,8 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         private ?string $streamOffset,
         private CancellableAmqpStreamConsumer $streamConsumer,
         private string $queueName,
-        private CachedConnectionFactory $publisherConnectionFactory
+        private CachedConnectionFactory $publisherConnectionFactory,
+        private BatchCommitCoordinator $batchCommitCoordinator
     ) {
     }
 
@@ -46,9 +47,10 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
         ?string $streamOffset,
         CancellableAmqpStreamConsumer $streamConsumer,
         string $queueName,
-        CachedConnectionFactory $publisherConnectionFactory
+        CachedConnectionFactory $publisherConnectionFactory,
+        BatchCommitCoordinator $batchCommitCoordinator
     ): self {
-        return new self($amqpMessage, $loggingGateway, $connectionFactory, $failureStrategy, $isAutoAcked, $positionTracker, $consumerId, $streamOffset, $streamConsumer, $queueName, $publisherConnectionFactory);
+        return new self($amqpMessage, $loggingGateway, $connectionFactory, $failureStrategy, $isAutoAcked, $positionTracker, $consumerId, $streamOffset, $streamConsumer, $queueName, $publisherConnectionFactory, $batchCommitCoordinator);
     }
 
     public function getFailureStrategy(): FinalFailureStrategy
@@ -117,7 +119,6 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
 
     public function release(): void
     {
-        // Cancel the consumer to force restart from current offset
         $this->streamConsumer->cancelStreamConsumer();
     }
 
@@ -127,7 +128,11 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
             return;
         }
 
-        // Commit next offset (current + 1) so we resume from the next message
+        $shouldCommit = $this->batchCommitCoordinator->recordMessageProcessed($this->streamOffset);
+        if (!$shouldCommit) {
+            return;
+        }
+
         $nextOffset = (string)((int)$this->streamOffset + 1);
 
         $this->positionTracker->savePosition($this->consumerId, $nextOffset);

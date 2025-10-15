@@ -847,4 +847,124 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals($expectedOrders, $orders);
     }
 
+    public function test_commit_interval_with_prefetch_count(): void
+    {
+        LicenceTesting::enable();
+        $channelName = 'orders';
+        $queueName = 'stream_queue_commit_interval_' . Uuid::uuid4()->toString();
+
+        $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+                \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )
+                        ->withPrefetchCount(2)
+                        ->withCommitInterval(2), // Commit every 2 messages
+                ])
+        );
+
+        // Send 5 messages
+        for ($i = 1; $i <= 5; $i++) {
+            $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "order_{$i}");
+        }
+
+        // Consume all messages
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        // Verify all messages were consumed
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertEquals(['order_1', 'order_2', 'order_3', 'order_4', 'order_5'], $orders);
+
+        // Verify position was committed at offsets 2, 4, and 5 (last message in batch)
+        // The committed position is the NEXT offset to consume from
+        $consumerId = $channelName . ':' . $queueName;
+        $committedPosition = $sharedPositionTracker->loadPosition($consumerId);
+
+        // After consuming 5 messages (offsets 0-4), the committed position should be 5 (next to consume)
+        // With commitInterval=2, commits happen at messages 2, 4, and 5 (end of batch)
+        $this->assertEquals('5', $committedPosition, 'Position should be committed at offset 5 (after last message)');
+    }
+
+    public function test_commit_interval_with_single_message_polling(): void
+    {
+        LicenceTesting::enable();
+        $channelName = 'orders';
+        $queueName = 'stream_queue_single_poll_' . Uuid::uuid4()->toString();
+
+        $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+                \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )
+                        ->withCommitInterval(3), // Commit every 3 messages
+                ])
+        );
+
+        // Send 5 messages
+        for ($i = 1; $i <= 5; $i++) {
+            $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "order_{$i}");
+        }
+
+        $consumerId = $channelName . ':' . $queueName;
+
+        // Run consumer multiple times with single message limit
+        // Message 1
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['order_1'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+        // Position should be committed at 1 (end of batch, even though commitInterval=3)
+        $this->assertEquals('1', $sharedPositionTracker->loadPosition($consumerId));
+
+        // Message 2
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['order_1', 'order_2'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+        // Position should be committed at 2 (end of batch)
+        $this->assertEquals('2', $sharedPositionTracker->loadPosition($consumerId));
+
+        // Message 3
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['order_1', 'order_2', 'order_3'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+        // Position should be committed at 3 (end of batch)
+        $this->assertEquals('3', $sharedPositionTracker->loadPosition($consumerId));
+
+        // Message 4
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['order_1', 'order_2', 'order_3', 'order_4'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+        // Position should be committed at 4 (end of batch)
+        $this->assertEquals('4', $sharedPositionTracker->loadPosition($consumerId));
+
+        // Message 5
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['order_1', 'order_2', 'order_3', 'order_4', 'order_5'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
+        // Position should be committed at 5 (end of batch)
+        $this->assertEquals('5', $sharedPositionTracker->loadPosition($consumerId));
+    }
+
 }

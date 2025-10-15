@@ -44,6 +44,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     private bool $initialized = false;
     private QueueChannel $queueChannel;
     private ?string $consumerTag = null;
+    private BatchCommitCoordinator $batchCommitCoordinator;
 
     public function __construct(
         private CachedConnectionFactory $cachedConnectionFactory,
@@ -59,6 +60,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         private string                  $startingPositionOffset,
         private CachedConnectionFactory $publisherConnectionFactory,
         private int                     $prefetchCount,
+        private int                     $commitInterval = 1,
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -70,7 +72,12 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         );
         $this->queueChannel = QueueChannel::create();
 
-
+        // Initialize the batch commit coordinator
+        $this->batchCommitCoordinator = new BatchCommitCoordinator(
+            $this->commitInterval,
+            $this->positionTracker,
+            $this->getConsumerId()
+        );
     }
 
     public function initialize(): void
@@ -173,6 +180,9 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
     private function startStreamConsuming(AmqpContext $context): void
     {
+        // Commit any pending offset from previous batch and reset for new batch
+        $this->batchCommitCoordinator->commitPendingAndReset();
+
         $libChannel = $context->getLibChannel();
         $libChannel->basic_qos(0, $this->prefetchCount, false);
 
@@ -240,7 +250,8 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
                 $streamOffset,
                 $this,
                 $this->queueName,
-                $this->publisherConnectionFactory
+                $this->publisherConnectionFactory,
+                $this->batchCommitCoordinator
             );
 
             $message = $message->setHeader(

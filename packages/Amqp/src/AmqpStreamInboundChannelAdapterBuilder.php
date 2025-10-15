@@ -29,6 +29,7 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
 {
     private string $streamOffset = 'next';
     private int $prefetchCount = 1000;
+    private int $commitInterval = 1;
 
     public static function create(string $endpointId, string $queueName, string $streamOffset = 'next', string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
     {
@@ -41,6 +42,13 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
     public function withPrefetchCount(int $prefetchCount): self
     {
         $this->prefetchCount = $prefetchCount;
+
+        return $this;
+    }
+
+    public function withCommitInterval(int $commitInterval): self
+    {
+        $this->commitInterval = $commitInterval;
 
         return $this;
     }
@@ -86,6 +94,7 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
             $this->streamOffset,
             $publisherConnectionFactory,
             $this->prefetchCount,
+            $this->commitInterval,
         ]);
     }
 }

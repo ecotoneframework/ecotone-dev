@@ -19,7 +19,7 @@ class ProjectingManager
         private PartitionProvider      $partitionProvider,
         private string                 $projectionName,
         private int                    $batchSize = 1000,
-        private string                 $initializationMode = 'auto',
+        private ProjectionInitializationMode $initializationMode = ProjectionInitializationMode::AUTO,
     ) {
         if ($batchSize < 1) {
             throw new InvalidArgumentException('Batch size must be at least 1');
@@ -37,7 +37,7 @@ class ProjectingManager
                 // Check if projection is initialized
                 if (! $projectionState) {
                     // Projection not initialized yet
-                    if ($force || $this->initializationMode === 'auto') {
+                    if ($force || $this->initializationMode === ProjectionInitializationMode::AUTO) {
                         // Manual trigger or event trigger with auto mode - initialize and run
                         $projectionState = $this->projectionStateStorage->initPartition($this->projectionName, $partitionKey);
                         if ($projectionState) {

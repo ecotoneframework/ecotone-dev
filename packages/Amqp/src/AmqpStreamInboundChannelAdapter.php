@@ -133,16 +133,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             Assert::isTrue(method_exists($context, 'getLibChannel'), 'Stream consumption requires AMQP library connection.');
             $libChannel = $context->getLibChannel();
 
-            // Check if we already have messages in the queue channel from previous wait() calls
-            $existingMessage = $this->queueChannel->receive();
-            if ($existingMessage !== null) {
-                return $existingMessage;
-            }
-
-            // Start consuming if not already started
-            if ($this->consumerTag === null) {
-                $this->startStreamConsuming($context);
-            }
+            $this->startStreamConsuming($context);
 
             // Wait for messages with the specified timeout
             $timeout = $timeout ?: $this->receiveTimeoutInMilliseconds;
@@ -159,14 +150,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
                     $timeoutInSeconds = 0.05;
                 } catch (AMQPTimeoutException) {
                     // No more messages available
-                    // Cancel the consumer so it can be restarted on next call
-                    // This is important for streams: once a consumer catches up, it needs to be restarted to see new messages
-                    $this->stopStreamConsuming();
                     break;
-                }catch (\Exception $exception) {
-                    $this->stopStreamConsuming();
-
-                    throw $exception;
                 }
             }
 
@@ -180,6 +164,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
     private function startStreamConsuming(AmqpContext $context): void
     {
+        $this->stopStreamConsuming();
         // Commit any pending offset from previous batch and reset for new batch
         $this->batchCommitCoordinator->commitPendingAndReset();
 

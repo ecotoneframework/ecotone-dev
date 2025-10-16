@@ -29,7 +29,7 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
 {
     private string $streamOffset = 'next';
     private int $prefetchCount = 1000;
-    private int $commitInterval = 1;
+    private int $commitInterval = 100;
 
     public static function create(string $endpointId, string $queueName, string $streamOffset = 'next', string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
     {

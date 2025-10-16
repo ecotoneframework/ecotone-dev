@@ -81,7 +81,7 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
      * Example with commitInterval=2 and 5 messages:
      * - Commits happen at offsets: 2, 4, 5 (5 is committed because it's the last in the batch)
      *
-     * @param int $commitInterval Number of messages to process before committing position (default: 1)
+     * @param int $commitInterval Number of messages to process before committing position (default: 100)
      * @return self
      */
     public function withCommitInterval(int $commitInterval): self

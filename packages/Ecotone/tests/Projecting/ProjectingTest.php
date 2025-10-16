@@ -22,6 +22,7 @@ use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Ecotone\Projecting\ProjectingManager;
+use Ecotone\Projecting\ProjectionInitializationMode;
 use Ecotone\Projecting\ProjectionStatus;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -179,7 +180,7 @@ class ProjectingTest extends TestCase
 
     public function test_it_skips_execution_when_initialization_mode_is_skip_and_not_initialized(): void
     {
-        $projection = new #[Projection('projection_with_skip_mode', initializationMode: 'skip')] class {
+        $projection = new #[Projection('projection_with_skip_mode', initializationMode: ProjectionInitializationMode::SKIP)] class {
             public const TICKET_CREATED = 'ticket.created';
             public array $projectedEvents = [];
 

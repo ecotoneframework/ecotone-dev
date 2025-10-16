@@ -94,7 +94,7 @@ class ProjectingModule implements AnnotationModule
                     $components[$projectionName][PartitionProvider::class] ?? new Definition(NullPartitionProvider::class),
                     $projectionName,
                     1000, // batchSize
-                    $projectionBuilder->initializationMode(),
+                    $projectionBuilder->initializationMode()->value,
                 ])
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);

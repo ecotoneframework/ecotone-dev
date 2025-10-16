@@ -43,15 +43,17 @@ class ProjectingManager
                         if ($projectionState) {
                             $this->projectorExecutor->init();
                         } else {
-                            // Someone else initialized it in the meantime
-                            throw new \RuntimeException('Projection state was initialized in the meantime. Please retry');
+                            // Someone else initialized it in the meantime, reload the state
+                            $projectionState = $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
                         }
                     } else {
                         // Event trigger with skip mode - skip execution
                         $transaction->commit();
                         return;
                     }
-                } else if ($projectionState->status === ProjectionStatus::DISABLED) {
+                }
+                
+                if ($projectionState->status === ProjectionStatus::DISABLED) {
                     // Skip execution if disabled
                     $transaction->commit();
                     return;

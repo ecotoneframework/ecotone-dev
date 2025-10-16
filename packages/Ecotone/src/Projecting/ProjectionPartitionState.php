@@ -14,7 +14,7 @@ class ProjectionPartitionState
         public readonly ?string $partitionKey,
         public readonly ?string $lastPosition = null,
         public readonly mixed $userState = null,
-        public readonly ?string $status = null,
+        public readonly ?ProjectionStatus $status = null,
     ) {
     }
 
@@ -28,7 +28,7 @@ class ProjectionPartitionState
         return new self($this->projectionName, $this->partitionKey, $this->lastPosition, $userState, $this->status);
     }
 
-    public function withStatus(string $status): self
+    public function withStatus(ProjectionStatus $status): self
     {
         return new self($this->projectionName, $this->partitionKey, $this->lastPosition, $this->userState, $status);
     }

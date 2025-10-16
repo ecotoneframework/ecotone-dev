@@ -35,7 +35,7 @@ class ProjectingManager
                 $projectionState = $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
 
                 // Check if projection is initialized
-                if ($projectionState->status === null) {
+                if ($projectionState->status === null || $projectionState->status === ProjectionStatus::UNINITIALIZED) {
                     // Projection not initialized yet
                     if ($force || $this->initializationMode === 'auto') {
                         // Manual trigger - initialize and backfill
@@ -44,7 +44,7 @@ class ProjectingManager
                         // Event trigger with skip mode - skip execution
                         return;
                     }
-                } else if ($projectionState->status === 'disabled') {
+                } else if ($projectionState->status === ProjectionStatus::DISABLED) {
                     // Skip execution if disabled
                     return;
                 }
@@ -59,7 +59,7 @@ class ProjectingManager
                     $projectionState
                         ->withLastPosition($streamPage->lastPosition)
                         ->withUserState($userState)
-                        ->withStatus('enabled')
+                        ->withStatus(ProjectionStatus::ENABLED)
                 );
                 $transaction->commit();
             } catch (Throwable $e) {

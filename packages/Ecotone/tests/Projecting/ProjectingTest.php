@@ -22,6 +22,7 @@ use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Ecotone\Projecting\ProjectingManager;
+use Ecotone\Projecting\ProjectionStatus;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;

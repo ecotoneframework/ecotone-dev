@@ -12,6 +12,7 @@ use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
+use Ecotone\Projecting\ProjectionStatus;
 use Ecotone\Projecting\Transaction;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
@@ -56,7 +57,8 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             return new ProjectionPartitionState($projectionName, $partitionKey);
         }
 
-        return new ProjectionPartitionState($projectionName, $partitionKey, $row['last_position'], json_decode($row['user_state'], true), $row['state']);
+        $status = $row['state'] ? ProjectionStatus::from($row['state']) : null;
+        return new ProjectionPartitionState($projectionName, $partitionKey, $row['last_position'], json_decode($row['user_state'], true), $status);
     }
 
     public function savePartition(ProjectionPartitionState $projectionState): void
@@ -83,7 +85,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             'partitionKey' => $projectionState->partitionKey ?? '',
             'lastPosition' => $projectionState->lastPosition,
             'userState' => json_encode($projectionState->userState),
-            'state' => $projectionState->status ?? 'enabled',
+            'state' => $projectionState->status?->value ?? ProjectionStatus::ENABLED->value,
         ]);
     }
 

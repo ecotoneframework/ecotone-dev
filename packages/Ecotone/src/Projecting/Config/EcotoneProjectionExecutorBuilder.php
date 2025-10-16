@@ -30,12 +30,12 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
     public function __construct(
         private string  $projectionName,
         private ?string $partitionHeader = null,
+        private ProjectionInitializationMode $initializationMode = ProjectionInitializationMode::AUTO,
         private array   $namedEvents = [],
         private ?string $initChannel = null,
         private ?string $deleteChannel = null,
         private array   $projectionEventHandlers = [],
         private ?string $asyncChannelName = null,
-        private ProjectionInitializationMode $initializationMode = ProjectionInitializationMode::AUTO,
     ) {
     }
 

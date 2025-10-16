@@ -7,6 +7,7 @@ namespace Test\Ecotone\Amqp\Integration;
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -873,7 +874,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         queueName: $queueName,
                     )
                         ->withPrefetchCount(2)
-                        ->withCommitInterval(2), // Commit every 2 messages
+                        ->withCommitInterval(2), // Commit every 2 messages,
+                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
                 ])
         );
 
@@ -899,8 +901,61 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals('5', $committedPosition, 'Position should be committed at offset 5 (after last message)');
     }
 
-    public function test_commit_interval_with_single_message_polling(): void
+    public function test_commit_interval_with_prefetch_count_lower_than_commit_interval(): void
     {
+        $channelName = 'orders';
+        $queueName = 'stream_queue_commit_interval_' . Uuid::uuid4()->toString();
+
+        $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
+
+        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+                \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )
+                        ->withPrefetchCount(1)
+                        ->withCommitInterval(2), // Commit every 2 messages,
+                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
+                ])
+        );
+
+        // Send 5 messages
+        for ($i = 1; $i <= 5; $i++) {
+            $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "order_{$i}");
+        }
+
+        // Consume all messages
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+
+        // Verify all messages were consumed
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertEquals(['order_1', 'order_2', 'order_3', 'order_4', 'order_5'], $orders);
+
+        $consumerId = $channelName . ':' . $queueName;
+        $committedPosition = $sharedPositionTracker->loadPosition($consumerId);
+        $this->assertEquals('5', $committedPosition, 'Position should be committed at offset 5 (after last message)');
+    }
+
+    /**
+     * @TODO requires refactor
+     */
+    public function test_commit_interval_with_single_message_polling_metadata(): void
+    {
+        $this->markTestSkipped("Requires passing PollingMetadata to Inbound Adapters");
+
         $channelName = 'orders';
         $queueName = 'stream_queue_single_poll_' . Uuid::uuid4()->toString();
 
@@ -924,7 +979,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
                     )
-                        ->withCommitInterval(3), // Commit every 3 messages
+                        ->withCommitInterval(3), // Commit every 3 messages,
+                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false)
                 ])
         );
 

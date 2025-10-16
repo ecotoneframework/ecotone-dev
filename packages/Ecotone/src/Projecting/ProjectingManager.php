@@ -53,7 +53,7 @@ class ProjectingManager
                     }
                 }
                 
-                if ($projectionState->status === ProjectionStatus::DISABLED) {
+                if (!$force && $projectionState->status === ProjectionStatus::DISABLED) {
                     // Skip execution if disabled
                     $transaction->commit();
                     return;
@@ -64,13 +64,16 @@ class ProjectingManager
                 foreach ($streamPage->events as $event) {
                     $userState = $this->projectorExecutor->project($event, $userState);
                 }
-
-                $this->projectionStateStorage->savePartition(
-                    $projectionState
+                $projectionState = $projectionState
                         ->withLastPosition($streamPage->lastPosition)
-                        ->withUserState($userState)
-                        ->withStatus(ProjectionStatus::ENABLED)
-                );
+                        ->withUserState($userState);
+
+                if (count($streamPage->events) === 0 && $force) {
+                    // If we are forcing execution and there are no new events, we still want to enable the projection if it was uninitialized
+                    $projectionState = $projectionState->withStatus(ProjectionStatus::ENABLED);
+                }
+
+                $this->projectionStateStorage->savePartition($projectionState);
                 $transaction->commit();
             } catch (Throwable $e) {
                 $transaction->rollBack();

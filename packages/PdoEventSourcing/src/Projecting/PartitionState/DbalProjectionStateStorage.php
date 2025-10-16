@@ -36,7 +36,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         $this->connection = $connectionFactory->createContext()->getDbalConnection();
     }
 
-    public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ProjectionPartitionState
+    public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState
     {
         $this->createSchema();
 
@@ -54,11 +54,39 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             'partitionKey' => $partitionKey ?? '',
         ]);
         if (! $row) {
-            return new ProjectionPartitionState($projectionName, $partitionKey);
+            return null;
         }
 
         $status = $row['state'] ? ProjectionStatus::from($row['state']) : null;
         return new ProjectionPartitionState($projectionName, $partitionKey, $row['last_position'], json_decode($row['user_state'], true), $status);
+    }
+
+    public function initPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
+    {
+        $this->createSchema();
+
+        // Try to insert the partition state, ignoring if it already exists
+        $insertQuery = <<<SQL
+            INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, state)
+            VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :state)
+            ON CONFLICT (projection_name, partition_key) DO NOTHING
+            SQL;
+
+        $rowsAffected = $this->connection->executeStatement($insertQuery, [
+            'projectionName' => $projectionName,
+            'partitionKey' => $partitionKey ?? '',
+            'lastPosition' => '',
+            'userState' => json_encode(null),
+            'state' => ProjectionStatus::UNINITIALIZED->value,
+        ]);
+
+        // If no rows were affected, the partition already existed
+        if ($rowsAffected === 0) {
+            return null;
+        }
+
+        // Return the newly created state
+        return new ProjectionPartitionState($projectionName, $partitionKey, null, null, ProjectionStatus::UNINITIALIZED);
     }
 
     public function savePartition(ProjectionPartitionState $projectionState): void

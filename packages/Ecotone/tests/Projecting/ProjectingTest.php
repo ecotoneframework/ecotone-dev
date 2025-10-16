@@ -213,6 +213,50 @@ class ProjectingTest extends TestCase
         self::assertCount(0, $projection->projectedEvents, 'Projection should not process events when not initialized in skip mode');
     }
 
+    public function test_initPartition_concurrency_protection(): void
+    {
+        $projection = new #[Projection('concurrent_projection')] class {
+            public const TICKET_CREATED = 'ticket.created';
+            public array $projectedEvents = [];
+            public int $initCallCount = 0;
+
+            #[EventHandler(self::TICKET_CREATED)]
+            public function on(array $event): void
+            {
+                $this->projectedEvents[] = $event;
+            }
+
+            #[ProjectionInitialization]
+            public function init(): void
+            {
+                $this->initCallCount++;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder())
+        );
+
+        // Add all events to the stream first
+        $streamSource->append(
+            Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']),
+            Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']),
+            Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-3']),
+        );
+
+        // Trigger the first event which should initialize the projection and process all events
+        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+
+        // The init method should only be called once due to initPartition concurrency protection
+        self::assertEquals(1, $projection->initCallCount, 'Init should only be called once due to initPartition concurrency protection');
+        // All events should be processed during the first execution
+        self::assertCount(3, $projection->projectedEvents, 'All events should be processed');
+    }
+
     public function test_it_throws_exception_when_no_licence(): void
     {
         $this->expectException(ConfigurationException::class);

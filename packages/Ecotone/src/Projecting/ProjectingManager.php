@@ -35,17 +35,25 @@ class ProjectingManager
                 $projectionState = $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
 
                 // Check if projection is initialized
-                if ($projectionState->status === null || $projectionState->status === ProjectionStatus::UNINITIALIZED) {
+                if (! $projectionState) {
                     // Projection not initialized yet
                     if ($force || $this->initializationMode === 'auto') {
-                        // Manual trigger - initialize and backfill
-                        $this->init();
+                        // Manual trigger or event trigger with auto mode - initialize and run
+                        $projectionState = $this->projectionStateStorage->initPartition($this->projectionName, $partitionKey);
+                        if ($projectionState) {
+                            $this->projectorExecutor->init();
+                        } else {
+                            // Someone else initialized it in the meantime
+                            throw new \RuntimeException('Projection state was initialized in the meantime. Please retry');
+                        }
                     } else {
                         // Event trigger with skip mode - skip execution
+                        $transaction->commit();
                         return;
                     }
                 } else if ($projectionState->status === ProjectionStatus::DISABLED) {
                     // Skip execution if disabled
+                    $transaction->commit();
                     return;
                 }
                 $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKey);

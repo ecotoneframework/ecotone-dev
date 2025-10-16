@@ -19,7 +19,7 @@ class ProjectingManager
         private PartitionProvider      $partitionProvider,
         private string                 $projectionName,
         private int                    $batchSize = 1000,
-        private bool                   $autoInit = true,
+        private string                 $initializationMode = 'auto',
     ) {
         if ($batchSize < 1) {
             throw new InvalidArgumentException('Batch size must be at least 1');
@@ -27,17 +27,27 @@ class ProjectingManager
     }
 
     // This is the method that is linked to the event bus routing channel
-    public function execute(?string $partitionKey = null): void
+    public function execute(?string $partitionKey = null, bool $force = false): void
     {
-        if ($this->autoInit) {
-            $this->init();
-        }
-
         do {
             $transaction = $this->projectionStateStorage->beginTransaction();
             try {
                 $projectionState = $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
 
+                // Check if projection is initialized
+                if ($projectionState->status === null) {
+                    // Projection not initialized yet
+                    if ($force || $this->initializationMode === 'auto') {
+                        // Manual trigger - initialize and backfill
+                        $this->init();
+                    } else {
+                        // Event trigger with skip mode - skip execution
+                        return;
+                    }
+                } else if ($projectionState->status === 'disabled') {
+                    // Skip execution if disabled
+                    return;
+                }
                 $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKey);
 
                 $userState = $projectionState->userState;
@@ -49,6 +59,7 @@ class ProjectingManager
                     $projectionState
                         ->withLastPosition($streamPage->lastPosition)
                         ->withUserState($userState)
+                        ->withStatus('enabled')
                 );
                 $transaction->commit();
             } catch (Throwable $e) {
@@ -80,7 +91,7 @@ class ProjectingManager
     public function backfill(): void
     {
         foreach ($this->partitionProvider->partitions() as $partition) {
-            $this->execute($partition);
+            $this->execute($partition, true);
         }
     }
 }

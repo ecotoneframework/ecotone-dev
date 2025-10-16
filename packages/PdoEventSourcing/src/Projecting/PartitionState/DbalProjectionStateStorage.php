@@ -40,7 +40,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         $this->createSchema();
 
         $query = <<<SQL
-            SELECT last_position, user_state FROM {$this->stateTable}
+            SELECT last_position, user_state, state FROM {$this->stateTable}
             WHERE projection_name = :projectionName AND partition_key = :partitionKey
             SQL;
 
@@ -56,7 +56,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             return new ProjectionPartitionState($projectionName, $partitionKey);
         }
 
-        return new ProjectionPartitionState($projectionName, $partitionKey, $row['last_position'], json_decode($row['user_state'], true));
+        return new ProjectionPartitionState($projectionName, $partitionKey, $row['last_position'], json_decode($row['user_state'], true), $row['state']);
     }
 
     public function savePartition(ProjectionPartitionState $projectionState): void
@@ -66,14 +66,14 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         if (! $this->saveStateQuery) {
             $this->saveStateQuery = match(true) {
                 $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
-                    INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state)
-                    VALUES (:projectionName, :partitionKey, :lastPosition, :userState)
-                    ON DUPLICATE KEY UPDATE last_position = :lastPosition, user_state = :userState
+                    INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, state)
+                    VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :state)
+                    ON DUPLICATE KEY UPDATE last_position = :lastPosition, user_state = :userState, state = :state
                     SQL,
                 default => <<<SQL
-                    INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state)
-                    VALUES (:projectionName, :partitionKey, :lastPosition, :userState)
-                    ON CONFLICT (projection_name, partition_key) DO UPDATE SET last_position = :lastPosition, user_state = :userState
+                    INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, state)
+                    VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :state)
+                    ON CONFLICT (projection_name, partition_key) DO UPDATE SET last_position = :lastPosition, user_state = :userState, state = :state
                     SQL,
             };
         }
@@ -83,6 +83,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             'partitionKey' => $projectionState->partitionKey ?? '',
             'lastPosition' => $projectionState->lastPosition,
             'userState' => json_encode($projectionState->userState),
+            'state' => $projectionState->status ?? 'enabled',
         ]);
     }
 
@@ -109,14 +110,16 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         }
 
         $this->initialized = true;
-        $this->connection->executeStatement(
-            'CREATE TABLE IF NOT EXISTS ' . $this->stateTable . ' (
+        $this->connection->executeStatement(<<<SQL
+            CREATE TABLE IF NOT EXISTS {$this->stateTable} (
                 projection_name VARCHAR(255) NOT NULL,
                 partition_key VARCHAR(255),
                 last_position TEXT NOT NULL,
+                state VARCHAR(255) NOT NULL DEFAULT 'active',
                 user_state JSON,
                 PRIMARY KEY (projection_name, partition_key)
-            )'
+            )
+            SQL
         );
     }
 

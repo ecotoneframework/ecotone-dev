@@ -34,6 +34,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         private ?string $deleteChannel = null,
         private array   $projectionEventHandlers = [],
         private ?string $asyncChannelName = null,
+        private string  $initializationMode = 'auto',
     ) {
     }
 
@@ -70,6 +71,11 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
     public function setAsyncChannel(string $asynchronousChannelName): void
     {
         $this->asyncChannelName = $asynchronousChannelName;
+    }
+
+    public function initializationMode(): string
+    {
+        return $this->initializationMode;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference

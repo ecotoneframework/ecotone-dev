@@ -7,6 +7,6 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\DbalTransaction;
 
 #[\Attribute]
-class DisableDbalTransaction
+class WithoutDbalTransaction
 {
 }

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\DbalTransaction\DisableDbalTransaction;
+use Ecotone\Dbal\DbalTransaction\WithoutDbalTransaction;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -125,7 +125,7 @@ final class TransactionTest extends DbalMessagingTestCase
         $consoleCommands = new class () {
             public int $callCount = 0;
             #[ConsoleCommand('console.nontransactional')]
-            #[DisableDbalTransaction]
+            #[WithoutDbalTransaction]
             public function nontransactional(#[Reference] DbalConnectionFactory $dbalConnectionFactory): void
             {
                 if ($dbalConnectionFactory->createContext()->getDbalConnection()->isTransactionActive()) {

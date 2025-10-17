@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Ecotone\Dbal\DbalConnection;
+use Ecotone\Dbal\DbalTransaction\DisableDbalTransaction;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Attribute\ConsoleCommand;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -115,6 +118,45 @@ final class TransactionTest extends DbalMessagingTestCase
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
+    }
+
+    public function test_it_can_disable_transactions_on_interface(): void
+    {
+        $consoleCommands = new class () {
+            public int $callCount = 0;
+            #[ConsoleCommand('console.nontransactional')]
+            #[DisableDbalTransaction]
+            public function nontransactional(#[Reference] DbalConnectionFactory $dbalConnectionFactory): void
+            {
+                if ($dbalConnectionFactory->createContext()->getDbalConnection()->isTransactionActive()) {
+                    throw new Exception('Transaction should not be active here');
+                }
+                $this->callCount++;
+            }
+
+            #[ConsoleCommand('console.transactional')]
+            public function transactional(#[Reference] DbalConnectionFactory $dbalConnectionFactory): void
+            {
+                if (! $dbalConnectionFactory->createContext()->getDbalConnection()->isTransactionActive()) {
+                    throw new Exception('Transaction should be active here');
+                }
+                $this->callCount++;
+            }
+        };
+        $dbalConnectionFactory = $this->getConnectionFactory();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$consoleCommands::class],
+            [$consoleCommands, DbalConnectionFactory::class => $dbalConnectionFactory],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+        );
+        $ecotone->runConsoleCommand('console.nontransactional');
+        $this->assertSame(1, $consoleCommands->callCount, 'First call should pass without transaction');
+
+        $ecotone->runConsoleCommand('console.transactional');
+        $this->assertSame(2, $consoleCommands->callCount, 'Second call should pass with transaction');
     }
 
     private function bootstrapEcotone(): FlowTestSupport

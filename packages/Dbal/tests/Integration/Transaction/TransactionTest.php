@@ -131,11 +131,11 @@ final class TransactionTest extends DbalMessagingTestCase
             public function prepare(#[Reference] DbalConnectionFactory $dbalConnectionFactory): void
             {
                 $dbalConnectionFactory->createContext()->getDbalConnection()->executeStatement(<<<SQL
-                    DROP TABLE IF EXISTS orders
-                SQL);
+                        DROP TABLE IF EXISTS orders
+                    SQL);
                 $dbalConnectionFactory->createContext()->getDbalConnection()->executeStatement(<<<SQL
-                    CREATE TABLE orders (id VARCHAR(255) PRIMARY KEY)
-                SQL);
+                        CREATE TABLE orders (id VARCHAR(255) PRIMARY KEY)
+                    SQL);
                 $this->prepared = true;
             }
 
@@ -144,8 +144,8 @@ final class TransactionTest extends DbalMessagingTestCase
             public function nontransactional(string $orderId, #[Reference] DbalConnectionFactory $dbalConnectionFactory): void
             {
                 $dbalConnectionFactory->createContext()->getDbalConnection()->executeStatement(<<<SQL
-                    INSERT INTO orders VALUES (:orderId)
-                SQL, ['orderId' => $orderId]);
+                        INSERT INTO orders VALUES (:orderId)
+                    SQL, ['orderId' => $orderId]);
                 throw new Exception('Force rollback');
             }
 
@@ -153,8 +153,8 @@ final class TransactionTest extends DbalMessagingTestCase
             public function transactional(string $orderId, #[Reference] DbalConnectionFactory $dbalConnectionFactory): void
             {
                 $dbalConnectionFactory->createContext()->getDbalConnection()->executeStatement(<<<SQL
-                    INSERT INTO orders VALUES (:orderId)
-                SQL, ['orderId' => $orderId]);
+                        INSERT INTO orders VALUES (:orderId)
+                    SQL, ['orderId' => $orderId]);
                 throw new Exception('Force rollback');
             }
 
@@ -162,8 +162,8 @@ final class TransactionTest extends DbalMessagingTestCase
             public function hasOrder(string $orderId, #[Reference] DbalConnectionFactory $dbalConnectionFactory): bool
             {
                 $result = $dbalConnectionFactory->createContext()->getDbalConnection()->fetchOne(<<<SQL
-                    SELECT COUNT(*) FROM orders WHERE id = :orderId
-                SQL, ['orderId' => $orderId]);
+                        SELECT COUNT(*) FROM orders WHERE id = :orderId
+                    SQL, ['orderId' => $orderId]);
 
                 return $result > 0;
             }
@@ -188,7 +188,8 @@ final class TransactionTest extends DbalMessagingTestCase
         }
         $this->assertTrue(
             $ecotone->sendQueryWithRouting('hasOrder', 'non-transactional-order-id'),
-            'Non transactional command should pass without transaction and commit data');
+            'Non transactional command should pass without transaction and commit data'
+        );
 
 
         try {
@@ -199,7 +200,8 @@ final class TransactionTest extends DbalMessagingTestCase
         }
         $this->assertFalse(
             $ecotone->sendQueryWithRouting('hasOrder', 'transactional-order-id'),
-            'Transactional command should rollback data');
+            'Transactional command should rollback data'
+        );
     }
 
     private function bootstrapEcotone(): FlowTestSupport

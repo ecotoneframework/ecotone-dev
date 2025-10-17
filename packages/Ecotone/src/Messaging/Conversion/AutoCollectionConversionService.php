@@ -6,6 +6,8 @@ namespace Ecotone\Messaging\Conversion;
 
 use Ecotone\Messaging\Handler\Type;
 
+use function is_iterable;
+
 /**
  * licence Apache-2.0
  */
@@ -46,7 +48,7 @@ class AutoCollectionConversionService implements ConversionService
             return $converter->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType, $this);
         }
 
-        if (\is_iterable($source) && $targetPHPType->isIterable() && $targetPHPType instanceof Type\GenericType) {
+        if (is_iterable($source) && $targetPHPType->isIterable() && $targetPHPType instanceof Type\GenericType) {
             $converted = [];
             $targetValueType = $this->getValueTypeFromCollectionType($targetPHPType);
             foreach ($source as $k => $v) {
@@ -60,14 +62,18 @@ class AutoCollectionConversionService implements ConversionService
 
     public function canConvert(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
     {
-        if ($this->getConverter($sourceType, $sourceMediaType, $targetType, $targetMediaType)) {;
+        if ($this->getConverter($sourceType, $sourceMediaType, $targetType, $targetMediaType)) {
+            ;
             return true;
         }
         if ($sourceType->isIterable() && $sourceType instanceof Type\GenericType
             && $targetType->isIterable() && $targetType instanceof Type\GenericType) {
             return (bool) $this->getConverter(
-                $this->getValueTypeFromCollectionType($sourceType), $sourceMediaType,
-                $this->getValueTypeFromCollectionType($targetType), $targetMediaType);
+                $this->getValueTypeFromCollectionType($sourceType),
+                $sourceMediaType,
+                $this->getValueTypeFromCollectionType($targetType),
+                $targetMediaType
+            );
         }
         return false;
     }

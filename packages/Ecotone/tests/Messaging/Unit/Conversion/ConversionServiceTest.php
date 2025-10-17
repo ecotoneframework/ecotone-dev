@@ -16,9 +16,8 @@ use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
-use Ramsey\Uuid\UuidInterface;
 use stdClass;
+use Stringable;
 
 /**
  * Class ConversionServiceTest
@@ -213,7 +212,7 @@ class ConversionServiceTest extends TestCase
     }
 }
 
-class SomeStringableDataOne implements \Stringable
+class SomeStringableDataOne implements Stringable
 {
     public function __construct(public string $value)
     {
@@ -225,7 +224,7 @@ class SomeStringableDataOne implements \Stringable
     }
 }
 
-class SomeStringableDataTwo implements \Stringable
+class SomeStringableDataTwo implements Stringable
 {
     public function __construct(public string $value)
     {
@@ -237,7 +236,7 @@ class SomeStringableDataTwo implements \Stringable
     }
 }
 
-class SomeStringableDataThree implements \Stringable
+class SomeStringableDataThree implements Stringable
 {
     public function __construct(public string $value)
     {

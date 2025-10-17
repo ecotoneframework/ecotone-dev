@@ -16,6 +16,6 @@ class PointcutNotExpression implements PointcutExpression
 
     public function doesItCutWith(array $endpointAnnotations, InterfaceToCall $interfaceToCall): bool
     {
-        return !$this->expression->doesItCutWith($endpointAnnotations, $interfaceToCall);
+        return ! $this->expression->doesItCutWith($endpointAnnotations, $interfaceToCall);
     }
 }

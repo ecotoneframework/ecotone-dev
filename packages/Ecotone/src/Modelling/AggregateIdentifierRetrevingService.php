@@ -113,7 +113,7 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
 
     private function messageContainsCorrectAggregateId(Message $message): bool
     {
-        if (!$message->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)){
+        if (! $message->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)) {
             return false;
         }
 

@@ -28,7 +28,7 @@ class DeserializingConverter implements Converter
         $phpVar = unserialize(stripslashes($source));
         if (! $targetType->accepts($phpVar)) {
             if ($conversionService === null) {
-                throw ConversionException::create("To convert serialized data to different type than original, you need to set conversion service in " . self::class);
+                throw ConversionException::create('To convert serialized data to different type than original, you need to set conversion service in ' . self::class);
             }
             return $conversionService->convert($phpVar, Type::createFromVariable($phpVar), MediaType::createApplicationXPHP(), $targetType, MediaType::createApplicationXPHP());
         }

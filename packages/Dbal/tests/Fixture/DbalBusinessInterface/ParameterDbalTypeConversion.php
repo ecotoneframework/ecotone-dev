@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Dbal\Attribute\DbalQuery;
 
@@ -14,11 +15,11 @@ interface ParameterDbalTypeConversion
 {
     #[DbalQuery('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]
     public function getPersonsWith(
-        #[DbalParameter(type: 102)] array $personIds
+        #[DbalParameter(type: ArrayParameterType::STRING)] array $personIds
     ): array;
 
     #[DbalQuery('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]
-    #[DbalParameter('personIds', type: 102, expression: '[1]')]
+    #[DbalParameter('personIds', type: ArrayParameterType::STRING, expression: '[1]')]
     public function getPersonsWithWithMethodLevelParameter(): array;
 
     #[DbalQuery('SELECT person_id, name FROM persons WHERE person_id IN (:personIds)')]

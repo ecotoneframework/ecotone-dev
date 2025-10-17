@@ -66,11 +66,18 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         $this->createSchema();
 
         // Try to insert the partition state, ignoring if it already exists
-        $insertQuery = <<<SQL
-            INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, status)
-            VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :status)
-            ON CONFLICT (projection_name, partition_key) DO NOTHING
-            SQL;
+        $insertQuery = match(true) {
+            $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
+                    INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, status)
+                    VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :status)
+                    ON DUPLICATE KEY UPDATE projection_name = projection_name -- no-op to ignore
+                    SQL,
+            default => <<<SQL
+                    INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, status)
+                    VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :status)
+                    ON CONFLICT (projection_name, partition_key) DO NOTHING
+                    SQL,
+        };
 
         $rowsAffected = $this->connection->executeStatement($insertQuery, [
             'projectionName' => $projectionName,

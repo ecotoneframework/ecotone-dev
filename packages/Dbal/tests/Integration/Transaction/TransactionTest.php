@@ -13,6 +13,8 @@ use Ecotone\Messaging\Attribute\ConsoleCommand;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -123,24 +125,47 @@ final class TransactionTest extends DbalMessagingTestCase
     public function test_it_can_disable_transactions_on_interface(): void
     {
         $consoleCommands = new class () {
-            public int $callCount = 0;
-            #[ConsoleCommand('console.nontransactional')]
+            public bool $prepared = false;
+            #[CommandHandler('command.prepare')]
             #[WithoutDbalTransaction]
-            public function nontransactional(#[Reference] DbalConnectionFactory $dbalConnectionFactory): void
+            public function prepare(#[Reference] DbalConnectionFactory $dbalConnectionFactory): void
             {
-                if ($dbalConnectionFactory->createContext()->getDbalConnection()->isTransactionActive()) {
-                    throw new Exception('Transaction should not be active here');
-                }
-                $this->callCount++;
+                $dbalConnectionFactory->createContext()->getDbalConnection()->executeStatement(<<<SQL
+                    DROP TABLE IF EXISTS orders
+                SQL);
+                $dbalConnectionFactory->createContext()->getDbalConnection()->executeStatement(<<<SQL
+                    CREATE TABLE orders (id VARCHAR(255) PRIMARY KEY)
+                SQL);
+                $this->prepared = true;
             }
 
-            #[ConsoleCommand('console.transactional')]
-            public function transactional(#[Reference] DbalConnectionFactory $dbalConnectionFactory): void
+            #[ConsoleCommand('console.register.nontransactional')]
+            #[WithoutDbalTransaction]
+            public function nontransactional(string $orderId, #[Reference] DbalConnectionFactory $dbalConnectionFactory): void
             {
-                if (! $dbalConnectionFactory->createContext()->getDbalConnection()->isTransactionActive()) {
-                    throw new Exception('Transaction should be active here');
-                }
-                $this->callCount++;
+                $dbalConnectionFactory->createContext()->getDbalConnection()->executeStatement(<<<SQL
+                    INSERT INTO orders VALUES (:orderId)
+                SQL, ['orderId' => $orderId]);
+                throw new Exception('Force rollback');
+            }
+
+            #[ConsoleCommand('console.register.transactional')]
+            public function transactional(string $orderId, #[Reference] DbalConnectionFactory $dbalConnectionFactory): void
+            {
+                $dbalConnectionFactory->createContext()->getDbalConnection()->executeStatement(<<<SQL
+                    INSERT INTO orders VALUES (:orderId)
+                SQL, ['orderId' => $orderId]);
+                throw new Exception('Force rollback');
+            }
+
+            #[QueryHandler('hasOrder')]
+            public function hasOrder(string $orderId, #[Reference] DbalConnectionFactory $dbalConnectionFactory): bool
+            {
+                $result = $dbalConnectionFactory->createContext()->getDbalConnection()->fetchOne(<<<SQL
+                    SELECT COUNT(*) FROM orders WHERE id = :orderId
+                SQL, ['orderId' => $orderId]);
+
+                return $result > 0;
             }
         };
         $dbalConnectionFactory = $this->getConnectionFactory();
@@ -152,11 +177,29 @@ final class TransactionTest extends DbalMessagingTestCase
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
         );
-        $ecotone->runConsoleCommand('console.nontransactional');
-        $this->assertSame(1, $consoleCommands->callCount, 'First call should pass without transaction');
+        $ecotone->sendCommandWithRoutingKey('command.prepare');
+        $this->assertSame(true, $consoleCommands->prepared, 'Preparation command should be executed');
 
-        $ecotone->runConsoleCommand('console.transactional');
-        $this->assertSame(2, $consoleCommands->callCount, 'Second call should pass with transaction');
+        try {
+            $ecotone->runConsoleCommand('console.register.nontransactional', ['orderId' => 'non-transactional-order-id']);
+            $this->fail('Exception should be thrown');
+        } catch (Exception) {
+            // Expected exception
+        }
+        $this->assertTrue(
+            $ecotone->sendQueryWithRouting('hasOrder', 'non-transactional-order-id'),
+            'Non transactional command should pass without transaction and commit data');
+
+
+        try {
+            $ecotone->runConsoleCommand('console.register.transactional', ['orderId' => 'transactional-order-id']);
+            $this->fail('Exception should be thrown');
+        } catch (Exception) {
+            // Expected exception
+        }
+        $this->assertFalse(
+            $ecotone->sendQueryWithRouting('hasOrder', 'transactional-order-id'),
+            'Transactional command should rollback data');
     }
 
     private function bootstrapEcotone(): FlowTestSupport

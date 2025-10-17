@@ -6,6 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Channel\PollableChannel;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
@@ -13,7 +14,9 @@ use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 use Exception;
@@ -277,6 +280,34 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('orders')->receive());
         $this->assertNull($ecotoneLite->getMessageChannel('deadLetter')->receive());
+    }
+
+    public function test_message_is_retried_with_on_memory_queue(): void
+    {
+        $failingService = new class {
+            #[Asynchronous('async'), CommandHandler('executionChannel', 'execute')]
+            public function execute(string $data): void
+            {
+                throw new Exception('We are failing here');
+            }
+        };
+        $ecotoneTestSupport = $this->bootstrapEcotone(
+            [$failingService::class],
+            [$failingService],
+            [SimpleMessageChannelBuilder::createQueueChannel('async')]);
+
+        $ecotoneTestSupport->sendCommandWithRoutingKey('executionChannel', 'some_1');
+        try {
+            $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+            self::fail('We are expecting exception here');
+        } catch (Exception) {
+            // we are expecting exception here
+        }
+
+        // The exception should cause the message to be retried
+        self::expectException(Exception::class);
+
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
 

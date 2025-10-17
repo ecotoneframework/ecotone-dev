@@ -18,3 +18,4 @@ auth.json
 .phpbench/
 phpunit.xml
 packages/Laravel/tests/Application/storage/logs/laravel.log
+packages/Symfony/tests/phpunit/var/*

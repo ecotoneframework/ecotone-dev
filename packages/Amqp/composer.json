@@ -41,8 +41,8 @@
         }
     },
     "require": {
+        "ecotone/enqueue": "~1.269.0",
         "enqueue/amqp-ext": "^0.10.18",
-        "ecotone/enqueue": "~1.268.3",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0"
     },
@@ -67,7 +67,7 @@
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": [
-            "vendor/bin/phpunit --no-coverage"
+            "vendor/bin/phpunit --no-coverage --testdox"
         ],
         "tests:phpunit:amqp-ext": [
             "AMQP_IMPLEMENTATION=ext vendor/bin/phpunit --no-coverage"
@@ -83,7 +83,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.268.3-dev"
+            "dev-main": "1.269.0-dev"
         },
         "ecotone": {
             "repository": "amqp"
@@ -104,7 +104,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2025-10-06 12:00:27"
+        "release-time": "2025-10-17 19:55:07"
     },
     "config": {
         "allow-plugins": {

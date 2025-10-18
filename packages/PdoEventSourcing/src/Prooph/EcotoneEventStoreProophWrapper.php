@@ -10,6 +10,7 @@ use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Iterator;
@@ -130,7 +131,12 @@ class EcotoneEventStoreProophWrapper implements EventStore
         $PHPMediaType = MediaType::createApplicationXPHP();
         /** @var ProophMessage $event */
         while ($event = $streamEvents->current()) {
-            $eventName = Type::create($this->eventMapper->mapNameToEventType($event->messageName()));
+            try {
+                $eventName = Type::create($this->eventMapper->mapNameToEventType($event->messageName()));
+            } catch (TypeDefinitionException $e) {
+                // Fallback to using the message name as is if we find an unknown event type (deleted class etc.)
+                $eventName = $event->messageName();
+            }
             $events[] = Event::createWithType(
                 $eventName,
                 $deserialize ? $this->conversionService->convert($event->payload(), $sourcePHPType, $PHPMediaType, $eventName, $PHPMediaType) : $event->payload(),

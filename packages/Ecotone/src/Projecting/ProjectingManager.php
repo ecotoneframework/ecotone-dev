@@ -19,7 +19,7 @@ class ProjectingManager
         private PartitionProvider      $partitionProvider,
         private string                 $projectionName,
         private int                    $batchSize = 1000,
-        private bool                   $autoInit = true,
+        private ProjectionInitializationMode $initializationMode = ProjectionInitializationMode::AUTO,
     ) {
         if ($batchSize < 1) {
             throw new InvalidArgumentException('Batch size must be at least 1');
@@ -27,29 +27,53 @@ class ProjectingManager
     }
 
     // This is the method that is linked to the event bus routing channel
-    public function execute(?string $partitionKey = null): void
+    public function execute(?string $partitionKey = null, bool $force = false): void
     {
-        if ($this->autoInit) {
-            $this->init();
-        }
-
         do {
             $transaction = $this->projectionStateStorage->beginTransaction();
             try {
                 $projectionState = $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
 
+                // Check if projection is initialized
+                if (! $projectionState) {
+                    // Projection not initialized yet
+                    if ($force || $this->initializationMode === ProjectionInitializationMode::AUTO) {
+                        // Manual trigger or event trigger with auto mode - initialize and run
+                        $projectionState = $this->projectionStateStorage->initPartition($this->projectionName, $partitionKey);
+                        if ($projectionState) {
+                            $this->projectorExecutor->init();
+                        } else {
+                            // Someone else initialized it in the meantime, reload the state
+                            $projectionState = $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
+                        }
+                    } else {
+                        // Event trigger with skip mode - skip execution
+                        $transaction->commit();
+                        return;
+                    }
+                }
+                
+                if (!$force && $projectionState->status === ProjectionStatus::DISABLED) {
+                    // Skip execution if disabled
+                    $transaction->commit();
+                    return;
+                }
                 $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKey);
 
                 $userState = $projectionState->userState;
                 foreach ($streamPage->events as $event) {
                     $userState = $this->projectorExecutor->project($event, $userState);
                 }
-
-                $this->projectionStateStorage->savePartition(
-                    $projectionState
+                $projectionState = $projectionState
                         ->withLastPosition($streamPage->lastPosition)
-                        ->withUserState($userState)
-                );
+                        ->withUserState($userState);
+
+                if (count($streamPage->events) === 0 && $force) {
+                    // If we are forcing execution and there are no new events, we still want to enable the projection if it was uninitialized
+                    $projectionState = $projectionState->withStatus(ProjectionStatus::ENABLED);
+                }
+
+                $this->projectionStateStorage->savePartition($projectionState);
                 $transaction->commit();
             } catch (Throwable $e) {
                 $transaction->rollBack();
@@ -80,7 +104,7 @@ class ProjectingManager
     public function backfill(): void
     {
         foreach ($this->partitionProvider->partitions() as $partition) {
-            $this->execute($partition);
+            $this->execute($partition, true);
         }
     }
 }

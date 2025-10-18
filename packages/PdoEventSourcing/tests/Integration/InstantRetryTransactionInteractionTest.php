@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Exception\NoActiveTransaction;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -156,7 +157,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                     EventSourcingConfiguration::createWithDefaults(),
                     \Ecotone\Dbal\Configuration\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
                     InstantRetryConfiguration::createWithDefaults()
-                        ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class, NoActiveTransaction::class]),
+                        ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class, NoActiveTransaction::class, ConnectionException::class]),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true

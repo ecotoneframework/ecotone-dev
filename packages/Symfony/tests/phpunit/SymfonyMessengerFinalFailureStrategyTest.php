@@ -27,10 +27,15 @@ final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
     protected function tearDown(): void
     {
         restore_exception_handler();
+        // Ensure kernel is shut down after each test to prevent cache conflicts
+        static::ensureKernelShutdown();
     }
 
     public function setUp(): void
     {
+        // Ensure kernel is shut down before each test to get a fresh container
+        static::ensureKernelShutdown();
+
         try {
             self::bootKernel()->getContainer()->get('Doctrine\DBAL\Connection-public')->executeQuery('DELETE FROM messenger_messages');
         } catch (Exception $exception) {
@@ -42,9 +47,10 @@ final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
     {
         $channelName = 'messenger_async';
 
+        // Boot in dev environment to have Messenger transport configured
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
-            $this->bootKernel()->getContainer(),
+            $this->bootKernel(['environment' => 'dev'])->getContainer(),
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName)

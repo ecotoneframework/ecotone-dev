@@ -8,7 +8,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Publisher\UserService;
 use Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver\TicketServiceReceiver;
@@ -42,7 +41,7 @@ final class DistributedDeadLetterTest extends AmqpMessagingTestCase
     private function bootstrapEcotone(string $serviceName, array $namespaces, array $services): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            containerOrAvailableServices: array_merge([AmqpConnectionFactory::class => $this->getCachedConnectionFactory()], $services),
+            containerOrAvailableServices: array_merge([...$this->getConnectionFactoryReferences()], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)
                 ->withEnvironment('prod')

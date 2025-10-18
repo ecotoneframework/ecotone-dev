@@ -113,6 +113,8 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->amqpConnectionFactoryReferenceName),
+                null,
+                $this->publisherAcknowledgments,
             ]),
         ], 'createFor');
 

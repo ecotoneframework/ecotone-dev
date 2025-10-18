@@ -15,11 +15,12 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
+use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Interop\Amqp\AmqpConnectionFactory;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithCustomDeduplicationExample;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithDefaultDeduplicationExample2;
-use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithExpressionDeduplicationExample;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithIndependentDeduplicationExample;
 use Monorepo\CrossModuleTests\Tests\MessagingTestCase;
 use PHPUnit\Framework\TestCase;
@@ -48,10 +49,13 @@ final class RabbitConsumerDeduplicationTest extends TestCase
     public function test_deduplicating_with_custom_header_name_rabbit_consumer(): void
     {
         $queueName = 'deduplication_queue_custom';
+        $connectionFactory = AmqpMessagingTestCase::getRabbitConnectionFactory();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RabbitConsumerWithCustomDeduplicationExample::class],
             [
-                AmqpConnectionFactory::class => AmqpMessagingTestCase::getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $connectionFactory,
+                AmqpExtConnectionFactory::class => $connectionFactory,
+                AmqpLibConnectionFactory::class => $connectionFactory,
                 new RabbitConsumerWithCustomDeduplicationExample(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
@@ -118,10 +122,13 @@ final class RabbitConsumerDeduplicationTest extends TestCase
     public function test_deduplicating_with_default_message_id_rabbit_consumer(): void
     {
         $queueName = 'default_deduplication_queue_default';
+        $connectionFactory = AmqpMessagingTestCase::getRabbitConnectionFactory();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RabbitConsumerWithDefaultDeduplicationExample2::class],
             [
-                AmqpConnectionFactory::class => AmqpMessagingTestCase::getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $connectionFactory,
+                AmqpExtConnectionFactory::class => $connectionFactory,
+                AmqpLibConnectionFactory::class => $connectionFactory,
                 new RabbitConsumerWithDefaultDeduplicationExample2(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
@@ -189,10 +196,13 @@ final class RabbitConsumerDeduplicationTest extends TestCase
     {
         $queueName = 'deduplication_queue_independent';
 
+        $connectionFactory = AmqpMessagingTestCase::getRabbitConnectionFactory();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RabbitConsumerWithIndependentDeduplicationExample::class],
             [
-                AmqpConnectionFactory::class => AmqpMessagingTestCase::getRabbitConnectionFactory(),
+                AmqpConnectionFactory::class => $connectionFactory,
+                AmqpExtConnectionFactory::class => $connectionFactory,
+                AmqpLibConnectionFactory::class => $connectionFactory,
                 new RabbitConsumerWithIndependentDeduplicationExample(),
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],

@@ -25,8 +25,27 @@ Visit main page [ecotone.tech](https://ecotone.tech) to learn more.
 ## Getting started
 
 The quickstart [page](https://docs.ecotone.tech/quick-start) of the
-[reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.  
+[reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.
 Read more on the [Ecotone's Blog](https://blog.ecotone.tech).
+
+## AMQP Package
+
+This package provides AMQP integration for Ecotone, supporting both:
+- **AMQP Extension** (`enqueue/amqp-ext` + `ext-amqp`) - Default, recommended for production
+- **AMQP Lib** (`enqueue/amqp-lib`) - Pure PHP, required for RabbitMQ Streams
+
+See [AMQP_IMPLEMENTATION_SUPPORT.md](AMQP_IMPLEMENTATION_SUPPORT.md) for detailed information about using both implementations.
+
+### Testing
+
+The package automatically tests both implementations:
+
+```bash
+cd packages/Amqp
+composer tests:ci
+```
+
+See [TESTING_BOTH_IMPLEMENTATIONS.md](TESTING_BOTH_IMPLEMENTATIONS.md) for more details.
 
 ## Feature requests and issue reporting
 

@@ -18,7 +18,6 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Ramsey\Uuid\Uuid;
 use stdClass;
@@ -47,7 +46,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             [AmqpConsumerAttributeExample::class],
             [
                 new AmqpConsumerAttributeExample(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
@@ -62,7 +61,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             [AmqpConsumerAttributeExample::class],
             [
                 new AmqpConsumerAttributeExample(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE])),
@@ -71,7 +70,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         $ecotoneLitePublisher = EcotoneLite::bootstrapFlowTesting(
             [],
             [
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
@@ -104,7 +103,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             [AmqpConsumerAttributeExample::class],
             [
                 new AmqpConsumerAttributeExample(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -138,7 +137,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             [AmqpConsumerWithFailStrategyAttributeExample::class],
             [
                 new AmqpConsumerWithFailStrategyAttributeExample(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -173,7 +172,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             [AmqpConsumerWithInstantRetryExample::class],
             [
                 new AmqpConsumerWithInstantRetryExample(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -208,7 +207,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             [AmqpConsumerWithInstantRetryAndErrorChannelExample::class],
             [
                 new AmqpConsumerWithInstantRetryAndErrorChannelExample(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -246,7 +245,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             [AmqpConsumerAttributeExample::class],
             [
                 new AmqpConsumerAttributeExample(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -283,7 +282,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             [AmqpConsumerAttributeWithObject::class, StdClassConvert::class],
             [
                 new AmqpConsumerAttributeWithObject(), new StdClassConvert(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')

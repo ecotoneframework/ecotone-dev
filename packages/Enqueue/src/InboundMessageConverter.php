@@ -27,6 +27,11 @@ class InboundMessageConverter
 
     }
 
+    public function getFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return $this->finalFailureStrategy;
+    }
+
     public function toMessage(EnqueueMessage $source, EnqueueConsumer $consumer, ConversionService $conversionService, CachedConnectionFactory $connectionFactory): MessageBuilder
     {
         $enqueueMessageHeaders = $source->getProperties();

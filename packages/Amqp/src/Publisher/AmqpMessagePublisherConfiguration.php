@@ -3,7 +3,7 @@
 namespace Ecotone\Amqp\Publisher;
 
 use Ecotone\Messaging\MessagePublisher;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpLib\AmqpConnectionFactory;
 
 /**
  * Class RegisterAmqpPublisher

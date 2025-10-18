@@ -11,7 +11,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
@@ -33,7 +32,7 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTestCase
             [AmqpConsumerExample::class],
             [
                 new AmqpConsumerExample(),
-                AmqpConnectionFactory::class => $this->getCachedConnectionFactory(),
+                ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))

@@ -11,6 +11,7 @@ use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Driver\Exception as Dbal3DriverException;
 use Ecotone\Dbal\DbalTransaction\ImplicitCommit;
 use Ecotone\Projecting\Transaction;
+use Exception;
 
 class DbalTransaction implements Transaction
 {
@@ -24,6 +25,11 @@ class DbalTransaction implements Transaction
             $this->connection->commit();
         } catch (DriverException|Dbal3DriverException $e) {
             if (ImplicitCommit::isImplicitCommitException($e, $this->connection)) {
+                try {
+                    $this->connection->rollBack();
+                } catch(Exception) {
+                    // do nothing
+                }
                 return;
             } else {
                 throw $e;
@@ -37,7 +43,11 @@ class DbalTransaction implements Transaction
             $this->connection->rollBack();
         } catch (DriverException|Dbal3DriverException $e) {
             if (ImplicitCommit::isImplicitCommitException($e, $this->connection)) {
-                return;
+                try {
+                    $this->connection->rollBack();
+                } catch(Exception) {
+                    // do nothing
+                }
             } else {
                 throw $e;
             }

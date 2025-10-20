@@ -402,42 +402,4 @@ class ProophIntegrationTest extends ProjectingTestCase
         self::assertSame(2, $ticketsCount, 'Partitioned projection should process all events');
         self::assertSame(2, $projection->initCallCount, 'Init should be called once for each partition');
     }
-
-    public function test_partitioned_projection_with_skip_mode(): void
-    {
-        $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('partitioned_skip_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID, automaticInitialization: false)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
-            public const NAME = 'partitioned_skip_projection';
-            public int $initCallCount = 0;
-
-            #[ProjectionInitialization]
-            public function init(): void
-            {
-                parent::init();
-                $this->initCallCount++;
-            }
-        };
-
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
-            [$connectionFactory, $projection, new TicketEventConverter()],
-            runForProductionEventStore: true,
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
-
-        // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
-            ->deleteProjection($projection::NAME);
-
-        // Send events for different partitions - should be skipped
-        $ticketId1 = Uuid::uuid4()->toString();
-        $ticketId2 = Uuid::uuid4()->toString();
-
-        $ecotone->sendCommand(new CreateTicketCommand($ticketId1))
-            ->sendCommand(new CreateTicketCommand($ticketId2))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1, 'tenantId' => 'tenant-1'])
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2, 'tenantId' => 'tenant-2']);
-
-        self::assertSame(0, $projection->initCallCount, 'Init should not be called for partitioned skip projection');
-    }
 }

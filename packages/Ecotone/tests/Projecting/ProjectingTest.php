@@ -485,25 +485,16 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Cannot set partition header for projection partitioned_skip_projection with automatic initialization disabled');
+
+        EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder())
         );
-
-        // Add events for different partitions
-        $streamSource->append(
-            Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1', 'tenantId' => 'tenant-1']),
-            Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2', 'tenantId' => 'tenant-2']),
-        );
-
-        // Trigger event for first partition - should skip processing
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1', 'tenantId' => 'tenant-1']);
-
-        self::assertEquals(0, $projection->initCallCount, 'Init should not be called for partitioned skip projection');
-        self::assertCount(0, $projection->projectedEvents, 'No events should be processed for partitioned skip projection');
     }
 
     public function test_it_throws_exception_when_no_licence(): void

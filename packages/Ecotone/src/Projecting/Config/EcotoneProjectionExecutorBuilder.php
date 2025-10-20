@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\Projecting\Config;
 
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -15,6 +16,7 @@ use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Router\RouterProcessor;
 use Ecotone\Messaging\Handler\Router\RouteToChannelResolver;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\Routing\BusRouteSelector;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
@@ -36,6 +38,9 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         private array   $projectionEventHandlers = [],
         private ?string $asyncChannelName = null,
     ) {
+        if ($this->partitionHeader && ! $this->automaticInitialization) {
+            throw new ConfigurationException("Cannot set partition header for projection {$this->projectionName} with automatic initialization disabled");
+        }
     }
 
     public function projectionName(): string

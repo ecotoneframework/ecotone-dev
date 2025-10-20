@@ -18,7 +18,6 @@ use Ecotone\Messaging\Handler\Router\RouteToChannelResolver;
 use Ecotone\Modelling\Config\Routing\BusRouteSelector;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
-use Ecotone\Projecting\ProjectionInitializationMode;
 use Ecotone\Projecting\EcotoneProjectorExecutor;
 use Ecotone\Projecting\ProjectingHeaders;
 
@@ -30,7 +29,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
     public function __construct(
         private string  $projectionName,
         private ?string $partitionHeader = null,
-        private ProjectionInitializationMode $initializationMode = ProjectionInitializationMode::AUTO,
+        private bool    $automaticInitialization = true,
         private array   $namedEvents = [],
         private ?string $initChannel = null,
         private ?string $deleteChannel = null,
@@ -74,9 +73,9 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         $this->asyncChannelName = $asynchronousChannelName;
     }
 
-    public function initializationMode(): ProjectionInitializationMode
+    public function automaticInitialization(): bool
     {
-        return $this->initializationMode;
+        return $this->automaticInitialization;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference

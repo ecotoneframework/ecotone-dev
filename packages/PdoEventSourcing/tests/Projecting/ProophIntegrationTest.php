@@ -17,7 +17,6 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Projecting\Attribute\Projection;
-use Ecotone\Projecting\ProjectionInitializationMode;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
 use Ramsey\Uuid\Uuid;
@@ -158,7 +157,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_auto_initialization_mode_processes_events(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('auto_init_projection', initializationMode: ProjectionInitializationMode::AUTO)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[Projection('auto_init_projection', automaticInitialization: true)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'auto_init_projection';
             public int $initCallCount = 0;
 
@@ -195,7 +194,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_skip_initialization_mode_skips_events(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('skip_init_projection', initializationMode: ProjectionInitializationMode::SKIP)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[Projection('skip_init_projection', automaticInitialization: false)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'skip_init_projection';
             public int $initCallCount = 0;
 
@@ -229,7 +228,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_force_execution_bypasses_skip_mode(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('force_skip_projection', initializationMode: ProjectionInitializationMode::SKIP)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[Projection('force_skip_projection', automaticInitialization: false)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'force_skip_projection';
             public int $initCallCount = 0;
 
@@ -269,7 +268,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_concurrent_initialization_protection(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('concurrent_projection', initializationMode: ProjectionInitializationMode::AUTO)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[Projection('concurrent_projection', automaticInitialization: true)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'concurrent_projection';
             public int $initCallCount = 0;
 
@@ -312,7 +311,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_projection_state_persistence_across_restarts(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('persistent_projection', initializationMode: ProjectionInitializationMode::AUTO)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[Projection('persistent_projection', automaticInitialization: true)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'persistent_projection';
             public int $initCallCount = 0;
 
@@ -367,7 +366,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_partitioned_projection_with_auto_mode(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('partitioned_auto_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID, initializationMode: ProjectionInitializationMode::AUTO)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[Projection('partitioned_auto_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID, automaticInitialization: true)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'partitioned_auto_projection';
             public int $initCallCount = 0;
 
@@ -407,7 +406,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_partitioned_projection_with_skip_mode(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('partitioned_skip_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID, initializationMode: ProjectionInitializationMode::SKIP)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[Projection('partitioned_skip_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID, automaticInitialization: false)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'partitioned_skip_projection';
             public int $initCallCount = 0;
 

@@ -216,7 +216,7 @@ class ProjectingTest extends TestCase
         self::assertCount(3, $projection->projectedEvents, 'Projection should process events after manual initialization');
     }
 
-    public function test_initPartition_concurrency_protection(): void
+    public function test_init_partition_concurrency_protection(): void
     {
         $projection = new #[Projection('concurrent_projection')] class {
             public const TICKET_CREATED = 'ticket.created';

@@ -4,7 +4,6 @@ namespace Ecotone\Dbal\DbalTransaction;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionException;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Endpoint\PollingMetadata;

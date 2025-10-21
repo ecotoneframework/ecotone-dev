@@ -16,7 +16,6 @@ use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Router\RouterProcessor;
 use Ecotone\Messaging\Handler\Router\RouteToChannelResolver;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\Routing\BusRouteSelector;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;

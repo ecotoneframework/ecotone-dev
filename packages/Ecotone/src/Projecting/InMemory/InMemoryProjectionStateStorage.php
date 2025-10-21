@@ -10,7 +10,7 @@ namespace Ecotone\Projecting\InMemory;
 use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
-use Ecotone\Projecting\ProjectionStatus;
+use Ecotone\Projecting\ProjectionInitializationStatus;
 use Ecotone\Projecting\Transaction;
 
 class InMemoryProjectionStateStorage implements ProjectionStateStorage
@@ -31,7 +31,7 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
         $key = $this->getKey($projectionName, $partitionKey);
         
         if (!isset($this->projectionStates[$key])) {
-            $this->projectionStates[$key] = new ProjectionPartitionState($projectionName, $partitionKey, null, null, ProjectionStatus::UNINITIALIZED);
+            $this->projectionStates[$key] = new ProjectionPartitionState($projectionName, $partitionKey, null, null, ProjectionInitializationStatus::UNINITIALIZED);
             return $this->projectionStates[$key];
         }
         

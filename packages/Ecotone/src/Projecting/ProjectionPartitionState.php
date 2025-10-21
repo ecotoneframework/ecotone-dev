@@ -10,11 +10,11 @@ namespace Ecotone\Projecting;
 class ProjectionPartitionState
 {
     public function __construct(
-        public readonly string $projectionName,
-        public readonly ?string $partitionKey,
-        public readonly ?string $lastPosition = null,
-        public readonly mixed $userState = null,
-        public readonly ?ProjectionStatus $status = null,
+        public readonly string                          $projectionName,
+        public readonly ?string                         $partitionKey,
+        public readonly ?string                         $lastPosition = null,
+        public readonly mixed                           $userState = null,
+        public readonly ?ProjectionInitializationStatus $status = null,
     ) {
     }
 
@@ -28,7 +28,7 @@ class ProjectionPartitionState
         return new self($this->projectionName, $this->partitionKey, $this->lastPosition, $userState, $this->status);
     }
 
-    public function withStatus(ProjectionStatus $status): self
+    public function withStatus(ProjectionInitializationStatus $status): self
     {
         return new self($this->projectionName, $this->partitionKey, $this->lastPosition, $this->userState, $status);
     }

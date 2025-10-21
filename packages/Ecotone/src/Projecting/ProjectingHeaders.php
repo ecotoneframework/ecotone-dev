@@ -13,5 +13,5 @@ class ProjectingHeaders
     public const PROJECTION_NAME = 'projection.name';
     public const PROJECTION_EVENT_NAME = 'projection.event_name';
     public const PROJECTION_IS_REBUILDING = 'projection.is_rebuilding';
-    public const FORCE_EXECUTION = 'projection.force_execution';
+    public const MANUAL_INITIALIZATION = 'projection.manual_initialization';
 }

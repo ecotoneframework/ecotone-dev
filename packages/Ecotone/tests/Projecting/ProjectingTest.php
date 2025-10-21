@@ -175,9 +175,9 @@ class ProjectingTest extends TestCase
         self::assertCount(2, $projection->projectedEvents);
     }
 
-    public function test_it_skips_execution_when_initialization_mode_is_skip_and_not_initialized(): void
+    public function test_it_skips_execution_when_automatic_initialization_is_off_and_not_initialized(): void
     {
-        $projection = new #[Projection('projection_with_skip_mode', automaticInitialization: false)] class {
+        $projection = new #[Projection('projection_with_manual_initialization', automaticInitialization: false)] class {
             public const TICKET_CREATED = 'ticket.created';
             public array $projectedEvents = [];
 
@@ -202,13 +202,18 @@ class ProjectingTest extends TestCase
 
         // Event trigger should be skipped when not initialized
         $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
-        self::assertCount(0, $projection->projectedEvents);
+        self::assertCount(0, $projection->projectedEvents, 'Projection should not process events when automatic initialization is off');
 
-        // Test that the projection can be manually initialized and then works normally
-        // This demonstrates the skip mode prevents automatic initialization
-        // We'll test this by checking that the projection state is properly managed
-        // The key behavior is that event triggers are skipped when not initialized
-        self::assertCount(0, $projection->projectedEvents, 'Projection should not process events when not initialized in skip mode');
+        $ecotone->triggerProjection('projection_with_manual_initialization');
+        self::assertCount(1, $projection->projectedEvents, 'Projection should have processed previous events after manual initialization');
+
+        // Now events should be processed since projection is initialized
+        $streamSource->append(
+            Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']),
+            Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-3']),
+        );
+        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']);
+        self::assertCount(3, $projection->projectedEvents, 'Projection should process events after manual initialization');
     }
 
     public function test_initPartition_concurrency_protection(): void

@@ -15,6 +15,7 @@ use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\StreamSource;
+use Enqueue\Dbal\DbalConnectionFactory;
 
 class EventStoreGlobalStreamSourceBuilder implements ProjectionComponentBuilder
 {
@@ -34,7 +35,7 @@ class EventStoreGlobalStreamSourceBuilder implements ProjectionComponentBuilder
         return new Definition(
             EventStoreGlobalStreamSource::class,
             [
-                Reference::to(EventStore::class),
+                Reference::to(DbalConnectionFactory::class),
                 Reference::to(EcotoneClockInterface::class),
                 $this->streamName,
                 5_000,

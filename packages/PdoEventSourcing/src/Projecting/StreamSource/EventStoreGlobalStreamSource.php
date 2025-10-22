@@ -7,12 +7,21 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
+use DateTimeImmutable;
+use DateTimeZone;
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Connection;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Modelling\Event;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
+use Enqueue\Dbal\DbalConnectionFactory;
+use Enqueue\Dbal\ManagerRegistryConnectionFactory;
+use Interop\Queue\ConnectionFactory;
 use Prooph\EventStore\Metadata\FieldType;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Metadata\Operator;
@@ -20,13 +29,18 @@ use RuntimeException;
 
 class EventStoreGlobalStreamSource implements StreamSource
 {
+    private string $proophStreamTable;
+    private Connection $connection;
+
     public function __construct(
-        private EventStore      $eventStore,
+        DbalConnectionFactory|ManagerRegistryConnectionFactory  $connectionFactory,
         private EcotoneClockInterface  $clock,
         private string          $streamName,
         private int             $maxGapOffset = 5_000,
         private ?Duration       $gapTimeout = null,
     ) {
+        $this->proophStreamTable = '_' . \sha1($streamName);
+        $this->connection = $connectionFactory->createContext()->getDbalConnection();
     }
 
     public function load(?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
@@ -34,42 +48,40 @@ class EventStoreGlobalStreamSource implements StreamSource
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
         $tracking = GapAwarePosition::fromString($lastPosition);
 
-        if (count($tracking->getGaps()) === 0) {
-            $eventsInGaps = [];
-        } else {
-            $eventsInGaps = $this->eventStore->load(
-                $this->streamName,
-                count: count($tracking->getGaps()),
-                metadataMatcher: (new MetadataMatcher())
-                    ->withMetadataMatch('no', Operator::IN(), $tracking->getGaps(), FieldType::MESSAGE_PROPERTY()),
-                deserialize: false,
-            );
-        }
+        $query = $this->connection->executeQuery(<<<SQL
+            SELECT no, event_name, payload, metadata, created_at
+                FROM {$this->proophStreamTable}
+                WHERE no > :position OR no IN (:gaps)
+            ORDER BY no
+            LIMIT {$count}
+            SQL, [
+            'position' => $tracking->getPosition(),
+            'gaps' => $tracking->getGaps(),
+        ], [
+            'gaps' => ArrayParameterType::INTEGER,
+        ]);
 
-        $events = $this->eventStore->load(
-            $this->streamName,
-            $tracking->getPosition() + 1,
-            $count,
-            deserialize: false,
-        );
-
-
-        $allEvents = [...$eventsInGaps, ...$events];
-
+        $events = [];
         $now = $this->clock->now();
         $cutoffTimestamp = $this->gapTimeout ? $now->sub($this->gapTimeout)->getTimestamp() : 0;
-        foreach ($allEvents as $event) {
-            $position = $event->getMetadata()['_position'] ?? throw new RuntimeException('Event does not have a position');
-            $timestamp = $event->getMetadata()['timestamp'] ?? throw new RuntimeException('Event does not have a timestamp');
+        foreach ($query->iterateAssociative() as $event) {
+            $position = $event['no'];
+
+            $events[] = Event::createWithType(
+                $event['event_name'],
+                json_decode($event['payload'], true),
+                json_decode($event['metadata'], true),
+            );
+            $timestamp = $this->getTimestamp($event['created_at']);
             $insertGaps = $timestamp > $cutoffTimestamp;
             $tracking->advanceTo((int) $position, $insertGaps);
         }
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);
 
-        $this->cleanGapsByTimeout($tracking);
+//        $this->cleanGapsByTimeout($tracking);
 
-        return new StreamPage($allEvents, (string) $tracking);
+        return new StreamPage($events, (string) $tracking);
     }
 
     private function cleanGapsByTimeout(GapAwarePosition $tracking): void
@@ -121,5 +133,14 @@ class EventStoreGlobalStreamSource implements StreamSource
         }
 
         $tracking->cutoffGapsBelow($cutoffPosition);
+    }
+
+    private function getTimestamp(string $dateString): int
+    {
+        return DatePoint::createFromFormat(
+            'Y-m-d H:i:s',
+            $dateString,
+            new DateTimeZone('UTC')
+        )->getTimestamp();
     }
 }

@@ -93,7 +93,7 @@ class ProjectingManager
     {
         $projectionState = $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
 
-        if (!$canInitialize && $projectionState?->status === ProjectionInitializationStatus::UNINITIALIZED) {
+        if (! $canInitialize && $projectionState?->status === ProjectionInitializationStatus::UNINITIALIZED) {
             // Projection is being initialized by another process
             return null;
         }

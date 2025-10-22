@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Apache-2.0
  */
@@ -28,6 +29,9 @@ use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
+/**
+ * @internal
+ */
 class DeletedEventClassInStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_event_sourcing_with_deleted_event_class_in_stream(): void

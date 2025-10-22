@@ -11,6 +11,7 @@ use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Exception;
+use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use Interop\Queue\SubscriptionConsumer;
@@ -26,7 +27,7 @@ use RuntimeException;
 class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFactory
 {
     private string $connectionInstanceId;
-    private AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory;
+    private AmqpConnectionFactory $connectionFactory;
     private ?SubscriptionConsumer $subscriptionConsumer = null;
 
     public function __construct(AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory, ?string $connectionInstanceId = null, private bool $publisherAcknowledgments = false)

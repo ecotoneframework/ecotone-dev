@@ -15,6 +15,7 @@ use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
+use Interop\Amqp\AmqpConnectionFactory;
 use PhpAmqpLib\Channel\AMQPChannel as LibAmqpChannel;
 use Throwable;
 
@@ -31,7 +32,7 @@ class AmqpTransactionInterceptor
     private bool $isRunningTransaction = false;
 
     /**
-     * @param array<string, AmqpExtConnectionFactory|AmqpLibConnectionFactory> $connectionFactories
+     * @param array<string, AmqpConnectionFactory> $connectionFactories
      */
     public function __construct(private array $connectionFactories, private LoggingGateway $logger, private RetryRunner $retryRunner)
     {
@@ -48,7 +49,7 @@ class AmqpTransactionInterceptor
             $possibleFactories = $this->connectionFactories;
         }
         /** @var CachedConnectionFactory[] $connectionFactories */
-        $connectionFactories = array_map(function (AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory) {
+        $connectionFactories = array_map(function (AmqpConnectionFactory $connectionFactory) {
             return CachedConnectionFactory::createFor(new AmqpReconnectableConnectionFactory($connectionFactory));
         }, $possibleFactories);
 

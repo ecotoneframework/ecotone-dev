@@ -48,17 +48,29 @@ class EventStoreGlobalStreamSource implements StreamSource
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
         $tracking = GapAwarePosition::fromString($lastPosition);
 
+        $gapQueryPart = '';
+        $gapQueryPartParams = [];
+        if ($gaps = $tracking->getGaps()) {
+            $counter = 0;
+            $positionalParams = [];
+            foreach ($gaps as $gap) {
+                $counter++;
+                $paramName = 'gap' . $counter;
+                $positionalParams[] = ':' . $paramName;
+                $gapQueryPartParams[$paramName] = $gap;
+            }
+            $gapQueryPart = ' OR no IN (' . implode(',', $positionalParams) . ') ';
+        }
+
         $query = $this->connection->executeQuery(<<<SQL
             SELECT no, event_name, payload, metadata, created_at
                 FROM {$this->proophStreamTable}
-                WHERE no > :position OR no IN (:gaps)
+                WHERE no > :position {$gapQueryPart}
             ORDER BY no
             LIMIT {$count}
             SQL, [
             'position' => $tracking->getPosition(),
-            'gaps' => $tracking->getGaps(),
-        ], [
-            'gaps' => ArrayParameterType::INTEGER,
+            ...$gapQueryPartParams
         ]);
 
         $events = [];

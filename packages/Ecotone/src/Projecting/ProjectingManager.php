@@ -45,6 +45,8 @@ class ProjectingManager
                 foreach ($streamPage->events as $event) {
                     $userState = $this->projectorExecutor->project($event, $userState);
                 }
+                $this->projectorExecutor->flush();
+
                 $projectionState = $projectionState
                     ->withLastPosition($streamPage->lastPosition)
                     ->withUserState($userState);

@@ -34,6 +34,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         private array   $namedEvents = [],
         private ?string $initChannel = null,
         private ?string $deleteChannel = null,
+        private ?string $flushChannel = null,
         private array   $projectionEventHandlers = [],
         private ?string $asyncChannelName = null,
     ) {
@@ -72,6 +73,11 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         $this->deleteChannel = $deleteChannel;
     }
 
+    public function setFlushChannel(string $inputChannel): void
+    {
+        $this->flushChannel = $inputChannel;
+    }
+
     public function setAsyncChannel(string $asynchronousChannelName): void
     {
         $this->asyncChannelName = $asynchronousChannelName;
@@ -91,6 +97,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
             $routerProcessor,
             $this->initChannel,
             $this->deleteChannel,
+            $this->flushChannel,
         ]);
     }
 

@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\Config;
 
+use Ecotone\Projecting\Attribute\ProjectionFlush;
 use function array_merge;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -55,6 +56,7 @@ class ProjectingAttributeModule implements AnnotationModule
             $namedEvents[$className] = $attribute->getName();
         }
 
+        /** @var array<string, EcotoneProjectionExecutorBuilder> $projectionBuilders */
         $projectionBuilders = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
@@ -79,6 +81,7 @@ class ProjectingAttributeModule implements AnnotationModule
         $lifecycleAnnotations = array_merge(
             $annotationRegistrationService->findCombined(Projection::class, ProjectionInitialization::class),
             $annotationRegistrationService->findCombined(Projection::class, ProjectionDelete::class),
+            $annotationRegistrationService->findCombined(Projection::class, ProjectionFlush::class),
         );
         foreach ($lifecycleAnnotations as $lifecycleAnnotation) {
             /** @var Projection $projectionAttribute */
@@ -90,6 +93,8 @@ class ProjectingAttributeModule implements AnnotationModule
                 $projectionBuilder->setInitChannel($inputChannel);
             } elseif ($lifecycleAnnotation->getAnnotationForMethod() instanceof ProjectionDelete) {
                 $projectionBuilder->setDeleteChannel($inputChannel);
+            } elseif ($lifecycleAnnotation->getAnnotationForMethod() instanceof ProjectionFlush) {
+                $projectionBuilder->setFlushChannel($inputChannel);
             }
 
 

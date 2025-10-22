@@ -111,11 +111,16 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         /** @var AMQPConnection|AMQPLazyConnection $connection */
         $connection = $connectionProperty->getValue($this->connectionFactory);
         if ($connection) {
-            $context = $this->createContext();
-            if ($context instanceof AmqpLibContext) {
-                $connection->close();
-            } elseif ($context instanceof AmqpExtContext) {
-                $connection->disconnect();
+            try {
+                // Use method existence checks instead of instanceof to handle lazy connections
+                // Lazy connections may not be instances of AMQPConnection until they're actually used
+                if (method_exists($connection, 'disconnect')) {
+                    $connection->disconnect();
+                } elseif (method_exists($connection, 'close')) {
+                    $connection->close();
+                }
+            } catch (Exception) {
+                // Ignore errors during disconnection
             }
         }
 
@@ -126,10 +131,21 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private function isConnected(): bool
     {
         $connectionProperty = $this->getConnectionProperty();
-        /** @var AMQPConnection $connection */
+        /** @var AMQPConnection|AMQPLazyConnection|null $connection */
         $connection = $connectionProperty->getValue($this->connectionFactory);
 
-        return $connection ? $connection->isConnected() : false;
+        if (!$connection) {
+            return false;
+        }
+
+        // Use method existence check to handle lazy connections
+        // Lazy connections may not be instances of AMQPConnection until they're actually used
+        if (method_exists($connection, 'isConnected')) {
+            return $connection->isConnected();
+        }
+
+        // If the connection object exists but doesn't have isConnected method, assume it's connected
+        return true;
     }
 
     private function getConnectionProperty(): ReflectionProperty

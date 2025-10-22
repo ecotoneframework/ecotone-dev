@@ -32,7 +32,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
         $queueName = Uuid::uuid4()->toString();
         $signalHandler = new AmqpSignalSendingMessageHandler();
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             [AmqpSignalSendingMessageHandler::class],
             [
                 $signalHandler,
@@ -67,7 +67,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
 
     public function test_asynchronous_command_handler_stops_after_current_command_when_signal_sent(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             [AmqpAsyncCommandHandler::class],
             [
                 new AmqpAsyncCommandHandler(),
@@ -102,7 +102,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
 
     public function test_asynchronous_command_handler_stops_after_current_command_when_signal_sent_with_defaults(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             [AmqpAsyncCommandHandler::class],
             [
                 new AmqpAsyncCommandHandler(),
@@ -138,7 +138,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
 //     */
 //    public function test_asynchronous_command_handler_stops_even_if_there_was_no_message(): void
 //    {
-//        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+//        $ecotoneLite = $this->bootstrapForTesting(
 //            [],
 //            [
 //                ...$this->getConnectionFactoryReferences(),

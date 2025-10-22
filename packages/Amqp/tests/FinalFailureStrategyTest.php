@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -26,7 +25,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
 {
     public function test_reject_failure_strategy_rejects_message_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [FailingService::class],
             array_merge(
                 [new FailingService()],
@@ -50,7 +49,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
 
     public function test_resend_failure_strategy_rejects_message_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [FailingService::class],
             array_merge(
                 [new FailingService()],
@@ -75,7 +74,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
 
     public function test_release_failure_strategy_releases_message_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [FailingService::class],
             array_merge(
                 [new FailingService()],

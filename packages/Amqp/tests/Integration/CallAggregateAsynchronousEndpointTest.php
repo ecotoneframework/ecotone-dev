@@ -24,7 +24,7 @@ final class CallAggregateAsynchronousEndpointTest extends AmqpMessagingTestCase
 {
     public function test_sending_command_to_aggregate(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Calendar::class],
             containerOrAvailableServices: [
                 ...self::getConnectionFactoryReferences(),

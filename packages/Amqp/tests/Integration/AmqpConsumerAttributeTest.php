@@ -42,7 +42,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
     {
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [AmqpConsumerAttributeExample::class],
             [
                 new AmqpConsumerAttributeExample(),
@@ -57,7 +57,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
     {
         $endpointId = 'amqp_consumer_attribute';
         $queueName = 'test_queue';
-        $ecotoneLiteConsumer = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLiteConsumer = $this->bootstrapFlowTesting(
             [AmqpConsumerAttributeExample::class],
             [
                 new AmqpConsumerAttributeExample(),
@@ -67,7 +67,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE])),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
-        $ecotoneLitePublisher = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLitePublisher = $this->bootstrapFlowTesting(
             [],
             [
                 ...$this->getConnectionFactoryReferences(),
@@ -99,7 +99,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
     {
         $endpointId = 'amqp_consumer_attribute';
         $queueName = 'test_queue';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpConsumerAttributeExample::class],
             [
                 new AmqpConsumerAttributeExample(),
@@ -133,7 +133,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
     {
         $endpointId = 'amqp_consumer_attribute';
         $queueName = 'test_queue';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpConsumerWithFailStrategyAttributeExample::class],
             [
                 new AmqpConsumerWithFailStrategyAttributeExample(),
@@ -168,7 +168,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
     {
         $endpointId = 'amqp_consumer_attribute';
         $queueName = 'test_queue';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpConsumerWithInstantRetryExample::class],
             [
                 new AmqpConsumerWithInstantRetryExample(),
@@ -203,7 +203,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
     {
         $endpointId = 'amqp_consumer_attribute';
         $queueName = 'test_queue';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpConsumerWithInstantRetryAndErrorChannelExample::class],
             [
                 new AmqpConsumerWithInstantRetryAndErrorChannelExample(),
@@ -241,7 +241,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
     {
         $endpointId = 'amqp_consumer_attribute';
         $queueName = 'test_queue';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpConsumerAttributeExample::class],
             [
                 new AmqpConsumerAttributeExample(),
@@ -278,7 +278,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
     {
         $endpointId = 'amqp_consumer_attribute';
         $queueName = 'test_queue';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpConsumerAttributeWithObject::class, StdClassConvert::class],
             [
                 new AmqpConsumerAttributeWithObject(), new StdClassConvert(),

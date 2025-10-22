@@ -40,7 +40,7 @@ final class DistributedDeadLetterTest extends AmqpMessagingTestCase
 
     private function bootstrapEcotone(string $serviceName, array $namespaces, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge([...$this->getConnectionFactoryReferences()], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)

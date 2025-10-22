@@ -96,7 +96,7 @@ final class DistributedCommandBusTest extends AmqpMessagingTestCase
 
     private function bootstrapEcotone(string $serviceName, array $namespaces, array $services, array $amqpConfig = []): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge($this->getConnectionFactoryReferences($amqpConfig), $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)

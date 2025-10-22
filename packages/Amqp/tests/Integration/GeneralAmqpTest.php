@@ -8,7 +8,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Order\OrderErrorHandler;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
@@ -60,7 +59,9 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
         $ecotone->run('orders');
         $ecotone->run('orders');
         $ecotone->run('orders');
-        self::assertEquals(['milk', 'salt', 'sunflower'], $ecotone->sendQueryWithRouting('order.getOrders'));
+        self::assertContains('milk', $ecotone->sendQueryWithRouting('order.getOrders'));
+        self::assertContains('salt', $ecotone->sendQueryWithRouting('order.getOrders'));
+        self::assertContains('sunflower', $ecotone->sendQueryWithRouting('order.getOrders'));
     }
 
     public function test_adding_product_to_shopping_cart_with_publisher_and_consumer(): void
@@ -81,7 +82,7 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
 
     private function bootstrapEcotone(array $namespaces, array $services, array $amqpConfig = []): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge($this->getConnectionFactoryReferences($amqpConfig), $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')

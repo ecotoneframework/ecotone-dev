@@ -137,7 +137,7 @@ final class DistributedEventBusTest extends AmqpMessagingTestCase
         array  $services,
         array  $extensionObjects = [],
     ): FlowTestSupport {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge([...$this->getConnectionFactoryReferences()], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)

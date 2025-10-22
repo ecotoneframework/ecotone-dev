@@ -707,7 +707,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     public function test_delaying_the_message()
     {
         $queueName = Uuid::uuid4()->toString();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             [],
             [
                 ...$this->getConnectionFactoryReferences(),
@@ -739,7 +739,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $queueName = Uuid::uuid4()->toString();
         $deadLetterQueueName = Uuid::uuid4()->toString();
         $deadLetterQueue = AmqpQueue::createWith($deadLetterQueueName);
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             [ExceptionalMessageHandler::class, AmqpConsumerExample::class],
             [
                 ExceptionalMessageHandler::createWithRejectException(),

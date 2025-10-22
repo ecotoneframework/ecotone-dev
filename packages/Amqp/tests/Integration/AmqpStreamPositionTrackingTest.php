@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -42,7 +43,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
         $sharedPositionTracker = new InMemoryConsumerPositionTracker();
 
         // First application instance - process some messages
-        $ecotoneLite1 = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite1 = $this->bootstrapForTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -51,6 +52,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()
                         ->withInMemoryConsumerPositionTracker(false), // Disable default, use our shared instance
@@ -85,7 +87,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
         $this->assertNotNull($committedPosition, 'Position should be committed after processing messages');
 
         // Second application instance - should resume from where first left off
-        $ecotoneLite2 = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite2 = $this->bootstrapForTesting(
             [OrderService::class],
             [
                 new OrderService(),

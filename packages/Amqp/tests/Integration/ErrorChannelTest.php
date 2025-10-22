@@ -26,7 +26,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
 {
     public function test_exception_handling_with_retries_and_dead_letter(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -63,7 +63,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
 
     public function test_pointing_amqp_directly_to_dead_letter(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [OrderService::class],
             containerOrAvailableServices: [new OrderService(1), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -94,7 +94,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             classesToResolve: [OrderService::class],
             containerOrAvailableServices: [new OrderService(1), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -111,7 +111,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
 
     public function test_exception_handling_with_retries(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new \Test\Ecotone\Amqp\Fixture\ErrorChannel\OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')

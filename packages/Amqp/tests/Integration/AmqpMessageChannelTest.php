@@ -41,7 +41,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         $queueName = Uuid::uuid4()->toString();
         $messagePayload = 'some';
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             containerOrAvailableServices: [
                 ...$this->getConnectionFactoryReferences(),
             ],
@@ -70,7 +70,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         $queueName = Uuid::uuid4()->toString();
         $messagePayload = 'some';
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             containerOrAvailableServices: [
                 ...$this->getConnectionFactoryReferences(),
             ],
@@ -99,7 +99,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
     {
         $queueName = 'orders';
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -135,7 +135,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'orders_queue';
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -186,7 +186,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         $queueName = 'orders_queue';
         $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -218,7 +218,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         $queueName = Uuid::uuid4()->toString();
         $messagePayload = 'some';
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             containerOrAvailableServices: [
                 ...$this->getConnectionFactoryReferences(),
             ],
@@ -244,7 +244,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
     public function test_failing_to_consume_due_to_connection_failure()
     {
         $loggerExample = StubLogger::create();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             [\Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService::class],
             containerOrAvailableServices: [
                 new \Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService(),
@@ -294,7 +294,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
     {
         $queueName = ErrorConfigurationContext::INPUT_CHANNEL;
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapForTesting(
             [\Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService::class, ErrorConfigurationContext::class],
             [
                 new \Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService(),

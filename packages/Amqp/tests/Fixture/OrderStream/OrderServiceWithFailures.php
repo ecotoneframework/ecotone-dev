@@ -2,10 +2,12 @@
 
 namespace Test\Ecotone\Amqp\Fixture\OrderStream;
 
+use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use RuntimeException;
 
+#[Asynchronous('orders')]
 /**
  * licence Apache-2.0
  */
@@ -21,7 +23,7 @@ class OrderServiceWithFailures
      */
     private array $attemptCounts = [];
 
-    #[CommandHandler('order.register')]
+    #[CommandHandler('order.register', 'order.register.endpoint')]
     public function register(string $order): void
     {
         // Track attempt count for this order

@@ -4,7 +4,6 @@ namespace Ecotone\Dbal\DbalTransaction;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\ConnectionException;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -94,7 +93,7 @@ class DbalTransactionInterceptor
                 } catch (Exception $exception) {
                     // Handle the case where a database did an implicit commit or the transaction is no longer active
                     /** @TODO Ecotone 2.0 remove implicit commit and tables creation on fly, and provide CLI command instead */
-                    if ($this->isImplicitCommitException($exception, $connection)) {
+                    if (ImplicitCommit::isImplicitCommitException($exception, $connection)) {
                         $this->logger->info(
                             sprintf('Implicit Commit was detected, skipping manual one.'),
                             $message,
@@ -133,27 +132,5 @@ class DbalTransactionInterceptor
         }
 
         return $result;
-    }
-
-    private function isImplicitCommitException(Throwable $exception, Connection $connection): bool
-    {
-        if (! ($connection->getDriver()->getDatabasePlatform($connection) instanceof MySQLPlatform)) {
-            return false;
-        }
-
-        $patterns = [
-            'No active transaction',
-            'There is no active transaction',
-            'Transaction not active',
-            'not in a transaction',
-        ];
-
-        foreach ($patterns as $pattern) {
-            if (str_contains($exception->getMessage(), $pattern)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

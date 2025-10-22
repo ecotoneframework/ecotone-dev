@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\Config;
 
+use Ecotone\Dbal\DbalTransaction\WithoutDbalTransaction;
 use Ecotone\Messaging\Attribute\ConsoleCommand;
 use Ecotone\Messaging\Attribute\ConsoleParameterOption;
 use Ecotone\Projecting\ProjectionRegistry;
@@ -37,6 +38,7 @@ class ProjectingConsoleCommands
     }
 
     #[ConsoleCommand('ecotone:projection:backfill')]
+    #[WithoutDbalTransaction]
     public function backfillProjection(string $name): void
     {
         if (! $this->registry->has($name)) {

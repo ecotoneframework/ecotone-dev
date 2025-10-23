@@ -91,7 +91,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);
 
-//        $this->cleanGapsByTimeout($tracking);
+        $this->cleanGapsByTimeout($tracking);
 
         return new StreamPage($events, (string) $tracking);
     }
@@ -110,33 +110,31 @@ class EventStoreGlobalStreamSource implements StreamSource
         $maxGap = $gaps[count($gaps) - 1];
 
         // Query interleaved events in the gap range
-        $interleavedEvents = $this->eventStore->load(
-            $this->streamName,
-            count: count($gaps),
-            metadataMatcher: (new MetadataMatcher())
-                ->withMetadataMatch('no', Operator::GREATER_THAN_EQUALS(), $minGap, FieldType::MESSAGE_PROPERTY())
-                ->withMetadataMatch('no', Operator::LOWER_THAN_EQUALS(), $maxGap + 1, FieldType::MESSAGE_PROPERTY()),
-            deserialize: false,
-        );
+        $interleavedEvents = $this->connection->executeQuery(<<<SQL
+            SELECT no, created_at
+                FROM {$this->proophStreamTable}
+                WHERE no >= :minPosition and no <= :maxPosition
+            ORDER BY no
+            LIMIT 100
+            SQL, [
+            'minPosition' => $minGap,
+            'maxPosition' => $maxGap + 1,
+        ])->iterateAssociative();
 
         $timestampThreshold = $this->clock->now()->sub($this->gapTimeout)->unixTime()->inSeconds();
 
         // Find the highest position with timestamp < timeThreshold
         $cutoffPosition = $minGap; // default: keep all gaps
         foreach ($interleavedEvents as $event) {
-            $metadata = $event->getMetadata();
-            $interleavedEventPosition = ((int)$metadata['_position']) ?? null;
-            $timestamp = $metadata['timestamp'] ?? null;
+            $interleavedEventPosition = $event['no'];
+            $timestamp = $this->getTimestamp($event['created_at']);
 
-            if ($interleavedEventPosition === null || $timestamp === null) {
-                break;
-            }
             if ($timestamp > $timestampThreshold) {
                 // Event is recent, do not remove any gaps below this position
                 break;
             }
             if (in_array($interleavedEventPosition, $gaps, true)) {
-                // This position is a gap, stop cleaning
+                // This position is a gap that could be filled, stop cleaning
                 break;
             }
             if ($timestamp < $timestampThreshold && $interleavedEventPosition > $cutoffPosition) {

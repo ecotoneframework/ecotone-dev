@@ -91,7 +91,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
     {
         // Create a stream source with small max gap offset
         $streamSource = new EventStoreGlobalStreamSource(
-            self::$eventStore,
+            self::$connectionFactory,
             self::$clock,
             Ticket::STREAM_NAME,
             maxGapOffset: 3, // Only keep gaps within 3 positions
@@ -128,7 +128,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
         // Create a stream source with gap timeout
         $streamSource = new EventStoreGlobalStreamSource(
-            self::$eventStore,
+            self::$connectionFactory,
             self::$clock,
             Ticket::STREAM_NAME,
             gapTimeout: Duration::seconds(5)
@@ -151,7 +151,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $newTracking = GapAwarePosition::fromString($result->lastPosition);
         self::assertSame([6], $newTracking->getGaps());
 
-        // Delay 3 more second to exceed timeout for all gaps (6 seconds since insertion of the last event)
+        // Delay 4 more second to exceed timeout for all gaps (6 seconds since insertion of the last event)
         self::$clock->sleep(Duration::seconds(4));
         $result = $streamSource->load($result->lastPosition, 100);
         $newTracking = GapAwarePosition::fromString($result->lastPosition);
@@ -161,7 +161,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
     public function test_gap_cleaning_noop_when_no_gaps(): void
     {
         $streamSource = new EventStoreGlobalStreamSource(
-            self::$eventStore,
+            self::$connectionFactory,
             self::$clock,
             Ticket::STREAM_NAME,
             maxGapOffset: 1000,
@@ -182,7 +182,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
     public function test_gap_cleaning_noop_when_timeout_disabled(): void
     {
         $streamSource = new EventStoreGlobalStreamSource(
-            self::$eventStore,
+            self::$connectionFactory,
             self::$clock,
             Ticket::STREAM_NAME,
             maxGapOffset: 1000,

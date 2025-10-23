@@ -48,19 +48,10 @@ class EventStoreGlobalStreamSource implements StreamSource
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
         $tracking = GapAwarePosition::fromString($lastPosition);
 
-        $gapQueryPart = '';
-        $gapQueryPartParams = [];
-        if ($gaps = $tracking->getGaps()) {
-            $counter = 0;
-            $positionalParams = [];
-            foreach ($gaps as $gap) {
-                $counter++;
-                $paramName = 'gap' . $counter;
-                $positionalParams[] = ':' . $paramName;
-                $gapQueryPartParams[$paramName] = $gap;
-            }
-            $gapQueryPart = ' OR no IN (' . implode(',', $positionalParams) . ') ';
-        }
+        [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
+            true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => ArrayParameterType::INTEGER]],
+            false => ['',[],[]],
+        };
 
         $query = $this->connection->executeQuery(<<<SQL
             SELECT no, event_name, payload, metadata, created_at
@@ -71,14 +62,12 @@ class EventStoreGlobalStreamSource implements StreamSource
             SQL, [
             'position' => $tracking->getPosition(),
             ...$gapQueryPartParams
-        ]);
+        ], $gapQueryPartParamTypes);
 
         $events = [];
         $now = $this->clock->now();
         $cutoffTimestamp = $this->gapTimeout ? $now->sub($this->gapTimeout)->getTimestamp() : 0;
         foreach ($query->iterateAssociative() as $event) {
-            $position = $event['no'];
-
             $events[] = Event::createWithType(
                 $event['event_name'],
                 json_decode($event['payload'], true),
@@ -86,7 +75,7 @@ class EventStoreGlobalStreamSource implements StreamSource
             );
             $timestamp = $this->getTimestamp($event['created_at']);
             $insertGaps = $timestamp > $cutoffTimestamp;
-            $tracking->advanceTo((int) $position, $insertGaps);
+            $tracking->advanceTo((int) $event['no'], $insertGaps);
         }
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);

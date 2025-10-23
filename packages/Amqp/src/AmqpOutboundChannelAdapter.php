@@ -39,7 +39,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private ?string                    $exchangeFromHeaderName,
         private bool                       $defaultPersistentDelivery,
         private bool                       $autoDeclare,
-        private bool                       $publisherAcknowledgments,
+        private bool                       $publisherConfirms,
         private OutboundMessageConverter   $outboundMessageConverter,
         private ConversionService          $conversionService,
         private AmqpTransactionInterceptor $amqpTransactionInterceptor,
@@ -80,7 +80,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $messageToSend
             ->setDeliveryMode($this->defaultPersistentDelivery ? AmqpMessage::DELIVERY_MODE_PERSISTENT : AmqpMessage::DELIVERY_MODE_NON_PERSISTENT);
 
-        if ($this->publisherAcknowledgments) {
+        if ($this->publisherConfirms) {
             Assert::isFalse($this->amqpTransactionInterceptor->isRunningInTransaction(), 'Cannot use publisher acknowledgments together with transactions. Please disable one of them.');
         }
 
@@ -92,7 +92,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);
 
-        if ($this->publisherAcknowledgments && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
+        if ($this->publisherConfirms && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
             if ($context instanceof AmqpLibContext) {
                 $context->getLibChannel()->wait_for_pending_acks(5000);
             } elseif ($context instanceof AmqpExtContext) {

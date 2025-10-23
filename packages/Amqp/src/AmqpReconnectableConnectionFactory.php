@@ -30,7 +30,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private AmqpConnectionFactory $connectionFactory;
     private ?SubscriptionConsumer $subscriptionConsumer = null;
 
-    public function __construct(AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory, ?string $connectionInstanceId = null, private bool $publisherAcknowledgments = false)
+    public function __construct(AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory, ?string $connectionInstanceId = null, private bool $publisherConfirms = false)
     {
         $this->connectionInstanceId = $connectionInstanceId !== null ? $connectionInstanceId : spl_object_id($connectionFactory);
         /** Each consumer and publisher requires separate connection to work correctly in all cases: https://www.rabbitmq.com/connections.html#flow-control */
@@ -49,7 +49,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
         $context = $this->connectionFactory->createContext();
 
-        if ($this->publisherAcknowledgments) {
+        if ($this->publisherConfirms) {
             if ($context instanceof AmqpLibContext) {
                 $context->getLibChannel()->confirm_select();
             } elseif ($context instanceof AmqpExtContext) {

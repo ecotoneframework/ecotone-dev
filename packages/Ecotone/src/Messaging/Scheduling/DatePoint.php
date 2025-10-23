@@ -42,7 +42,7 @@ class DatePoint extends DateTimeImmutable
     /**
      * @throws DateMalformedStringException When $format or $datetime are invalid
      */
-    public static function createFromFormat(string $format, string $datetime, ?DateTimeZone $timezone = null): static
+    public static function createFromFormat(string $format, string $datetime, ?DateTimeZone $timezone = null): static|false
     {
         return parent::createFromFormat($format, $datetime, $timezone);
     }

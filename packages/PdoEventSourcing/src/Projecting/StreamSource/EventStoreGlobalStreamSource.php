@@ -7,11 +7,9 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
-use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
@@ -21,11 +19,6 @@ use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
-use Interop\Queue\ConnectionFactory;
-use Prooph\EventStore\Metadata\FieldType;
-use Prooph\EventStore\Metadata\MetadataMatcher;
-use Prooph\EventStore\Metadata\Operator;
-use RuntimeException;
 
 class EventStoreGlobalStreamSource implements StreamSource
 {
@@ -136,8 +129,11 @@ class EventStoreGlobalStreamSource implements StreamSource
 
     private function getTimestamp(string $dateString): int
     {
+        if (\strlen($dateString) === 19) {
+            $dateString = $dateString . '.000';
+        }
         return DatePoint::createFromFormat(
-            'Y-m-d H:i:s',
+            'Y-m-d H:i:s.u',
             $dateString,
             new DateTimeZone('UTC')
         )->getTimestamp();

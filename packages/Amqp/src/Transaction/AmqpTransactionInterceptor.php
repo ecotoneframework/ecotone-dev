@@ -11,7 +11,12 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
+use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
+use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
+use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
+use Interop\Amqp\AmqpConnectionFactory;
+use PhpAmqpLib\Channel\AMQPChannel as LibAmqpChannel;
 use Throwable;
 
 /**
@@ -60,7 +65,16 @@ class AmqpTransactionInterceptor
                     ->build();
 
                 $this->retryRunner->runWithRetry(function () use ($connectionFactory) {
-                    $connectionFactory->createContext()->getExtChannel()->startTransaction();
+                    $context = $connectionFactory->createContext();
+                    if ($context instanceof AmqpLibContext) {
+                        /** @var LibAmqpChannel $libChannel */
+                        $libChannel = $context->getLibChannel();
+                        $libChannel->tx_select();
+                    } elseif ($context instanceof AmqpExtContext) {
+                        /** @var AMQPChannel $extChannel */
+                        $extChannel = $context->getExtChannel();
+                        $extChannel->startTransaction();
+                    }
                 }, $retryStrategy, $message, AMQPConnectionException::class, 'Starting AMQP transaction has failed due to network work, retrying in order to self heal.');
                 $this->logger->info(
                     'AMQP transaction started',
@@ -71,7 +85,16 @@ class AmqpTransactionInterceptor
                 $result = $methodInvocation->proceed();
 
                 foreach ($connectionFactories as $connectionFactory) {
-                    $connectionFactory->createContext()->getExtChannel()->commitTransaction();
+                    $context = $connectionFactory->createContext();
+                    if ($context instanceof AmqpLibContext) {
+                        /** @var LibAmqpChannel $libChannel */
+                        $libChannel = $context->getLibChannel();
+                        $libChannel->tx_commit();
+                    } elseif ($context instanceof AmqpExtContext) {
+                        /** @var AMQPChannel $extChannel */
+                        $extChannel = $context->getExtChannel();
+                        $extChannel->commitTransaction();
+                    }
                 }
                 $this->logger->info(
                     'AMQP transaction was committed',
@@ -79,13 +102,23 @@ class AmqpTransactionInterceptor
                 );
             } catch (Throwable $exception) {
                 foreach ($connectionFactories as $connectionFactory) {
-                    /** @var AMQPChannel $extChannel */
-                    $extChannel = $connectionFactory->createContext()->getExtChannel();
-                    try {
-                        $extChannel->rollbackTransaction();
-                    } catch (Throwable) {
+                    $context = $connectionFactory->createContext();
+                    if ($context instanceof AmqpLibContext) {
+                        /** @var LibAmqpChannel $libChannel */
+                        $libChannel = $context->getLibChannel();
+                        try {
+                            $libChannel->tx_rollback();
+                        } catch (Throwable) {
+                        }
+                        $libChannel->close(); // Has to be closed in amqp_lib, as if channel is transactional does not allow for sending outside of transaction
+                    } elseif ($context instanceof AmqpExtContext) {
+                        /** @var AMQPChannel $extChannel */
+                        $extChannel = $context->getExtChannel();
+                        try {
+                            $extChannel->rollbackTransaction();
+                        } catch (Throwable) {
+                        }
                     }
-                    $extChannel->close(); // Has to be closed in amqp_lib, as if channel is transactional does not allow for sending outside of transaction
                 }
 
                 $this->logger->info(

@@ -9,7 +9,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\AggregateMessage;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Calendar\Calendar;
 use Test\Ecotone\Amqp\Fixture\Calendar\ScheduleMeeting;
@@ -25,10 +24,10 @@ final class CallAggregateAsynchronousEndpointTest extends AmqpMessagingTestCase
 {
     public function test_sending_command_to_aggregate(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Calendar::class],
             containerOrAvailableServices: [
-                AmqpConnectionFactory::class => self::getRabbitConnectionFactory(),
+                ...self::getConnectionFactoryReferences(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))

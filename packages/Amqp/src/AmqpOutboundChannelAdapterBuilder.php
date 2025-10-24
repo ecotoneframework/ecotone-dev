@@ -27,7 +27,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     private string $exchangeName;
     private bool $defaultPersistentDelivery = self::DEFAULT_PERSISTENT_MODE;
     private array $staticHeadersToAdd = [];
-    private bool $publisherAcknowledgments = true;
+    private bool $publisherConfirms = true;
 
     private function __construct(string $exchangeName, string $amqpConnectionFactoryReferenceName)
     {
@@ -58,9 +58,9 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         return $this;
     }
 
-    public function withPublisherAcknowledgments(bool $publisherAcknowledgments): self
+    public function withPublisherConfirms(bool $publisherConfirms): self
     {
-        $this->publisherAcknowledgments = $publisherAcknowledgments;
+        $this->publisherConfirms = $publisherConfirms;
 
         return $this;
     }
@@ -113,6 +113,8 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->amqpConnectionFactoryReferenceName),
+                null,
+                $this->publisherConfirms,
             ]),
         ], 'createFor');
 
@@ -134,7 +136,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->exchangeFromHeader,
             $this->defaultPersistentDelivery,
             $this->autoDeclare,
-            $this->publisherAcknowledgments,
+            $this->publisherConfirms,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
             Reference::to(AmqpTransactionInterceptor::class),

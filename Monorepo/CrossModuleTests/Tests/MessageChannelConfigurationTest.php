@@ -19,10 +19,12 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
+use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Sqs\SqsConnectionFactory;
+use Interop\Amqp\AmqpConnectionFactory;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use Monorepo\ExampleApp\Symfony\Kernel;
 use PHPUnit\Framework\TestCase;
@@ -252,10 +254,15 @@ final class MessageChannelConfigurationTest extends TestCase
                 MessagingTestCase::cleanUpDbal();
             }
         ];
+        $amqpConnectionFactory = AmqpMessagingTestCase::getRabbitConnectionFactory();
         yield "amqp" => [
             AmqpBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(100),
-            [AmqpConnectionFactory::class => AmqpMessagingTestCase::getRabbitConnectionFactory()],
+            [
+                AmqpConnectionFactory::class => $amqpConnectionFactory,
+                AmqpExtConnectionFactory::class => $amqpConnectionFactory,
+                AmqpLibConnectionFactory::class => $amqpConnectionFactory,
+            ],
             ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]),
             function() {
                 MessagingTestCase::cleanRabbitMQ();

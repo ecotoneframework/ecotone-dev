@@ -37,10 +37,15 @@ class EventStoreGlobalStreamSourceBuilder implements ProjectionComponentBuilder
             [
                 Reference::to(DbalConnectionFactory::class),
                 Reference::to(EcotoneClockInterface::class),
-                $this->streamName,
+                self::getProophTableName($this->streamName),
                 5_000,
                 new Definition(Duration::class, [60], 'seconds'),
             ],
         );
+    }
+
+    public static function getProophTableName($streamName): string
+    {
+        return '_' . \sha1($streamName);
     }
 }

@@ -22,17 +22,15 @@ use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 
 class EventStoreGlobalStreamSource implements StreamSource
 {
-    private string $proophStreamTable;
     private Connection $connection;
 
     public function __construct(
-        DbalConnectionFactory|ManagerRegistryConnectionFactory  $connectionFactory,
-        private EcotoneClockInterface  $clock,
-        private string          $streamName,
-        private int             $maxGapOffset = 5_000,
-        private ?Duration       $gapTimeout = null,
+        DbalConnectionFactory|ManagerRegistryConnectionFactory $connectionFactory,
+        private EcotoneClockInterface $clock,
+        private string $proophStreamTable,
+        private int $maxGapOffset = 5_000,
+        private ?Duration $gapTimeout = null,
     ) {
-        $this->proophStreamTable = '_' . \sha1($streamName);
         $this->connection = $connectionFactory->createContext()->getDbalConnection();
     }
 

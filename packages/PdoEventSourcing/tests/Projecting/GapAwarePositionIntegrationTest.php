@@ -9,6 +9,7 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSourceBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\GapAwarePosition;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -39,6 +40,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
     private static DbalTicketProjection $projection;
     private static EventStore $eventStore;
     private static ProjectingManager $projectionManager;
+    private static string $proophTicketTable;
 
     protected function setUp(): void
     {
@@ -63,6 +65,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             runForProductionEventStore: true
         );
 
+        self::$proophTicketTable = EventStoreGlobalStreamSourceBuilder::getProophTableName(Ticket::STREAM_NAME);
         self::$eventStore = self::$ecotone->getGateway(EventStore::class);
         self::$projectionManager = self::$ecotone->getGateway(ProjectionRegistry::class)->get(DbalTicketProjection::NAME);
         if (self::$eventStore->hasStream(Ticket::STREAM_NAME)) {
@@ -93,7 +96,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            Ticket::STREAM_NAME,
+            self::$proophTicketTable,
             maxGapOffset: 3, // Only keep gaps within 3 positions
             gapTimeout: null
         );
@@ -130,7 +133,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            Ticket::STREAM_NAME,
+            self::$proophTicketTable,
             gapTimeout: Duration::seconds(5)
         );
 
@@ -163,7 +166,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            Ticket::STREAM_NAME,
+            self::$proophTicketTable,
             maxGapOffset: 1000,
             gapTimeout: Duration::seconds(5)
         );
@@ -184,7 +187,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            Ticket::STREAM_NAME,
+            self::$proophTicketTable,
             maxGapOffset: 1000,
             gapTimeout: null // No timeout
         );

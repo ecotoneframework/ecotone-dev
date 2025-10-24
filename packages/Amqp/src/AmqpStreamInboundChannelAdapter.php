@@ -273,7 +273,6 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
     private function stopStreamConsuming(): void
     {
-        usleep(500000);
         if ($this->consumerTag !== null) {
             try {
                 /** @var AmqpContext $context */

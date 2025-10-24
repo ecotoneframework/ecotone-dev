@@ -18,7 +18,7 @@ class BatchCommitCoordinator
 {
     private int $messagesProcessedInBatch = 0;
     private ?string $lastProcessedOffset = null;
-    private ?string $lastCommittedOffset = null;
+    private ?string $lastCommittedProcessedOffset = null;
 
     public function __construct(
         private int $commitInterval,
@@ -29,7 +29,7 @@ class BatchCommitCoordinator
 
     /**
      * Record that a message was processed and check if we should commit
-     * 
+     *
      * @param string $offset The stream offset of the processed message
      */
     public function recordMessageProcessed(string $offset): void
@@ -50,7 +50,7 @@ class BatchCommitCoordinator
             return;
         }
 
-        if ($this->lastCommittedOffset !== null && $this->lastProcessedOffset <= $this->lastCommittedOffset) {
+        if ($this->isOffsetAlreadyCommitted()) {
             return;
         }
 
@@ -61,9 +61,14 @@ class BatchCommitCoordinator
         $nextOffset = (string)((int)$this->lastProcessedOffset + 1);
         $this->positionTracker->savePosition($this->consumerId, $nextOffset);
 
-        $this->lastCommittedOffset = $nextOffset;
+        $this->lastCommittedProcessedOffset = $this->lastProcessedOffset;
         $this->lastProcessedOffset = null;
         $this->messagesProcessedInBatch = 0;
+    }
+
+    private function isOffsetAlreadyCommitted(): bool
+    {
+        return $this->lastCommittedProcessedOffset !== null && $this->lastProcessedOffset <= $this->lastCommittedProcessedOffset;
     }
 }
 

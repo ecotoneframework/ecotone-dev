@@ -82,7 +82,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
     public function initialize(): void
     {
-        $this->amqpAdmin->declareQueueWithBindings($this->queueName, $this->connectionFactory->createContext());
+        $this->amqpAdmin->declareQueueWithBindings($this->queueName, $this->cachedConnectionFactory->createContext());
     }
 
     /**
@@ -125,11 +125,8 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
                 $this->initialized = true;
             }
 
-            /** @var AmqpReconnectableConnectionFactory $connectionFactory */
-            $connectionFactory = $this->connectionFactory->getInnerConnectionFactory();
-
             /** @var AmqpContext $context */
-            $context = $connectionFactory->createContext();
+            $context = $this->cachedConnectionFactory->createContext();
             Assert::isTrue(method_exists($context, 'getLibChannel'), 'Stream consumption requires AMQP library connection.');
             $libChannel = $context->getLibChannel();
 
@@ -276,12 +273,11 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
     private function stopStreamConsuming(): void
     {
+        usleep(500000);
         if ($this->consumerTag !== null) {
             try {
-                /** @var AmqpReconnectableConnectionFactory $connectionFactory */
-                $connectionFactory = $this->connectionFactory->getInnerConnectionFactory();
                 /** @var AmqpContext $context */
-                $context = $connectionFactory->createContext();
+                $context = $this->cachedConnectionFactory->createContext();
                 $context->getLibChannel()->basic_cancel($this->consumerTag);
             } catch (\Throwable) {
                 // Ignore errors during cleanup

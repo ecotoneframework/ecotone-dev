@@ -128,13 +128,7 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
             return;
         }
 
-        $shouldCommit = $this->batchCommitCoordinator->recordMessageProcessed($this->streamOffset);
-        if (!$shouldCommit) {
-            return;
-        }
-
-        $nextOffset = (string)((int)$this->streamOffset + 1);
-
-        $this->positionTracker->savePosition($this->consumerId, $nextOffset);
+        $this->batchCommitCoordinator->recordMessageProcessed($this->streamOffset);
+        $this->batchCommitCoordinator->commitPendingAndReset();
     }
 }

@@ -166,7 +166,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     {
         $this->stopStreamConsuming();
         // Commit any pending offset from previous batch and reset for new batch
-        $this->batchCommitCoordinator->commitPendingAndReset();
+        $this->batchCommitCoordinator->commitPendingAndReset(ignoreCommitInterval: true);
 
         $libChannel = $context->getLibChannel();
         $libChannel->basic_qos(0, $this->prefetchCount, false);

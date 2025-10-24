@@ -18,6 +18,7 @@ class BatchCommitCoordinator
 {
     private int $messagesProcessedInBatch = 0;
     private ?string $lastProcessedOffset = null;
+    private ?string $lastCommittedOffset = null;
 
     public function __construct(
         private int $commitInterval,
@@ -30,19 +31,11 @@ class BatchCommitCoordinator
      * Record that a message was processed and check if we should commit
      * 
      * @param string $offset The stream offset of the processed message
-     * @return bool True if position should be committed now
      */
-    public function recordMessageProcessed(string $offset): bool
+    public function recordMessageProcessed(string $offset): void
     {
         $this->messagesProcessedInBatch++;
         $this->lastProcessedOffset = $offset;
-
-        // Commit if we've reached the commit interval
-        if ($this->messagesProcessedInBatch % $this->commitInterval === 0) {
-            return true;
-        }
-
-        return false;
     }
 
     /**
@@ -51,15 +44,26 @@ class BatchCommitCoordinator
      *
      * @return void
      */
-    public function commitPendingAndReset(): void
+    public function commitPendingAndReset(bool $ignoreCommitInterval = false): void
     {
-        if ($this->lastProcessedOffset !== null) {
-            $nextOffset = (string)((int)$this->lastProcessedOffset + 1);
-            $this->positionTracker->savePosition($this->consumerId, $nextOffset);
+        if ($this->lastProcessedOffset === null) {
+            return;
         }
 
-        $this->messagesProcessedInBatch = 0;
+        if ($this->lastCommittedOffset !== null && $this->lastProcessedOffset <= $this->lastCommittedOffset) {
+            return;
+        }
+
+        if (!$ignoreCommitInterval && ($this->messagesProcessedInBatch % $this->commitInterval !== 0)) {
+            return;
+        }
+
+        $nextOffset = (string)((int)$this->lastProcessedOffset + 1);
+        $this->positionTracker->savePosition($this->consumerId, $nextOffset);
+
+        $this->lastCommittedOffset = $nextOffset;
         $this->lastProcessedOffset = null;
+        $this->messagesProcessedInBatch = 0;
     }
 }
 

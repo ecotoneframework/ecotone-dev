@@ -41,12 +41,13 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
 
         // Shared position tracker between both instances
         $sharedPositionTracker = new InMemoryConsumerPositionTracker();
+        $orderService = new OrderService();
 
         // First application instance - process some messages
         $ecotoneLite1 = $this->bootstrapForTesting(
             [OrderService::class],
             [
-                new OrderService(),
+                $orderService,
                 ConsumerPositionTracker::class => $sharedPositionTracker,
                 ...$this->getConnectionFactoryReferences(),
             ],
@@ -74,7 +75,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
         $ecotoneLite1->getCommandBus()->sendWithRouting('order.register', 'msg5');
 
         // Run consumer to process messages - will process all available within time limit
-        $ecotoneLite1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
+        $ecotoneLite1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
 
         $orders1 = $ecotoneLite1->getQueryBus()->sendWithRouting('order.getOrders');
         $processedCount1 = count($orders1);
@@ -90,7 +91,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
         $ecotoneLite2 = $this->bootstrapForTesting(
             [OrderService::class],
             [
-                new OrderService(),
+                $orderService,
                 ConsumerPositionTracker::class => $sharedPositionTracker, // Same shared instance
                 ...$this->getConnectionFactoryReferences(),
             ],

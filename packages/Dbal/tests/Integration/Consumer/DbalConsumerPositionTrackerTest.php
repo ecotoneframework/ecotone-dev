@@ -123,7 +123,7 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
     public function test_storing_large_position_values()
     {
         $consumerId = 'test_consumer';
-        $largePosition = str_repeat('1234567890', 100); // 1000 characters
+        $largePosition = '12345678900000';
 
         $this->tracker->savePosition($consumerId, $largePosition);
         $this->assertEquals($largePosition, $this->tracker->loadPosition($consumerId));

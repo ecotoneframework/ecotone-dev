@@ -2,7 +2,7 @@
 
 namespace Ecotone\Amqp\Configuration;
 
-use Enqueue\AmqpLib\AmqpConnectionFactory;
+use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 /**
  * licence Apache-2.0

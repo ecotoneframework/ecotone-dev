@@ -103,11 +103,6 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
             $publisherLibChannel->wait_for_pending_acks(5);
 
             $this->accept();
-
-            // Cancel the consumer to force it to restart and see the new message
-            // This is necessary because RabbitMQ streams don't automatically deliver
-            // messages added after the consumer has caught up
-            $this->streamConsumer->cancelStreamConsumer();
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to resend AMQP stream message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 

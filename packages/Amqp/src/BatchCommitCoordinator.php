@@ -62,7 +62,6 @@ class BatchCommitCoordinator
         $this->positionTracker->savePosition($this->consumerId, $nextOffset);
 
         $this->lastCommittedProcessedOffset = $this->lastProcessedOffset;
-        $this->lastProcessedOffset = null;
         $this->messagesProcessedInBatch = 0;
     }
 

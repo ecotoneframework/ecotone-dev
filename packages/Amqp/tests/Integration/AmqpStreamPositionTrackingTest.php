@@ -75,11 +75,11 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
         $ecotoneLite1->getCommandBus()->sendWithRouting('order.register', 'msg5');
 
         // Run consumer to process messages - will process all available within time limit
-        $ecotoneLite1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneLite1->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        $orders1 = $ecotoneLite1->getQueryBus()->sendWithRouting('order.getOrders');
-        $processedCount1 = count($orders1);
-        $this->assertGreaterThan(0, $processedCount1, 'Should have processed at least one message');
+        $orders = $ecotoneLite1->getQueryBus()->sendWithRouting('order.getOrders');
+        $processedCount = count($orders);
+        $this->assertGreaterThan(0, $processedCount, 'Should have processed at least one message');
 
         // Check that position was committed
         // Position is tracked using combined consumer ID: endpointId:queueName
@@ -97,6 +97,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()
                         ->withInMemoryConsumerPositionTracker(false), // Disable default, use our shared instance
@@ -113,11 +114,11 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
         // Run consumer - should process remaining messages
         $ecotoneLite2->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
-        $orders2 = $ecotoneLite2->getQueryBus()->sendWithRouting('order.getOrders');
-        $processedCount2 = count($orders2);
+        $orders = $ecotoneLite2->getQueryBus()->sendWithRouting('order.getOrders');
+        $processedCount = count($orders);
 
         // Total processed should be 5 (no duplicates)
-        $this->assertEquals(5, $processedCount1 + $processedCount2, 'Should have processed all 5 messages across both instances without duplicates');
+        $this->assertEquals(5, $processedCount, 'Should have processed all 5 messages across both instances without duplicates');
     }
 }
 

@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\Config;
 
+use Ecotone\Projecting\Attribute\ProjectionBatchSize;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use function array_merge;
 
@@ -60,7 +61,8 @@ class ProjectingAttributeModule implements AnnotationModule
         $projectionBuilders = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
-            $projectionBuilder = new EcotoneProjectionExecutorBuilder($projectionAttribute->name, $projectionAttribute->partitionHeaderName, $projectionAttribute->automaticInitialization, $namedEvents);
+            $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBatchSize::class);
+            $projectionBuilder = new EcotoneProjectionExecutorBuilder($projectionAttribute->name, $projectionAttribute->partitionHeaderName, $projectionAttribute->automaticInitialization, $namedEvents, batchSize: $batchSizeAttribute?->batchSize);
 
             $asynchronousChannelName = self::getProjectionAsynchronousChannel($annotationRegistrationService, $projectionClassName);
             if ($asynchronousChannelName !== null) {

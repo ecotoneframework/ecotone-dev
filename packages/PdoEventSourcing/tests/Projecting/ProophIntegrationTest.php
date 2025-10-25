@@ -17,6 +17,8 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\ProjectionBatchSize;
+use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
 use Ramsey\Uuid\Uuid;
@@ -401,5 +403,44 @@ class ProophIntegrationTest extends ProjectingTestCase
 
         self::assertSame(2, $ticketsCount, 'Partitioned projection should process all events');
         self::assertSame(2, $projection->initCallCount, 'Init should be called once for each partition');
+    }
+
+    public function test_it_handles_batches(): void
+    {
+        $connectionFactory = self::getConnectionFactory();
+        $projection = new #[Projection(self::NAME, automaticInitialization: false), ProjectionBatchSize(3)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+            public const NAME = 'batch_projection';
+            public int $flushCallCount = 0;
+            #[ProjectionFlush]
+            public function flush()
+            {
+                $this->flushCallCount++;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+            [$connectionFactory, $projection, new TicketEventConverter()],
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        // Delete any existing data
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+            ->deleteProjection($projection::NAME);
+
+        // Send multiple events
+        for ($i = 1; $i <= 5; $i++) {
+            $ticketId = Uuid::uuid4()->toString();
+            $ecotone->sendCommand(new CreateTicketCommand($ticketId))
+                ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
+        }
+
+        // Trigger projection processing
+        $ticketsCount = $ecotone->triggerProjection($projection::NAME)
+            ->sendQueryWithRouting('getTicketsCount');
+
+        self::assertSame(5, $ticketsCount, 'Batch projection should process all events in batches');
+        self::assertSame(4, $projection->flushCallCount, 'Flush should be called 5 times (10 events / batch size 3)');
     }
 }

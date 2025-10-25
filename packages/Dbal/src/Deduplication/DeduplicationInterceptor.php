@@ -91,7 +91,7 @@ class DeduplicationInterceptor
 
         try {
             /** @TODO Ecotone 2.0 remove postgres check - when getting rid of implicit commit for MySQL */
-            $isTransactionActive = $connection->isTransactionActive() && $connection->getDatabasePlatform() instanceof PostgresDriver;
+            $isTransactionActive = $connection->isTransactionActive() && $connection->getDatabasePlatform() instanceof PostgresDriver; // @phpstan-ignore-line
             // ensure that concurrent message handling will fail before proceeding
             if ($isTransactionActive) {
                 $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);

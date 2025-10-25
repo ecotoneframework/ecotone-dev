@@ -34,7 +34,7 @@ class GatewayHeadersConverter implements GatewayParameterConverter
 
         $headers = $methodArgument->value();
 
-        if (! Type::createFromVariable($headers)->isIterable()) {
+        if (! \is_iterable($headers)) {
             throw InvalidArgumentException::create("Gateway @Headers expect parameter to be iterable. Given non iterable value for parameter with name {$this->parameterName}");
         }
 
@@ -43,7 +43,7 @@ class GatewayHeadersConverter implements GatewayParameterConverter
              * Do not propagate routing slip when calling higher level Gateways (Command, Query, Event Bus)
              * This is because they start new flows which should not be routed back to the original one
              */
-            if (in_array($headerName, [MessageHeaders::ROUTING_SLIP])) {
+            if ($headerName === MessageHeaders::ROUTING_SLIP) {
                 continue;
             }
             if ($headerName === MessageHeaders::CONTENT_TYPE) {
@@ -70,6 +70,6 @@ class GatewayHeadersConverter implements GatewayParameterConverter
      */
     public function isSupporting(?MethodArgument $methodArgument): bool
     {
-        return $methodArgument && ($this->parameterName == $methodArgument->getParameterName());
+        return $methodArgument && ($this->parameterName === $methodArgument->getParameterName());
     }
 }

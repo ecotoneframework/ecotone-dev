@@ -3,11 +3,11 @@
 namespace Ecotone\Dbal\Deduplication;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Laravel\Config\PDO\PostgresDriver;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
@@ -91,7 +91,7 @@ class DeduplicationInterceptor
 
         try {
             /** @TODO Ecotone 2.0 remove postgres check - when getting rid of implicit commit for MySQL */
-            $isTransactionActive = $connection->isTransactionActive() && $connection->getDatabasePlatform() instanceof PostgresDriver; // @phpstan-ignore-line
+            $isTransactionActive = $connection->isTransactionActive() && $connection->getDatabasePlatform() instanceof PostgreSQLPlatform;
             // ensure that concurrent message handling will fail before proceeding
             if ($isTransactionActive) {
                 $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);

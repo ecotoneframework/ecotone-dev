@@ -12,6 +12,8 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 
+use function is_scalar;
+
 /**
  * Class HeaderArgument
  * @package Ecotone\Messaging\Handler\ServiceActivator
@@ -51,7 +53,7 @@ class HeaderConverter implements ParameterConverter
             $sourceMediaType = MediaType::createApplicationXPHP();
             if ($this->canConvertTo($sourceValueType, $sourceMediaType, $targetType)) {
                 $headerValue = $this->doConversion($headerValue, $sourceValueType, $sourceMediaType, $targetType);
-            } elseif (\is_scalar($headerValue) && $this->canConvertTo($sourceValueType, MediaType::parseMediaType(DefaultHeaderMapper::FALLBACK_HEADER_CONVERSION_MEDIA_TYPE), $targetType)) {
+            } elseif (is_scalar($headerValue) && $this->canConvertTo($sourceValueType, MediaType::parseMediaType(DefaultHeaderMapper::FALLBACK_HEADER_CONVERSION_MEDIA_TYPE), $targetType)) {
                 $headerValue = $this->doConversion($headerValue, $sourceValueType, MediaType::parseMediaType(DefaultHeaderMapper::FALLBACK_HEADER_CONVERSION_MEDIA_TYPE), $targetType);
             } else {
                 throw ConversionException::create("Can't convert {$this->headerName} from {$sourceValueType} to {$targetType}. Lack of PHP Converter or JSON Media Type Converter available.");

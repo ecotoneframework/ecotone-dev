@@ -7,8 +7,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\Config;
 
-use Ecotone\Projecting\Attribute\ProjectionBatchSize;
-use Ecotone\Projecting\Attribute\ProjectionFlush;
 use function array_merge;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
@@ -31,6 +29,8 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\ProjectionBatchSize;
+use Ecotone\Projecting\Attribute\ProjectionFlush;
 use LogicException;
 
 /**

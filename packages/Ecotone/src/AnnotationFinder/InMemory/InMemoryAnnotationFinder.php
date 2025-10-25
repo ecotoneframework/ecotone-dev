@@ -9,7 +9,6 @@ use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationResolver\AttributeResolver;
 use Ecotone\AnnotationFinder\TypeResolver;
-use Ecotone\Messaging\Handler\Type;
 use ReflectionClass;
 
 /**

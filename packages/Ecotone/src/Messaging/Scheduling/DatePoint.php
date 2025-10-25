@@ -12,11 +12,15 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use DateTimeZone;
 use InvalidArgumentException;
-use RuntimeException;
+
 use function is_int;
-use function sprintf;
+
 use const PHP_INT_MAX;
 use const PHP_INT_MIN;
+
+use RuntimeException;
+
+use function sprintf;
 
 class DatePoint extends DateTimeImmutable
 {
@@ -41,7 +45,7 @@ class DatePoint extends DateTimeImmutable
      */
     public static function createFromFormat(string $format, string $datetime, ?DateTimeZone $timezone = null): static
     {
-        return parent::createFromFormat($format, $datetime, $timezone) ?: throw new \RuntimeException(static::getLastErrors()['errors'][0] ?? 'Invalid date string or format.');
+        return parent::createFromFormat($format, $datetime, $timezone) ?: throw new RuntimeException(static::getLastErrors()['errors'][0] ?? 'Invalid date string or format.');
     }
 
     public static function createFromInterface(DateTimeInterface $object): static

@@ -11,6 +11,8 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 
+use function is_iterable;
+
 /**
  * Class GatewayHeaderArrayConverter
  * @package Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter
@@ -34,7 +36,7 @@ class GatewayHeadersConverter implements GatewayParameterConverter
 
         $headers = $methodArgument->value();
 
-        if (! \is_iterable($headers)) {
+        if (! is_iterable($headers)) {
             throw InvalidArgumentException::create("Gateway @Headers expect parameter to be iterable. Given non iterable value for parameter with name {$this->parameterName}");
         }
 

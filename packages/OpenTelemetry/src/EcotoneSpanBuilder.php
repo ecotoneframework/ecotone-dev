@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\OpenTelemetry;
 
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
+
+use function is_scalar;
+
 use OpenTelemetry\API\Trace\SpanBuilderInterface;
 use OpenTelemetry\API\Trace\SpanKind;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
@@ -27,7 +29,7 @@ final class EcotoneSpanBuilder
         $userHeaders = MessageHeaders::unsetAllFrameworkHeaders($context->getHeaders()->headers());
 
         foreach ($userHeaders as $key => $value) {
-            if (! \is_scalar($value)) {
+            if (! is_scalar($value)) {
                 unset($userHeaders[$key]);
             }
         }

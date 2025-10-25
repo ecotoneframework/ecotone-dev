@@ -20,6 +20,8 @@ use Ecotone\Projecting\StreamSource;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 
+use function strlen;
+
 class EventStoreGlobalStreamSource implements StreamSource
 {
     private Connection $connection;
@@ -41,7 +43,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
             true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => ArrayParameterType::INTEGER]],
-            false => ['',[],[]],
+            false => ['', [], []],
         };
 
         $query = $this->connection->executeQuery(<<<SQL
@@ -52,7 +54,7 @@ class EventStoreGlobalStreamSource implements StreamSource
             LIMIT {$count}
             SQL, [
             'position' => $tracking->getPosition(),
-            ...$gapQueryPartParams
+            ...$gapQueryPartParams,
         ], $gapQueryPartParamTypes);
 
         $events = [];
@@ -127,7 +129,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
     private function getTimestamp(string $dateString): int
     {
-        if (\strlen($dateString) === 19) {
+        if (strlen($dateString) === 19) {
             $dateString = $dateString . '.000';
         }
         return DatePoint::createFromFormat(

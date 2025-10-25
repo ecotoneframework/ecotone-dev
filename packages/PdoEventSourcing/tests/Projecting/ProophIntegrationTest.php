@@ -447,7 +447,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(5, $ticketsCount, 'Batch projection should process all events in batches');
-        self::assertSame(4, $projection->flushCallCount, 'Flush should be called 4 times (10 events / batch size 3)');
+        self::assertSame(4, $projection->flushCallCount, 'Flush should be called 4 times (10 events / batch size 3) = 4 rounded up');
     }
 
     public function test_it_handles_custom_name_stream_source(): void

@@ -20,6 +20,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
+use Ecotone\Projecting\Config\ProjectingConsoleCommands;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 #[ModuleAnnotation]
@@ -59,6 +60,7 @@ class DbalTransactionModule implements AnnotationModule
             $pointcut .= '||(' . ConsoleCommand::class . ')';
         }
         $pointcut = '(' . $pointcut . ')&&not(' . WithoutDbalTransaction::class . ')';
+        $pointcut .= '&&not('. ProjectingConsoleCommands::class . '::backfillProjection)';
         $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionFactory::class];
 
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [

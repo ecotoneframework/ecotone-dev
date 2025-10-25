@@ -222,15 +222,19 @@ class InMemoryAnnotationFinder implements AnnotationFinder
 
     public function getAttributeForClass(string $className, string $attributeClassName): object
     {
+        return $this->findAttributeForClass($className, $attributeClassName) ?? throw \Ecotone\Messaging\Support\InvalidArgumentException::create("Can't find attribute {$attributeClassName} for {$className}");
+    }
+
+    public function findAttributeForClass(string $className, string $attributeClassName): ?object
+    {
         $attributes = $this->getAnnotationsForClass($className);
-        $attributeClassNameType = Type::object($attributeClassName);
         foreach ($attributes as $attributeToVerify) {
-            if ($attributeClassNameType->accepts($attributeToVerify)) {
+            if ($attributeToVerify instanceof $attributeClassName) {
                 return $attributeToVerify;
             }
         }
 
-        throw \Ecotone\Messaging\Support\InvalidArgumentException::create("Can't find attribute {$attributeClassName} for {$className}");
+        return null;
     }
 
     /**

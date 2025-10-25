@@ -4,7 +4,8 @@ namespace Test\Ecotone\Amqp;
 
 use AMQPQueueException;
 use Ecotone\Amqp\Distribution\AmqpDistributionModule;
-use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpLibConnection;
+use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnection;
+use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use PHPUnit\Framework\TestCase;
@@ -33,20 +34,48 @@ abstract class AmqpMessagingTestCase extends TestCase
     }
 
     /**
+     * Get connection factory references for dependency injection container
+     * Returns an array with all possible connection factory class names pointing to the same instance
+     * This ensures compatibility with both AmqpExt and AmqpLib implementations
+     * 
+     * @return array<string, AmqpConnectionFactory>
+     */
+    public function getConnectionFactoryReferences(array $config = []): array
+    {
+        $connectionFactory = $this->getCachedConnectionFactory($config);
+        
+        // Provide both the interface and both concrete implementations
+        // Even though only AmqpExt is installed, some modules (like AmqpTransactionModule)
+        // default to AmqpLib, so we need to provide it as well
+        return [
+            AmqpConnectionFactory::class => $connectionFactory,
+            AmqpExtConnection::class => $connectionFactory,
+            AmqpLibConnection::class => $connectionFactory,
+        ];
+    }
+
+    /**
      * @return AmqpConnectionFactory
      */
     public static function getRabbitConnectionFactory(array $config = []): AmqpConnectionFactory
     {
-        return new AmqpLibConnection(
-            array_merge(
-                ['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f'],
-                $config,
-            )
-        );
+        $dsn = ['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f'];
+        $config = array_merge($dsn, $config);
+
+        // Use AMQP_IMPLEMENTATION env var to choose between ext and lib
+        // Default to ext for backward compatibility
+        $implementation = getenv('AMQP_IMPLEMENTATION') ?: 'ext';
+
+        if ($implementation === 'lib') {
+            return new AmqpLibConnection($config);
+        }
+
+        return new AmqpExtConnection($config);
     }
 
     public function setUp(): void
     {
+        // Ensure cache directory is writable for tests
         $this->queueCleanUp();
     }
 
@@ -74,5 +103,67 @@ abstract class AmqpMessagingTestCase extends TestCase
             self::getRabbitConnectionFactory()->createContext()->deleteQueue($queue);
         } catch (AMQPQueueException) {
         }
+    }
+
+    /**
+     * Bootstrap Ecotone for testing with writable cache directory
+     * This is a wrapper around EcotoneLite::bootstrapFlowTesting that automatically sets the cache directory
+     */
+    protected function bootstrapFlowTesting(
+        array $classesToResolve = [],
+        array $containerOrAvailableServices = [],
+        ?\Ecotone\Messaging\Config\ServiceConfiguration $configuration = null,
+        array $configurationVariables = [],
+        ?string $pathToRootCatalog = null,
+        bool $allowGatewaysToBeRegisteredInContainer = false,
+        bool $addInMemoryStateStoredRepository = true,
+        bool $addInMemoryEventSourcedRepository = true,
+        array|bool|null $enableAsynchronousProcessing = null,
+        ?\Ecotone\Lite\Test\TestConfiguration $testConfiguration = null,
+        ?string $licenceKey = null
+    ): \Ecotone\Lite\Test\FlowTestSupport {
+        if ($configuration === null) {
+            $configuration = \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults();
+        }
+
+        return \Ecotone\Lite\EcotoneLite::bootstrapFlowTesting(
+            $classesToResolve,
+            $containerOrAvailableServices,
+            $configuration,
+            $configurationVariables,
+            $pathToRootCatalog,
+            $allowGatewaysToBeRegisteredInContainer,
+            $addInMemoryStateStoredRepository,
+            $addInMemoryEventSourcedRepository,
+            $enableAsynchronousProcessing,
+            $testConfiguration,
+            $licenceKey
+        );
+    }
+
+    /**
+     * Bootstrap Ecotone for testing with writable cache directory
+     * This is a wrapper around EcotoneLite::bootstrapForTesting that automatically sets the cache directory
+     */
+    protected function bootstrapForTesting(
+        array $classesToResolve = [],
+        array $containerOrAvailableServices = [],
+        ?\Ecotone\Messaging\Config\ServiceConfiguration $configuration = null,
+        array $configurationVariables = [],
+        string $pathToRootCatalog = '',
+        bool $useCachedVersion = false
+    ): \Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport {
+        if ($configuration === null) {
+            $configuration = \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults();
+        }
+
+        return \Ecotone\Lite\EcotoneLite::bootstrapForTesting(
+            $classesToResolve,
+            $containerOrAvailableServices,
+            $configuration,
+            $configurationVariables,
+            $pathToRootCatalog,
+            $useCachedVersion
+        );
     }
 }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -13,7 +12,6 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Exception;
 
 /**
@@ -27,9 +25,12 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
 {
     public function test_reject_failure_strategy_rejects_message_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [FailingService::class],
-            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(), ],
+            array_merge(
+                [new FailingService()],
+                $this->getConnectionFactoryReferences()
+            ),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
@@ -48,9 +49,12 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
 
     public function test_resend_failure_strategy_rejects_message_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [FailingService::class],
-            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(), ],
+            array_merge(
+                [new FailingService()],
+                $this->getConnectionFactoryReferences()
+            ),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
@@ -70,9 +74,12 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
 
     public function test_release_failure_strategy_releases_message_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [FailingService::class],
-            [new FailingService(), AmqpConnectionFactory::class => $this->getCachedConnectionFactory(), ],
+            array_merge(
+                [new FailingService()],
+                $this->getConnectionFactoryReferences()
+            ),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([

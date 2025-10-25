@@ -20,7 +20,8 @@ class ChannelConfiguration
     {
         return [
             AmqpBackedMessageChannelBuilder::create(self::QUEUE_NAME)
-                ->withReceiveTimeout(1),
+                ->withReceiveTimeout(1)
+                ->withPublisherConfirms(false),
             PollingMetadata::create(self::QUEUE_NAME)
                 ->setHandledMessageLimit(1)
                 ->setExecutionTimeLimitInMilliseconds(2000),

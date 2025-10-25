@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
+use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
@@ -16,12 +17,17 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\Attribute\ProjectionBatchSize;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
 use Ramsey\Uuid\Uuid;
+use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
+use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
+use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
+use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
@@ -412,7 +418,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             public const NAME = 'batch_projection';
             public int $flushCallCount = 0;
             #[ProjectionFlush]
-            public function flush()
+            public function flush(): void
             {
                 $this->flushCallCount++;
             }
@@ -442,5 +448,33 @@ class ProophIntegrationTest extends ProjectingTestCase
 
         self::assertSame(5, $ticketsCount, 'Batch projection should process all events in batches');
         self::assertSame(4, $projection->flushCallCount, 'Flush should be called 5 times (10 events / batch size 3)');
+    }
+
+    public function test_it_handles_custom_name_stream_source(): void
+    {
+        $basketProjection = new #[Projection(self::NAME), FromStream(Basket::BASKET_STREAM)] class {
+            public const NAME = 'basket_projection';
+            public int $basketCount = 0;
+
+            #[EventHandler(BasketWasCreated::EVENT_NAME)]
+            public function onBasketCreated(): void
+            {
+                $this->basketCount++;
+            }
+        };
+
+        EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [$basketProjection::class, Basket::class, BasketEventConverter::class, BasketWasCreated::class],
+            [self::getConnectionFactory(), $basketProjection, new BasketEventConverter()],
+            ServiceConfiguration::createWithDefaults(),
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        )
+            ->deleteEventStream(Basket::BASKET_STREAM)
+            ->deleteProjection($basketProjection::NAME)
+            ->sendCommand(new CreateBasket(Uuid::uuid4()->toString()))
+            ->sendCommand(new CreateBasket(Uuid::uuid4()->toString()));
+
+        self::assertSame(2, $basketProjection->basketCount);
     }
 }

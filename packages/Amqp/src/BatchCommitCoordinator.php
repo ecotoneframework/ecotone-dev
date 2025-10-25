@@ -23,7 +23,7 @@ class BatchCommitCoordinator
     public function __construct(
         private int $commitInterval,
         private ConsumerPositionTracker $positionTracker,
-        private string $consumerId
+        private string $consumerId,
     ) {
     }
 
@@ -63,6 +63,11 @@ class BatchCommitCoordinator
 
         $this->lastCommittedProcessedOffset = $this->lastProcessedOffset;
         $this->messagesProcessedInBatch = 0;
+    }
+
+    public function isOffsetAlreadyProcessed(string|int $offset): bool
+    {
+        return $this->lastCommittedProcessedOffset !== null && $offset <= $this->lastProcessedOffset;
     }
 
     private function isOffsetAlreadyCommitted(): bool

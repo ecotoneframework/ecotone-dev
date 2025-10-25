@@ -41,6 +41,7 @@ use PhpAmqpLib\Wire\AMQPTable;
  */
 class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter implements CancellableAmqpStreamConsumer
 {
+    const X_STREAM_OFFSET_HEADER = 'x-stream-offset';
     private bool $initialized = false;
     private QueueChannel $queueChannel;
     private ?string $consumerTag = null;
@@ -76,7 +77,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         $this->batchCommitCoordinator = new BatchCommitCoordinator(
             $this->commitInterval,
             $this->positionTracker,
-            $this->getConsumerId()
+            $this->getConsumerId(),
         );
     }
 
@@ -117,6 +118,13 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     {
         try {
             if ($message = $this->queueChannel->receive()) {
+                $streamPosition = $message->getHeaders()->get(self::X_STREAM_OFFSET_HEADER);
+
+                // sometimes AMQP does redeliver same messages from end of given batch
+                if ($this->batchCommitCoordinator->isOffsetAlreadyProcessed($streamPosition)) {
+                    return $this->receiveWithTimeout($timeout);
+                }
+
                 return $message;
             }
 
@@ -179,7 +187,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             $offset = (int)$savedPosition;
         }
 
-        $arguments = new AMQPTable(['x-stream-offset' => $offset]);
+        $arguments = new AMQPTable([self::X_STREAM_OFFSET_HEADER => $offset]);
 
         $this->consumerTag = $libChannel->basic_consume(
             queue: $this->queueName,

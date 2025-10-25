@@ -9,7 +9,6 @@ use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Enqueue\AmqpLib\AmqpContext;
 use Exception;
 use PhpAmqpLib\Message\AMQPMessage as PhpAmqpLibMessage;
 use PhpAmqpLib\Wire\AMQPTable;
@@ -103,6 +102,8 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
             $publisherLibChannel->wait_for_pending_acks(5);
 
             $this->accept();
+            // This does prevent amqp to redeliver the same message twice
+            $this->connectionFactory->reconnect();
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to resend AMQP stream message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 

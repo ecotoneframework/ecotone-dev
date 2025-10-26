@@ -102,8 +102,6 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
             $publisherLibChannel->wait_for_pending_acks(5);
 
             $this->accept();
-            // This does prevent amqp to redeliver the same message twice
-            $this->connectionFactory->reconnect();
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to resend AMQP stream message, disconnecting Connection in order to self-heal. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 

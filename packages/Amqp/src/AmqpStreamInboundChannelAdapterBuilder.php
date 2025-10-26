@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
-use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
@@ -22,7 +21,7 @@ use Ramsey\Uuid\Uuid;
 
 /**
  * AMQP Stream Inbound Channel Adapter Builder
- * 
+ *
  * licence Enterprise
  */
 class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder

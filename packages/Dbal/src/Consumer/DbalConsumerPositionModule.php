@@ -42,7 +42,7 @@ class DbalConsumerPositionModule extends NoExternalConfigurationModule implement
             $messagingConfiguration->registerServiceDefinition(
                 ConsumerPositionTracker::class,
                 new Definition(DbalConsumerPositionTracker::class, [
-                    new Reference($dbalConfiguration->getDbalDocumentStoreReference())
+                    new Reference($dbalConfiguration->getDbalDocumentStoreReference()),
                 ])
             );
         }
@@ -58,4 +58,3 @@ class DbalConsumerPositionModule extends NoExternalConfigurationModule implement
         return ModulePackageList::DBAL_PACKAGE;
     }
 }
-

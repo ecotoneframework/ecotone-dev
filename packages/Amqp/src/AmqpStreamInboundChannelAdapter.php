@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
-use Ecotone\Amqp\AmqpReconnectableConnectionFactory;
-use Ecotone\Amqp\AmqpStreamAcknowledgeCallback;
+use AMQPChannelException;
+use AMQPConnectionException;
+use AMQPException;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
@@ -14,7 +15,6 @@ use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
@@ -24,14 +24,13 @@ use Enqueue\AmqpLib\AmqpContext;
 use Interop\Amqp\AmqpMessage;
 use Interop\Queue\Consumer;
 use Interop\Queue\Message as EnqueueMessage;
-use AMQPChannelException;
-use AMQPConnectionException;
 use PhpAmqpLib\Exception\AMQPChannelClosedException;
 use PhpAmqpLib\Exception\AMQPConnectionClosedException;
 use PhpAmqpLib\Exception\AMQPIOException;
 use PhpAmqpLib\Exception\AMQPTimeoutException;
 use PhpAmqpLib\Message\AMQPMessage as PhpAmqpLibMessage;
 use PhpAmqpLib\Wire\AMQPTable;
+use Throwable;
 
 /**
  * AMQP Stream Inbound Channel Adapter
@@ -41,7 +40,7 @@ use PhpAmqpLib\Wire\AMQPTable;
  */
 class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter implements CancellableAmqpStreamConsumer
 {
-    const X_STREAM_OFFSET_HEADER = 'x-stream-offset';
+    public const X_STREAM_OFFSET_HEADER = 'x-stream-offset';
     private bool $initialized = false;
     private QueueChannel $queueChannel;
     private ?string $consumerTag = null;
@@ -160,7 +159,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             }
 
             return $this->queueChannel->receive();
-        } catch (\AMQPException|AMQPIOException $exception) {
+        } catch (AMQPException|AMQPIOException $exception) {
             $this->stopStreamConsuming();
             $this->connectionFactory->reconnect();
             throw new ConnectionException('Failed to connect to AMQP broker', 0, $exception);
@@ -286,7 +285,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
                 /** @var AmqpContext $context */
                 $context = $this->cachedConnectionFactory->createContext();
                 $context->getLibChannel()->basic_cancel($this->consumerTag);
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // Ignore errors during cleanup
             }
             $this->consumerTag = null;

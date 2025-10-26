@@ -8,10 +8,10 @@ use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 
 /**
  * Coordinates batch commits for AMQP Stream position tracking
- * 
+ *
  * Tracks messages processed in the current batch and determines when to commit
  * based on the configured commit interval.
- * 
+ *
  * licence Enterprise
  */
 class BatchCommitCoordinator
@@ -54,7 +54,7 @@ class BatchCommitCoordinator
             return;
         }
 
-        if (!$ignoreCommitInterval && ($this->messagesProcessedInBatch % $this->commitInterval !== 0)) {
+        if (! $ignoreCommitInterval && ($this->messagesProcessedInBatch % $this->commitInterval !== 0)) {
             return;
         }
 
@@ -75,4 +75,3 @@ class BatchCommitCoordinator
         return $this->lastCommittedProcessedOffset !== null && $this->lastProcessedOffset <= $this->lastCommittedProcessedOffset;
     }
 }
-

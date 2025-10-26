@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;

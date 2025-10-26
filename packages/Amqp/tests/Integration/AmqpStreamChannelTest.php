@@ -6,7 +6,6 @@ namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\AmqpStreamChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -14,8 +13,6 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnection;
-use Enqueue\AmqpLib\AmqpConnectionFactory;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -80,7 +77,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         startPosition: 'first',
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
-                    )
+                    ),
                 ])
         );
 
@@ -137,7 +134,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
         // Consume from last position - should get only the last message
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()
+        $ecotoneLite->run(
+            $channelName,
+            ExecutionPollingMetadata::createWithDefaults()
             ->withTestingSetup()
             ->withHandledMessageLimit(1)
             ->withExecutionTimeLimitInMilliseconds(5000)
@@ -182,7 +181,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
         // Consume from offset 1 - should get second and third messages
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()
+        $ecotoneLite->run(
+            $channelName,
+            ExecutionPollingMetadata::createWithDefaults()
             ->withTestingSetup()
             ->withHandledMessageLimit(2)
             ->withExecutionTimeLimitInMilliseconds(5000)
@@ -219,7 +220,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         );
 
         // Try to consume from empty stream with 'next' offset - should timeout gracefully
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()
+        $ecotoneLite->run(
+            $channelName,
+            ExecutionPollingMetadata::createWithDefaults()
             ->withTestingSetup()
             ->withHandledMessageLimit(1)
             ->withExecutionTimeLimitInMilliseconds(1000)
@@ -264,7 +267,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         );
 
         // Try to consume from empty stream with 'first' offset - should timeout gracefully
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()
+        $ecotoneLite->run(
+            $channelName,
+            ExecutionPollingMetadata::createWithDefaults()
             ->withTestingSetup()
             ->withHandledMessageLimit(1)
             ->withExecutionTimeLimitInMilliseconds(1000)
@@ -349,7 +354,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'old_bread');
 
         // Start consumer with 'next' offset - should ignore existing messages
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()
+        $ecotoneLite->run(
+            $channelName,
+            ExecutionPollingMetadata::createWithDefaults()
             ->withTestingSetup()
             ->withHandledMessageLimit(3)
             ->withExecutionTimeLimitInMilliseconds(1000)
@@ -424,7 +431,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'cheese');
 
         // Try to consume from offset 100 (beyond stream) - should get nothing
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()
+        $ecotoneLite->run(
+            $channelName,
+            ExecutionPollingMetadata::createWithDefaults()
             ->withTestingSetup()
             ->withHandledMessageLimit(1)
             ->withExecutionTimeLimitInMilliseconds(1000)
@@ -585,7 +594,9 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'bread');
 
         // Consume with very short timeout - may only get partial messages due to timeout
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()
+        $ecotoneLite->run(
+            $channelName,
+            ExecutionPollingMetadata::createWithDefaults()
             ->withTestingSetup()
             ->withExecutionTimeLimitInMilliseconds(500) // Very short timeout
         );
@@ -954,7 +965,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
      */
     public function test_commit_interval_with_single_message_polling_metadata(): void
     {
-        $this->markTestSkipped("Requires passing PollingMetadata to Inbound Adapters");
+        $this->markTestSkipped('Requires passing PollingMetadata to Inbound Adapters');
 
         $channelName = 'orders';
         $queueName = 'stream_queue_single_poll_' . Uuid::uuid4()->toString();
@@ -980,7 +991,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         queueName: $queueName,
                     )
                         ->withCommitInterval(3), // Commit every 3 messages,
-                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false)
+                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
                 ])
         );
 

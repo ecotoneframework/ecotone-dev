@@ -90,7 +90,7 @@ class AmqpStreamAcknowledgeCallback implements AcknowledgementCallback
             unset($properties['application_headers']);
 
             $resendMessage = new PhpAmqpLibMessage($body, $properties);
-            if (!empty($headers)) {
+            if (! empty($headers)) {
                 $resendMessage->set('application_headers', new AMQPTable($headers));
             }
 

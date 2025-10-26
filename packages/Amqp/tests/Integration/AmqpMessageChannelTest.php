@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use AMQPConnectionException;
+use AMQPException;
 use AMQPQueueException;
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -20,12 +20,11 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use PhpAmqpLib\Exception\AMQPIOException;
 use PhpAmqpLib\Exception\AMQPProtocolChannelException;
-use AMQPException;
-use PHPUnit\Framework\Attributes\TestWith;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DeadLetter\ErrorConfigurationContext;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
+use Throwable;
 
 /**
  * @internal
@@ -152,7 +151,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         );
 
         try {
-        $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
+            $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
         } catch (AMQPException|AMQPQueueException|AMQPProtocolChannelException) {
         }
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
@@ -236,7 +235,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
 
         // AMQP Ext throws AMQPException, AMQP Lib throws AMQPProtocolChannelException
-        $this->expectException(\Throwable::class);
+        $this->expectException(Throwable::class);
 
         $messageChannel->receiveWithTimeout(1);
     }
@@ -250,7 +249,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 new \Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService(),
                 ...array_merge([
                     AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => 'amqp://guest:guest@localhost:1000/%2f']),
-                    \Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => 'amqp://guest:guest@localhost:1000/%2f']),
+                    AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => 'amqp://guest:guest@localhost:1000/%2f']),
                     \Enqueue\AmqpLib\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => 'amqp://guest:guest@localhost:1000/%2f']),
                 ]),
                 'logger' => $loggerExample,

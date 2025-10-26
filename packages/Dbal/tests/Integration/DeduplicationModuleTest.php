@@ -141,7 +141,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
     {
         // Create two separate connection factories pointing to the same database
         $dsn = getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone';
-        if (!str_contains($dsn, 'pgsql')) {
+        if (! str_contains($dsn, 'pgsql')) {
             $this->markTestSkipped('Not supported on PostgreSQL');
 
             return;
@@ -232,7 +232,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
     {
         // Create two separate connection factories pointing to the same database
         $dsn = getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone';
-        if (!str_contains($dsn, 'pgsql')) {
+        if (! str_contains($dsn, 'pgsql')) {
             $this->markTestSkipped('Not supported on PostgreSQL');
 
             return;

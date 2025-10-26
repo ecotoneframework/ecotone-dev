@@ -2,7 +2,6 @@
 
 namespace Ecotone\Amqp;
 
-use AMQPChannel as ExtAMQPChannel;
 use AMQPConnection;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
@@ -85,7 +84,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         if ($context instanceof AmqpLibContext) {
             /** @var LibAMQPChannel $libChannel */
             $libChannel = $context->getLibChannel();
-            if ($libChannel->getConnection() !== null && !$libChannel->getConnection()->isConnected()) {
+            if ($libChannel->getConnection() !== null && ! $libChannel->getConnection()->isConnected()) {
                 return true;
             }
             return ! $libChannel->is_open();
@@ -135,7 +134,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         /** @var AMQPConnection|AMQPLazyConnection|null $connection */
         $connection = $connectionProperty->getValue($this->connectionFactory);
 
-        if (!$connection) {
+        if (! $connection) {
             return false;
         }
 

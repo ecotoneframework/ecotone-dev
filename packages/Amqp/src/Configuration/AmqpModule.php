@@ -73,7 +73,7 @@ class AmqpModule implements AnnotationModule
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof AmqpBackedMessageChannelBuilder) {
                 $amqpQueues[] = AmqpQueue::createWith($extensionObject->getQueueName());
-            }   elseif ($extensionObject instanceof AmqpStreamChannelBuilder) {
+            } elseif ($extensionObject instanceof AmqpStreamChannelBuilder) {
                 $hasAmqpStreamChannelBuilder = true;
                 $amqpQueues[] = AmqpQueue::createStreamQueue($extensionObject->queueName);
             } elseif ($extensionObject instanceof AmqpExchange) {

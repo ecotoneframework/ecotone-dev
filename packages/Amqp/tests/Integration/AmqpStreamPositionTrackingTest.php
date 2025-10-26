@@ -6,7 +6,6 @@ namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\AmqpStreamChannelBuilder;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -22,6 +21,7 @@ use Test\Ecotone\Amqp\Fixture\Order\OrderService;
 /**
  * Tests for AMQP Stream position tracking
  * licence Apache-2.0
+ * @internal
  */
 final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
 {
@@ -63,7 +63,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
                         startPosition: 'first',
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
-                    )
+                    ),
                 ])
         );
 
@@ -107,7 +107,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
                         startPosition: 'first', // Will be overridden by committed position
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
-                    )
+                    ),
                 ])
         );
 
@@ -121,4 +121,3 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
         $this->assertEquals(5, $processedCount, 'Should have processed all 5 messages across both instances without duplicates');
     }
 }
-

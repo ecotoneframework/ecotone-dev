@@ -14,7 +14,6 @@ use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Enqueue\EnqueueMessageChannel;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;

@@ -25,7 +25,6 @@ use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\Something;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\SomethingWasCreated;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
 use Test\Ecotone\Modelling\Fixture\Blog\CreateArticleWithFactoryAssignedNullCommand;
-use Test\Ecotone\Modelling\Fixture\Blog\CreateArticleWithNullIdentifierCommand;
 use Test\Ecotone\Modelling\Fixture\Blog\CreateArticleWithoutIdentifiersCommand;
 use Test\Ecotone\Modelling\Fixture\Blog\CreateArticleWithSingleIdentifierCommand;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;

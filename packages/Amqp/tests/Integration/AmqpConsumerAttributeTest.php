@@ -7,7 +7,6 @@ namespace Test\Ecotone\Amqp\Integration;
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\MediaTypeConverter;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;

@@ -7,7 +7,6 @@ namespace Test\Ecotone\Amqp\Integration;
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;

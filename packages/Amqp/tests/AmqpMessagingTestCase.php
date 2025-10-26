@@ -37,13 +37,13 @@ abstract class AmqpMessagingTestCase extends TestCase
      * Get connection factory references for dependency injection container
      * Returns an array with all possible connection factory class names pointing to the same instance
      * This ensures compatibility with both AmqpExt and AmqpLib implementations
-     * 
+     *
      * @return array<string, AmqpConnectionFactory>
      */
     public function getConnectionFactoryReferences(array $config = []): array
     {
         $connectionFactory = $this->getCachedConnectionFactory($config);
-        
+
         // Provide both the interface and both concrete implementations
         // Even though only AmqpExt is installed, some modules (like AmqpTransactionModule)
         // default to AmqpLib, so we need to provide it as well

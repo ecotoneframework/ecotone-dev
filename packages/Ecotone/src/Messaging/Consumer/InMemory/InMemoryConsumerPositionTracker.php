@@ -32,4 +32,3 @@ class InMemoryConsumerPositionTracker implements ConsumerPositionTracker
         unset($this->positions[$consumerId]);
     }
 }
-

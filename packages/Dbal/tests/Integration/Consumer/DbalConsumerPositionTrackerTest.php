@@ -15,6 +15,7 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
 /**
  * Tests for DBAL consumer position tracker
  * licence Apache-2.0
+ * @internal
  */
 final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
 {
@@ -150,4 +151,3 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
         parent::tearDown();
     }
 }
-

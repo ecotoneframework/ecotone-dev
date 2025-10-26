@@ -35,4 +35,3 @@ class DbalConsumerPositionTracker implements ConsumerPositionTracker
         $this->documentStore->deleteDocument(self::COLLECTION_NAME, $consumerId);
     }
 }
-

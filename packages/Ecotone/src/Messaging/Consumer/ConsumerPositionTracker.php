@@ -33,4 +33,3 @@ interface ConsumerPositionTracker
      */
     public function deletePosition(string $consumerId): void;
 }
-

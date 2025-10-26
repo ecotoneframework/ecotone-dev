@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
@@ -212,10 +213,10 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
         $this->assertEquals(
             'some',
-            $messageChannel->receiveWithTimeout(1)->getPayload()
+            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(1))->getPayload()
         );
 
-        $this->assertNull($messageChannel->receiveWithTimeout(1));
+        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(1)));
     }
 
     public function test_failing_to_receive_message_when_not_declared_and_auto_declare_off()
@@ -239,7 +240,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
         $this->expectException(TableNotFoundException::class);
 
-        $messageChannel->receiveWithTimeout(1);
+        $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(1));
     }
 
     public function test_failing_to_consume_due_to_connection_failure()

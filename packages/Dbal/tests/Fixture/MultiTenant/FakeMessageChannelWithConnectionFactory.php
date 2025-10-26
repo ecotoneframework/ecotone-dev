@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\MultiTenant;
 
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
 use Interop\Queue\ConnectionFactory;
@@ -25,7 +26,7 @@ final class FakeMessageChannelWithConnectionFactory implements PollableChannel
         $this->getContextChannel()->send($message);
     }
 
-    public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
         return $this->receive();
     }

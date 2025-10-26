@@ -1034,4 +1034,104 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals('5', $sharedPositionTracker->loadPosition($consumerId));
     }
 
+    public function test_commit_interval_overridden_with_execution_time_limit(): void
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_queue_commit_interval_execution_time_' . Uuid::uuid4()->toString();
+
+        $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
+
+        $ecotoneLite = $this->bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+                \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )
+                        ->withPrefetchCount(10)
+                        ->withCommitInterval(100), // Large commit interval, should be overridden to 1
+                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
+                ])
+        );
+
+        // Send 5 messages
+        for ($i = 1; $i <= 5; $i++) {
+            $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "order_{$i}");
+        }
+
+        $consumerId = $channelName . ':' . $queueName;
+
+        // Run consumer with execution time limit - should commit after each message
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5, maxExecutionTimeInMilliseconds: 5000));
+
+        // Verify all messages were consumed
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertEquals(['order_1', 'order_2', 'order_3', 'order_4', 'order_5'], $orders);
+
+        // Verify position was committed at offset 5 (after all messages)
+        // With execution time limit, commit interval should be overridden to 1, so each message is committed
+        $this->assertEquals('5', $sharedPositionTracker->loadPosition($consumerId), 'Position should be committed at offset 5 with execution time limit');
+    }
+
+    public function test_commit_interval_overridden_with_handled_message_limit(): void
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_queue_commit_interval_message_limit_' . Uuid::uuid4()->toString();
+
+        $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
+
+        $ecotoneLite = $this->bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+                \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )
+                        ->withPrefetchCount(10)
+                        ->withCommitInterval(100), // Large commit interval, should be overridden to 1
+                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
+                ])
+        );
+
+        // Send 5 messages
+        for ($i = 1; $i <= 5; $i++) {
+            $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "order_{$i}");
+        }
+
+        $consumerId = $channelName . ':' . $queueName;
+
+        // Run consumer with message limit - should commit after each message
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5));
+
+        // Verify all messages were consumed
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertEquals(['order_1', 'order_2', 'order_3', 'order_4', 'order_5'], $orders);
+
+        // Verify position was committed at offset 5 (after all messages)
+        // With handled message limit, commit interval should be overridden to 1, so each message is committed
+        $this->assertEquals('5', $sharedPositionTracker->loadPosition($consumerId), 'Position should be committed at offset 5 with handled message limit');
+    }
+
 }

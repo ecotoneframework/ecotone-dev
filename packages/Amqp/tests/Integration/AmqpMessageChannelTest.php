@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -58,10 +59,10 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 
         $this->assertEquals(
             'some',
-            $messageChannel->receiveWithTimeout(100)->getPayload()
+            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(100))->getPayload()
         );
 
-        $this->assertNull($messageChannel->receiveWithTimeout(1));
+        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1)));
     }
 
     public function test_sending_and_receiving_without_delivery_guarantee()
@@ -88,10 +89,10 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 
         $this->assertEquals(
             'some',
-            $messageChannel->receiveWithTimeout(100)->getPayload()
+            $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(100))->getPayload()
         );
 
-        $this->assertNull($messageChannel->receiveWithTimeout(1));
+        $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1)));
     }
 
     public function test_sending_and_receiving_message_from_amqp_using_consumer()
@@ -237,7 +238,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         // AMQP Ext throws AMQPException, AMQP Lib throws AMQPProtocolChannelException
         $this->expectException(Throwable::class);
 
-        $messageChannel->receiveWithTimeout(1);
+        $messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setFixedRateInMilliseconds(1));
     }
 
     public function test_failing_to_consume_due_to_connection_failure()

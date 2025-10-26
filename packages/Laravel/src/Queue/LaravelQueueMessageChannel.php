@@ -8,6 +8,7 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
@@ -98,7 +99,7 @@ final class LaravelQueueMessageChannel implements PollableChannel
             ->build();
     }
 
-    public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
         return $this->receive();
     }

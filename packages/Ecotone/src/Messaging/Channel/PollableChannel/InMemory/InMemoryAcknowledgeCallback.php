@@ -9,7 +9,6 @@ use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
 use RuntimeException;
 

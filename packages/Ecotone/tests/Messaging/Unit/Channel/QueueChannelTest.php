@@ -6,12 +6,12 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Exception;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -138,7 +138,7 @@ class QueueChannelTest extends TestCase
 
         try {
             $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 1000000, failAtError: false));
-        } catch (\Exception) {
+        } catch (Exception) {
             // we are expecting exception here
         }
 
@@ -146,7 +146,7 @@ class QueueChannelTest extends TestCase
 
         try {
             $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 1000000, failAtError: false));
-        } catch (\Exception) {
+        } catch (Exception) {
             // we are expecting exception here
         }
 
@@ -155,11 +155,11 @@ class QueueChannelTest extends TestCase
 
     public function test_message_is_retried_with_on_memory_queue(): void
     {
-        $failureService = new class {
+        $failureService = new class () {
             #[Asynchronous('async'), CommandHandler('executionChannel', 'execute')]
             public function execute(string $data): void
             {
-                throw new \Exception('We are failing here');
+                throw new Exception('We are failing here');
             }
         };
 
@@ -178,19 +178,19 @@ class QueueChannelTest extends TestCase
         try {
             $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
             self::fail('We are expecting exception here');
-        } catch (\Exception) {
+        } catch (Exception) {
             // we are expecting exception here
         }
 
         // The exception should cause the message to be retried
-        self::expectException(\Exception::class);
+        self::expectException(Exception::class);
 
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
     public function getFailureService()
     {
-        $failureService = new class() {
+        $failureService = new class () {
             public $messages = [];
 
             #[Asynchronous('async')]
@@ -203,7 +203,7 @@ class QueueChannelTest extends TestCase
                             return;
                         }
 
-                        throw new \InvalidArgumentException('test');
+                        throw new InvalidArgumentException('test');
                     }
                 } finally {
                     $this->messages[] = $message;

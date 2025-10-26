@@ -2,14 +2,18 @@
 
 namespace Ecotone\Messaging;
 
+use Ecotone\Messaging\Endpoint\PollingMetadata;
+
 /**
  * licence Apache-2.0
  */
 interface MessagePoller
 {
     /**
-     * Receive with timeout
+     * Receive with timeout using polling metadata
      * Tries to receive message till time out passes
+     *
+     * @param PollingMetadata $pollingMetadata Contains timeout and execution constraints
      */
-    public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message;
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message;
 }

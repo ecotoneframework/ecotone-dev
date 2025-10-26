@@ -6,6 +6,7 @@ namespace Ecotone\Kafka\Inbound;
 
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagePoller;
@@ -26,11 +27,12 @@ final class KafkaInboundChannelAdapter implements MessagePoller
     ) {
     }
 
-    public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
         $consumer = $this->kafkaAdmin->getConsumer($this->endpointId);
 
-        $message = $consumer->consume($timeoutInMilliseconds ?: $this->receiveTimeoutInMilliseconds);
+        $timeoutInMilliseconds = $pollingMetadata->getExecutionTimeLimitInMilliseconds() ?: $this->receiveTimeoutInMilliseconds;
+        $message = $consumer->consume($timeoutInMilliseconds);
 
         // RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN, RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS, RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS
         if (in_array($message->err, [RD_KAFKA_RESP_ERR__TIMED_OUT, RD_KAFKA_RESP_ERR__PARTITION_EOF,  RD_KAFKA_RESP_ERR__TRANSPORT])) {

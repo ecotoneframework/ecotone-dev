@@ -51,6 +51,13 @@ final class KafkaAdmin
 
     }
 
+    public function __destruct()
+    {
+        foreach (array_keys($this->initializedConsumers) as $endpointId) {
+            $this->closeConsumer($endpointId);
+        }
+    }
+
     public function getConfigurationForConsumer(string $endpointId): KafkaConsumerConfiguration
     {
         if (! array_key_exists($endpointId, $this->consumerConfigurations)) {
@@ -137,11 +144,6 @@ final class KafkaAdmin
             $topicName,
             $this->getConfigurationForTopic($topicName)
         );
-    }
-
-    private function isRunningForTests(KafkaBrokerConfiguration $kafkaBrokerConfiguration): bool
-    {
-        return ($this->isRunningInTestMode && $kafkaBrokerConfiguration->isSetupForTesting() === null) || $kafkaBrokerConfiguration->isSetupForTesting() === true;
     }
 
     private function getMappedTopicNames(string|array $topicName): string|array

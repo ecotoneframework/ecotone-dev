@@ -38,7 +38,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         // Initialize coordinator on first use
         if ($this->batchCommitCoordinator === null || $this->batchCommitCoordinator->consumer !== $consumer) {
             $this->batchCommitCoordinator = new BatchCommitCoordinator(
-                $pollingMetadata->provideThresholdForCommitInterval($this->commitIntervalInMessages),
+                $this->commitIntervalInMessages,
                 $consumer,
                 $this->loggingGateway,
             );
@@ -86,5 +86,13 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         throw MessagingException::create("Unhandled error code: {$message->err}");
     }
 
+    public function onConsumerStop(): void
+    {
+        // Commit all pending messages before stopping
+        if ($this->batchCommitCoordinator !== null) {
+            $this->batchCommitCoordinator->forceCommitAll();
+        }
 
+        $this->kafkaAdmin->closeConsumer($this->endpointId);
+    }
 }

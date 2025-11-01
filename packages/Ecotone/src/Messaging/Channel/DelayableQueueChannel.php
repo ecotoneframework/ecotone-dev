@@ -80,6 +80,11 @@ final class DelayableQueueChannel implements PollableChannel, DefinedObject
         return $this->receive();
     }
 
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for delayable queue channels
+    }
+
     public function releaseMessagesAwaitingFor(int|TimeSpan|DateTimeInterface $time): void
     {
         $this->releaseMessagesAwaitingFor = $time instanceof TimeSpan ? $time->toMilliseconds() : $time;

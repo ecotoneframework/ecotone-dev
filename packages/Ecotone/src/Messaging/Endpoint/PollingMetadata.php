@@ -258,27 +258,6 @@ final class PollingMetadata implements DefinedObject
         return $this->executionTimeLimitInMilliseconds;
     }
 
-    public function isConsumptionLimited(): bool
-    {
-        return
-            $this->getHandledMessageLimit() > 0 ||
-            $this->getExecutionTimeLimitInMilliseconds() > 0;
-            // when no more message received config, should be handled on the inbound channel adapter level, as is used for testing commit offset
-    }
-
-    public function provideThresholdForCommitInterval(int $userDefinedCommitInterval): int
-    {
-        if ($this->getExecutionTimeLimitInMilliseconds() || $this->getExecutionAmountLimit()) {
-            return 1;
-        }
-
-        if ($this->getHandledMessageLimit()) {
-            return min($userDefinedCommitInterval, $this->getHandledMessageLimit());
-        }
-
-        return $userDefinedCommitInterval;
-    }
-
     /**
      * @param int $executionTimeLimitInMilliseconds
      * @return PollingMetadata

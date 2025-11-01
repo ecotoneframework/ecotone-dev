@@ -104,6 +104,11 @@ final class LaravelQueueMessageChannel implements PollableChannel
         return $this->receive();
     }
 
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for Laravel queue channels
+    }
+
     private function getConnection(): Queue
     {
         return $this->queueFactory->connection($this->connectionName);

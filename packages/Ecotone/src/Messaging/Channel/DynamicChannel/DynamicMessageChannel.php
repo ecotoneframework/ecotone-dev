@@ -65,6 +65,11 @@ final class DynamicMessageChannel implements PollableChannel
         return $message;
     }
 
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for dynamic channels
+    }
+
     private function resolveMessageChannel(string $channelName): MessageChannel
     {
         return $this->channelResolver->resolve($channelName);

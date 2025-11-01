@@ -87,4 +87,9 @@ final class FakeContextWithMessages implements Context, PollableChannel
     {
         // TODO: Implement close() method.
     }
+
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for fake channels
+    }
 }

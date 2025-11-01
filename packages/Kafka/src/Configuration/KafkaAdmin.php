@@ -48,14 +48,9 @@ final class KafkaAdmin
         private LoggingGateway $loggingGateway,
         private bool $isRunningInTestMode
     ) {
-
-    }
-
-    public function __destruct()
-    {
-        foreach (array_keys($this->initializedConsumers) as $endpointId) {
-            $this->closeConsumer($endpointId);
-        }
+        register_shutdown_function(function () {
+            $this->closeAllConsumers();
+        });
     }
 
     public function getConfigurationForConsumer(string $endpointId): KafkaConsumerConfiguration
@@ -101,6 +96,13 @@ final class KafkaAdmin
         }
 
         return $this->initializedConsumers[$endpointId];
+    }
+
+    public function closeAllConsumers(): void
+    {
+        foreach ($this->initializedConsumers as $endpointId => $consumer) {
+            $this->closeConsumer($endpointId);
+        }
     }
 
     public function closeConsumer(string $endpointId): void

@@ -50,6 +50,11 @@ class PollableChannelInterceptorAdapter extends SendingInterceptorAdapter implem
         return $this->receiveFor($pollingMetadata);
     }
 
+    public function onConsumerStop(): void
+    {
+        $this->messageChannel->onConsumerStop();
+    }
+
     /**
      * @param PollingMetadata|null $pollingMetadata
      */

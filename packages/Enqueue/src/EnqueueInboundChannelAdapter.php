@@ -99,4 +99,9 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
     {
         return $this->queueName;
     }
+
+    public function onConsumerStop(): void
+    {
+
+    }
 }

@@ -56,6 +56,11 @@ class QueueChannel implements PollableChannel, DefinedObject
         return $this->receive();
     }
 
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for queue channels
+    }
+
     public function __toString()
     {
         return 'in memory queue: ' . $this->name;

@@ -33,6 +33,11 @@ final class KafkaMessageChannel implements PollableChannel
         return $this->inboundChannelAdapter->receiveWithTimeout($pollingMetadata);
     }
 
+    public function onConsumerStop(): void
+    {
+        $this->inboundChannelAdapter->onConsumerStop();
+    }
+
     public function receive(): ?Message
     {
         return $this->inboundChannelAdapter->receiveWithTimeout(PollingMetadata::create('kafka')->setFixedRateInMilliseconds(KafkaConsumerConfiguration::DEFAULT_RECEIVE_TIMEOUT));

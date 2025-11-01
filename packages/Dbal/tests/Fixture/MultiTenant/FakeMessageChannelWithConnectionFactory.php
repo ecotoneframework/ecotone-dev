@@ -36,6 +36,11 @@ final class FakeMessageChannelWithConnectionFactory implements PollableChannel
         return $this->getContextChannel()->receive();
     }
 
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for fake channels
+    }
+
     private function getContextChannel(): PollableChannel
     {
         return $this->connectionFactory->createContext();

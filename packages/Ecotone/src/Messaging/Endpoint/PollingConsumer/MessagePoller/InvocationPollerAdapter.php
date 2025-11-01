@@ -26,4 +26,9 @@ class InvocationPollerAdapter implements MessagePoller
             ? $result
             : MessageBuilder::withPayload($result)->build();
     }
+
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for invocation pollers
+    }
 }

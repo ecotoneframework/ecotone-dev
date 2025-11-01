@@ -39,4 +39,9 @@ class PollableChannelPollerAdapter implements MessagePoller
         }
         return $message;
     }
+
+    public function onConsumerStop(): void
+    {
+        $this->pollableChannel->onConsumerStop();
+    }
 }

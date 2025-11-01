@@ -57,6 +57,11 @@ final class NullableMessageChannel implements SubscribableChannel, PollableChann
         return null;
     }
 
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for null channels
+    }
+
     /**
      * @inheritDoc
      */

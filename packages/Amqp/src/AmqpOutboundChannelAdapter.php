@@ -94,7 +94,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         if ($this->publisherConfirms && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
             if ($context instanceof AmqpLibContext) {
-                $context->getLibChannel()->wait_for_pending_acks(5000);
+                $context->getLibChannel()->wait_for_pending_acks(5);
             } elseif ($context instanceof AmqpExtContext) {
                 $context->getExtChannel()->waitForConfirm(5);
             }

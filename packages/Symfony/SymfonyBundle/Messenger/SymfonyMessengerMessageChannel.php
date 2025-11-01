@@ -59,4 +59,9 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
     {
         return $this->receive();
     }
+
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for Symfony messenger channels
+    }
 }

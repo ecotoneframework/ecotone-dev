@@ -21,7 +21,8 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
         string $endpointId,
         private array|string $topics,
         private ?string $groupId = null,
-        private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::STOP
+        private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::STOP,
+        private int $commitIntervalInMessages = 1,
     ) {
         Assert::notNullAndEmpty($topics, "Topics can't be empty");
 
@@ -50,6 +51,11 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
         return $this->finalFailureStrategy;
     }
 
+    public function getCommitIntervalInMessages(): int
+    {
+        return $this->commitIntervalInMessages;
+    }
+
     public function getDefinition(): Definition
     {
         return new Definition(
@@ -59,6 +65,7 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
                 $this->topics,
                 $this->groupId,
                 $this->finalFailureStrategy,
+                $this->commitIntervalInMessages,
             ]
         );
     }

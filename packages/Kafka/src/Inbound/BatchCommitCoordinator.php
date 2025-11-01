@@ -65,10 +65,17 @@ class BatchCommitCoordinator
                 return;
             }
 
-            $this->consumer->commit($topicPartitions);
-            $this->loggingGateway->info('Message batch committed', [
-                'topic_partitions' => $topicPartitions,
-            ]);
+            try {
+                $this->consumer->commit($topicPartitions);
+                $this->loggingGateway->info('Message batch committed', [
+                    'topic_partitions' => $topicPartitions,
+                ]);
+            } catch (\RdKafka\Exception $exception) {
+                $this->loggingGateway->error('Failed to commit message batch: ' . $exception->getMessage(), [
+                    'exception' => $exception,
+                    'topic_partitions' => $topicPartitions,
+                ]);
+            }
         } finally {
             $this->reset();
         }

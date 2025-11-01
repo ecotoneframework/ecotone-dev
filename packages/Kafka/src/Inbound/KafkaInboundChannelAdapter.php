@@ -91,6 +91,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         // Commit all pending messages before stopping
         if ($this->batchCommitCoordinator !== null) {
             $this->batchCommitCoordinator->forceCommitAll();
+            $this->batchCommitCoordinator = null;
         }
 
         $this->kafkaAdmin->closeConsumer($this->endpointId);

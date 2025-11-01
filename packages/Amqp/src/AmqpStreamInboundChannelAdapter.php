@@ -119,8 +119,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         try {
             // Override commit interval if polling has execution constraints
             // This prevents message reprocessing when consumer stops before committing the batch
-            if ($pollingMetadata->getHandledMessageLimit() > 0 ||
-                $pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0) {
+            if ($pollingMetadata->isConsumptionLimited()) {
                 $this->batchCommitCoordinator = new BatchCommitCoordinator(
                     1,
                     $this->positionTracker,

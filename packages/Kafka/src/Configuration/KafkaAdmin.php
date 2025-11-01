@@ -88,12 +88,7 @@ final class KafkaAdmin
             $consumer = new KafkaConsumer($conf);
 
             $topics = $this->getMappedTopicNames($this->kafkaConsumers[$endpointId]->getTopics());
-            if ($this->isRunningForTests($kafkaBrokerConfiguration)) {
-                // ensures there is no need for repartitioning
-                $consumer->assign([new TopicPartition($topics[0], 0)]);
-            } else {
-                $consumer->subscribe($topics);
-            }
+            $consumer->subscribe($topics);
 
             $this->initializedConsumers[$endpointId] = $consumer;
         }
@@ -109,8 +104,8 @@ final class KafkaAdmin
 
         try {
             $this->initializedConsumers[$endpointId]->close();
-        } catch (Exception) {
-
+        } catch (Exception $exception) {
+            $this->loggingGateway->info('Failed to close consumer: ' . $exception->getMessage(), ['exception' => $exception]);
         } finally {
             unset($this->initializedConsumers[$endpointId]);
         }

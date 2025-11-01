@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Endpoint;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Messaging\Support\Assert;
 
 /**
  * licence Apache-2.0
@@ -255,6 +256,27 @@ final class PollingMetadata implements DefinedObject
     public function getExecutionTimeLimitInMilliseconds(): int
     {
         return $this->executionTimeLimitInMilliseconds;
+    }
+
+    public function isConsumptionLimited(): bool
+    {
+        return
+            $this->getHandledMessageLimit() > 0 ||
+            $this->getExecutionTimeLimitInMilliseconds() > 0;
+            // when no more message received config, should be handled on the inbound channel adapter level, as is used for testing commit offset
+    }
+
+    public function provideThresholdForCommitInterval(int $userDefinedCommitInterval): int
+    {
+        if ($this->getExecutionTimeLimitInMilliseconds() || $this->getExecutionAmountLimit()) {
+            return 1;
+        }
+
+        if ($this->getHandledMessageLimit()) {
+            return min($userDefinedCommitInterval, $this->getHandledMessageLimit());
+        }
+
+        return $userDefinedCommitInterval;
     }
 
     /**

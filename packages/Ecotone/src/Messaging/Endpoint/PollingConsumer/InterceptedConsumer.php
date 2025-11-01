@@ -45,23 +45,23 @@ class InterceptedConsumer implements ConsumerLifecycle
         }
 
         while ($this->shouldBeRunning()) {
+            $exception = null;
             foreach ($this->consumerInterceptors as $consumerInterceptor) {
                 $consumerInterceptor->preRun();
             }
-            $runResultedInConnectionException = false;
             try {
                 $this->interceptedConsumer->run();
             } catch (ConnectionException $exception) {
-                $runResultedInConnectionException = true;
                 foreach ($this->consumerInterceptors as $consumerInterceptor) {
                     if ($consumerInterceptor->shouldBeThrown($exception)) {
                         throw $exception->getPrevious() ?? $exception;
                     }
                 }
-            }
-            if (! $runResultedInConnectionException) {
+            } catch (\Throwable $exception) {
+                throw $exception;
+            }finally {
                 foreach ($this->consumerInterceptors as $consumerInterceptor) {
-                    $consumerInterceptor->postRun();
+                    $consumerInterceptor->postRun($exception);
                 }
             }
         }

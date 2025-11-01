@@ -38,13 +38,23 @@ final class InboundMessageConverter
     public function toMessage(
         KafkaConsumer $consumer,
         KafkaMessage $source,
-        ConversionService $conversionService
+        ConversionService $conversionService,
+        BatchCommitCoordinator $batchCommitCoordinator,
     ): MessageBuilder {
         $messageHeaders = $source->headers ?? [];
         $messageBuilder = MessageBuilder::withPayload($source->payload)
             ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($messageHeaders, $conversionService));
 
-        $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::create($consumer, $source, $this->loggingGateway, $this->kafkaAdmin, $this->endpointId, $this->finalFailureStrategy, $this->acknowledgeMode === KafkaAcknowledgementCallback::AUTO_ACK);
+        $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::create(
+            $consumer,
+            $source,
+            $this->loggingGateway,
+            $this->kafkaAdmin,
+            $this->endpointId,
+            $this->finalFailureStrategy,
+            $this->acknowledgeMode === KafkaAcknowledgementCallback::AUTO_ACK,
+            $batchCommitCoordinator,
+        );
 
         $messageBuilder = $messageBuilder
             ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback)

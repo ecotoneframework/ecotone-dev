@@ -17,6 +17,9 @@ use Ecotone\Messaging\MessagingException;
  */
 final class KafkaInboundChannelAdapter implements MessagePoller
 {
+    const MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING = 10000;
+    private ?BatchCommitCoordinator $batchCommitCoordinator = null;
+
     public function __construct(
         private string                     $endpointId,
         protected KafkaAdmin                 $kafkaAdmin,
@@ -24,6 +27,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         protected ConversionService          $conversionService,
         protected int                       $receiveTimeoutInMilliseconds,
         private LoggingGateway $loggingGateway,
+        private int $commitIntervalInMessages = 1,
     ) {
     }
 
@@ -31,7 +35,19 @@ final class KafkaInboundChannelAdapter implements MessagePoller
     {
         $consumer = $this->kafkaAdmin->getConsumer($this->endpointId);
 
+        // Initialize coordinator on first use
+        if ($this->batchCommitCoordinator === null || $this->batchCommitCoordinator->consumer !== $consumer) {
+            $this->batchCommitCoordinator = new BatchCommitCoordinator(
+                $pollingMetadata->provideThresholdForCommitInterval($this->commitIntervalInMessages),
+                $consumer,
+                $this->loggingGateway,
+            );
+        }
+
         $timeoutInMilliseconds = $pollingMetadata->getExecutionTimeLimitInMilliseconds() ?: $this->receiveTimeoutInMilliseconds;
+        if ($timeoutInMilliseconds <= self::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING) {
+             $timeoutInMilliseconds = self::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING;
+        }
         $message = $consumer->consume($timeoutInMilliseconds);
 
         // RD_KAFKA_RESP_ERR__ALL_BROKERS_DOWN, RD_KAFKA_RESP_ERR__ASSIGN_PARTITIONS, RD_KAFKA_RESP_ERR__REVOKE_PARTITIONS
@@ -41,8 +57,12 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         }
 
         if ($message->err === RD_KAFKA_RESP_ERR_NO_ERROR) {
-            return $this->inboundMessageConverter->toMessage($consumer, $message, $this->conversionService)
-                ->build();
+            return $this->inboundMessageConverter->toMessage(
+                $consumer,
+                $message,
+                $this->conversionService,
+                $this->batchCommitCoordinator
+            )->build();
         }
 
         if (in_array($message->err, [RD_KAFKA_MSG_PARTITIONER_RANDOM, RD_KAFKA_MSG_PARTITIONER_CONSISTENT, RD_KAFKA_MSG_PARTITIONER_CONSISTENT_RANDOM, RD_KAFKA_MSG_PARTITIONER_MURMUR2, RD_KAFKA_MSG_PARTITIONER_MURMUR2_RANDOM])) {
@@ -65,4 +85,6 @@ final class KafkaInboundChannelAdapter implements MessagePoller
 
         throw MessagingException::create("Unhandled error code: {$message->err}");
     }
+
+
 }

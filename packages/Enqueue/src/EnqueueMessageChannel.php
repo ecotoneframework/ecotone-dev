@@ -35,7 +35,7 @@ final class EnqueueMessageChannel implements PollableChannel
 
     public function onConsumerStop(): void
     {
-        
+        $this->inboundChannelAdapter->onConsumerStop();
     }
 
     public function __toString()

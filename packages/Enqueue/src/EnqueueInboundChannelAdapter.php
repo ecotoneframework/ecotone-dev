@@ -102,6 +102,6 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
 
     public function onConsumerStop(): void
     {
-        $this->connectionFactory->createContext()->close();
+        
     }
 }

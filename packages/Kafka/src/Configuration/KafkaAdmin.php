@@ -48,9 +48,6 @@ final class KafkaAdmin
         private LoggingGateway $loggingGateway,
         private bool $isRunningInTestMode
     ) {
-        register_shutdown_function(function () {
-            $this->closeAllConsumers();
-        });
     }
 
     public function getConfigurationForConsumer(string $endpointId): KafkaConsumerConfiguration

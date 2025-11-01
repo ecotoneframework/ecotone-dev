@@ -7,6 +7,7 @@
         displayDetailsOnTestsThatTriggerDeprecations="true"
         displayDetailsOnTestsThatTriggerErrors="true"
         displayDetailsOnTestsThatTriggerNotices="true"
+        processIsolation="true"
 >
     <source>
         <include>

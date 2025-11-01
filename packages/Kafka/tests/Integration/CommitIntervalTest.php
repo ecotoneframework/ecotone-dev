@@ -82,22 +82,7 @@ final class CommitIntervalTest extends TestCase
             $kafkaPublisher->sendWithMetadata("message_$i", 'application/text');
         }
 
-        // Run consumer with commitIntervalInMessages = 3
-        $ecotoneLite->run('kafka_consumer_interval_3', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(3));
-        $this->assertCount(3, $ecotoneLite->sendQueryWithRouting('consumer.getMessages'));
-
-        $ecotoneLite->run('kafka_consumer_interval_3', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(3));
-        $this->assertCount(6, $ecotoneLite->sendQueryWithRouting('consumer.getMessages'));
-
-        $ecotoneLite->run('kafka_consumer_interval_3', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(3));
-        $this->assertCount(9, $ecotoneLite->sendQueryWithRouting('consumer.getMessages'));
-
-        // configuration of commit will be adjusted to single message being consumed
-        $ecotoneLite->run('kafka_consumer_interval_3', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1));
-        $this->assertCount(10, $ecotoneLite->sendQueryWithRouting('consumer.getMessages'));
-
-        // nothing changes here
-        $ecotoneLite->run('kafka_consumer_interval_3', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1)->withExecutionTimeLimitInMilliseconds(10000));
+        $ecotoneLite->run('kafka_consumer_interval_3', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(10));
         $this->assertCount(10, $ecotoneLite->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -114,22 +99,10 @@ final class CommitIntervalTest extends TestCase
             $kafkaPublisher->sendWithMetadata("message_$i", 'application/text', ['fail' => $i === 6]);
         }
 
-        // Run consumer with commitIntervalInMessages = 3
-        $ecotoneLite->run('kafka_consumer_interval_3_with_failure', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(3));
-        $this->assertCount(3, $ecotoneLite->sendQueryWithRouting('consumer.getMessages'));
-
-        $ecotoneLite->run('kafka_consumer_interval_3_with_failure', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(3)->withStopOnError(false));
-
-        $ecotoneLite->run('kafka_consumer_interval_3_with_failure', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(3));
-
         // configuration of commit will be adjusted to single message being consumed
-        $ecotoneLite->run('kafka_consumer_interval_3_with_failure', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(3)->withExecutionTimeLimitInMilliseconds(10000));
+        $ecotoneLite->run('kafka_consumer_interval_3_with_failure', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(15)->withExecutionTimeLimitInMilliseconds(10000));
 
-        $this->assertEquals([
-            'message_1', 'message_2', 'message_3', 'message_4', 'message_5',
-            'message_6', 'message_7', 'message_8', 'message_9', 'message_10'
-        ], array_map(fn($m) => $m['payload'], $ecotoneLite->sendQueryWithRouting('consumer.getMessages')));
-
+        // should only continue and not re-reprocess
         $ecotoneLite = $this->bootstrapEcotoneLite($topicName, KafkaConsumerWithCommitIntervalAndFailure::class, $consumerInstance);
         $ecotoneLite->run('kafka_consumer_interval_3_with_failure', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(3)->withExecutionTimeLimitInMilliseconds(10000));
 

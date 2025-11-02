@@ -1034,7 +1034,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals('5', $sharedPositionTracker->loadPosition($consumerId));
     }
 
-    public function test_commit_interval_overridden_with_execution_time_limit(): void
+    public function test_commit_interval_working_correctly_with_execution_time_limit(): void
     {
         $channelName = 'orders';
         $queueName = 'stream_queue_commit_interval_execution_time_' . Uuid::uuid4()->toString();
@@ -1084,7 +1084,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals('5', $sharedPositionTracker->loadPosition($consumerId), 'Position should be committed at offset 5 with execution time limit');
     }
 
-    public function test_commit_interval_overridden_with_handled_message_limit(): void
+    public function test_commit_interval_working_correctly_with_message_limit(): void
     {
         $channelName = 'orders';
         $queueName = 'stream_queue_commit_interval_message_limit_' . Uuid::uuid4()->toString();

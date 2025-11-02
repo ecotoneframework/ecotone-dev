@@ -16,4 +16,10 @@ interface MessagePoller
      * @param PollingMetadata $pollingMetadata Contains timeout and execution constraints
      */
     public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message;
+
+    /**
+     * Called when the consumer is about to stop
+     * This allows the poller to perform cleanup operations like committing pending messages
+     */
+    public function onConsumerStop(): void;
 }

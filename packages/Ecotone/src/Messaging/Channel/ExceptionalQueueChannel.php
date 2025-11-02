@@ -83,6 +83,11 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSeri
         return $this->receive();
     }
 
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for exceptional queue channels
+    }
+
     public function getExceptionCount(): int
     {
         return $this->exceptionCount;

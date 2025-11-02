@@ -117,17 +117,6 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
         try {
-            // Override commit interval if polling has execution constraints
-            // This prevents message reprocessing when consumer stops before committing the batch
-            if ($pollingMetadata->getHandledMessageLimit() > 0 ||
-                $pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0) {
-                $this->batchCommitCoordinator = new BatchCommitCoordinator(
-                    1,
-                    $this->positionTracker,
-                    $this->getConsumerId(),
-                );
-            }
-
             if ($message = $this->queueChannel->receive()) {
                 $streamPosition = $message->getHeaders()->get(self::X_STREAM_OFFSET_HEADER);
 
@@ -302,6 +291,14 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             }
             $this->consumerTag = null;
         }
+    }
+
+    public function onConsumerStop(): void
+    {
+        $this->batchCommitCoordinator->commitPendingAndReset(ignoreCommitInterval: true);
+
+        $this->cancelStreamConsumer();
+        parent::onConsumerStop();
     }
 
     public function connectionException(): array

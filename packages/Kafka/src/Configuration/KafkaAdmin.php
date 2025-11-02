@@ -48,7 +48,6 @@ final class KafkaAdmin
         private LoggingGateway $loggingGateway,
         private bool $isRunningInTestMode
     ) {
-
     }
 
     public function getConfigurationForConsumer(string $endpointId): KafkaConsumerConfiguration
@@ -88,17 +87,19 @@ final class KafkaAdmin
             $consumer = new KafkaConsumer($conf);
 
             $topics = $this->getMappedTopicNames($this->kafkaConsumers[$endpointId]->getTopics());
-            if ($this->isRunningForTests($kafkaBrokerConfiguration)) {
-                // ensures there is no need for repartitioning
-                $consumer->assign([new TopicPartition($topics[0], 0)]);
-            } else {
-                $consumer->subscribe($topics);
-            }
+            $consumer->subscribe($topics);
 
             $this->initializedConsumers[$endpointId] = $consumer;
         }
 
         return $this->initializedConsumers[$endpointId];
+    }
+
+    public function closeAllConsumers(): void
+    {
+        foreach ($this->initializedConsumers as $endpointId => $consumer) {
+            $this->closeConsumer($endpointId);
+        }
     }
 
     public function closeConsumer(string $endpointId): void
@@ -108,9 +109,10 @@ final class KafkaAdmin
         }
 
         try {
+            $this->initializedConsumers[$endpointId]->unsubscribe();
             $this->initializedConsumers[$endpointId]->close();
-        } catch (Exception) {
-
+        } catch (Exception $exception) {
+            $this->loggingGateway->info('Failed to close consumer: ' . $exception->getMessage(), ['exception' => $exception]);
         } finally {
             unset($this->initializedConsumers[$endpointId]);
         }
@@ -141,11 +143,6 @@ final class KafkaAdmin
             $topicName,
             $this->getConfigurationForTopic($topicName)
         );
-    }
-
-    private function isRunningForTests(KafkaBrokerConfiguration $kafkaBrokerConfiguration): bool
-    {
-        return ($this->isRunningInTestMode && $kafkaBrokerConfiguration->isSetupForTesting() === null) || $kafkaBrokerConfiguration->isSetupForTesting() === true;
     }
 
     private function getMappedTopicNames(string|array $topicName): string|array

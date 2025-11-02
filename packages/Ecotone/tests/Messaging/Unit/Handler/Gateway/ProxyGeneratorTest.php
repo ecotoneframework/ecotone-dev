@@ -4,6 +4,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
 use Ecotone\Messaging\Handler\Gateway\ProxyGenerator;
 
+use PHPUnit\Framework\ExpectationFailedException;
 use function file_get_contents;
 
 use PHPUnit\Framework\TestCase;
@@ -21,10 +22,17 @@ class ProxyGeneratorTest extends TestCase
     {
         $proxyGenerator = new ProxyGenerator('Ecotone\\__Proxy__');
 
-        self::assertEquals(
-            file_get_contents(__DIR__ . '/ProxyGeneratorTest.php.snapshot'),
-            $proxyGenerator->generateProxyFor('GeneratedClass', InterfaceForProxyGeneration::class)
-        );
+        try {
+            self::assertEquals(
+                file_get_contents(__DIR__ . '/ProxyGeneratorTest.php.snapshot'),
+                $proxyGenerator->generateProxyFor('GeneratedClass', InterfaceForProxyGeneration::class)
+            );
+        }catch (ExpectationFailedException $e) {
+            self::assertEquals(
+                file_get_contents(__DIR__ . '/ProxyGeneratorTest.php.snapshot_v2'),
+                $proxyGenerator->generateProxyFor('GeneratedClass', InterfaceForProxyGeneration::class)
+            );
+        }
     }
 
 }

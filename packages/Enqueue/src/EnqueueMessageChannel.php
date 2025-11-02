@@ -33,6 +33,11 @@ final class EnqueueMessageChannel implements PollableChannel
         return $this->inboundChannelAdapter->receiveWithTimeout($pollingMetadata);
     }
 
+    public function onConsumerStop(): void
+    {
+        $this->inboundChannelAdapter->onConsumerStop();
+    }
+
     public function __toString()
     {
         return 'enqueue: ' . $this->inboundChannelAdapter->getQueueName();

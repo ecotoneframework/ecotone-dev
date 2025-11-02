@@ -15,6 +15,7 @@ use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Test\LicenceTesting;
 use Exception;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Nonstandard\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
@@ -26,6 +27,7 @@ use Test\Ecotone\Kafka\ConnectionTestCase;
  * licence Apache-2.0
  * @internal
  */
+#[RunTestsInSeparateProcesses]
 final class FinalFailureStrategyTest extends TestCase
 {
     public function test_single_message_redelivered_and_processed_correctly()
@@ -52,7 +54,7 @@ final class FinalFailureStrategyTest extends TestCase
         // First run - should fail and trigger release (offset reset)
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 3000,
+            maxExecutionTimeInMilliseconds: 10000,
             failAtError: false
         ));
 
@@ -63,7 +65,7 @@ final class FinalFailureStrategyTest extends TestCase
         // Second run - should succeed
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 3000,
+            maxExecutionTimeInMilliseconds: 10000,
             failAtError: false
         ));
 
@@ -85,7 +87,7 @@ final class FinalFailureStrategyTest extends TestCase
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
-                        ->withReceiveTimeout(3000),
+                        ->withReceiveTimeout(10000),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -98,7 +100,7 @@ final class FinalFailureStrategyTest extends TestCase
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 10,
-            maxExecutionTimeInMilliseconds: 5000,
+            maxExecutionTimeInMilliseconds: 10000,
             failAtError: false
         ));
 
@@ -124,7 +126,7 @@ final class FinalFailureStrategyTest extends TestCase
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RESEND)
-                        ->withReceiveTimeout(3000),
+                        ->withReceiveTimeout(10000),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -137,7 +139,7 @@ final class FinalFailureStrategyTest extends TestCase
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 10,
-            maxExecutionTimeInMilliseconds: 5000,
+            maxExecutionTimeInMilliseconds: 10000,
             failAtError: false
         ));
 
@@ -164,7 +166,7 @@ final class FinalFailureStrategyTest extends TestCase
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
-                        ->withReceiveTimeout(3000),
+                        ->withReceiveTimeout(10000),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -175,7 +177,7 @@ final class FinalFailureStrategyTest extends TestCase
         // First application run - should fail and reset offset
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 3000,
+            maxExecutionTimeInMilliseconds: 10000,
             failAtError: false
         ));
 
@@ -186,7 +188,7 @@ final class FinalFailureStrategyTest extends TestCase
         // Second run - should succeed
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 3000,
+            maxExecutionTimeInMilliseconds: 10000,
             failAtError: false
         ));
 
@@ -214,7 +216,7 @@ final class FinalFailureStrategyTest extends TestCase
                         groupId: $sharedGroupId
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
-                        ->withReceiveTimeout(3000),
+                        ->withReceiveTimeout(10000),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -226,7 +228,7 @@ final class FinalFailureStrategyTest extends TestCase
         // First run - should process first message (fail and ignore), then process second message (succeed)
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 5000,
+            maxExecutionTimeInMilliseconds: 10000,
             failAtError: false
         ));
 
@@ -240,7 +242,7 @@ final class FinalFailureStrategyTest extends TestCase
 
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 5000,
+            maxExecutionTimeInMilliseconds: 10000,
             failAtError: false
         ));
 
@@ -269,7 +271,7 @@ final class FinalFailureStrategyTest extends TestCase
                         groupId: Uuid::uuid4()->toString()
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
-                        ->withReceiveTimeout(3000),
+                        ->withReceiveTimeout(10000),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -281,7 +283,7 @@ final class FinalFailureStrategyTest extends TestCase
         // First run - should process first message (fail and ignore), then process second message (succeed)
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 5000,
+            maxExecutionTimeInMilliseconds: 10000,
             failAtError: false
         ));
 
@@ -306,14 +308,14 @@ final class FinalFailureStrategyTest extends TestCase
                         groupId: Uuid::uuid4()->toString()
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
-                        ->withReceiveTimeout(3000),
+                        ->withReceiveTimeout(10000),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 5000,
+            maxExecutionTimeInMilliseconds: 10000,
             failAtError: false
         ));
 

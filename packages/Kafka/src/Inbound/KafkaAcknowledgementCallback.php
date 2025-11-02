@@ -29,12 +29,30 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
         private LoggingGateway       $loggingGateway,
         private KafkaAdmin           $kafkaAdmin,
         private string               $endpointId,
+        private BatchCommitCoordinator $batchCommitCoordinator,
     ) {
     }
 
-    public static function create(KafkaConsumer $consumer, KafkaMessage $message, LoggingGateway $loggingGateway, KafkaAdmin $kafkaAdmin, string $endpointId, FinalFailureStrategy $finalFailureStrategy, bool $isAutoAcked): self
-    {
-        return new self($finalFailureStrategy, $isAutoAcked, $consumer, $message, $loggingGateway, $kafkaAdmin, $endpointId);
+    public static function create(
+        KafkaConsumer $consumer,
+        KafkaMessage $message,
+        LoggingGateway $loggingGateway,
+        KafkaAdmin $kafkaAdmin,
+        string $endpointId,
+        FinalFailureStrategy $finalFailureStrategy,
+        bool $isAutoAcked,
+        BatchCommitCoordinator $batchCommitCoordinator,
+    ): self {
+        return new self(
+            $finalFailureStrategy,
+            $isAutoAcked,
+            $consumer,
+            $message,
+            $loggingGateway,
+            $kafkaAdmin,
+            $endpointId,
+            $batchCommitCoordinator,
+        );
     }
 
     /**
@@ -59,7 +77,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     public function accept(): void
     {
         try {
-            $this->consumer->commit($this->message);
+            $this->batchCommitCoordinator->increaseMessageHandling($this->message);
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to acknowledge message. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 
@@ -73,13 +91,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     public function reject(): void
     {
         try {
-            $this->consumer->commit($this->message);
-
-            $this->loggingGateway->info('Message offset committed (ignored)', [
-                'topic' => $this->message->topic_name,
-                'partition' => $this->message->partition,
-                'offset' => $this->message->offset,
-            ]);
+            $this->batchCommitCoordinator->increaseMessageHandling($this->message);
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to skip message. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 
@@ -103,7 +115,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
                 $this->message->headers,
             );
 
-            $this->consumer->commit($this->message);
+            $this->batchCommitCoordinator->increaseMessageHandling($this->message);
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to requeue message. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 
@@ -118,19 +130,10 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     public function release(): void
     {
         try {
-            // Reset offset to current message's offset to redeliver it
-            $topicPartition = new \RdKafka\TopicPartition(
-                $this->message->topic_name,
-                $this->message->partition,
-                $this->message->offset
-            );
+            $this->batchCommitCoordinator->forceCommitAll();
 
-            $this->consumer->assign([$topicPartition]);
-            $this->loggingGateway->info('Message offset reset for redelivery', [
-                'topic' => $this->message->topic_name,
-                'partition' => $this->message->partition,
-                'offset' => $this->message->offset,
-            ]);
+//            // Do not use "assign", as it will switch from automatic assignment to manual
+            $this->kafkaAdmin->closeConsumer($this->endpointId);
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to reset offset for message redelivery. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);
 

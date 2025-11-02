@@ -13,7 +13,6 @@ use RdKafka\KafkaConsumer;
 use RdKafka\Producer;
 use RdKafka\ProducerTopic;
 use RdKafka\TopicConf;
-use RdKafka\TopicPartition;
 
 /**
  * licence Enterprise

@@ -71,7 +71,7 @@ class TimeLimitInterceptor implements ConsumerInterceptor
     /**
      * @inheritDoc
      */
-    public function postRun(?\Throwable $unhandledFailure): void
+    public function postRun(?Throwable $unhandledFailure): void
     {
     }
 

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Kafka\Inbound;
 
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Handler\Logger\LoggingService;
 use RdKafka\KafkaConsumer;
 use RdKafka\Message as KafkaMessage;
 
@@ -98,4 +97,3 @@ class BatchCommitCoordinator
         $this->messagesHandledTotal = 0;
     }
 }
-

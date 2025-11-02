@@ -37,4 +37,3 @@ final class KafkaConsumerWithInterval3
         $this->messages = [];
     }
 }
-

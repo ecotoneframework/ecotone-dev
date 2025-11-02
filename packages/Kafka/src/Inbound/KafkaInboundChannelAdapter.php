@@ -17,7 +17,7 @@ use Ecotone\Messaging\MessagingException;
  */
 final class KafkaInboundChannelAdapter implements MessagePoller
 {
-    const MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING = 10000;
+    public const MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING = 10000;
     private ?BatchCommitCoordinator $batchCommitCoordinator = null;
 
     public function __construct(
@@ -46,7 +46,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
 
         $timeoutInMilliseconds = $pollingMetadata->getExecutionTimeLimitInMilliseconds() ?: $this->receiveTimeoutInMilliseconds;
         if ($timeoutInMilliseconds <= self::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING) {
-             $timeoutInMilliseconds = self::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING;
+            $timeoutInMilliseconds = self::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING;
         }
         $message = $consumer->consume($timeoutInMilliseconds);
 

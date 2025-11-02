@@ -67,7 +67,7 @@ class LimitConsumedMessagesInterceptor implements ConsumerInterceptor
     /**
      * @inheritDoc
      */
-    public function postRun(?\Throwable $unhandledFailure): void
+    public function postRun(?Throwable $unhandledFailure): void
     {
         if ($unhandledFailure) {
             $this->currentConsumedMessages--;

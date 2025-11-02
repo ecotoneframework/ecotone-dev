@@ -17,9 +17,9 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use function getenv;
 
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;

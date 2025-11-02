@@ -17,6 +17,7 @@ use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
  * Class ContinuouslyRunningConsumer
@@ -66,9 +67,9 @@ class InterceptedConsumer implements ConsumerLifecycle
                             throw $exception->getPrevious() ?? $exception;
                         }
                     }
-                } catch (\Throwable $exception) {
+                } catch (Throwable $exception) {
                     throw $exception;
-                }finally {
+                } finally {
                     foreach ($this->consumerInterceptors as $consumerInterceptor) {
                         $consumerInterceptor->postRun($exception);
                     }

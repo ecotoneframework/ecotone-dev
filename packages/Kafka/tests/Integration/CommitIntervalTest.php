@@ -21,7 +21,6 @@ use Test\Ecotone\Kafka\ConnectionTestCase;
 use Test\Ecotone\Kafka\Fixture\CommitInterval\KafkaConsumerWithCommitInterval;
 use Test\Ecotone\Kafka\Fixture\CommitInterval\KafkaConsumerWithCommitIntervalAndFailure;
 use Test\Ecotone\Kafka\Fixture\CommitInterval\KafkaConsumerWithInterval3;
-use Test\Ecotone\Kafka\Fixture\CommitInterval\KafkaConsumerWithInterval10;
 
 /**
  * licence Enterprise
@@ -59,8 +58,10 @@ final class CommitIntervalTest extends TestCase
 
         $messages = $ecotoneLite->sendQueryWithRouting('consumer.getMessages');
         $this->assertCount(5, $messages);
-        $this->assertEquals(['message_1', 'message_2', 'message_3', 'message_4', 'message_5'],
-            array_map(fn($m) => $m['payload'], $messages));
+        $this->assertEquals(
+            ['message_1', 'message_2', 'message_3', 'message_4', 'message_5'],
+            array_map(fn ($m) => $m['payload'], $messages)
+        );
 
         // Run consumer again - should NOT reprocess (offset was committed)
         $ecotoneLite->run('kafka_consumer_default', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
@@ -108,8 +109,8 @@ final class CommitIntervalTest extends TestCase
 
         $this->assertEquals([
             'message_1', 'message_2', 'message_3', 'message_4', 'message_5',
-            'message_6', 'message_7', 'message_8', 'message_9', 'message_10'
-        ], array_map(fn($m) => $m['payload'], $ecotoneLite->sendQueryWithRouting('consumer.getMessages')));
+            'message_6', 'message_7', 'message_8', 'message_9', 'message_10',
+        ], array_map(fn ($m) => $m['payload'], $ecotoneLite->sendQueryWithRouting('consumer.getMessages')));
     }
 
     private function bootstrapEcotoneLite(string $topicName, string $consumerClass, ?object $consumerInstance = null): FlowTestSupport
@@ -127,4 +128,3 @@ final class CommitIntervalTest extends TestCase
         );
     }
 }
-

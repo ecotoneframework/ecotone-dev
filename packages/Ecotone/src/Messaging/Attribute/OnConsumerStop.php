@@ -19,4 +19,3 @@ class OnConsumerStop extends ServiceActivator
         parent::__construct(self::CONSUMER_STOP_CHANNEL_NAME, '', '', false, []);
     }
 }
-

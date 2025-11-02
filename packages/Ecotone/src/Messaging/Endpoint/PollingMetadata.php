@@ -7,7 +7,6 @@ namespace Ecotone\Messaging\Endpoint;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Messaging\Support\Assert;
 
 /**
  * licence Apache-2.0

@@ -8,7 +8,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\OnConsumerStop;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -16,6 +15,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class OnConsumerStopTest extends TestCase
 {
@@ -82,4 +82,3 @@ final class AsyncCommandHandler
         // Just handle the command
     }
 }
-

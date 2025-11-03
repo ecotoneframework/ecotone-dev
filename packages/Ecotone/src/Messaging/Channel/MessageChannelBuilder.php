@@ -23,4 +23,9 @@ interface MessageChannelBuilder extends CompilableBuilder
      * @return bool
      */
     public function isPollable(): bool;
+
+    /**
+     * @return bool
+     */
+    public function isShared(): bool;
 }

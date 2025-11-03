@@ -245,4 +245,9 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
     {
         return true;
     }
+
+    public function isShared(): bool
+    {
+        return false;
+    }
 }

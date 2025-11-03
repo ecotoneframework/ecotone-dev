@@ -87,6 +87,11 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return $this->isPollable;
     }
 
+    public function isShared(): bool
+    {
+        return false;
+    }
+
     public function getFinalFailureStrategy(): FinalFailureStrategy
     {
         return $this->finalFailureStrategy;

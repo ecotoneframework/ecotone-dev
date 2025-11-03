@@ -123,4 +123,9 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     {
         return true;
     }
+
+    public function isShared(): bool
+    {
+        return false;
+    }
 }

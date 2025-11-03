@@ -13,6 +13,7 @@ use Enqueue\AmqpLib\AmqpConnectionFactory;
 class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
 {
     private string $channelName;
+    private bool $isShared = false;
 
     private function __construct(
         string $channelName,
@@ -49,6 +50,38 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
         $queueName ??= $channelName;
 
         return new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition);
+    }
+
+    /**
+     * Create a shared stream channel with consumer groups
+     *
+     * Shared channels allow multiple consumer groups to consume from the same stream independently.
+     * Each consumer group tracks its own position in the stream.
+     *
+     * For Event Handlers on shared channels, the routing slip will point to the Event Bus
+     * instead of specific handlers, ensuring all handlers execute together when a message is consumed.
+     *
+     * @param string $channelName
+     * @param string $queueName The AMQP stream queue name
+     * @param string $defaultEndpointId Default consumer group identifier (e.g., application name or service name)
+     * @param string $startPosition Stream offset: 'first', 'last', 'next', or specific offset number
+     * @param string $amqpConnectionReferenceName
+     * @return self
+     */
+    public static function createShared(
+        string $channelName,
+        string $queueName,
+        string $defaultEndpointId,
+        string $startPosition = 'first',
+        string $amqpConnectionReferenceName = AmqpConnectionFactory::class
+    ): self {
+        $instance = new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition);
+        $instance->isShared = true;
+        /** @var AmqpStreamInboundChannelAdapterBuilder $inboundAdapter */
+        $inboundAdapter = $instance->getInboundChannelAdapter();
+        $inboundAdapter->withEndpointId($defaultEndpointId);
+
+        return $instance;
     }
 
     /**
@@ -101,6 +134,21 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     public function isPollable(): bool
     {
         return true;
+    }
+
+    /**
+     * Check if this is a shared channel with consumer groups
+     *
+     * @return bool
+     */
+    public function isSharedChannel(): bool
+    {
+        return $this->isShared;
+    }
+
+    public function isShared(): bool
+    {
+        return $this->isShared;
     }
 
     public function __toString()

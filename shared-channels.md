@@ -1,61 +1,9 @@
 Summary: Shared Channels with Consumer Groups - Requirements, Problems, and Solutions
-Background: The Routing Slip Problem
-How Ecotone Currently Works
-When messages are sent to asynchronous channels, Ecotone enriches them with a routing slip header that contains the path the message should follow:
-
-```php
-/**
- * This provides endpoint that is called by gateway (bus).
- * Then it outputs message to asynchronous message channel.
- * Then when message is consumed it's routed by routing slip
- * to target handler
- */
-$this->registerMessageHandler(
-    UninterruptibleServiceActivator::create(
-        RoutingSlipPrepender::create(
-            $consequentialChannels,  // e.g., ['kafka_channel', 'event_handler_1.target']
-            ...
-```
-
-The Bridge then consumes messages and uses the routing slip to route them to the target handler:
-
-```php
-/**
- * This is Bridge that will fetch the message and make use of routing_slip to target it
- * message handler.
- */
-$this->messageHandlerBuilders[$asynchronousChannel] = BridgeBuilder::create()
-    ->withInputChannelName($asynchronousChannel)
-    ->withEndpointId($asynchronousChannel);
-```
-
-The Problem with Shared Channels
-Current behavior works perfectly for Point-to-Point channels (single consumer group), but breaks for Shared channels (multiple consumer groups):
-
-Example Scenario:
-
-```php
-#[EventHandler(listenTo: 'UserRegistered', endpointId: 'send_email')]
-#[Asynchronous('shared_kafka_channel')]
-public function sendEmail(UserRegistered $event) { }
-
-#[EventHandler(listenTo: 'UserRegistered', endpointId: 'update_analytics')]
-#[Asynchronous('shared_kafka_channel')]
-public function updateAnalytics(UserRegistered $event) { }
-```
-
-What happens today:
-
-Event Bus creates two messages with routing slips:
-Message 1: routing slip = ['shared_kafka_channel', 'send_email.target']
-Message 2: routing slip = ['shared_kafka_channel', 'update_analytics.target']
-Both messages sent to shared_kafka_channel
-Problem: If multiple consumer groups consume from this channel, each group will execute BOTH handlers (once for each message), but the routing slip makes it point-to-point to specific handlers
-The Core Issue: Routing slip points to specific handler instead of Event Bus, breaking publish-subscribe semantics for shared channels.
 
 Three Use Cases for Shared Channels
+
 Use Case 1: Async Event Handlers (Single Application)
-Goal: Execute all event handlers together when message is consumed, with single consumer group per application.
+Goal: Do not allow to use shared channel for asynchronous handlers. Throw configuration exception stating asynchronous handlers working in point-to-point manner, therefore shared channels cannot be used, and to switch to standard channel.
 
 Example:
 
@@ -69,14 +17,6 @@ public function sendEmail(UserRegistered $event) { }
 #[Asynchronous('events_channel')]
 public function updateAnalytics(UserRegistered $event) { }
 ```
-
-Requirements:
-
-✅ Single message group at application level
-✅ All handlers execute together (no point-to-point per handler)
-✅ Message consumed once per application
-✅ Routing slip should point to Event Bus, not specific handlers
-Consumer Group ID: {applicationName}:{queueName} (e.g., user-service:events_stream)
 
 Use Case 2: Distributed Bus with Service Map
 Goal: Publish events to shared channel, multiple applications consume with separate consumer groups.

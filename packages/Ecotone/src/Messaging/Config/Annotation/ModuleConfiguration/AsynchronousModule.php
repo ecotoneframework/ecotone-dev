@@ -143,6 +143,19 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
         $pollingMetadata = ExtensionObjectResolver::resolve(PollingMetadata::class, $extensionObjects);
         $polingChannelBuilders = ExtensionObjectResolver::resolve(SimpleMessageChannelBuilder::class, $extensionObjects);
 
+        // Validate that shared channels are not used with async handlers
+        foreach ($polingChannelBuilders as $channelBuilder) {
+            if ($channelBuilder->isShared()) {
+                foreach ($endpointChannels as $endpointChannel => $asyncChannels) {
+                    foreach ($asyncChannels as $asyncChannel) {
+                        if ($asyncChannel === $channelBuilder->getMessageChannelName()) {
+                            throw ConfigurationException::create("Asynchronous handlers work in point-to-point manner, therefore shared channels cannot be used. Please switch channel '{$asyncChannel}' to standard channel instead of shared channel.");
+                        }
+                    }
+                }
+            }
+        }
+
         foreach ($endpointChannels as $endpointChannel => $asyncChannels) {
             $messagingConfiguration->registerAsynchronousEndpoint($asyncChannels, $endpointChannel);
             $this->registerDefaultPollingMetadata($serviceConfiguration, $asyncChannels, $pollingMetadata, $polingChannelBuilders, $messagingConfiguration);

@@ -6,7 +6,10 @@ namespace Ecotone\Messaging\Channel;
 
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\DefinedObjectWrapper;
+use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
+use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageChannel;
@@ -33,6 +36,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         private HeaderMapper         $headerMapper,
         private FinalFailureStrategy $finalFailureStrategy,
         private bool                 $isAutoAcked,
+        private bool                 $isSharedChannel = false,
     ) {
     }
 
@@ -79,6 +83,15 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return self::create($exceptionalQueueChannel->getMessageChannelName(), $exceptionalQueueChannel);
     }
 
+    public static function createShared(string $messageChannelName, string|MediaType|null $conversionMediaType = null, FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND, bool $isAutoAcked = true): self
+    {
+        $messageChannel = QueueChannel::create($messageChannelName);
+
+        $instance = self::create($messageChannelName, $messageChannel, $conversionMediaType, $finalFailureStrategy, $isAutoAcked);
+        $instance->isSharedChannel = true;
+        return $instance;
+    }
+
     /**
      * @inheritDoc
      */
@@ -89,7 +102,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
 
     public function isShared(): bool
     {
-        return false;
+        return $this->isSharedChannel;
     }
 
     public function getFinalFailureStrategy(): FinalFailureStrategy
@@ -137,6 +150,15 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
+        if ($this->isSharedChannel) {
+            return new Definition(InMemorySharedChannel::class, [
+                $this->messageChannelName,
+                new Reference(InMemoryConsumerPositionTracker::class),
+                $this->finalFailureStrategy,
+                $this->isAutoAcked,
+            ]);
+        }
+
         return new DefinedObjectWrapper($this->messageChannel);
     }
 

@@ -25,17 +25,13 @@ use Ecotone\Messaging\Support\MessageBuilder;
 final class InMemorySharedChannel implements PollableChannel, DefinedObject
 {
     /**
-     * @var Message[] All messages stored in the channel (indexed by position)
-     */
-    private array $messages = [];
-
-    /**
      * @var int Auto-incrementing position counter
      */
     private int $nextPosition = 0;
 
     public function __construct(
         private string $name,
+        private InMemoryMessageChannelHolder $inMemoryMessageChannelHolder,
         private ConsumerPositionTracker $positionTracker,
         private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND,
         private bool $isAutoAcked = true,
@@ -56,7 +52,7 @@ final class InMemorySharedChannel implements PollableChannel, DefinedObject
      */
     public function send(Message $message): void
     {
-        $this->messages[$this->nextPosition] = $message;
+        $this->inMemoryMessageChannelHolder->send($this->nextPosition, $message);
         $this->nextPosition++;
     }
 
@@ -79,12 +75,10 @@ final class InMemorySharedChannel implements PollableChannel, DefinedObject
         $positionStr = $this->positionTracker->loadPosition($consumerId);
         $position = $positionStr !== null ? (int)$positionStr : 0;
 
-        // Check if there's a message at this position
-        if (!isset($this->messages[$position])) {
+        $message = $this->inMemoryMessageChannelHolder->receiveFor($position);
+        if ($message === null) {
             return null;
         }
-
-        $message = $this->messages[$position];
 
         // Add acknowledgement callback to the message
         $callback = new InMemorySharedAcknowledgeCallback(
@@ -120,6 +114,7 @@ final class InMemorySharedChannel implements PollableChannel, DefinedObject
     {
         return new Definition(self::class, [
             $this->name,
+            $this->inMemoryMessageChannelHolder,
             $this->positionTracker,
             $this->finalFailureStrategy,
             $this->isAutoAcked,

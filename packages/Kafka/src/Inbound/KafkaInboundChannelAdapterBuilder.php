@@ -34,6 +34,8 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
 
     private int $commitIntervalInMessages = 1;
 
+    private ?string $channelName = null;
+
     public function __construct(
         string $endpointId,
         ?string  $requestChannelName = null,
@@ -43,6 +45,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
             ? GatewayProxyBuilder::create($endpointId, InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName)
             : NullEntrypointGateway::create();
         $this->endpointId = $endpointId;
+        $this->channelName = $endpointId; // Default to endpointId if not set
     }
 
     public static function create(
@@ -53,6 +56,12 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
             $endpointId,
             $requestChannelName,
         );
+    }
+
+    public function withChannelName(string $channelName): self
+    {
+        $this->channelName = $channelName;
+        return $this;
     }
 
     protected function compileGateway(MessagingContainerBuilder $builder): Definition|Reference|DefinedObject
@@ -70,6 +79,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
                 Definition::createFor(InboundMessageConverter::class, [
                     Reference::to(KafkaAdmin::class),
                     $this->endpointId,
+                    $this->channelName, // Pass channelName for publisher lookup
                     KafkaHeader::ACKNOWLEDGE_HEADER_NAME,
                     $this->finalFailureStrategy,
                     Reference::to(LoggingGateway::class),

@@ -154,7 +154,7 @@ final class KafkaMessageChannelTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         $channelName,
                         topicName: $uniqueId = Uuid::uuid4()->toString(),
-                        groupId: $uniqueId
+                        messageGroupId: $uniqueId
                     ),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -311,7 +311,7 @@ final class KafkaMessageChannelTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         $channelName,
                         topicName: ($topicName = $topicName ?: Uuid::uuid4()->toString()),
-                        groupId: $topicName
+                        messageGroupId: $topicName
                     ),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -332,7 +332,7 @@ final class KafkaMessageChannelTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         $channelName,
                         topicName: $uniqueId = Uuid::uuid4()->toString(),
-                        groupId: $uniqueId
+                        messageGroupId: $uniqueId
                     ),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,

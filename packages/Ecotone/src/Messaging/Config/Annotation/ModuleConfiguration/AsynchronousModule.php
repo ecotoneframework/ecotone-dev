@@ -144,8 +144,27 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
         $polingChannelBuilders = ExtensionObjectResolver::resolve(SimpleMessageChannelBuilder::class, $extensionObjects);
 
         // Validate that shared channels are not used with async handlers
+        // A channel is shared if:
+        // 1. It's a SimpleMessageChannelBuilder with isSharedChannel=true (in-memory shared channels)
+        // 2. Or endpointId differs from channel name (Kafka/AMQP Stream with messageGroupId)
         foreach ($polingChannelBuilders as $channelBuilder) {
-            if ($channelBuilder->isShared()) {
+            $isShared = false;
+
+            // Check if it's a SimpleMessageChannelBuilder with isSharedChannel flag
+            if ($channelBuilder instanceof SimpleMessageChannelBuilder) {
+                // Use reflection to check the private isSharedChannel property
+                $reflection = new \ReflectionClass($channelBuilder);
+                $property = $reflection->getProperty('isSharedChannel');
+                $property->setAccessible(true);
+                $isShared = $property->getValue($channelBuilder);
+            }
+
+            // Or check if endpointId differs from channel name (for Kafka/AMQP Stream)
+            if (!$isShared && $channelBuilder->getEndpointId() !== $channelBuilder->getMessageChannelName()) {
+                $isShared = true;
+            }
+
+            if ($isShared) {
                 foreach ($endpointChannels as $endpointChannel => $asyncChannels) {
                     foreach ($asyncChannels as $asyncChannel) {
                         if ($asyncChannel === $channelBuilder->getMessageChannelName()) {

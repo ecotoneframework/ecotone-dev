@@ -82,10 +82,10 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof KafkaMessageChannelBuilder) {
-                $kafkaConsumers[$extensionObject->getMessageChannelName()] = new KafkaConsumer(
-                    $extensionObject->getMessageChannelName(),
+                $kafkaConsumers[$extensionObject->getEndpointId()] = new KafkaConsumer(
+                    $extensionObject->getEndpointId(),
                     $extensionObject->topicName,
-                    $extensionObject->groupId,
+                    $extensionObject->messageGroupId,
                 );
                 $publisherConfigurations[$extensionObject->getMessageChannelName()] = KafkaPublisherConfiguration::createWithDefaults(
                     $extensionObject->topicName,

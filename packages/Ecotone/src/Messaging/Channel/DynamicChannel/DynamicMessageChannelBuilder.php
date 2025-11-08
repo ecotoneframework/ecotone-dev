@@ -246,8 +246,8 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         return true;
     }
 
-    public function isShared(): bool
+    public function getEndpointId(): string
     {
-        return false;
+        return $this->thisMessageChannelName;
     }
 }

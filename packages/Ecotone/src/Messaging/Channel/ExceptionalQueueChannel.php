@@ -103,9 +103,9 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSeri
         return true;
     }
 
-    public function isShared(): bool
+    public function getEndpointId(): string
     {
-        return false;
+        return $this->channelName;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition

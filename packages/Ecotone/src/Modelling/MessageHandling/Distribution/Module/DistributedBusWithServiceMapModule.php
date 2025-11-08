@@ -10,10 +10,12 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageChannelConfiguration;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -94,6 +96,7 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                 DistributedOutboundRouter::class,
                 [
                     $distributedServiceMap,
+                    Reference::to(MessageChannelConfiguration::class),
                     $applicationConfiguration->getServiceName(),
                 ]
             )

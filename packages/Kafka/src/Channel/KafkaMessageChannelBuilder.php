@@ -32,11 +32,12 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     private function __construct(
         private string         $channelName,
         public readonly string $topicName,
-        public readonly string $groupId,
+        public readonly string $messageGroupId,
         int             $receiveTimeoutInMilliseconds = KafkaConsumerConfiguration::DEFAULT_RECEIVE_TIMEOUT,
     ) {
-        $this->inboundChannelAdapterBuilder = KafkaInboundChannelAdapterBuilder::create($channelName)
-            ->withReceiveTimeout($receiveTimeoutInMilliseconds);
+        $this->inboundChannelAdapterBuilder = KafkaInboundChannelAdapterBuilder::create($messageGroupId)
+            ->withReceiveTimeout($receiveTimeoutInMilliseconds)
+            ->withChannelName($channelName); // Set channel name for publisher lookup
         $this->outboundChannelAdapterBuilder = KafkaOutboundChannelAdapterBuilder::create($channelName);
 
         $this->headerMapper = '*';
@@ -58,12 +59,12 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     public static function create(
         string  $channelName,
         ?string $topicName = null,
-        ?string $groupId = null
+        ?string $messageGroupId = null
     ): self {
         return new self(
             $channelName,
             $topicName ?? $channelName,
-            $groupId ?? $channelName,
+            $messageGroupId ?? $channelName,
         );
     }
 
@@ -124,8 +125,8 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         return true;
     }
 
-    public function isShared(): bool
+    public function getEndpointId(): string
     {
-        return false;
+        return $this->messageGroupId;
     }
 }

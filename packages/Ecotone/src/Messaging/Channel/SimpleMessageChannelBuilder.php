@@ -9,7 +9,6 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
-use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageChannel;
@@ -37,6 +36,8 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         private FinalFailureStrategy $finalFailureStrategy,
         private bool                 $isAutoAcked,
         private bool                 $isSharedChannel = false,
+        private ?InMemoryMessageChannelHolder $inMemoryMessageChannelHolder = null,
+        private ?string              $messageGroupId = null,
     ) {
     }
 
@@ -83,12 +84,14 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return self::create($exceptionalQueueChannel->getMessageChannelName(), $exceptionalQueueChannel);
     }
 
-    public static function createShared(string $messageChannelName, string|MediaType|null $conversionMediaType = null, FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND, bool $isAutoAcked = true): self
+    public static function createShared(string $messageChannelName, ?string $messageGroupId = null, string|MediaType|null $conversionMediaType = null, FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RELEASE, bool $isAutoAcked = true): self
     {
         $messageChannel = QueueChannel::create($messageChannelName);
 
         $instance = self::create($messageChannelName, $messageChannel, $conversionMediaType, $finalFailureStrategy, $isAutoAcked);
         $instance->isSharedChannel = true;
+        $instance->inMemoryMessageChannelHolder = new InMemoryMessageChannelHolder();
+        $instance->messageGroupId = $messageGroupId ?? $messageChannelName;
         return $instance;
     }
 
@@ -100,9 +103,9 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return $this->isPollable;
     }
 
-    public function isShared(): bool
+    public function getEndpointId(): string
     {
-        return $this->isSharedChannel;
+        return $this->messageGroupId ?? $this->messageChannelName;
     }
 
     public function getFinalFailureStrategy(): FinalFailureStrategy
@@ -153,7 +156,8 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         if ($this->isSharedChannel) {
             return new Definition(InMemorySharedChannel::class, [
                 $this->messageChannelName,
-                new Reference(InMemoryConsumerPositionTracker::class),
+                new DefinedObjectWrapper($this->inMemoryMessageChannelHolder),
+                new Reference(ConsumerPositionTracker::class),
                 $this->finalFailureStrategy,
                 $this->isAutoAcked,
             ]);

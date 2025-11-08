@@ -13,18 +13,20 @@ use Enqueue\AmqpLib\AmqpConnectionFactory;
 class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
 {
     private string $channelName;
-    private bool $isShared = false;
+    private string $messageGroupId;
 
     private function __construct(
         string $channelName,
         string $amqpConnectionReferenceName,
         public readonly string $queueName,
-        string $streamOffset
+        string $streamOffset,
+        ?string $messageGroupId = null
     ) {
         $this->channelName = $channelName;
+        $this->messageGroupId = $messageGroupId ?? $channelName;
 
         parent::__construct(
-            AmqpStreamInboundChannelAdapterBuilder::create($channelName, $queueName, $streamOffset, $amqpConnectionReferenceName),
+            AmqpStreamInboundChannelAdapterBuilder::create($this->messageGroupId, $queueName, $streamOffset, $amqpConnectionReferenceName),
             AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
                 ->withDefaultRoutingKey($queueName)
                 ->withAutoDeclareOnSend(true)
@@ -45,11 +47,12 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
         string  $channelName,
         string  $startPosition = 'first',
         string  $amqpConnectionReferenceName = AmqpConnectionFactory::class,
-        ?string $queueName = null
+        ?string $queueName = null,
+        ?string $messageGroupId = null
     ): self {
         $queueName ??= $channelName;
 
-        return new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition);
+        return new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition, $messageGroupId);
     }
 
     /**
@@ -63,7 +66,7 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
      *
      * @param string $channelName
      * @param string $queueName The AMQP stream queue name
-     * @param string $defaultEndpointId Default consumer group identifier (e.g., application name or service name)
+     * @param string $messageGroupId Consumer group identifier (e.g., application name or service name)
      * @param string $startPosition Stream offset: 'first', 'last', 'next', or specific offset number
      * @param string $amqpConnectionReferenceName
      * @return self
@@ -71,17 +74,11 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     public static function createShared(
         string $channelName,
         string $queueName,
-        string $defaultEndpointId,
+        string $messageGroupId,
         string $startPosition = 'first',
         string $amqpConnectionReferenceName = AmqpConnectionFactory::class
     ): self {
-        $instance = new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition);
-        $instance->isShared = true;
-        /** @var AmqpStreamInboundChannelAdapterBuilder $inboundAdapter */
-        $inboundAdapter = $instance->getInboundChannelAdapter();
-        $inboundAdapter->withEndpointId($defaultEndpointId);
-
-        return $instance;
+        return new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition, $messageGroupId);
     }
 
     /**
@@ -136,19 +133,9 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
         return true;
     }
 
-    /**
-     * Check if this is a shared channel with consumer groups
-     *
-     * @return bool
-     */
-    public function isSharedChannel(): bool
+    public function getEndpointId(): string
     {
-        return $this->isShared;
-    }
-
-    public function isShared(): bool
-    {
-        return $this->isShared;
+        return $this->messageGroupId;
     }
 
     public function __toString()

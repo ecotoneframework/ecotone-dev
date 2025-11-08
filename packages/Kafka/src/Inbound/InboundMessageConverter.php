@@ -26,6 +26,7 @@ final class InboundMessageConverter
     public function __construct(
         private KafkaAdmin $kafkaAdmin,
         private string $endpointId,
+        private string $channelName,
         private string $acknowledgeHeaderName,
         private FinalFailureStrategy $finalFailureStrategy,
         private LoggingGateway $loggingGateway,
@@ -50,7 +51,7 @@ final class InboundMessageConverter
             $source,
             $this->loggingGateway,
             $this->kafkaAdmin,
-            $this->endpointId,
+            $this->channelName, // Use channelName for publisher lookup when resending
             $this->finalFailureStrategy,
             $this->acknowledgeMode === KafkaAcknowledgementCallback::AUTO_ACK,
             $batchCommitCoordinator,

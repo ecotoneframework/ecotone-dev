@@ -213,7 +213,7 @@ final class FinalFailureStrategyTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',
                         topicName: $topicName,
-                        groupId: $sharedGroupId
+                        messageGroupId: $sharedGroupId
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(10000),
@@ -268,7 +268,7 @@ final class FinalFailureStrategyTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',
                         topicName: $topicName,
-                        groupId: Uuid::uuid4()->toString()
+                        messageGroupId: Uuid::uuid4()->toString()
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(10000),
@@ -305,7 +305,7 @@ final class FinalFailureStrategyTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',
                         topicName: $topicName,
-                        groupId: Uuid::uuid4()->toString()
+                        messageGroupId: Uuid::uuid4()->toString()
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(10000),

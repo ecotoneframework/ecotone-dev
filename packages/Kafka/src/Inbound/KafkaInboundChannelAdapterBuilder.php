@@ -39,6 +39,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
         ?string  $requestChannelName = null,
         private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND,
     ) {
+        $this->endpointId = $channelName;
         $this->inboundGateway = $requestChannelName
             ? GatewayProxyBuilder::create('', InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName)
             : NullEntrypointGateway::create();

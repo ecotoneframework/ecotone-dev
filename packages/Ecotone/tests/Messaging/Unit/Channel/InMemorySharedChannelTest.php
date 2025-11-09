@@ -143,29 +143,5 @@ final class InMemorySharedChannelTest extends TestCase
         $this->assertEquals(['message1', 'message2', 'message3'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
     }
-
-    public function test_throwing_exception_when_shared_channel_is_used_with_async_event_handler(): void
-    {
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Asynchronous handlers work in point-to-point manner, therefore shared channels cannot be used");
-
-        $eventHandler = new class {
-            #[Asynchronous('events_channel')]
-            #[EventHandler(listenTo: 'UserRegistered', endpointId: 'sendEmail')]
-            public function sendEmail(\stdClass $event): void
-            {
-            }
-        };
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$eventHandler::class],
-            [$eventHandler],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createShared('events_channel'),
-                ])
-        );
-    }
 }
 

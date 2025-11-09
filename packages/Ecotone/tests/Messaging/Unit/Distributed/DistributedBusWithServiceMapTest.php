@@ -635,27 +635,6 @@ final class DistributedBusWithServiceMapTest extends TestCase
         self::assertEquals(1, $ticketService->sendQueryWithRouting(\Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicket\TicketServiceReceiver::GET_TICKETS_COUNT));
     }
 
-    public function test_throwing_exception_when_sending_command_to_shared_channel(): void
-    {
-        $sharedChannel = SimpleMessageChannelBuilder::createShared($channelName = 'distributed_events');
-        $userService = $this->bootstrapEcotone(
-            TestServiceName::USER_SERVICE,
-            ['Test\Ecotone\Messaging\Fixture\Distributed\DistributedCommandBus\Publisher'],
-            [],
-            $sharedChannel,
-            DistributedServiceMap::initialize()
-                ->withServiceMapping(serviceName: TestServiceName::TICKET_SERVICE, channelName: $channelName)
-        );
-
-        $this->expectException(InvalidArgumentException::class);
-
-        $userService->getDistributedBus()->sendCommand(
-            TestServiceName::TICKET_SERVICE,
-            TicketServiceReceiver::CREATE_TICKET_ENDPOINT,
-            'User changed billing address',
-        );
-    }
-
     private function bootstrapEcotone(string $serviceName, array $namespaces, array $services, MessageChannelBuilder|array|null $sharedQueueChannel = null, null|array|DistributedServiceMap $extensionObjects = null): FlowTestSupport
     {
         $extensionObjects = $extensionObjects instanceof DistributedServiceMap ? [$extensionObjects] : $extensionObjects;

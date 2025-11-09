@@ -423,5 +423,22 @@ final class KafkaMessageChannelTest extends TestCase
         $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
         $this->assertEquals(['message1', 'message2', 'message3'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
+
+        // Verify positions are tracked independently by querying Kafka committed offsets
+        $kafkaAdmin = $ecotoneLite->getServiceFromContainer(\Ecotone\Kafka\Configuration\KafkaAdmin::class);
+        $consumer1 = $kafkaAdmin->getConsumer('consumer1', $channelName);
+        $consumer2 = $kafkaAdmin->getConsumer('consumer2', $channelName);
+
+        // Create TopicPartition objects to query committed offsets (partition 0 is default for single partition topics)
+        $topicPartition = new \RdKafka\TopicPartition($topicName, 0);
+
+        // Get committed offsets for each consumer
+        $consumer1Offsets = $consumer1->getCommittedOffsets([$topicPartition], 10000);
+        $consumer2Offsets = $consumer2->getCommittedOffsets([$topicPartition], 10000);
+
+        // Verify each consumer has committed the correct offset
+        // Kafka offsets point to the next message to consume, so offset 3 means 3 messages consumed (0, 1, 2)
+        $this->assertEquals(3, $consumer1Offsets[0]->getOffset(), 'Consumer1 should have committed offset 3 (consumed messages 0, 1, 2)');
+        $this->assertEquals(2, $consumer2Offsets[0]->getOffset(), 'Consumer2 should have committed offset 2 (consumed messages 0, 1)');
     }
 }

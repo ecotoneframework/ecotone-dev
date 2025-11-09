@@ -22,7 +22,7 @@ use PHPUnit\Framework\TestCase;
  * licence Apache-2.0
  * @internal
  */
-final class SharedChannelConsumerRegistrationTest extends TestCase
+final class StreamingChannelConsumerRegistrationTest extends TestCase
 {
     public function test_shared_channel_is_automatically_registered_as_consumer(): void
     {

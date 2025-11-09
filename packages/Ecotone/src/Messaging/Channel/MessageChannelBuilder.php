@@ -25,12 +25,8 @@ interface MessageChannelBuilder extends CompilableBuilder
     public function isPollable(): bool;
 
     /**
-     * Get the endpoint ID for this channel
-     *
-     * For most channels, this returns the channel name to preserve current behavior.
-     * For shared channels (Kafka, AMQP Stream), this returns the message group ID used for tracking.
-     *
+     * Whatever messages are preserved after consumption, and be consumed by multiple consumer groups
      * @return string
      */
-    public function getEndpointId(): string;
+    public function isStreamingChannel(): bool;
 }

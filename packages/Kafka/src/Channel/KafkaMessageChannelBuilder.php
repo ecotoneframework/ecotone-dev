@@ -140,8 +140,8 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         return true;
     }
 
-    public function getEndpointId(): string
+    public function isStreamingChannel(): bool
     {
-        return $this->channelName;
+        return true;
     }
 }

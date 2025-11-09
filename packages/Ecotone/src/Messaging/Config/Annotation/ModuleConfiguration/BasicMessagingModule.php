@@ -225,35 +225,8 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
 
         $messagingConfiguration->registerServiceDefinition(PollingMetadataConverter::class, new Definition(PollingMetadataConverter::class));
 
-        // Build map of shared channels
-        // A channel is shared if:
-        // 1. It's a SimpleMessageChannelBuilder with isSharedChannel=true (in-memory shared channels)
-        // 2. Or endpointId differs from channel name (Kafka/AMQP Stream with messageGroupId)
-        $sharedChannels = [];
-        foreach (ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects) as $messageChannelBuilder) {
-            $isShared = false;
-
-            // Check if it's a SimpleMessageChannelBuilder with isSharedChannel flag
-            if ($messageChannelBuilder instanceof SimpleMessageChannelBuilder) {
-                // Use reflection to check the private isSharedChannel property
-                $reflection = new \ReflectionClass($messageChannelBuilder);
-                $property = $reflection->getProperty('isSharedChannel');
-                $property->setAccessible(true);
-                $isShared = $property->getValue($messageChannelBuilder);
-            }
-
-            // Or check if endpointId differs from channel name (for Kafka/AMQP Stream)
-            if (!$isShared && $messageChannelBuilder->getEndpointId() !== $messageChannelBuilder->getMessageChannelName()) {
-                $isShared = true;
-            }
-
-            if ($isShared) {
-                $sharedChannels[$messageChannelBuilder->getMessageChannelName()] = $messageChannelBuilder->getEndpointId();
-            }
-        }
-
         $messagingConfiguration->registerServiceDefinition(MessageChannelConfiguration::class, new Definition(MessageChannelConfiguration::class, [
-            $sharedChannels
+            []
         ]));
         $messagingConfiguration->registerServiceDefinition(LicenceDecider::class, new Definition(LicenceDecider::class, [$messagingConfiguration->isRunningForEnterpriseLicence()]));
     }

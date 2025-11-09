@@ -246,8 +246,8 @@ final class DynamicMessageChannelBuilder implements MessageChannelBuilder
         return true;
     }
 
-    public function getEndpointId(): string
+    public function isStreamingChannel(): bool
     {
-        return $this->thisMessageChannelName;
+        return false;
     }
 }

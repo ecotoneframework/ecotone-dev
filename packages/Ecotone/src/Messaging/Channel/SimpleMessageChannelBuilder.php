@@ -103,9 +103,9 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return $this->isPollable;
     }
 
-    public function getEndpointId(): string
+    public function isStreamingChannel(): bool
     {
-        return $this->messageGroupId ?? $this->messageChannelName;
+        return $this->isSharedChannel;
     }
 
     public function getFinalFailureStrategy(): FinalFailureStrategy

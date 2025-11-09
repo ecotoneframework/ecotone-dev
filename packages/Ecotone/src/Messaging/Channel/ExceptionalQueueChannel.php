@@ -103,9 +103,9 @@ class ExceptionalQueueChannel implements PollableChannel, MessageChannelWithSeri
         return true;
     }
 
-    public function getEndpointId(): string
+    public function isStreamingChannel(): bool
     {
-        return $this->channelName;
+        return false;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition

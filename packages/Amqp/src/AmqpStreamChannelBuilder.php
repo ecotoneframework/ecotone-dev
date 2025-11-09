@@ -134,9 +134,9 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
         return true;
     }
 
-    public function getEndpointId(): string
+    public function isStreamingChannel(): bool
     {
-        return $this->channelName;
+        return true;
     }
 
     public function __toString()

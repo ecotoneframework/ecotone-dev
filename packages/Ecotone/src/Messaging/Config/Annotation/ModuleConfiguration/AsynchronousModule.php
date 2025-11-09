@@ -158,21 +158,6 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
                 $property->setAccessible(true);
                 $isShared = $property->getValue($channelBuilder);
             }
-
-            // Or check if endpointId differs from channel name (for Kafka/AMQP Stream)
-            if (!$isShared && $channelBuilder->getEndpointId() !== $channelBuilder->getMessageChannelName()) {
-                $isShared = true;
-            }
-
-            if ($isShared) {
-                foreach ($endpointChannels as $endpointChannel => $asyncChannels) {
-                    foreach ($asyncChannels as $asyncChannel) {
-                        if ($asyncChannel === $channelBuilder->getMessageChannelName()) {
-                            throw ConfigurationException::create("Asynchronous handlers work in point-to-point manner, therefore shared channels cannot be used. Please switch channel '{$asyncChannel}' to standard channel instead of shared channel.");
-                        }
-                    }
-                }
-            }
         }
 
         foreach ($endpointChannels as $endpointChannel => $asyncChannels) {

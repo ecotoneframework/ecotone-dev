@@ -18,7 +18,6 @@ final class DistributedOutboundRouter
 {
     public function __construct(
         private DistributedServiceMap $distributedServiceMap,
-        private MessageChannelConfiguration $messageChannelConfiguration,
         private string $thisServiceName
     )
     {
@@ -41,10 +40,7 @@ final class DistributedOutboundRouter
                 Change your channel to standard pollable channel.
             ', $targetedServiceName));
 
-            $targetChannelName = $this->distributedServiceMap->getChannelNameFor($targetedServiceName);
-
-            Assert::isFalse($this->messageChannelConfiguration->isShared($targetChannelName), "Can't send command to shared channel, commands follow point to point semantics. Please use standard pollable channel instead.");
-            return [$targetChannelName];
+            return [$this->distributedServiceMap->getChannelNameFor($targetedServiceName)];
         } else {
             throw InvalidArgumentException::create("Trying to call distributed command handler for payload type {$payloadType} and allowed are event/command/message");
         }

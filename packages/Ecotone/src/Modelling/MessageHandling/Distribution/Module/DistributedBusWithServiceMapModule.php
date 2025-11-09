@@ -96,7 +96,6 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
                 DistributedOutboundRouter::class,
                 [
                     $distributedServiceMap,
-                    Reference::to(MessageChannelConfiguration::class),
                     $applicationConfiguration->getServiceName(),
                 ]
             )

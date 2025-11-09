@@ -57,32 +57,6 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     }
 
     /**
-     * Create a shared stream channel with consumer groups
-     *
-     * Shared channels allow multiple consumer groups to consume from the same stream independently.
-     * Each consumer group tracks its own position in the stream.
-     *
-     * For Event Handlers on shared channels, the routing slip will point to the Event Bus
-     * instead of specific handlers, ensuring all handlers execute together when a message is consumed.
-     *
-     * @param string $channelName
-     * @param string $queueName The AMQP stream queue name
-     * @param string $messageGroupId Consumer group identifier (e.g., application name or service name)
-     * @param string $startPosition Stream offset: 'first', 'last', 'next', or specific offset number
-     * @param string $amqpConnectionReferenceName
-     * @return self
-     */
-    public static function createShared(
-        string $channelName,
-        string $queueName,
-        string $messageGroupId,
-        string $startPosition = 'first',
-        string $amqpConnectionReferenceName = AmqpConnectionFactory::class
-    ): self {
-        return new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition, $messageGroupId);
-    }
-
-    /**
      * Set the prefetch count (QoS) for stream consumption
      *
      * Controls how many unacknowledged messages RabbitMQ will deliver to the consumer.

@@ -28,7 +28,13 @@ class BatchCommitCoordinator
         private int $commitInterval,
         public readonly KafkaConsumer $consumer,
         private LoggingGateway $loggingGateway,
+        private string $endpointId,
     ) {
+    }
+
+    public function getEndpointId(): string
+    {
+        return $this->endpointId;
     }
 
     /**

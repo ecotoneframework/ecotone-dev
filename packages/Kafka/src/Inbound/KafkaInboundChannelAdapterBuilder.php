@@ -34,34 +34,24 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
 
     private int $commitIntervalInMessages = 1;
 
-    private ?string $channelName = null;
-
     public function __construct(
-        string $endpointId,
+        private string $channelName,
         ?string  $requestChannelName = null,
         private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RESEND,
     ) {
         $this->inboundGateway = $requestChannelName
-            ? GatewayProxyBuilder::create($endpointId, InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName)
+            ? GatewayProxyBuilder::create('', InboundChannelAdapterEntrypoint::class, 'executeEntrypoint', $requestChannelName)
             : NullEntrypointGateway::create();
-        $this->endpointId = $endpointId;
-        $this->channelName = $endpointId; // Default to endpointId if not set
     }
 
     public static function create(
-        string $endpointId,
+        string $channelName,
         ?string $requestChannelName = null,
     ): self {
         return new self(
-            $endpointId,
+            $channelName,
             $requestChannelName,
         );
-    }
-
-    public function withChannelName(string $channelName): self
-    {
-        $this->channelName = $channelName;
-        return $this;
     }
 
     protected function compileGateway(MessagingContainerBuilder $builder): Definition|Reference|DefinedObject
@@ -74,12 +64,9 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
         return new Definition(
             KafkaInboundChannelAdapter::class,
             [
-                $this->endpointId,
                 Reference::to(KafkaAdmin::class),
                 Definition::createFor(InboundMessageConverter::class, [
                     Reference::to(KafkaAdmin::class),
-                    $this->endpointId,
-                    $this->channelName, // Pass channelName for publisher lookup
                     KafkaHeader::ACKNOWLEDGE_HEADER_NAME,
                     $this->finalFailureStrategy,
                     Reference::to(LoggingGateway::class),
@@ -88,6 +75,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
                 $this->receiveTimeoutInMilliseconds,
                 Reference::to(LoggingGateway::class),
                 $this->commitIntervalInMessages,
+                $this->channelName,
             ]
         );
     }
@@ -97,7 +85,7 @@ final class KafkaInboundChannelAdapterBuilder extends InterceptedChannelAdapterB
      */
     public function getEndpointId(): string
     {
-        return $this->endpointId;
+        return $this->channelName;
     }
 
     /**

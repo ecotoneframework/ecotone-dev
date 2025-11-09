@@ -8,12 +8,16 @@ use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\TestConfiguration;
+use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
@@ -39,7 +43,7 @@ use Test\Ecotone\Kafka\Fixture\Handler\KafkaAsyncEventHandler;
  * licence Enterprise
  * @internal
  */
-#[RunTestsInSeparateProcesses]
+//#[RunTestsInSeparateProcesses]
 final class KafkaMessageChannelTest extends TestCase
 {
     public function test_connecting_to_non_existing_topic()
@@ -337,5 +341,87 @@ final class KafkaMessageChannelTest extends TestCase
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    public function test_two_consumers_track_positions_independently(): void
+    {
+        $channelName = 'kafka_channel';
+        $topicName = 'test_topic_two_consumers_' . Uuid::uuid4()->toString();
+
+        $handler1 = new class {
+            private array $consumed = [];
+
+            #[InternalHandler(inputChannelName: 'kafka_channel', endpointId: 'consumer1')]
+            public function handle(string $payload): void
+            {
+                $this->consumed[] = $payload;
+            }
+
+            #[QueryHandler('getConsumed1')]
+            public function getConsumed(): array
+            {
+                return $this->consumed;
+            }
+        };
+
+        $handler2 = new class {
+            private array $consumed = [];
+
+            #[InternalHandler(inputChannelName: 'kafka_channel', endpointId: 'consumer2')]
+            public function handle(string $payload): void
+            {
+                $this->consumed[] = $payload;
+            }
+
+            #[QueryHandler('getConsumed2')]
+            public function getConsumed(): array
+            {
+                return $this->consumed;
+            }
+        };
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [$handler1::class, $handler2::class],
+            [
+                $handler1,
+                $handler2,
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaMessageChannelBuilder::create(
+                        channelName: $channelName,
+                        topicName: $topicName,
+                        messageGroupId: $topicName
+                    )
+                        ->withCommitInterval(1), // Commit after each message
+                    TestConfiguration::createWithDefaults(),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        // Send 3 messages to the Kafka topic
+        $channel = $ecotoneLite->getMessageChannel($channelName);
+        $channel->send(MessageBuilder::withPayload('message1')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
+        $channel->send(MessageBuilder::withPayload('message2')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
+        $channel->send(MessageBuilder::withPayload('message3')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
+
+        // Consumer1 consumes first message
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
+        $this->assertEquals([], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
+
+        // Consumer2 consumes first two messages
+        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
+        $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
+
+        // Consumer1 consumes second and third messages
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['message1', 'message2', 'message3'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
+        $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
     }
 }

@@ -69,4 +69,15 @@ final class KafkaConsumer extends MessageConsumer implements DefinedObject
             ]
         );
     }
+
+    public function changeGroupId(string $groupId): self
+    {
+        return new self(
+            $this->getEndpointId(),
+            $this->topics,
+            $groupId,
+            $this->finalFailureStrategy,
+            $this->commitIntervalInMessages,
+        );
+    }
 }

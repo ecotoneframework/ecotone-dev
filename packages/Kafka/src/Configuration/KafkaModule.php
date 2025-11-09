@@ -82,11 +82,12 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof KafkaMessageChannelBuilder) {
-                $kafkaConsumers[$extensionObject->getEndpointId()] = new KafkaConsumer(
+                $kafkaConsumers[$extensionObject->getMessageChannelName()] = new KafkaConsumer(
                     $extensionObject->getEndpointId(),
                     $extensionObject->topicName,
                     $extensionObject->messageGroupId,
                 );
+
                 $publisherConfigurations[$extensionObject->getMessageChannelName()] = KafkaPublisherConfiguration::createWithDefaults(
                     $extensionObject->topicName,
                     MessagePublisher::class . '::' . $extensionObject->getMessageChannelName(),
@@ -120,7 +121,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
             $messagingConfiguration->registerConsumer(
                 KafkaInboundChannelAdapterBuilder::create(
-                    endpointId: $kafkaConsumer->getEndpointId(),
+                    channelName: $kafkaConsumer->getEndpointId(),
                     requestChannelName: $kafkaConsumer->getEndpointId(),
                 )
                     ->withFinalFailureStrategy($kafkaConsumer->getFinalFailureStrategy())
@@ -139,7 +140,6 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 $kafkaBrokerConfigurations,
                 $topicReferenceMapping,
                 Reference::to(LoggingGateway::class),
-                $serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE),
             ])
         );
     }

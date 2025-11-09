@@ -10,6 +10,9 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
 
+/**
+ * licence Apache-2.0
+ */
 final class InMemoryMessageChannelHolder implements DefinedObject
 {
     private array $messages = [];

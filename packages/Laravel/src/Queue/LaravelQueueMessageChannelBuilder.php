@@ -92,6 +92,11 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
         return $this->headerMapper;
     }
 
+    public function isStreamingChannel(): bool
+    {
+        return false;
+    }
+
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         return new Definition(

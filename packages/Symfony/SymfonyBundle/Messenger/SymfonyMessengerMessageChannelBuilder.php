@@ -88,6 +88,15 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
         );
     }
 
+    /**
+     * Whatever messages are preserved after consumption, and be consumed by multiple consumer groups
+     * @return string
+     */
+    public function isStreamingChannel(): bool
+    {
+        return false;
+    }
+
     private function getTransportServiceName(): string
     {
         return self::TRANSPORT_SERVICE_PREFIX . $this->transportName;

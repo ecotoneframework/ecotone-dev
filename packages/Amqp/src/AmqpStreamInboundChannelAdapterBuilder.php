@@ -96,7 +96,6 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
             new Reference(ConversionService::REFERENCE_NAME),
             new Reference(LoggingGateway::class),
             new Reference(ConsumerPositionTracker::class),
-            $this->endpointId,
             $this->streamOffset,
             $publisherConnectionFactory,
             $this->prefetchCount,

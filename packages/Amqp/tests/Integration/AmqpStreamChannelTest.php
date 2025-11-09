@@ -7,11 +7,14 @@ namespace Test\Ecotone\Amqp\Integration;
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Lite\Test\TestConfiguration;
+use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Ramsey\Uuid\Uuid;
@@ -1132,6 +1135,99 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         // Verify position was committed at offset 5 (after all messages)
         // With handled message limit, commit interval should be overridden to 1, so each message is committed
         $this->assertEquals('5', $sharedPositionTracker->loadPosition($consumerId), 'Position should be committed at offset 5 with handled message limit');
+    }
+
+    public function test_two_consumers_track_positions_independently(): void
+    {
+        $channelName = 'stream_channel';
+        $queueName = 'stream_queue_two_consumers_' . Uuid::uuid4()->toString();
+
+        $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
+
+        $handler1 = new class {
+            private array $consumed = [];
+
+            #[InternalHandler(inputChannelName: 'stream_channel', endpointId: 'consumer1')]
+            public function handle(string $payload): void
+            {
+                $this->consumed[] = $payload;
+            }
+
+            #[QueryHandler('getConsumed1')]
+            public function getConsumed(): array
+            {
+                return $this->consumed;
+            }
+        };
+
+        $handler2 = new class {
+            private array $consumed = [];
+
+            #[InternalHandler(inputChannelName: 'stream_channel', endpointId: 'consumer2')]
+            public function handle(string $payload): void
+            {
+                $this->consumed[] = $payload;
+            }
+
+            #[QueryHandler('getConsumed2')]
+            public function getConsumed(): array
+            {
+                return $this->consumed;
+            }
+        };
+
+        $ecotoneLite = $this->bootstrapForTesting(
+            [$handler1::class, $handler2::class],
+            [
+                $handler1,
+                $handler2,
+                ...$this->getConnectionFactoryReferences(),
+                \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )
+                        ->withCommitInterval(1), // Commit after each message
+                    TestConfiguration::createWithDefaults()->withInMemoryConsumerPositionTracker(false),
+                ])
+        );
+
+        // Send 3 messages to the stream
+        $channel = $ecotoneLite->getMessageChannelByName($channelName);
+        $channel->send(MessageBuilder::withPayload('message1')->build());
+        $channel->send(MessageBuilder::withPayload('message2')->build());
+        $channel->send(MessageBuilder::withPayload('message3')->build());
+
+        // Consumer1 consumes first message
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['message1'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed1'));
+        $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed2'));
+
+        // Consumer2 consumes first two messages
+        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['message1'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed1'));
+        $this->assertEquals(['message1', 'message2'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed2'));
+
+        // Consumer1 consumes second and third messages
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['message1', 'message2', 'message3'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed1'));
+        $this->assertEquals(['message1', 'message2'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed2'));
+
+        // Verify positions are tracked independently
+        $consumer1Id = 'consumer1:' . $queueName;
+        $consumer2Id = 'consumer2:' . $queueName;
+        $this->assertEquals('3', $sharedPositionTracker->loadPosition($consumer1Id), 'Consumer1 should have position at offset 3');
+        $this->assertEquals('2', $sharedPositionTracker->loadPosition($consumer2Id), 'Consumer2 should have position at offset 2');
     }
 
 }

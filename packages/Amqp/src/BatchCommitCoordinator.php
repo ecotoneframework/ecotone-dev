@@ -70,6 +70,11 @@ class BatchCommitCoordinator
         return $this->lastCommittedProcessedOffset !== null && $offset <= $this->lastProcessedOffset;
     }
 
+    public function getConsumerId(): string
+    {
+        return $this->consumerId;
+    }
+
     private function isOffsetAlreadyCommitted(): bool
     {
         return $this->lastCommittedProcessedOffset !== null && $this->lastProcessedOffset <= $this->lastCommittedProcessedOffset;

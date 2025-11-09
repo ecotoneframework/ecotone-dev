@@ -886,6 +886,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         startPosition: 'first',
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
+                        messageGroupId: $messageGroupId = Uuid::uuid4()->toString(),
                     )
                         ->withPrefetchCount(2)
                         ->withCommitInterval(2), // Commit every 2 messages,
@@ -907,8 +908,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         // Verify position was committed at offsets 2, 4, and 5 (last message in batch)
         // The committed position is the NEXT offset to consume from
-        $consumerId = $channelName . ':' . $queueName;
-        $committedPosition = $sharedPositionTracker->loadPosition($consumerId);
+        $committedPosition = $sharedPositionTracker->loadPosition($messageGroupId);
 
         // After consuming 5 messages (offsets 0-4), the committed position should be 5 (next to consume)
         // With commitInterval=2, commits happen at messages 2, 4, and 5 (end of batch)
@@ -958,8 +958,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
         $this->assertEquals(['order_1', 'order_2', 'order_3', 'order_4', 'order_5'], $orders);
 
-        $consumerId = $channelName . ':' . $queueName;
-        $committedPosition = $sharedPositionTracker->loadPosition($consumerId);
+        $committedPosition = $sharedPositionTracker->loadPosition($channelName);
         $this->assertEquals('5', $committedPosition, 'Position should be committed at offset 5 (after last message)');
     }
 
@@ -1003,7 +1002,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "order_{$i}");
         }
 
-        $consumerId = $channelName . ':' . $queueName;
+        $consumerId = $channelName;
 
         // Run consumer multiple times with single message limit
         // Message 1
@@ -1073,7 +1072,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "order_{$i}");
         }
 
-        $consumerId = $channelName . ':' . $queueName;
+        $consumerId = $channelName;
 
         // Run consumer with execution time limit - should commit after each message
         $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5, maxExecutionTimeInMilliseconds: 5000));
@@ -1123,7 +1122,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             $ecotoneLite->getCommandBus()->sendWithRouting('order.register', "order_{$i}");
         }
 
-        $consumerId = $channelName . ':' . $queueName;
+        $consumerId = $channelName;
 
         // Run consumer with message limit - should commit after each message
         $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5));
@@ -1224,8 +1223,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals(['message1', 'message2'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed2'));
 
         // Verify positions are tracked independently
-        $consumer1Id = 'consumer1:' . $queueName;
-        $consumer2Id = 'consumer2:' . $queueName;
+        $consumer1Id = $channelName . '_' . 'consumer1';
+        $consumer2Id = $channelName . '_' . 'consumer2';
         $this->assertEquals('3', $sharedPositionTracker->loadPosition($consumer1Id), 'Consumer1 should have position at offset 3');
         $this->assertEquals('2', $sharedPositionTracker->loadPosition($consumer2Id), 'Consumer2 should have position at offset 2');
     }

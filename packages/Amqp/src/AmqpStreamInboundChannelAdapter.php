@@ -48,6 +48,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     private ?BatchCommitCoordinator $batchCommitCoordinator = null;
 
     public function __construct(
+        private string $channelName,
         private CachedConnectionFactory $cachedConnectionFactory,
         private AmqpAdmin               $amqpAdmin,
         bool                            $declareOnStartup,
@@ -60,7 +61,8 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         private string                  $startingPositionOffset,
         private CachedConnectionFactory $publisherConnectionFactory,
         private int                     $prefetchCount,
-        private int                     $commitInterval = 1,
+        private int                     $commitInterval,
+        private string                  $messageGroupId,
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -265,7 +267,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
      */
     private function getConsumerId(string $endpointId): string
     {
-        return $endpointId . ':' . $this->queueName;
+        return $endpointId === $this->channelName ? $this->messageGroupId : $this->messageGroupId . '_' . $endpointId;
     }
 
     /**

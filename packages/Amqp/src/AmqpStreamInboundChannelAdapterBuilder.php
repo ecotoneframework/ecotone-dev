@@ -27,13 +27,17 @@ use Ramsey\Uuid\Uuid;
 class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
     private string $streamOffset = 'next';
-    private int $prefetchCount = 1000;
+    private int $prefetchCount = 100;
     private int $commitInterval = 100;
+    private string $channelName;
+    private string $messageGroupId;
 
-    public static function create(string $endpointId, string $queueName, string $streamOffset = 'next', string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
+    public static function create(string $channelName, string $queueName, string $streamOffset, string $messageGroupId, string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
     {
-        $instance = new self($queueName, $endpointId, null, $amqpConnectionReferenceName);
+        $instance = new self($queueName, $channelName, null, $amqpConnectionReferenceName);
         $instance->streamOffset = $streamOffset;
+        $instance->messageGroupId = $messageGroupId;
+        $instance->channelName = $channelName;
 
         return $instance->withFinalFailureStrategy(FinalFailureStrategy::RELEASE);
     }
@@ -87,6 +91,7 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
         ]);
 
         return new Definition(AmqpStreamInboundChannelAdapter::class, [
+            $this->channelName,
             $connectionFactory,
             new Reference(AmqpAdmin::REFERENCE_NAME),
             $this->declareOnStartup,
@@ -100,6 +105,7 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
             $publisherConnectionFactory,
             $this->prefetchCount,
             $this->commitInterval,
+            $this->messageGroupId,
         ]);
     }
 }

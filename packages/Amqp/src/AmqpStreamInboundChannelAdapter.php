@@ -111,7 +111,6 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
         try {
-            // Initialize or reinitialize batch commit coordinator if endpoint ID changed
             $endpointId = $pollingMetadata->getEndpointId();
             $consumerId = $this->getConsumerId($endpointId);
 

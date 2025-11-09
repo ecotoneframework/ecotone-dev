@@ -28,16 +28,16 @@ use Ecotone\Messaging\PollableChannel;
 class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuilder
 {
     private function __construct(
-        private string               $messageChannelName,
-        private MessageChannel       $messageChannel,
-        private bool                 $isPollable,
-        private ?MediaType           $conversionMediaType,
-        private HeaderMapper         $headerMapper,
-        private FinalFailureStrategy $finalFailureStrategy,
-        private bool                 $isAutoAcked,
-        private bool                 $isSharedChannel = false,
+        private string                        $messageChannelName,
+        private MessageChannel                $messageChannel,
+        private bool                          $isPollable,
+        private ?MediaType                    $conversionMediaType,
+        private HeaderMapper                  $headerMapper,
+        private FinalFailureStrategy          $finalFailureStrategy,
+        private bool                          $isAutoAcked,
+        private bool                          $isStreamingChannel = false,
         private ?InMemoryMessageChannelHolder $inMemoryMessageChannelHolder = null,
-        private ?string              $messageGroupId = null,
+        private ?string                       $messageGroupId = null,
     ) {
     }
 
@@ -84,12 +84,12 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
         return self::create($exceptionalQueueChannel->getMessageChannelName(), $exceptionalQueueChannel);
     }
 
-    public static function createShared(string $messageChannelName, ?string $messageGroupId = null, string|MediaType|null $conversionMediaType = null, FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RELEASE, bool $isAutoAcked = true): self
+    public static function createStreamingChannel(string $messageChannelName, ?string $messageGroupId = null, string|MediaType|null $conversionMediaType = null, FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::RELEASE, bool $isAutoAcked = true): self
     {
         $messageChannel = QueueChannel::create($messageChannelName);
 
         $instance = self::create($messageChannelName, $messageChannel, $conversionMediaType, $finalFailureStrategy, $isAutoAcked);
-        $instance->isSharedChannel = true;
+        $instance->isStreamingChannel = true;
         $instance->inMemoryMessageChannelHolder = new InMemoryMessageChannelHolder();
         $instance->messageGroupId = $messageGroupId ?? $messageChannelName;
         return $instance;
@@ -105,7 +105,7 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
 
     public function isStreamingChannel(): bool
     {
-        return $this->isSharedChannel;
+        return $this->isStreamingChannel;
     }
 
     public function getFinalFailureStrategy(): FinalFailureStrategy
@@ -153,8 +153,8 @@ class SimpleMessageChannelBuilder implements MessageChannelWithSerializationBuil
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        if ($this->isSharedChannel) {
-            return new Definition(InMemorySharedChannel::class, [
+        if ($this->isStreamingChannel) {
+            return new Definition(InMemoryStreamingChannel::class, [
                 $this->messageChannelName,
                 new DefinedObjectWrapper($this->inMemoryMessageChannelHolder),
                 new Reference(ConsumerPositionTracker::class),

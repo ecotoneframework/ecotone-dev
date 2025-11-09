@@ -56,13 +56,6 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
         return $this;
     }
 
-    public function withEndpointId(string $endpointId): self
-    {
-        $this->endpointId = $endpointId;
-
-        return $this;
-    }
-
     public function compile(MessagingContainerBuilder $builder): Definition
     {
         $connectionFactory = new Definition(CachedConnectionFactory::class, [

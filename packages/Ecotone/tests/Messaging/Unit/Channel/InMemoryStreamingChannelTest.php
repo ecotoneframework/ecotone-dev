@@ -26,7 +26,7 @@ use PHPUnit\Framework\TestCase;
  * licence Apache-2.0
  * @internal
  */
-final class InMemorySharedChannelTest extends TestCase
+final class InMemoryStreamingChannelTest extends TestCase
 {
     public function test_single_consumer_consumes_messages_in_correct_order(): void
     {
@@ -53,7 +53,7 @@ final class InMemorySharedChannelTest extends TestCase
             [$handler, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createShared('shared_channel'),
+                    SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
                     PollingMetadata::create('consumer1')->setHandledMessageLimit(1),
                 ])
         );
@@ -115,7 +115,7 @@ final class InMemorySharedChannelTest extends TestCase
             [$handler1, $handler2, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createShared('shared_channel'),
+                    SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
                     PollingMetadata::create('consumer1')->setHandledMessageLimit(1),
                     PollingMetadata::create('consumer2')->setHandledMessageLimit(1),
                 ])

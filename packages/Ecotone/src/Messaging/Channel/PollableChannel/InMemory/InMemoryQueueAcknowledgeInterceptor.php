@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Channel\PollableChannel\InMemory;
 
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
-use Ecotone\Messaging\Channel\InMemorySharedChannel;
+use Ecotone\Messaging\Channel\InMemoryStreamingChannel;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
@@ -39,7 +39,7 @@ final class InMemoryQueueAcknowledgeInterceptor extends AbstractChannelIntercept
         Assert::isTrue($messageChannel instanceof PollableChannel, 'InMemoryQueueAcknowledgeInterceptor can be used only with PollableChannel');
 
         // Skip for shared channels - they add their own callback in receiveWithTimeout()
-        if ($messageChannel instanceof InMemorySharedChannel) {
+        if ($messageChannel instanceof InMemoryStreamingChannel) {
             return $message;
         }
 

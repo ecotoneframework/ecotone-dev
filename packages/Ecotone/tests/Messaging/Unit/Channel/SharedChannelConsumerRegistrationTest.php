@@ -33,7 +33,7 @@ final class SharedChannelConsumerRegistrationTest extends TestCase
             [ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createShared('shared_channel'),
+                    SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
                 ])
         );
 
@@ -65,7 +65,7 @@ final class SharedChannelConsumerRegistrationTest extends TestCase
             [$handler, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createShared('shared_channel'),
+                    SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
                     PollingMetadata::create('consumer1')->setHandledMessageLimit(1),
                 ])
         );
@@ -117,7 +117,7 @@ final class SharedChannelConsumerRegistrationTest extends TestCase
             [$handler1, $handler2, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createShared('shared_channel'),
+                    SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
                     PollingMetadata::create('consumer_group_1')->setHandledMessageLimit(1),
                     PollingMetadata::create('consumer_group_2')->setHandledMessageLimit(1),
                 ])
@@ -169,7 +169,7 @@ final class SharedChannelConsumerRegistrationTest extends TestCase
             [$handler1, $handler2, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createShared('shared_channel'),
+                    SimpleMessageChannelBuilder::createStreamingChannel('shared_channel'),
                     PollingMetadata::create('consumer_group_1')->setHandledMessageLimit(1),
                     PollingMetadata::create('consumer_group_2')->setHandledMessageLimit(1),
                 ])

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
-use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemorySharedAcknowledgeCallback;
+use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryStreamingAcknowledgeCallback;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
@@ -22,7 +22,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
  *
  * licence Apache-2.0
  */
-final class InMemorySharedChannel implements PollableChannel, DefinedObject
+final class InMemoryStreamingChannel implements PollableChannel, DefinedObject
 {
     /**
      * @var int Auto-incrementing position counter
@@ -81,7 +81,7 @@ final class InMemorySharedChannel implements PollableChannel, DefinedObject
         }
 
         // Add acknowledgement callback to the message
-        $callback = new InMemorySharedAcknowledgeCallback(
+        $callback = new InMemoryStreamingAcknowledgeCallback(
             positionTracker: $this->positionTracker,
             endpointId: $consumerId,
             currentPosition: $position,
@@ -90,8 +90,8 @@ final class InMemorySharedChannel implements PollableChannel, DefinedObject
         );
 
         return MessageBuilder::fromMessage($message)
-            ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, InMemorySharedAcknowledgeCallback::ECOTONE_IN_MEMORY_SHARED_ACK)
-            ->setHeader(InMemorySharedAcknowledgeCallback::ECOTONE_IN_MEMORY_SHARED_ACK, $callback)
+            ->setHeader(MessageHeaders::CONSUMER_ACK_HEADER_LOCATION, InMemoryStreamingAcknowledgeCallback::ECOTONE_IN_MEMORY_SHARED_ACK)
+            ->setHeader(InMemoryStreamingAcknowledgeCallback::ECOTONE_IN_MEMORY_SHARED_ACK, $callback)
             ->build();
     }
 

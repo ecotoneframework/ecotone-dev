@@ -603,7 +603,7 @@ final class DistributedBusWithServiceMapTest extends TestCase
 
     public function test_distributing_event_to_shared_channel(): void
     {
-        $sharedChannel = SimpleMessageChannelBuilder::createShared($channelName = 'distributed_events');
+        $sharedChannel = SimpleMessageChannelBuilder::createStreamingChannel($channelName = 'distributed_events');
         $userService = $this->bootstrapEcotone(
             TestServiceName::USER_SERVICE,
             [],

@@ -15,7 +15,7 @@ use RuntimeException;
  *
  * licence Apache-2.0
  */
-final class InMemorySharedAcknowledgeCallback implements AcknowledgementCallback
+final class InMemoryStreamingAcknowledgeCallback implements AcknowledgementCallback
 {
     public const ECOTONE_IN_MEMORY_SHARED_ACK = 'ecotone.in_memory_shared.ack';
 

@@ -27,7 +27,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         protected int                       $receiveTimeoutInMilliseconds,
         private LoggingGateway $loggingGateway,
         private int $commitIntervalInMessages,
-        private string $channelName,
+        public readonly string $channelName,
     ) {
     }
 

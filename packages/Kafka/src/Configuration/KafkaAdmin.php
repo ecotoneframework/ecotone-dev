@@ -169,7 +169,7 @@ final class KafkaAdmin
         );
     }
 
-    private function getConsumerConfiguration(string $endpointId, string $channelName): KafkaConsumerAttribute
+    public function getConsumerConfiguration(string $endpointId, string $channelName): KafkaConsumerAttribute
     {
         if (array_key_exists($channelName, $this->consumerConfigurations)) {
             $defaultChannelConfig = $this->consumerConfigurations[$channelName];

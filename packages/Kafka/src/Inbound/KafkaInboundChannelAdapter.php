@@ -96,8 +96,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
             $endpointId = $this->batchCommitCoordinator->getEndpointId();
             $this->batchCommitCoordinator->forceCommitAll();
             $this->batchCommitCoordinator = null;
-//            causes segmentation fault
-//            $this->kafkaAdmin->closeConsumer($endpointId);
+            $this->kafkaAdmin->closeConsumer($endpointId);
         }
     }
 }

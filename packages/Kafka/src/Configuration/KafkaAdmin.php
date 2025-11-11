@@ -107,7 +107,6 @@ final class KafkaAdmin
         }
 
         try {
-            $this->initializedConsumers[$endpointId]->unsubscribe();
             $this->initializedConsumers[$endpointId]->close();
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to close consumer: ' . $exception->getMessage(), ['exception' => $exception]);

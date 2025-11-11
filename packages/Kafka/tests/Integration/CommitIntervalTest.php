@@ -104,7 +104,7 @@ final class CommitIntervalTest extends TestCase
 
         // should only continue and not re-reprocess
         $ecotoneLite = $this->bootstrapEcotoneLite($topicName, KafkaConsumerWithCommitIntervalAndFailure::class, $consumerInstance);
-        $ecotoneLite->run('kafka_consumer_interval_3_with_failure', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(3)->withExecutionTimeLimitInMilliseconds(10000));
+        $ecotoneLite->run('kafka_consumer_interval_3_with_failure', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(10)->withExecutionTimeLimitInMilliseconds(10000));
 
         $this->assertEquals([
             'message_1', 'message_2', 'message_3', 'message_4', 'message_5',

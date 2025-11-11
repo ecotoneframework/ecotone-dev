@@ -27,7 +27,6 @@ use Test\Ecotone\Kafka\ConnectionTestCase;
  * licence Apache-2.0
  * @internal
  */
-#[RunTestsInSeparateProcesses]
 final class FinalFailureStrategyTest extends TestCase
 {
     public function test_single_message_redelivered_and_processed_correctly()

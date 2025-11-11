@@ -26,7 +26,6 @@ use Test\Ecotone\Kafka\Fixture\CommitInterval\KafkaConsumerWithInterval3;
  * licence Enterprise
  * @internal
  */
-#[RunTestsInSeparateProcesses]
 final class CommitIntervalTest extends TestCase
 {
     public function test_default_commit_interval_commits_every_message(): void

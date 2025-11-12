@@ -304,10 +304,16 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
         $this->cancelStreamConsumer();
         parent::onConsumerStop();
+        sleep(3);
     }
 
     public function connectionException(): array
     {
         return [AMQPConnectionException::class, AMQPChannelException::class, AMQPIOException::class, AMQPChannelClosedException::class, AMQPConnectionClosedException::class];
+    }
+
+    public function __destruct()
+    {
+//        $this->cancelStreamConsumer();
     }
 }

@@ -310,9 +310,4 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     {
         return [AMQPConnectionException::class, AMQPChannelException::class, AMQPIOException::class, AMQPChannelClosedException::class, AMQPConnectionClosedException::class];
     }
-
-    public function __destruct()
-    {
-        $this->stopStreamConsuming();
-    }
 }

@@ -304,7 +304,6 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
         $this->cancelStreamConsumer();
         parent::onConsumerStop();
-        sleep(3);
     }
 
     public function connectionException(): array
@@ -314,6 +313,6 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
     public function __destruct()
     {
-//        $this->cancelStreamConsumer();
+        $this->cancelStreamConsumer();
     }
 }

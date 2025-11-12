@@ -97,6 +97,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
             $this->batchCommitCoordinator->forceCommitAll();
             $this->batchCommitCoordinator = null;
             $this->kafkaAdmin->closeConsumer($endpointId);
+            sleep(3);
         }
     }
 }

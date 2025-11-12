@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
+use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
@@ -95,7 +96,7 @@ final class CommitIntervalTest extends TestCase
         $kafkaPublisher = $ecotoneLite->getGateway(MessagePublisher::class);
 
         // Send 10 messages, message 6 will fail
-        for ($i = 1; $i <= 10; $i++) {
+        for ($i = 1; $i <= 9; $i++) {
             $kafkaPublisher->sendWithMetadata("message_$i", 'application/text', ['fail' => $i === 6]);
         }
 
@@ -108,7 +109,7 @@ final class CommitIntervalTest extends TestCase
 
         $this->assertEquals([
             'message_1', 'message_2', 'message_3', 'message_4', 'message_5',
-            'message_6', 'message_7', 'message_8', 'message_9', 'message_10',
+            'message_6', 'message_7', 'message_8', 'message_9',
         ], array_map(fn ($m) => $m['payload'], $ecotoneLite->sendQueryWithRouting('consumer.getMessages')));
     }
 

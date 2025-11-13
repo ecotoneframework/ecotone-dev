@@ -170,7 +170,7 @@ jobs:
           VERSION: ${{ github.ref_name }}
         run: |
           # Fetch release notes from GitHub
-          RELEASE_NOTES=$(gh release view "$VERSION" --json body --jq -r '.body // "No release notes available"')
+          RELEASE_NOTES=$(gh release view "$VERSION" --repo ecotoneframework/ecotone-dev --json body -q '.body // "No release notes available"')
 
           # Truncate if too long (Discord embed description limit is 4096 chars)
           if [ ${#RELEASE_NOTES} -gt 4000 ]; then

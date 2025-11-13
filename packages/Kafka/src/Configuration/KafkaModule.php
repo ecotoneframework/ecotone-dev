@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -78,6 +79,25 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         $publisherConfigurations = [];
         $kafkaBrokerConfigurations = [];
         $kafkaConsumers = $this->kafkaConsumers;
+
+        // Validate that message group IDs are unique across channels
+        $messageGroupIdToChannelMap = [];
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof KafkaMessageChannelBuilder) {
+                $messageGroupId = $extensionObject->messageGroupId;
+                $channelName = $extensionObject->getMessageChannelName();
+
+                if (isset($messageGroupIdToChannelMap[$messageGroupId])) {
+                    throw ConfigurationException::create(
+                        "Message group ID '{$messageGroupId}' is already used by channel '{$messageGroupIdToChannelMap[$messageGroupId]}'. " .
+                        "Each Message Channel must have a unique message group ID to maintain processing isolation. " .
+                        "Channel '{$channelName}' is trying to use the same message group ID."
+                    );
+                }
+
+                $messageGroupIdToChannelMap[$messageGroupId] = $channelName;
+            }
+        }
 
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof KafkaMessageChannelBuilder) {

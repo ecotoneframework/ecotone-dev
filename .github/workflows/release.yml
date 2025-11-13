@@ -163,52 +163,51 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get Release Information
-        id: release_info
+      - name: Send Discord Notification
         run: |
           # Fetch release notes from GitHub
-          RELEASE_NOTES=$(gh release view ${{ github.ref_name }} --json body --jq .body || echo "No release notes available")
+          RELEASE_NOTES=$(gh release view ${{ github.ref_name }} --json body --jq -r '.body // "No release notes available"')
 
           # Truncate if too long (Discord embed description limit is 4096 chars)
           if [ ${#RELEASE_NOTES} -gt 4000 ]; then
             RELEASE_NOTES="${RELEASE_NOTES:0:3997}..."
           fi
 
-          # Escape for JSON
-          RELEASE_NOTES=$(echo "$RELEASE_NOTES" | jq -Rs .)
+          # Create JSON payload using jq to properly escape everything
+          PAYLOAD=$(jq -n \
+            --arg title "🚀 New Ecotone Release: ${{ github.ref_name }}" \
+            --arg description "$RELEASE_NOTES" \
+            --arg url "https://github.com/ecotoneframework/ecotone-dev/releases/tag/${{ github.ref_name }}" \
+            --arg version "${{ github.ref_name }}" \
+            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            '{
+              "embeds": [{
+                "title": $title,
+                "description": $description,
+                "url": $url,
+                "color": 5814783,
+                "fields": [
+                  {
+                    "name": "Version",
+                    "value": ("`" + $version + "`"),
+                    "inline": true
+                  },
+                  {
+                    "name": "Source",
+                    "value": "Ecotone Development",
+                    "inline": true
+                  }
+                ],
+                "footer": {
+                  "text": "Ecotone Framework",
+                  "icon_url": "https://avatars.githubusercontent.com/u/47981056?s=48&v=4"
+                },
+                "timestamp": $timestamp
+              }]
+            }')
 
-          echo "notes=$RELEASE_NOTES" >> $GITHUB_OUTPUT
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Send Discord Notification
-        run: |
           curl -H "Content-Type: application/json" \
                -X POST \
-               -d '{
-                 "embeds": [{
-                   "title": "🚀 New Ecotone Release: ${{ github.ref_name }}",
-                   "description": '"${{ steps.release_info.outputs.notes }}"',
-                   "url": "https://github.com/ecotoneframework/ecotone-dev/releases/tag/${{ github.ref_name }}",
-                   "color": 5814783,
-                   "fields": [
-                     {
-                       "name": "Version",
-                       "value": "`${{ github.ref_name }}`",
-                       "inline": true
-                     },
-                     {
-                       "name": "Source",
-                       "value": "Ecotone Development",
-                       "inline": true
-                     }
-                   ],
-                   "footer": {
-                     "text": "Ecotone Framework",
-                     "icon_url": "https://avatars.githubusercontent.com/u/47981056?s=48&v=4"
-                   },
-                   "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"'"
-                 }]
-               }' \
+               -d "$PAYLOAD" \
                "${{ secrets.ECOTONE_DISCORD_SERVER_URL }}"
 

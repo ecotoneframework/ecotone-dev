@@ -30,32 +30,31 @@ final class KafkaAdmin
     private array $initializedConsumers = [];
 
     /**
-     * @param KafkaConsumerAttribute[] $kafkaConsumers
-     * @param KafkaConsumerConfiguration[] $consumerConfigurations
+     * @param KafkaConsumerAttribute[] $consumerConfigurations
+     * @param KafkaConsumerConfiguration[] $rdKafkaConsumerConfigurations
      * @param TopicConfiguration[] $topicConfigurations
      * @param KafkaPublisherConfiguration[] $publisherConfigurations
      * @param array<string, string> $topicReferenceMapping
      * @param array<string, KafkaBrokerConfiguration> $kafkaBrokerConfigurations
      */
     public function __construct(
-        private array $kafkaConsumers,
-        private array $consumerConfigurations,
-        private array $topicConfigurations,
-        private array $publisherConfigurations,
-        private array $kafkaBrokerConfigurations,
-        private array $topicReferenceMapping,
+        private array          $consumerConfigurations,
+        private array          $rdKafkaConsumerConfigurations,
+        private array          $topicConfigurations,
+        private array          $publisherConfigurations,
+        private array          $kafkaBrokerConfigurations,
+        private array          $topicReferenceMapping,
         private LoggingGateway $loggingGateway,
-        private bool $isRunningInTestMode
     ) {
     }
 
-    public function getConfigurationForConsumer(string $endpointId): KafkaConsumerConfiguration
+    public function getRdKafkaConfiguration(string $channelName): KafkaConsumerConfiguration
     {
-        if (! array_key_exists($endpointId, $this->consumerConfigurations)) {
-            return KafkaConsumerConfiguration::createWithDefaults($endpointId);
+        if (! array_key_exists($channelName, $this->rdKafkaConsumerConfigurations)) {
+            return KafkaConsumerConfiguration::createWithDefaults($channelName);
         }
 
-        return $this->consumerConfigurations[$endpointId];
+        return $this->rdKafkaConsumerConfigurations[$channelName];
     }
 
     public function getConfigurationForTopic(string $referenceName): TopicConf
@@ -72,20 +71,20 @@ final class KafkaAdmin
         return $this->publisherConfigurations[$referenceName] ?? throw ConfigurationException::create("Publisher configuration for {$referenceName} not found");
     }
 
-    public function getConsumer(string $endpointId): KafkaConsumer
+    public function getConsumer(string $endpointId, string $channelName): KafkaConsumer
     {
         if (! array_key_exists($endpointId, $this->initializedConsumers)) {
-            Assert::keyExists($this->kafkaConsumers, $endpointId, "Consumer with endpoint id {$endpointId} not found");
-
-            $configuration = $this->getConfigurationForConsumer($endpointId);
+            $configuration = $this->getRdKafkaConfiguration($channelName);
             $kafkaBrokerConfiguration = $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()];
             $conf = $configuration->getConfig();
-            $conf->set('group.id', $this->kafkaConsumers[$endpointId]->getGroupId());
+            $kafkaConsumerConfig = $this->getConsumerConfiguration($endpointId, $channelName);
+
+            $conf->set('group.id', $kafkaConsumerConfig->getGroupId());
             $conf->set('metadata.broker.list', implode(',', $kafkaBrokerConfiguration->getBootstrapServers()));
             $this->setLoggerCallbacks($conf, $endpointId);
             $consumer = new KafkaConsumer($conf);
 
-            $topics = $this->getMappedTopicNames($this->kafkaConsumers[$endpointId]->getTopics());
+            $topics = $this->getMappedTopicNames($kafkaConsumerConfig->getTopics());
             $consumer->subscribe($topics);
 
             $this->initializedConsumers[$endpointId] = $consumer;
@@ -108,7 +107,6 @@ final class KafkaAdmin
         }
 
         try {
-            $this->initializedConsumers[$endpointId]->unsubscribe();
             $this->initializedConsumers[$endpointId]->close();
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to close consumer: ' . $exception->getMessage(), ['exception' => $exception]);
@@ -168,5 +166,25 @@ final class KafkaAdmin
                 $this->loggingGateway->error("Kafka error in {$endpointId}: {$reason}", ['error' => $err]);
             }
         );
+    }
+
+    public function getConsumerConfiguration(string $endpointId, string $channelName): KafkaConsumerAttribute
+    {
+        if (array_key_exists($channelName, $this->consumerConfigurations)) {
+            $defaultChannelConfig = $this->consumerConfigurations[$channelName];
+
+            if ($this->isUsedAsInputChannelForDifferentEndpoint($defaultChannelConfig, $endpointId)) {
+                return $defaultChannelConfig->changeGroupId($defaultChannelConfig->getGroupId() . '_' . $endpointId);
+            }
+
+            return $defaultChannelConfig;
+        }
+
+        throw ConfigurationException::create("Consumer configuration for {$channelName} not found");
+    }
+
+    public function isUsedAsInputChannelForDifferentEndpoint(KafkaConsumerAttribute $defaultChannelConfig, string $endpointId): bool
+    {
+        return $defaultChannelConfig->getEndpointId() !== $endpointId;
     }
 }

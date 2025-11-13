@@ -32,10 +32,10 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     private function __construct(
         private string         $channelName,
         public readonly string $topicName,
-        public readonly string $groupId,
+        public readonly string $messageGroupId,
         int             $receiveTimeoutInMilliseconds = KafkaConsumerConfiguration::DEFAULT_RECEIVE_TIMEOUT,
     ) {
-        $this->inboundChannelAdapterBuilder = KafkaInboundChannelAdapterBuilder::create($channelName)
+        $this->inboundChannelAdapterBuilder = KafkaInboundChannelAdapterBuilder::create($this->channelName)
             ->withReceiveTimeout($receiveTimeoutInMilliseconds);
         $this->outboundChannelAdapterBuilder = KafkaOutboundChannelAdapterBuilder::create($channelName);
 
@@ -55,15 +55,19 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         );
     }
 
+    /**
+     * @param string|null $topicName If null, channel name will be used as topic name
+     * @param string|null $messageGroupId If null, channel name will be used as message group id. This the default consumer group for Consumer with id equal to channel name
+     */
     public static function create(
         string  $channelName,
         ?string $topicName = null,
-        ?string $groupId = null
+        ?string $messageGroupId = null
     ): self {
         return new self(
             $channelName,
             $topicName ?? $channelName,
-            $groupId ?? $channelName,
+            $messageGroupId ?? $channelName,
         );
     }
 
@@ -113,6 +117,18 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         return $this;
     }
 
+    /**
+     * Set the commit interval in messages. Offsets will be committed every X messages.
+     *
+     * @param int $commitIntervalInMessages Number of messages to process before committing offset
+     * @return static
+     */
+    public function withCommitInterval(int $commitIntervalInMessages): self
+    {
+        $this->inboundChannelAdapterBuilder->withCommitInterval($commitIntervalInMessages);
+
+        return $this;
+    }
 
     public function getMessageChannelName(): string
     {
@@ -120,6 +136,11 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     }
 
     public function isPollable(): bool
+    {
+        return true;
+    }
+
+    public function isStreamingChannel(): bool
     {
         return true;
     }

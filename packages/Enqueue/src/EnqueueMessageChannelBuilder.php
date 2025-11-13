@@ -40,6 +40,11 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return true;
     }
 
+    public function isStreamingChannel(): bool
+    {
+        return false;
+    }
+
     public function withHeaderMapping(string $headerMapper): self
     {
         $this->getInboundChannelAdapter()->withHeaderMapper($headerMapper);

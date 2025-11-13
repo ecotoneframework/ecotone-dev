@@ -21,26 +21,27 @@ final class KafkaInboundChannelAdapter implements MessagePoller
     private ?BatchCommitCoordinator $batchCommitCoordinator = null;
 
     public function __construct(
-        private string                     $endpointId,
         protected KafkaAdmin                 $kafkaAdmin,
         protected InboundMessageConverter    $inboundMessageConverter,
         protected ConversionService          $conversionService,
         protected int                       $receiveTimeoutInMilliseconds,
         private LoggingGateway $loggingGateway,
-        private int $commitIntervalInMessages = 1,
+        private int $commitIntervalInMessages,
+        public readonly string $channelName,
     ) {
     }
 
     public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
-        $consumer = $this->kafkaAdmin->getConsumer($this->endpointId);
+        $endpointId = $pollingMetadata->getEndpointId();
+        $consumer = $this->kafkaAdmin->getConsumer($endpointId, $this->channelName);
 
-        // Initialize coordinator on first use
         if ($this->batchCommitCoordinator === null || $this->batchCommitCoordinator->consumer !== $consumer) {
             $this->batchCommitCoordinator = new BatchCommitCoordinator(
                 $this->commitIntervalInMessages,
                 $consumer,
                 $this->loggingGateway,
+                $endpointId,
             );
         }
 
@@ -58,6 +59,8 @@ final class KafkaInboundChannelAdapter implements MessagePoller
 
         if ($message->err === RD_KAFKA_RESP_ERR_NO_ERROR) {
             return $this->inboundMessageConverter->toMessage(
+                $endpointId,
+                $this->channelName,
                 $consumer,
                 $message,
                 $this->conversionService,
@@ -90,10 +93,10 @@ final class KafkaInboundChannelAdapter implements MessagePoller
     {
         // Commit all pending messages before stopping
         if ($this->batchCommitCoordinator !== null) {
+            $endpointId = $this->batchCommitCoordinator->getEndpointId();
             $this->batchCommitCoordinator->forceCommitAll();
             $this->batchCommitCoordinator = null;
+//            $this->kafkaAdmin->closeConsumer($endpointId);
         }
-
-        $this->kafkaAdmin->closeConsumer($this->endpointId);
     }
 }

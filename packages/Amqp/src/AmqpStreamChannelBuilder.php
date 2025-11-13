@@ -13,17 +13,20 @@ use Enqueue\AmqpLib\AmqpConnectionFactory;
 class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
 {
     private string $channelName;
+    private string $messageGroupId;
 
     private function __construct(
         string $channelName,
         string $amqpConnectionReferenceName,
         public readonly string $queueName,
-        string $streamOffset
+        string $streamOffset,
+        ?string $messageGroupId = null
     ) {
         $this->channelName = $channelName;
+        $this->messageGroupId = $messageGroupId ?? $channelName;
 
         parent::__construct(
-            AmqpStreamInboundChannelAdapterBuilder::create($channelName, $queueName, $streamOffset, $amqpConnectionReferenceName),
+            AmqpStreamInboundChannelAdapterBuilder::create($this->channelName, $queueName, $streamOffset, $this->messageGroupId, $amqpConnectionReferenceName),
             AmqpOutboundChannelAdapterBuilder::createForDefaultExchange($amqpConnectionReferenceName)
                 ->withDefaultRoutingKey($queueName)
                 ->withAutoDeclareOnSend(true)
@@ -38,17 +41,19 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
      * @param string $startPosition Stream offset: 'first', 'last', 'next', or specific offset number
      * @param string $amqpConnectionReferenceName
      * @param string|null $queueName If null, channel name will be used as queue name
+     * @param string|null $messageGroupId If null, channel name will be used as message group id. This the default consumer group for Consumer with id equal to channel name
      * @return self
      */
     public static function create(
         string  $channelName,
         string  $startPosition = 'first',
         string  $amqpConnectionReferenceName = AmqpConnectionFactory::class,
-        ?string $queueName = null
+        ?string $queueName = null,
+        ?string $messageGroupId = null
     ): self {
         $queueName ??= $channelName;
 
-        return new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition);
+        return new self($channelName, $amqpConnectionReferenceName, $queueName, $startPosition, $messageGroupId);
     }
 
     /**
@@ -99,6 +104,11 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     }
 
     public function isPollable(): bool
+    {
+        return true;
+    }
+
+    public function isStreamingChannel(): bool
     {
         return true;
     }

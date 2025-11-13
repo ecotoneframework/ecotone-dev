@@ -48,4 +48,12 @@ final class FakeMessageChannelWithConnectionFactoryBuilder implements MessageCha
     {
         return true;
     }
+
+    /**
+     * @return string
+     */
+    public function isStreamingChannel(): bool
+    {
+        return false;
+    }
 }

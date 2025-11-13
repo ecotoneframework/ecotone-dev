@@ -45,9 +45,10 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     private bool $initialized = false;
     private QueueChannel $queueChannel;
     private ?string $consumerTag = null;
-    private BatchCommitCoordinator $batchCommitCoordinator;
+    private ?BatchCommitCoordinator $batchCommitCoordinator = null;
 
     public function __construct(
+        private string $channelName,
         private CachedConnectionFactory $cachedConnectionFactory,
         private AmqpAdmin               $amqpAdmin,
         bool                            $declareOnStartup,
@@ -57,11 +58,11 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         ConversionService               $conversionService,
         private LoggingGateway          $loggingGateway,
         private ConsumerPositionTracker $positionTracker,
-        private string                  $endpointId,
         private string                  $startingPositionOffset,
         private CachedConnectionFactory $publisherConnectionFactory,
         private int                     $prefetchCount,
-        private int                     $commitInterval = 1,
+        private int                     $commitInterval,
+        private string                  $messageGroupId,
     ) {
         parent::__construct(
             $cachedConnectionFactory,
@@ -72,13 +73,6 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             $conversionService
         );
         $this->queueChannel = QueueChannel::create();
-
-        // Initialize the batch commit coordinator
-        $this->batchCommitCoordinator = new BatchCommitCoordinator(
-            $this->commitInterval,
-            $this->positionTracker,
-            $this->getConsumerId(),
-        );
     }
 
     public function initialize(): void
@@ -117,6 +111,17 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
     public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
         try {
+            $endpointId = $pollingMetadata->getEndpointId();
+            $consumerId = $this->getConsumerId($endpointId);
+
+            if ($this->batchCommitCoordinator === null || $this->batchCommitCoordinator->getConsumerId() !== $consumerId) {
+                $this->batchCommitCoordinator = new BatchCommitCoordinator(
+                    $this->commitInterval,
+                    $this->positionTracker,
+                    $consumerId,
+                );
+            }
+
             if ($message = $this->queueChannel->receive()) {
                 $streamPosition = $message->getHeaders()->get(self::X_STREAM_OFFSET_HEADER);
 
@@ -138,7 +143,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             Assert::isTrue(method_exists($context, 'getLibChannel'), 'Stream consumption requires AMQP library connection.');
             $libChannel = $context->getLibChannel();
 
-            $this->startStreamConsuming($context);
+            $this->startStreamConsuming($context, $pollingMetadata->getEndpointId());
 
             // Wait for messages with the specified timeout
             $timeout = $pollingMetadata->getExecutionTimeLimitInMilliseconds() ?: $this->receiveTimeoutInMilliseconds;
@@ -167,7 +172,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
         }
     }
 
-    private function startStreamConsuming(AmqpContext $context): void
+    private function startStreamConsuming(AmqpContext $context, string $endpointId): void
     {
         // Commit any pending offset from previous batch and reset for new batch
         $this->batchCommitCoordinator->commitPendingAndReset(ignoreCommitInterval: true);
@@ -181,7 +186,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             $offset = (int) $offset;
         }
 
-        $consumerId = $this->getConsumerId();
+        $consumerId = $this->getConsumerId($endpointId);
         $savedPosition = $this->positionTracker->loadPosition($consumerId);
         if ($savedPosition !== null) {
             $offset = (int)$savedPosition;
@@ -196,15 +201,15 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             no_ack: false,
             exclusive: false,
             nowait: false,
-            callback: $this->createStreamCallback($context),
+            callback: $this->createStreamCallback($context, $endpointId),
             ticket: null,
             arguments: $arguments
         );
     }
 
-    private function createStreamCallback(AmqpContext $context): callable
+    private function createStreamCallback(AmqpContext $context, string $endpointId): callable
     {
-        return function (PhpAmqpLibMessage $amqpMessage) use ($context) {
+        return function (PhpAmqpLibMessage $amqpMessage) use ($context, $endpointId) {
             /** @var AMQPTable $amqpHeaders */
             $amqpHeaders = $amqpMessage->get_properties()['application_headers'];
             $headers = $amqpHeaders->getNativeData();
@@ -236,7 +241,7 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
                 $this->inboundMessageConverter->getFinalFailureStrategy(),
                 true, // Auto-acknowledge for streams
                 $this->positionTracker,
-                $this->getConsumerId(),
+                $this->getConsumerId($endpointId),
                 $streamOffset,
                 $this,
                 $this->queueName,
@@ -259,9 +264,9 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
      * Get consumer ID for position tracking (endpointId:queueName)
      * This allows the same endpoint to track position across multiple queues
      */
-    private function getConsumerId(): string
+    private function getConsumerId(string $endpointId): string
     {
-        return $this->endpointId . ':' . $this->queueName;
+        return $endpointId === $this->channelName ? $this->messageGroupId : $this->messageGroupId . '_' . $endpointId;
     }
 
     /**
@@ -308,6 +313,6 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
 
     public function __destruct()
     {
-        $this->stopStreamConsuming();
+        $this->cancelStreamConsumer();
     }
 }

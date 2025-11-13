@@ -33,7 +33,6 @@ use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithInstantRetryExampl
  * licence Enterprise
  * @internal
  */
-#[RunTestsInSeparateProcesses]
 final class KafkaChannelAdapterTest extends TestCase
 {
     public function test_sending_and_receiving_from_kafka_topic(): void

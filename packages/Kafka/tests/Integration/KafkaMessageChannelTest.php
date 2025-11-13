@@ -6,14 +6,19 @@ namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
+use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\TestConfiguration;
+use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
@@ -39,7 +44,6 @@ use Test\Ecotone\Kafka\Fixture\Handler\KafkaAsyncEventHandler;
  * licence Enterprise
  * @internal
  */
-#[RunTestsInSeparateProcesses]
 final class KafkaMessageChannelTest extends TestCase
 {
     public function test_connecting_to_non_existing_topic()
@@ -154,7 +158,7 @@ final class KafkaMessageChannelTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         $channelName,
                         topicName: $uniqueId = Uuid::uuid4()->toString(),
-                        groupId: $uniqueId
+                        messageGroupId: $uniqueId
                     ),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -311,7 +315,7 @@ final class KafkaMessageChannelTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         $channelName,
                         topicName: ($topicName = $topicName ?: Uuid::uuid4()->toString()),
-                        groupId: $topicName
+                        messageGroupId: $topicName
                     ),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -332,10 +336,186 @@ final class KafkaMessageChannelTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         $channelName,
                         topicName: $uniqueId = Uuid::uuid4()->toString(),
-                        groupId: $uniqueId
+                        messageGroupId: $uniqueId
                     ),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_two_consumers_track_positions_independently(): void
+    {
+        $channelName = 'kafka_channel';
+        $topicName = 'test_topic_two_consumers_' . Uuid::uuid4()->toString();
+
+        $handler1 = new class {
+            private array $consumed = [];
+
+            #[InternalHandler(inputChannelName: 'kafka_channel', endpointId: 'consumer1')]
+            public function handle(string $payload): void
+            {
+                $this->consumed[] = $payload;
+            }
+
+            #[QueryHandler('getConsumed1')]
+            public function getConsumed(): array
+            {
+                return $this->consumed;
+            }
+        };
+
+        $handler2 = new class {
+            private array $consumed = [];
+
+            #[InternalHandler(inputChannelName: 'kafka_channel', endpointId: 'consumer2')]
+            public function handle(string $payload): void
+            {
+                $this->consumed[] = $payload;
+            }
+
+            #[QueryHandler('getConsumed2')]
+            public function getConsumed(): array
+            {
+                return $this->consumed;
+            }
+        };
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [$handler1::class, $handler2::class],
+            [
+                $handler1,
+                $handler2,
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaMessageChannelBuilder::create(
+                        channelName: $channelName,
+                        topicName: $topicName,
+                        messageGroupId: $messageGroupId = $topicName
+                    )
+                        ->withCommitInterval(1), // Commit after each message
+                    TestConfiguration::createWithDefaults(),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        // Send 3 messages to the Kafka topic
+        $channel = $ecotoneLite->getMessageChannel($channelName);
+        $channel->send(MessageBuilder::withPayload('message1')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
+        $channel->send(MessageBuilder::withPayload('message2')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
+        $channel->send(MessageBuilder::withPayload('message3')->setHeader(MessageHeaders::CONTENT_TYPE, MediaType::TEXT_PLAIN)->build());
+
+        // Consumer1 consumes first message
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
+        $this->assertEquals([], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
+
+        // Consumer2 consumes first two messages
+        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
+        $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
+
+        // Consumer1 consumes second and third messages
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->assertEquals(['message1', 'message2', 'message3'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
+        $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
+
+        // Verify positions are tracked independently by querying Kafka committed offsets
+        /** @var KafkaAdmin $kafkaAdmin */
+        $kafkaAdmin = $ecotoneLite->getServiceFromContainer(KafkaAdmin::class);
+
+        $consumer1 = $kafkaAdmin->getConsumer('consumer1', $channelName);
+        $consumer2 = $kafkaAdmin->getConsumer('consumer2', $channelName);
+
+        // Create TopicPartition objects to query committed offsets (partition 0 is default for single partition topics)
+        $topicPartition = new \RdKafka\TopicPartition($topicName, 0);
+
+        // Get committed offsets for each consumer
+        $consumer1Offsets = $consumer1->getCommittedOffsets([$topicPartition], 10000);
+        $consumer2Offsets = $consumer2->getCommittedOffsets([$topicPartition], 10000);
+
+        // Verify each consumer has committed the correct offset
+        // Kafka offsets point to the next message to consume, so offset 3 means 3 messages consumed (0, 1, 2)
+        $this->assertEquals(3, $consumer1Offsets[0]->getOffset(), 'Consumer1 should have committed offset 3 (consumed messages 0, 1, 2)');
+        $this->assertEquals(2, $consumer2Offsets[0]->getOffset(), 'Consumer2 should have committed offset 2 (consumed messages 0, 1)');
+    }
+
+    public function test_default_message_group_id(): void
+    {
+        $channelName = 'kafka_channel';
+        $topicName = 'test_topic_two_consumers_' . Uuid::uuid4()->toString();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaMessageChannelBuilder::create(
+                        channelName: $channelName,
+                    )
+                        ->withCommitInterval(1), // Commit after each message
+                    TestConfiguration::createWithDefaults(),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        // Verify positions are tracked independently by querying Kafka committed offsets
+        /** @var KafkaAdmin $kafkaAdmin */
+        $kafkaAdmin = $ecotoneLite->getServiceFromContainer(KafkaAdmin::class);
+
+        // Verify group IDs are set correctly
+        $this->assertEquals(
+            $channelName,
+            $kafkaAdmin->getConsumerConfiguration($channelName, $channelName)->getGroupId()
+        );
+        $this->assertEquals(
+            $channelName . '_consumer1',
+            $kafkaAdmin->getConsumerConfiguration('consumer1', $channelName)->getGroupId()
+        );
+    }
+
+    public function test_predefined_message_group_id(): void
+    {
+        $channelName = 'kafka_channel';
+        $topicName = 'test_topic_two_consumers_' . Uuid::uuid4()->toString();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaMessageChannelBuilder::create(
+                        channelName: $channelName,
+                        messageGroupId: $messageGroupId = 'predefined_group_id',
+                    )
+                        ->withCommitInterval(1), // Commit after each message
+                    TestConfiguration::createWithDefaults(),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        // Verify positions are tracked independently by querying Kafka committed offsets
+        /** @var KafkaAdmin $kafkaAdmin */
+        $kafkaAdmin = $ecotoneLite->getServiceFromContainer(KafkaAdmin::class);
+
+        // Verify group IDs are set correctly
+        $this->assertEquals(
+            $messageGroupId,
+            $kafkaAdmin->getConsumerConfiguration($channelName, $channelName)->getGroupId()
+        );
+        $this->assertEquals(
+            $messageGroupId . '_consumer1',
+            $kafkaAdmin->getConsumerConfiguration('consumer1', $channelName)->getGroupId()
         );
     }
 }

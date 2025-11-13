@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
@@ -598,6 +599,40 @@ final class DistributedBusWithServiceMapTest extends TestCase
             '123a',
             $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS)[0]->getHeaders()->get('extra')
         );
+    }
+
+    public function test_distributing_event_to_shared_channel(): void
+    {
+        $sharedChannel = SimpleMessageChannelBuilder::createStreamingChannel($channelName = 'distributed_events');
+        $userService = $this->bootstrapEcotone(
+            TestServiceName::USER_SERVICE,
+            [],
+            [],
+            $sharedChannel,
+            DistributedServiceMap::initialize()
+                ->withServiceMapping(serviceName: TestServiceName::TICKET_SERVICE, channelName: $channelName)
+        );
+        $ticketService = $this->bootstrapEcotone(
+            TestServiceName::TICKET_SERVICE,
+            ['Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicket'],
+            [new \Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicket\TicketServiceReceiver()],
+            $sharedChannel,
+            DistributedServiceMap::initialize()
+                ->withServiceMapping(serviceName: TestServiceName::USER_SERVICE, channelName: $channelName)
+        );
+
+        self::assertEquals(0, $ticketService->sendQueryWithRouting(\Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicket\TicketServiceReceiver::GET_TICKETS_COUNT));
+
+        $userService->getDistributedBus()->publishEvent(
+            'userService.userChangedBillingAddress',
+            'User changed billing address',
+            metadata: [
+                'token' => '123',
+            ]
+        );
+
+        $ticketService->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        self::assertEquals(1, $ticketService->sendQueryWithRouting(\Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicket\TicketServiceReceiver::GET_TICKETS_COUNT));
     }
 
     private function bootstrapEcotone(string $serviceName, array $namespaces, array $services, MessageChannelBuilder|array|null $sharedQueueChannel = null, null|array|DistributedServiceMap $extensionObjects = null): FlowTestSupport

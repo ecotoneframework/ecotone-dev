@@ -164,22 +164,29 @@ jobs:
           fetch-depth: 0
 
       - name: Send Discord Notification
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.ECOTONE_DISCORD_SERVER_URL }}
+          VERSION: ${{ github.ref_name }}
         run: |
           # Fetch release notes from GitHub
-          RELEASE_NOTES=$(gh release view ${{ github.ref_name }} --json body --jq -r '.body // "No release notes available"')
+          RELEASE_NOTES=$(gh release view "$VERSION" --json body --jq -r '.body // "No release notes available"')
 
           # Truncate if too long (Discord embed description limit is 4096 chars)
           if [ ${#RELEASE_NOTES} -gt 4000 ]; then
             RELEASE_NOTES="${RELEASE_NOTES:0:3997}..."
           fi
 
+          # Get current timestamp
+          TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+
           # Create JSON payload using jq to properly escape everything
           PAYLOAD=$(jq -n \
-            --arg title "🚀 New Ecotone Release: ${{ github.ref_name }}" \
+            --arg title "🚀 New Ecotone Release: $VERSION" \
             --arg description "$RELEASE_NOTES" \
-            --arg url "https://github.com/ecotoneframework/ecotone-dev/releases/tag/${{ github.ref_name }}" \
-            --arg version "${{ github.ref_name }}" \
-            --arg timestamp "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" \
+            --arg url "https://github.com/ecotoneframework/ecotone-dev/releases/tag/$VERSION" \
+            --arg version "$VERSION" \
+            --arg timestamp "$TIMESTAMP" \
             '{
               "embeds": [{
                 "title": $title,
@@ -209,5 +216,5 @@ jobs:
           curl -H "Content-Type: application/json" \
                -X POST \
                -d "$PAYLOAD" \
-               "${{ secrets.ECOTONE_DISCORD_SERVER_URL }}"
+               "$DISCORD_WEBHOOK_URL"
 

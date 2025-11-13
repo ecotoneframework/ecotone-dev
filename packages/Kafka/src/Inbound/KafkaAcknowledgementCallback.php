@@ -132,7 +132,6 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
         try {
             $this->batchCommitCoordinator->forceCommitAll();
 
-            //            // Do not use "assign", as it will switch from automatic assignment to manual
             $this->kafkaAdmin->closeConsumer($this->endpointId);
         } catch (Exception $exception) {
             $this->loggingGateway->info('Failed to reset offset for message redelivery. Failure happen due to: ' . $exception->getMessage(), ['exception' => $exception]);

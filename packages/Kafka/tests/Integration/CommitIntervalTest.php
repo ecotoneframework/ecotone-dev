@@ -96,7 +96,7 @@ final class CommitIntervalTest extends TestCase
         $kafkaPublisher = $ecotoneLite->getGateway(MessagePublisher::class);
 
         // Send 10 messages, message 6 will fail
-        for ($i = 1; $i <= 9; $i++) {
+        for ($i = 1; $i <= 10; $i++) {
             $kafkaPublisher->sendWithMetadata("message_$i", 'application/text', ['fail' => $i === 6]);
         }
 
@@ -105,11 +105,14 @@ final class CommitIntervalTest extends TestCase
 
         // should only continue and not re-reprocess
         $ecotoneLite = $this->bootstrapEcotoneLite($topicName, KafkaConsumerWithCommitIntervalAndFailure::class, $consumerInstance);
+
+        $kafkaPublisher->sendWithMetadata("message_11", 'application/text', ['fail' => false]);
         $ecotoneLite->run('kafka_consumer_interval_3_with_failure', ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(10)->withExecutionTimeLimitInMilliseconds(10000));
 
         $this->assertEquals([
             'message_1', 'message_2', 'message_3', 'message_4', 'message_5',
-            'message_6', 'message_7', 'message_8', 'message_9',
+            'message_6', 'message_7', 'message_8', 'message_9', 'message_10',
+            'message_11',
         ], array_map(fn ($m) => $m['payload'], $ecotoneLite->sendQueryWithRouting('consumer.getMessages')));
     }
 

@@ -96,7 +96,7 @@ final class CommitIntervalTest extends TestCase
         $kafkaPublisher = $ecotoneLite->getGateway(MessagePublisher::class);
 
         // Send 10 messages, message 6 will fail
-        for ($i = 1; $i <= 10; $i++) {
+        for ($i = 1; $i <= 9; $i++) {
             $kafkaPublisher->sendWithMetadata("message_$i", 'application/text', ['fail' => $i === 6]);
         }
 

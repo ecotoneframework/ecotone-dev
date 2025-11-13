@@ -8,7 +8,6 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\PollableChannel;
 
 /**
  * licence Apache-2.0

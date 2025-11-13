@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\MessageHandling\Distribution;
 
 use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessageChannelConfiguration;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
@@ -19,8 +18,7 @@ final class DistributedOutboundRouter
     public function __construct(
         private DistributedServiceMap $distributedServiceMap,
         private string $thisServiceName
-    )
-    {
+    ) {
 
     }
 

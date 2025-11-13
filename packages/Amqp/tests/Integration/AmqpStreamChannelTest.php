@@ -1143,7 +1143,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
-        $handler1 = new class {
+        $handler1 = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'stream_channel', endpointId: 'consumer1')]
@@ -1159,7 +1159,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             }
         };
 
-        $handler2 = new class {
+        $handler2 = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'stream_channel', endpointId: 'consumer2')]

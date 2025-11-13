@@ -121,4 +121,3 @@ final class InMemoryStreamingChannel implements PollableChannel, DefinedObject
         ]);
     }
 }
-

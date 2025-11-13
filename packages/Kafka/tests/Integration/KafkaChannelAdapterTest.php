@@ -20,7 +20,6 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Test\LicenceTesting;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;

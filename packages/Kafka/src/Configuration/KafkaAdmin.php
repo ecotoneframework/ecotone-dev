@@ -7,7 +7,6 @@ namespace Ecotone\Kafka\Configuration;
 use Ecotone\Kafka\Attribute\KafkaConsumer as KafkaConsumerAttribute;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Support\Assert;
 use Exception;
 use RdKafka\KafkaConsumer;
 use RdKafka\Producer;

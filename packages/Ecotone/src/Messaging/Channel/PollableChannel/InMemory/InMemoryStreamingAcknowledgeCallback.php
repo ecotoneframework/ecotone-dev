@@ -131,4 +131,3 @@ final class InMemoryStreamingAcknowledgeCallback implements AcknowledgementCallb
         // Do NOT move position - will redeliver same message
     }
 }
-

@@ -5,17 +5,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Channel;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
+use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use PHPUnit\Framework\TestCase;
 
@@ -32,7 +28,7 @@ final class InMemoryStreamingChannelTest extends TestCase
     {
         $positionTracker = new InMemoryConsumerPositionTracker();
 
-        $handler = new class {
+        $handler = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'shared_channel', endpointId: 'consumer1')]
@@ -78,7 +74,7 @@ final class InMemoryStreamingChannelTest extends TestCase
     {
         $positionTracker = new InMemoryConsumerPositionTracker();
 
-        $handler1 = new class {
+        $handler1 = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'shared_channel', endpointId: 'consumer1')]
@@ -94,7 +90,7 @@ final class InMemoryStreamingChannelTest extends TestCase
             }
         };
 
-        $handler2 = new class {
+        $handler2 = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'shared_channel', endpointId: 'consumer2')]
@@ -144,4 +140,3 @@ final class InMemoryStreamingChannelTest extends TestCase
         $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
     }
 }
-

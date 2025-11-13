@@ -15,7 +15,6 @@ use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Test\LicenceTesting;
 use Exception;
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Nonstandard\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;

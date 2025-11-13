@@ -24,7 +24,6 @@ use Ecotone\Test\StubLogger;
 
 use function getenv;
 
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
@@ -348,7 +347,7 @@ final class KafkaMessageChannelTest extends TestCase
         $channelName = 'kafka_channel';
         $topicName = 'test_topic_two_consumers_' . Uuid::uuid4()->toString();
 
-        $handler1 = new class {
+        $handler1 = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'kafka_channel', endpointId: 'consumer1')]
@@ -364,7 +363,7 @@ final class KafkaMessageChannelTest extends TestCase
             }
         };
 
-        $handler2 = new class {
+        $handler2 = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'kafka_channel', endpointId: 'consumer2')]

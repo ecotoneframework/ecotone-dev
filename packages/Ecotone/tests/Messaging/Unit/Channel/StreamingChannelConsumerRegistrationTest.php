@@ -44,7 +44,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
     {
         $positionTracker = new InMemoryConsumerPositionTracker();
 
-        $handler = new class {
+        $handler = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'shared_channel', endpointId: 'consumer1')]
@@ -72,7 +72,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
 
         // Consumer should be registered when handler uses the shared channel
         $this->assertContains('consumer1', $ecotoneLite->list());
-        
+
         // Verify it works
         $ecotoneLite->sendDirectToChannel('shared_channel', 'message1');
         $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
@@ -98,14 +98,14 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
     {
         $positionTracker = new InMemoryConsumerPositionTracker();
 
-        $handler1 = new class {
+        $handler1 = new class () {
             #[InternalHandler(inputChannelName: 'shared_channel', endpointId: 'consumer_group_1')]
             public function handle(string $payload): void
             {
             }
         };
 
-        $handler2 = new class {
+        $handler2 = new class () {
             #[InternalHandler(inputChannelName: 'shared_channel', endpointId: 'consumer_group_2')]
             public function handle(string $payload): void
             {
@@ -132,7 +132,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
     {
         $positionTracker = new InMemoryConsumerPositionTracker();
 
-        $handler1 = new class {
+        $handler1 = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'shared_channel', endpointId: 'consumer_group_1')]
@@ -148,7 +148,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
             }
         };
 
-        $handler2 = new class {
+        $handler2 = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'shared_channel', endpointId: 'consumer_group_2')]
@@ -209,4 +209,3 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
         // because each consumer got all 3 messages despite consuming at different rates
     }
 }
-

@@ -103,6 +103,11 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
         return $this->channelName;
     }
 
+    public function getMessageGroupId(): string
+    {
+        return $this->messageGroupId;
+    }
+
     public function isPollable(): bool
     {
         return true;

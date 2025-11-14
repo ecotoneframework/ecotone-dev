@@ -1229,4 +1229,145 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals('2', $sharedPositionTracker->loadPosition($consumer2Id), 'Consumer2 should have position at offset 2');
     }
 
+    /**
+     * This test verifies that AMQP streaming channels can be used for distributed event publishing,
+     * where one service publishes events and multiple consuming services each have their own
+     * consumer group to track their position independently.
+     */
+    public function test_streaming_channel_with_distributed_bus_using_service_map(): void
+    {
+        $queueName = 'distributed_events_' . Uuid::uuid4()->toString();
+        $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
+
+        // Publisher service
+        $publisher = new class {
+            #[\Ecotone\Modelling\Attribute\CommandHandler('publish.event')]
+            public function publish(string $payload, \Ecotone\Modelling\EventBus $eventBus): void
+            {
+                $eventBus->publish($payload);
+            }
+        };
+
+        // Consumer 1 in service 1
+        $consumer1 = new class {
+            private array $consumed = [];
+
+            #[\Ecotone\Modelling\Attribute\Distributed]
+            #[\Ecotone\Modelling\Attribute\EventHandler('distributed.event', endpointId: 'consumer1')]
+            public function handle(string $payload): void
+            {
+                $this->consumed[] = $payload;
+            }
+
+            #[\Ecotone\Modelling\Attribute\QueryHandler('getConsumed1')]
+            public function getConsumed(): array
+            {
+                return $this->consumed;
+            }
+        };
+
+        // Consumer 2 in service 2
+        $consumer2 = new class {
+            private array $consumed = [];
+
+            #[\Ecotone\Modelling\Attribute\Distributed]
+            #[\Ecotone\Modelling\Attribute\EventHandler('distributed.event', endpointId: 'consumer2')]
+            public function handle(string $payload): void
+            {
+                $this->consumed[] = $payload;
+            }
+
+            #[\Ecotone\Modelling\Attribute\QueryHandler('getConsumed2')]
+            public function getConsumed(): array
+            {
+                return $this->consumed;
+            }
+        };
+
+        $channelName = 'distributed_events';
+
+        // Publisher service
+        $publisherService = $this->bootstrapForTesting(
+            [$publisher::class],
+            [
+                $publisher,
+                \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withServiceName('publisher-service')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    ),
+                    \Ecotone\Modelling\Api\Distribution\DistributedServiceMap::initialize()
+                        ->withServiceMapping(serviceName: 'distributed_events_channel', channelName: $channelName)
+                ])
+        );
+
+        // Consumer service 1
+        $consumerService1 = $this->bootstrapForTesting(
+            [$consumer1::class],
+            [
+                $consumer1,
+                \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withServiceName('service1')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    ),
+                ])
+        );
+
+        // Consumer service 2
+        $consumerService2 = $this->bootstrapForTesting(
+            [$consumer2::class],
+            [
+                $consumer2,
+                \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withServiceName('service2')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    ),
+                ])
+        );
+
+        // Publish events
+        $publisherService->getDistributedBus()->publishEvent('distributed.event', 'event1');
+        $publisherService->getDistributedBus()->publishEvent('distributed.event', 'event2');
+        $publisherService->getDistributedBus()->publishEvent('distributed.event', 'event3');
+
+        // Both consumers should receive all events independently
+        $consumerService1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10));
+        $consumerService2->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10));
+
+        $this->assertEquals(['event1', 'event2', 'event3'], $consumerService1->getQueryBus()->sendWithRouting('getConsumed1'));
+        $this->assertEquals(['event1', 'event2', 'event3'], $consumerService2->getQueryBus()->sendWithRouting('getConsumed2'));
+    }
+
 }

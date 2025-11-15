@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 
@@ -19,6 +20,7 @@ use Ramsey\Uuid\Uuid;
  * licence Enterprise
  * @internal
  */
+#[RunTestsInSeparateProcesses]
 final class StreamingChannelValidationTest extends TestCase
 {
     public function test_kafka_channels_cannot_share_same_message_group_id(): void

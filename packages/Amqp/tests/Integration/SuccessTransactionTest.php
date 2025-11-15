@@ -6,7 +6,6 @@ namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Interop\Amqp\AmqpConnectionFactory;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\SuccessTransaction\OrderService;
 
@@ -21,6 +20,10 @@ final class SuccessTransactionTest extends AmqpMessagingTestCase
 {
     public function test_order_is_placed_when_transaction_is_successful(): void
     {
+        if (getenv('AMQP_IMPLEMENTATION') === 'lib') {
+            $this->markTestSkipped('Transaction tests require Ext');
+        }
+
         $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -29,9 +32,6 @@ final class SuccessTransactionTest extends AmqpMessagingTestCase
                 ->withNamespaces(['Test\Ecotone\Amqp\Fixture\SuccessTransaction']),
             pathToRootCatalog: __DIR__ . '/../../',
         );
-
-        $connectionFactory = $ecotone->getServiceFromContainer(AmqpConnectionFactory::class);
-        $connectionFactory->createContext()->close();
 
         self::assertEquals(
             'window',

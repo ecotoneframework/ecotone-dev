@@ -7,12 +7,11 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Config;
 
-use Ecotone\EventSourcing\Attribute\Polling;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Config\Routing\RoutingEvent;
 use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
+use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\Projection;
 
 /**

@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\EventSourcing\Attribute;
+namespace Ecotone\Projecting\Attribute;
 
 use Attribute;
 

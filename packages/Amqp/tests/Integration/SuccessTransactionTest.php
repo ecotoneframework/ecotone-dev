@@ -20,6 +20,10 @@ final class SuccessTransactionTest extends AmqpMessagingTestCase
 {
     public function test_order_is_placed_when_transaction_is_successful(): void
     {
+        if (getenv('AMQP_IMPLEMENTATION') === 'lib') {
+            $this->markTestSkipped('Transaction tests require Ext');
+        }
+
         $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()

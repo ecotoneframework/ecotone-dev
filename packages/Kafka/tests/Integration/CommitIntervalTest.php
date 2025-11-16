@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
@@ -25,6 +26,7 @@ use Test\Ecotone\Kafka\Fixture\CommitInterval\KafkaConsumerWithInterval3;
  * licence Enterprise
  * @internal
  */
+#[RunTestsInSeparateProcesses]
 final class CommitIntervalTest extends TestCase
 {
     public function test_default_commit_interval_commits_every_message(): void

@@ -31,6 +31,7 @@
             "(cd EmittingEventsFromProjection && composer update && php run_example.php)",
             "(cd EventHandling && composer update && php run_example.php)",
             "(cd EventSourcing && composer update && php run_example.php)",
+            "(cd EventProjecting/PartitionedProjection && composer update && php run_example.php)",
             "(cd WorkingWithAggregateDirectly && composer update && php run_example.php)",
             "(cd Microservices && composer update && php run_example.php)",
             "(cd MicroservicesAdvanced && composer update && php run_example.php)",

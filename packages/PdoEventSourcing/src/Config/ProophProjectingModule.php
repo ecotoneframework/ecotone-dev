@@ -9,13 +9,14 @@ namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Config\Polling\PollingProjectionChannelAdapter;
 use Ecotone\EventSourcing\Config\Polling\PollingProjectionConfiguration;
 use Ecotone\EventSourcing\Config\Polling\ProophPollingProjectionRoutingExtension;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSourceBuilder;
+use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
+use Ecotone\Projecting\EventStoreAdapter\PollingProjectionChannelAdapter;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -123,15 +124,29 @@ class ProophProjectingModule implements AnnotationModule
 
     public function canHandle($extensionObject): bool
     {
+        // EventStoreChannelAdapter is now handled by EventStoreAdapterModule in Ecotone package
         return false;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [
-            ...$this->extensions,
-            new ProophPollingProjectionRoutingExtension(),
-        ];
+        $extensions = [...$this->extensions];
+
+        foreach ($serviceExtensions as $extensionObject) {
+            if (!($extensionObject instanceof EventStoreChannelAdapter)) {
+                continue;
+            }
+
+            $projectionName = $extensionObject->getProjectionName();
+            $extensions[] = new EventStoreGlobalStreamSourceBuilder(
+                $extensionObject->fromStream,
+                [$projectionName]
+            );
+        }
+
+        $extensions[] = new ProophPollingProjectionRoutingExtension();
+
+        return $extensions;
     }
 
     public function getModulePackageName(): string

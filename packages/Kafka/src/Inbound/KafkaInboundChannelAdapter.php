@@ -99,16 +99,4 @@ final class KafkaInboundChannelAdapter implements MessagePoller
             //            $this->kafkaAdmin->closeConsumer($endpointId);
         }
     }
-
-    /**
-     * @return void
-     * @link https://php.net/manual/en/language.oop5.decon.php
-     */
-    public function __destruct()
-    {
-        try {
-            $this->kafkaAdmin->closeAllConsumers();
-        } catch (\Throwable) {
-        }
-    }
 }

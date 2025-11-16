@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\EventSourcing\Config;
+namespace Ecotone\EventSourcing\Config\Polling;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;

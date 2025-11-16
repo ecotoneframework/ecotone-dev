@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\Config;
+namespace Ecotone\EventSourcing\Config\Polling;
 
 /**
  * Internal configuration class for polling projections.

@@ -9,6 +9,9 @@ namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Attribute\FromStream;
+use Ecotone\EventSourcing\Config\Polling\PollingProjectionChannelAdapter;
+use Ecotone\EventSourcing\Config\Polling\PollingProjectionConfiguration;
+use Ecotone\EventSourcing\Config\Polling\ProophPollingProjectionRoutingExtension;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;

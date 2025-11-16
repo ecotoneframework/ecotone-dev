@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\EventSourcing\Config;
+namespace Ecotone\EventSourcing\Config\Polling;
 
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Modelling\Attribute\EventHandler;

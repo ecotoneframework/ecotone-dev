@@ -67,7 +67,6 @@ class DelayedRetryErrorHandler
                         'No dead letter channel defined. Retried maximum number of `%s` times. Passing to final failure strategy. Due to: %s',
                         $failedMessage->getHeaders()->getMessageId(),
                         $retryNumber,
-                        $errorMessage->getExceptionMessage()
                     ),
                     $failedMessage,
                     $errorMessage->getErrorContext()->toArray(),

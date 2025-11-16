@@ -100,10 +100,7 @@ echo "   ✓ Debited 200.00 from wallet 2\n\n";
 
 // Step 4: Run projection backfill (processes all partitions)
 echo "4. Running projection backfill (processes all partitions)...\n";
-/** @var \Ecotone\Projecting\ProjectionRegistry $projectionRegistry */
-$projectionRegistry = $messagingSystem->getGatewayByName(\Ecotone\Projecting\ProjectionRegistry::class);
-$projection = $projectionRegistry->get(WalletBalanceProjection::NAME);
-$projection->backfill();
+$messagingSystem->runConsoleCommand('ecotone:projection:backfill', ['name' => WalletBalanceProjection::NAME]);
 echo "   ✓ Projection backfilled (all wallet partitions processed)\n\n";
 
 // Step 5: Query balances

@@ -36,7 +36,7 @@ final class KafkaConsumerWithDelayedRetryExample
     {
         $this->messageAttempts[] = [
             'payload' => $payload,
-            'attempt' => count(array_filter($this->messageAttempts, fn($m) => $m['payload'] === $payload)) + 1,
+            'attempt' => count(array_filter($this->messageAttempts, fn ($m) => $m['payload'] === $payload)) + 1,
             'timestamp' => (int)(microtime(true) * 1000),
         ];
 
@@ -67,4 +67,3 @@ final class KafkaConsumerWithDelayedRetryExample
         $this->failureCount = 0;
     }
 }
-

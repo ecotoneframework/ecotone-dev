@@ -5,26 +5,19 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Channel;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for streaming channel validation and usage restrictions
- * 
+ *
  * @internal
  */
 /**
@@ -43,7 +36,7 @@ final class StreamingChannelTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('Streaming channels cannot be used as input channels for distributed bus');
 
-        $handler = new class {
+        $handler = new class () {
             #[InternalHandler(inputChannelName: 'distributed_channel', endpointId: 'test_handler')]
             public function handle(string $payload): void
             {
@@ -67,4 +60,3 @@ final class StreamingChannelTest extends TestCase
         );
     }
 }
-

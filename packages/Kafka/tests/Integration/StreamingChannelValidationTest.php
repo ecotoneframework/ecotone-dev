@@ -30,7 +30,7 @@ final class StreamingChannelValidationTest extends TestCase
         $this->expectExceptionMessage('is already used by channel');
         $this->expectExceptionMessage('Each Message Channel must have a unique message group ID to maintain processing isolation');
 
-        $handler = new class {
+        $handler = new class () {
             #[InternalHandler(inputChannelName: 'channel1', endpointId: 'consumer1')]
             public function handle1(string $payload): void
             {
@@ -72,7 +72,7 @@ final class StreamingChannelValidationTest extends TestCase
 
     public function test_kafka_channels_can_have_different_message_group_ids(): void
     {
-        $handler = new class {
+        $handler = new class () {
             #[InternalHandler(inputChannelName: 'channel1', endpointId: 'consumer1')]
             public function handle1(string $payload): void
             {
@@ -116,4 +116,3 @@ final class StreamingChannelValidationTest extends TestCase
         $this->assertNotNull($ecotoneLite);
     }
 }
-

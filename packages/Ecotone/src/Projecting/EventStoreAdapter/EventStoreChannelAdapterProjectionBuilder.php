@@ -62,4 +62,3 @@ class EventStoreChannelAdapterProjectionBuilder implements ProjectionExecutorBui
         );
     }
 }
-

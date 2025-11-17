@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel;
 
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -41,4 +39,3 @@ class ErrorConfigurationContext
         ];
     }
 }
-

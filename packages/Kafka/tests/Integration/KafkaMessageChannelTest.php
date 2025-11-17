@@ -22,9 +22,9 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
-use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use function getenv;
 
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
@@ -530,7 +530,7 @@ final class KafkaMessageChannelTest extends TestCase
         $topicName = 'distributed_events_' . Uuid::uuid4()->toString();
 
         // Publisher service
-        $publisher = new class {
+        $publisher = new class () {
             #[\Ecotone\Modelling\Attribute\CommandHandler('publish.event')]
             public function publish(string $payload, \Ecotone\Modelling\EventBus $eventBus): void
             {
@@ -539,7 +539,7 @@ final class KafkaMessageChannelTest extends TestCase
         };
 
         // Consumer 1 in service 1
-        $consumer1 = new class {
+        $consumer1 = new class () {
             private array $consumed = [];
 
             #[\Ecotone\Modelling\Attribute\Distributed]
@@ -549,7 +549,7 @@ final class KafkaMessageChannelTest extends TestCase
                 $this->consumed[] = $payload;
             }
 
-            #[\Ecotone\Modelling\Attribute\QueryHandler('getConsumed1')]
+            #[QueryHandler('getConsumed1')]
             public function getConsumed(): array
             {
                 return $this->consumed;
@@ -557,7 +557,7 @@ final class KafkaMessageChannelTest extends TestCase
         };
 
         // Consumer 2 in service 2
-        $consumer2 = new class {
+        $consumer2 = new class () {
             private array $consumed = [];
 
             #[\Ecotone\Modelling\Attribute\Distributed]
@@ -567,7 +567,7 @@ final class KafkaMessageChannelTest extends TestCase
                 $this->consumed[] = $payload;
             }
 
-            #[\Ecotone\Modelling\Attribute\QueryHandler('getConsumed2')]
+            #[QueryHandler('getConsumed2')]
             public function getConsumed(): array
             {
                 return $this->consumed;

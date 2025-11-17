@@ -13,7 +13,6 @@ use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel\ErrorConfigurationContext;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel\OrderService;
 
 /**
@@ -35,7 +34,7 @@ final class ErrorChannelTest extends TestCase
                 ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel']),
             pathToRootCatalog: __DIR__ . '/../../../../',
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::RESEND)
+                SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::RESEND),
             ]
         );
 
@@ -79,7 +78,7 @@ final class ErrorChannelTest extends TestCase
                 ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel']),
             pathToRootCatalog: __DIR__ . '/../../../../',
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::IGNORE)
+                SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::IGNORE),
             ]
         );
 
@@ -122,7 +121,7 @@ final class ErrorChannelTest extends TestCase
                         $errorChannelName = 'failureOrders',
                         RetryTemplateBuilder::exponentialBackoff(1, 1)
                             ->maxRetryAttempts(2)
-                    )
+                    ),
                 ])
                 ->withDefaultErrorChannel($errorChannelName),
             pathToRootCatalog: __DIR__ . '/../../../../',
@@ -161,4 +160,3 @@ final class ErrorChannelTest extends TestCase
         $this->assertSame(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 }
-

@@ -81,7 +81,7 @@ class AmqpModule implements AnnotationModule
                 if (isset($messageGroupIdToChannelMap[$messageGroupId])) {
                     throw ConfigurationException::create(
                         "Message group ID '{$messageGroupId}' is already used by channel '{$messageGroupIdToChannelMap[$messageGroupId]}'. " .
-                        "Each Message Channel must have a unique message group ID to maintain processing isolation. " .
+                        'Each Message Channel must have a unique message group ID to maintain processing isolation. ' .
                         "Channel '{$channelName}' is trying to use the same message group ID."
                     );
                 }

@@ -12,6 +12,7 @@ use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Projecting\PartitionProvider;
 use Enqueue\Dbal\DbalConnectionFactory;
+use RuntimeException;
 
 use function sha1;
 
@@ -48,7 +49,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
                 WHERE aggregate_type = ?
                 SQL, [$this->aggregateType]);
         } else {
-            throw new \RuntimeException('Unsupported database platform: ' . get_class($platform));
+            throw new RuntimeException('Unsupported database platform: ' . get_class($platform));
         }
 
         while ($aggregateId = $query->fetchOne()) {

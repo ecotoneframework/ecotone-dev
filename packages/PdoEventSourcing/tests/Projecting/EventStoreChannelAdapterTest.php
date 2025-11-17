@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -20,6 +19,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -30,6 +30,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 
 /**
  * Tests for EventStoreChannelAdapter - feeding events from event store to streaming channels
+ * @internal
  */
 final class EventStoreChannelAdapterTest extends ProjectingTestCase
 {
@@ -38,7 +39,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
         $positionTracker = new InMemoryConsumerPositionTracker();
 
         // Consumer that reads from the streaming channel
-        $consumer = new class {
+        $consumer = new class () {
             public array $consumedEvents = [];
 
             #[InternalHandler(inputChannelName: 'event_stream', endpointId: 'stream_consumer')]
@@ -107,7 +108,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
     public function test_filtering_events_by_name_using_glob_patterns(): void
     {
         $positionTracker = new InMemoryConsumerPositionTracker();
-        $consumer = new class {
+        $consumer = new class () {
             private array $consumed = [];
 
             #[InternalHandler(endpointId: 'stream_consumer', inputChannelName: 'event_stream')]
@@ -171,7 +172,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
 
         // Normal event handler that counts tickets (not a projection, just a simple event handler)
         // This demonstrates that EventStoreChannelAdapter works alongside normal event handlers
-        $ticketCounter = new class {
+        $ticketCounter = new class () {
             public int $registeredCount = 0;
             public int $closedCount = 0;
 
@@ -195,7 +196,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
         };
 
         // Consumer that reads from the streaming channel
-        $consumer = new class {
+        $consumer = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'event_stream', endpointId: 'stream_consumer')]
@@ -260,4 +261,3 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
         $this->assertEquals('ticket-1', $consumedEvents[2]['ticketId']); // CloseTicket event
     }
 }
-

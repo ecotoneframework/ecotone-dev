@@ -24,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for EventStoreChannelAdapter with in-memory event store
+ * @internal
  */
 final class EventStoreChannelAdapterTest extends TestCase
 {
@@ -32,7 +33,7 @@ final class EventStoreChannelAdapterTest extends TestCase
         $positionTracker = new InMemoryConsumerPositionTracker();
 
         // Consumer that reads from the streaming channel
-        $consumer = new class {
+        $consumer = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'event_stream', endpointId: 'stream_consumer')]
@@ -93,7 +94,7 @@ final class EventStoreChannelAdapterTest extends TestCase
         $positionTracker = new InMemoryConsumerPositionTracker();
 
         // Consumer that reads from the streaming channel
-        $consumer = new class {
+        $consumer = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'event_stream', endpointId: 'stream_consumer')]
@@ -156,7 +157,7 @@ final class EventStoreChannelAdapterTest extends TestCase
 
         // Normal event handler that counts tickets (not a projection, just a simple event handler)
         // This demonstrates that EventStoreChannelAdapter works alongside normal event handlers
-        $ticketCounter = new class {
+        $ticketCounter = new class () {
             public int $registeredCount = 0;
             public int $closedCount = 0;
 
@@ -183,7 +184,7 @@ final class EventStoreChannelAdapterTest extends TestCase
         };
 
         // Consumer that reads from the streaming channel
-        $consumer = new class {
+        $consumer = new class () {
             private array $consumed = [];
 
             #[InternalHandler(inputChannelName: 'event_stream', endpointId: 'stream_consumer')]
@@ -252,4 +253,3 @@ final class EventStoreChannelAdapterTest extends TestCase
         $this->assertEquals('ticket-1', $consumedEvents[2]['ticketId']); // closed event
     }
 }
-

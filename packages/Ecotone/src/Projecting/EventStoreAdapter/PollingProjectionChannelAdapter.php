@@ -22,4 +22,3 @@ class PollingProjectionChannelAdapter implements DefinedObject
         return new Definition(self::class);
     }
 }
-

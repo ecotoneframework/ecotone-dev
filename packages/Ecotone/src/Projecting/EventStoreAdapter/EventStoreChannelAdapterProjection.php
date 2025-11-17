@@ -31,7 +31,7 @@ class EventStoreChannelAdapterProjection implements ProjectorExecutor
 
     public function project(Event $event, mixed $userState = null): mixed
     {
-        if (!empty($this->eventNames)) {
+        if (! empty($this->eventNames)) {
             $eventName = $event->getEventName();
             $matched = false;
 
@@ -42,7 +42,7 @@ class EventStoreChannelAdapterProjection implements ProjectorExecutor
                 }
             }
 
-            if (!$matched) {
+            if (! $matched) {
                 return $userState;
             }
         }
@@ -50,7 +50,7 @@ class EventStoreChannelAdapterProjection implements ProjectorExecutor
         $payload = $event->getPayload();
         $metadata = $event->getMetadata();
 
-        if (!isset($metadata[\Ecotone\Messaging\MessageHeaders::CONTENT_TYPE])) {
+        if (! isset($metadata[\Ecotone\Messaging\MessageHeaders::CONTENT_TYPE])) {
             $metadata[\Ecotone\Messaging\MessageHeaders::CONTENT_TYPE] = 'application/x-php';
         }
 
@@ -78,4 +78,3 @@ class EventStoreChannelAdapterProjection implements ProjectorExecutor
         // No flushing needed
     }
 }
-

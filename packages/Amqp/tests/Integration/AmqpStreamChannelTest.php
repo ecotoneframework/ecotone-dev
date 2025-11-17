@@ -1240,7 +1240,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
         // Publisher service
-        $publisher = new class {
+        $publisher = new class () {
             #[\Ecotone\Modelling\Attribute\CommandHandler('publish.event')]
             public function publish(string $payload, \Ecotone\Modelling\EventBus $eventBus): void
             {
@@ -1249,7 +1249,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         };
 
         // Consumer 1 in service 1
-        $consumer1 = new class {
+        $consumer1 = new class () {
             private array $consumed = [];
 
             #[\Ecotone\Modelling\Attribute\Distributed]
@@ -1259,7 +1259,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 $this->consumed[] = $payload;
             }
 
-            #[\Ecotone\Modelling\Attribute\QueryHandler('getConsumed1')]
+            #[QueryHandler('getConsumed1')]
             public function getConsumed(): array
             {
                 return $this->consumed;
@@ -1267,7 +1267,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         };
 
         // Consumer 2 in service 2
-        $consumer2 = new class {
+        $consumer2 = new class () {
             private array $consumed = [];
 
             #[\Ecotone\Modelling\Attribute\Distributed]
@@ -1277,7 +1277,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 $this->consumed[] = $payload;
             }
 
-            #[\Ecotone\Modelling\Attribute\QueryHandler('getConsumed2')]
+            #[QueryHandler('getConsumed2')]
             public function getConsumed(): array
             {
                 return $this->consumed;
@@ -1307,7 +1307,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         queueName: $queueName,
                     ),
                     \Ecotone\Modelling\Api\Distribution\DistributedServiceMap::initialize()
-                        ->withServiceMapping(serviceName: 'distributed_events_channel', channelName: $channelName)
+                        ->withServiceMapping(serviceName: 'distributed_events_channel', channelName: $channelName),
                 ])
         );
 

@@ -83,4 +83,3 @@ class EventStoreChannelAdapter
         return 'event_store_channel_adapter_' . $this->endpointId;
     }
 }
-

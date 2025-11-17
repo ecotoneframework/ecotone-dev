@@ -33,4 +33,3 @@ class ProophPollingProjectionRoutingExtension implements RoutingEventHandler
         }
     }
 }
-

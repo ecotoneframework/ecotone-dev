@@ -20,4 +20,3 @@ class Polling
         return $this->endpointId;
     }
 }
-

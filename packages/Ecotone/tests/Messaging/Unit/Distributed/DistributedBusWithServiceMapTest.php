@@ -16,7 +16,6 @@ use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -670,7 +669,7 @@ final class DistributedBusWithServiceMapTest extends TestCase
         $positionTracker = new InMemoryConsumerPositionTracker();
 
         // Publisher service
-        $publisher = new class {
+        $publisher = new class () {
             #[CommandHandler('publish.event')]
             public function publish(string $payload, \Ecotone\Modelling\EventBus $eventBus): void
             {
@@ -679,7 +678,7 @@ final class DistributedBusWithServiceMapTest extends TestCase
         };
 
         // Consumer 1 in service 1
-        $consumer1 = new class {
+        $consumer1 = new class () {
             private array $consumed = [];
 
             #[Distributed]
@@ -697,7 +696,7 @@ final class DistributedBusWithServiceMapTest extends TestCase
         };
 
         // Consumer 2 in service 2
-        $consumer2 = new class {
+        $consumer2 = new class () {
             private array $consumed = [];
 
             #[Distributed]
@@ -726,7 +725,7 @@ final class DistributedBusWithServiceMapTest extends TestCase
                 ->withExtensionObjects([
                     $publisherStreamingChannel,
                     DistributedServiceMap::initialize()
-                        ->withServiceMapping(serviceName: 'distributed_events_channel', channelName: 'distributed_events')
+                        ->withServiceMapping(serviceName: 'distributed_events_channel', channelName: 'distributed_events'),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE

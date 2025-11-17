@@ -68,7 +68,7 @@ class EventStoreAdapterModule implements AnnotationModule
         $extensions = [...$this->extensions];
 
         foreach ($serviceExtensions as $extensionObject) {
-            if (!($extensionObject instanceof EventStoreChannelAdapter)) {
+            if (! ($extensionObject instanceof EventStoreChannelAdapter)) {
                 continue;
             }
 
@@ -83,4 +83,3 @@ class EventStoreAdapterModule implements AnnotationModule
         return ModulePackageList::CORE_PACKAGE;
     }
 }
-

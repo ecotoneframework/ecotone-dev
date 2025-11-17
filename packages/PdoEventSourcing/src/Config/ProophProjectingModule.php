@@ -15,8 +15,6 @@ use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSourceBuilder;
-use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
-use Ecotone\Projecting\EventStoreAdapter\PollingProjectionChannelAdapter;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -30,6 +28,8 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\Config\ProjectingModule;
+use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
+use Ecotone\Projecting\EventStoreAdapter\PollingProjectionChannelAdapter;
 
 #[ModuleAnnotation]
 class ProophProjectingModule implements AnnotationModule
@@ -66,7 +66,7 @@ class ProophProjectingModule implements AnnotationModule
             if ($pollingAttribute && $asynchronousAttribute) {
                 throw ConfigurationException::create(
                     "Projection '{$projectionName}' cannot use both #[Polling] and #[Asynchronous] attributes. " .
-                    "A projection must be either polling-based or event-driven (synchronous/asynchronous), not both."
+                    'A projection must be either polling-based or event-driven (synchronous/asynchronous), not both.'
                 );
             }
 
@@ -74,7 +74,7 @@ class ProophProjectingModule implements AnnotationModule
             if ($pollingAttribute && $projectionAttribute->partitionHeaderName) {
                 throw ConfigurationException::create(
                     "Projection '{$projectionName}' cannot use #[Polling] attribute with partitioned projections. " .
-                    "Polling is only supported for global stream sources (projections without partitionHeaderName)."
+                    'Polling is only supported for global stream sources (projections without partitionHeaderName).'
                 );
             }
 
@@ -133,7 +133,7 @@ class ProophProjectingModule implements AnnotationModule
         $extensions = [...$this->extensions];
 
         foreach ($serviceExtensions as $extensionObject) {
-            if (!($extensionObject instanceof EventStoreChannelAdapter)) {
+            if (! ($extensionObject instanceof EventStoreChannelAdapter)) {
                 continue;
             }
 

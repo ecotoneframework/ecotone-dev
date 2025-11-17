@@ -32,7 +32,7 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        $handler = new class {
+        $handler = new class () {
             #[InternalHandler(inputChannelName: 'channel1', endpointId: 'consumer1')]
             public function handle1(string $payload): void
             {
@@ -80,7 +80,7 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
 
     public function test_amqp_stream_channels_can_have_different_message_group_ids(): void
     {
-        $handler = new class {
+        $handler = new class () {
             #[InternalHandler(inputChannelName: 'channel1', endpointId: 'consumer1')]
             public function handle1(string $payload): void
             {
@@ -130,4 +130,3 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
         $this->assertNotNull($ecotoneLite);
     }
 }
-

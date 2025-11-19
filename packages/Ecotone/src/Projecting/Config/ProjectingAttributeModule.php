@@ -26,11 +26,15 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
+use Ecotone\Projecting\Attribute\PollingProjection;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\Attribute\ProjectionBatchSize;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
+use Ecotone\Projecting\EventStoreAdapter\PollingProjectionChannelAdapter;
 use LogicException;
 
 /**
@@ -42,10 +46,12 @@ class ProjectingAttributeModule implements AnnotationModule
     /**
      * @param EcotoneProjectionExecutorBuilder[] $projectionBuilders
      * @param MessageProcessorActivatorBuilder[] $lifecycleHandlers
+     * @param array<string, string> $pollingProjections Map of projection name to endpoint ID
      */
     public function __construct(
         private array $projectionBuilders = [],
-        private array $lifecycleHandlers = []
+        private array $lifecycleHandlers = [],
+        private array $pollingProjections = []
     ) {
     }
 
@@ -59,15 +65,29 @@ class ProjectingAttributeModule implements AnnotationModule
 
         /** @var array<string, EcotoneProjectionExecutorBuilder> $projectionBuilders */
         $projectionBuilders = [];
+        $pollingProjections = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
             $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBatchSize::class);
             $projectionBuilder = new EcotoneProjectionExecutorBuilder($projectionAttribute->name, $projectionAttribute->partitionHeaderName, $projectionAttribute->automaticInitialization, $namedEvents, batchSize: $batchSizeAttribute?->batchSize);
 
             $asynchronousChannelName = self::getProjectionAsynchronousChannel($annotationRegistrationService, $projectionClassName);
+
+            if ($projectionAttribute->isPolling() && $asynchronousChannelName !== null) {
+                throw ConfigurationException::create(
+                    "Projection '{$projectionAttribute->name}' cannot use both PollingProjection and #[Asynchronous] attributes. " .
+                    'A projection must be either polling-based or event-driven (synchronous/asynchronous), not both.'
+                );
+            }
+
             if ($asynchronousChannelName !== null) {
                 $projectionBuilder->setAsyncChannel($asynchronousChannelName);
             }
+
+            if ($projectionAttribute->isPolling()) {
+                $pollingProjections[$projectionAttribute->name] = $projectionAttribute->getEndpointId();
+            }
+
             $projectionBuilders[$projectionAttribute->name] = $projectionBuilder;
         }
 
@@ -110,13 +130,24 @@ class ProjectingAttributeModule implements AnnotationModule
                 ->withInputChannelName($inputChannel);
         }
 
-        return new self(array_values($projectionBuilders), $lifecycleHandlers);
+        return new self(array_values($projectionBuilders), $lifecycleHandlers, $pollingProjections);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         foreach ($this->lifecycleHandlers as $lifecycleHandler) {
             $messagingConfiguration->registerMessageHandler($lifecycleHandler);
+        }
+
+        foreach ($this->pollingProjections as $projectionName => $endpointId) {
+            $messagingConfiguration->registerConsumer(
+                InboundChannelAdapterBuilder::createWithDirectObject(
+                    ProjectingModule::inputChannelForProjectingManager($projectionName),
+                    new PollingProjectionChannelAdapter(),
+                    $interfaceToCallRegistry->getFor(PollingProjectionChannelAdapter::class, 'execute')
+                )
+                    ->withEndpointId($endpointId)
+            );
         }
     }
 

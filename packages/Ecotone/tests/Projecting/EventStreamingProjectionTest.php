@@ -19,7 +19,10 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\EventStreamingProjection;
+use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
+use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -141,6 +144,68 @@ class EventStreamingProjectionTest extends TestCase
         $this->assertEquals('order-2', $projection->createdOrders[1]['orderId']);
         $this->assertEquals('order-1', $projection->completedOrders[0]['orderId']);
     }
+
+    public function test_event_streaming_projection_with_event_store_channel_adapter(): void
+    {
+        $positionTracker = new InMemoryConsumerPositionTracker();
+
+        // Given a projection that consumes from streaming channel
+        $projection = new #[EventStreamingProjection('product_projection', 'event_stream')] class {
+            public array $projectedProducts = [];
+
+            #[EventHandler]
+            public function onProductRegistered(ProductRegistered $event): void
+            {
+                $this->projectedProducts[$event->productId] = ['price' => $event->price];
+            }
+
+            #[EventHandler]
+            public function onProductPriceChanged(ProductPriceChanged $event): void
+            {
+                $this->projectedProducts[$event->productId]['price'] = $event->newPrice;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$projection::class, ProductRegistered::class, ProductPriceChanged::class],
+            containerOrAvailableServices: [$projection, ConsumerPositionTracker::class => $positionTracker],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withNamespaces(['Test\Ecotone\Projecting'])
+                ->withExtensionObjects([
+                    $streamSource = new InMemoryStreamSourceBuilder(),
+                    SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType: MediaType::createApplicationXPHP()),
+                    EventStoreChannelAdapter::create(
+                        streamChannelName: 'event_stream',
+                        endpointId: 'event_store_feeder',
+                        fromStream: 'product_stream'
+                    ),
+                    PollingMetadata::create('product_projection')->withTestingSetup(),
+                ])
+        );
+
+        // When events are appended to the stream source (simulating event sourcing aggregate)
+        $streamSource->append(
+            Event::create(new ProductRegistered('product-1', 100), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-1']),
+            Event::create(new ProductPriceChanged('product-1', 150), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-1']),
+            Event::create(new ProductRegistered('product-2', 200), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-2']),
+        );
+
+        // Then the projection should not have projected yet (polling mode)
+        $this->assertCount(0, $projection->projectedProducts);
+
+        // When we run the event store feeder (polls event store and pushes to streaming channel)
+        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
+
+        // When we run the projection consumer (process 3 messages)
+        $ecotone->run('product_projection', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3));
+
+        // Then the projection should have projected the events
+        $this->assertCount(2, $projection->projectedProducts);
+        $this->assertEquals(150, $projection->projectedProducts['product-1']['price']);
+        $this->assertEquals(200, $projection->projectedProducts['product-2']['price']);
+    }
 }
 
 // Test classes
@@ -149,6 +214,42 @@ class UserCreated
     public function __construct(
         public string $id,
         public string $name
+    ) {
+    }
+}
+
+class RegisterProduct
+{
+    public function __construct(
+        public string $productId,
+        public int $price
+    ) {
+    }
+}
+
+class ChangeProductPrice
+{
+    public function __construct(
+        public string $productId,
+        public int $newPrice
+    ) {
+    }
+}
+
+class ProductRegistered
+{
+    public function __construct(
+        public string $productId,
+        public int $price
+    ) {
+    }
+}
+
+class ProductPriceChanged
+{
+    public function __construct(
+        public string $productId,
+        public int $newPrice
     ) {
     }
 }

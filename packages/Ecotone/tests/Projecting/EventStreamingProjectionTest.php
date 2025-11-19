@@ -21,6 +21,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\EventStreamingProjection;
+use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Ecotone\Test\LicenceTesting;
@@ -205,6 +206,166 @@ class EventStreamingProjectionTest extends TestCase
         $this->assertCount(2, $projection->projectedProducts);
         $this->assertEquals(150, $projection->projectedProducts['product-1']['price']);
         $this->assertEquals(200, $projection->projectedProducts['product-2']['price']);
+    }
+
+    public function test_two_event_streaming_projections_consuming_from_same_channel_separately(): void
+    {
+        $positionTracker = new InMemoryConsumerPositionTracker();
+
+        // Given two projections consuming from the same streaming channel
+        $productListProjection = new #[EventStreamingProjection('product_list_projection', 'event_stream')] class {
+            public array $productList = [];
+
+            #[EventHandler]
+            public function onProductRegistered(ProductRegistered $event): void
+            {
+                $this->productList[] = $event->productId;
+            }
+        };
+
+        $productPriceProjection = new #[EventStreamingProjection('product_price_projection', 'event_stream')] class {
+            public array $productPrices = [];
+
+            #[EventHandler]
+            public function onProductRegistered(ProductRegistered $event): void
+            {
+                $this->productPrices[$event->productId] = $event->price;
+            }
+
+            #[EventHandler]
+            public function onProductPriceChanged(ProductPriceChanged $event): void
+            {
+                $this->productPrices[$event->productId] = $event->newPrice;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$productListProjection::class, $productPriceProjection::class, ProductRegistered::class, ProductPriceChanged::class],
+            containerOrAvailableServices: [$productListProjection, $productPriceProjection, ConsumerPositionTracker::class => $positionTracker],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withNamespaces(['Test\Ecotone\Projecting'])
+                ->withExtensionObjects([
+                    $streamSource = new InMemoryStreamSourceBuilder(),
+                    SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType: MediaType::createApplicationXPHP()),
+                    EventStoreChannelAdapter::create(
+                        streamChannelName: 'event_stream',
+                        endpointId: 'event_store_feeder',
+                        fromStream: 'product_stream'
+                    ),
+                    PollingMetadata::create('product_list_projection')->withTestingSetup(),
+                    PollingMetadata::create('product_price_projection')->withTestingSetup(),
+                ])
+        );
+
+        // When events are appended to the stream source
+        $streamSource->append(
+            Event::create(new ProductRegistered('product-1', 100), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-1']),
+            Event::create(new ProductPriceChanged('product-1', 150), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-1']),
+            Event::create(new ProductRegistered('product-2', 200), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-2']),
+        );
+
+        // Then both projections should not have projected yet (polling mode)
+        $this->assertCount(0, $productListProjection->productList);
+        $this->assertCount(0, $productPriceProjection->productPrices);
+
+        // When we run the event store feeder (polls event store and pushes to streaming channel)
+        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
+
+        // When we run only the first projection consumer
+        $ecotone->run('product_list_projection', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3));
+
+        // Then only the first projection should have projected
+        $this->assertCount(2, $productListProjection->productList);
+        $this->assertEquals(['product-1', 'product-2'], $productListProjection->productList);
+        $this->assertCount(0, $productPriceProjection->productPrices);
+
+        // When we run the second projection consumer
+        $ecotone->run('product_price_projection', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3));
+
+        // Then both projections should have projected independently
+        $this->assertCount(2, $productListProjection->productList);
+        $this->assertCount(2, $productPriceProjection->productPrices);
+        $this->assertEquals(150, $productPriceProjection->productPrices['product-1']);
+        $this->assertEquals(200, $productPriceProjection->productPrices['product-2']);
+    }
+
+    public function test_event_driven_projection_combined_with_event_streaming_projection(): void
+    {
+        $positionTracker = new InMemoryConsumerPositionTracker();
+
+        // Given an event-driven projection (catches up from stream when triggered)
+        $eventDrivenProjection = new #[Projection('event_driven_product_count', automaticInitialization: true)] class {
+            public int $productCount = 0;
+
+            #[EventHandler]
+            public function onProductRegistered(ProductRegistered $event): void
+            {
+                $this->productCount++;
+            }
+        };
+
+        // Given an event streaming projection (processes events in polling mode from streaming channel)
+        $eventStreamingProjection = new #[EventStreamingProjection('streaming_product_list', 'event_stream')] class {
+            public array $productList = [];
+
+            #[EventHandler]
+            public function onProductRegistered(ProductRegistered $event): void
+            {
+                $this->productList[] = $event->productId;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$eventDrivenProjection::class, $eventStreamingProjection::class, ProductRegistered::class],
+            containerOrAvailableServices: [$eventDrivenProjection, $eventStreamingProjection, ConsumerPositionTracker::class => $positionTracker],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withNamespaces(['Test\Ecotone\Projecting'])
+                ->withExtensionObjects([
+                    $streamSource = new InMemoryStreamSourceBuilder(),
+                    SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType: MediaType::createApplicationXPHP()),
+                    EventStoreChannelAdapter::create(
+                        streamChannelName: 'event_stream',
+                        endpointId: 'event_store_feeder',
+                        fromStream: 'product_stream'
+                    ),
+                    PollingMetadata::create('streaming_product_list')->withTestingSetup(),
+                ])
+        );
+
+        // When events are appended to the stream source
+        $streamSource->append(
+            Event::create(new ProductRegistered('product-1', 100), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-1']),
+            Event::create(new ProductRegistered('product-2', 200), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-2']),
+        );
+
+        // And event streaming projection should not have processed yet (polling mode)
+        $this->assertCount(0, $eventStreamingProjection->productList);
+
+        // When an event is published (triggers event-driven projection to catch up from stream)
+        $ecotone->publishEvent(new ProductRegistered('product-3', 300));
+
+        // Then event-driven projection should have caught up and processed all events from stream
+        $this->assertEquals(2, $eventDrivenProjection->productCount);
+
+        // And event streaming projection should still not have processed (polling mode)
+        $this->assertCount(0, $eventStreamingProjection->productList);
+
+        // When we run the event store feeder (polls stream and pushes to streaming channel)
+        $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
+
+        // And run the event streaming projection
+        $ecotone->run('streaming_product_list', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
+
+        // Then event streaming projection should have processed the events from streaming channel
+        $this->assertCount(2, $eventStreamingProjection->productList);
+        $this->assertEquals(['product-1', 'product-2'], $eventStreamingProjection->productList);
+
+        // And event-driven projection count should remain the same (only processed stream events, not the trigger event)
+        $this->assertEquals(2, $eventDrivenProjection->productCount);
     }
 }
 

@@ -33,7 +33,7 @@ final readonly class RegisteredProductList
     {
         $schemaManager = $connection->createSchemaManager();
 
-        if ($schemaManager->tablesExist(self::TABLE_NAME)) {
+        if ($schemaManager->tablesExist([self::TABLE_NAME])) {
             return;
         }
 
@@ -50,7 +50,7 @@ final readonly class RegisteredProductList
     public function remove(#[MultiTenantConnection] Connection $connection): void
     {
         $schemaManager = $connection->createSchemaManager();
-        if ($schemaManager->tablesExist(self::TABLE_NAME)) {
+        if ($schemaManager->tablesExist([self::TABLE_NAME])) {
             return;
         }
 

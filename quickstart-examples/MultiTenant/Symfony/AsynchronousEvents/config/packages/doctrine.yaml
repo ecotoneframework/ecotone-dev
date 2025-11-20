@@ -9,7 +9,6 @@ doctrine:
         url: '%env(resolve:SECONDARY_DATABASE_DSN)%'
         charset: UTF8
   orm:
-    auto_generate_proxy_classes: "%kernel.debug%"
     entity_managers:
       tenant_a_connection:
         connection: tenant_a_connection

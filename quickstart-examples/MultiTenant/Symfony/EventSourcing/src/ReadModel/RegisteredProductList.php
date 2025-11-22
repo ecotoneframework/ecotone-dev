@@ -40,7 +40,7 @@ final readonly class RegisteredProductList
         $schemaManager->createTable(
             new Table(self::TABLE_NAME, [
                 new Column('product_id', Type::getType(Types::GUID)),
-                new Column('name', Type::getType(Types::STRING)),
+                new Column('name', Type::getType(Types::STRING), ['length' => 255]),
                 new Column('registered_at', Type::getType(Types::DATETIME_IMMUTABLE), ['precision' => 6])
             ])
         );

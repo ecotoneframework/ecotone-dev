@@ -8,12 +8,12 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\MetadataMatcher;
+use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
-use Prooph\EventStore\Metadata\MetadataMatcher;
-use Prooph\EventStore\Metadata\Operator;
 use RuntimeException;
 
 class EventStoreAggregateStreamSource implements StreamSource
@@ -34,18 +34,18 @@ class EventStoreAggregateStreamSource implements StreamSource
             // @todo: watch out ! Prooph's event store has an index on (aggregate_type, aggregate_id). Not adding aggregate type here will result in a full table scan
             $metadataMatcher = $metadataMatcher->withMetadataMatch(
                 MessageHeaders::EVENT_AGGREGATE_TYPE,
-                Operator::EQUALS(),
+                Operator::EQUALS,
                 $this->aggregateType
             );
         }
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
             MessageHeaders::EVENT_AGGREGATE_ID,
-            Operator::EQUALS(),
+            Operator::EQUALS,
             $partitionKey
         );
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
             MessageHeaders::EVENT_AGGREGATE_VERSION,
-            Operator::GREATER_THAN_EQUALS(),
+            Operator::GREATER_THAN_EQUALS,
             (int)$lastPosition + 1
         );
 

@@ -2,8 +2,8 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\Modelling\Event;
-use Prooph\EventStore\Metadata\MetadataMatcher;
 
 /**
  * licence Apache-2.0
@@ -37,4 +37,16 @@ interface EventStore
         ?MetadataMatcher $metadataMatcher = null,
         bool $deserialize = true
     ): iterable;
+
+    /**
+     * @return Event[]
+     */
+    public function loadReverse(
+        string $streamName,
+        ?int $fromNumber = null,
+        ?int $count = null,
+        ?MetadataMatcher $metadataMatcher = null,
+        bool $deserialize = true
+    ): iterable;
 }
+

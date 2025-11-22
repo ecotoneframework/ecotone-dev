@@ -224,7 +224,11 @@ class LazyProophEventStore implements EventStore
         $this->prepareEventStore();
 
         if ($this->eventSourcingConfiguration->isInMemory()) {
-            $this->initializedEventStore[$contextName]['eventStore'] = $this->eventSourcingConfiguration->getInMemoryEventStore();
+            $adapter = $this->eventSourcingConfiguration->getInMemoryEventStoreAdapter();
+            if ($adapter === null) {
+                throw new \RuntimeException('In-memory event store adapter is not configured');
+            }
+            $this->initializedEventStore[$contextName]['eventStore'] = $adapter;
 
             return $this->initializedEventStore[$contextName]['eventStore'];
         }

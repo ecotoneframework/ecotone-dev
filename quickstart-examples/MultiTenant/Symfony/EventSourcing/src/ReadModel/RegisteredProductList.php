@@ -33,14 +33,14 @@ final readonly class RegisteredProductList
     {
         $schemaManager = $connection->createSchemaManager();
 
-        if ($schemaManager->tablesExist(self::TABLE_NAME)) {
+        if ($schemaManager->tablesExist([self::TABLE_NAME])) {
             return;
         }
 
         $schemaManager->createTable(
             new Table(self::TABLE_NAME, [
                 new Column('product_id', Type::getType(Types::GUID)),
-                new Column('name', Type::getType(Types::STRING)),
+                new Column('name', Type::getType(Types::STRING), ['length' => 255]),
                 new Column('registered_at', Type::getType(Types::DATETIME_IMMUTABLE), ['precision' => 6])
             ])
         );
@@ -50,7 +50,7 @@ final readonly class RegisteredProductList
     public function remove(#[MultiTenantConnection] Connection $connection): void
     {
         $schemaManager = $connection->createSchemaManager();
-        if ($schemaManager->tablesExist(self::TABLE_NAME)) {
+        if ($schemaManager->tablesExist([self::TABLE_NAME])) {
             return;
         }
 

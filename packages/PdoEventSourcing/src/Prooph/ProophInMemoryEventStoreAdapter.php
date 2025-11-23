@@ -7,8 +7,10 @@ namespace Ecotone\EventSourcing\Prooph;
 use ArrayIterator;
 use DateTimeImmutable;
 use DateTimeZone;
+use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore as EcotoneInMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher as EcotoneMetadataMatcher;
+use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher as ProophMetadataMatcherWrapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
@@ -26,45 +28,19 @@ use Ramsey\Uuid\Uuid;
 
 /**
  * Adapter that wraps Ecotone's InMemoryEventStore to implement Prooph's EventStore interface
- * Implements EventStoreDecorator to provide a Prooph InMemoryEventStore for projection compatibility
  * All write operations are delegated to Ecotone's InMemoryEventStore
  * licence Apache-2.0
  */
-final class ProophInMemoryEventStoreAdapter implements EventStoreDecorator
+final class ProophInMemoryEventStoreAdapter implements EventStore
 {
-    private ?ProophInMemoryEventStore $proophEventStore = null;
-
     public function __construct(
         private EcotoneInMemoryEventStore $ecotoneEventStore
     ) {
     }
 
-    public function getInnerEventStore(): EventStore
+    public function getEcotoneEventStore(): EcotoneInMemoryEventStore
     {
-        if ($this->proophEventStore === null) {
-            $this->proophEventStore = $this->createProophEventStore();
-        }
-
-        return $this->proophEventStore;
-    }
-
-    private function createProophEventStore(): ProophInMemoryEventStore
-    {
-        $proophEventStore = new ProophInMemoryEventStore();
-
-        // Get all streams from Ecotone event store and recreate them in Prooph event store
-        $streams = $this->ecotoneEventStore->getAllStreams();
-
-        foreach ($streams as $streamName => $streamData) {
-            $ecotoneEvents = $streamData['events'];
-            $metadata = $streamData['metadata'];
-
-            $proophMessages = $this->convertToProophMessages($ecotoneEvents);
-            $stream = new Stream(new StreamName($streamName), new \ArrayIterator($proophMessages), $metadata);
-            $proophEventStore->create($stream);
-        }
-
-        return $proophEventStore;
+        return $this->ecotoneEventStore;
     }
 
     public function create(Stream $stream): void
@@ -77,11 +53,6 @@ final class ProophInMemoryEventStoreAdapter implements EventStoreDecorator
 
         $ecotoneEvents = $this->convertToEcotoneEvents($stream->streamEvents());
         $this->ecotoneEventStore->create($streamName, $ecotoneEvents, $stream->metadata());
-
-        // Also create in Prooph event store if it's been initialized
-        if ($this->proophEventStore !== null) {
-            $this->proophEventStore->create($stream);
-        }
     }
 
     public function appendTo(StreamName $streamName, Iterator $streamEvents): void
@@ -97,11 +68,6 @@ final class ProophInMemoryEventStoreAdapter implements EventStoreDecorator
 
         $ecotoneEvents = $this->convertToEcotoneEvents(new \ArrayIterator($streamEventsArray));
         $this->ecotoneEventStore->appendTo($streamNameString, $ecotoneEvents);
-
-        // Also append to Prooph event store if it's been initialized
-        if ($this->proophEventStore !== null) {
-            $this->proophEventStore->appendTo($streamName, new \ArrayIterator($streamEventsArray));
-        }
     }
 
     public function load(
@@ -173,11 +139,6 @@ final class ProophInMemoryEventStoreAdapter implements EventStoreDecorator
         }
 
         $this->ecotoneEventStore->delete($streamNameString);
-
-        // Also delete from Prooph event store if it's been initialized
-        if ($this->proophEventStore !== null) {
-            $this->proophEventStore->delete($streamName);
-        }
     }
 
     public function hasStream(StreamName $streamName): bool
@@ -259,8 +220,17 @@ final class ProophInMemoryEventStoreAdapter implements EventStoreDecorator
 
     private function convertToEcotoneMetadataMatcher(MetadataMatcher $proophMetadataMatcher): EcotoneMetadataMatcher
     {
-        // Create Ecotone MetadataMatcher from Prooph's data
-        return EcotoneMetadataMatcher::create($proophMetadataMatcher->data());
+        $mappedData = [];
+        foreach ($proophMetadataMatcher->data() as $item) {
+            $mappedData[] = [
+                'field' => $item['field'],
+                'operator' => $item['operator'] !== null ? Operator::from($item['operator']->getValue()) : null,
+                'value' => $item['value'],
+                'fieldType' => $item['fieldType'] !== null ? FieldType::from($item['fieldType']->getValue()) : null,
+            ];
+        }
+
+        return EcotoneMetadataMatcher::create($mappedData);
     }
 }
 

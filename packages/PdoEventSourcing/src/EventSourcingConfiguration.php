@@ -132,6 +132,11 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $this->inMemoryEventStoreAdapter;
     }
 
+    public function getInMemoryEventStore(): ?EcotoneInMemoryEventStore
+    {
+        return $this->inMemoryEventStore;
+    }
+
     public function getInMemoryProjectionManager(): ?\Prooph\EventStore\Projection\ProjectionManager
     {
         return $this->inMemoryProjectionManager;

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\EventSourcing\EventSourcingConfiguration;
+use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Attribute\InternalHandler;
@@ -16,6 +18,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -39,6 +42,7 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\EventSourcing\EventStore;
 
 #[ModuleAnnotation]
 /**
@@ -99,6 +103,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $testConfiguration = ExtensionObjectResolver::resolveUnique(TestConfiguration::class, $extensionObjects, TestConfiguration::createWithDefaults());
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
         // In memory consumer position tracker
         $messagingConfiguration->registerServiceDefinition(
@@ -113,12 +118,15 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             );
         }
 
+        $this->registerInMemoryEventStoreIfNeeded($messagingConfiguration, $extensionObjects, $serviceConfiguration);
+
         $messagingConfiguration->registerServiceDefinition(MessageCollectorHandler::class, new Definition(MessageCollectorHandler::class));
         $this->registerMessageCollector($messagingConfiguration, $interfaceToCallRegistry);
         $this->registerMessageReleasingHandler($messagingConfiguration);
 
         $messagingConfiguration->registerServiceDefinition(AllowMissingDestination::class);
         $allowMissingDestinationInterfaceToCall = $interfaceToCallRegistry->getFor(AllowMissingDestination::class, 'invoke');
+        /** @TODO Ecotone 2.0, reconsider if needed */
         if (! $testConfiguration->isFailingOnCommandHandlerNotFound()) {
             $messagingConfiguration
                 ->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
@@ -345,5 +353,34 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 Precedence::DEFAULT_PRECEDENCE,
                 QueryBus::class
             ));
+    }
+
+    private function registerInMemoryEventStoreIfNeeded(Configuration $messagingConfiguration, array $extensionObjects, ServiceConfiguration $serviceConfiguration): void
+    {
+        if (!$serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
+            $messagingConfiguration->registerServiceDefinition(
+                EventStore::class,
+                new Definition(InMemoryEventStore::class),
+            );
+
+            return;
+        }
+
+        /**
+         * This is to honour current PdoEventSourcing implementation, as current one is initializing In Memory in EventSourcingConfiguration.
+         * Perfect solution would be to use InMemoryEventStore from container, as in the above.
+         */
+        foreach ($extensionObjects as $extensionObject) {
+            if (class_exists(EventSourcingConfiguration::class) && $extensionObject instanceof EventSourcingConfiguration) {
+                if ($extensionObject->isInMemory()) {
+                    // Register Ecotone's InMemoryEventStore as the default EventStore
+                    $messagingConfiguration->registerServiceDefinition(
+                        InMemoryEventStore::class,
+                        DefinitionHelper::buildDefinitionFromInstance($extensionObject->getInMemoryEventStore())
+                    );
+                }
+                break;
+            }
+        }
     }
 }

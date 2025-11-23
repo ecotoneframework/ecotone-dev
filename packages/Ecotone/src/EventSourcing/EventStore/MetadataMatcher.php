@@ -29,6 +29,16 @@ final class MetadataMatcher implements DefinedObject
     {
         $matcher = new self();
         $matcher->data = $data;
+        foreach ($data as $item) {
+            if (!($item['fieldType'] instanceof FieldType)) {
+                throw InvalidArgumentException::create('Field type must be an instance of FieldType');
+            }
+            if (!($item['operator'] instanceof Operator)) {
+                throw InvalidArgumentException::create('Operator must be an instance of Operator');
+            }
+
+            $matcher->validateValue($item['operator'], $item['value']);
+        }
 
         return $matcher;
     }

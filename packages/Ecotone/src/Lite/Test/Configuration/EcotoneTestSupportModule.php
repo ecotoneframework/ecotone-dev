@@ -18,7 +18,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResol
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -43,6 +42,8 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\Projecting\InMemory\InMemoryEventStoreStreamSourceBuilder;
+use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 
 #[ModuleAnnotation]
 /**
@@ -202,7 +203,51 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         return
             $extensionObject instanceof TestConfiguration
             || ($extensionObject instanceof MessageChannelBuilder && $extensionObject->isPollable())
-            || $extensionObject instanceof ServiceConfiguration;
+            || $extensionObject instanceof ServiceConfiguration
+            || (class_exists(EventSourcingConfiguration::class) && $extensionObject instanceof EventSourcingConfiguration);
+    }
+
+    public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
+    {
+        // Check if InMemoryEventStore will be registered
+        $shouldRegisterInMemoryStreamSource = false;
+
+        if (!$serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
+            // EVENT_SOURCING_PACKAGE is disabled, so we'll use InMemoryEventStore
+            $shouldRegisterInMemoryStreamSource = true;
+        } else {
+            // EVENT_SOURCING_PACKAGE is enabled, check if it's in-memory mode
+            $hasEventSourcingConfiguration = false;
+            foreach ($serviceExtensions as $extensionObject) {
+                if (class_exists(EventSourcingConfiguration::class) && $extensionObject instanceof EventSourcingConfiguration) {
+                    $hasEventSourcingConfiguration = true;
+                    if ($extensionObject->isInMemory()) {
+                        $shouldRegisterInMemoryStreamSource = true;
+                    }
+                    break;
+                }
+            }
+
+            // If EVENT_SOURCING_PACKAGE is enabled but no EventSourcingConfiguration is provided,
+            // it means DBAL mode is being used, so don't register InMemoryEventStoreStreamSource
+            if (!$hasEventSourcingConfiguration) {
+                $shouldRegisterInMemoryStreamSource = false;
+            }
+        }
+
+        if (!$shouldRegisterInMemoryStreamSource) {
+            return [];
+        }
+
+        // Check if user has registered a custom InMemoryStreamSourceBuilder
+        // If so, don't register InMemoryEventStoreStreamSourceBuilder to avoid conflicts
+        foreach ($serviceExtensions as $extensionObject) {
+            if ($extensionObject instanceof InMemoryStreamSourceBuilder) {
+                return [];
+            }
+        }
+
+        return [new InMemoryEventStoreStreamSourceBuilder()];
     }
 
     public function getModulePackageName(): string
@@ -358,9 +403,15 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
     private function registerInMemoryEventStoreIfNeeded(Configuration $messagingConfiguration, array $extensionObjects, ServiceConfiguration $serviceConfiguration): void
     {
         if (!$serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
+            // Register InMemoryEventStore as the primary definition
+            $messagingConfiguration->registerServiceDefinition(
+                InMemoryEventStore::class,
+                new Definition(InMemoryEventStore::class),
+            );
+            // Register EventStore as a reference to InMemoryEventStore (same instance)
             $messagingConfiguration->registerServiceDefinition(
                 EventStore::class,
-                new Definition(InMemoryEventStore::class),
+                new Reference(InMemoryEventStore::class),
             );
 
             return;
@@ -368,15 +419,17 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
 
         /**
          * This is to honour current PdoEventSourcing implementation, as current one is initializing In Memory in EventSourcingConfiguration.
-         * Perfect solution would be to use InMemoryEventStore from container, as in the above.
+         * We register the InMemoryEventStore by getting it from the EventSourcingConfiguration service,
+         * which ensures we use the same instance that's used by LazyProophEventStore.
          */
         foreach ($extensionObjects as $extensionObject) {
             if (class_exists(EventSourcingConfiguration::class) && $extensionObject instanceof EventSourcingConfiguration) {
                 if ($extensionObject->isInMemory()) {
-                    // Register Ecotone's InMemoryEventStore as the default EventStore
+                    // Register InMemoryEventStore by calling getInMemoryEventStore() on the EventSourcingConfiguration service
+                    // This ensures we use the same instance that's used by LazyProophEventStore
                     $messagingConfiguration->registerServiceDefinition(
                         InMemoryEventStore::class,
-                        DefinitionHelper::buildDefinitionFromInstance($extensionObject->getInMemoryEventStore())
+                        new Definition(InMemoryEventStore::class, [], [EventSourcingConfiguration::class, 'getInMemoryEventStore'])
                     );
                 }
                 break;

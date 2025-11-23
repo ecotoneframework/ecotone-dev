@@ -43,10 +43,6 @@ final class InMemoryEventStore implements EventStore
 
     public function delete(string $streamName): void
     {
-        if (! isset($this->streams[$streamName])) {
-            throw new InvalidArgumentException("Stream {$streamName} not found");
-        }
-
         unset($this->streams[$streamName]);
     }
 

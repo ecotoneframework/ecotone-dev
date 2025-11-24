@@ -30,6 +30,9 @@ use Prooph\EventStore\StreamIterator\MergedStreamIterator;
 use Prooph\EventStore\StreamName;
 use Prooph\EventStore\Util\ArrayCache;
 
+/**
+ * licence Apache-2.0
+ */
 final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadModelProjector
 {
     private string $name;

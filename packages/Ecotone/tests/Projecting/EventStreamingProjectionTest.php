@@ -23,7 +23,6 @@ use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\EventStreamingProjection;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
-use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -167,7 +166,7 @@ class EventStreamingProjectionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: [$projection::class, ProductRegistered::class, ProductPriceChanged::class],
             containerOrAvailableServices: [$projection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -175,7 +174,6 @@ class EventStreamingProjectionTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withNamespaces(['Test\Ecotone\Projecting'])
                 ->withExtensionObjects([
-                    $streamSource = new InMemoryStreamSourceBuilder(),
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType: MediaType::createApplicationXPHP()),
                     EventStoreChannelAdapter::create(
                         streamChannelName: 'event_stream',
@@ -187,11 +185,11 @@ class EventStreamingProjectionTest extends TestCase
         );
 
         // When events are appended to the stream source (simulating event sourcing aggregate)
-        $streamSource->append(
+        $ecotone->withEventStream('product_stream', [
             Event::create(new ProductRegistered('product-1', 100), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-1']),
             Event::create(new ProductPriceChanged('product-1', 150), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-1']),
             Event::create(new ProductRegistered('product-2', 200), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-2']),
-        );
+        ]);
 
         // Then the projection should not have projected yet (polling mode)
         $this->assertCount(0, $projection->projectedProducts);
@@ -239,7 +237,7 @@ class EventStreamingProjectionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: [$productListProjection::class, $productPriceProjection::class, ProductRegistered::class, ProductPriceChanged::class],
             containerOrAvailableServices: [$productListProjection, $productPriceProjection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -247,7 +245,6 @@ class EventStreamingProjectionTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withNamespaces(['Test\Ecotone\Projecting'])
                 ->withExtensionObjects([
-                    $streamSource = new InMemoryStreamSourceBuilder(),
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType: MediaType::createApplicationXPHP()),
                     EventStoreChannelAdapter::create(
                         streamChannelName: 'event_stream',
@@ -260,11 +257,11 @@ class EventStreamingProjectionTest extends TestCase
         );
 
         // When events are appended to the stream source
-        $streamSource->append(
+        $ecotone->withEventStream('product_stream', [
             Event::create(new ProductRegistered('product-1', 100), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-1']),
             Event::create(new ProductPriceChanged('product-1', 150), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-1']),
             Event::create(new ProductRegistered('product-2', 200), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-2']),
-        );
+        ]);
 
         // Then both projections should not have projected yet (polling mode)
         $this->assertCount(0, $productListProjection->productList);
@@ -317,7 +314,7 @@ class EventStreamingProjectionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: [$eventDrivenProjection::class, $eventStreamingProjection::class, ProductRegistered::class],
             containerOrAvailableServices: [$eventDrivenProjection, $eventStreamingProjection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -325,7 +322,6 @@ class EventStreamingProjectionTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withNamespaces(['Test\Ecotone\Projecting'])
                 ->withExtensionObjects([
-                    $streamSource = new InMemoryStreamSourceBuilder(),
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream', conversionMediaType: MediaType::createApplicationXPHP()),
                     EventStoreChannelAdapter::create(
                         streamChannelName: 'event_stream',
@@ -337,10 +333,10 @@ class EventStreamingProjectionTest extends TestCase
         );
 
         // When events are appended to the stream source
-        $streamSource->append(
+        $ecotone->withEventStream('product_stream', [
             Event::create(new ProductRegistered('product-1', 100), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-1']),
             Event::create(new ProductRegistered('product-2', 200), [MessageHeaders::EVENT_AGGREGATE_ID => 'product-2']),
-        );
+        ]);
 
         // And event streaming projection should not have processed yet (polling mode)
         $this->assertCount(0, $eventStreamingProjection->productList);

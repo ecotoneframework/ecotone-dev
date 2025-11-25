@@ -2,6 +2,8 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\EventSourcing\EventStore\MetadataMatcher;
+use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Messaging\MessageHeaders;
@@ -10,8 +12,6 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
 use Prooph\EventStore\Exception\StreamNotFound;
-use Prooph\EventStore\Metadata\MetadataMatcher;
-use Prooph\EventStore\Metadata\Operator;
 use Prooph\EventStore\StreamName;
 
 /**
@@ -46,19 +46,19 @@ class EventSourcingRepository implements EventSourcedRepository
         $metadataMatcher = new MetadataMatcher();
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
             MessageHeaders::EVENT_AGGREGATE_TYPE,
-            Operator::EQUALS(),
+            Operator::EQUALS,
             $aggregateType
         );
         $metadataMatcher = $metadataMatcher->withMetadataMatch(
             MessageHeaders::EVENT_AGGREGATE_ID,
-            Operator::EQUALS(),
+            Operator::EQUALS,
             $aggregateId
         );
 
         if ($aggregateVersion > 0) {
             $metadataMatcher = $metadataMatcher->withMetadataMatch(
                 MessageHeaders::EVENT_AGGREGATE_VERSION,
-                Operator::GREATER_THAN_EQUALS(),
+                Operator::GREATER_THAN_EQUALS,
                 $aggregateVersion
             );
         }

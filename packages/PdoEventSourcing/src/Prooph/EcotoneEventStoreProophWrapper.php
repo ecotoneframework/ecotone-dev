@@ -6,6 +6,8 @@ use ArrayIterator;
 use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\MetadataMatcher as EcotoneMetadataMatcher;
+use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher as ProophMetadataMatcherWrapper;
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -15,7 +17,6 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Iterator;
 use Prooph\EventStore\EventStore as ProophEventStore;
-use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Stream;
 use Prooph\EventStore\StreamName;
 use Ramsey\Uuid\Uuid;
@@ -108,9 +109,14 @@ class EcotoneEventStoreProophWrapper implements EventStore
         return $this->eventStore->hasStream(new StreamName($streamName));
     }
 
-    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null, bool $deserialize = true): array
+    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ?EcotoneMetadataMatcher $metadataMatcher = null, bool $deserialize = true): array
     {
-        $streamEvents = $this->eventStore->load(new StreamName($streamName), $fromNumber, $count, $metadataMatcher);
+        $proophMetadataMatcher = null;
+        if ($metadataMatcher !== null) {
+            $proophMetadataMatcher = $this->convertToProophMetadataMatcher($metadataMatcher);
+        }
+
+        $streamEvents = $this->eventStore->load(new StreamName($streamName), $fromNumber, $count, $proophMetadataMatcher);
         if (! $streamEvents->valid()) {
             $streamEvents = new ArrayIterator([]);
         }
@@ -119,6 +125,12 @@ class EcotoneEventStoreProophWrapper implements EventStore
             $streamEvents,
             $deserialize
         );
+    }
+
+    private function convertToProophMetadataMatcher(EcotoneMetadataMatcher $ecotoneMetadataMatcher): \Prooph\EventStore\Metadata\MetadataMatcher
+    {
+        $wrapper = ProophMetadataMatcherWrapper::createFromEcotone($ecotoneMetadataMatcher);
+        return $wrapper->build();
     }
 
     /**

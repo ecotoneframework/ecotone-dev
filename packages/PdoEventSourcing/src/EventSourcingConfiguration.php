@@ -2,13 +2,14 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\EventSourcing\EventStore\InMemoryEventStore as EcotoneInMemoryEventStore;
 use Ecotone\EventSourcing\InMemory\CachingInMemoryProjectionManager;
 use Ecotone\EventSourcing\InMemory\InMemoryProjectionManager;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
+use Ecotone\EventSourcing\Prooph\ProophInMemoryEventStoreAdapter;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Prooph\EventStore\InMemoryEventStore;
 use Prooph\EventStore\Pdo\PersistenceStrategy;
 use Prooph\EventStore\StreamName;
 
@@ -28,8 +29,9 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     private string $persistenceStrategy = LazyProophEventStore::PARTITION_STREAM_PERSISTENCE;
     private ?PersistenceStrategy $customPersistenceStrategyInstance = null;
     private bool $isInMemory = false;
-    private ?InMemoryEventStore $inMemoryEventStore = null;
+    private ?EcotoneInMemoryEventStore $inMemoryEventStore = null;
     private ?\Prooph\EventStore\Projection\ProjectionManager $inMemoryProjectionManager = null;
+    private ?ProophInMemoryEventStoreAdapter $inMemoryEventStoreAdapter = null;
     /** @var array<string> */
     private array $persistenceStrategies = [];
 
@@ -56,8 +58,9 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     {
         $eventSourcingConfiguration = new self();
         $eventSourcingConfiguration->isInMemory = true;
-        $eventSourcingConfiguration->inMemoryEventStore = new InMemoryEventStore();
-        $eventSourcingConfiguration->inMemoryProjectionManager = new CachingInMemoryProjectionManager(new InMemoryProjectionManager($eventSourcingConfiguration->inMemoryEventStore));
+        $eventSourcingConfiguration->inMemoryEventStore = new EcotoneInMemoryEventStore();
+        $eventSourcingConfiguration->inMemoryEventStoreAdapter = new ProophInMemoryEventStoreAdapter($eventSourcingConfiguration->inMemoryEventStore);
+        $eventSourcingConfiguration->inMemoryProjectionManager = new CachingInMemoryProjectionManager(new InMemoryProjectionManager($eventSourcingConfiguration->inMemoryEventStoreAdapter));
 
         return $eventSourcingConfiguration;
     }
@@ -124,8 +127,12 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $this;
     }
 
+    public function getInMemoryEventStoreAdapter(): ?ProophInMemoryEventStoreAdapter
+    {
+        return $this->inMemoryEventStoreAdapter;
+    }
 
-    public function getInMemoryEventStore(): ?InMemoryEventStore
+    public function getInMemoryEventStore(): ?EcotoneInMemoryEventStore
     {
         return $this->inMemoryEventStore;
     }

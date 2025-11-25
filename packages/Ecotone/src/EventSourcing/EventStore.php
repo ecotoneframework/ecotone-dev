@@ -2,8 +2,8 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\Modelling\Event;
-use Prooph\EventStore\Metadata\MetadataMatcher;
 
 /**
  * licence Apache-2.0
@@ -38,3 +38,4 @@ interface EventStore
         bool $deserialize = true
     ): iterable;
 }
+

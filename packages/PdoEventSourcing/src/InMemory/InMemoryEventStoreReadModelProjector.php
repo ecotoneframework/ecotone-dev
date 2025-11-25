@@ -13,22 +13,36 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\InMemory;
 
+use function array_keys;
+use function array_merge;
+use function array_values;
+
 use Closure;
-use Ecotone\EventSourcing\EventStore\InMemoryEventStore as EcotoneInMemoryEventStore;
 use Ecotone\EventSourcing\Prooph\ProophInMemoryEventStoreAdapter;
-use Ecotone\EventSourcing\Prooph\ReadModelProjector;
-use Prooph\EventStore\EventStore;
-use Prooph\EventStore\EventStoreDecorator;
+
+use function extension_loaded;
+use function func_get_arg;
+use function func_num_args;
+use function get_class;
+use function is_array;
+use function is_callable;
+use function is_string;
+use function pcntl_signal_dispatch;
+
 use Prooph\EventStore\Exception;
-use Prooph\EventStore\InMemoryEventStore;
 use Prooph\EventStore\Metadata\MetadataMatcher;
-use Prooph\EventStore\NonTransactionalInMemoryEventStore;
 use Prooph\EventStore\Projection\MetadataAwareReadModelProjector;
 use Prooph\EventStore\Projection\ProjectionStatus;
 use Prooph\EventStore\Projection\ReadModel;
 use Prooph\EventStore\StreamIterator\MergedStreamIterator;
 use Prooph\EventStore\StreamName;
 use Prooph\EventStore\Util\ArrayCache;
+use ReflectionProperty;
+
+use function strlen;
+use function substr;
+use function trigger_error;
+use function usleep;
 
 /**
  * licence Apache-2.0
@@ -92,7 +106,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
             throw new Exception\InvalidArgumentException('sleep must be a positive integer');
         }
 
-        if ($triggerPcntlSignalDispatch && ! \extension_loaded('pcntl')) {
+        if ($triggerPcntlSignalDispatch && ! extension_loaded('pcntl')) {
             throw Exception\ExtensionNotLoadedException::withName('pcntl');
         }
 
@@ -116,7 +130,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
 
         $result = $callback();
 
-        if (\is_array($result)) {
+        if (is_array($result)) {
             $this->state = $result;
         }
 
@@ -138,9 +152,9 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
             throw new Exception\RuntimeException('From was already called');
         }
 
-        if (\func_num_args() > 1) {
-            \trigger_error('The $metadataMatcher parameter is deprecated. Use withMetadataMatcher() instead.', E_USER_DEPRECATED);
-            $this->metadataMatcher = \func_get_arg(1);
+        if (func_num_args() > 1) {
+            trigger_error('The $metadataMatcher parameter is deprecated. Use withMetadataMatcher() instead.', E_USER_DEPRECATED);
+            $this->metadataMatcher = func_get_arg(1);
         }
 
         $this->query['streams'][] = $streamName;
@@ -203,7 +217,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
         }
 
         foreach ($handlers as $eventName => $handler) {
-            if (! \is_string($eventName)) {
+            if (! is_string($eventName)) {
                 throw new Exception\InvalidArgumentException('Invalid event name given, string expected');
             }
 
@@ -273,7 +287,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
                 }
             }
 
-            $streamEvents = new MergedStreamIterator(\array_keys($eventStreams), ...\array_values($eventStreams));
+            $streamEvents = new MergedStreamIterator(array_keys($eventStreams), ...array_values($eventStreams));
 
             if ($singleHandler) {
                 $this->handleStreamWithSingleHandler($streamEvents);
@@ -284,11 +298,11 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
             $this->readModel()->persist();
 
             if (0 === $eventCounter) {
-                \usleep($this->sleep);
+                usleep($this->sleep);
             }
 
             if ($this->triggerPcntlSignalDispatch) {
-                \pcntl_signal_dispatch();
+                pcntl_signal_dispatch();
             }
         } while ($keepRunning && ! $this->isStopped);
 
@@ -321,10 +335,10 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
 
         $callback = $this->initCallback;
 
-        if (\is_callable($callback)) {
+        if (is_callable($callback)) {
             $result = $callback();
 
-            if (\is_array($result)) {
+            if (is_array($result)) {
                 $this->state = $result;
             }
         }
@@ -337,7 +351,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
         // @var Message $event
         foreach ($events as $event) {
             if ($this->triggerPcntlSignalDispatch) {
-                \pcntl_signal_dispatch();
+                pcntl_signal_dispatch();
             }
 
             $this->currentStreamName = $events->streamName();
@@ -346,7 +360,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
 
             $result = $handler($this->state, $event);
 
-            if (\is_array($result)) {
+            if (is_array($result)) {
                 $this->state = $result;
             }
 
@@ -366,7 +380,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
         // @var Message $event
         foreach ($events as $event) {
             if ($this->triggerPcntlSignalDispatch) {
-                \pcntl_signal_dispatch();
+                pcntl_signal_dispatch();
             }
 
             $this->currentStreamName = $events->streamName();
@@ -381,7 +395,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
             $handler = $this->handlers[$event->messageName()];
             $result = $handler($this->state, $event);
 
-            if (\is_array($result)) {
+            if (is_array($result)) {
                 $this->state = $result;
             }
 
@@ -398,7 +412,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
 
     private function createHandlerContext(?string &$streamName)
     {
-        return new class($this, $streamName) {
+        return new class ($this, $streamName) {
             private \Prooph\EventStore\Projection\ReadModelProjector $projector;
 
             private ?string $streamName = null;
@@ -428,22 +442,22 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
 
     private function prepareStreamPositions(): void
     {
-        $reflectionProperty = new \ReflectionProperty(\get_class($this->eventStore->getEcotoneEventStore()), 'streams');
+        $reflectionProperty = new ReflectionProperty(get_class($this->eventStore->getEcotoneEventStore()), 'streams');
         $reflectionProperty->setAccessible(true);
 
         $streamPositions = [];
-        $streams = \array_keys($reflectionProperty->getValue($this->eventStore->getEcotoneEventStore()));
+        $streams = array_keys($reflectionProperty->getValue($this->eventStore->getEcotoneEventStore()));
 
         if (isset($this->query['all'])) {
             foreach ($streams as $stream) {
-                if (\substr($stream, 0, 1) === '$') {
+                if (substr($stream, 0, 1) === '$') {
                     // ignore internal streams
                     continue;
                 }
                 $streamPositions[$stream] = 0;
             }
 
-            $this->streamPositions = \array_merge($streamPositions, $this->streamPositions);
+            $this->streamPositions = array_merge($streamPositions, $this->streamPositions);
 
             return;
         }
@@ -451,7 +465,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
         if (isset($this->query['categories'])) {
             foreach ($streams as $stream) {
                 foreach ($this->query['categories'] as $category) {
-                    if (\substr($stream, 0, \strlen($category) + 1) === $category . '-') {
+                    if (substr($stream, 0, strlen($category) + 1) === $category . '-') {
                         $streamPositions[$stream] = 0;
 
                         break;
@@ -459,7 +473,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
                 }
             }
 
-            $this->streamPositions = \array_merge($streamPositions, $this->streamPositions);
+            $this->streamPositions = array_merge($streamPositions, $this->streamPositions);
 
             return;
         }
@@ -469,6 +483,6 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
             $streamPositions[$stream] = 0;
         }
 
-        $this->streamPositions = \array_merge($streamPositions, $this->streamPositions);
+        $this->streamPositions = array_merge($streamPositions, $this->streamPositions);
     }
 }

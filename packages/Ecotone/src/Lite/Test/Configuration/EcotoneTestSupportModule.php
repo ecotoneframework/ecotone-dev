@@ -6,6 +6,7 @@ namespace Ecotone\Lite\Test\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
@@ -41,7 +42,6 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\Projecting\InMemory\InMemoryEventStoreStreamSourceBuilder;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 
@@ -212,7 +212,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         // Check if InMemoryEventStore will be registered
         $shouldRegisterInMemoryStreamSource = false;
 
-        if (!$serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
+        if (! $serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
             // EVENT_SOURCING_PACKAGE is disabled, so we'll use InMemoryEventStore
             $shouldRegisterInMemoryStreamSource = true;
         } else {
@@ -230,12 +230,12 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
 
             // If EVENT_SOURCING_PACKAGE is enabled but no EventSourcingConfiguration is provided,
             // it means DBAL mode is being used, so don't register InMemoryEventStoreStreamSource
-            if (!$hasEventSourcingConfiguration) {
+            if (! $hasEventSourcingConfiguration) {
                 $shouldRegisterInMemoryStreamSource = false;
             }
         }
 
-        if (!$shouldRegisterInMemoryStreamSource) {
+        if (! $shouldRegisterInMemoryStreamSource) {
             return [];
         }
 
@@ -402,7 +402,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
 
     private function registerInMemoryEventStoreIfNeeded(Configuration $messagingConfiguration, array $extensionObjects, ServiceConfiguration $serviceConfiguration): void
     {
-        if (!$serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
+        if (! $serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
             // Register InMemoryEventStore as the primary definition
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,

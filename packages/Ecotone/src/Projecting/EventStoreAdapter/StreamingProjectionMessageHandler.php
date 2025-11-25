@@ -11,7 +11,7 @@ use Ecotone\Projecting\ProjectorExecutor;
 
 /**
  * Message handler that consumes from streaming channel and executes projection
- * 
+ *
  * licence Enterprise
  */
 class StreamingProjectionMessageHandler implements DefinedObject
@@ -45,4 +45,3 @@ class StreamingProjectionMessageHandler implements DefinedObject
         ]);
     }
 }
-

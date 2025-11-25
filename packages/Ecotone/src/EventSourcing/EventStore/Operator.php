@@ -27,4 +27,3 @@ enum Operator: string
 
     case REGEX = 'regex';
 }
-

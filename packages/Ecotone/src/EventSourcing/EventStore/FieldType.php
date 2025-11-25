@@ -13,4 +13,3 @@ enum FieldType: int
 
     case MESSAGE_PROPERTY = 1;
 }
-

@@ -34,7 +34,7 @@ class InMemoryEventStoreStreamSource implements StreamSource
         // Collect all events from all streams
         $allEvents = [];
         foreach ($streams as $stream) {
-            if (!$this->eventStore->hasStream($stream)) {
+            if (! $this->eventStore->hasStream($stream)) {
                 continue;
             }
 
@@ -68,7 +68,6 @@ class InMemoryEventStoreStreamSource implements StreamSource
         $allStreams = array_keys($reflection->getValue($this->eventStore));
 
         // Filter out internal streams (starting with $)
-        return array_filter($allStreams, fn($stream) => !str_starts_with($stream, '$'));
+        return array_filter($allStreams, fn ($stream) => ! str_starts_with($stream, '$'));
     }
 }
-

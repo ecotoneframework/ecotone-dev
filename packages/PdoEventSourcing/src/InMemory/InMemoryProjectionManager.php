@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\InMemory;
 
-use Ecotone\EventSourcing\Prooph\ProophInMemoryEventStoreAdapter;
 use function array_keys;
 use function array_slice;
+
+use Ecotone\EventSourcing\Prooph\ProophInMemoryEventStoreAdapter;
+
 use function get_class;
 use function preg_grep;
 
 use Prooph\EventStore\EventStore;
-use Prooph\EventStore\EventStoreDecorator;
 use Prooph\EventStore\Exception;
 use Prooph\EventStore\InMemoryEventStore;
 use Prooph\EventStore\NonTransactionalInMemoryEventStore;

@@ -9,6 +9,10 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Event;
 
+use function in_array;
+use function is_array;
+use function preg_match;
+
 /**
  * In-memory implementation of EventStore for testing purposes
  * licence Apache-2.0
@@ -173,7 +177,7 @@ final class InMemoryEventStore implements EventStore
         foreach ($events as $event) {
             if ($event instanceof Event) {
                 $result[] = $event;
-            } elseif (\is_array($event)) {
+            } elseif (is_array($event)) {
                 // Arrays are not supported directly, they need to be wrapped in an object
                 $result[] = Event::createWithType('array', $event);
             } else {
@@ -239,13 +243,12 @@ final class InMemoryEventStore implements EventStore
             Operator::EQUALS => $value === $expected,
             Operator::GREATER_THAN => $value > $expected,
             Operator::GREATER_THAN_EQUALS => $value >= $expected,
-            Operator::IN => \in_array($value, $expected, true),
+            Operator::IN => in_array($value, $expected, true),
             Operator::LOWER_THAN => $value < $expected,
             Operator::LOWER_THAN_EQUALS => $value <= $expected,
             Operator::NOT_EQUALS => $value !== $expected,
-            Operator::NOT_IN => ! \in_array($value, $expected, true),
-            Operator::REGEX => (bool) \preg_match('/' . $expected . '/', (string) $value),
+            Operator::NOT_IN => ! in_array($value, $expected, true),
+            Operator::REGEX => (bool) preg_match('/' . $expected . '/', (string) $value),
         };
     }
 }
-

@@ -38,4 +38,3 @@ interface EventStore
         bool $deserialize = true
     ): iterable;
 }
-

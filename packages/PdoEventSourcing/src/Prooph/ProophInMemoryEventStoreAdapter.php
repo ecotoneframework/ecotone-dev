@@ -11,15 +11,15 @@ use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore as EcotoneInMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher as EcotoneMetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
-use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher as ProophMetadataMatcherWrapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
+
+use function is_array;
+
 use Iterator;
 use Prooph\EventStore\EventStore;
-use Prooph\EventStore\EventStoreDecorator;
 use Prooph\EventStore\Exception\StreamExistsAlready;
 use Prooph\EventStore\Exception\StreamNotFound;
-use Prooph\EventStore\InMemoryEventStore as ProophInMemoryEventStore;
 use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Stream;
 use Prooph\EventStore\StreamIterator\InMemoryStreamIterator;
@@ -66,7 +66,7 @@ final class ProophInMemoryEventStoreAdapter implements EventStore
         // Convert to array to allow iteration twice
         $streamEventsArray = iterator_to_array($streamEvents);
 
-        $ecotoneEvents = $this->convertToEcotoneEvents(new \ArrayIterator($streamEventsArray));
+        $ecotoneEvents = $this->convertToEcotoneEvents(new ArrayIterator($streamEventsArray));
         $this->ecotoneEventStore->appendTo($streamNameString, $ecotoneEvents);
     }
 
@@ -210,7 +210,7 @@ final class ProophInMemoryEventStoreAdapter implements EventStore
             $messages[] = new ProophMessage(
                 isset($metadata[MessageHeaders::MESSAGE_ID]) ? Uuid::fromString($metadata[MessageHeaders::MESSAGE_ID]) : Uuid::uuid4(),
                 isset($metadata[MessageHeaders::TIMESTAMP]) ? new DateTimeImmutable('@' . $metadata[MessageHeaders::TIMESTAMP], new DateTimeZone('UTC')) : new DateTimeImmutable('now', new DateTimeZone('UTC')),
-                \is_array($event->getPayload()) ? $event->getPayload() : [$event->getPayload()],
+                is_array($event->getPayload()) ? $event->getPayload() : [$event->getPayload()],
                 $metadata,
                 $event->getEventName()
             );
@@ -233,4 +233,3 @@ final class ProophInMemoryEventStoreAdapter implements EventStore
         return EcotoneMetadataMatcher::create($mappedData);
     }
 }
-

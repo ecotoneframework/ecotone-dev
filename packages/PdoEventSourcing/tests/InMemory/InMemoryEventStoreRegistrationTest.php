@@ -65,7 +65,9 @@ class InMemoryEventStoreRegistrationTest extends TestCase
 
 class TestEventForInMemoryMode
 {
-    public function __construct(public int $id = 0, public string $name = '') {}
+    public function __construct(public int $id = 0, public string $name = '')
+    {
+    }
 }
 
 class TestEventForInMemoryModeConverter
@@ -82,4 +84,3 @@ class TestEventForInMemoryModeConverter
         return new TestEventForInMemoryMode($data['id'], $data['name']);
     }
 }
-

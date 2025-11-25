@@ -41,4 +41,3 @@ class InMemoryEventStoreStreamSourceBuilder implements ProjectionComponentBuilde
         );
     }
 }
-

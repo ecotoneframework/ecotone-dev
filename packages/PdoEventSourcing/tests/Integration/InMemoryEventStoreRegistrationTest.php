@@ -91,4 +91,3 @@ final class TestEventConverter
         return new TestEvent($data['data']);
     }
 }
-

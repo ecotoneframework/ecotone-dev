@@ -127,24 +127,6 @@ class EcotoneEventStoreProophWrapper implements EventStore
         );
     }
 
-    public function loadReverse(string $streamName, ?int $fromNumber = null, ?int $count = null, ?EcotoneMetadataMatcher $metadataMatcher = null, bool $deserialize = true): array
-    {
-        $proophMetadataMatcher = null;
-        if ($metadataMatcher !== null) {
-            $proophMetadataMatcher = $this->convertToProophMetadataMatcher($metadataMatcher);
-        }
-
-        $streamEvents = $this->eventStore->loadReverse(new StreamName($streamName), $fromNumber, $count, $proophMetadataMatcher);
-        if (! $streamEvents->valid()) {
-            $streamEvents = new ArrayIterator([]);
-        }
-
-        return $this->convertToEcotoneEvents(
-            $streamEvents,
-            $deserialize
-        );
-    }
-
     private function convertToProophMetadataMatcher(EcotoneMetadataMatcher $ecotoneMetadataMatcher): \Prooph\EventStore\Metadata\MetadataMatcher
     {
         $wrapper = ProophMetadataMatcherWrapper::createFromEcotone($ecotoneMetadataMatcher);

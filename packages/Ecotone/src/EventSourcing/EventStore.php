@@ -37,16 +37,5 @@ interface EventStore
         ?MetadataMatcher $metadataMatcher = null,
         bool $deserialize = true
     ): iterable;
-
-    /**
-     * @return Event[]
-     */
-    public function loadReverse(
-        string $streamName,
-        ?int $fromNumber = null,
-        ?int $count = null,
-        ?MetadataMatcher $metadataMatcher = null,
-        bool $deserialize = true
-    ): iterable;
 }
 

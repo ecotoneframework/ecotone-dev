@@ -43,7 +43,7 @@ class EventStoreGlobalStreamSource implements StreamSource
     {
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
         
-        if ($lastPosition === null && !$this->tableExists()) {
+        if (empty($lastPosition) && !$this->tableExists()) {
             return new StreamPage([], '');
         }
         

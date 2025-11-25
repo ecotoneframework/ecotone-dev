@@ -503,6 +503,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->deleteProjection($projection::NAME);
 
         $ecotone->triggerProjection($projection::NAME);
+        $ecotone->triggerProjection($projection::NAME);
 
         self::assertSame(1, $projection->initCallCount, 'Init should be called once');
     }

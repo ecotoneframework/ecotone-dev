@@ -10,9 +10,7 @@ namespace Ecotone\EventSourcing\Projecting\StreamSource;
 use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\MariaDBPlatform;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
-use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
@@ -43,7 +41,7 @@ class EventStoreGlobalStreamSource implements StreamSource
     {
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
         
-        if (empty($lastPosition) && !$this->tableExists()) {
+        if (empty($lastPosition) && !SchemaManagerCompatibility::tableExists($this->connection, $this->proophStreamTable)) {
             return new StreamPage([], '');
         }
         
@@ -133,35 +131,6 @@ class EventStoreGlobalStreamSource implements StreamSource
         }
 
         $tracking->cutoffGapsBelow($cutoffPosition);
-    }
-
-    private function tableExists(): bool
-    {
-        $platform = $this->connection->getDatabasePlatform();
-        
-        if ($platform instanceof PostgreSQLPlatform) {
-            // PostgreSQL: to_regclass is very fast, returns OID if exists, NULL otherwise
-            // It handles both schema-qualified (schema.table) and unqualified (table) names
-            $result = $this->connection->fetchOne(
-                'SELECT to_regclass(?)',
-                [$this->proophStreamTable]
-            );
-            return $result !== null && $result !== '';
-        }
-        
-        if ($platform instanceof MySQLPlatform || $platform instanceof MariaDBPlatform) {
-            $result = $this->connection->fetchOne(
-                'SELECT 1 FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = ? LIMIT 1',
-                [$this->proophStreamTable]
-            );
-            return $result !== false;
-        }
-        
-        // Fallback for other databases
-        return $this->connection->fetchOne(
-            'SELECT 1 FROM information_schema.tables WHERE table_name = ? LIMIT 1',
-            [$this->proophStreamTable]
-        ) !== false;
     }
 
     private function getTimestamp(string $dateString): int

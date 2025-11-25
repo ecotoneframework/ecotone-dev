@@ -46,7 +46,7 @@ class InMemoryEventStoreStreamSource implements StreamSource
 
             // Load all events from this stream (starting from position 1)
             $events = $this->eventStore->load($stream, 1, null, $metadataMatcher);
-            $allEvents = array_merge($allEvents, iterator_to_array($events));
+            $allEvents = array_merge($allEvents, is_array($events) ? $events : iterator_to_array($events));
         }
 
         // Slice based on global position

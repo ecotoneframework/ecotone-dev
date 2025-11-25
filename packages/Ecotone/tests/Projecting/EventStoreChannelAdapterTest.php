@@ -48,7 +48,7 @@ final class EventStoreChannelAdapterTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$consumer::class],
             containerOrAvailableServices: [
                 $consumer,
@@ -108,7 +108,7 @@ final class EventStoreChannelAdapterTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$consumer::class],
             containerOrAvailableServices: [
                 $consumer,
@@ -197,7 +197,7 @@ final class EventStoreChannelAdapterTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$ticketCounter::class, $consumer::class],
             containerOrAvailableServices: [
                 $ticketCounter,

@@ -166,7 +166,7 @@ class EventStreamingProjectionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$projection::class, ProductRegistered::class, ProductPriceChanged::class],
             containerOrAvailableServices: [$projection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -237,7 +237,7 @@ class EventStreamingProjectionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$productListProjection::class, $productPriceProjection::class, ProductRegistered::class, ProductPriceChanged::class],
             containerOrAvailableServices: [$productListProjection, $productPriceProjection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -314,7 +314,7 @@ class EventStreamingProjectionTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$eventDrivenProjection::class, $eventStreamingProjection::class, ProductRegistered::class],
             containerOrAvailableServices: [$eventDrivenProjection, $eventStreamingProjection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()

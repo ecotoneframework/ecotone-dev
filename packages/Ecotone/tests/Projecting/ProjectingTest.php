@@ -42,7 +42,7 @@ class ProjectingTest extends TestCase
                 $this->handledEvents[] = $event;
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -157,7 +157,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
@@ -187,7 +187,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
@@ -234,7 +234,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
@@ -277,7 +277,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
@@ -317,7 +317,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
@@ -357,7 +357,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
@@ -400,7 +400,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
@@ -442,7 +442,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
@@ -485,7 +485,7 @@ class ProjectingTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('Cannot set partition header for projection partitioned_skip_projection with automatic initialization disabled');
 
-        EcotoneLite::bootstrapFlowTestingWithEventStore(
+        EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()
@@ -549,7 +549,7 @@ class ProjectingTest extends TestCase
                 $this->db[] = 'projectionB-with-priority';
             }
         };
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projectionA::class, $projectionB::class],
             [$projectionA, $projectionB],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -595,7 +595,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             ServiceConfiguration::createWithDefaults()

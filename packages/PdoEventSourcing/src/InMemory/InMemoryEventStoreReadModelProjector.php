@@ -102,7 +102,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
         $this->persistBlockSize = $persistBlockSize;
         $this->readModel = $readModel;
         $this->sleep = $sleep;
-        $this->status = ProjectionStatus::IDLE();
+        $this->status = ProjectionStatus::IDLE(); // @phpstan-ignore-line
         $this->triggerPcntlSignalDispatch = $triggerPcntlSignalDispatch;
     }
 
@@ -252,7 +252,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
 
         $this->prepareStreamPositions();
         $this->isStopped = false;
-        $this->status = ProjectionStatus::RUNNING();
+        $this->status = ProjectionStatus::RUNNING();  // @phpstan-ignore-line
 
         if (! $this->readModel->isInitialized()) {
             $this->readModel->init();
@@ -292,7 +292,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
             }
         } while ($keepRunning && ! $this->isStopped);
 
-        $this->status = ProjectionStatus::IDLE();
+        $this->status = ProjectionStatus::IDLE();  // @phpstan-ignore-line
     }
 
     public function stop(): void

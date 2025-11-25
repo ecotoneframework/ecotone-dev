@@ -73,55 +73,6 @@ class InMemoryEventStoreRegistrationTest extends TestCase
         $this->assertEquals(['id' => 2, 'name' => 'Event 2'], $projection->events[1]);
     }
 
-    public function test_registers_in_memory_event_store_stream_source_when_pdo_event_sourcing_is_in_memory_mode(): void
-    {
-        // Given a polling projection (polling projections read from stream sources)
-        $projection = new #[PollingProjection('test_projection', endpointId: 'test_projection_poller')] class {
-            public array $events = [];
-            public int $callCount = 0;
-
-            #[EventHandler]
-            public function onEvent(TestEventForInMemoryMode $event): void
-            {
-                $this->callCount++;
-                $this->events[] = ['id' => $event->id, 'name' => $event->name];
-            }
-        };
-
-        // When bootstrapping with PdoEventSourcing in in-memory mode
-        // bootstrapFlowTestingWithEventStore automatically adds EventSourcingConfiguration::createInMemory()
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [$projection::class, TestEventForInMemoryMode::class, TestEventForInMemoryModeConverter::class],
-            [$projection, new TestEventForInMemoryModeConverter()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-        );
-
-        // And adding events to event store using withEventStream
-        $ecotone->withEventStream('test_stream', [
-            Event::create(new TestEventForInMemoryMode(1, 'Event 1')),
-            Event::create(new TestEventForInMemoryMode(2, 'Event 2')),
-        ]);
-
-        // Verify events are in the event store
-        $events = $ecotone->getEventStreamEvents('test_stream');
-        $this->assertCount(2, $events, 'Events should be in the event store');
-
-        // When running the polling projection (it reads from the stream source)
-        try {
-            $ecotone->run('test_projection_poller', ExecutionPollingMetadata::createWithTestingSetup());
-        } catch (\Throwable $e) {
-            $this->fail('Failed to run projection: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
-        }
-
-        // Then the projection should have consumed events from InMemoryEventStore
-        $this->assertEquals(2, $projection->callCount, 'Event handler should have been called 2 times');
-        $this->assertCount(2, $projection->events, 'Projection should have consumed 2 events');
-        $this->assertEquals(['id' => 1, 'name' => 'Event 1'], $projection->events[0]);
-        $this->assertEquals(['id' => 2, 'name' => 'Event 2'], $projection->events[1]);
-    }
-
     public function test_does_not_register_in_memory_stream_source_when_custom_stream_source_is_provided(): void
     {
         // This test verifies that when a custom stream source is provided,

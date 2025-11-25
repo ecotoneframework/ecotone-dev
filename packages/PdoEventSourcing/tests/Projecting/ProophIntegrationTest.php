@@ -477,4 +477,33 @@ class ProophIntegrationTest extends ProjectingTestCase
 
         self::assertSame(2, $basketProjection->basketCount);
     }
+
+    public function test_it_handles_backfilling_projection_when_stream_does_not_exist(): void
+    {
+        $connectionFactory = self::getConnectionFactory();
+        $projection = new #[Projection(self::NAME)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+            public const NAME = 'ticket_projection';
+            public int $initCallCount = 0;
+
+            #[ProjectionInitialization]
+            public function init(): void
+            {
+                $this->initCallCount++;
+            }
+        };
+        
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+            [$connectionFactory, $projection, new TicketEventConverter()],
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+            ->deleteProjection($projection::NAME);
+
+        $ecotone->triggerProjection($projection::NAME);
+
+        self::assertSame(1, $projection->initCallCount, 'Init should be called once');
+    }
 }

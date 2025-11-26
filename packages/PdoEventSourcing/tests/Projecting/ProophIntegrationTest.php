@@ -491,14 +491,14 @@ class ProophIntegrationTest extends ProjectingTestCase
                 $this->initCallCount++;
             }
         };
-        
+
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
-        
+
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)
             ->deleteProjection($projection::NAME);
 

@@ -40,11 +40,11 @@ class EventStoreGlobalStreamSource implements StreamSource
     public function load(?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
     {
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
-        
-        if (empty($lastPosition) && !SchemaManagerCompatibility::tableExists($this->connection, $this->proophStreamTable)) {
+
+        if (empty($lastPosition) && ! SchemaManagerCompatibility::tableExists($this->connection, $this->proophStreamTable)) {
             return new StreamPage([], '');
         }
-        
+
         $tracking = GapAwarePosition::fromString($lastPosition);
 
         [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {

@@ -10,6 +10,7 @@ namespace Ecotone\EventSourcing\Projecting\StreamSource;
 use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
@@ -39,6 +40,11 @@ class EventStoreGlobalStreamSource implements StreamSource
     public function load(?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
     {
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
+        
+        if (empty($lastPosition) && !SchemaManagerCompatibility::tableExists($this->connection, $this->proophStreamTable)) {
+            return new StreamPage([], '');
+        }
+        
         $tracking = GapAwarePosition::fromString($lastPosition);
 
         [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {

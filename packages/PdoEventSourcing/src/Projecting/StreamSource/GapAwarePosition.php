@@ -39,7 +39,7 @@ class GapAwarePosition
 
     public static function fromString(?string $position): self
     {
-        if ($position === null) {
+        if (empty($position)) {
             return new self(0);
         }
 

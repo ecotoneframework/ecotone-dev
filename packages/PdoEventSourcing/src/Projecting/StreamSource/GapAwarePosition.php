@@ -74,29 +74,25 @@ class GapAwarePosition
         return $this->gaps;
     }
 
-    public function advanceTo(int $position, bool $processGaps = true): void
+    /**
+     * Advance the position to the given position.
+     * If $insertGaps is true (default), insert detected gaps between the current position and the new position for eventual filling.
+     * $insertGaps will typically be set to false when backfilling events or when processing old events, as we know that all gaps
+     * in the stream are real gaps and will never be filled.
+     */
+    public function advanceTo(int $position, bool $insertGaps = true): void
     {
-        if ($processGaps === false) {
-            if ($position > $this->position) {
-                $this->position = $position;
-            } elseif ($position <= $this->position) {
-                throw new InvalidArgumentException('Cannot advance to a position less than or equal to the current position. Current position: ' . $this->position . ', new position: ' . $position);
+        if ($position > $this->position) {
+            if ($insertGaps) {
+                // add all gaps between current position and new position
+                for ($i = $this->position + 1; $i < $position; $i++) {
+                    $this->gaps[] = $i;
+                }
             }
-            return;
-        }
-
-        // With gap processing
-        if ($position === $this->position + 1) {
-            $this->position++;
+            $this->position = $position;
         } elseif (in_array($position, $this->gaps, true)) {
             // if the position is already in gaps, remove it
             $this->gaps = array_values(array_diff($this->gaps, [$position]));
-        } elseif ($position > $this->position + 1) {
-            // add all gaps between current position and new position
-            for ($i = $this->position + 1; $i < $position; $i++) {
-                $this->gaps[] = $i;
-            }
-            $this->position = $position;
         } else {
             throw new InvalidArgumentException('Cannot advance to a position less than or equal to the current position. Current position: ' . $this->position . ', new position: ' . $position);
         }

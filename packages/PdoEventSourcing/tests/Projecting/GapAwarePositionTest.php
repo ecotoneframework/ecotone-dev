@@ -110,4 +110,13 @@ class GapAwarePositionTest extends TestCase
         $gapAware->cutoffGapsBelow(3);
         $this->assertSame([5, 7, 9, 12], $gapAware->getGaps());
     }
+
+    public function test_advance_to_without_inserting_gaps_can_process_existent_gap(): void
+    {
+        $gapAware = new GapAwarePosition(0);
+        $gapAware->advanceTo(5); // gaps: 1,2,3,4
+        $gapAware->advanceTo(3, false);
+        $this->assertSame(5, $gapAware->getPosition());
+        $this->assertSame([1, 2, 4], $gapAware->getGaps());
+    }
 }

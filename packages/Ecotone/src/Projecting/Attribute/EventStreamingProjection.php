@@ -25,4 +25,3 @@ class EventStreamingProjection extends Projection
         $this->runningMode = self::RUNNING_MODE_EVENT_STREAMING;
     }
 }
-

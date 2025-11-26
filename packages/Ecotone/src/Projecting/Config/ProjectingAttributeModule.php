@@ -17,28 +17,26 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
-use Ecotone\Projecting\Attribute\PollingProjection;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Projecting\Attribute\ProjectionBatchSize;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\EventStoreAdapter\PollingProjectionChannelAdapter;
 use Ecotone\Projecting\EventStoreAdapter\StreamingProjectionMessageHandler;
-use Ecotone\Projecting\ProjectorExecutor;
 use LogicException;
 
 /**
@@ -213,7 +211,7 @@ class ProjectingAttributeModule implements AnnotationModule
         $eventStreamingProjectionNames = array_keys($this->eventStreamingProjections);
         return array_filter(
             $this->projectionBuilders,
-            fn($builder) => !in_array($builder->projectionName(), $eventStreamingProjectionNames, true)
+            fn ($builder) => ! in_array($builder->projectionName(), $eventStreamingProjectionNames, true)
         );
     }
 

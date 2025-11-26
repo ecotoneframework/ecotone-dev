@@ -45,4 +45,3 @@ class PollingProjection extends Projection
         return true;
     }
 }
-

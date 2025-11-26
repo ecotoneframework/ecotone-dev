@@ -32,6 +32,7 @@ use Prooph\EventStore\Pdo\WriteLockStrategy\NoLockStrategy;
 use Prooph\EventStore\Pdo\WriteLockStrategy\PostgresAdvisoryLockStrategy;
 use Prooph\EventStore\Stream;
 use Prooph\EventStore\StreamName;
+use RuntimeException;
 
 use function spl_object_id;
 use function str_contains;
@@ -224,7 +225,11 @@ class LazyProophEventStore implements EventStore
         $this->prepareEventStore();
 
         if ($this->eventSourcingConfiguration->isInMemory()) {
-            $this->initializedEventStore[$contextName]['eventStore'] = $this->eventSourcingConfiguration->getInMemoryEventStore();
+            $adapter = $this->eventSourcingConfiguration->getInMemoryEventStoreAdapter();
+            if ($adapter === null) {
+                throw new RuntimeException('In-memory event store adapter is not configured');
+            }
+            $this->initializedEventStore[$contextName]['eventStore'] = $adapter;
 
             return $this->initializedEventStore[$contextName]['eventStore'];
         }

@@ -159,6 +159,9 @@ final class PollingMetadata implements DefinedObject
         if (! is_null($executionPollingMetadata->getExecutionAmountLimit())) {
             $copy = $copy->setExecutionAmountLimit($executionPollingMetadata->getExecutionAmountLimit());
         }
+        if (! is_null($executionPollingMetadata->isWithSignalInterceptors())) {
+            $copy = $copy->setSignalInterceptors($executionPollingMetadata->isWithSignalInterceptors());
+        }
 
         return $copy;
     }

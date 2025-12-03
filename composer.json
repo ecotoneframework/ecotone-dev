@@ -59,7 +59,6 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
             "Ecotone\\SymfonyBundle\\App\\": "packages/Symfony/App",
             "Fixture\\": "packages/Symfony/tests/Fixture",
             "IncorrectAttribute\\": [
@@ -107,7 +106,6 @@
             "Symfony\\App\\MultiTenant\\": "packages/Symfony/tests/phpunit/MultiTenant/src",
             "Symfony\\App\\SingleTenant\\": "packages/Symfony/tests/phpunit/SingleTenant/src",
             "Symfony\\App\\Licence\\": "packages/Symfony/tests/phpunit/Licence/src",
-            "Test\\Ecotone\\Symfony\\Behat\\Bootstrap\\": "packages/Symfony/tests/Behat/Bootstrap",
             "Tests\\Ecotone\\": "tests"
         }
     },
@@ -143,7 +141,6 @@
         "doctrine/annotations": "^1.13|^2.0",
         "doctrine/cache": "^1.0.0|^2.0",
         "doctrine/orm": "^2.11|^3.0",
-        "friends-of-behat/symfony-extension": "<=2.4.2|^2.5",
         "friendsofphp/php-cs-fixer": "^3.9",
         "guzzlehttp/psr7": "^2.0",
         "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
@@ -209,7 +206,7 @@
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": "vendor/bin/phpunit --no-coverage",
-        "tests:behat": "vendor/bin/behat -p symfony -vvv",
+        "tests:behat": "vendor/bin/behat -vvv",
         "tests:ci": [
             "@tests:phpstan",
             "@tests:phpunit",

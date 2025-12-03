@@ -82,7 +82,7 @@ final class ExecutionPollingMetadata
     public function withTestingSetup(int $amountOfMessagesToHandle = 1, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
     {
         return $this
-//            ->withSignalInterceptorIfAvailable(false)
+           ->withSignalInterceptorIfAvailable(false)
             ->withHandledMessageLimit($amountOfMessagesToHandle)
             ->withStopOnError($failAtError)
             ->withExecutionTimeLimitInMilliseconds($maxExecutionTimeInMilliseconds);

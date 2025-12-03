@@ -176,7 +176,7 @@ final class ManagerRegistryEmulator implements ManagerRegistry
                 true
             );
             // enable native lazy objects if php 8.4+
-            if (PHP_VERSION_ID >= 80400) {
+            if (PHP_VERSION_ID >= 80400 && method_exists($config, 'enableNativeLazyObjects')) {
                 $config->enableNativeLazyObjects(true);
             }
 

@@ -175,10 +175,6 @@ final class ManagerRegistryEmulator implements ManagerRegistry
                 $this->pathsToMapping,
                 true
             );
-            // enable native lazy objects if php 8.4+
-            if (PHP_VERSION_ID >= 80400) {
-                $config->enableNativeLazyObjects(true);
-            }
 
             /** To fake phpstan as in version 2.0, constructor is protected */
             $entityManager = $this->getEntityManagerName();

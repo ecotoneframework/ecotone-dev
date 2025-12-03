@@ -38,6 +38,11 @@ class CacheClearingTest extends KernelTestCase
         $this->ecotoneLiteCacheDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone';
     }
 
+    protected function tearDown(): void
+    {
+        restore_exception_handler();
+    }
+
     public function test_cache_clear_command_triggers_ecotone_cache_clearing(): void
     {
         // Create cache directories and test files

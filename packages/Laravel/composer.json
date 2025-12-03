@@ -48,7 +48,7 @@
         "phpstan/phpstan": "^1.8",
         "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
         "wikimedia/composer-merge-plugin": "^2.1",
-        "symfony/expression-language": "^6.0|^7.0",
+        "symfony/expression-language": "^6.4|^7.0|^8.0",
         "nesbot/carbon": "^2.71|^3.0",
         "moneyphp/money": "^4.1.0",
         "ecotone/dbal": "~1.277.3",

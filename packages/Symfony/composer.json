@@ -29,7 +29,7 @@
     "require": {
         "ecotone/ecotone": "~1.277.3",
         "symfony/console": "^6.4|^7.0|^8.0",
-        "symfony/dependency-injection": ">=v6.4.0 <7.0.0 || >=v7.0.0 <9.0.0",
+        "symfony/dependency-injection": "^6.4|^7.0|^8.0",
         "symfony/framework-bundle": "^6.4|^7.0|^8.0"
     },
     "require-dev": {

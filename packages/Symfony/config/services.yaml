@@ -21,10 +21,3 @@ services:
 
     Fixture\Car\CarService:
         public: true
-
-    Behat\Bootstrap\DomainContext:
-        public: true
-        arguments:
-            - '@Fixture\Car\CarService'
-
-    Test\Ecotone\Symfony\Behat\Bootstrap\DomainContext: ~

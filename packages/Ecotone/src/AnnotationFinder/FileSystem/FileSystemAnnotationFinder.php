@@ -325,6 +325,10 @@ class FileSystemAnnotationFinder implements AnnotationFinder
                             throw ConfigurationException::create(sprintf('%s attribute on %s::%s should be placed on public method, to be available for execution.', $handlerType, $className, $method));
                         }
 
+                        if (!$reflectionMethod->isPublic()) {
+                            continue;
+                        }
+
                         $annotationRegistration = AnnotatedMethod::create(
                             $methodAnnotation,
                             $className,

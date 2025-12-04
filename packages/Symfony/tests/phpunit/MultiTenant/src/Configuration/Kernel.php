@@ -21,9 +21,9 @@ class Kernel extends \Symfony\Component\HttpKernel\Kernel
     protected function build(ContainerBuilder $container): void
     {
         if (PHP_VERSION_ID >= 80400 && method_exists(Configuration::class, 'enableNativeLazyObjects')) {
-            $container->setParameter('test.enable_native_lazy_objects', true);
-        } else {
-            $container->setParameter('test.enable_native_lazy_objects', false);
+            $container->prependExtensionConfig('doctrine', ['orm' => [
+                'enable_native_lazy_objects' => true,
+            ]]);
         }
     }
 }

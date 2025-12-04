@@ -4,6 +4,7 @@ namespace Symfony\App\SingleTenant\Configuration;
 
 use Doctrine\ORM\Configuration;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
+use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
@@ -12,7 +13,6 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 class Kernel extends \Symfony\Component\HttpKernel\Kernel
 {
     use MicroKernelTrait;
-
     public function getProjectDir(): string
     {
         return __DIR__ . '/../../';
@@ -21,9 +21,9 @@ class Kernel extends \Symfony\Component\HttpKernel\Kernel
     protected function build(ContainerBuilder $container): void
     {
         if (PHP_VERSION_ID >= 80400 && method_exists(Configuration::class, 'enableNativeLazyObjects')) {
-            $container->setParameter('test.enable_native_lazy_objects', true);
-        } else {
-            $container->setParameter('test.enable_native_lazy_objects', false);
+            $container->prependExtensionConfig('doctrine', ['orm' => [
+                'enable_native_lazy_objects' => true,
+            ]]);
         }
     }
 }

@@ -7,7 +7,6 @@ doctrine:
         charset: UTF8
   orm:
     auto_generate_proxy_classes: "%kernel.debug%"
-    enable_native_lazy_objects: "%test.enable_native_lazy_objects%"
     entity_managers:
       defined_orm_connection:
         connection: defined_connection

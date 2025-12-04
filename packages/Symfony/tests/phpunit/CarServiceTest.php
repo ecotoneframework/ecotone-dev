@@ -20,7 +20,9 @@ final class CarServiceTest extends KernelTestCase
 
     protected function setUp(): void
     {
-        self::bootKernel();
+        self::bootKernel([
+            'environment' => 'test',
+        ]);
         $this->carService = self::getContainer()->get(CarService::class);
     }
 

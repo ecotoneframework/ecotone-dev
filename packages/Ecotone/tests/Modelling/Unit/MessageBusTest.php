@@ -24,6 +24,8 @@ use Test\Ecotone\Modelling\Fixture\CommandEventFlow\MerchantSubscriber;
 use Test\Ecotone\Modelling\Fixture\CommandEventFlow\User;
 use Test\Ecotone\Modelling\Fixture\EmailNotifier\ANotification;
 use Test\Ecotone\Modelling\Fixture\EmailNotifier\EmailNotifier;
+use Test\Ecotone\Modelling\Fixture\EventRouting\OrderEventService;
+use Test\Ecotone\Modelling\Fixture\EventRouting\PlaceOrder;
 use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\OrderDispatch;
 use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\OrderWasCreated;
 use Test\Ecotone\Modelling\Fixture\EventSourcedSaga\PaymentWasDoneEvent;
@@ -352,6 +354,24 @@ final class MessageBusTest extends TestCase
         $this->assertEquals(
             $notification,
             $emailNotifier->getEmails()[0]
+        );
+    }
+
+    public function test_routing_events_to_multiple_handlers_in_same_class(): void
+    {
+        $service = new OrderEventService();
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [OrderEventService::class],
+            [$service],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+        );
+
+        $ecotoneTestSupport->sendCommand(new PlaceOrder('order-123'));
+
+        $this->assertSame(
+            ['handler1', 'handler2'],
+            $ecotoneTestSupport->sendQueryWithRouting('getHandlersCalled')
         );
     }
 }

@@ -196,14 +196,11 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
                         // All channels on this route are factory or action channels, continue normal processing
                         continue;
                     }
-                    if (count($staticChannels) > 1 || count($actionChannels) > 1) {
-                        throw ConfigurationException::create("Message Handlers on Aggregate and Saga can be used either for single factory method and single action method together, or for multiple actions methods in {$staticRegistration->getClassName()}");
-                    }
-                    // Exactly one factory and one action channel, register a bridge
+                    // register a bridge
                     if ($bridgeForThisFactoryMethod === null) {
                         $bridgeForThisFactoryMethod = [
                             'factoryChannel' => reset($staticChannels),
-                            'actionChannel' => reset($actionChannels),
+                            'actionChannels' => $actionChannels,
                             'routes' => [$routedKey],
                         ];
                     } else {
@@ -211,14 +208,14 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
                         $bridgeForThisFactoryMethod['routes'][] = $routedKey;
                         Assert::isTrue(
                             reset($staticChannels) === $bridgeForThisFactoryMethod['factoryChannel']
-                            && reset($actionChannels) === $bridgeForThisFactoryMethod['actionChannel'],
+                            && $actionChannels === $bridgeForThisFactoryMethod['actionChannels'],
                             "Trying to register multiple factory methods for {$staticRegistration->getClassName()} under same route {$routedKey}"
                         );
                     }
                 }
                 if ($bridgeForThisFactoryMethod !== null) {
                     $this->channelsToBridge[$bridgeForThisFactoryMethod['factoryChannel']] = $channelToRegistrations[$bridgeForThisFactoryMethod['actionChannel']];
-                    $this->channelsToCancel[] = $bridgeForThisFactoryMethod['actionChannel'];
+                    $this->channelsToCancel += $bridgeForThisFactoryMethod['actionChannels'];
                 }
             }
         }

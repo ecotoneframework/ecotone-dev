@@ -4,7 +4,6 @@ namespace Symfony\App\SingleTenant\Configuration;
 
 use Doctrine\ORM\Configuration;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
-use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**

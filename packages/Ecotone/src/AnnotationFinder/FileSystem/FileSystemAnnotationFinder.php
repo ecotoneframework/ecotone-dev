@@ -12,7 +12,6 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationResolver;
 use Ecotone\AnnotationFinder\Attribute\Environment;
 use Ecotone\AnnotationFinder\ConfigurationException;
-use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Attribute\IsAbstract;
 use Ecotone\Messaging\Attribute\MessageConsumer;
@@ -325,7 +324,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
                             throw ConfigurationException::create(sprintf('%s attribute on %s::%s should be placed on public method, to be available for execution.', $handlerType, $className, $method));
                         }
 
-                        if (!$reflectionMethod->isPublic()) {
+                        if (! $reflectionMethod->isPublic()) {
                             continue;
                         }
 

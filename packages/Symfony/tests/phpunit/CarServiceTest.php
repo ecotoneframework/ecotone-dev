@@ -51,4 +51,3 @@ final class CarServiceTest extends KernelTestCase
         $this->assertEquals(100, $this->carService->getSpeed());
     }
 }
-

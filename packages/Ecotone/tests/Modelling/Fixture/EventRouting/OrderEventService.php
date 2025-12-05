@@ -40,4 +40,3 @@ final class OrderEventService
         return $this->handlersCalled;
     }
 }
-

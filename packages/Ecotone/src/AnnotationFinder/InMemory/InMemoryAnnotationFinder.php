@@ -10,7 +10,6 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationResolver\AttributeResolver;
 use Ecotone\AnnotationFinder\ConfigurationException;
 use Ecotone\AnnotationFinder\TypeResolver;
-use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Modelling\Attribute\CommandHandler;

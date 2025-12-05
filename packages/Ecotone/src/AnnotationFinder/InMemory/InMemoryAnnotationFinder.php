@@ -227,7 +227,7 @@ class InMemoryAnnotationFinder implements AnnotationFinder
                                     $methodAnnotation instanceof MessageConsumer => 'Message consumer',
                                     default => 'Handler',
                                 };
-                                throw ConfigurationException::create(sprintf('%s attribute on %s::%s should be placed on public method, to be available for execution.', $handlerType, $className, $method));
+                                throw ConfigurationException::create(sprintf('%s attribute on %s::%s should be placed on public method, to be available for execution.', $handlerType, $class, $methodName));
                             }
                         }
 

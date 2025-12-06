@@ -14,7 +14,6 @@ final class ExecutionPollingMetadata
     private ?bool $stopOnError = null;
     private ?bool $finishWhenNoMessages = null;
     private ?int $executionAmountLimit = null;
-    private ?bool $signalInterceptorsEnabledIfAvailable = null;
 
     private function __construct()
     {
@@ -82,7 +81,6 @@ final class ExecutionPollingMetadata
     public function withTestingSetup(int $amountOfMessagesToHandle = 1, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
     {
         return $this
-            ->withSignalInterceptorIfAvailable(false)
             ->withHandledMessageLimit($amountOfMessagesToHandle)
             ->withStopOnError($failAtError)
             ->withExecutionTimeLimitInMilliseconds($maxExecutionTimeInMilliseconds);
@@ -120,14 +118,6 @@ final class ExecutionPollingMetadata
         return $self;
     }
 
-    public function withSignalInterceptorIfAvailable(bool $value = true): self
-    {
-        $self = clone $this;
-        $self->signalInterceptorsEnabledIfAvailable = $value;
-
-        return $self;
-    }
-
     public function getCron(): ?string
     {
         return $this->cron;
@@ -161,10 +151,5 @@ final class ExecutionPollingMetadata
     public function getExecutionAmountLimit(): ?int
     {
         return $this->executionAmountLimit;
-    }
-
-    public function isSignalInterceptorsEnabled(): ?bool
-    {
-        return $this->signalInterceptorsEnabledIfAvailable;
     }
 }

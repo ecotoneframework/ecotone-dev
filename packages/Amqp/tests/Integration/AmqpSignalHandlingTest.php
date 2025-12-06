@@ -16,7 +16,6 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
@@ -26,8 +25,6 @@ use Test\Ecotone\Amqp\AmqpMessagingTestCase;
  */
 final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
 {
-    #[RequiresPhpExtension('posix')]
-    #[RequiresPhpExtension('pcntl')]
     public function test_consumer_stops_after_current_message_when_signal_sent_during_processing(): void
     {
         $endpointId = 'signal_test_endpoint';
@@ -60,15 +57,13 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
             ExecutionPollingMetadata::createWithTestingSetup(
                 amountOfMessagesToHandle: 10,
                 maxExecutionTimeInMilliseconds: 30000
-            )->withSignalInterceptorIfAvailable()
+            )
         );
 
         $processedMessages = $ecotoneLite->getQueryBus()->sendWithRouting('signal_handler.getProcessedMessages');
         $this->assertEquals(['message-1'], $processedMessages);
     }
 
-    #[RequiresPhpExtension('posix')]
-    #[RequiresPhpExtension('pcntl')]
     public function test_asynchronous_command_handler_stops_after_current_command_when_signal_sent(): void
     {
         $ecotoneLite = $this->bootstrapForTesting(
@@ -97,15 +92,13 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
             ExecutionPollingMetadata::createWithTestingSetup(
                 amountOfMessagesToHandle: 10,
                 maxExecutionTimeInMilliseconds: 30000
-            )->withSignalInterceptorIfAvailable()
+            )
         );
 
         $processedCommands = $ecotoneLite->getQueryBus()->sendWithRouting('async_command_handler.getProcessedCommands');
         $this->assertEquals(['command-1'], $processedCommands);
     }
 
-    #[RequiresPhpExtension('posix')]
-    #[RequiresPhpExtension('pcntl')]
     public function test_asynchronous_command_handler_stops_after_current_command_when_signal_sent_with_defaults(): void
     {
         $ecotoneLite = $this->bootstrapForTesting(

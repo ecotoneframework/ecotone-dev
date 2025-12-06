@@ -118,7 +118,7 @@ final class MessageConsumerSignalHandlingTest extends TestCase
             ExecutionPollingMetadata::createWithTestingSetup(
                 amountOfMessagesToHandle: 10,
                 maxExecutionTimeInMilliseconds: 30000
-            )->withSignalInterceptorIfAvailable()
+            )
         );
 
         $this->assertEquals(['message-1'], $signalHandler->getProcessedMessages());

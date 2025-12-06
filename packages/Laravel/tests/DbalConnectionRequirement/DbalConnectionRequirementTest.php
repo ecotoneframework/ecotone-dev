@@ -16,12 +16,6 @@ use PHPUnit\Framework\TestCase;
  */
 final class DbalConnectionRequirementTest extends TestCase
 {
-    protected function tearDown(): void
-    {
-        restore_exception_handler();
-        restore_error_handler();
-    }
-
     public function test_throws_configuration_exception_when_dbal_connection_factory_is_not_configured(): void
     {
         $exceptionThrown = false;

@@ -87,4 +87,12 @@ class InMemoryPSRContainer implements ContainerInterface
     {
         return array_key_exists($id, $this->objects);
     }
+
+    /**
+     * @return string[]
+     */
+    public function getRegisteredIds(): array
+    {
+        return array_keys($this->objects);
+    }
 }

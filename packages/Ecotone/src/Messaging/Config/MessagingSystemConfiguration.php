@@ -163,6 +163,16 @@ final class MessagingSystemConfiguration implements Configuration
     private bool $isRunningForTest = false;
 
     /**
+     * @var array<string, string> $requiredReferences Map of referenceId => errorMessage
+     */
+    private array $requiredReferences = [];
+
+    /**
+     * @var string[] $availableExternalReferences List of reference IDs available in external container
+     */
+    private array $availableExternalReferences = [];
+
+    /**
      * @param object[] $extensionObjects
      */
     private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration)
@@ -593,6 +603,20 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
+    public function requireReference(string $referenceId, string $errorMessage): Configuration
+    {
+        $this->requiredReferences[$referenceId] = $errorMessage;
+
+        return $this;
+    }
+
+    public function registerAvailableExternalReferences(array $referenceIds): Configuration
+    {
+        $this->availableExternalReferences = array_merge($this->availableExternalReferences, $referenceIds);
+
+        return $this;
+    }
+
     /**
      * @param PollingMetadata $pollingMetadata
      *
@@ -971,6 +995,10 @@ final class MessagingSystemConfiguration implements Configuration
         (new RegisterSingletonMessagingServices())->process($builder);
         foreach ($this->compilerPasses as $compilerPass) {
             $compilerPass->process($builder);
+        }
+
+        if ($this->requiredReferences !== []) {
+            (new Container\Compiler\ValidateRequiredReferencesPass($this->requiredReferences, $this->availableExternalReferences))->process($builder);
         }
     }
 

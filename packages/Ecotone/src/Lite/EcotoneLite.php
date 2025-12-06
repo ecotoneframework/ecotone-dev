@@ -231,6 +231,12 @@ final class EcotoneLite
                 $serviceConfiguration,
                 $enableTesting
             );
+
+            // Register available external references for validation
+            if ($externalContainer instanceof InMemoryPSRContainer) {
+                $messagingConfiguration->registerAvailableExternalReferences($externalContainer->getRegisteredIds());
+            }
+
             $definitionHolder = ContainerConfig::buildDefinitionHolder($messagingConfiguration);
 
             if ($serviceCacheConfiguration->shouldUseCache()) {

@@ -144,4 +144,21 @@ interface Configuration extends CompilerPass
     public function addCompilerPass(CompilerPass $compilerPass): self;
 
     public function isRunningForTest(): bool;
+
+    /**
+     * Register a required reference that must exist in the container.
+     * If the reference is not found during compilation, a ConfigurationException will be thrown with the provided error message.
+     *
+     * @param string $referenceId The reference ID that must exist
+     * @param string $errorMessage A user-friendly error message explaining what is missing and how to fix it
+     */
+    public function requireReference(string $referenceId, string $errorMessage): Configuration;
+
+    /**
+     * Register available external references that exist in an external container.
+     * These references will be considered as available during validation.
+     *
+     * @param string[] $referenceIds The reference IDs that are available in the external container
+     */
+    public function registerAvailableExternalReferences(array $referenceIds): Configuration;
 }

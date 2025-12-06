@@ -163,6 +163,13 @@ final class MessagingSystemConfiguration implements Configuration
     private bool $isRunningForTest = false;
 
     /**
+     * @var array<string, string> $requiredReferences Map of referenceId => errorMessage
+     */
+    private array $requiredReferences = [];
+
+    private ?ContainerInterface $externalContainer = null;
+
+    /**
      * @param object[] $extensionObjects
      */
     private function __construct(ModuleRetrievingService $moduleConfigurationRetrievingService, array $extensionObjects, InterfaceToCallRegistry $preparationInterfaceRegistry, ServiceConfiguration $serviceConfiguration)
@@ -593,6 +600,20 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
+    public function requireReference(string $referenceId, string $errorMessage): Configuration
+    {
+        $this->requiredReferences[$referenceId] = $errorMessage;
+
+        return $this;
+    }
+
+    public function withExternalContainer(?ContainerInterface $externalContainer): Configuration
+    {
+        $this->externalContainer = $externalContainer;
+
+        return $this;
+    }
+
     /**
      * @param PollingMetadata $pollingMetadata
      *
@@ -971,6 +992,10 @@ final class MessagingSystemConfiguration implements Configuration
         (new RegisterSingletonMessagingServices())->process($builder);
         foreach ($this->compilerPasses as $compilerPass) {
             $compilerPass->process($builder);
+        }
+
+        if ($this->requiredReferences !== []) {
+            (new Container\Compiler\ValidateRequiredReferencesPass($this->requiredReferences, $this->externalContainer))->process($builder);
         }
     }
 

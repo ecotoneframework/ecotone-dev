@@ -11,11 +11,16 @@ use Throwable;
  */
 trait ConsumerInterceptorTrait
 {
-    public function onStartup(): void {}
+    public function onStartup(): void
+    {
+    }
 
-    public function onShutdown(): void {}
+    public function onShutdown(): void
+    {
+    }
 
-    public function shouldBeStopped(): bool {
+    public function shouldBeStopped(): bool
+    {
         return false;
     }
 
@@ -24,7 +29,8 @@ trait ConsumerInterceptorTrait
         return false;
     }
 
-    public function preRun(): void {
+    public function preRun(): void
+    {
 
     }
 
@@ -32,11 +38,13 @@ trait ConsumerInterceptorTrait
      * Called after each run
      */
     public function postRun(?Throwable $unhandledFailure): void
-    {}
+    {
+    }
 
     /**
      * Called after each sending message to request channel
      */
     public function postSend(): void
-    {}
+    {
+    }
 }

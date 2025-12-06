@@ -7,7 +7,6 @@ namespace Ecotone\Messaging\Endpoint\Interceptor;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
 use Ecotone\Messaging\Endpoint\ConsumerInterceptorTrait;
-use Throwable;
 
 /**
  * Class SignalInterceptor

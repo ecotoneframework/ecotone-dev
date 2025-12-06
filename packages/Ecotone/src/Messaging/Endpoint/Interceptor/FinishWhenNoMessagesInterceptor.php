@@ -9,7 +9,6 @@ use Ecotone\Messaging\Endpoint\ConsumerInterceptorTrait;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
-use Throwable;
 
 /**
  * licence Apache-2.0

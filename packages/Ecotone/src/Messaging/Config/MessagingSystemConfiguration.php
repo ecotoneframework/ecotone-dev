@@ -167,10 +167,7 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $requiredReferences = [];
 
-    /**
-     * @var string[] $availableExternalReferences List of reference IDs available in external container
-     */
-    private array $availableExternalReferences = [];
+    private ?ContainerInterface $externalContainer = null;
 
     /**
      * @param object[] $extensionObjects
@@ -610,9 +607,9 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    public function registerAvailableExternalReferences(array $referenceIds): Configuration
+    public function withExternalContainer(?ContainerInterface $externalContainer): Configuration
     {
-        $this->availableExternalReferences = array_merge($this->availableExternalReferences, $referenceIds);
+        $this->externalContainer = $externalContainer;
 
         return $this;
     }
@@ -998,7 +995,7 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         if ($this->requiredReferences !== []) {
-            (new Container\Compiler\ValidateRequiredReferencesPass($this->requiredReferences, $this->availableExternalReferences))->process($builder);
+            (new Container\Compiler\ValidateRequiredReferencesPass($this->requiredReferences, $this->externalContainer))->process($builder);
         }
     }
 

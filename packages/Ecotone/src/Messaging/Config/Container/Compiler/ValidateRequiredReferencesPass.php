@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Config\Container\Compiler;
 
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Psr\Container\ContainerInterface;
 
 /**
  * Validates that all required references are registered in the container.
@@ -17,11 +18,11 @@ class ValidateRequiredReferencesPass implements CompilerPass
 {
     /**
      * @param array<string, string> $requiredReferences Map of referenceId => errorMessage
-     * @param string[] $availableExternalReferences List of reference IDs available in external container
+     * @param ContainerInterface|null $externalContainer External container to check for references
      */
     public function __construct(
         private array $requiredReferences,
-        private array $availableExternalReferences = []
+        private ?ContainerInterface $externalContainer = null
     ) {
     }
 
@@ -29,10 +30,13 @@ class ValidateRequiredReferencesPass implements CompilerPass
     {
         $definitions = $builder->getDefinitions();
         $externalReferences = $builder->getExternalReferences();
-        $availableExternalReferencesMap = array_flip($this->availableExternalReferences);
 
         foreach ($this->requiredReferences as $referenceId => $errorMessage) {
-            if (! isset($definitions[$referenceId]) && ! isset($externalReferences[$referenceId]) && ! isset($availableExternalReferencesMap[$referenceId])) {
+            $existsInDefinitions = isset($definitions[$referenceId]);
+            $existsInExternalReferences = isset($externalReferences[$referenceId]);
+            $existsInExternalContainer = $this->externalContainer !== null && $this->externalContainer->has($referenceId);
+
+            if (! $existsInDefinitions && ! $existsInExternalReferences && ! $existsInExternalContainer) {
                 throw ConfigurationException::create($errorMessage);
             }
         }

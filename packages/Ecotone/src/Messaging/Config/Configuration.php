@@ -155,10 +155,10 @@ interface Configuration extends CompilerPass
     public function requireReference(string $referenceId, string $errorMessage): Configuration;
 
     /**
-     * Register available external references that exist in an external container.
-     * These references will be considered as available during validation.
+     * Set the external container used for reference validation.
+     * This container will be checked when validating required references.
      *
-     * @param string[] $referenceIds The reference IDs that are available in the external container
+     * @param ContainerInterface|null $externalContainer The external container, or null if not available
      */
-    public function registerAvailableExternalReferences(array $referenceIds): Configuration;
+    public function withExternalContainer(?ContainerInterface $externalContainer): Configuration;
 }

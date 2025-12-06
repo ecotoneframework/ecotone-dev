@@ -232,10 +232,7 @@ final class EcotoneLite
                 $enableTesting
             );
 
-            // Register available external references for validation
-            if ($externalContainer instanceof InMemoryPSRContainer) {
-                $messagingConfiguration->registerAvailableExternalReferences($externalContainer->getRegisteredIds());
-            }
+            $messagingConfiguration->withExternalContainer($externalContainer);
 
             $definitionHolder = ContainerConfig::buildDefinitionHolder($messagingConfiguration);
 

@@ -77,6 +77,7 @@ class EcotoneLiteApplication
             }
 
             $containerBuilder = new ContainerBuilder();
+            $messagingConfiguration->withExternalContainer(InMemoryPSRContainer::createFromAssociativeArray($objectsToRegister));
             $containerBuilder->addCompilerPass($messagingConfiguration);
             $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
             $containerBuilder->addCompilerPass(new PhpDiContainerImplementation($builder, $classesToRegister));

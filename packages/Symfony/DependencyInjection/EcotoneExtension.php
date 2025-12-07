@@ -22,7 +22,7 @@ use Symfony\Component\DependencyInjection\Reference;
 /**
  * licence Apache-2.0
  */
-class EcotoneExtension extends Extension implements CompilerPassInterface
+class EcotoneExtension extends Extension
 {
     public function load(array $configs, ContainerBuilder $container): void
     {
@@ -114,16 +114,5 @@ class EcotoneExtension extends Extension implements CompilerPassInterface
         }
 
         $container->setParameter('ecotone.messaging_system_configuration.required_references', $messagingConfiguration->getRequiredReferencesForValidation());
-    }
-
-    public function process(ContainerBuilder $container): void
-    {
-        $requiredReferences = $container->getParameter('ecotone.messaging_system_configuration.required_references');
-
-        foreach ($requiredReferences as $referenceId => $errorMessage) {
-            if (! $container->has($referenceId)) {
-                throw ConfigurationException::create($errorMessage);
-            }
-        }
     }
 }

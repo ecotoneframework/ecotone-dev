@@ -18,8 +18,16 @@ class Delayed extends AddHeader
     /**
      * @param int|TimeSpan|DateTimeInterface $time if integer is provided it is treated as milliseconds
      */
-    public function __construct(int|TimeSpan|DateTimeInterface|null $time = null, ?string $expression = null)
-    {
+    public function __construct(
+        int|TimeSpan|DateTimeInterface|null $time = null,
+        ?string $expression = null,
+        private readonly bool $replaceExistingHeader = true
+    ) {
         parent::__construct(MessageHeaders::DELIVERY_DELAY, $time, $expression);
+    }
+
+    public function isReplaceExistingHeader(): bool
+    {
+        return $this->replaceExistingHeader;
     }
 }

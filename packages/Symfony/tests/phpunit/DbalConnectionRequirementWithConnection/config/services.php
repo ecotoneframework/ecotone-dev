@@ -19,7 +19,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->autoconfigure();
 
     $services->set(DbalConnectionFactory::class)->args([
-        env('DATABASE_DSN', 'pgsql://ecotone:secret@localhost:5432/ecotone')
+        'pgsql://ecotone:secret@localhost:5432/ecotone'
     ]);
 };
 

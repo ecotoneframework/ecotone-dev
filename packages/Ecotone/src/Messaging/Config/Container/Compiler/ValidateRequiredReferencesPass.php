@@ -22,12 +22,17 @@ class ValidateRequiredReferencesPass implements CompilerPass
      */
     public function __construct(
         private array $requiredReferences,
-        private ?ContainerInterface $externalContainer = null
+        private bool $isWorkingInTestMode,
+        private ?ContainerInterface $externalContainer
     ) {
     }
 
     public function process(ContainerBuilder $builder): void
     {
+        if ($this->isWorkingInTestMode) {
+            return;
+        }
+
         $definitions = $builder->getDefinitions();
         $externalReferences = $builder->getExternalReferences();
 

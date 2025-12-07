@@ -150,10 +150,7 @@ final class EcotoneLite
         ?TestConfiguration        $testConfiguration = null,
         ?string                  $licenceKey = null,
     ): FlowTestSupport {
-        $modulePackageNames = [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE];
-        if ($runForProductionEventStore) {
-            $modulePackageNames[] = ModulePackageList::DBAL_PACKAGE;
-        }
+        $modulePackageNames = [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE];
 
         $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept($modulePackageNames), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $licenceKey);
 

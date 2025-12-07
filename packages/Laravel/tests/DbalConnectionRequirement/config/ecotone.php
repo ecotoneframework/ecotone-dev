@@ -8,6 +8,6 @@ return [
         ModulePackageList::LARAVEL_PACKAGE,
         ModulePackageList::DBAL_PACKAGE,
     ]),
-    'test' => true,
+    'test' => false,
 ];
 

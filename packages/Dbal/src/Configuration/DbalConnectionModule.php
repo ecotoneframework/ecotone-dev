@@ -49,8 +49,8 @@ class DbalConnectionModule implements AnnotationModule
                 sprintf(
                     "Dbal module requires '%s' to be configured. " .
                     "For Symfony, add SymfonyConnectionReference::defaultConnection('default') to your ServiceContext. " .
-                    "For Laravel, add LaravelConnectionReference::defaultConnection() to your ServiceContext. " .
-                    "See: https://docs.ecotone.tech/modules/dbal-support#configuration",
+                    'For Laravel, add LaravelConnectionReference::defaultConnection() to your ServiceContext. ' .
+                    'See: https://docs.ecotone.tech/modules/dbal-support#configuration',
                     $connectionFactory
                 )
             );
@@ -72,4 +72,3 @@ class DbalConnectionModule implements AnnotationModule
         return ModulePackageList::DBAL_PACKAGE;
     }
 }
-

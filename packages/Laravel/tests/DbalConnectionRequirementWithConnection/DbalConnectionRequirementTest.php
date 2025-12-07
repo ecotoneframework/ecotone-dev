@@ -6,7 +6,6 @@ namespace Test\Ecotone\Laravel\DbalConnectionRequirementWithConnection;
 
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Illuminate\Foundation\Http\Kernel;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
@@ -25,4 +24,3 @@ final class DbalConnectionRequirementTest extends TestCase
         EcotoneCacheClear::clearEcotoneCacheDirectories(EcotoneProvider::getCacheDirectoryPath());
     }
 }
-

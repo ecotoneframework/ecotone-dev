@@ -20,4 +20,3 @@ $app->singleton(
 );
 
 return $app;
-

@@ -10,4 +10,3 @@ return [
     ],
     'prefix' => 'dbal_test_cache_',
 ];
-

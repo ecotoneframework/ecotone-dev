@@ -68,4 +68,3 @@ final class DbalConnectionRequirementTest extends TestCase
         self::assertNotNull($ecotone);
     }
 }
-

@@ -18,7 +18,7 @@ final class DbalConnectionRequirementTest extends TestCase
 {
     public function test_throws_configuration_exception_when_dbal_connection_factory_is_not_configured(): void
     {
-        $this->markTestSkipped("to be done for Laravel");
+        $this->markTestSkipped('to be done for Laravel');
 
         $exceptionThrown = false;
         $exceptionMessage = '';
@@ -39,4 +39,3 @@ final class DbalConnectionRequirementTest extends TestCase
         );
     }
 }
-

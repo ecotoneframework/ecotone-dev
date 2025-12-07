@@ -2,7 +2,6 @@
 
 namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 
-use Ecotone\Lite\InMemoryContainerImplementation;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;

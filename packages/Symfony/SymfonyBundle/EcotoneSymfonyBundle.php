@@ -2,14 +2,12 @@
 
 namespace Ecotone\SymfonyBundle;
 
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\AliasExternalReferenceForTesting;
+use Ecotone\SymfonyBundle\DependencyInjection\Compiler\RequiredReferencesCompilerPass;
 use Ecotone\SymfonyBundle\DependencyInjection\EcotoneExtension;
-use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
 use Symfony\Component\HttpKernel\Bundle\Bundle;
-use Ecotone\SymfonyBundle\DependencyInjection\Compiler\RequiredReferencesCompilerPass;
 
 /**
  * Class IntegrationMessagingBundle

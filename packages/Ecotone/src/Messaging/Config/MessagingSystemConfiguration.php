@@ -1006,11 +1006,11 @@ final class MessagingSystemConfiguration implements Configuration
      */
     public function getRequiredReferencesForValidation(): array
     {
-       if ($this->applicationConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)) {
-           return [];
-       }
+        if ($this->applicationConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)) {
+            return [];
+        }
 
-       return $this->requiredReferences;
+        return $this->requiredReferences;
     }
 
     /**

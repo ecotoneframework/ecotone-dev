@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace Test;
 
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\SymfonyBundle\Config\SymfonyConnectionReference;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
@@ -41,4 +37,3 @@ final class DbalConnectionRequirementTest extends TestCase
         $kernel->boot();
     }
 }
-

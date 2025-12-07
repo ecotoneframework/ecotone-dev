@@ -47,4 +47,3 @@ class ValidateRequiredReferencesPass implements CompilerPass
         }
     }
 }
-

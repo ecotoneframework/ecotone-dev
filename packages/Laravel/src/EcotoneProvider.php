@@ -2,8 +2,6 @@
 
 namespace Ecotone\Laravel;
 
-use Ecotone\Messaging\Config\ConfigurationException;
-use Illuminate\Container\Container;
 use function class_exists;
 
 use const DIRECTORY_SEPARATOR;

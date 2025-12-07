@@ -18,4 +18,3 @@ class Kernel extends \Symfony\Component\HttpKernel\Kernel
         return __DIR__ . '/../';
     }
 }
-

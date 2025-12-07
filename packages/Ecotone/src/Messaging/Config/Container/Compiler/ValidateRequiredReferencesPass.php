@@ -29,7 +29,7 @@ class ValidateRequiredReferencesPass implements CompilerPass
 
     public function process(ContainerBuilder $builder): void
     {
-        if ($this->isWorkingInTestMode) {
+        if ($this->isWorkingInTestMode || $this->externalContainer === null) {
             return;
         }
 

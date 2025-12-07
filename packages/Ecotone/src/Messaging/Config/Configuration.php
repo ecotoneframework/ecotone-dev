@@ -161,4 +161,9 @@ interface Configuration extends CompilerPass
      * @param ContainerInterface|null $externalContainer The external container, or null if not available
      */
     public function withExternalContainer(?ContainerInterface $externalContainer): Configuration;
+
+    /**
+     * @return array<string, string> Map of referenceId => errorMessage
+     */
+    public function getRequiredReferencesForValidation(): array;
 }

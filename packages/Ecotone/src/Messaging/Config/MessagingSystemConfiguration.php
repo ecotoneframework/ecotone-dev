@@ -994,13 +994,23 @@ final class MessagingSystemConfiguration implements Configuration
             $compilerPass->process($builder);
         }
 
-        if ($this->requiredReferences !== []) {
-            (new Container\Compiler\ValidateRequiredReferencesPass(
-                $this->requiredReferences,
-                $this->applicationConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE),
-                $this->externalContainer
-            ))->process($builder);
-        }
+        (new Container\Compiler\ValidateRequiredReferencesPass(
+            $this->requiredReferences,
+            $this->applicationConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE),
+            $this->externalContainer
+        ))->process($builder);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getRequiredReferencesForValidation(): array
+    {
+       if ($this->applicationConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)) {
+           return [];
+       }
+
+       return $this->requiredReferences;
     }
 
     /**

@@ -1,0 +1,7 @@
+framework:
+    secret: 'test_secret'
+    session:
+        handler_id: ~
+    php_errors:
+        log: true
+

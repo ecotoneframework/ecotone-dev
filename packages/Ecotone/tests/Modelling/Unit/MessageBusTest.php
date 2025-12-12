@@ -46,6 +46,8 @@ use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPrio
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandlerWithInheritance;
+use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\EventHandlerForUnionType;
+use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\OrderWasPlaced as UnionOrderWasPlaced;
 
 /**
  * licence Apache-2.0
@@ -419,5 +421,28 @@ final class MessageBusTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
         );
+    }
+
+    public function test_event_handler_with_union_type_parameter(): void
+    {
+        $handler = new EventHandlerForUnionType();
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [EventHandlerForUnionType::class],
+            [$handler],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+        );
+
+        $orderEvent = new UnionOrderWasPlaced();
+        $stdClassEvent = new \stdClass();
+
+        $ecotoneTestSupport->publishEvent($orderEvent);
+        $ecotoneTestSupport->publishEvent($stdClassEvent);
+
+        $handledEvents = $ecotoneTestSupport->sendQueryWithRouting('getHandledEvents');
+
+        $this->assertCount(2, $handledEvents);
+        $this->assertSame($orderEvent, $handledEvents[0]);
+        $this->assertSame($stdClassEvent, $handledEvents[1]);
     }
 }

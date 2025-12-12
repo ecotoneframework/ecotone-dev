@@ -67,7 +67,7 @@ use Ecotone\Messaging\Handler\Router\RouteToChannelResolver;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
@@ -142,18 +142,36 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $projectionLifeCyclesServiceActivators = [];
 
         foreach ($projectionClassNames as $projectionClassName) {
+            $attributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName);
+            /** @var Projection $projectionAttribute */
+            $projectionAttribute = null;
+            /** @var Asynchronous|null $asynchronousChannelName */
+            $asynchronousChannelName = null;
+            foreach ($attributes as $attribute) {
+                if ($attribute instanceof Projection) {
+                    $projectionAttribute = $attribute;
+                }
+                if ($attribute instanceof Asynchronous) {
+                    $asynchronousChannelName = $attribute->getChannelName();
+                    Assert::isTrue(count($asynchronousChannelName) === 1, "Make use of single channel name in Asynchronous annotation for Projection: {$projectionClassName}");
+                    $asynchronousChannelName = array_pop($asynchronousChannelName);
+                }
+            }
+
+            Assert::keyNotExists($projectionSetupConfigurations, $projectionAttribute->getName(), "Can't define projection with name {$projectionAttribute->getName()} twice");
+
             $referenceName = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $projectionClassName);
 
             $projectionLifeCycle = ProjectionLifeCycleConfiguration::create();
 
-            $classDefinition = ClassDefinition::createUsingAnnotationParser(TypeDescriptor::create($projectionClassName), $annotationRegistrationService);
-            $projectionInitialization = TypeDescriptor::create(ProjectionInitialization::class);
-            $projectionDelete = TypeDescriptor::create(ProjectionDelete::class);
-            $projectionReset = TypeDescriptor::create(ProjectionReset::class);
+            $classDefinition = ClassDefinition::createUsingAnnotationParser(Type::object($projectionClassName), $annotationRegistrationService);
+            $projectionInitialization = Type::attribute(ProjectionInitialization::class);
+            $projectionDelete = Type::attribute(ProjectionDelete::class);
+            $projectionReset = Type::attribute(ProjectionReset::class);
             $parameterConverterFactory = ParameterConverterAnnotationFactory::create();
             foreach ($classDefinition->getPublicMethodNames() as $publicMethodName) {
                 foreach ($annotationRegistrationService->getAnnotationsForMethod($projectionClassName, $publicMethodName) as $attribute) {
-                    $attributeType = TypeDescriptor::createFromVariable($attribute);
+                    $attributeType = Type::createFromVariable($attribute);
                     $interfaceToCall = $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName);
                     if ($attributeType->equals($projectionInitialization)) {
                         $requestChannel = Uuid::uuid4()->toString();
@@ -193,24 +211,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     }
                 }
             }
-
-            $attributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName);
-            /** @var Projection $projectionAttribute */
-            $projectionAttribute = null;
-            /** @var Asynchronous|null $asynchronousChannelName */
-            $asynchronousChannelName = null;
-            foreach ($attributes as $attribute) {
-                if ($attribute instanceof Projection) {
-                    $projectionAttribute = $attribute;
-                }
-                if ($attribute instanceof Asynchronous) {
-                    $asynchronousChannelName = $attribute->getChannelName();
-                    Assert::isTrue(count($asynchronousChannelName) === 1, "Make use of single channel name in Asynchronous annotation for Projection: {$projectionClassName}");
-                    $asynchronousChannelName = array_pop($asynchronousChannelName);
-                }
-            }
-
-            Assert::keyNotExists($projectionSetupConfigurations, $projectionAttribute->getName(), "Can't define projection with name {$projectionAttribute->getName()} twice");
 
             if ($projectionAttribute->isFromAll()) {
                 $projectionConfiguration = ProjectionSetupConfiguration::create(
@@ -292,18 +292,26 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        foreach ($serviceExtensions as $serviceExtension) {
-            if ($serviceExtension instanceof EventSourcingRepositoryBuilder) {
-                return [];
-            }
-        }
-
         $pollingProjectionNames = [];
         foreach ($serviceExtensions as $extensionObject) {
             if ($extensionObject instanceof ProjectionRunningConfiguration) {
                 if ($extensionObject->isPolling()) {
                     $pollingProjectionNames[] = $extensionObject->getProjectionName();
                 }
+            }
+        }
+
+        return [
+            ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
+            new EventSourcingModuleRoutingExtension($pollingProjectionNames),
+        ];
+    }
+
+    private function buildEventSourcingRepositoryBuilder(array $serviceExtensions): array
+    {
+        foreach ($serviceExtensions as $serviceExtension) {
+            if ($serviceExtension instanceof EventSourcingRepositoryBuilder) {
+                return [];
             }
         }
 
@@ -314,8 +322,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
         }
 
-        $eventSourcingRepositories = $eventSourcingRepositories ?: [EventSourcingRepositoryBuilder::create()];
-        return [...$eventSourcingRepositories, new EventSourcingModuleRoutingExtension($pollingProjectionNames)];
+        return $eventSourcingRepositories ?: [EventSourcingRepositoryBuilder::create()];
     }
 
     private function registerEventStore(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void

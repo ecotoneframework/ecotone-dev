@@ -17,10 +17,22 @@ class OrderService
 
     private int $incorrectOrders = 0;
 
+    public function __construct(private int $callFailureLimit = 100, private int $retryCount = 0)
+    {
+
+    }
+
     #[Asynchronous(ErrorConfigurationContext::INPUT_CHANNEL)]
     #[CommandHandler('order.register', 'orderService')]
     public function order(string $orderName): void
     {
+        if ($this->retryCount >= $this->callFailureLimit) {
+            $this->placedOrders++;
+
+            return;
+        }
+
+        $this->retryCount++;
         throw new InvalidArgumentException('exception');
     }
 

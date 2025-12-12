@@ -3,6 +3,7 @@
 namespace Ecotone\SymfonyBundle;
 
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\AliasExternalReferenceForTesting;
+use Ecotone\SymfonyBundle\DependencyInjection\Compiler\RequiredReferencesCompilerPass;
 use Ecotone\SymfonyBundle\DependencyInjection\EcotoneExtension;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\ExtensionInterface;
@@ -22,6 +23,7 @@ class EcotoneSymfonyBundle extends Bundle
     {
         parent::build($container);
         $container->addCompilerPass(new AliasExternalReferenceForTesting());
+        $container->addCompilerPass(new RequiredReferencesCompilerPass());
     }
 
     public function getContainerExtension(): ExtensionInterface

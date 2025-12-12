@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\Be
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
@@ -19,7 +20,7 @@ use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
@@ -173,12 +174,12 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             {
                 parent::__construct('');
             }
-            public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
+            public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
             {
-                if ($timeoutInMilliseconds === 1) {
+                if ($pollingMetadata->getFixedRateInMilliseconds() === 1) {
                     return $this->replyMessage;
                 }
-                throw InvalidArgumentException::create("Timeout should be 1, but got {$timeoutInMilliseconds}");
+                throw InvalidArgumentException::create("Timeout should be 1, but got {$pollingMetadata->getFixedRateInMilliseconds()}");
             }
         };
 
@@ -1051,9 +1052,9 @@ class GatewayProxyBuilderTest extends MessagingTestCase
                 InMemoryConversionService::createWithConversion(
                     [1, 2, 3],
                     MediaType::APPLICATION_X_PHP,
-                    TypeDescriptor::ARRAY,
+                    Type::ARRAY,
                     MediaType::APPLICATION_JSON,
-                    TypeDescriptor::STRING,
+                    Type::STRING,
                     '[1,2,3]'
                 )
             )
@@ -1115,9 +1116,9 @@ class GatewayProxyBuilderTest extends MessagingTestCase
                 InMemoryConversionService::createWithConversion(
                     $requestData = [new stdClass(), new stdClass()],
                     MediaType::APPLICATION_X_PHP,
-                    TypeDescriptor::createCollection(stdClass::class)->toString(),
+                    Type::createCollection(stdClass::class)->toString(),
                     MediaType::APPLICATION_X_PHP_ARRAY,
-                    TypeDescriptor::ARRAY,
+                    Type::ARRAY,
                     $replyData = [1, 1]
                 )
             )
@@ -1230,17 +1231,17 @@ class GatewayProxyBuilderTest extends MessagingTestCase
                     ->registerConversion(
                         $resultOne->id,
                         MediaType::APPLICATION_X_PHP,
-                        TypeDescriptor::createIntegerType()->toString(),
+                        Type::int()->toString(),
                         MediaType::APPLICATION_X_PHP,
-                        TypeDescriptor::create(stdClass::class)->toString(),
+                        Type::create(stdClass::class)->toString(),
                         $resultOne
                     )
                     ->registerConversion(
                         $resultTwo->id,
                         MediaType::APPLICATION_X_PHP,
-                        TypeDescriptor::createIntegerType()->toString(),
+                        Type::int()->toString(),
                         MediaType::APPLICATION_X_PHP,
-                        TypeDescriptor::create(stdClass::class)->toString(),
+                        Type::create(stdClass::class)->toString(),
                         $resultTwo
                     )
             )

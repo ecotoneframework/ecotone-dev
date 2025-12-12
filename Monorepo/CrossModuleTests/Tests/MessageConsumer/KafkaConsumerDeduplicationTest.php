@@ -68,6 +68,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
+        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000);
 
         /** @var MessagePublisher $messagePublisher */
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
@@ -81,7 +82,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
         
         // Run consumer
-        $ecotoneLite->run('kafka_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneLite->run('kafka_deduplication_consumer', $pollingMetadata);
         
         // Verify message processed
         $this->assertEquals(['test-payload-1'], $ecotoneLite->sendQueryWithRouting('kafka.getProcessedMessages'));
@@ -94,7 +95,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
         
         // Run consumer again
-        $ecotoneLite->run('kafka_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneLite->run('kafka_deduplication_consumer', $pollingMetadata);
         
         // Verify message NOT processed again (still only one message)
         $this->assertEquals(['test-payload-1'], $ecotoneLite->sendQueryWithRouting('kafka.getProcessedMessages'));
@@ -105,9 +106,9 @@ final class KafkaConsumerDeduplicationTest extends TestCase
             'application/text',
             ['customOrderId' => 'order-456-kafka-' . Uuid::uuid4()->toString()]
         );
-        
+
         // Run consumer
-        $ecotoneLite->run('kafka_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneLite->run('kafka_deduplication_consumer', $pollingMetadata);
         
         // Verify new message IS processed
         $this->assertEquals(['test-payload-1', 'test-payload-2'], $ecotoneLite->sendQueryWithRouting('kafka.getProcessedMessages'));

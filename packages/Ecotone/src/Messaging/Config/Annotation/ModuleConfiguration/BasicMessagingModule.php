@@ -4,6 +4,7 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Attribute\OnConsumerStop;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
@@ -18,11 +19,13 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Conversion\EnumToScalar\EnumToScalarConverter;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverterBuilder;
-use Ecotone\Messaging\Conversion\SerializedToObject\DeserializingConverterBuilder;
-use Ecotone\Messaging\Conversion\StringToUuid\StringToUuidConverterBuilder;
-use Ecotone\Messaging\Conversion\UuidToString\UuidToStringConverterBuilder;
+use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
+use Ecotone\Messaging\Conversion\ScalarToEnum\ScalarToEnumConverter;
+use Ecotone\Messaging\Conversion\SerializedToObject\DeserializingConverter;
+use Ecotone\Messaging\Conversion\StringToUuid\StringToUuidConverter;
+use Ecotone\Messaging\Conversion\UuidToString\UuidToStringConverter;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
@@ -86,11 +89,14 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         $messagingConfiguration->registerConsumerFactory(new PollingConsumerBuilder());
 
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(MessageHeaders::ERROR_CHANNEL));
+        $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::createPublishSubscribeChannel(OnConsumerStop::CONSUMER_STOP_CHANNEL_NAME));
         $messagingConfiguration->registerMessageChannel(SimpleMessageChannelBuilder::create(NullableMessageChannel::CHANNEL_NAME, NullableMessageChannel::create()));
-        $messagingConfiguration->registerConverter(new UuidToStringConverterBuilder());
-        $messagingConfiguration->registerConverter(new StringToUuidConverterBuilder());
-        $messagingConfiguration->registerConverter(new SerializingConverterBuilder());
-        $messagingConfiguration->registerConverter(new DeserializingConverterBuilder());
+        $messagingConfiguration->registerConverter(new Definition(UuidToStringConverter::class));
+        $messagingConfiguration->registerConverter(new Definition(StringToUuidConverter::class));
+        $messagingConfiguration->registerConverter(new Definition(SerializingConverter::class));
+        $messagingConfiguration->registerConverter(new Definition(DeserializingConverter::class));
+        $messagingConfiguration->registerConverter(new Definition(EnumToScalarConverter::class));
+        $messagingConfiguration->registerConverter(new Definition(ScalarToEnumConverter::class));
 
         $messagingConfiguration
             ->registerMessageHandler(
@@ -218,6 +224,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
         );
 
         $messagingConfiguration->registerServiceDefinition(PollingMetadataConverter::class, new Definition(PollingMetadataConverter::class));
+
         $messagingConfiguration->registerServiceDefinition(LicenceDecider::class, new Definition(LicenceDecider::class, [$messagingConfiguration->isRunningForEnterpriseLicence()]));
     }
 

@@ -55,10 +55,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
-use Ecotone\Messaging\Handler\Transformer\HeaderEnricher;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Transformer\RoutingSlipPrepender;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\PollableChannel;
@@ -148,14 +146,9 @@ final class MessagingSystemConfiguration implements Configuration
     private array $consoleCommands = [];
 
     /**
-     * @var array<string, Definition> $serviceDefinitions
+     * @var array<string, Definition|Reference> $serviceDefinitions
      */
     private array $serviceDefinitions = [];
-
-    /**
-     * @var array<string, Reference> $serviceAliases
-     */
-    private array $serviceAliases = [];
 
     private InterfaceToCallRegistry $interfaceToCallRegistry;
 
@@ -168,6 +161,13 @@ final class MessagingSystemConfiguration implements Configuration
     private ModuleConfigurationCompilerPass $moduleConfigurationCompilerPass;
 
     private bool $isRunningForTest = false;
+
+    /**
+     * @var array<string, string> $requiredReferences Map of referenceId => errorMessage
+     */
+    private array $requiredReferences = [];
+
+    private ?ContainerInterface $externalContainer = null;
 
     /**
      * @param object[] $extensionObjects
@@ -315,6 +315,9 @@ final class MessagingSystemConfiguration implements Configuration
             if (! $this->hasMessageHandlerWithName($pollingMetadata) && ! $this->hasChannelAdapterWithName($pollingMetadata)) {
                 throw ConfigurationException::create("Trying to register polling meta data for non existing endpoint {$pollingMetadata->getEndpointId()}. Verify if there is any asynchronous endpoint with such name.");
             }
+            if ($pollingMetadata->getErrorChannelName() && ! isset($this->channelBuilders[$pollingMetadata->getErrorChannelName()])) {
+                throw ConfigurationException::create("Trying to register polling meta data for non existing error channel `{$pollingMetadata->getErrorChannelName()}` for endpoint `{$pollingMetadata->getEndpointId()}`");
+            }
         }
 
         foreach ($this->gatewayBuilders as $gatewayBuilder) {
@@ -420,11 +423,13 @@ final class MessagingSystemConfiguration implements Configuration
                     $generatedEndpointId = Uuid::uuid4()->toString();
                     $this->registerMessageHandler(
                         UninterruptibleServiceActivator::create(
-                            HeaderEnricher::create([
-                                MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME => null,
-                                MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME => null,
-                                MessageHeaders::ROUTING_SLIP => implode(',', $consequentialChannels),
-                            ]),
+                            RoutingSlipPrepender::create(
+                                $consequentialChannels,
+                                [
+                                    MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME,
+                                    MessageBusChannel::EVENT_CHANNEL_NAME_BY_NAME,
+                                ]
+                            ),
                             'transform',
                         )
                             ->withEndpointId($generatedEndpointId)
@@ -450,7 +455,8 @@ final class MessagingSystemConfiguration implements Configuration
             fn (MessageChannelBuilder $channel) => $channel->getMessageChannelName(),
             array_filter(
                 $this->channelBuilders,
-                fn (MessageChannelBuilder $channel) => $channel->isPollable() && $channel->getMessageChannelName() !== NullableMessageChannel::CHANNEL_NAME
+                fn (MessageChannelBuilder $channel) => $channel->isPollable()
+                    && $channel->getMessageChannelName() !== NullableMessageChannel::CHANNEL_NAME
             )
         );
 
@@ -590,6 +596,20 @@ final class MessagingSystemConfiguration implements Configuration
     public function requireConsumer(string $endpointId): Configuration
     {
         $this->requiredConsumerEndpointIds[] = $endpointId;
+
+        return $this;
+    }
+
+    public function requireReference(string $referenceId, string $errorMessage): Configuration
+    {
+        $this->requiredReferences[$referenceId] = $errorMessage;
+
+        return $this;
+    }
+
+    public function withExternalContainer(?ContainerInterface $externalContainer): Configuration
+    {
+        $this->externalContainer = $externalContainer;
 
         return $this;
     }
@@ -821,7 +841,7 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    public function registerServiceDefinition(string|Reference $id, Definition|array $definition = []): Configuration
+    public function registerServiceDefinition(string|Reference $id, Definition|Reference|array $definition = []): Configuration
     {
         if (! isset($this->serviceDefinitions[(string) $id])) {
             if (is_array($definition)) {
@@ -829,15 +849,6 @@ final class MessagingSystemConfiguration implements Configuration
             }
             $this->serviceDefinitions[(string) $id] = $definition;
         }
-        return $this;
-    }
-
-    public function registerServiceAlias(string|Reference $id, Reference $aliasTo): Configuration
-    {
-        if (! isset($this->serviceAliases[(string) $id])) {
-            $this->serviceAliases[(string) $id] = $aliasTo;
-        }
-
         return $this;
     }
 
@@ -906,7 +917,7 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->converterBuilders as $converterBuilder) {
             $converters[] = $converterBuilder->compile($messagingBuilder);
         }
-        $messagingBuilder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters], 'createWith'));
+        $messagingBuilder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters]));
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         $channelInterceptorsByChannelName = [];
@@ -977,15 +988,29 @@ final class MessagingSystemConfiguration implements Configuration
             ]));
         }
 
-        foreach ($this->serviceAliases as $id => $aliasTo) {
-            $messagingBuilder->replace($id, $aliasTo);
-        }
-
         $messagingBuilder->register(ConfiguredMessagingSystem::class, new Definition(MessagingSystemContainer::class, [new Reference(ContainerInterface::class), $messagingBuilder->getPollingEndpoints(), $gatewayListReferences]));
         (new RegisterSingletonMessagingServices())->process($builder);
         foreach ($this->compilerPasses as $compilerPass) {
             $compilerPass->process($builder);
         }
+
+        (new Container\Compiler\ValidateRequiredReferencesPass(
+            $this->requiredReferences,
+            $this->applicationConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE),
+            $this->externalContainer
+        ))->process($builder);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getRequiredReferencesForValidation(): array
+    {
+        if ($this->applicationConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)) {
+            return [];
+        }
+
+        return $this->requiredReferences;
     }
 
     /**
@@ -1037,8 +1062,8 @@ final class MessagingSystemConfiguration implements Configuration
             $priority = PriorityBasedOnType::default();
             if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel) {
                 $interfaceToCall = $messageHandlerBuilder->getInterceptedInterface($this->interfaceToCallRegistry);
-                if ($interfaceToCall->hasAnnotation(TypeDescriptor::create(PriorityBasedOnType::class))) {
-                    $priority = $interfaceToCall->getAnnotationsByImportanceOrder(TypeDescriptor::create(PriorityBasedOnType::class))[0];
+                if ($interfaceToCall->hasAnnotation(PriorityBasedOnType::class)) {
+                    $priority = $interfaceToCall->getAnnotationsByImportanceOrder(PriorityBasedOnType::class)[0];
                 }
             }
             if ($messageHandlerBuilder instanceof InterceptedEndpoint) {

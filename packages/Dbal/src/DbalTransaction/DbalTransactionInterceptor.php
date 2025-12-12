@@ -50,13 +50,13 @@ class DbalTransactionInterceptor
             }
 
             /** @var Connection[] $connections */
-            $possibleConnections = array_map(function (ConnectionFactory $connection) {
-                $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connection));
+            $possibleConnections = array_map(function (ConnectionFactory $connectionFactory) {
+                $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($connectionFactory));
 
                 /** @var DbalContext $context */
                 $context = $connectionFactory->createContext();
 
-                return  $context->getDbalConnection();
+                return $context->getDbalConnection();
             }, $possibleFactories);
 
             foreach ($possibleConnections as $connection) {
@@ -92,7 +92,8 @@ class DbalTransactionInterceptor
                     $this->logger->info('Database Transaction committed', $message);
                 } catch (Exception $exception) {
                     // Handle the case where a database did an implicit commit or the transaction is no longer active
-                    if ($this->isImplicitCommitException($exception)) {
+                    /** @TODO Ecotone 2.0 remove implicit commit and tables creation on fly, and provide CLI command instead */
+                    if (ImplicitCommit::isImplicitCommitException($exception, $connection)) {
                         $this->logger->info(
                             sprintf('Implicit Commit was detected, skipping manual one.'),
                             $message,
@@ -131,23 +132,5 @@ class DbalTransactionInterceptor
         }
 
         return $result;
-    }
-
-    private function isImplicitCommitException(Throwable $exception): bool
-    {
-        $patterns = [
-            'No active transaction',
-            'There is no active transaction',
-            'Transaction not active',
-            'not in a transaction',
-        ];
-
-        foreach ($patterns as $pattern) {
-            if (str_contains($exception->getMessage(), $pattern)) {
-                return true;
-            }
-        }
-
-        return false;
     }
 }

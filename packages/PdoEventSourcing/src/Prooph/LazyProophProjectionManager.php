@@ -11,8 +11,9 @@ use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use Prooph\Common\Messaging\Message;
 use Prooph\EventStore\Exception\ProjectionNotFound;
 use Prooph\EventStore\Exception\RuntimeException;
@@ -120,17 +121,26 @@ class LazyProophProjectionManager implements ProjectionManager
 
     public function resetProjection(string $name): void
     {
+        if (! isset($this->projectionSetupConfigurations[$name])) {
+            throw new InvalidArgumentException("Projection with name '$name' is not configured.");
+        }
         $this->getProjectionManager()->resetProjection($name);
         $this->triggerActionOnProjection($name);
     }
 
     public function triggerProjection(string $name): void
     {
+        if (! isset($this->projectionSetupConfigurations[$name])) {
+            throw new InvalidArgumentException("Projection with name '$name' is not configured.");
+        }
         $this->triggerActionOnProjection($name);
     }
 
     public function initializeProjection(string $name): void
     {
+        if (! isset($this->projectionSetupConfigurations[$name])) {
+            throw new InvalidArgumentException("Projection with name '$name' is not configured.");
+        }
         $this->messagingEntrypoint->send([], $this->projectionSetupConfigurations[$name]->getInitializationChannelName());
         $this->triggerActionOnProjection($name);
     }
@@ -232,13 +242,13 @@ class LazyProophProjectionManager implements ProjectionManager
             );
 
             if (! is_null($state)) {
-                $stateType = TypeDescriptor::createFromVariable($state);
+                $stateType = Type::createFromVariable($state);
                 if (! $stateType->isArrayButNotClassBasedCollection()) {
                     $state = $conversionService->convert(
                         $state,
                         $stateType,
                         MediaType::createApplicationXPHP(),
-                        TypeDescriptor::createArrayType(),
+                        Type::array(),
                         MediaType::createApplicationXPHP()
                     );
                 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\MultiTenant;
 
 use Ecotone\Messaging\Channel\QueueChannel;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\PollableChannel;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
@@ -32,7 +33,7 @@ final class FakeContextWithMessages implements Context, PollableChannel
         $this->channel->send($message);
     }
 
-    public function receiveWithTimeout(int $timeoutInMilliseconds): ?\Ecotone\Messaging\Message
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?\Ecotone\Messaging\Message
     {
         return $this->receive();
     }
@@ -85,5 +86,10 @@ final class FakeContextWithMessages implements Context, PollableChannel
     public function close(): void
     {
         // TODO: Implement close() method.
+    }
+
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for fake channels
     }
 }

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Attribute;
 
 use Attribute;
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\ParameterType;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
@@ -15,11 +17,11 @@ use Ecotone\Messaging\Config\Container\Definition;
 final class DbalParameter implements DefinedObject
 {
     /**
-     * @param int $type One of the \Doctrine\DBAL\ParameterType::* or \Doctrine\DBAL\ArrayParameterType constants
+     * @param int|ArrayParameterType|ParameterType|null $type One of the \Doctrine\DBAL\ParameterType::* or \Doctrine\DBAL\ArrayParameterType constants
      */
     public function __construct(
         private ?string $name = null,
-        private ?int $type = null,
+        private int|ArrayParameterType|ParameterType|null $type = null,
         private ?string $expression = null,
         private ?string $convertToMediaType = null,
         private bool $ignored = false
@@ -31,7 +33,7 @@ final class DbalParameter implements DefinedObject
         return 'ecotone.dbal.business_method.' . $this->name;
     }
 
-    public function getType(): ?int
+    public function getType(): int|ArrayParameterType|ParameterType|null
     {
         return $this->type;
     }

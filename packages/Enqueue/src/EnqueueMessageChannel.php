@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\PollableChannel;
@@ -24,12 +25,17 @@ final class EnqueueMessageChannel implements PollableChannel
 
     public function receive(): ?Message
     {
-        return $this->inboundChannelAdapter->receiveWithTimeout();
+        return $this->inboundChannelAdapter->receiveWithTimeout(PollingMetadata::create('enqueue'));
     }
 
-    public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
-        return $this->inboundChannelAdapter->receiveWithTimeout($timeoutInMilliseconds);
+        return $this->inboundChannelAdapter->receiveWithTimeout($pollingMetadata);
+    }
+
+    public function onConsumerStop(): void
+    {
+        $this->inboundChannelAdapter->onConsumerStop();
     }
 
     public function __toString()

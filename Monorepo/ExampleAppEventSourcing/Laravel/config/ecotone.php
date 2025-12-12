@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'namespaces' => ['Monorepo\\ExampleAppEventSourcing\\Common\\'],
+    'namespaces' => ['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\ProophProjection\\'],
     'skippedModulePackageNames' => \json_decode(\getenv('APP_SKIPPED_PACKAGES'), true),
     'cacheConfiguration' => \getenv('APP_ENV') === 'prod',
     'defaultErrorChannel' => 'errorChannel',

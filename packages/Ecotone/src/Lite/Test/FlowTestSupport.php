@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
@@ -29,6 +29,7 @@ use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\Projecting\ProjectionRegistry;
 
 /**
  * @template T
@@ -158,6 +159,17 @@ final class FlowTestSupport
         return $this;
     }
 
+    /**
+     * Append events to the default event stream for testing.
+     * This is a convenience method for tests that don't need to specify a stream name.
+     *
+     * @param Event[]|object[]|array[] $events
+     */
+    public function withEvents(array $events): self
+    {
+        return $this->withEventStream('default', $events);
+    }
+
     public function deleteEventStream(string $streamName): self
     {
         $gateway = $this->getGateway(EventStore::class);
@@ -183,7 +195,7 @@ final class FlowTestSupport
      */
     public function withEventsFor(string|object|array $identifiers, string $aggregateClass, array $events, int $aggregateVersion = 0): self
     {
-        $aggregateDefinition = $this->aggregateDefinitionRegistry->getFor(TypeDescriptor::create($aggregateClass));
+        $aggregateDefinition = $this->aggregateDefinitionRegistry->getFor(Type::object($aggregateClass));
         Assert::isTrue($aggregateDefinition->isEventSourced(), "Aggregate {$aggregateClass} is not event sourced. Can't store events for it.");
 
         $this->messagingEntrypoint->sendWithHeaders(
@@ -224,38 +236,63 @@ final class FlowTestSupport
         Assert::allStrings($projectionName, '$projectionName must be single or collection of strings');
 
         foreach ($projectionName as $name) {
-            $this->getGateway(ProjectionManager::class)->triggerProjection($name);
+            if ($this->getGateway(ProjectionRegistry::class)->has($name)) {
+                $this->getGateway(ProjectionRegistry::class)->get($name)->backfill();
+            } else {
+                $this->getGateway(ProjectionManager::class)->triggerProjection($name);
+            }
         }
 
         return $this;
     }
 
-    public function initializeProjection(string $projectionName): self
+    public function initializeProjection(string $projectionName, array $metadata = []): self
     {
-        $this->getGateway(ProjectionManager::class)->initializeProjection($projectionName);
+        $projectionRegistry = $this->getGateway(ProjectionRegistry::class);
+        if ($projectionRegistry->has($projectionName)) {
+            $projectionRegistry->get($projectionName)->init();
+        } else {
+            $this->getGateway(ProjectionManager::class)->initializeProjection($projectionName, $metadata);
+        }
 
         return $this;
     }
 
     public function stopProjection(string $projectionName): self
     {
-        $this->getGateway(ProjectionManager::class)->stopProjection($projectionName);
+        if ($this->getGateway(ProjectionRegistry::class)->has($projectionName)) {
+            // Not handled in ProjectionRegistry
+            return $this;
+        } else {
+            $this->getGateway(ProjectionManager::class)->stopProjection($projectionName);
+        }
 
         return $this;
     }
 
     public function resetProjection(string $projectionName): self
     {
-        $this->getGateway(ProjectionManager::class)->resetProjection($projectionName);
+        if ($this->getGateway(ProjectionRegistry::class)->has($projectionName)) {
+            $projectionManager = $this->getGateway(ProjectionRegistry::class)->get($projectionName);
+            $projectionManager->delete();
+            $projectionManager->init();
+        } else {
+            $this->getGateway(ProjectionManager::class)->resetProjection($projectionName);
+        }
+
 
         return $this;
     }
 
     public function deleteProjection(string $projectionName): self
     {
-        // fixme Calling ProjectionManager to delete the projection throws `Header with name ecotone.eventSourcing.manager.deleteEmittedEvents does not exists` exception
-        //$this->getGateway(ProjectionManager::class)->deleteProjection($projectionName);
-        $this->configuredMessagingSystem->runConsoleCommand('ecotone:es:delete-projection', ['name' => $projectionName]);
+        if ($this->getGateway(ProjectionRegistry::class)->has($projectionName)) {
+            $this->getGateway(ProjectionRegistry::class)->get($projectionName)->delete();
+        } else {
+            // fixme Calling ProjectionManager to delete the projection throws `Header with name ecotone.eventSourcing.manager.deleteEmittedEvents does not exists` exception
+            //$this->getGateway(ProjectionManager::class)->deleteProjection($projectionName);
+            $this->configuredMessagingSystem->runConsoleCommand('ecotone:es:delete-projection', ['name' => $projectionName]);
+        }
 
         return $this;
     }
@@ -434,5 +471,13 @@ final class FlowTestSupport
     public function getServiceFromContainer(string $serviceName): object
     {
         return $this->configuredMessagingSystem->getServiceFromContainer($serviceName);
+    }
+
+    /**
+     * @return string[] List of registered consumer endpoint IDs
+     */
+    public function list(): array
+    {
+        return $this->configuredMessagingSystem->list();
     }
 }

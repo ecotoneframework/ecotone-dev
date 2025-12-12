@@ -16,14 +16,18 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
+use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Test\LicenceTesting;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
 use Test\Ecotone\Kafka\Fixture\ChannelAdapter\ExampleKafkaConsumer;
+use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithDelayedRetryExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithFailStrategyExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithInstantRetryAndErrorChannelExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithInstantRetryExample;
@@ -32,6 +36,7 @@ use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithInstantRetryExampl
  * licence Enterprise
  * @internal
  */
+#[RunTestsInSeparateProcesses]
 final class KafkaChannelAdapterTest extends TestCase
 {
     public function test_sending_and_receiving_from_kafka_topic(): void
@@ -259,5 +264,65 @@ final class KafkaChannelAdapterTest extends TestCase
         $this->assertCount(2, $messages);
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());
+    }
+
+    public function test_kafka_consumer_with_delayed_retry(): void
+    {
+        $endpointId = 'kafka_consumer_delayed_retry';
+        $topicName = 'test_topic_delayed_retry_' . Uuid::uuid4()->toString();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [KafkaConsumerWithDelayedRetryExample::class],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+                new KafkaConsumerWithDelayedRetryExample(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults($topicName)
+                        ->withHeaderMapper('*'),
+                    TopicConfiguration::createWithReferenceName('testTopicDelayedRetry', $topicName),
+                    SimpleMessageChannelBuilder::createQueueChannel('delayedRetryChannel'),
+                    // Configure delayed retry with exponential backoff
+                    ErrorHandlerConfiguration::createWithDeadLetterChannel(
+                        errorChannelName: 'delayedRetryChannel',
+                        delayedRetryTemplate: RetryTemplateBuilder::exponentialBackoff(
+                            initialDelay: 100,  // 100ms initial delay for testing
+                            multiplier: 2       // Each retry is 2x longer (100ms, 200ms, 400ms...)
+                        )->maxRetryAttempts(2), // Maximum 2 delayed retry attempts
+                        deadLetterChannel: 'dbal_dead_letter'
+                    ),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
+
+        $payload = Uuid::uuid4()->toString();
+        $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+        $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
+
+        // First run: Instant retry (2 attempts: original + 1 retry)
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $attempts = $ecotoneLite->sendQueryWithRouting('consumer.getDelayedRetryAttempts');
+        $this->assertCount(2, $attempts, 'Should have 2 attempts from instant retry (original + 1 instant retry)');
+        $this->assertEquals($payload, $attempts[0]['payload']);
+        $this->assertEquals(1, $attempts[0]['attempt']);
+        $this->assertEquals(2, $attempts[1]['attempt']);
+
+        // Verify message was sent to error channel for delayed retry
+        $errorMessage = $ecotoneLite->getMessageChannel('delayedRetryChannel')->receive();
+        $this->assertNotNull($errorMessage, 'Message should be in delayed retry channel after instant retries exhausted');
+
+        // Verify failure count after instant retries
+        $failureCount = $ecotoneLite->sendQueryWithRouting('consumer.getFailureCount');
+        $this->assertEquals(2, $failureCount, 'Should have failed 2 times during instant retry');
+
+        // The delayed retry mechanism works by:
+        // 1. Instant retry happens immediately (2 attempts total)
+        // 2. After instant retries fail, message goes to error channel
+        // 3. Error handler adds delay header and sends back to original channel
+        // 4. Consumer would pick it up again after delay (in real scenario)
+        // 5. This continues until max delayed retries reached or success
+        // 6. If all retries fail, message goes to dead letter channel or is resent to Kafka (based on finalFailureStrategy)
     }
 }

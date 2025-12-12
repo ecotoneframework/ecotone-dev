@@ -6,15 +6,17 @@ use ArrayIterator;
 use DateTimeImmutable;
 use DateTimeZone;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\MetadataMatcher as EcotoneMetadataMatcher;
+use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher as ProophMetadataMatcherWrapper;
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Event;
 use Iterator;
 use Prooph\EventStore\EventStore as ProophEventStore;
-use Prooph\EventStore\Metadata\MetadataMatcher;
 use Prooph\EventStore\Stream;
 use Prooph\EventStore\StreamName;
 use Ramsey\Uuid\Uuid;
@@ -73,7 +75,7 @@ class EcotoneEventStoreProophWrapper implements EventStore
             $proophEvents[] = new ProophMessage(
                 array_key_exists(MessageHeaders::MESSAGE_ID, $metadata) ? Uuid::fromString($metadata[MessageHeaders::MESSAGE_ID]) : Uuid::uuid4(),
                 array_key_exists(MessageHeaders::TIMESTAMP, $metadata) ? new DateTimeImmutable('@' . $metadata[MessageHeaders::TIMESTAMP], new DateTimeZone('UTC')) : new DateTimeImmutable('now', new DateTimeZone('UTC')),
-                is_array($payload) ? $payload : $this->conversionService->convert($payload, TypeDescriptor::createFromVariable($payload), MediaType::createApplicationXPHP(), TypeDescriptor::createArrayType(), MediaType::createApplicationXPHP()),
+                is_array($payload) ? $payload : $this->conversionService->convert($payload, Type::createFromVariable($payload), MediaType::createApplicationXPHP(), Type::array(), MediaType::createApplicationXPHP()),
                 $metadata,
                 $this->eventMapper->mapEventToName($eventToConvert)
             );
@@ -107,9 +109,14 @@ class EcotoneEventStoreProophWrapper implements EventStore
         return $this->eventStore->hasStream(new StreamName($streamName));
     }
 
-    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null, bool $deserialize = true): array
+    public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ?EcotoneMetadataMatcher $metadataMatcher = null, bool $deserialize = true): array
     {
-        $streamEvents = $this->eventStore->load(new StreamName($streamName), $fromNumber, $count, $metadataMatcher);
+        $proophMetadataMatcher = null;
+        if ($metadataMatcher !== null) {
+            $proophMetadataMatcher = $this->convertToProophMetadataMatcher($metadataMatcher);
+        }
+
+        $streamEvents = $this->eventStore->load(new StreamName($streamName), $fromNumber, $count, $proophMetadataMatcher);
         if (! $streamEvents->valid()) {
             $streamEvents = new ArrayIterator([]);
         }
@@ -120,17 +127,28 @@ class EcotoneEventStoreProophWrapper implements EventStore
         );
     }
 
+    private function convertToProophMetadataMatcher(EcotoneMetadataMatcher $ecotoneMetadataMatcher): \Prooph\EventStore\Metadata\MetadataMatcher
+    {
+        $wrapper = ProophMetadataMatcherWrapper::createFromEcotone($ecotoneMetadataMatcher);
+        return $wrapper->build();
+    }
+
     /**
      * @return Event[]
      */
     private function convertToEcotoneEvents(Iterator $streamEvents, bool $deserialize): array
     {
         $events = [];
-        $sourcePHPType = TypeDescriptor::createArrayType();
+        $sourcePHPType = Type::array();
         $PHPMediaType = MediaType::createApplicationXPHP();
         /** @var ProophMessage $event */
         while ($event = $streamEvents->current()) {
-            $eventName = TypeDescriptor::create($this->eventMapper->mapNameToEventType($event->messageName()));
+            try {
+                $eventName = Type::create($this->eventMapper->mapNameToEventType($event->messageName()));
+            } catch (TypeDefinitionException $e) {
+                // Fallback to using the message name as is if we find an unknown event type (deleted class etc.)
+                $eventName = $event->messageName();
+            }
             $events[] = Event::createWithType(
                 $eventName,
                 $deserialize ? $this->conversionService->convert($event->payload(), $sourcePHPType, $PHPMediaType, $eventName, $PHPMediaType) : $event->payload(),

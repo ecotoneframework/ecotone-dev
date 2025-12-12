@@ -9,17 +9,20 @@ use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\AmqpBinding;
 use Ecotone\Amqp\AmqpExchange;
 use Ecotone\Amqp\AmqpQueue;
+use Ecotone\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Amqp\Attribute\RabbitConsumer;
 use Ecotone\Amqp\Distribution\AmqpDistributionModule;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Support\LicensingException;
 
 #[ModuleAnnotation]
 /**
@@ -66,10 +69,33 @@ class AmqpModule implements AnnotationModule
         $amqpExchanges = [];
         $amqpQueues = [];
         $amqpBindings = [];
+        $hasAmqpStreamChannelBuilder = false;
+
+        // Validate that message group IDs are unique across channels
+        $messageGroupIdToChannelMap = [];
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof AmqpStreamChannelBuilder) {
+                $messageGroupId = $extensionObject->getMessageGroupId();
+                $channelName = $extensionObject->getMessageChannelName();
+
+                if (isset($messageGroupIdToChannelMap[$messageGroupId])) {
+                    throw ConfigurationException::create(
+                        "Message group ID '{$messageGroupId}' is already used by channel '{$messageGroupIdToChannelMap[$messageGroupId]}'. " .
+                        'Each Message Channel must have a unique message group ID to maintain processing isolation. ' .
+                        "Channel '{$channelName}' is trying to use the same message group ID."
+                    );
+                }
+
+                $messageGroupIdToChannelMap[$messageGroupId] = $channelName;
+            }
+        }
 
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof AmqpBackedMessageChannelBuilder) {
                 $amqpQueues[] = AmqpQueue::createWith($extensionObject->getQueueName());
+            } elseif ($extensionObject instanceof AmqpStreamChannelBuilder) {
+                $hasAmqpStreamChannelBuilder = true;
+                $amqpQueues[] = AmqpQueue::createStreamQueue($extensionObject->queueName);
             } elseif ($extensionObject instanceof AmqpExchange) {
                 $amqpExchanges[] = $extensionObject;
             } elseif ($extensionObject instanceof AmqpQueue) {
@@ -77,6 +103,10 @@ class AmqpModule implements AnnotationModule
             } elseif ($extensionObject instanceof AmqpBinding) {
                 $amqpBindings[] = $extensionObject;
             }
+        }
+
+        if ($hasAmqpStreamChannelBuilder && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw LicensingException::create('AmqpStreamChannelBuilder is available only with Ecotone Enterprise licence.');
         }
 
         foreach ($this->amqpQueuesFromMessageConsumers as $amqpQueue) {
@@ -105,6 +135,7 @@ class AmqpModule implements AnnotationModule
     {
         return
             $extensionObject instanceof AmqpBackedMessageChannelBuilder
+            || $extensionObject instanceof AmqpStreamChannelBuilder
             || $extensionObject instanceof AmqpExchange
             || $extensionObject instanceof AmqpQueue
             || $extensionObject instanceof AmqpBinding

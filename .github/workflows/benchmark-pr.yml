@@ -20,7 +20,7 @@ jobs:
         stability: [prefer-stable]
     services:
       rabbitmq:
-        image: rabbitmq:3.11-management-alpine
+        image: rabbitmq:4.1.4-management-alpine
         env:
           RABBITMQ_DEFAULT_USER: guest
           RABBITMQ_DEFAULT_PASS: guest
@@ -69,10 +69,6 @@ jobs:
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4566&version=latest
       REDIS_DSN: redis://127.0.0.1:6379
       DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone
-      APP_DB_HOST: 127.0.0.1
-      APP_DB_PORT: 5432
-      APP_DB_DRIVER: pdo_pgsql
-      APP_DB_SERVER_VERSION: 16
     steps:
       - name: PHP ${{ matrix.php-versions }} - ${{ matrix.stability }}
         uses: shivammathur/setup-php@v2
@@ -98,11 +94,9 @@ jobs:
         with:
           clean: false
 
-      - name: Remove cached files
+      - name: Remove cached files but keep phpbench results
         run: |
-          rm -rf Monorepo/ExampleApp/Lite/var/cache
-          rm -rf Monorepo/ExampleApp/Symfony/var/cache
-          rm -rf Monorepo/ExampleApp/Laravel/framework/cache
+          git clean -fxd -e .phpbench -e vendor
 
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction

@@ -4,7 +4,6 @@ use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Monorepo\ExampleAppEventSourcing\Common\PriceChangeOverTimeProjection;
 
 return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
     return EcotoneLiteApplication::bootstrap(
@@ -15,7 +14,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
             ->doNotLoadCatalog()
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withDefaultErrorChannel('errorChannel')
-            ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\'])
+            ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\ProophProjection\\'])
             ->withSkippedModulePackageNames(\json_decode(\getenv('APP_SKIPPED_PACKAGES'), true)),
         cacheConfiguration: $useCachedVersion,
         pathToRootCatalog: __DIR__,

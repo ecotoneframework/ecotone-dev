@@ -9,7 +9,6 @@ use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use RdKafka\KafkaConsumer;
@@ -20,31 +19,40 @@ use RdKafka\Message as KafkaMessage;
  */
 final class InboundMessageConverter
 {
-    private string $acknowledgeMode;
-    private HeaderMapper $headerMapper;
-
     public function __construct(
         private KafkaAdmin $kafkaAdmin,
-        private string $endpointId,
         private string $acknowledgeHeaderName,
         private FinalFailureStrategy $finalFailureStrategy,
         private LoggingGateway $loggingGateway,
     ) {
-        $kafkaConsumerConfiguration = $kafkaAdmin->getConfigurationForConsumer($endpointId);
-        $this->acknowledgeMode = $kafkaConsumerConfiguration->getAcknowledgeMode();
-        $this->headerMapper = $kafkaConsumerConfiguration->getHeaderMapper();
     }
 
     public function toMessage(
+        string $endpointId,
+        string $channelName,
         KafkaConsumer $consumer,
         KafkaMessage $source,
-        ConversionService $conversionService
+        ConversionService $conversionService,
+        BatchCommitCoordinator $batchCommitCoordinator,
     ): MessageBuilder {
+        $kafkaConsumerConfiguration = $this->kafkaAdmin->getRdKafkaConfiguration($endpointId, $channelName);
+        $headerMapper = $kafkaConsumerConfiguration->getHeaderMapper();
+        $acknowledgeMode = $kafkaConsumerConfiguration->getAcknowledgeMode();
+
         $messageHeaders = $source->headers ?? [];
         $messageBuilder = MessageBuilder::withPayload($source->payload)
-            ->setMultipleHeaders($this->headerMapper->mapToMessageHeaders($messageHeaders, $conversionService));
+            ->setMultipleHeaders($headerMapper->mapToMessageHeaders($messageHeaders, $conversionService));
 
-        $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::create($consumer, $source, $this->loggingGateway, $this->kafkaAdmin, $this->endpointId, $this->finalFailureStrategy, $this->acknowledgeMode === KafkaAcknowledgementCallback::AUTO_ACK);
+        $amqpAcknowledgeCallback = KafkaAcknowledgementCallback::create(
+            $consumer,
+            $source,
+            $this->loggingGateway,
+            $this->kafkaAdmin,
+            $endpointId,
+            $this->finalFailureStrategy,
+            $acknowledgeMode === KafkaAcknowledgementCallback::AUTO_ACK,
+            $batchCommitCoordinator,
+        );
 
         $messageBuilder = $messageBuilder
             ->setHeader($this->acknowledgeHeaderName, $amqpAcknowledgeCallback)

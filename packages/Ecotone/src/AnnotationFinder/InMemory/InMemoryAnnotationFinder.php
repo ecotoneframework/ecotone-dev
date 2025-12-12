@@ -8,8 +8,13 @@ use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationResolver\AttributeResolver;
+use Ecotone\AnnotationFinder\ConfigurationException;
 use Ecotone\AnnotationFinder\TypeResolver;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use Ecotone\Messaging\Attribute\MessageConsumer;
+use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use ReflectionClass;
 
 /**
@@ -48,7 +53,8 @@ class InMemoryAnnotationFinder implements AnnotationFinder
         $annotationResolver = new AttributeResolver();
 
         $reflectionClass = new ReflectionClass($className);
-        foreach (get_class_methods($className) as $method) {
+        foreach ($reflectionClass->getMethods() as $reflectionMethod) {
+            $method = $reflectionMethod->getName();
             $methodOwnerClass = TypeResolver::getMethodOwnerClass($reflectionClass, $method)->getName();
             $this->annotationsForClass[$className][$method] = [];
             foreach ($annotationResolver->getAnnotationsForMethod($methodOwnerClass, $method) as $methodAnnotation) {
@@ -205,6 +211,25 @@ class InMemoryAnnotationFinder implements AnnotationFinder
             foreach ($this->annotationsForClass[$class] as $methodName => $methodAnnotations) {
                 foreach ($methodAnnotations as $methodAnnotation) {
                     if (get_class($methodAnnotation) == $methodAnnotationClassName  || $methodAnnotation instanceof $methodAnnotationClassName) {
+                        // Validate that endpoint annotations are on public methods
+                        if (
+                            ($methodAnnotation instanceof IdentifiedAnnotation
+                                || $methodAnnotation instanceof MessageConsumer)
+                        ) {
+                            $reflectionClass = new ReflectionClass($class);
+                            $reflectionMethod = $reflectionClass->getMethod($methodName);
+                            if (! $reflectionMethod->isPublic()) {
+                                $handlerType = match (true) {
+                                    $methodAnnotation instanceof CommandHandler => 'Command handler',
+                                    $methodAnnotation instanceof EventHandler => 'Event handler',
+                                    $methodAnnotation instanceof QueryHandler => 'Query handler',
+                                    $methodAnnotation instanceof MessageConsumer => 'Message consumer',
+                                    default => 'Handler',
+                                };
+                                throw ConfigurationException::create(sprintf('%s attribute on %s::%s should be placed on public method, to be available for execution.', $handlerType, $class, $methodName));
+                            }
+                        }
+
                         $registrations[] = AnnotatedMethod::create(
                             $methodAnnotation,
                             $class,
@@ -222,14 +247,19 @@ class InMemoryAnnotationFinder implements AnnotationFinder
 
     public function getAttributeForClass(string $className, string $attributeClassName): object
     {
+        return $this->findAttributeForClass($className, $attributeClassName) ?? throw \Ecotone\Messaging\Support\InvalidArgumentException::create("Can't find attribute {$attributeClassName} for {$className}");
+    }
+
+    public function findAttributeForClass(string $className, string $attributeClassName): ?object
+    {
         $attributes = $this->getAnnotationsForClass($className);
         foreach ($attributes as $attributeToVerify) {
-            if (TypeDescriptor::create($attributeToVerify)->isCompatibleWith(TypeDescriptor::create($attributeClassName))) {
+            if ($attributeToVerify instanceof $attributeClassName) {
                 return $attributeToVerify;
             }
         }
 
-        throw \Ecotone\Messaging\Support\InvalidArgumentException::create("Can't find attribute {$attributeClassName} for {$className}");
+        return null;
     }
 
     /**

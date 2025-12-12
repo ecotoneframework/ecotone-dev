@@ -217,7 +217,7 @@ abstract class FullAppBenchmarkCase extends TestCase
         return $app;
     }
 
-    private static function bootSymfonyKernel(string $environment, bool $debug): SymfonyKernel
+    public static function bootSymfonyKernel(string $environment, bool $debug): SymfonyKernel
     {
         $kernelClass = static::getSymfonyKernelClass();
         $kernel = new $kernelClass($environment, $debug);

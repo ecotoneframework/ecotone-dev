@@ -5,7 +5,6 @@ namespace App\EventSourcing;
 use App\EventSourcing\Event\PriceWasChanged;
 use App\EventSourcing\Event\ProductWasRegistered;
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 

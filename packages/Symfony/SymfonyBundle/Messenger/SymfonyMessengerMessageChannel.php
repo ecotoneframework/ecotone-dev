@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\SymfonyBundle\Messenger;
 
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
@@ -54,8 +55,13 @@ final class SymfonyMessengerMessageChannel implements PollableChannel
         );
     }
 
-    public function receiveWithTimeout(int $timeoutInMilliseconds): ?Message
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
         return $this->receive();
+    }
+
+    public function onConsumerStop(): void
+    {
+        // No cleanup needed for Symfony messenger channels
     }
 }

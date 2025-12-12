@@ -143,7 +143,7 @@ jobs:
           user_email: "ecotoneframework@gmail.com"
   tweet:
     runs-on: ubuntu-latest
-    needs: split_packages
+    needs: discord-notification
     steps:
       - uses: Eomm/why-don-t-you-tweet@v1
         with:
@@ -154,4 +154,67 @@ jobs:
           TWITTER_CONSUMER_API_SECRET: ${{ secrets.TWITTER_CONSUMER_API_SECRET }}
           TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
           TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
+
+  discord-notification:
+    runs-on: ubuntu-latest
+    needs: split_packages
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Send Discord Notification
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.ECOTONE_DISCORD_SERVER_URL }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          # Fetch release notes from GitHub
+          RELEASE_NOTES=$(gh release view "$VERSION" --repo ecotoneframework/ecotone-dev --json body -q '.body // "No release notes available"')
+
+          # Truncate if too long (Discord embed description limit is 4096 chars)
+          if [ ${#RELEASE_NOTES} -gt 4000 ]; then
+            RELEASE_NOTES="${RELEASE_NOTES:0:3997}..."
+          fi
+
+          # Get current timestamp
+          TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%S.000Z)
+
+          # Create JSON payload using jq to properly escape everything
+          PAYLOAD=$(jq -n \
+            --arg title "🚀 New Ecotone Release: $VERSION" \
+            --arg description "$RELEASE_NOTES" \
+            --arg url "https://github.com/ecotoneframework/ecotone-dev/releases/tag/$VERSION" \
+            --arg version "$VERSION" \
+            --arg timestamp "$TIMESTAMP" \
+            '{
+              "embeds": [{
+                "title": $title,
+                "description": $description,
+                "url": $url,
+                "color": 5814783,
+                "fields": [
+                  {
+                    "name": "Version",
+                    "value": ("`" + $version + "`"),
+                    "inline": true
+                  },
+                  {
+                    "name": "Source",
+                    "value": "Ecotone Development",
+                    "inline": true
+                  }
+                ],
+                "footer": {
+                  "text": "Ecotone Framework",
+                  "icon_url": "https://avatars.githubusercontent.com/u/47981056?s=48&v=4"
+                },
+                "timestamp": $timestamp
+              }]
+            }')
+
+          curl -H "Content-Type: application/json" \
+               -X POST \
+               -d "$PAYLOAD" \
+               "$DISCORD_WEBHOOK_URL"
 

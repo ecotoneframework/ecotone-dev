@@ -6,6 +6,7 @@ namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -38,7 +39,7 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
         return $targetMessage;
     }
 
-    public function receiveWithTimeout(int $timeoutInMilliseconds = 0): ?Message
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
         try {
             $context = $this->connectionFactory->createContext();
@@ -56,7 +57,8 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
             );
 
             /** @var EnqueueMessage $message */
-            $message = $consumer->receive($timeoutInMilliseconds ?: $this->receiveTimeoutInMilliseconds);
+            $timeoutInMilliseconds = $pollingMetadata->getExecutionTimeLimitInMilliseconds() ?: $this->receiveTimeoutInMilliseconds;
+            $message = $consumer->receive($timeoutInMilliseconds);
 
             if (! $message) {
                 return null;
@@ -96,5 +98,10 @@ abstract class EnqueueInboundChannelAdapter implements MessagePoller
     public function getQueueName(): string
     {
         return $this->queueName;
+    }
+
+    public function onConsumerStop(): void
+    {
+
     }
 }

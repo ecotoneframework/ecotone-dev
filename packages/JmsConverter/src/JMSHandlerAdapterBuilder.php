@@ -6,7 +6,7 @@ use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 
 /**
  * licence Apache-2.0
@@ -14,9 +14,9 @@ use Ecotone\Messaging\Handler\TypeDescriptor;
 class JMSHandlerAdapterBuilder implements CompilableBuilder
 {
     public function __construct(
-        private TypeDescriptor $fromType,
-        private TypeDescriptor $toType,
-        private Definition|Reference $objectToCallOn,
+        private Type $fromType,
+        private Type $toType,
+        private Definition|Reference|string $objectToCallOn,
         private string $methodName,
     ) {
     }

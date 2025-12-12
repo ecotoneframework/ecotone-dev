@@ -31,7 +31,7 @@ final readonly class RegisteredProductList
     {
         $schemaManager = DB::connection()->getDoctrineConnection()->createSchemaManager();
 
-        if ($schemaManager->tablesExist(self::TABLE_NAME)) {
+        if ($schemaManager->tablesExist([self::TABLE_NAME])) {
             return;
         }
 
@@ -48,7 +48,7 @@ final readonly class RegisteredProductList
     public function remove(): void
     {
         $schemaManager = DB::connection()->getDoctrineConnection()->createSchemaManager();
-        if ($schemaManager->tablesExist(self::TABLE_NAME)) {
+        if ($schemaManager->tablesExist([self::TABLE_NAME])) {
             return;
         }
 

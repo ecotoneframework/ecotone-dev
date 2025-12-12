@@ -14,6 +14,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Support\Assert;
 use Illuminate\Support\Facades\Config;
 
 /**
@@ -74,6 +75,8 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
 
     public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
     {
+        Assert::isTrue($finalFailureStrategy !== FinalFailureStrategy::RELEASE, 'Laravel Queue does not support message release', true);
+
         $this->finalFailureStrategy = $finalFailureStrategy;
 
         return $this;
@@ -87,6 +90,11 @@ final class LaravelQueueMessageChannelBuilder implements MessageChannelWithSeria
     public function getHeaderMapper(): HeaderMapper
     {
         return $this->headerMapper;
+    }
+
+    public function isStreamingChannel(): bool
+    {
+        return false;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition

@@ -12,13 +12,13 @@ use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
-use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Interop\Amqp\AmqpMessage;
-use Interop\Queue\Consumer;
 use Interop\Queue\Message as EnqueueMessage;
+use PhpAmqpLib\Exception\AMQPChannelClosedException;
+use PhpAmqpLib\Exception\AMQPConnectionClosedException;
+use PhpAmqpLib\Exception\AMQPIOException;
 
 /**
  * Class InboundEnqueueGateway
@@ -71,41 +71,8 @@ class AmqpInboundChannelAdapter extends EnqueueInboundChannelAdapter
         return $targetMessage;
     }
 
-    /**
-     * @inheritDoc This provides consume instead of get, which does not work well with pnctl extensions (signals are not executored)
-     */
-    public function receiveWithTimeoutOff(int $timeout = 0): ?Message
-    {
-        try {
-            if ($this->declareOnStartup && $this->initialized === false) {
-                $this->initialize();
-
-                $this->initialized = true;
-            }
-
-            /** @var AmqpReconnectableConnectionFactory $connectionFactory */
-            $connectionFactory = $this->connectionFactory->getInnerConnectionFactory();
-            $queueChannel = $this->queueChannel;
-            $subscriptionConsumer = $connectionFactory->getSubscriptionConsumer($this->queueName, function (EnqueueMessage $receivedMessage, Consumer $consumer) use ($queueChannel) {
-                $message = $this->inboundMessageConverter->toMessage($receivedMessage, $consumer, $this->conversionService, $this->cachedConnectionFactory);
-                $message = $this->enrichMessage($receivedMessage, $message);
-
-                $queueChannel->send($message->build());
-
-                return false;
-            });
-
-            $subscriptionConsumer->consume($timeout ?: $this->receiveTimeoutInMilliseconds);
-
-            return $this->queueChannel->receive();
-        } catch (AMQPConnectionException|AMQPChannelException $exception) {
-            $this->connectionFactory->reconnect();
-            throw new ConnectionException('Failed to connect to AMQP broker', 0, $exception);
-        }
-    }
-
     public function connectionException(): array
     {
-        return [AMQPConnectionException::class, AMQPChannelException::class];
+        return [AMQPConnectionException::class, AMQPChannelException::class, AMQPIOException::class, AMQPChannelClosedException::class, AMQPConnectionClosedException::class];
     }
 }

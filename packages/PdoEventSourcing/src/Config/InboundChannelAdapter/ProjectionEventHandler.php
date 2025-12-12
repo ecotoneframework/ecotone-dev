@@ -6,6 +6,7 @@ use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStatus;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
+use Ecotone\Projecting\ProjectingHeaders;
 use Prooph\EventStore\StreamName;
 
 /**
@@ -13,10 +14,10 @@ use Prooph\EventStore\StreamName;
  */
 class ProjectionEventHandler
 {
-    public const PROJECTION_STATE = 'projection.state';
-    public const PROJECTION_EVENT_NAME = 'projection.event_name';
-    public const PROJECTION_IS_REBUILDING = 'projection.is_rebuilding';
-    public const PROJECTION_NAME = 'projection.name';
+    public const PROJECTION_STATE = ProjectingHeaders::PROJECTION_STATE;
+    public const PROJECTION_EVENT_NAME = ProjectingHeaders::PROJECTION_EVENT_NAME;
+    public const PROJECTION_IS_REBUILDING = ProjectingHeaders::PROJECTION_IS_REBUILDING;
+    public const PROJECTION_NAME = ProjectingHeaders::PROJECTION_NAME;
 
     public function __construct(
         private LazyProophProjectionManager $lazyProophProjectionManager,

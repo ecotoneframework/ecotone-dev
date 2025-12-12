@@ -79,7 +79,7 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                 )
             );
             if (count($multiTenantConfigurations) === 1) {
-                $messagingConfiguration->registerServiceAlias(
+                $messagingConfiguration->registerServiceDefinition(
                     MultiTenantConnectionFactory::class,
                     new Reference($multiTenantConfig->getReferenceName())
                 );

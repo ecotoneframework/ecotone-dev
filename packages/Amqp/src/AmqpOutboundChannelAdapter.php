@@ -10,7 +10,9 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
-use Enqueue\AmqpExt\AmqpContext;
+use Ecotone\Messaging\Support\Assert;
+use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
+use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
 
@@ -37,7 +39,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private ?string                    $exchangeFromHeaderName,
         private bool                       $defaultPersistentDelivery,
         private bool                       $autoDeclare,
-        private bool                       $publisherAcknowledgments,
+        private bool                       $publisherConfirms,
         private OutboundMessageConverter   $outboundMessageConverter,
         private ConversionService          $conversionService,
         private AmqpTransactionInterceptor $amqpTransactionInterceptor,
@@ -78,13 +80,11 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $messageToSend
             ->setDeliveryMode($this->defaultPersistentDelivery ? AmqpMessage::DELIVERY_MODE_PERSISTENT : AmqpMessage::DELIVERY_MODE_NON_PERSISTENT);
 
-        /** @var AmqpContext $context */
-        $context = $this->connectionFactory->createContext();
-        if ($this->publisherAcknowledgments && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
-            /** Ensures no messages are lost along the way when heartbeat is lost and ensures messages was peristed on the Broker side. Without this message can be simply "swallowed" without throwing exception */
-            $context->getExtChannel()->confirmSelect();
+        if ($this->publisherConfirms) {
+            Assert::isFalse($this->amqpTransactionInterceptor->isRunningInTransaction(), 'Cannot use publisher acknowledgments together with transactions. Please disable one of them.');
         }
 
+        $context = $this->connectionFactory->createContext();
         $this->connectionFactory->getProducer()
             ->setTimeToLive($outboundMessage->getTimeToLive())
             ->setDelayStrategy(new HeadersExchangeDelayStrategy())
@@ -92,8 +92,12 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);
 
-        if ($this->publisherAcknowledgments && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
-            $context->getExtChannel()->waitForConfirm();
+        if ($this->publisherConfirms && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
+            if ($context instanceof AmqpLibContext) {
+                $context->getLibChannel()->wait_for_pending_acks(5);
+            } elseif ($context instanceof AmqpExtContext) {
+                $context->getExtChannel()->waitForConfirm(5);
+            }
         }
     }
 }

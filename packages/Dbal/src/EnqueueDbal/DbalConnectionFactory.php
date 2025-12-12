@@ -104,7 +104,7 @@ class DbalConnectionFactory implements ConnectionFactory
         }
     }
 
-    private function establishConnection(): Connection
+    public function establishConnection(): Connection
     {
         if (false == $this->connection) {
             // Create the connection

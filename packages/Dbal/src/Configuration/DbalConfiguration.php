@@ -34,6 +34,9 @@ class DbalConfiguration
     private ?string $deduplicationConnectionReference = null;
     private ?string $deadLetterConnectionReference = null;
 
+    private bool $consumerPositionTrackingEnabled = true;
+    private string $consumerPositionTrackingConnectionReference = DbalConnectionFactory::class;
+
     private bool $enableDoctrineORMRepositories = false;
     private ?string $doctrineORMRepositoryConnectionReference = null;
     private ?array $doctrineORMClasses = null;
@@ -225,6 +228,17 @@ class DbalConfiguration
         return $self;
     }
 
+    public function withConsumerPositionTracking(
+        bool $enabled = true,
+        string $connectionReference = DbalConnectionFactory::class
+    ): self {
+        $self = clone $this;
+        $self->consumerPositionTrackingEnabled = $enabled;
+        $self->consumerPositionTrackingConnectionReference = $connectionReference;
+
+        return $self;
+    }
+
     public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreStandardRepository = false, string $connectionReference = DbalConnectionFactory::class, ?array $documentStoreRelatedAggregates = null): self
     {
         $self = clone $this;
@@ -332,5 +346,15 @@ class DbalConfiguration
     public function getDisabledTransactionsOnAsynchronousEndpointNames(): array
     {
         return $this->disableTransactionsOnAsynchronousEndpointNames;
+    }
+
+    public function isConsumerPositionTrackingEnabled(): bool
+    {
+        return $this->consumerPositionTrackingEnabled;
+    }
+
+    public function getConsumerPositionTrackingConnectionReference(): string
+    {
+        return $this->consumerPositionTrackingConnectionReference;
     }
 }

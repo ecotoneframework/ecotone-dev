@@ -6,17 +6,18 @@ namespace Ecotone\EventSourcing\InMemory;
 
 use function array_keys;
 use function array_slice;
+
+use Ecotone\EventSourcing\Prooph\ProophInMemoryEventStoreAdapter;
+
 use function get_class;
 use function preg_grep;
 
 use Prooph\EventStore\EventStore;
-use Prooph\EventStore\EventStoreDecorator;
 use Prooph\EventStore\Exception;
 use Prooph\EventStore\InMemoryEventStore;
 use Prooph\EventStore\NonTransactionalInMemoryEventStore;
 use Prooph\EventStore\Projection\InMemoryEventStoreProjector;
 use Prooph\EventStore\Projection\InMemoryEventStoreQuery;
-use Prooph\EventStore\Projection\InMemoryEventStoreReadModelProjector;
 use Prooph\EventStore\Projection\ProjectionManager;
 use Prooph\EventStore\Projection\ProjectionStatus;
 use Prooph\EventStore\Projection\Projector;
@@ -57,14 +58,11 @@ final class InMemoryProjectionManager implements ProjectionManager
     {
         $this->eventStore = $eventStore;
 
-        while ($eventStore instanceof EventStoreDecorator) {
-            $eventStore = $eventStore->getInnerEventStore();
-        }
-
         if (
             ! (
                 $eventStore instanceof InMemoryEventStore
                 || $eventStore instanceof NonTransactionalInMemoryEventStore
+                || $eventStore instanceof ProophInMemoryEventStoreAdapter
             )
         ) {
             throw new Exception\InvalidArgumentException('Unknown event store instance given');

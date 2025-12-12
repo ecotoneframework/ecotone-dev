@@ -8,7 +8,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\RequestReplyProducer;
 use Ecotone\Messaging\Handler\Splitter\SplitterHandler;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageDeliveryException;
@@ -213,7 +213,7 @@ class RequestReplyProducerTest extends MessagingTestCase
     {
         $replyData = [1, 2, 3, 4];
         $outputChannel = QueueChannel::create();
-        $requestReplyProducer = new SplitterHandler($outputChannel, FakeReplyMessageProducer::create($replyData));
+        $requestReplyProducer = new SplitterHandler($outputChannel, FakeReplyMessageProducer::create($replyData), InMemoryChannelResolver::createEmpty());
 
         $requestMessage = MessageBuilder::withPayload('some')
             ->setHeader('token', 'abcd')
@@ -228,7 +228,7 @@ class RequestReplyProducerTest extends MessagingTestCase
     {
         $replyData = [MessageBuilder::withPayload('some1')->build(), MessageBuilder::withPayload('some2')->build()];
         $outputChannel = QueueChannel::create();
-        $requestReplyProducer = new SplitterHandler($outputChannel, FakeReplyMessageProducer::create($replyData));
+        $requestReplyProducer = new SplitterHandler($outputChannel, FakeReplyMessageProducer::create($replyData), InMemoryChannelResolver::createEmpty());
 
         $requestMessage = MessageBuilder::withPayload('some')
             ->setHeader('token', 'abcd')
@@ -263,7 +263,7 @@ class RequestReplyProducerTest extends MessagingTestCase
     public function test_throwing_exception_if_result_of_service_call_is_not_array()
     {
         $replyData = 'someString';
-        $requestReplyProducer = new SplitterHandler(QueueChannel::create(), FakeReplyMessageProducer::create($replyData));
+        $requestReplyProducer = new SplitterHandler(QueueChannel::create(), FakeReplyMessageProducer::create($replyData), InMemoryChannelResolver::createEmpty());
 
         $this->expectException(MessageDeliveryException::class);
 
@@ -326,7 +326,7 @@ class RequestReplyProducerTest extends MessagingTestCase
                 MessageBuilder::fromMessage($requestMessage)
                     ->setPayload($replyData[$sequenceNumber])
                     ->setHeader(MessageHeaders::MESSAGE_CORRELATION_ID, $correlationHeader)
-                    ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::createFromVariable($replyData[$sequenceNumber])->toString()))
+                    ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($replyData[$sequenceNumber])->toString()))
                     ->setHeader(MessageHeaders::SEQUENCE_SIZE, $sequenceSize)
                     ->setHeader(MessageHeaders::SEQUENCE_NUMBER, $sequenceNumber + 1)
                     ->build(),

@@ -20,6 +20,7 @@ use Ramsey\Uuid\Uuid;
 
 /**
  * licence Apache-2.0
+ * @deprecated Ecotone 2.0 To be removed in Ecotone 2.0, use EcotoneLite instead
  */
 class EcotoneLiteApplication
 {
@@ -77,6 +78,7 @@ class EcotoneLiteApplication
             }
 
             $containerBuilder = new ContainerBuilder();
+            $messagingConfiguration->withExternalContainer(InMemoryPSRContainer::createFromAssociativeArray(array_merge($classesToRegister, $objectsToRegister)));
             $containerBuilder->addCompilerPass($messagingConfiguration);
             $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
             $containerBuilder->addCompilerPass(new PhpDiContainerImplementation($builder, $classesToRegister));

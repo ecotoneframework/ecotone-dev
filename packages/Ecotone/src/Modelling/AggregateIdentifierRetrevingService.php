@@ -8,10 +8,11 @@ use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\TypeDescriptor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 
 /**
  * Class AggregateMessageConversionService
@@ -27,7 +28,7 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
         private string $aggregateClassName,
         private ConversionService $conversionService,
         private PropertyReaderAccessor $propertyReaderAccessor,
-        private TypeDescriptor $typeToConvertTo,
+        private Type $typeToConvertTo,
         private array $metadataIdentifierMapping,
         private array $messageIdentifierMapping,
         private array $identifierMapping,
@@ -39,7 +40,7 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
     public function process(Message $message): Message
     {
         /** @TODO Ecotone 2.0 (remove) this. For backward compatibility because it's ran again when message is consumed from Queue e*/
-        if ($message->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)) {
+        if ($this->messageContainsCorrectAggregateId($message)) {
             return $message;
         }
 
@@ -56,9 +57,9 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
         $payload   = $message->getPayload();
         $mediaType = $message->getHeaders()->containsKey(MessageHeaders::CONTENT_TYPE)
             ? MediaType::parseMediaType($message->getHeaders()->get(MessageHeaders::CONTENT_TYPE))
-            : MediaType::createApplicationXPHPWithTypeParameter(TypeDescriptor::createFromVariable($payload)->toString());
+            : MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($payload)->toString());
         if ($this->conversionService->canConvert(
-            TypeDescriptor::createFromVariable($payload),
+            Type::createFromVariable($payload),
             $mediaType,
             $this->typeToConvertTo,
             MediaType::createApplicationXPHPWithTypeParameter($this->typeToConvertTo->toString())
@@ -66,7 +67,7 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
             $payload = $this->conversionService
                 ->convert(
                     $payload,
-                    TypeDescriptor::createFromVariable($payload),
+                    Type::createFromVariable($payload),
                     $mediaType,
                     $this->typeToConvertTo,
                     MediaType::createApplicationXPHPWithTypeParameter($this->typeToConvertTo->toString())
@@ -108,5 +109,20 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
         return MessageBuilder::fromMessage($message)
             ->setHeader(AggregateMessage::AGGREGATE_ID, AggregateIdResolver::resolveArrayOfIdentifiers($this->aggregateClassName, $aggregateIdentifiers))
             ->build();
+    }
+
+    private function messageContainsCorrectAggregateId(Message $message): bool
+    {
+        if (! $message->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)) {
+            return false;
+        }
+
+        $aggregateIdentifiers = AggregateIdMetadata::createFrom($message->getHeaders()->get(AggregateMessage::AGGREGATE_ID))->getIdentifiers();
+
+        if ($this->metadataIdentifierMapping !== []) {
+            return array_keys($this->metadataIdentifierMapping) === array_keys($aggregateIdentifiers);
+        }
+
+        return array_keys($this->messageIdentifierMapping) === array_keys($aggregateIdentifiers);
     }
 }

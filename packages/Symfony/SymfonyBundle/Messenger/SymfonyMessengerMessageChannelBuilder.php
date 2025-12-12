@@ -12,6 +12,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Support\Assert;
 
 /**
  * Symfony Channel does not implement MessageChannelWithSerializationBuilder to avoid
@@ -64,6 +65,8 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
 
     public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
     {
+        Assert::isTrue($finalFailureStrategy !== FinalFailureStrategy::RELEASE, 'Symfony Messenger does not support message release', true);
+
         $this->finalFailureStrategy = $finalFailureStrategy;
 
         return $this;
@@ -83,6 +86,15 @@ final class SymfonyMessengerMessageChannelBuilder implements MessageChannelBuild
                 ]),
             ]
         );
+    }
+
+    /**
+     * Whatever messages are preserved after consumption, and be consumed by multiple consumer groups
+     * @return string
+     */
+    public function isStreamingChannel(): bool
+    {
+        return false;
     }
 
     private function getTransportServiceName(): string

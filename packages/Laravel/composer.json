@@ -2,7 +2,7 @@
     "name": "ecotone/laravel",
     "minimum-stability": "dev",
     "homepage": "https://docs.ecotone.tech/",
-    "forum": "https://discord.gg/CctGMcrYnV",
+    "forum": "https://discord.gg/GwM2BSuXeg",
     "prefer-stable": true,
     "license": [
         "Apache-2.0",
@@ -38,7 +38,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.261.1",
+        "ecotone/ecotone": "~1.279.0",
         "laravel/framework": "^9.5.2|^10.0|^11.0|^12.0|^13.0"
     },
     "require-dev": {
@@ -48,10 +48,10 @@
         "phpstan/phpstan": "^1.8",
         "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
         "wikimedia/composer-merge-plugin": "^2.1",
-        "symfony/expression-language": "^6.0|^7.0",
+        "symfony/expression-language": "^6.4|^7.0|^8.0",
         "nesbot/carbon": "^2.71|^3.0",
         "moneyphp/money": "^4.1.0",
-        "ecotone/dbal": "~1.261.1",
+        "ecotone/dbal": "~1.279.0",
         "timacdonald/log-fake": "^2.0"
     },
     "extra": {
@@ -61,7 +61,7 @@
             ]
         },
         "branch-alias": {
-            "dev-main": "1.261.1-dev"
+            "dev-main": "1.279.0-dev"
         },
         "ecotone": {
             "repository": "laravel"
@@ -82,7 +82,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2025-07-28 19:40:17"
+        "release-time": "2025-12-07 13:09:38"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

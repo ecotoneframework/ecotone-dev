@@ -15,9 +15,9 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -80,13 +80,33 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         $kafkaBrokerConfigurations = [];
         $kafkaConsumers = $this->kafkaConsumers;
 
+        // Validate that message group IDs are unique across channels
+        $messageGroupIdToChannelMap = [];
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof KafkaMessageChannelBuilder) {
+                $messageGroupId = $extensionObject->messageGroupId;
+                $channelName = $extensionObject->getMessageChannelName();
+
+                if (isset($messageGroupIdToChannelMap[$messageGroupId])) {
+                    throw ConfigurationException::create(
+                        "Message group ID '{$messageGroupId}' is already used by channel '{$messageGroupIdToChannelMap[$messageGroupId]}'. " .
+                        'Each Message Channel must have a unique message group ID to maintain processing isolation. ' .
+                        "Channel '{$channelName}' is trying to use the same message group ID."
+                    );
+                }
+
+                $messageGroupIdToChannelMap[$messageGroupId] = $channelName;
+            }
+        }
+
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof KafkaMessageChannelBuilder) {
                 $kafkaConsumers[$extensionObject->getMessageChannelName()] = new KafkaConsumer(
                     $extensionObject->getMessageChannelName(),
                     $extensionObject->topicName,
-                    $extensionObject->groupId,
+                    $extensionObject->messageGroupId,
                 );
+
                 $publisherConfigurations[$extensionObject->getMessageChannelName()] = KafkaPublisherConfiguration::createWithDefaults(
                     $extensionObject->topicName,
                     MessagePublisher::class . '::' . $extensionObject->getMessageChannelName(),
@@ -120,10 +140,11 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
             $messagingConfiguration->registerConsumer(
                 KafkaInboundChannelAdapterBuilder::create(
-                    endpointId: $kafkaConsumer->getEndpointId(),
+                    channelName: $kafkaConsumer->getEndpointId(),
                     requestChannelName: $kafkaConsumer->getEndpointId(),
                 )
                     ->withFinalFailureStrategy($kafkaConsumer->getFinalFailureStrategy())
+                    ->withCommitInterval($kafkaConsumer->getCommitIntervalInMessages())
                     ->withEndpointAnnotations($kafkaConsumerAnnotatedMethod->getAllAnnotationDefinitions())
             );
         }
@@ -138,7 +159,6 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                 $kafkaBrokerConfigurations,
                 $topicReferenceMapping,
                 Reference::to(LoggingGateway::class),
-                $serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE),
             ])
         );
     }

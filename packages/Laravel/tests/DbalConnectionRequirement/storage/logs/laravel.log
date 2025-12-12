@@ -1,0 +1,4 @@
+[2025-12-07 11:58:45] dev.ERROR: Cannot redeclare class Symfony\App\DbalConnectionRequirement\Kernel (previously declared in /data/app/packages/Symfony/tests/phpunit/DbalConnectionRequirement/src/Kernel.php:12) {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Cannot redeclare class Symfony\\App\\DbalConnectionRequirement\\Kernel (previously declared in /data/app/packages/Symfony/tests/phpunit/DbalConnectionRequirement/src/Kernel.php:12) at /data/app/packages/Symfony/tests/phpunit/DbalConnectionRequirementWithConnection/src/Kernel.php:12)
+[stacktrace]
+#0 {main}
+"} 

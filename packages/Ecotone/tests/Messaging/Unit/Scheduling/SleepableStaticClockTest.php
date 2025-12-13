@@ -41,7 +41,7 @@ class SleepableStaticClockTest extends TestCase
      */
     private function createStaticClock(string $currentDateTime): ClockInterface
     {
-        return new class($currentDateTime) implements ClockInterface, SleepInterface {
+        return new class ($currentDateTime) implements ClockInterface, SleepInterface {
             private static DateTimeImmutable $now;
 
             public function __construct(string $now)

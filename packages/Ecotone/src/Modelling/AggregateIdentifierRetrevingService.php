@@ -107,8 +107,13 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
      */
     private function resolveMessageIdentifierMapping(?string $payloadClass): array
     {
-        if (isset($this->perClassIdentifierMappings[$payloadClass])) {
+        if ($payloadClass !== null && isset($this->perClassIdentifierMappings[$payloadClass])) {
             return $this->perClassIdentifierMappings[$payloadClass];
+        }
+
+        // Fallback to empty-key mapping when payload class is unknown
+        if (isset($this->perClassIdentifierMappings[''])) {
+            return $this->perClassIdentifierMappings[''];
         }
 
         return [];
@@ -126,7 +131,8 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
             return \array_keys($this->metadataIdentifierMapping) === \array_keys($aggregateIdentifiers);
         }
 
-        $messageIdentifierMapping = $this->resolveMessageIdentifierMapping($message);
+        $payloadClass = $this->resolvePayloadClassType($message);
+        $messageIdentifierMapping = $this->resolveMessageIdentifierMapping($payloadClass);
         return \array_keys($messageIdentifierMapping) === \array_keys($aggregateIdentifiers);
     }
 
@@ -135,10 +141,18 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
         $payload = $message->getPayload();
         if (\is_object($payload)) {
             return get_class($payload);
-        } elseif ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
+        } elseif (
+            $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)
+            && Type::create($message->getHeaders()->get(MessageHeaders::TYPE_ID))->isClassNotInterface()
+        ) {
             return $message->getHeaders()->get(MessageHeaders::TYPE_ID);
         } elseif (count($this->perClassIdentifierMappings) === 1) {
-            return array_key_first($this->perClassIdentifierMappings);
+            $type = array_key_first($this->perClassIdentifierMappings);
+            if ($type === '') {
+                 return null;
+            }
+
+            return $type;
         }
 
         return null;

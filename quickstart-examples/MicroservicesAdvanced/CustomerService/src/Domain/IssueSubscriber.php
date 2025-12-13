@@ -36,8 +36,9 @@ class IssueSubscriber
         $distributedBus->convertAndSendCommand(
             "backoffice_service",
             "ticket.cancel",
-            [
-                "ticketId" => $issue->getIssueId()->toString()
+            [],
+            metadata: [
+                'aggregate.id' => $issue->getIssueId()->toString()
             ]
         );
     }

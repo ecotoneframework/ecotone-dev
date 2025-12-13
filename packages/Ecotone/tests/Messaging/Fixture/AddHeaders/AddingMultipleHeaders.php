@@ -39,8 +39,8 @@ final class AddingMultipleHeaders
 
     }
 
-    #[Delayed(1000, replaceExistingHeader: false)]
-    #[TimeToLive(1001, replaceExistingHeader: false)]
+    #[Delayed(1000, shouldReplaceExistingHeader: false)]
+    #[TimeToLive(1001, shouldReplaceExistingHeader: false)]
     #[Asynchronous('async')]
     #[CommandHandler('keepHeaders', endpointId: 'keepHeadersEndpoint')]
     public function testKeepHeaders(): void

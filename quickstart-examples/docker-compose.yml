@@ -10,7 +10,7 @@ services:
     working_dir: "/data/app"
     command: sleep 999999
     environment:
-      RABBIT_HOST: "amqp://rabbitmq:5672"
+      RABBIT_HOST: "amqp://guest:guest@rabbitmq:5672/%2f"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone
       SECONDARY_DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone
     networks:

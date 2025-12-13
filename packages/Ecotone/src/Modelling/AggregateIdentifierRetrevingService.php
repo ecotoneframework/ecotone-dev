@@ -3,10 +3,12 @@
 namespace Ecotone\Modelling;
 
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -64,9 +66,32 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
                 continue;
             }
 
-            $sourcePayload = ! \is_object($payload) && $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE)
-                ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE)
-                : $payload;
+            $sourcePayload = $payload;
+            if (! \is_object($payload)) {
+                if ($message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE)) {
+                    $sourcePayload = $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE);
+                }elseif ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
+                    $mediaType = $message->getHeaders()->containsKey(MessageHeaders::CONTENT_TYPE)
+                        ? MediaType::parseMediaType($message->getHeaders()->get(MessageHeaders::CONTENT_TYPE))
+                        : MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($payload)->toString());
+                    if ($this->conversionService->canConvert(
+                        Type::createFromVariable($payload),
+                        $mediaType,
+                        $targetType = Type::create($message->getHeaders()->get(MessageHeaders::TYPE_ID)),
+                        MediaType::createApplicationXPHPWithTypeParameter($targetType)
+                    )) {
+                        $sourcePayload = $this->conversionService
+                            ->convert(
+                                $payload,
+                                Type::createFromVariable($payload),
+                                $mediaType,
+                                $targetType,
+                                MediaType::createApplicationXPHPWithTypeParameter($targetType)
+                            );
+                    }
+                }
+            }
+
             $aggregateIdentifiers[$aggregateIdentifierName] =
                 $this->propertyReaderAccessor->hasPropertyValue(PropertyPath::createWith($aggregateIdentifierMappingName), $sourcePayload)
                     ? $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($aggregateIdentifierMappingName), $sourcePayload)

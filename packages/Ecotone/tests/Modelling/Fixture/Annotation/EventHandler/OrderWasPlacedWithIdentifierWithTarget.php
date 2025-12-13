@@ -10,7 +10,7 @@ use Ecotone\Modelling\Attribute\TargetIdentifier;
 class OrderWasPlacedWithIdentifierWithTarget
 {
     public function __construct(
-        #[TargetIdentifier('id')] public string $orderIdd
+        #[TargetIdentifier('id')] public string $orderId
     ) {
     }
 }

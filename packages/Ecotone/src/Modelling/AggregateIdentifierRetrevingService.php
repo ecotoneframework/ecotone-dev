@@ -46,8 +46,10 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
             return $message;
         }
 
-        $payload = $message->getPayload();
-        $messageIdentifierMapping = $this->resolveMessageIdentifierMapping($message);
+        $payloadClass = $this->resolvePayloadClassType($message);
+        $payload = $this->deserializePayload($message, $payloadClass);
+
+        $messageIdentifierMapping = $this->resolveMessageIdentifierMapping($payloadClass);
 
         if ($message->getHeaders()->containsKey(AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER)) {
             $aggregateIds = $message->getHeaders()->get(AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER);
@@ -67,29 +69,8 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
             }
 
             $sourcePayload = $payload;
-            if (! \is_object($payload)) {
-                if ($message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE)) {
-                    $sourcePayload = $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE);
-                }elseif ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
-                    $mediaType = $message->getHeaders()->containsKey(MessageHeaders::CONTENT_TYPE)
-                        ? MediaType::parseMediaType($message->getHeaders()->get(MessageHeaders::CONTENT_TYPE))
-                        : MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($payload)->toString());
-                    if ($this->conversionService->canConvert(
-                        Type::createFromVariable($payload),
-                        $mediaType,
-                        $targetType = Type::create($message->getHeaders()->get(MessageHeaders::TYPE_ID)),
-                        MediaType::createApplicationXPHPWithTypeParameter($targetType)
-                    )) {
-                        $sourcePayload = $this->conversionService
-                            ->convert(
-                                $payload,
-                                Type::createFromVariable($payload),
-                                $mediaType,
-                                $targetType,
-                                MediaType::createApplicationXPHPWithTypeParameter($targetType)
-                            );
-                    }
-                }
+            if (! \is_object($payload) && $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE)) {
+                $sourcePayload = $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE);
             }
 
             $aggregateIdentifiers[$aggregateIdentifierName] =
@@ -124,32 +105,13 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
      *
      * @return array<string, string|null>
      */
-    private function resolveMessageIdentifierMapping(Message $message): array
+    private function resolveMessageIdentifierMapping(?string $payloadClass): array
     {
-        $payload = $message->getPayload();
-
-        if (\is_object($payload)) {
-            $payloadClass = \get_class($payload);
-
-            if (isset($this->perClassIdentifierMappings[$payloadClass])) {
-                return $this->perClassIdentifierMappings[$payloadClass];
-            }
-
-            foreach (\array_keys($this->perClassIdentifierMappings) as $handledClassName) {
-                if ($handledClassName !== '' && $payload instanceof $handledClassName) {
-                    return $this->perClassIdentifierMappings[$handledClassName];
-                }
-            }
+        if (isset($this->perClassIdentifierMappings[$payloadClass])) {
+            return $this->perClassIdentifierMappings[$payloadClass];
         }
 
-        if ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
-            $typeId = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
-            if (isset($this->perClassIdentifierMappings[$typeId])) {
-                return $this->perClassIdentifierMappings[$typeId];
-            }
-        }
-
-        return $this->perClassIdentifierMappings[''] ?? [];
+        return [];
     }
 
     private function messageContainsCorrectAggregateId(Message $message): bool
@@ -166,5 +128,45 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
 
         $messageIdentifierMapping = $this->resolveMessageIdentifierMapping($message);
         return \array_keys($messageIdentifierMapping) === \array_keys($aggregateIdentifiers);
+    }
+
+    public function resolvePayloadClassType(Message $message): mixed
+    {
+        $payload = $message->getPayload();
+        if (\is_object($payload)) {
+            return get_class($payload);
+        } elseif ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
+            return $message->getHeaders()->get(MessageHeaders::TYPE_ID);
+        } elseif (count($this->perClassIdentifierMappings) === 1) {
+            return array_key_first($this->perClassIdentifierMappings);
+        }
+
+        return null;
+    }
+
+    public function deserializePayload(Message $message, ?string $payloadTargetClass): mixed
+    {
+        $payload = $message->getPayload();
+        $mediaType = $message->getHeaders()->containsKey(MessageHeaders::CONTENT_TYPE)
+            ? MediaType::parseMediaType($message->getHeaders()->get(MessageHeaders::CONTENT_TYPE))
+            : MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($payload)->toString());
+
+        if ($payloadTargetClass !== null && $this->conversionService->canConvert(
+                Type::createFromVariable($payload),
+                $mediaType,
+                $targetType = Type::create($payloadTargetClass),
+                MediaType::createApplicationXPHPWithTypeParameter($targetType)
+            )) {
+            $payload = $this->conversionService
+                ->convert(
+                    $payload,
+                    Type::createFromVariable($payload),
+                    $mediaType,
+                    $targetType,
+                    MediaType::createApplicationXPHPWithTypeParameter($targetType)
+                );
+        }
+
+        return $payload;
     }
 }

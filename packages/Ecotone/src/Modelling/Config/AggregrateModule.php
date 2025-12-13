@@ -283,8 +283,15 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         $relatedClassInterface    = $this->interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
         $parameterConverters      = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
         $aggregateClassDefinition = $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($registration->getClassName()));
-        $handledPayloadType       = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $this->interfaceToCallRegistry);
-        $handledPayloadType       = $handledPayloadType ? $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($handledPayloadType)) : null;
+        $handledPayloadTypes      = MessageHandlerRoutingModule::getFirstParameterClassesIfAny($registration, $this->interfaceToCallRegistry);
+
+        if (count($handledPayloadTypes) > 1) {
+            throw ConfigurationException::create(sprintf('Aggregate Query Handler %s::%s cannot use union type for first parameter. Use separate handlers for each type.', $registration->getClassName(), $registration->getMethodName()));
+        }
+
+        $handledPayloadType       = count($handledPayloadTypes) === 1
+            ? $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($handledPayloadTypes[0]))
+            : null;
 
         $configuration->registerMessageHandler(
             MessageProcessorActivatorBuilder::create()
@@ -550,8 +557,15 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         $isFactoryMethod       = $relatedClassInterface->isFactoryMethod();
         $parameterConverters   = $parameterConverterAnnotationFactory->createParameterWithDefaults($relatedClassInterface);
         $aggregateClassDefinition = $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($registration->getClassName()));
-        $handledPayloadType = MessageHandlerRoutingModule::getFirstParameterClassIfAny($registration, $this->interfaceToCallRegistry);
-        $handledPayloadType = $handledPayloadType ? $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($handledPayloadType)) : null;
+        $handledPayloadTypes = MessageHandlerRoutingModule::getFirstParameterClassesIfAny($registration, $this->interfaceToCallRegistry);
+
+        if (count($handledPayloadTypes) > 1 && $annotation instanceof CommandHandler) {
+            throw ConfigurationException::create(sprintf('Aggregate Command Handler %s::%s cannot use union type for first parameter. Use separate handlers for each type.', $registration->getClassName(), $registration->getMethodName()));
+        }
+
+        $handledPayloadType = count($handledPayloadTypes) === 1
+            ? $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($handledPayloadTypes[0]))
+            : null;
 
         // This is executed before sending to async channel
         $aggregateIdentifierHandlerPreCheck = MessageProcessorActivatorBuilder::create()
@@ -604,8 +618,10 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         $factoryAnnotation = $factoryRegistration->getAnnotationForMethod();
 
         $factoryInterface = $this->interfaceToCallRegistry->getFor($factoryRegistration->getClassName(), $factoryRegistration->getMethodName());
-        $factoryHandledPayloadType        = MessageHandlerRoutingModule::getFirstParameterClassIfAny($factoryRegistration, $this->interfaceToCallRegistry);
-        $factoryHandledPayloadType        = $factoryHandledPayloadType ? $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($factoryHandledPayloadType)) : null;
+        $factoryHandledPayloadTypes       = MessageHandlerRoutingModule::getFirstParameterClassesIfAny($factoryRegistration, $this->interfaceToCallRegistry);
+        $factoryHandledPayloadType        = count($factoryHandledPayloadTypes) === 1
+            ? $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($factoryHandledPayloadTypes[0]))
+            : null;
         $factoryIdentifierMetadataMapping = $factoryAnnotation->identifierMetadataMapping;
         $factoryIdentifierMapping = $factoryAnnotation->identifierMapping;
         $factoryParameterConverters   = $parameterConverterAnnotationFactory->createParameterWithDefaults($factoryInterface);

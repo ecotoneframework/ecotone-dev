@@ -52,7 +52,7 @@ class EndpointHeadersInterceptor implements DefinedObject
         }
 
         $isDeliveryDelayHeaderExists = $message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY);
-        if ($delayed && ($delayed->isReplaceExistingHeader() || ! $isDeliveryDelayHeaderExists)) {
+        if ($delayed && ($delayed->shouldReplaceExistingHeader() || ! $isDeliveryDelayHeaderExists)) {
             $metadata[MessageHeaders::DELIVERY_DELAY] = $delayed->getHeaderValue();
 
             if ($delayed->getExpression()) {
@@ -86,7 +86,7 @@ class EndpointHeadersInterceptor implements DefinedObject
         }
 
         $isTtlHeaderExists = $message->getHeaders()->containsKey(MessageHeaders::TIME_TO_LIVE);
-        if ($timeToLive && ($timeToLive->isReplaceExistingHeader() || ! $isTtlHeaderExists)) {
+        if ($timeToLive && ($timeToLive->shouldReplaceExistingHeader() || ! $isTtlHeaderExists)) {
             $metadata[MessageHeaders::TIME_TO_LIVE] = $timeToLive->getHeaderValue();
 
             if ($timeToLive->getExpression()) {

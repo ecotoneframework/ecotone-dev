@@ -21,13 +21,13 @@ class Delayed extends AddHeader
     public function __construct(
         int|TimeSpan|DateTimeInterface|null $time = null,
         ?string $expression = null,
-        private readonly bool $replaceExistingHeader = true
+        private readonly bool $shouldReplaceExistingHeader = true
     ) {
         parent::__construct(MessageHeaders::DELIVERY_DELAY, $time, $expression);
     }
 
-    public function isReplaceExistingHeader(): bool
+    public function shouldReplaceExistingHeader(): bool
     {
-        return $this->replaceExistingHeader;
+        return $this->shouldReplaceExistingHeader;
     }
 }

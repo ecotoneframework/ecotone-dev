@@ -3,12 +3,10 @@
 namespace Ecotone\Modelling;
 
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\MessageProcessor;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -24,15 +22,17 @@ use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
  */
 class AggregateIdentifierRetrevingService implements MessageProcessor
 {
+    /**
+     * @param array<string, array<string, string|null>> $perClassIdentifierMappings
+     */
     public function __construct(
         private string $aggregateClassName,
         private ConversionService $conversionService,
         private PropertyReaderAccessor $propertyReaderAccessor,
-        private Type $typeToConvertTo,
         private array $metadataIdentifierMapping,
-        private array $messageIdentifierMapping,
         private array $identifierMapping,
         private ExpressionEvaluationService $expressionEvaluationService,
+        private array $perClassIdentifierMappings,
     ) {
 
     }
@@ -44,9 +44,12 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
             return $message;
         }
 
+        $payload = $message->getPayload();
+        $messageIdentifierMapping = $this->resolveMessageIdentifierMapping($message);
+
         if ($message->getHeaders()->containsKey(AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER)) {
             $aggregateIds = $message->getHeaders()->get(AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER);
-            $aggregateIds = is_array($aggregateIds) ? $aggregateIds : [array_key_first($this->messageIdentifierMapping) => $aggregateIds];
+            $aggregateIds = \is_array($aggregateIds) ? $aggregateIds : [\array_key_first($messageIdentifierMapping) => $aggregateIds];
 
             return MessageBuilder::fromMessage($message)
                 ->setHeader(AggregateMessage::AGGREGATE_ID, AggregateIdResolver::resolveArrayOfIdentifiers($this->aggregateClassName, $aggregateIds))
@@ -54,44 +57,24 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
                 ->build();
         }
 
-        $payload   = $message->getPayload();
-        $mediaType = $message->getHeaders()->containsKey(MessageHeaders::CONTENT_TYPE)
-            ? MediaType::parseMediaType($message->getHeaders()->get(MessageHeaders::CONTENT_TYPE))
-            : MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($payload)->toString());
-        if ($this->conversionService->canConvert(
-            Type::createFromVariable($payload),
-            $mediaType,
-            $this->typeToConvertTo,
-            MediaType::createApplicationXPHPWithTypeParameter($this->typeToConvertTo->toString())
-        )) {
-            $payload = $this->conversionService
-                ->convert(
-                    $payload,
-                    Type::createFromVariable($payload),
-                    $mediaType,
-                    $this->typeToConvertTo,
-                    MediaType::createApplicationXPHPWithTypeParameter($this->typeToConvertTo->toString())
-                );
-        }
-
         $aggregateIdentifiers = [];
-        foreach ($this->messageIdentifierMapping as $aggregateIdentifierName => $aggregateIdentifierMappingName) {
-            if (is_null($aggregateIdentifierMappingName)) {
+        foreach ($messageIdentifierMapping as $aggregateIdentifierName => $aggregateIdentifierMappingName) {
+            if ($aggregateIdentifierMappingName === null) {
                 $aggregateIdentifiers[$aggregateIdentifierName] = null;
                 continue;
             }
 
-            $payload = ! is_object($payload) && $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE)
+            $sourcePayload = ! \is_object($payload) && $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE)
                 ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE)
                 : $payload;
             $aggregateIdentifiers[$aggregateIdentifierName] =
-                $this->propertyReaderAccessor->hasPropertyValue(PropertyPath::createWith($aggregateIdentifierMappingName), $payload)
-                    ? $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($aggregateIdentifierMappingName), $payload)
+                $this->propertyReaderAccessor->hasPropertyValue(PropertyPath::createWith($aggregateIdentifierMappingName), $sourcePayload)
+                    ? $this->propertyReaderAccessor->getPropertyValue(PropertyPath::createWith($aggregateIdentifierMappingName), $sourcePayload)
                     : null;
         }
         $metadata = $message->getHeaders()->headers();
         foreach ($this->metadataIdentifierMapping as $identifierName => $headerName) {
-            if (array_key_exists($headerName, $metadata)) {
+            if (\array_key_exists($headerName, $metadata)) {
                 $aggregateIdentifiers[$identifierName] = $metadata[$headerName];
             }
         }
@@ -111,6 +94,39 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
             ->build();
     }
 
+    /**
+     * Resolves the appropriate identifier mapping based on the payload type or TYPE_ID header.
+     *
+     * @return array<string, string|null>
+     */
+    private function resolveMessageIdentifierMapping(Message $message): array
+    {
+        $payload = $message->getPayload();
+
+        if (\is_object($payload)) {
+            $payloadClass = \get_class($payload);
+
+            if (isset($this->perClassIdentifierMappings[$payloadClass])) {
+                return $this->perClassIdentifierMappings[$payloadClass];
+            }
+
+            foreach (\array_keys($this->perClassIdentifierMappings) as $handledClassName) {
+                if ($handledClassName !== '' && $payload instanceof $handledClassName) {
+                    return $this->perClassIdentifierMappings[$handledClassName];
+                }
+            }
+        }
+
+        if ($message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
+            $typeId = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
+            if (isset($this->perClassIdentifierMappings[$typeId])) {
+                return $this->perClassIdentifierMappings[$typeId];
+            }
+        }
+
+        return $this->perClassIdentifierMappings[''] ?? [];
+    }
+
     private function messageContainsCorrectAggregateId(Message $message): bool
     {
         if (! $message->getHeaders()->containsKey(AggregateMessage::AGGREGATE_ID)) {
@@ -120,9 +136,10 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
         $aggregateIdentifiers = AggregateIdMetadata::createFrom($message->getHeaders()->get(AggregateMessage::AGGREGATE_ID))->getIdentifiers();
 
         if ($this->metadataIdentifierMapping !== []) {
-            return array_keys($this->metadataIdentifierMapping) === array_keys($aggregateIdentifiers);
+            return \array_keys($this->metadataIdentifierMapping) === \array_keys($aggregateIdentifiers);
         }
 
-        return array_keys($this->messageIdentifierMapping) === array_keys($aggregateIdentifiers);
+        $messageIdentifierMapping = $this->resolveMessageIdentifierMapping($message);
+        return \array_keys($messageIdentifierMapping) === \array_keys($aggregateIdentifiers);
     }
 }

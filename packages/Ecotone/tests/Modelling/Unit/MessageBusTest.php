@@ -5,23 +5,31 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\AnnotationFinder\ConfigurationException as AnnotationConfigurationException;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Modelling\Attribute\Aggregate;
+use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use stdClass;
+use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\EventHandlerForUnionType;
+use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\OrderWasPlaced as UnionOrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\OrderWasPlacedWithIdentifier;
 use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\OrderWasPlacedWithIdentifierWithTarget;
 use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\OrderWasRemovedWithIdentifier;
@@ -53,13 +61,6 @@ use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\AggregateSynchronousPrio
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\OrderWasPlaced;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandler;
 use Test\Ecotone\Modelling\Fixture\PriorityEventHandler\SynchronousPriorityHandlerWithInheritance;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\EventHandlerForUnionType;
-use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\OrderWasPlaced as UnionOrderWasPlaced;
 
 /**
  * licence Apache-2.0
@@ -446,7 +447,7 @@ final class MessageBusTest extends TestCase
         );
 
         $orderEvent = new UnionOrderWasPlaced();
-        $stdClassEvent = new \stdClass();
+        $stdClassEvent = new stdClass();
 
         $ecotoneTestSupport->publishEvent($orderEvent);
         $ecotoneTestSupport->publishEvent($stdClassEvent);
@@ -460,7 +461,7 @@ final class MessageBusTest extends TestCase
 
     public function test_aggregate_event_handler_with_union_type_parameter_with_aggregate_id_in_payload(): void
     {
-        $aggregate = new #[Aggregate] class {
+        $aggregate = new #[Aggregate] class () {
             #[Identifier]
             private string $id = '';
 
@@ -514,7 +515,7 @@ final class MessageBusTest extends TestCase
 
     public function test_aggregate_event_handler_with_union_type_and_using_target_identifier(): void
     {
-        $aggregate = new #[Aggregate] class {
+        $aggregate = new #[Aggregate] class () {
             #[Identifier]
             private string $id = '';
 
@@ -568,7 +569,7 @@ final class MessageBusTest extends TestCase
 
     public function test_aggregate_event_handler_with_union_type_and_using_target_identifier_being_asynchronous(): void
     {
-        $aggregate = new #[Aggregate] class {
+        $aggregate = new #[Aggregate] class () {
             #[Identifier]
             private string $id = '';
 
@@ -635,12 +636,12 @@ final class MessageBusTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        $aggregate = new #[Aggregate] class {
+        $aggregate = new #[Aggregate] class () {
             #[Identifier]
             private string $id = 'test-id';
 
             #[QueryHandler('test.query')]
-            public function query(\stdClass|UnionOrderWasPlaced $query): array
+            public function query(stdClass|UnionOrderWasPlaced $query): array
             {
                 return [];
             }
@@ -658,12 +659,12 @@ final class MessageBusTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        $aggregate = new #[Aggregate] class {
+        $aggregate = new #[Aggregate] class () {
             #[Identifier]
             private string $id = 'test-id';
 
             #[CommandHandler('test.command')]
-            public function handle(\stdClass|UnionOrderWasPlaced $command): void
+            public function handle(stdClass|UnionOrderWasPlaced $command): void
             {
             }
         };

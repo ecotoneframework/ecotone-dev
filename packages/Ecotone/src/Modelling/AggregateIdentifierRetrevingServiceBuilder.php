@@ -18,6 +18,8 @@ use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
 
+use function is_null;
+
 /**
  * Class AggregateMessageConversionServiceBuilder
  * @package Ecotone\Modelling
@@ -201,7 +203,7 @@ class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
         }
 
         foreach ($messageIdentifiersMapping as $aggregateIdentifierName => $aggregateIdentifierMappingKey) {
-            if (\is_null($aggregateIdentifierMappingKey)) {
+            if (is_null($aggregateIdentifierMappingKey)) {
                 $mappingKey = null;
                 foreach ($messageProperties as $property) {
                     if ($aggregateIdentifierName === $property->getName()) {
@@ -209,9 +211,9 @@ class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
                     }
                 }
 
-                if (\is_null($handledMessageClassDefinition) && \is_null($mappingKey)) {
+                if (is_null($handledMessageClassDefinition) && is_null($mappingKey)) {
                     $messageIdentifiersMapping[$aggregateIdentifierName] = $aggregateIdentifierName;
-                } elseif (\is_null($mappingKey) && ! $this->hasRuntimeIdentifierMapping($metadataIdentifierMapping, $aggregateIdentifierName) && ! $this->hasRuntimeIdentifierMapping($identifierMapping, $aggregateIdentifierName)) {
+                } elseif (is_null($mappingKey) && ! $this->hasRuntimeIdentifierMapping($metadataIdentifierMapping, $aggregateIdentifierName) && ! $this->hasRuntimeIdentifierMapping($identifierMapping, $aggregateIdentifierName)) {
                     /** NO mapping available, identifier should come from message headers under "aggregate.id" */
                     $messageIdentifiersMapping = [];
                 } else {

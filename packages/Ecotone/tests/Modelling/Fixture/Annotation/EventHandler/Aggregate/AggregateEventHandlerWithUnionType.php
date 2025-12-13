@@ -7,8 +7,8 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\OrderWasPlaced;
 use stdClass;
+use Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\OrderWasPlaced;
 
 #[Aggregate]
 /**
@@ -48,4 +48,3 @@ class AggregateEventHandlerWithUnionType
         return $this->handledEvents;
     }
 }
-

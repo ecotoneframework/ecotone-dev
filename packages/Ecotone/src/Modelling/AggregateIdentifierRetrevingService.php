@@ -2,6 +2,9 @@
 
 namespace Ecotone\Modelling;
 
+use function array_key_exists;
+use function array_keys;
+
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;
@@ -13,6 +16,9 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
+
+use function is_array;
+use function is_object;
 
 /**
  * Class AggregateMessageConversionService
@@ -53,7 +59,7 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
 
         if ($message->getHeaders()->containsKey(AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER)) {
             $aggregateIds = $message->getHeaders()->get(AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER);
-            $aggregateIds = \is_array($aggregateIds) ? $aggregateIds : [\array_key_first($messageIdentifierMapping) => $aggregateIds];
+            $aggregateIds = is_array($aggregateIds) ? $aggregateIds : [\array_key_first($messageIdentifierMapping) => $aggregateIds];
 
             return MessageBuilder::fromMessage($message)
                 ->setHeader(AggregateMessage::AGGREGATE_ID, AggregateIdResolver::resolveArrayOfIdentifiers($this->aggregateClassName, $aggregateIds))
@@ -69,7 +75,7 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
             }
 
             $sourcePayload = $payload;
-            if (! \is_object($payload) && $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE)) {
+            if (! is_object($payload) && $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_INSTANCE)) {
                 $sourcePayload = $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_INSTANCE);
             }
 
@@ -80,7 +86,7 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
         }
         $metadata = $message->getHeaders()->headers();
         foreach ($this->metadataIdentifierMapping as $identifierName => $headerName) {
-            if (\array_key_exists($headerName, $metadata)) {
+            if (array_key_exists($headerName, $metadata)) {
                 $aggregateIdentifiers[$identifierName] = $metadata[$headerName];
             }
         }
@@ -128,18 +134,18 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
         $aggregateIdentifiers = AggregateIdMetadata::createFrom($message->getHeaders()->get(AggregateMessage::AGGREGATE_ID))->getIdentifiers();
 
         if ($this->metadataIdentifierMapping !== []) {
-            return \array_keys($this->metadataIdentifierMapping) === \array_keys($aggregateIdentifiers);
+            return array_keys($this->metadataIdentifierMapping) === array_keys($aggregateIdentifiers);
         }
 
         $payloadClass = $this->resolvePayloadClassType($message);
         $messageIdentifierMapping = $this->resolveMessageIdentifierMapping($payloadClass);
-        return \array_keys($messageIdentifierMapping) === \array_keys($aggregateIdentifiers);
+        return array_keys($messageIdentifierMapping) === array_keys($aggregateIdentifiers);
     }
 
     public function resolvePayloadClassType(Message $message): mixed
     {
         $payload = $message->getPayload();
-        if (\is_object($payload)) {
+        if (is_object($payload)) {
             return get_class($payload);
         } elseif (
             $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)
@@ -149,7 +155,7 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
         } elseif (count($this->perClassIdentifierMappings) === 1) {
             $type = array_key_first($this->perClassIdentifierMappings);
             if ($type === '') {
-                 return null;
+                return null;
             }
 
             return $type;
@@ -166,11 +172,11 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
             : MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($payload)->toString());
 
         if ($payloadTargetClass !== null && $this->conversionService->canConvert(
-                Type::createFromVariable($payload),
-                $mediaType,
-                $targetType = Type::create($payloadTargetClass),
-                MediaType::createApplicationXPHPWithTypeParameter($targetType)
-            )) {
+            Type::createFromVariable($payload),
+            $mediaType,
+            $targetType = Type::create($payloadTargetClass),
+            MediaType::createApplicationXPHPWithTypeParameter($targetType)
+        )) {
             $payload = $this->conversionService
                 ->convert(
                     $payload,

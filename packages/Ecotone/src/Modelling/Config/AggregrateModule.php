@@ -2,6 +2,8 @@
 
 namespace Ecotone\Modelling\Config;
 
+use function array_map;
+
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\Mapping\EventMapper;
@@ -711,7 +713,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
      */
     private function getClassDefinitionsForTypes(array $classNames): array
     {
-        return \array_map(
+        return array_map(
             fn (string $className) => $this->interfaceToCallRegistry->getClassDefinitionFor(Type::object($className)),
             $classNames
         );

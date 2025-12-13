@@ -33,6 +33,7 @@
             "(cd EventSourcing && composer update && php run_example.php)",
             "(cd EventProjecting/PartitionedProjection && composer update && php run_example.php)",
             "(cd WorkingWithAggregateDirectly && composer update && php run_example.php)",
+            "(cd MessageBroker && composer update && php publisher.php && php consumer.php)",
             "(cd Microservices && composer update && php run_example.php)",
             "(cd MicroservicesAdvanced && composer update && php run_example.php)",
             "(cd Schedule && composer update && php run_example.php)",

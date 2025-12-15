@@ -149,6 +149,36 @@ final class SingleTenantTest extends TestCase
             $ecotoneLite->getAggregate(Customer::class, 2)->getCustomerId()
         );
     }
+    public function test_parameter_function_in_expression_with_symfony_application(): void
+    {
+        $this->commandBus->sendWithRouting('calculator.multiply', ['value' => 5]);
+
+        $this->assertEquals(
+            50,
+            $this->queryBus->sendWithRouting('calculator.getResult')
+        );
+    }
+
+    public function test_parameter_function_with_env_variable_in_expression(): void
+    {
+        putenv('APP_MULTIPLIER=7');
+
+        // Need to reboot kernel to pick up new env variable
+        $kernel = new Kernel('dev', true);
+        $kernel->boot();
+        $app = $kernel->getContainer();
+
+        $commandBus = $app->get(CommandBus::class);
+        $queryBus = $app->get(QueryBus::class);
+
+        $commandBus->sendWithRouting('calculator.multiplyWithEnv', ['value' => 3]);
+
+        $this->assertEquals(
+            21,
+            $queryBus->sendWithRouting('calculator.getEnvResult')
+        );
+    }
+
     public function test_exception_handling_with_error_channel(): void
     {
         $application = new Application($this->kernel);

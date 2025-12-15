@@ -55,7 +55,7 @@ class SymfonyExpressionEvaluationAdapterTest extends TestCase
 
     public function test_parameter_function_in_expression()
     {
-        $handler = new class {
+        $handler = new class () {
             public int $result = 0;
 
             #[CommandHandler('calculate')]

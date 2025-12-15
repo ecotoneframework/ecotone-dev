@@ -40,4 +40,3 @@ final class CalculatorService
         return $this->envResult;
     }
 }
-

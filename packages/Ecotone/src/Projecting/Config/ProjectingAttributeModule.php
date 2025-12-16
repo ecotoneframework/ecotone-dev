@@ -80,14 +80,14 @@ class ProjectingAttributeModule implements AnnotationModule
 
             if ($projectionAttribute->isPolling() && $asynchronousChannelName !== null) {
                 throw ConfigurationException::create(
-                    "Projection '{$projectionAttribute->name}' cannot use both PollingProjection and #[Asynchronous] attributes. " .
+                    "Projection '{$projectionAttribute->name}' cannot use both polling running mode and #[Asynchronous] attributes. " .
                     'A projection must be either polling-based or event-driven (synchronous/asynchronous), not both.'
                 );
             }
 
             if ($projectionAttribute->isEventStreaming() && $asynchronousChannelName !== null) {
                 throw ConfigurationException::create(
-                    "Projection '{$projectionAttribute->name}' cannot use both EventStreamingProjection and #[Asynchronous] attributes. " .
+                    "Projection '{$projectionAttribute->name}' cannot use both event-streaming running mode and #[Asynchronous] attributes. " .
                     'Event streaming projections consume directly from streaming channels.'
                 );
             }

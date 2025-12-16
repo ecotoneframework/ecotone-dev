@@ -55,7 +55,7 @@ services:
       POSTGRES_USER: "ecotone"
       POSTGRES_PASSWORD: "secret"
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
   database-mysql:
     image: mysql:8.0
     environment:
@@ -64,7 +64,7 @@ services:
       MYSQL_PASSWORD: "secret"
       MYSQL_DATABASE: "ecotone"
     ports:
-      - "3306:3306"
+      - "${MYSQL_PORT:-3306}:3306"
   rabbitmq:
     build: ./.docker/rabbitmq
     environment:
@@ -84,7 +84,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - '6379:6379'
+      - '${REDIS_PORT:-6379}:6379'
   collector:
     image: otel/opentelemetry-collector-contrib:0.73.0
     networks:

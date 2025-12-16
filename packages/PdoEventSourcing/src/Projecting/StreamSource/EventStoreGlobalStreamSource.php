@@ -11,6 +11,7 @@ use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
@@ -25,23 +26,31 @@ use function strlen;
 
 class EventStoreGlobalStreamSource implements StreamSource
 {
-    private Connection $connection;
-
     public function __construct(
-        DbalConnectionFactory|ManagerRegistryConnectionFactory $connectionFactory,
+        private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
         private EcotoneClockInterface $clock,
         private string $proophStreamTable,
         private int $maxGapOffset = 5_000,
         private ?Duration $gapTimeout = null,
     ) {
-        $this->connection = $connectionFactory->createContext()->getDbalConnection();
+    }
+
+    private function getConnection(): Connection
+    {
+        if ($this->connectionFactory instanceof MultiTenantConnectionFactory) {
+            return $this->connectionFactory->getConnection();
+        }
+
+        return $this->connectionFactory->createContext()->getDbalConnection();
     }
 
     public function load(?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
     {
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
 
-        if (empty($lastPosition) && ! SchemaManagerCompatibility::tableExists($this->connection, $this->proophStreamTable)) {
+        $connection = $this->getConnection();
+
+        if (empty($lastPosition) && ! SchemaManagerCompatibility::tableExists($connection, $this->proophStreamTable)) {
             return new StreamPage([], '');
         }
 
@@ -52,7 +61,7 @@ class EventStoreGlobalStreamSource implements StreamSource
             false => ['', [], []],
         };
 
-        $query = $this->connection->executeQuery(<<<SQL
+        $query = $connection->executeQuery(<<<SQL
             SELECT no, event_name, payload, metadata, created_at
                 FROM {$this->proophStreamTable}
                 WHERE no > :position {$gapQueryPart}
@@ -79,12 +88,12 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);
 
-        $this->cleanGapsByTimeout($tracking);
+        $this->cleanGapsByTimeout($tracking, $connection);
 
         return new StreamPage($events, (string) $tracking);
     }
 
-    private function cleanGapsByTimeout(GapAwarePosition $tracking): void
+    private function cleanGapsByTimeout(GapAwarePosition $tracking, Connection $connection): void
     {
         if ($this->gapTimeout === null) {
             return;
@@ -98,7 +107,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         $maxGap = $gaps[count($gaps) - 1];
 
         // Query interleaved events in the gap range
-        $interleavedEvents = $this->connection->executeQuery(<<<SQL
+        $interleavedEvents = $connection->executeQuery(<<<SQL
             SELECT no, created_at
                 FROM {$this->proophStreamTable}
                 WHERE no >= :minPosition and no <= :maxPosition

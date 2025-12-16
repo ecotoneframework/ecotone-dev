@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting;
 
+use Ecotone\Messaging\Endpoint\Interceptor\SignalHandlerScope;
 use InvalidArgumentException;
 use Throwable;
 
@@ -26,47 +27,57 @@ class ProjectingManager
         }
     }
 
-    // This is the method that is linked to the event bus routing channel
+    /**
+     * This is the method that is linked to the event bus routing channel
+     */
     public function execute(?string $partitionKey = null, bool $manualInitialization = false): void
     {
-        $canInitialize = $manualInitialization || $this->automaticInitialization;
         do {
-            $transaction = $this->projectionStateStorage->beginTransaction();
-            $processedEvents = 0;
-            try {
-                $projectionState = $this->loadOrInitializePartitionState($partitionKey, $canInitialize);
-                if ($projectionState === null) {
-                    $transaction->commit();
-                    return;
-                }
+            $processedEvents = $this->executeSingleBatch($partitionKey, $manualInitialization || $this->automaticInitialization);
+        } while ($processedEvents > 0 && $terminationSignalReceived !== true);
+    }
 
-                $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKey);
-
-                $userState = $projectionState->userState;
-                foreach ($streamPage->events as $event) {
-                    $userState = $this->projectorExecutor->project($event, $userState);
-                    $processedEvents++;
-                }
-                if ($processedEvents > 0) {
-                    $this->projectorExecutor->flush();
-                }
-
-                $projectionState = $projectionState
-                    ->withLastPosition($streamPage->lastPosition)
-                    ->withUserState($userState);
-
-                if ($processedEvents === 0 && $canInitialize) {
-                    // If we are forcing execution and there are no new events, we still want to enable the projection if it was uninitialized
-                    $projectionState = $projectionState->withStatus(ProjectionInitializationStatus::INITIALIZED);
-                }
-
-                $this->projectionStateStorage->savePartition($projectionState);
+    /**
+     * @return int Number of processed events
+     */
+    private function executeSingleBatch(?string $partitionKey, bool $canInitialize): int
+    {
+        $transaction = $this->projectionStateStorage->beginTransaction();
+        try {
+            $projectionState = $this->loadOrInitializePartitionState($partitionKey, $canInitialize);
+            if ($projectionState === null) {
                 $transaction->commit();
-            } catch (Throwable $e) {
-                $transaction->rollBack();
-                throw $e;
+                return 0;
             }
-        } while ($processedEvents > 0);
+
+            $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKey);
+
+            $userState = $projectionState->userState;
+            $processedEvents = 0;
+            foreach ($streamPage->events as $event) {
+                $userState = $this->projectorExecutor->project($event, $userState);
+                $processedEvents++;
+            }
+            if ($processedEvents > 0) {
+                $this->projectorExecutor->flush();
+            }
+
+            $projectionState = $projectionState
+                ->withLastPosition($streamPage->lastPosition)
+                ->withUserState($userState);
+
+            if ($processedEvents === 0 && $canInitialize) {
+                // If we are forcing execution and there are no new events, we still want to enable the projection if it was uninitialized
+                $projectionState = $projectionState->withStatus(ProjectionInitializationStatus::INITIALIZED);
+            }
+
+            $this->projectionStateStorage->savePartition($projectionState);
+            $transaction->commit();
+            return $processedEvents;
+        } catch (Throwable $e) {
+            $transaction->rollBack();
+            throw $e;
+        }
     }
 
     public function loadState(?string $partitionKey = null): ProjectionPartitionState
@@ -90,8 +101,16 @@ class ProjectingManager
 
     public function backfill(): void
     {
+        $signals = new SignalHandlerScope();
+        $terminationSignalReceived = false;
+        $signals->onTerminationSignal(static function () use (&$terminationSignalReceived) {
+            $terminationSignalReceived = true;
+        });
         foreach ($this->partitionProvider->partitions() as $partition) {
             $this->execute($partition, true);
+            if ($terminationSignalReceived) {
+                break;
+            }
         }
     }
 

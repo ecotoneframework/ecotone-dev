@@ -58,6 +58,16 @@ class SignalHandlerScope
         pcntl_async_signals(true);
     }
 
+    public function onTerminationSignal(callable $signalHandler): void
+    {
+        if (! extension_loaded('pcntl')) {
+            return;
+        }
+        $this->register(SIGINT, $signalHandler);
+        $this->register(SIGTERM, $signalHandler);
+        $this->register(SIGQUIT, $signalHandler);
+    }
+
     /**
      * Cleanup signal handling by restoring original handlers and async signals state
      */

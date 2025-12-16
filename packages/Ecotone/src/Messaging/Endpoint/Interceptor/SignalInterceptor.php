@@ -34,13 +34,10 @@ class SignalInterceptor implements ConsumerInterceptor
             throw new RuntimeException('Signal handler already registered');
         }
         $this->signalHandlerScope = new SignalHandlerScope();
-        $stopClosure = function () {
-            $this->shouldBeStopped = true;
-        };
 
-        foreach ([SIGTERM, SIGQUIT, SIGINT] as $signal) {
-            $this->signalHandlerScope->register($signal, $stopClosure);
-        }
+        $this->signalHandlerScope->onTerminationSignal(function () {
+            $this->shouldBeStopped = true;
+        });
     }
 
     public function onShutdown(): void

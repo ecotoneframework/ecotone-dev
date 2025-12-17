@@ -31,6 +31,6 @@ class SignalInterceptor implements ConsumerInterceptor
 
     public function shouldBeStopped(): bool
     {
-        return $this->terminationSignalService->isTerminationRequested() ?? false;
+        return $this->terminationSignalService->isTerminationRequested();
     }
 }

@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Endpoint\Interceptor;
 
-use RuntimeException;
-
 /**
  * Global termination signal service that maintains a single termination flag
  * and handles signal registration for SIGINT, SIGTERM, and SIGQUIT.
@@ -29,7 +27,7 @@ class TerminationSignalService
 
     /**
      * Enable signal handling by registering handlers for termination signals.
-     * If already enabled, resets the termination flag (for lambda runtime support).
+     * If already enabled, resets the termination flag.
      */
     public function enable(): void
     {
@@ -37,7 +35,6 @@ class TerminationSignalService
             return;
         }
 
-        // If already enabled, reset the flag (for lambda runtime)
         if ($this->enabled) {
             $this->terminationRequested = false;
             return;
@@ -69,14 +66,14 @@ class TerminationSignalService
             return;
         }
 
-        $this->enabled = false;
-
         // Restore original handlers
         foreach ($this->originalHandlers as $signal => $handler) {
             pcntl_signal($signal, $handler);
         }
 
         $this->originalHandlers = [];
+        $this->enabled = false;
+        $this->terminationRequested = false;
     }
 
     /**

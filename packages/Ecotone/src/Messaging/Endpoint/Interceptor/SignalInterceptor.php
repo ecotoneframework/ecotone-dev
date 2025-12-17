@@ -21,16 +21,16 @@ class SignalInterceptor implements ConsumerInterceptor
 
     public function onStartup(): void
     {
-        $this->terminationSignalService?->enable();
+        $this->terminationSignalService->enable();
     }
 
     public function onShutdown(): void
     {
-        $this->terminationSignalService?->disable();
+        $this->terminationSignalService->disable();
     }
 
     public function shouldBeStopped(): bool
     {
-        return $this->terminationSignalService?->isTerminationRequested() ?? false;
+        return $this->terminationSignalService->isTerminationRequested() ?? false;
     }
 }

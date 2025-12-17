@@ -104,7 +104,7 @@ class ProjectingManager
     {
         foreach ($this->partitionProvider->partitions() as $partition) {
             $this->execute($partition, true);
-            if ($this->terminationSignalService->isTerminationRequested()) {
+            if ($this->terminationSignalService?->isTerminationRequested()) {
                 break;
             }
         }

@@ -5,6 +5,7 @@ namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\Interceptor\TerminationSignalService;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
@@ -26,6 +27,7 @@ class InterceptedConsumerRunner implements EndpointRunner
         private MessagePoller              $messagePoller,
         private PollingMetadata            $defaultPollingMetadata,
         private EcotoneClockInterface      $clock,
+        private TerminationSignalService   $terminationSignalService,
         private LoggingGateway             $logger,
         private MessagingEntrypoint        $messagingEntrypoint,
         private ExpressionEvaluationService $expressionEvaluationService,
@@ -41,7 +43,7 @@ class InterceptedConsumerRunner implements EndpointRunner
     {
         $this->logger->info('Message Consumer starting to consume messages');
         $pollingMetadata = $this->defaultPollingMetadata->applyExecutionPollingMetadata($executionPollingMetadata);
-        $interceptors = InterceptedConsumer::createInterceptorsForPollingMetadata($pollingMetadata, $this->logger, $this->clock);
+        $interceptors = InterceptedConsumer::createInterceptorsForPollingMetadata($pollingMetadata, $this->logger, $this->clock, $this->terminationSignalService);
         $interceptedGateway = new InterceptedGateway($this->gateway, $interceptors);
 
         $trigger = $this->createTrigger($pollingMetadata);

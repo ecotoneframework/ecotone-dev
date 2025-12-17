@@ -6,7 +6,6 @@ namespace Ecotone\Messaging\Endpoint\Interceptor;
 
 use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
 use Ecotone\Messaging\Endpoint\ConsumerInterceptorTrait;
-use RuntimeException;
 
 /**
  * licence Apache-2.0
@@ -16,13 +15,10 @@ class SignalInterceptor implements ConsumerInterceptor
     use ConsumerInterceptorTrait;
 
     public function __construct(
-        private ?TerminationSignalService $terminationSignalService = null,
+        private TerminationSignalService $terminationSignalService,
     ) {
     }
 
-    /**
-     * @inheritDoc
-     */
     public function onStartup(): void
     {
         $this->terminationSignalService?->enable();
@@ -33,9 +29,6 @@ class SignalInterceptor implements ConsumerInterceptor
         $this->terminationSignalService?->disable();
     }
 
-    /**
-     * @inheritDoc
-     */
     public function shouldBeStopped(): bool
     {
         return $this->terminationSignalService?->isTerminationRequested() ?? false;

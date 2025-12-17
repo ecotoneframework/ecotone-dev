@@ -22,6 +22,11 @@ class TerminationSignalService
      */
     private array $originalHandlers = [];
 
+    public function __destruct()
+    {
+        $this->disable();
+    }
+
     /**
      * Enable signal handling by registering handlers for termination signals.
      * If already enabled, resets the termination flag (for lambda runtime support).

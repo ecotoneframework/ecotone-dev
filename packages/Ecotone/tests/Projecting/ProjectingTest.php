@@ -16,6 +16,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\Interceptor\TerminationSignalService;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
@@ -640,7 +641,14 @@ class ProjectingTest extends TestCase
             Event::createWithType('event4', []),
             Event::createWithType('event5', []),
         ]);
-        $ecotone->triggerProjection('signals_projection');
-        self::assertCount(2, $projection->processedEvents);
+        /** @var TerminationSignalService $terminationSignalService */
+        $terminationSignalService = $ecotone->getServiceFromContainer(TerminationSignalService::class);
+        $terminationSignalService->enable();
+        try {
+            $ecotone->triggerProjection('signals_projection');
+            self::assertCount(2, $projection->processedEvents);
+        } finally {
+            $terminationSignalService->disable();
+        }
     }
 }

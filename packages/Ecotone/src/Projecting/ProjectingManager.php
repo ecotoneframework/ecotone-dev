@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting;
 
-use Ecotone\Messaging\Endpoint\Interceptor\SignalHandlerScope;
+use Ecotone\Messaging\Endpoint\Interceptor\TerminationSignalService;
 use InvalidArgumentException;
 use Throwable;
 
@@ -21,6 +21,7 @@ class ProjectingManager
         private string $projectionName,
         private int $batchSize = 1000,
         private bool $automaticInitialization = true,
+        private ?TerminationSignalService $terminationSignalService = null,
     ) {
         if ($batchSize < 1) {
             throw new InvalidArgumentException('Batch size must be at least 1');
@@ -34,7 +35,7 @@ class ProjectingManager
     {
         do {
             $processedEvents = $this->executeSingleBatch($partitionKey, $manualInitialization || $this->automaticInitialization);
-        } while ($processedEvents > 0 && $terminationSignalReceived !== true);
+        } while ($processedEvents > 0 && $this->terminationSignalService?->isTerminationRequested() !== true);
     }
 
     /**
@@ -101,14 +102,9 @@ class ProjectingManager
 
     public function backfill(): void
     {
-        $signals = new SignalHandlerScope();
-        $terminationSignalReceived = false;
-        $signals->onTerminationSignal(static function () use (&$terminationSignalReceived) {
-            $terminationSignalReceived = true;
-        });
         foreach ($this->partitionProvider->partitions() as $partition) {
             $this->execute($partition, true);
-            if ($terminationSignalReceived) {
+            if ($this->terminationSignalService->isTerminationRequested()) {
                 break;
             }
         }

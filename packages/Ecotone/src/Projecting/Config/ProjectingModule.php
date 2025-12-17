@@ -24,6 +24,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
+use Ecotone\Messaging\Endpoint\Interceptor\TerminationSignalService;
 use Ecotone\Projecting\InMemory\InMemoryProjectionRegistry;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
 use Ecotone\Projecting\NullPartitionProvider;
@@ -100,6 +101,7 @@ class ProjectingModule implements AnnotationModule
                     $projectionName,
                     $projectionBuilder->batchSize(), // batchSize
                     $projectionBuilder->automaticInitialization(),
+                    new Reference(TerminationSignalService::class),
                 ])
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);
@@ -115,7 +117,6 @@ class ProjectingModule implements AnnotationModule
                                     ? HeaderBuilder::create('partitionKey', $projectionBuilder->partitionHeader())
                                     : ValueBuilder::create('partitionKey', null),
                                 HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
-                                ValueBuilder::create('terminationSignalReceived', null),
                             ],
                         )
                     )

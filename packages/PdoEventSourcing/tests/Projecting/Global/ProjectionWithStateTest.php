@@ -79,6 +79,21 @@ final class ProjectionWithStateTest extends ProjectingTestCase
         self::assertEquals(2, $ecotone->sendQueryWithRouting('ticket.getClosedCount'));
     }
 
+    public function test_triggering_projection_with_state_synchronously(): void
+    {
+        $projection = $this->createCounterProjection();
+
+        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
+
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'))
+            ->sendCommand(new CloseTicket('123'));
+
+        self::assertEquals(1, $ecotone->sendQueryWithRouting('ticket.getClosedCount'));
+    }
+
     private function createCounterProjection(): object
     {
         return new #[GlobalProjection(self::NAME), FromStream(Ticket::class)] class() {

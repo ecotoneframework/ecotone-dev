@@ -11,10 +11,12 @@ use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Throwable;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\GlobalProjection;
@@ -119,6 +121,116 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
             ['ticket_id' => '6', 'ticket_type' => 'info'],
             ['ticket_id' => '7', 'ticket_type' => 'warning'],
         ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_asynchronous_projection_runs_on_default_testing_pollable_setup(): void
+    {
+        $projection = $this->createAsyncProjection();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
+            containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                ])),
+            runForProductionEventStore: true,
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel($projection::CHANNEL, true),
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+
+        $currentTime = microtime(true);
+        $ecotone->run($projection::CHANNEL);
+        $finishTime = microtime(true);
+
+        // less than ~100 ms (however connection and set up might take longer)
+        self::assertLessThan(100, ($finishTime - $currentTime) * 1000);
+
+        self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_asynchronous_projection_runs_on_default_testing_pollable_setup_with_dbal_channel(): void
+    {
+        $projection = $this->createAsyncProjection();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
+            containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                ])),
+            runForProductionEventStore: true,
+            enableAsynchronousProcessing: [
+                DbalBackedMessageChannelBuilder::create($projection::CHANNEL),
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+
+        $currentTime = microtime(true);
+        $ecotone->run($projection::CHANNEL);
+        $finishTime = microtime(true);
+
+        // around ~300 ms as default testing setup is 100ms (however connection and set up might take longer)
+        self::assertLessThan(300, ($finishTime - $currentTime) * 1000);
+
+        self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_triggering_projection_action_is_asynchronous(): void
+    {
+        $projection = $this->createAsyncProjection();
+
+        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection]);
+
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+
+        $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));
+        $ecotone->sendCommand(new RegisterTicket('2', 'Andrew', 'alert'));
+
+        $ecotone->run($projection::CHANNEL);
+        $ecotone->deleteProjection($projection::NAME);
+
+        self::assertFalse(
+            self::tableExists($this->getConnection(), 'in_progress_tickets'),
+            'Projection deletion for GlobalProjection is synchronous'
+        );
+
+        $ecotone->initializeProjection($projection::NAME);
+
+        self::assertEquals(
+            [],
+            $ecotone->sendQueryWithRouting('getInProgressTickets'),
+            'Projection should be empty after initialization but no error are thrown: the table exists. Initialization is synchronous.'
+        );
+
+        $ecotone->triggerProjection($projection::NAME);
+        $ecotone->run($projection::CHANNEL);
+
+        self::assertEquals(
+            [
+                ['ticket_id' => '1', 'ticket_type' => 'alert'],
+                ['ticket_id' => '2', 'ticket_type' => 'alert'],
+            ],
+            $ecotone->sendQueryWithRouting('getInProgressTickets')
+        );
     }
 
     private function createAsyncProjection(): object

@@ -18,6 +18,12 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\GlobalProjection;
 use Ecotone\Projecting\Attribute\Projection;
 use Ecotone\Test\LicenceTesting;
+use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
+use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
+use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
+use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
+use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
+use Test\Ecotone\EventSourcing\Fixture\Basket\Event\ProductWasAddedToBasket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
@@ -109,6 +115,56 @@ final class PollingProjectionTest extends ProjectingTestCase
         self::assertFalse(self::tableExists($this->getConnection(), 'in_progress_tickets'));
     }
 
+    public function test_building_multiple_polling_projection(): void
+    {
+        $basketListProjection = $this->createBasketListProjection();
+        $productsProjection = $this->createProductsProjection();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [
+                $basketListProjection::class,
+                $productsProjection::class,
+                Basket::class,
+                BasketEventConverter::class,
+                BasketWasCreated::class,
+                ProductWasAddedToBasket::class,
+            ],
+            containerOrAvailableServices: [
+                $basketListProjection,
+                $productsProjection,
+                new BasketEventConverter(),
+                self::getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                ])),
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->deleteProjection($basketListProjection::NAME);
+        $ecotone->deleteProjection($productsProjection::NAME);
+        $ecotone->initializeProjection($basketListProjection::NAME);
+        $ecotone->initializeProjection($productsProjection::NAME);
+
+        $ecotone->sendCommand(new CreateBasket('1000'));
+        $ecotone->triggerProjection($basketListProjection::NAME);
+
+        self::assertEquals(['1000' => []], $ecotone->sendQueryWithRouting('getALlBaskets'));
+        self::assertEquals([], $ecotone->sendQueryWithRouting('getALlProducts'));
+
+        $ecotone->sendCommand(new AddProduct('1000', 'milk'));
+
+        $ecotone->triggerProjection($basketListProjection::NAME);
+        $ecotone->triggerProjection($productsProjection::NAME);
+
+        self::assertEquals(['1000' => ['milk']], $ecotone->sendQueryWithRouting('getALlBaskets'));
+        self::assertEquals(['milk' => 1], $ecotone->sendQueryWithRouting('getALlProducts'));
+    }
+
     private function createPollingProjection(): object
     {
         $connection = $this->getConnection();
@@ -168,6 +224,91 @@ final class PollingProjectionTest extends ProjectingTestCase
                 $this->connection->executeStatement(<<<SQL
                     DELETE FROM in_progress_tickets
                 SQL);
+            }
+        };
+    }
+
+    private function createBasketListProjection(): object
+    {
+        return new #[GlobalProjection('basketList', runningMode: Projection::RUNNING_MODE_POLLING, endpointId: 'basketList_runner'), FromStream(Basket::BASKET_STREAM)] class() {
+            public const NAME = 'basketList';
+            public const ENDPOINT_ID = 'basketList_runner';
+            private array $basketsList = [];
+
+            #[EventHandler(BasketWasCreated::EVENT_NAME)]
+            public function addBasket(array $event): void
+            {
+                $this->basketsList[$event['id']] = [];
+            }
+
+            #[EventHandler(ProductWasAddedToBasket::EVENT_NAME)]
+            public function addProduct(ProductWasAddedToBasket $event): void
+            {
+                $this->basketsList[$event->getId()][] = $event->getProductName();
+            }
+
+            #[QueryHandler('getALlBaskets')]
+            public function getAllBaskets(): array
+            {
+                return $this->basketsList;
+            }
+
+            #[ProjectionInitialization]
+            public function initialization(): void
+            {
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->basketsList = [];
+            }
+
+            #[ProjectionReset]
+            public function reset(): void
+            {
+                $this->basketsList = [];
+            }
+        };
+    }
+
+    private function createProductsProjection(): object
+    {
+        return new #[GlobalProjection('products', runningMode: Projection::RUNNING_MODE_POLLING, endpointId: 'products_runner'), FromStream(Basket::BASKET_STREAM)] class() {
+            public const NAME = 'products';
+            public const ENDPOINT_ID = 'products_runner';
+            private array $products = [];
+
+            #[EventHandler(ProductWasAddedToBasket::EVENT_NAME)]
+            public function when(ProductWasAddedToBasket $event): void
+            {
+                if (array_key_exists($event->getProductName(), $this->products)) {
+                    ++$this->products[$event->getProductName()];
+                }
+                $this->products[$event->getProductName()] = 1;
+            }
+
+            #[QueryHandler('getALlProducts')]
+            public function getAllProducts(): array
+            {
+                return $this->products;
+            }
+
+            #[ProjectionInitialization]
+            public function initialization(): void
+            {
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->products = [];
+            }
+
+            #[ProjectionReset]
+            public function reset(): void
+            {
+                $this->products = [];
             }
         };
     }

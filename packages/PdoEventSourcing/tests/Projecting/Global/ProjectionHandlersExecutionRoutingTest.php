@@ -71,11 +71,27 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
         );
     }
 
-    public function test_projection_with_multiple_handlers_for_same_event(): void
+    public function test_projection_with_multiple_handlers_for_different_events(): void
     {
-        $this->markTestSkipped(
-            'The new GlobalProjection system does not support multiple handlers for the same event. ' .
-            'The RouterProcessor is configured with single route only mode.'
+        $projection = $this->getProjectionWithMultipleHandlers();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [\get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
+            containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->sendCommandWithRoutingKey('create', '123');
+
+        // The projection has two handlers - one for object routing (AnEvent) and one for a different named event.
+        // Only the object handler should be triggered for AnEvent.
+        self::assertEquals(
+            [new AnEvent('123')],
+            $projection->events,
+            'Projection should route event to the correct handler based on type'
         );
     }
 
@@ -99,6 +115,25 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
             #[EventHandler('test.*')]
             public function onEvent(array $event): void
+            {
+                $this->events[] = $event;
+            }
+        };
+    }
+
+    private function getProjectionWithMultipleHandlers(): object
+    {
+        return new #[GlobalProjection('projection_with_multiple_handlers'), FromStream(AnAggregate::STREAM_NAME)] class {
+            public array $events = [];
+
+            #[EventHandler]
+            public function onAnEvent(AnEvent $event): void
+            {
+                $this->events[] = $event;
+            }
+
+            #[EventHandler('other.event')]
+            public function onOtherEvent(array $event): void
             {
                 $this->events[] = $event;
             }

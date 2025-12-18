@@ -11,7 +11,6 @@ use Attribute;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
 use Ecotone\Messaging\Config\ConfigurationException;
 
-#[Attribute]
 abstract class Projection extends StreamBasedSource
 {
     public const RUNNING_MODE_POLLING = 'polling';

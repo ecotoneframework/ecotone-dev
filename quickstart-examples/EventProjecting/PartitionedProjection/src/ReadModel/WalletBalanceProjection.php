@@ -19,7 +19,7 @@ use Ecotone\Projecting\Attribute\GlobalProjection;
 use Ecotone\Projecting\Attribute\PartitionedProjection;
 use Ecotone\Projecting\Attribute\Projection;
 
-#[PartitionedProjection(self::NAME, partitionHeaderName: 'aggregate.id')]
+#[PartitionedProjection(self::NAME)]
 #[FromStream('wallet_stream', Wallet::class)]
 #[Asynchronous('async_projection')]
 class WalletBalanceProjection

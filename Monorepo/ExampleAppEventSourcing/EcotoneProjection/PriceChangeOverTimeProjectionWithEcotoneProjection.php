@@ -11,7 +11,7 @@ use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
 use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
 use Monorepo\ExampleAppEventSourcing\Common\PriceChange;
 
-#[\Ecotone\Projecting\Attribute\Projection("price_change_over_time", null)]
+#[\Ecotone\Projecting\Attribute\GlobalProjection("price_change_over_time")]
 class PriceChangeOverTimeProjectionWithEcotoneProjection
 {
     public const NAME = "price_change_over_time";

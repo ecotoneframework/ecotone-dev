@@ -32,12 +32,13 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
+use Ecotone\Projecting\Attribute\CustomScopeConfiguration;
 use Ecotone\Projecting\Attribute\GlobalScopeConfiguration;
 use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionBatchSize;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\Attribute\StreamingProjection;
+use Ecotone\Projecting\Attribute\Streaming;
 use Ecotone\Projecting\EventStoreAdapter\PollingProjectionChannelAdapter;
 use Ecotone\Projecting\EventStoreAdapter\StreamingProjectionMessageHandler;
 use LogicException;
@@ -78,18 +79,22 @@ class ProjectingAttributeModule implements AnnotationModule
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, ProjectionV2::class);
             $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBatchSize::class);
             $pollingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Polling::class);
-            $streamingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, StreamingProjection::class);
+            $streamingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Streaming::class);
             $globalScopeConfigAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, GlobalScopeConfiguration::class);
+            $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, CustomScopeConfiguration::class);
+
+            // Determine partitionHeaderName from CustomScopeStrategy attribute
+            $partitionHeaderName = $customScopeStrategyAttribute?->partitionHeaderName;
 
             // Determine automaticInitialization:
             // - For aggregate scope (partitioned), always true
             // - For global scope, use GlobalScopeConfiguration attribute or default to true
-            $isAggregateScope = $projectionAttribute->partitionHeaderName !== null;
+            $isAggregateScope = $partitionHeaderName !== null;
             $automaticInitialization = $isAggregateScope
                 ? true
                 : ($globalScopeConfigAttribute?->automaticInitialization ?? true);
 
-            $projectionBuilder = new EcotoneProjectionExecutorBuilder($projectionAttribute->name, $projectionAttribute->partitionHeaderName, $automaticInitialization, $namedEvents, batchSize: $batchSizeAttribute?->batchSize);
+            $projectionBuilder = new EcotoneProjectionExecutorBuilder($projectionAttribute->name, $partitionHeaderName, $automaticInitialization, $namedEvents, batchSize: $batchSizeAttribute?->batchSize);
 
             $asynchronousChannelName = self::getProjectionAsynchronousChannel($annotationRegistrationService, $projectionClassName);
             $isPolling = $pollingAttribute !== null;

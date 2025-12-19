@@ -19,6 +19,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
+use Ecotone\Projecting\Attribute\CustomScopeConfiguration;
 use Ecotone\Projecting\Attribute\GlobalScopeConfiguration;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
@@ -66,7 +67,7 @@ class ProjectingTest extends TestCase
     public function test_partitioned_projection(): void
     {
         // Given a partitioned projection
-        $projection = new #[ProjectionV2('test', partitionHeaderName: 'partitionHeader')] class {
+        $projection = new #[ProjectionV2('test'), CustomScopeConfiguration('partitionHeader')] class {
             public array $handledEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -99,7 +100,7 @@ class ProjectingTest extends TestCase
     public function test_asynchronous_partitioned_projection(): void
     {
         // Given a partitioned async projection
-        $projection = new #[ProjectionV2('test', partitionHeaderName: 'partitionHeader'), Asynchronous('async')] class {
+        $projection = new #[ProjectionV2('test'), CustomScopeConfiguration('partitionHeader'), Asynchronous('async')] class {
             public array $handledEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -425,7 +426,7 @@ class ProjectingTest extends TestCase
 
     public function test_projection_with_partitioned_events(): void
     {
-        $projection = new #[ProjectionV2('partitioned_auto_projection', partitionHeaderName: 'tenantId')] class {
+        $projection = new #[ProjectionV2('partitioned_auto_projection'), CustomScopeConfiguration('tenantId')] class {
             public const TICKET_CREATED = 'ticket.created';
             public array $projectedEvents = [];
             public int $initCallCount = 0;

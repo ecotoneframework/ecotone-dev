@@ -15,7 +15,7 @@ use Ecotone\Modelling\Config\Routing\RoutingEvent;
 use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
 use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\Attribute\StreamingProjection;
+use Ecotone\Projecting\Attribute\Streaming;
 
 /**
  * This routing extension is responsible for changing destination channel to projection triggering channel
@@ -37,7 +37,7 @@ class ProjectingModuleRoutingExtension implements RoutingEventHandler
             /** @var ProjectionV2 $projectionAttribute */
             $projectionAttribute = $event->getRegistration()->getClassAnnotationsWithType(ProjectionV2::class)[0];
             $isPolling = $registration->hasAnnotation(Polling::class);
-            $isEventStreaming = $registration->hasAnnotation(StreamingProjection::class);
+            $isEventStreaming = $registration->hasAnnotation(Streaming::class);
 
             // Event-driven projections (not polling and not event-streaming) should route to projection triggering channel
             if (! $isPolling && ! $isEventStreaming) {

@@ -15,7 +15,7 @@ use Attribute;
  * This attribute should be combined with #[ProjectionV2] attribute.
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-class StreamingProjection
+class Streaming
 {
     public function __construct(
         public readonly string $channelName,

@@ -19,6 +19,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Projecting\Attribute\CustomScopeConfiguration;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
@@ -231,7 +232,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME, partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), Asynchronous(self::CHANNEL), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class($connection) {
+        return new #[ProjectionV2(self::NAME), CustomScopeConfiguration(MessageHeaders::EVENT_AGGREGATE_ID), Asynchronous(self::CHANNEL), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class($connection) {
             public const NAME = 'async_ticket_list_partitioned';
             public const CHANNEL = 'async_projection_partitioned';
 

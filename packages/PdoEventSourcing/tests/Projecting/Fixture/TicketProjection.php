@@ -10,12 +10,12 @@ namespace Test\Ecotone\EventSourcing\Projecting\Fixture;
 use Ecotone\EventSourcing\Attribute\ProjectionState;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\PartitionedProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketUnassigned;
 
-#[PartitionedProjection(self::NAME, MessageHeaders::EVENT_AGGREGATE_ID)]
+#[ProjectionV2(self::NAME, partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID)]
 class TicketProjection
 {
     public const NAME = 'ticket_projection';

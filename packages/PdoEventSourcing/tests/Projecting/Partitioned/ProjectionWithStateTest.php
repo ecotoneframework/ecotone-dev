@@ -16,7 +16,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\PartitionedProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -123,7 +123,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
 
     private function createCounterProjection(Connection $connection): object
     {
-        return new #[PartitionedProjection(self::NAME, partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class($connection) {
+        return new #[ProjectionV2(self::NAME, partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class($connection) {
             public const NAME = 'ticket_counter_partitioned';
 
             public function __construct(private Connection $connection) {}

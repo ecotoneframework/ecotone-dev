@@ -19,7 +19,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\PartitionedProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -35,10 +35,10 @@ use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdate
 use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdatedConverter;
 
 /**
- * Tests for emitting events from PartitionedProjection handlers.
+ * Tests for emitting events from ProjectionV2 handlers.
  *
  * EventStreamEmitter is a general EventSourcing feature that can be used with any event handler,
- * including PartitionedProjection handlers. It allows projections to emit events to other streams.
+ * including ProjectionV2 handlers. It allows projections to emit events to other streams.
  *
  * @internal
  */
@@ -152,7 +152,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjection(): object
     {
-        return new #[PartitionedProjection('partitioned_emitting_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class() {
+        return new #[ProjectionV2('partitioned_emitting_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class() {
             private const STREAM_NAME = 'notifications_stream';
             private array $tickets = [];
 
@@ -208,7 +208,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjectionWithLinkToProjectionStream(): object
     {
-        return new #[PartitionedProjection('partitioned_emitting_linked_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class() {
+        return new #[ProjectionV2('partitioned_emitting_linked_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class() {
             private const STREAM_NAME = 'projection-partitioned_emitting_linked_projection';
             private array $tickets = [];
 

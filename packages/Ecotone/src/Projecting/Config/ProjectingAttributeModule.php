@@ -32,9 +32,12 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
-use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\GlobalScopeConfiguration;
+use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionBatchSize;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
+use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Projecting\Attribute\StreamingProjection;
 use Ecotone\Projecting\EventStoreAdapter\PollingProjectionChannelAdapter;
 use Ecotone\Projecting\EventStoreAdapter\StreamingProjectionMessageHandler;
 use LogicException;
@@ -71,23 +74,37 @@ class ProjectingAttributeModule implements AnnotationModule
         $projectionBuilders = [];
         $pollingProjections = [];
         $eventStreamingProjections = [];
-        foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
-            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
+        foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
+            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, ProjectionV2::class);
             $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBatchSize::class);
-            $projectionBuilder = new EcotoneProjectionExecutorBuilder($projectionAttribute->name, $projectionAttribute->partitionHeaderName, $projectionAttribute->automaticInitialization, $namedEvents, batchSize: $batchSizeAttribute?->batchSize);
+            $pollingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Polling::class);
+            $streamingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, StreamingProjection::class);
+            $globalScopeConfigAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, GlobalScopeConfiguration::class);
+
+            // Determine automaticInitialization:
+            // - For aggregate scope (partitioned), always true
+            // - For global scope, use GlobalScopeConfiguration attribute or default to true
+            $isAggregateScope = $projectionAttribute->partitionHeaderName !== null;
+            $automaticInitialization = $isAggregateScope
+                ? true
+                : ($globalScopeConfigAttribute?->automaticInitialization ?? true);
+
+            $projectionBuilder = new EcotoneProjectionExecutorBuilder($projectionAttribute->name, $projectionAttribute->partitionHeaderName, $automaticInitialization, $namedEvents, batchSize: $batchSizeAttribute?->batchSize);
 
             $asynchronousChannelName = self::getProjectionAsynchronousChannel($annotationRegistrationService, $projectionClassName);
+            $isPolling = $pollingAttribute !== null;
+            $isEventStreaming = $streamingAttribute !== null;
 
-            if ($projectionAttribute->isPolling() && $asynchronousChannelName !== null) {
+            if ($isPolling && $asynchronousChannelName !== null) {
                 throw ConfigurationException::create(
-                    "Projection '{$projectionAttribute->name}' cannot use both polling running mode and #[Asynchronous] attributes. " .
+                    "Projection '{$projectionAttribute->name}' cannot use both #[Polling] and #[Asynchronous] attributes. " .
                     'A projection must be either polling-based or event-driven (synchronous/asynchronous), not both.'
                 );
             }
 
-            if ($projectionAttribute->isEventStreaming() && $asynchronousChannelName !== null) {
+            if ($isEventStreaming && $asynchronousChannelName !== null) {
                 throw ConfigurationException::create(
-                    "Projection '{$projectionAttribute->name}' cannot use both event-streaming running mode and #[Asynchronous] attributes. " .
+                    "Projection '{$projectionAttribute->name}' cannot use both #[StreamingProjection] and #[Asynchronous] attributes. " .
                     'Event streaming projections consume directly from streaming channels.'
                 );
             }
@@ -96,13 +113,13 @@ class ProjectingAttributeModule implements AnnotationModule
                 $projectionBuilder->setAsyncChannel($asynchronousChannelName);
             }
 
-            if ($projectionAttribute->isPolling()) {
-                $pollingProjections[$projectionAttribute->name] = $projectionAttribute->getEndpointId();
+            if ($isPolling) {
+                $pollingProjections[$projectionAttribute->name] = $pollingAttribute->endpointId;
             }
 
-            if ($projectionAttribute->isEventStreaming()) {
+            if ($isEventStreaming) {
                 $eventStreamingProjections[$projectionAttribute->name] = [
-                    'streamingChannelName' => $projectionAttribute->streamingChannelName,
+                    'streamingChannelName' => $streamingAttribute->channelName,
                     'endpointId' => $projectionAttribute->name,
                     'projectionBuilder' => $projectionBuilder,
                 ];
@@ -113,20 +130,20 @@ class ProjectingAttributeModule implements AnnotationModule
 
         /** @var array<string, EcotoneProjectionExecutorBuilder> $projectionBuilders */
         $lifecycleHandlers = [];
-        foreach ($annotationRegistrationService->findCombined(Projection::class, EventHandler::class) as $projectionEventHandler) {
-            /** @var Projection $projectionAttribute */
+        foreach ($annotationRegistrationService->findCombined(ProjectionV2::class, EventHandler::class) as $projectionEventHandler) {
+            /** @var ProjectionV2 $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
             $projectionBuilder = $projectionBuilders[$projectionAttribute->name] ?? throw new LogicException();
             $projectionBuilder->addEventHandler($projectionEventHandler);
         }
 
         $lifecycleAnnotations = array_merge(
-            $annotationRegistrationService->findCombined(Projection::class, ProjectionInitialization::class),
-            $annotationRegistrationService->findCombined(Projection::class, ProjectionDelete::class),
-            $annotationRegistrationService->findCombined(Projection::class, ProjectionFlush::class),
+            $annotationRegistrationService->findCombined(ProjectionV2::class, ProjectionInitialization::class),
+            $annotationRegistrationService->findCombined(ProjectionV2::class, ProjectionDelete::class),
+            $annotationRegistrationService->findCombined(ProjectionV2::class, ProjectionFlush::class),
         );
         foreach ($lifecycleAnnotations as $lifecycleAnnotation) {
-            /** @var Projection $projectionAttribute */
+            /** @var ProjectionV2 $projectionAttribute */
             $projectionAttribute = $lifecycleAnnotation->getAnnotationForClass();
             $projectionBuilder = $projectionBuilders[$projectionAttribute->name] ?? throw new LogicException();
             $projectionReferenceName = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $lifecycleAnnotation->getClassName());

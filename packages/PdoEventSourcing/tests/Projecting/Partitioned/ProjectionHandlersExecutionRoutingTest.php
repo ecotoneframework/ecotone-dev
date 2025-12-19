@@ -13,7 +13,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\PartitionedProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -98,7 +98,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $projection = new #[PartitionedProjection('partitioned_projection_with_multiple_handlers', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
+        $projection = new #[ProjectionV2('partitioned_projection_with_multiple_handlers', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -134,7 +134,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithObjectRouting(): object
     {
-        return new #[PartitionedProjection('partitioned_projection_with_object_routing', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
+        return new #[ProjectionV2('partitioned_projection_with_object_routing', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -147,7 +147,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithRegexRouting(): object
     {
-        return new #[PartitionedProjection('partitioned_projection_with_regex_routing', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
+        return new #[ProjectionV2('partitioned_projection_with_regex_routing', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler('test.*')]
@@ -160,7 +160,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithMultipleHandlers(): object
     {
-        return new #[PartitionedProjection('partitioned_projection_with_multiple_handlers', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
+        return new #[ProjectionV2('partitioned_projection_with_multiple_handlers', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: AnAggregate::STREAM_NAME, aggregateType: AnAggregate::class)] class {
             public array $events = [];
 
             #[EventHandler]

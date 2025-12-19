@@ -17,7 +17,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\QueryBus;
-use Ecotone\Projecting\Attribute\GlobalProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\BasketMediaTypeConverter;
@@ -208,7 +208,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[GlobalProjection(self::NAME), FromStream(Ticket::class)] class($connection) {
+        return new #[ProjectionV2(self::NAME), FromStream(Ticket::class)] class($connection) {
             public const NAME = 'in_progress_ticket_list';
 
             public function __construct(private Connection $connection) {}

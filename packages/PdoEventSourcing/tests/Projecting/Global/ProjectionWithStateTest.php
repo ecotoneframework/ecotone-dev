@@ -12,7 +12,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\GlobalProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -96,7 +96,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
 
     private function createCounterProjection(): object
     {
-        return new #[GlobalProjection(self::NAME), FromStream(Ticket::class)] class() {
+        return new #[ProjectionV2(self::NAME), FromStream(Ticket::class)] class() {
             public const NAME = 'ticket_counter';
 
             private int $ticketCount = 0;

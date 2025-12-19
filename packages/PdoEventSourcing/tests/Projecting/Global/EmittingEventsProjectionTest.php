@@ -19,7 +19,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\GlobalProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -35,10 +35,10 @@ use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdate
 use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdatedConverter;
 
 /**
- * Tests for emitting events from GlobalProjection handlers.
+ * Tests for emitting events from ProjectionV2 handlers.
  *
  * EventStreamEmitter is a general EventSourcing feature that can be used with any event handler,
- * including GlobalProjection handlers. It allows projections to emit events to other streams.
+ * including ProjectionV2 handlers. It allows projections to emit events to other streams.
  *
  * @internal
  */
@@ -151,12 +151,12 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
     }
 
     /**
-     * This test is skipped for the new GlobalProjection system.
+     * This test is skipped for the new ProjectionV2 system.
      *
      * The old Prooph-based projection system sets PROJECTION_IS_REBUILDING header to true during replay,
      * which causes the EventStreamEmitter to filter out events from being published to the event bus.
      *
-     * The new GlobalProjection system doesn't have a concept of "rebuilding" mode - it always sets
+     * The new ProjectionV2 system doesn't have a concept of "rebuilding" mode - it always sets
      * PROJECTION_IS_REBUILDING to false. This means events are always published to the event bus
      * during projection execution, including during replay.
      *
@@ -167,7 +167,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
     public function test_projection_emitting_events_should_not_republished_in_case_replaying_projection(): void
     {
         $this->markTestSkipped(
-            'The new GlobalProjection system does not support PROJECTION_IS_REBUILDING mode. ' .
+            'The new ProjectionV2 system does not support PROJECTION_IS_REBUILDING mode. ' .
             'Events are always published to the event bus during projection execution. ' .
             'See test docblock for details.'
         );
@@ -175,7 +175,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjection(): object
     {
-        return new #[GlobalProjection('emitting_projection'), FromStream(Ticket::class)] class() {
+        return new #[ProjectionV2('emitting_projection'), FromStream(Ticket::class)] class() {
             private const STREAM_NAME = 'notifications_stream';
             private array $tickets = [];
 
@@ -231,7 +231,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjectionWithLinkToProjectionStream(): object
     {
-        return new #[GlobalProjection('emitting_linked_projection'), FromStream(Ticket::class)] class() {
+        return new #[ProjectionV2('emitting_linked_projection'), FromStream(Ticket::class)] class() {
             private const STREAM_NAME = 'projection-emitting_linked_projection';
             private array $tickets = [];
 

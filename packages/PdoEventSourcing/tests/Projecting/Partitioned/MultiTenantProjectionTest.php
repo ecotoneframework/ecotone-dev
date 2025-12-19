@@ -24,7 +24,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\PartitionedProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
@@ -37,7 +37,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
 /**
- * Multi-tenant projection tests using the new PartitionedProjection system.
+ * Multi-tenant projection tests using the new ProjectionV2 system.
  * This test uses the tenant header as the partition key.
  *
  * @internal
@@ -196,7 +196,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     private function createMultiTenantProjection(): object
     {
-        return new #[PartitionedProjection('multi_tenant_partitioned_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class() {
+        return new #[ProjectionV2('multi_tenant_partitioned_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class() {
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
             {
@@ -257,7 +257,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     private function createAsyncMultiTenantProjection(): object
     {
-        return new #[Asynchronous('async_projection_channel'), PartitionedProjection('async_multi_tenant_partitioned_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class() {
+        return new #[Asynchronous('async_projection_channel'), ProjectionV2('async_multi_tenant_partitioned_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class() {
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
             {

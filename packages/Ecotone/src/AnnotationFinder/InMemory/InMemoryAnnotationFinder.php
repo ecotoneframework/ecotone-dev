@@ -131,10 +131,10 @@ class InMemoryAnnotationFinder implements AnnotationFinder
      */
     public function findCombined(string $classAnnotationName, string $methodAnnotationClassName): array
     {
-        $classes = $this->getAllClassesWithAnnotation($classAnnotationName);
+        $classesWithAnnotations = $this->getAllClassesWithAnnotation($classAnnotationName);
 
         $registrations = [];
-        foreach ($classes as $class) {
+        foreach ($classesWithAnnotations as ['class' => $class, 'annotation' => $classAnnotation]) {
             if (! isset($this->annotationsForClass[$class])) {
                 continue;
             }
@@ -143,7 +143,7 @@ class InMemoryAnnotationFinder implements AnnotationFinder
                 foreach ($methodAnnotations as $methodAnnotation) {
                     if (get_class($methodAnnotation) == $methodAnnotationClassName  || $methodAnnotation instanceof $methodAnnotationClassName) {
                         $registrations[] = AnnotatedDefinition::create(
-                            $this->annotationsForClass[self::CLASS_ANNOTATIONS][$class][$classAnnotationName],
+                            $classAnnotation,
                             $methodAnnotation,
                             $class,
                             $methodName,
@@ -158,18 +158,26 @@ class InMemoryAnnotationFinder implements AnnotationFinder
         return $registrations;
     }
 
+    /**
+     * @return array<array{class: string, annotation: object|null}>
+     */
     private function getAllClassesWithAnnotation(string $annotationClassName): array
     {
         if ($annotationClassName === '*') {
-            return array_keys($this->annotationsForClass[self::CLASS_ANNOTATIONS]);
+            $result = [];
+            foreach (array_keys($this->annotationsForClass[self::CLASS_ANNOTATIONS]) as $className) {
+                $result[] = ['class' => $className, 'annotation' => null];
+            }
+            return $result;
         }
 
         $classes = [];
 
         foreach ($this->annotationsForClass[self::CLASS_ANNOTATIONS] as $className => $annotations) {
             foreach ($annotations as $annotation) {
-                if (get_class($annotation) == $annotationClassName) {
-                    $classes[] = $className;
+                if ($annotation instanceof $annotationClassName) {
+                    $classes[] = ['class' => $className, 'annotation' => $annotation];
+                    break; // Only add each class once
                 }
             }
         }
@@ -186,8 +194,9 @@ class InMemoryAnnotationFinder implements AnnotationFinder
 
         foreach ($this->annotationsForClass[self::CLASS_ANNOTATIONS] as $className => $annotations) {
             foreach ($annotations as $annotation) {
-                if (get_class($annotation) == $annotationClassName) {
+                if ($annotation instanceof $annotationClassName) {
                     $classes[] = $className;
+                    break; // Only add each class once
                 }
             }
         }
@@ -200,10 +209,10 @@ class InMemoryAnnotationFinder implements AnnotationFinder
      */
     public function findAnnotatedMethods(string $methodAnnotationClassName): array
     {
-        $classes = $this->getAllClassesWithAnnotation('*');
+        $classesWithAnnotations = $this->getAllClassesWithAnnotation('*');
 
         $registrations = [];
-        foreach ($classes as $class) {
+        foreach ($classesWithAnnotations as ['class' => $class]) {
             if (! isset($this->annotationsForClass[$class])) {
                 continue;
             }

@@ -15,8 +15,8 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\GlobalProjection;
-use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\Polling;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
@@ -169,7 +169,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[GlobalProjection(self::NAME, runningMode: Projection::RUNNING_MODE_POLLING, endpointId: self::ENDPOINT_ID), FromStream(Ticket::class)] class($connection) {
+        return new #[ProjectionV2(self::NAME), Polling(self::ENDPOINT_ID), FromStream(Ticket::class)] class($connection) {
             public const NAME = 'polling_ticket_list';
             public const ENDPOINT_ID = 'polling_ticket_list_runner';
 
@@ -230,7 +230,7 @@ final class PollingProjectionTest extends ProjectingTestCase
 
     private function createBasketListProjection(): object
     {
-        return new #[GlobalProjection('basketList', runningMode: Projection::RUNNING_MODE_POLLING, endpointId: 'basketList_runner'), FromStream(Basket::BASKET_STREAM)] class() {
+        return new #[ProjectionV2('basketList'), Polling('basketList_runner'), FromStream(Basket::BASKET_STREAM)] class() {
             public const NAME = 'basketList';
             public const ENDPOINT_ID = 'basketList_runner';
             private array $basketsList = [];
@@ -274,7 +274,7 @@ final class PollingProjectionTest extends ProjectingTestCase
 
     private function createProductsProjection(): object
     {
-        return new #[GlobalProjection('products', runningMode: Projection::RUNNING_MODE_POLLING, endpointId: 'products_runner'), FromStream(Basket::BASKET_STREAM)] class() {
+        return new #[ProjectionV2('products'), Polling('products_runner'), FromStream(Basket::BASKET_STREAM)] class() {
             public const NAME = 'products';
             public const ENDPOINT_ID = 'products_runner';
             private array $products = [];

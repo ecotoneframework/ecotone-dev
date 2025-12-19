@@ -10,7 +10,7 @@ use PHPUnit\Framework\TestCase;
  * licence Enterprise
  * @internal
  *
- * SKIPPED: Gap detection in the new GlobalProjection system is handled differently.
+ * SKIPPED: Gap detection in the new ProjectionV2 system is handled differently.
  * The new system uses GapAwarePosition built into EventStoreGlobalStreamSource with maxGapOffset and gapTimeout parameters.
  * The old tests use ProjectionRunningConfiguration::OPTION_GAP_DETECTION with Prooph-specific GapDetection class.
  *
@@ -28,7 +28,7 @@ final class GapDetectionInSynchronousProjectionTest extends TestCase
     public function test_skipped_gap_detection_handled_differently_in_new_system(): void
     {
         $this->markTestSkipped(
-            'Gap detection in the new GlobalProjection system is handled differently. ' .
+            'Gap detection in the new ProjectionV2 system is handled differently. ' .
             'The new system uses GapAwarePosition built into EventStoreGlobalStreamSource. ' .
             'See GapAwarePositionTest.php and GapAwarePositionIntegrationTest.php for new gap detection tests.'
         );

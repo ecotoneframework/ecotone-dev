@@ -18,7 +18,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Modelling\Event;
-use Ecotone\Projecting\Attribute\GlobalProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
@@ -47,7 +47,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
     {
         self::$connectionFactory = self::getConnectionFactory();
         self::$clock = new StubUTCClock();
-        $projection = new #[GlobalProjection(DbalTicketProjection::NAME)] class (self::$connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2(DbalTicketProjection::NAME)] class (self::$connectionFactory->establishConnection()) extends DbalTicketProjection {
         };
         self::$projection = $projection;
         self::$ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(

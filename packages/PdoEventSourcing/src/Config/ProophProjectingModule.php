@@ -21,7 +21,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
 
 #[ModuleAnnotation]
@@ -38,7 +38,7 @@ class ProophProjectingModule implements AnnotationModule
         $extensions = [];
 
         foreach ($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
-            $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, Projection::class);
+            $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
             $streamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromStream::class);
 
             if (! $projectionAttribute || ! $streamAttribute) {

@@ -24,8 +24,8 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\GlobalProjection;
-use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\Polling;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
@@ -38,7 +38,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
 /**
- * Multi-tenant projection tests using the new GlobalProjection system.
+ * Multi-tenant projection tests using the new ProjectionV2 system.
  *
  * @internal
  */
@@ -240,7 +240,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     private function createMultiTenantProjection(): object
     {
-        return new #[GlobalProjection('multi_tenant_projection'), FromStream(Ticket::class)] class() {
+        return new #[ProjectionV2('multi_tenant_projection'), FromStream(Ticket::class)] class() {
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
             {
@@ -301,7 +301,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     private function createAsyncMultiTenantProjection(): object
     {
-        return new #[Asynchronous('async_projection_channel'), GlobalProjection('async_multi_tenant_projection'), FromStream(Ticket::class)] class() {
+        return new #[Asynchronous('async_projection_channel'), ProjectionV2('async_multi_tenant_projection'), FromStream(Ticket::class)] class() {
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
             {
@@ -362,7 +362,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     private function createPollingMultiTenantProjection(): object
     {
-        return new #[GlobalProjection('polling_multi_tenant_projection', runningMode: Projection::RUNNING_MODE_POLLING, endpointId: 'polling_multi_tenant_projection_runner'), FromStream(Ticket::class)] class() {
+        return new #[ProjectionV2('polling_multi_tenant_projection'), Polling('polling_multi_tenant_projection_runner'), FromStream(Ticket::class)] class() {
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
             {

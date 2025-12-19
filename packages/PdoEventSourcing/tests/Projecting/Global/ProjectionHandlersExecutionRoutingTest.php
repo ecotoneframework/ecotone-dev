@@ -12,7 +12,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\GlobalProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -97,7 +97,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $projection = new #[GlobalProjection('projection_with_multiple_handlers'), FromStream(AnAggregate::STREAM_NAME)] class {
+        $projection = new #[ProjectionV2('projection_with_multiple_handlers'), FromStream(AnAggregate::STREAM_NAME)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -133,7 +133,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithObjectRouting(): object
     {
-        return new #[GlobalProjection('projection_with_object_routing'), FromStream(AnAggregate::STREAM_NAME)] class {
+        return new #[ProjectionV2('projection_with_object_routing'), FromStream(AnAggregate::STREAM_NAME)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -146,7 +146,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithRegexRouting(): object
     {
-        return new #[GlobalProjection('projection_with_regex_routing'), FromStream(AnAggregate::STREAM_NAME)] class {
+        return new #[ProjectionV2('projection_with_regex_routing'), FromStream(AnAggregate::STREAM_NAME)] class {
             public array $events = [];
 
             #[EventHandler('test.*')]
@@ -159,7 +159,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithMultipleHandlers(): object
     {
-        return new #[GlobalProjection('projection_with_multiple_handlers'), FromStream(AnAggregate::STREAM_NAME)] class {
+        return new #[ProjectionV2('projection_with_multiple_handlers'), FromStream(AnAggregate::STREAM_NAME)] class {
             public array $events = [];
 
             #[EventHandler]

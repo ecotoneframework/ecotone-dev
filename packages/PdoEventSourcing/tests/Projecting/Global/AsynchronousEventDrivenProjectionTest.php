@@ -19,7 +19,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Throwable;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\GlobalProjection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -210,7 +210,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         self::assertFalse(
             self::tableExists($this->getConnection(), 'in_progress_tickets'),
-            'Projection deletion for GlobalProjection is synchronous'
+            'Projection deletion for ProjectionV2 is synchronous'
         );
 
         $ecotone->initializeProjection($projection::NAME);
@@ -237,7 +237,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[GlobalProjection(self::NAME), Asynchronous(self::CHANNEL), FromStream(Ticket::class)] class($connection) {
+        return new #[ProjectionV2(self::NAME), Asynchronous(self::CHANNEL), FromStream(Ticket::class)] class($connection) {
             public const NAME = 'async_ticket_list';
             public const CHANNEL = 'async_projection';
 

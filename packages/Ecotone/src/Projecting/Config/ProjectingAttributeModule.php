@@ -32,8 +32,8 @@ use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
-use Ecotone\Projecting\Attribute\CustomScopeConfiguration;
-use Ecotone\Projecting\Attribute\GlobalScopeConfiguration;
+use Ecotone\Projecting\Attribute\ProjectionScopeConfig;
+use Ecotone\Projecting\Attribute\ProjectionInitializationConfig;
 use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionBatchSize;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
@@ -80,8 +80,8 @@ class ProjectingAttributeModule implements AnnotationModule
             $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBatchSize::class);
             $pollingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Polling::class);
             $streamingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Streaming::class);
-            $globalScopeConfigAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, GlobalScopeConfiguration::class);
-            $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, CustomScopeConfiguration::class);
+            $globalScopeConfigAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionInitializationConfig::class);
+            $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionScopeConfig::class);
 
             // Determine partitionHeaderName from CustomScopeStrategy attribute
             $partitionHeaderName = $customScopeStrategyAttribute?->partitionHeaderName;

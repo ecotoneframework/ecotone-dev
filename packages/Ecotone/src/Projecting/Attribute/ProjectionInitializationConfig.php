@@ -10,11 +10,10 @@ namespace Ecotone\Projecting\Attribute;
 use Attribute;
 
 /**
- * Configuration for global scope projections.
  * This attribute allows configuring automatic initialization behavior.
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-class GlobalScopeConfiguration
+class ProjectionInitializationConfig
 {
     public function __construct(
         public readonly bool $automaticInitialization = true,

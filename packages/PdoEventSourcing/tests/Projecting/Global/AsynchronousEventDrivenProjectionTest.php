@@ -5,18 +5,17 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Throwable;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\ProjectionV2;
@@ -237,61 +236,63 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Asynchronous(self::CHANNEL), FromStream(Ticket::class)] class($connection) {
+        return new #[ProjectionV2(self::NAME), Asynchronous(self::CHANNEL), FromStream(Ticket::class)] class ($connection) {
             public const NAME = 'async_ticket_list';
             public const CHANNEL = 'async_projection';
 
-            public function __construct(private Connection $connection) {}
+            public function __construct(private Connection $connection)
+            {
+            }
 
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(): array
             {
                 return $this->connection->executeQuery(<<<SQL
-                    SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
-                SQL)->fetchAllAssociative();
+                        SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
+                    SQL)->fetchAllAssociative();
             }
 
             #[EventHandler]
             public function addTicket(TicketWasRegistered $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    INSERT INTO in_progress_tickets VALUES (?,?)
-                SQL, [$event->getTicketId(), $event->getTicketType()]);
+                        INSERT INTO in_progress_tickets VALUES (?,?)
+                    SQL, [$event->getTicketId(), $event->getTicketType()]);
             }
 
             #[EventHandler]
             public function closeTicket(TicketWasClosed $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets WHERE ticket_id = ?
-                SQL, [$event->getTicketId()]);
+                        DELETE FROM in_progress_tickets WHERE ticket_id = ?
+                    SQL, [$event->getTicketId()]);
             }
 
             #[ProjectionInitialization]
             public function initialization(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    CREATE TABLE IF NOT EXISTS in_progress_tickets (
-                        ticket_id VARCHAR(36) PRIMARY KEY,
-                        ticket_type VARCHAR(25)
-                    )
-                SQL);
+                        CREATE TABLE IF NOT EXISTS in_progress_tickets (
+                            ticket_id VARCHAR(36) PRIMARY KEY,
+                            ticket_type VARCHAR(25)
+                        )
+                    SQL);
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DROP TABLE IF EXISTS in_progress_tickets
-                SQL);
+                        DROP TABLE IF EXISTS in_progress_tickets
+                    SQL);
             }
 
             #[ProjectionReset]
             public function reset(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets
-                SQL);
+                        DELETE FROM in_progress_tickets
+                    SQL);
             }
         };
     }
@@ -315,4 +316,3 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         );
     }
 }
-

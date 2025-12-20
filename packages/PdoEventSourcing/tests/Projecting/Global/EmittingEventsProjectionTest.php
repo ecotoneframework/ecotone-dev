@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
-use Doctrine\DBAL\Connection;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -15,14 +14,17 @@ use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
+
+use function get_class;
+
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -50,7 +52,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $notificationService = new NotificationService();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [\get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
+            classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
                 $notificationService,
@@ -86,7 +88,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $notificationService = new NotificationService();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [\get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
+            classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
                 $notificationService,
@@ -120,7 +122,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $projection = $this->createEmittingProjectionWithLinkToProjectionStream();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [\get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
+            classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
             containerOrAvailableServices: [
                 $projection,
                 new TicketEventConverter(),
@@ -175,7 +177,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjection(): object
     {
-        return new #[ProjectionV2('emitting_projection'), FromStream(Ticket::class)] class() {
+        return new #[ProjectionV2('emitting_projection'), FromStream(Ticket::class)] class () {
             private const STREAM_NAME = 'notifications_stream';
             private array $tickets = [];
 
@@ -231,7 +233,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjectionWithLinkToProjectionStream(): object
     {
-        return new #[ProjectionV2('emitting_linked_projection'), FromStream(Ticket::class)] class() {
+        return new #[ProjectionV2('emitting_linked_projection'), FromStream(Ticket::class)] class () {
             private const STREAM_NAME = 'projection-emitting_linked_projection';
             private array $tickets = [];
 

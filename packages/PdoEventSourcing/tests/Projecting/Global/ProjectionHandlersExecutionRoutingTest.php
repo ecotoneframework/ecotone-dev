@@ -15,6 +15,10 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
+
+use function get_class;
+
+use InvalidArgumentException;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionHandlersExecutionRoutingTest\AnAggregate;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionHandlersExecutionRoutingTest\AnEvent;
@@ -30,7 +34,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
         $projection = $this->getProjectionWithObjectRouting();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [\get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
+            classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
@@ -52,7 +56,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
         $projection = $this->getProjectionWithRegexRouting();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [\get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
+            classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
@@ -76,7 +80,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
         $projection = $this->getProjectionWithMultipleHandlers();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [\get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
+            classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
@@ -95,7 +99,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     public function test_projection_having_same_event_registered_differently(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
 
         $projection = new #[ProjectionV2('projection_with_multiple_handlers'), FromStream(AnAggregate::STREAM_NAME)] class {
             public array $events = [];
@@ -114,7 +118,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
         };
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [\get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
+            classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
@@ -176,4 +180,3 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
         };
     }
 }
-

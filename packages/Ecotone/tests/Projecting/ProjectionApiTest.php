@@ -81,4 +81,3 @@ final class ProjectionApiTest extends TestCase
         );
     }
 }
-

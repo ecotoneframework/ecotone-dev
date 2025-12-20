@@ -19,6 +19,9 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\QueryBus;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
+
+use function get_class;
+
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\BasketMediaTypeConverter;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\TicketMediaTypeConverter;
@@ -118,7 +121,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $notificationHandler = $this->createNotificationEventHandler();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [$projection::class, \get_class($notificationHandler), Ticket::class, TicketEventConverter::class],
+            classesToResolve: [$projection::class, get_class($notificationHandler), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [$projection, $notificationHandler, new TicketEventConverter(), self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
@@ -187,7 +190,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
     private function createNotificationEventHandler(): object
     {
-        return new class() {
+        return new class () {
             private array $notifications = [];
 
             #[EventHandler]
@@ -208,60 +211,62 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), FromStream(Ticket::class)] class($connection) {
+        return new #[ProjectionV2(self::NAME), FromStream(Ticket::class)] class ($connection) {
             public const NAME = 'in_progress_ticket_list';
 
-            public function __construct(private Connection $connection) {}
+            public function __construct(private Connection $connection)
+            {
+            }
 
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(): array
             {
                 return $this->connection->executeQuery(<<<SQL
-                    SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
-                SQL)->fetchAllAssociative();
+                        SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
+                    SQL)->fetchAllAssociative();
             }
 
             #[EventHandler]
             public function addTicket(TicketWasRegistered $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    INSERT INTO in_progress_tickets VALUES (?,?)
-                SQL, [$event->getTicketId(), $event->getTicketType()]);
+                        INSERT INTO in_progress_tickets VALUES (?,?)
+                    SQL, [$event->getTicketId(), $event->getTicketType()]);
             }
 
             #[EventHandler]
             public function closeTicket(TicketWasClosed $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets WHERE ticket_id = ?
-                SQL, [$event->getTicketId()]);
+                        DELETE FROM in_progress_tickets WHERE ticket_id = ?
+                    SQL, [$event->getTicketId()]);
             }
 
             #[ProjectionInitialization]
             public function initialization(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    CREATE TABLE IF NOT EXISTS in_progress_tickets (
-                        ticket_id VARCHAR(36) PRIMARY KEY,
-                        ticket_type VARCHAR(25)
-                    )
-                SQL);
+                        CREATE TABLE IF NOT EXISTS in_progress_tickets (
+                            ticket_id VARCHAR(36) PRIMARY KEY,
+                            ticket_type VARCHAR(25)
+                        )
+                    SQL);
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DROP TABLE IF EXISTS in_progress_tickets
-                SQL);
+                        DROP TABLE IF EXISTS in_progress_tickets
+                    SQL);
             }
 
             #[ProjectionReset]
             public function reset(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets
-                SQL);
+                        DELETE FROM in_progress_tickets
+                    SQL);
             }
         };
     }
@@ -282,4 +287,3 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         );
     }
 }
-

@@ -137,60 +137,62 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class($connection) {
+        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
             public const NAME = 'in_progress_ticket_list_partitioned';
 
-            public function __construct(private Connection $connection) {}
+            public function __construct(private Connection $connection)
+            {
+            }
 
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(): array
             {
                 return $this->connection->executeQuery(<<<SQL
-                    SELECT * FROM in_progress_tickets_partitioned ORDER BY ticket_id ASC
-                SQL)->fetchAllAssociative();
+                        SELECT * FROM in_progress_tickets_partitioned ORDER BY ticket_id ASC
+                    SQL)->fetchAllAssociative();
             }
 
             #[EventHandler]
             public function addTicket(TicketWasRegistered $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    INSERT INTO in_progress_tickets_partitioned VALUES (?,?)
-                SQL, [$event->getTicketId(), $event->getTicketType()]);
+                        INSERT INTO in_progress_tickets_partitioned VALUES (?,?)
+                    SQL, [$event->getTicketId(), $event->getTicketType()]);
             }
 
             #[EventHandler]
             public function closeTicket(TicketWasClosed $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets_partitioned WHERE ticket_id = ?
-                SQL, [$event->getTicketId()]);
+                        DELETE FROM in_progress_tickets_partitioned WHERE ticket_id = ?
+                    SQL, [$event->getTicketId()]);
             }
 
             #[ProjectionInitialization]
             public function initialization(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    CREATE TABLE IF NOT EXISTS in_progress_tickets_partitioned (
-                        ticket_id VARCHAR(36) PRIMARY KEY,
-                        ticket_type VARCHAR(25)
-                    )
-                SQL);
+                        CREATE TABLE IF NOT EXISTS in_progress_tickets_partitioned (
+                            ticket_id VARCHAR(36) PRIMARY KEY,
+                            ticket_type VARCHAR(25)
+                        )
+                    SQL);
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DROP TABLE IF EXISTS in_progress_tickets_partitioned
-                SQL);
+                        DROP TABLE IF EXISTS in_progress_tickets_partitioned
+                    SQL);
             }
 
             #[ProjectionReset]
             public function reset(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets_partitioned
-                SQL);
+                        DELETE FROM in_progress_tickets_partitioned
+                    SQL);
             }
         };
     }
@@ -211,4 +213,3 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         );
     }
 }
-

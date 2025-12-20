@@ -27,4 +27,3 @@ final class ProjectionFromMultipleStreamsTest extends TestCase
         );
     }
 }
-

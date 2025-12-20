@@ -96,7 +96,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
 
     private function createCounterProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), FromStream(Ticket::class)] class() {
+        return new #[ProjectionV2(self::NAME), FromStream(Ticket::class)] class () {
             public const NAME = 'ticket_counter';
 
             private int $ticketCount = 0;
@@ -150,4 +150,3 @@ final class ProjectionWithStateTest extends ProjectingTestCase
         );
     }
 }
-

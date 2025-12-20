@@ -125,53 +125,55 @@ final class ProjectionWithStateTest extends ProjectingTestCase
 
     private function createCounterProjection(Connection $connection): object
     {
-        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class($connection) {
+        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
             public const NAME = 'ticket_counter_partitioned';
 
-            public function __construct(private Connection $connection) {}
+            public function __construct(private Connection $connection)
+            {
+            }
 
             #[EventHandler]
             public function onTicketRegistered(TicketWasRegistered $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    UPDATE ticket_counter_partitioned SET ticket_count = ticket_count + 1
-                SQL);
+                        UPDATE ticket_counter_partitioned SET ticket_count = ticket_count + 1
+                    SQL);
             }
 
             #[EventHandler]
             public function onTicketClosed(TicketWasClosed $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    UPDATE ticket_counter_partitioned SET closed_count = closed_count + 1
-                SQL);
+                        UPDATE ticket_counter_partitioned SET closed_count = closed_count + 1
+                    SQL);
             }
 
             #[QueryHandler('ticket.getCurrentCount')]
             public function getCurrentCount(): int
             {
                 return (int) $this->connection->executeQuery(<<<SQL
-                    SELECT ticket_count FROM ticket_counter_partitioned
-                SQL)->fetchOne();
+                        SELECT ticket_count FROM ticket_counter_partitioned
+                    SQL)->fetchOne();
             }
 
             #[QueryHandler('ticket.getClosedCount')]
             public function getClosedCount(): int
             {
                 return (int) $this->connection->executeQuery(<<<SQL
-                    SELECT closed_count FROM ticket_counter_partitioned
-                SQL)->fetchOne();
+                        SELECT closed_count FROM ticket_counter_partitioned
+                    SQL)->fetchOne();
             }
 
             #[ProjectionInitialization]
             public function initialization(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    CREATE TABLE IF NOT EXISTS ticket_counter_partitioned (
-                        id INT PRIMARY KEY,
-                        ticket_count INT DEFAULT 0,
-                        closed_count INT DEFAULT 0
-                    )
-                SQL);
+                        CREATE TABLE IF NOT EXISTS ticket_counter_partitioned (
+                            id INT PRIMARY KEY,
+                            ticket_count INT DEFAULT 0,
+                            closed_count INT DEFAULT 0
+                        )
+                    SQL);
                 $insertQuery = match (true) {
                     $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
                         INSERT INTO ticket_counter_partitioned (id, ticket_count, closed_count) VALUES (1, 0, 0)
@@ -189,16 +191,16 @@ final class ProjectionWithStateTest extends ProjectingTestCase
             public function reset(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    UPDATE ticket_counter_partitioned SET ticket_count = 0, closed_count = 0
-                SQL);
+                        UPDATE ticket_counter_partitioned SET ticket_count = 0, closed_count = 0
+                    SQL);
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DROP TABLE IF EXISTS ticket_counter_partitioned
-                SQL);
+                        DROP TABLE IF EXISTS ticket_counter_partitioned
+                    SQL);
             }
         };
     }
@@ -219,4 +221,3 @@ final class ProjectionWithStateTest extends ProjectingTestCase
         );
     }
 }
-

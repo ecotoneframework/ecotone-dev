@@ -28,6 +28,9 @@ use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
+
+use function get_class;
+
 use Interop\Queue\ConnectionFactory;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -49,7 +52,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
         $projection = $this->createMultiTenantProjection();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [\get_class($projection), Ticket::class, TicketEventConverter::class],
+            classesToResolve: [get_class($projection), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [
                 $projection,
                 new TicketEventConverter(),
@@ -120,7 +123,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
         $projection = $this->createAsyncMultiTenantProjection();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [\get_class($projection), Ticket::class, TicketEventConverter::class],
+            classesToResolve: [get_class($projection), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [
                 $projection,
                 new TicketEventConverter(),
@@ -199,7 +202,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
         $projection = $this->createPollingMultiTenantProjection();
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [\get_class($projection), Ticket::class, TicketEventConverter::class],
+            classesToResolve: [get_class($projection), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [
                 $projection,
                 new TicketEventConverter(),
@@ -240,56 +243,56 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     private function createMultiTenantProjection(): object
     {
-        return new #[ProjectionV2('multi_tenant_projection'), FromStream(Ticket::class)] class() {
+        return new #[ProjectionV2('multi_tenant_projection'), FromStream(Ticket::class)] class () {
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
             {
                 return $this->getConnection($connectionFactory)->executeQuery(<<<SQL
-                    SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
-                SQL)->fetchAllAssociative();
+                        SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
+                    SQL)->fetchAllAssociative();
             }
 
             #[EventHandler(endpointId: 'multiTenantProjection.addTicket')]
             public function addTicket(TicketWasRegistered $event, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    INSERT INTO in_progress_tickets VALUES (?,?)
-                SQL, [$event->getTicketId(), $event->getTicketType()]);
+                        INSERT INTO in_progress_tickets VALUES (?,?)
+                    SQL, [$event->getTicketId(), $event->getTicketType()]);
             }
 
             #[EventHandler(endpointId: 'multiTenantProjection.closeTicket')]
             public function closeTicket(TicketWasClosed $event, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets WHERE ticket_id = ?
-                SQL, [$event->getTicketId()]);
+                        DELETE FROM in_progress_tickets WHERE ticket_id = ?
+                    SQL, [$event->getTicketId()]);
             }
 
             #[ProjectionInitialization]
             public function initialization(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    CREATE TABLE IF NOT EXISTS in_progress_tickets (
-                        ticket_id VARCHAR(36) PRIMARY KEY,
-                        ticket_type VARCHAR(25)
-                    )
-                SQL);
+                        CREATE TABLE IF NOT EXISTS in_progress_tickets (
+                            ticket_id VARCHAR(36) PRIMARY KEY,
+                            ticket_type VARCHAR(25)
+                        )
+                    SQL);
             }
 
             #[ProjectionDelete]
             public function delete(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    DROP TABLE IF EXISTS in_progress_tickets
-                SQL);
+                        DROP TABLE IF EXISTS in_progress_tickets
+                    SQL);
             }
 
             #[ProjectionReset]
             public function reset(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets
-                SQL);
+                        DELETE FROM in_progress_tickets
+                    SQL);
             }
 
             private function getConnection(ConnectionFactory $connectionFactory): Connection
@@ -301,56 +304,56 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     private function createAsyncMultiTenantProjection(): object
     {
-        return new #[Asynchronous('async_projection_channel'), ProjectionV2('async_multi_tenant_projection'), FromStream(Ticket::class)] class() {
+        return new #[Asynchronous('async_projection_channel'), ProjectionV2('async_multi_tenant_projection'), FromStream(Ticket::class)] class () {
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
             {
                 return $this->getConnection($connectionFactory)->executeQuery(<<<SQL
-                    SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
-                SQL)->fetchAllAssociative();
+                        SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
+                    SQL)->fetchAllAssociative();
             }
 
             #[EventHandler(endpointId: 'asyncMultiTenantProjection.addTicket')]
             public function addTicket(TicketWasRegistered $event, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    INSERT INTO in_progress_tickets VALUES (?,?)
-                SQL, [$event->getTicketId(), $event->getTicketType()]);
+                        INSERT INTO in_progress_tickets VALUES (?,?)
+                    SQL, [$event->getTicketId(), $event->getTicketType()]);
             }
 
             #[EventHandler(endpointId: 'asyncMultiTenantProjection.closeTicket')]
             public function closeTicket(TicketWasClosed $event, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets WHERE ticket_id = ?
-                SQL, [$event->getTicketId()]);
+                        DELETE FROM in_progress_tickets WHERE ticket_id = ?
+                    SQL, [$event->getTicketId()]);
             }
 
             #[ProjectionInitialization]
             public function initialization(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    CREATE TABLE IF NOT EXISTS in_progress_tickets (
-                        ticket_id VARCHAR(36) PRIMARY KEY,
-                        ticket_type VARCHAR(25)
-                    )
-                SQL);
+                        CREATE TABLE IF NOT EXISTS in_progress_tickets (
+                            ticket_id VARCHAR(36) PRIMARY KEY,
+                            ticket_type VARCHAR(25)
+                        )
+                    SQL);
             }
 
             #[ProjectionDelete]
             public function delete(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    DROP TABLE IF EXISTS in_progress_tickets
-                SQL);
+                        DROP TABLE IF EXISTS in_progress_tickets
+                    SQL);
             }
 
             #[ProjectionReset]
             public function reset(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets
-                SQL);
+                        DELETE FROM in_progress_tickets
+                    SQL);
             }
 
             private function getConnection(ConnectionFactory $connectionFactory): Connection
@@ -362,56 +365,56 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     private function createPollingMultiTenantProjection(): object
     {
-        return new #[ProjectionV2('polling_multi_tenant_projection'), Polling('polling_multi_tenant_projection_runner'), FromStream(Ticket::class)] class() {
+        return new #[ProjectionV2('polling_multi_tenant_projection'), Polling('polling_multi_tenant_projection_runner'), FromStream(Ticket::class)] class () {
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): array
             {
                 return $this->getConnection($connectionFactory)->executeQuery(<<<SQL
-                    SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
-                SQL)->fetchAllAssociative();
+                        SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
+                    SQL)->fetchAllAssociative();
             }
 
             #[EventHandler(endpointId: 'pollingMultiTenantProjection.addTicket')]
             public function addTicket(TicketWasRegistered $event, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    INSERT INTO in_progress_tickets VALUES (?,?)
-                SQL, [$event->getTicketId(), $event->getTicketType()]);
+                        INSERT INTO in_progress_tickets VALUES (?,?)
+                    SQL, [$event->getTicketId(), $event->getTicketType()]);
             }
 
             #[EventHandler(endpointId: 'pollingMultiTenantProjection.closeTicket')]
             public function closeTicket(TicketWasClosed $event, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets WHERE ticket_id = ?
-                SQL, [$event->getTicketId()]);
+                        DELETE FROM in_progress_tickets WHERE ticket_id = ?
+                    SQL, [$event->getTicketId()]);
             }
 
             #[ProjectionInitialization]
             public function initialization(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    CREATE TABLE IF NOT EXISTS in_progress_tickets (
-                        ticket_id VARCHAR(36) PRIMARY KEY,
-                        ticket_type VARCHAR(25)
-                    )
-                SQL);
+                        CREATE TABLE IF NOT EXISTS in_progress_tickets (
+                            ticket_id VARCHAR(36) PRIMARY KEY,
+                            ticket_type VARCHAR(25)
+                        )
+                    SQL);
             }
 
             #[ProjectionDelete]
             public function delete(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    DROP TABLE IF EXISTS in_progress_tickets
-                SQL);
+                        DROP TABLE IF EXISTS in_progress_tickets
+                    SQL);
             }
 
             #[ProjectionReset]
             public function reset(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory): void
             {
                 $this->getConnection($connectionFactory)->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets
-                SQL);
+                        DELETE FROM in_progress_tickets
+                    SQL);
             }
 
             private function getConnection(ConnectionFactory $connectionFactory): Connection
@@ -421,4 +424,3 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
         };
     }
 }
-

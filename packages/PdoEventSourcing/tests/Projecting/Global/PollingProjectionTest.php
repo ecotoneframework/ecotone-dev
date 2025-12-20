@@ -169,68 +169,70 @@ final class PollingProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Polling(self::ENDPOINT_ID), FromStream(Ticket::class)] class($connection) {
+        return new #[ProjectionV2(self::NAME), Polling(self::ENDPOINT_ID), FromStream(Ticket::class)] class ($connection) {
             public const NAME = 'polling_ticket_list';
             public const ENDPOINT_ID = 'polling_ticket_list_runner';
 
-            public function __construct(private Connection $connection) {}
+            public function __construct(private Connection $connection)
+            {
+            }
 
             #[QueryHandler('getInProgressTickets')]
             public function getTickets(): array
             {
                 return $this->connection->executeQuery(<<<SQL
-                    SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
-                SQL)->fetchAllAssociative();
+                        SELECT * FROM in_progress_tickets ORDER BY ticket_id ASC
+                    SQL)->fetchAllAssociative();
             }
 
             #[EventHandler]
             public function addTicket(TicketWasRegistered $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    INSERT INTO in_progress_tickets VALUES (?,?)
-                SQL, [$event->getTicketId(), $event->getTicketType()]);
+                        INSERT INTO in_progress_tickets VALUES (?,?)
+                    SQL, [$event->getTicketId(), $event->getTicketType()]);
             }
 
             #[EventHandler]
             public function closeTicket(TicketWasClosed $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets WHERE ticket_id = ?
-                SQL, [$event->getTicketId()]);
+                        DELETE FROM in_progress_tickets WHERE ticket_id = ?
+                    SQL, [$event->getTicketId()]);
             }
 
             #[ProjectionInitialization]
             public function initialization(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    CREATE TABLE IF NOT EXISTS in_progress_tickets (
-                        ticket_id VARCHAR(36) PRIMARY KEY,
-                        ticket_type VARCHAR(25)
-                    )
-                SQL);
+                        CREATE TABLE IF NOT EXISTS in_progress_tickets (
+                            ticket_id VARCHAR(36) PRIMARY KEY,
+                            ticket_type VARCHAR(25)
+                        )
+                    SQL);
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DROP TABLE IF EXISTS in_progress_tickets
-                SQL);
+                        DROP TABLE IF EXISTS in_progress_tickets
+                    SQL);
             }
 
             #[ProjectionReset]
             public function reset(): void
             {
                 $this->connection->executeStatement(<<<SQL
-                    DELETE FROM in_progress_tickets
-                SQL);
+                        DELETE FROM in_progress_tickets
+                    SQL);
             }
         };
     }
 
     private function createBasketListProjection(): object
     {
-        return new #[ProjectionV2('basketList'), Polling('basketList_runner'), FromStream(Basket::BASKET_STREAM)] class() {
+        return new #[ProjectionV2('basketList'), Polling('basketList_runner'), FromStream(Basket::BASKET_STREAM)] class () {
             public const NAME = 'basketList';
             public const ENDPOINT_ID = 'basketList_runner';
             private array $basketsList = [];
@@ -274,7 +276,7 @@ final class PollingProjectionTest extends ProjectingTestCase
 
     private function createProductsProjection(): object
     {
-        return new #[ProjectionV2('products'), Polling('products_runner'), FromStream(Basket::BASKET_STREAM)] class() {
+        return new #[ProjectionV2('products'), Polling('products_runner'), FromStream(Basket::BASKET_STREAM)] class () {
             public const NAME = 'products';
             public const ENDPOINT_ID = 'products_runner';
             private array $products = [];
@@ -329,4 +331,3 @@ final class PollingProjectionTest extends ProjectingTestCase
         );
     }
 }
-

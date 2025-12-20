@@ -17,6 +17,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 {
     private ConnectionFactory $tenantAConnection;
     private ConnectionFactory $tenantBConnection;
+    private static ?DbalConnectionFactory $defaultConnection = null;
 
     protected static function getSchemaManager(Connection $connection): \Doctrine\DBAL\Schema\AbstractSchemaManager
     {
@@ -28,6 +29,12 @@ abstract class EventSourcingMessagingTestCase extends TestCase
     {
         self::clearDataTables($this->connectionForTenantA()->createContext()->getDbalConnection());
         self::clearDataTables($this->connectionForTenantB()->createContext()->getDbalConnection());
+    }
+
+    protected function tearDown(): void
+    {
+        $this->connectionForTenantA()->createContext()->getDbalConnection()->close();
+        $this->connectionForTenantB()->createContext()->getDbalConnection()->close();
     }
 
     protected function connectionForTenantB(): ConnectionFactory
@@ -46,22 +53,34 @@ abstract class EventSourcingMessagingTestCase extends TestCase
 
     protected function connectionForTenantA(): ConnectionFactory
     {
-        $connectionFactory = self::getConnectionFactory();
         if (isset($this->tenantAConnection)) {
             return $this->tenantAConnection;
         }
 
+        $connectionFactory = self::prepareConnection();
         $this->tenantAConnection = $connectionFactory;
         return $connectionFactory;
     }
 
-    public static function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
+    public static function prepareConnection(): DbalConnectionFactory
     {
+        if (null !== self::$defaultConnection && self::$defaultConnection->createContext()->getDbalConnection()->isConnected()) {
+            return self::$defaultConnection;
+        }
+
         $dsn = getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@127.0.0.1:5432/ecotone';
         if (! $dsn) {
             throw new InvalidArgumentException('Missing env `DATABASE_DSN` pointing to test database');
         }
         $dbalConnectionFactory = new DbalConnectionFactory($dsn);
+        self::$defaultConnection = $dbalConnectionFactory;
+
+        return $dbalConnectionFactory;
+    }
+
+    public static function getConnectionFactory(bool $isRegistry = false): ConnectionFactory
+    {
+        $dbalConnectionFactory = self::prepareConnection();
         return $isRegistry
             ? DbalConnection::fromConnectionFactory($dbalConnectionFactory)
             : $dbalConnectionFactory;

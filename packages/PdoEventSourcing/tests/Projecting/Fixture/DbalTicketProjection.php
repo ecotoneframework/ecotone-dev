@@ -24,7 +24,7 @@ use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketUnassigned;
  * for anonymous classes in tests that define their own projection attributes.
  */
 #[FromStream(Ticket::STREAM_NAME, Ticket::class)]
-class DbalTicketProjection
+abstract class DbalTicketProjection
 {
     public const NAME = 'dbal_tickets_projection';
 

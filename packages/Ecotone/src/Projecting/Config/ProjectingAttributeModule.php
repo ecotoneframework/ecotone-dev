@@ -63,6 +63,45 @@ class ProjectingAttributeModule implements AnnotationModule
     ) {
     }
 
+    public static function verifyCorrectApiUsage(bool $isPolling, ?string $asynchronousChannelName, object|ProjectionV2 $projectionAttribute, bool $isEventStreaming, null $partitionHeaderName): void
+    {
+        if ($isPolling && $asynchronousChannelName !== null) {
+            throw ConfigurationException::create(
+                "Projection '{$projectionAttribute->name}' cannot use both #[Polling] and #[Asynchronous] attributes. " .
+                'A projection must be either polling-based or event-driven (synchronous/asynchronous), not both.'
+            );
+        }
+
+        if ($isEventStreaming && $asynchronousChannelName !== null) {
+            throw ConfigurationException::create(
+                "Projection '{$projectionAttribute->name}' cannot use both #[StreamingProjection] and #[Asynchronous] attributes. " .
+                'Event streaming projections consume directly from streaming channels.'
+            );
+        }
+
+        if ($isPolling && $isEventStreaming) {
+            throw ConfigurationException::create(
+                "Projection '{$projectionAttribute->name}' cannot use both #[Polling] and #[Streaming] attributes. " .
+                'A projection must be either polling-based or streaming-based, not both.'
+            );
+        }
+
+        $isPartitioned = $partitionHeaderName !== null;
+        if ($isPolling && $isPartitioned) {
+            throw ConfigurationException::create(
+                "Projection '{$projectionAttribute->name}' cannot use both #[Polling] and #[Partitioned] attributes. " .
+                'Polling projections cannot be partitioned.'
+            );
+        }
+
+        if ($isPartitioned && $isEventStreaming) {
+            throw ConfigurationException::create(
+                "Projection '{$projectionAttribute->name}' cannot use both #[Partitioned] and #[Streaming] attributes. " .
+                'Partitioned projections cannot use streaming.'
+            );
+        }
+    }
+
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $namedEvents = [];
@@ -100,19 +139,7 @@ class ProjectingAttributeModule implements AnnotationModule
             $isPolling = $pollingAttribute !== null;
             $isEventStreaming = $streamingAttribute !== null;
 
-            if ($isPolling && $asynchronousChannelName !== null) {
-                throw ConfigurationException::create(
-                    "Projection '{$projectionAttribute->name}' cannot use both #[Polling] and #[Asynchronous] attributes. " .
-                    'A projection must be either polling-based or event-driven (synchronous/asynchronous), not both.'
-                );
-            }
-
-            if ($isEventStreaming && $asynchronousChannelName !== null) {
-                throw ConfigurationException::create(
-                    "Projection '{$projectionAttribute->name}' cannot use both #[StreamingProjection] and #[Asynchronous] attributes. " .
-                    'Event streaming projections consume directly from streaming channels.'
-                );
-            }
+            self::verifyCorrectApiUsage($isPolling, $asynchronousChannelName, $projectionAttribute, $isEventStreaming, $partitionHeaderName);
 
             if ($asynchronousChannelName !== null) {
                 $projectionBuilder->setAsyncChannel($asynchronousChannelName);

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -166,15 +167,22 @@ final class ProjectionWithStateTest extends ProjectingTestCase
             {
                 $this->connection->executeStatement(<<<SQL
                     CREATE TABLE IF NOT EXISTS ticket_counter_partitioned (
-                        id INT PRIMARY KEY DEFAULT 1,
+                        id INT PRIMARY KEY,
                         ticket_count INT DEFAULT 0,
                         closed_count INT DEFAULT 0
                     )
                 SQL);
-                $this->connection->executeStatement(<<<SQL
-                    INSERT INTO ticket_counter_partitioned (id, ticket_count, closed_count) VALUES (1, 0, 0)
-                    ON CONFLICT (id) DO NOTHING
-                SQL);
+                $insertQuery = match (true) {
+                    $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
+                        INSERT INTO ticket_counter_partitioned (id, ticket_count, closed_count) VALUES (1, 0, 0)
+                        ON DUPLICATE KEY UPDATE id = id
+                        SQL,
+                    default => <<<SQL
+                        INSERT INTO ticket_counter_partitioned (id, ticket_count, closed_count) VALUES (1, 0, 0)
+                        ON CONFLICT (id) DO NOTHING
+                        SQL,
+                };
+                $this->connection->executeStatement($insertQuery);
             }
 
             #[ProjectionReset]

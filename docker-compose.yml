@@ -25,13 +25,13 @@ services:
       APP_MERGE_PLUGIN: "yes"
     env_file:
       - ".env"
-  app8_1:
-    image: simplycodedsoftware/php:8.1.31
+  app8_2:
+    image: simplycodedsoftware/php:8.2.31
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"
     command: sleep 99999
-    container_name: "ecotone_development_8_1"
+    container_name: "ecotone_development_8_2"
     user: "${USER_PID:-1000}:${USER_PID:-1000}"
     extra_hosts:
       - "host.docker.internal:host-gateway"

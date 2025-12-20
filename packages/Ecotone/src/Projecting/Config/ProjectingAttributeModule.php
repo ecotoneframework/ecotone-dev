@@ -80,19 +80,11 @@ class ProjectingAttributeModule implements AnnotationModule
             $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBatchSize::class);
             $pollingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Polling::class);
             $streamingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Streaming::class);
-            $globalScopeConfigAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionConfiguration::class);
-            $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Partitioned::class);
+            $projectionConfiguration = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionConfiguration::class) ?? new ProjectionConfiguration();
+            $partitionAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Partitioned::class);
 
-            // Determine partitionHeaderName from CustomScopeStrategy attribute
-            $partitionHeaderName = $customScopeStrategyAttribute?->partitionHeaderName;
-
-            // Determine automaticInitialization:
-            // - For aggregate scope (partitioned), always true
-            // - For global scope, use GlobalScopeConfiguration attribute or default to true
-            $isAggregateScope = $partitionHeaderName !== null;
-            $automaticInitialization = $isAggregateScope
-                ? true
-                : ($globalScopeConfigAttribute?->automaticInitialization ?? true);
+            $partitionHeaderName = $partitionAttribute?->partitionHeaderName;
+            $automaticInitialization = $partitionAttribute ? true : $projectionConfiguration->automaticInitialization;
 
             $projectionBuilder = new EcotoneProjectionExecutorBuilder($projectionAttribute->name, $partitionHeaderName, $automaticInitialization, $namedEvents, batchSize: $batchSizeAttribute?->batchSize);
 

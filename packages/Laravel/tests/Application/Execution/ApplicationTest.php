@@ -146,4 +146,38 @@ final class ApplicationTest extends TestCase
             $logs[1]->message
         );
     }
+
+    public function test_parameter_function_in_expression_with_laravel_application(): void
+    {
+        $app = $this->createApplication();
+        /** @var CommandBus $commandBus */
+        $commandBus = $app->get(CommandBus::class);
+        /** @var QueryBus $queryBus */
+        $queryBus = $app->get(QueryBus::class);
+
+        $commandBus->sendWithRouting('calculator.multiply', ['value' => 5]);
+
+        $this->assertEquals(
+            50,
+            $queryBus->sendWithRouting('calculator.getResult')
+        );
+    }
+
+    public function test_parameter_function_with_env_variable_in_expression(): void
+    {
+        putenv('APP_MULTIPLIER=7');
+
+        $app = $this->createApplication();
+        /** @var CommandBus $commandBus */
+        $commandBus = $app->get(CommandBus::class);
+        /** @var QueryBus $queryBus */
+        $queryBus = $app->get(QueryBus::class);
+
+        $commandBus->sendWithRouting('calculator.multiplyWithEnv', ['value' => 3]);
+
+        $this->assertEquals(
+            21,
+            $queryBus->sendWithRouting('calculator.getEnvResult')
+        );
+    }
 }

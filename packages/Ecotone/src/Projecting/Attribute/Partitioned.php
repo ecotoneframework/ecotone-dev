@@ -15,7 +15,7 @@ use Ecotone\Messaging\MessageHeaders;
  * For Aggregate scope, use MessageHeaders::EVENT_AGGREGATE_ID.
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-class ProjectionScopeConfig
+class Partitioned
 {
     public function __construct(
         public readonly string $partitionHeaderName = MessageHeaders::EVENT_AGGREGATE_ID,

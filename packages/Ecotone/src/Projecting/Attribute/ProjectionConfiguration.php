@@ -10,10 +10,10 @@ namespace Ecotone\Projecting\Attribute;
 use Attribute;
 
 /**
- * This attribute allows configuring automatic initialization behavior.
+ * This attribute allows configure additional projection configuration.
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-class ProjectionInitializationConfig
+class ProjectionConfiguration
 {
     public function __construct(
         public readonly bool $automaticInitialization = true,

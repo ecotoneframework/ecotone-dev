@@ -15,7 +15,8 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\PollingProjection;
+use Ecotone\Projecting\Attribute\Polling;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
@@ -31,7 +32,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     public function test_polling_projection_with_global_stream(): void
     {
         // Given a polling projection
-        $projection = new #[PollingProjection('polling_test', endpointId: 'polling_test_runner'), FromStream(Ticket::class)] class {
+        $projection = new #[ProjectionV2('polling_test'), Polling('polling_test_runner'), FromStream(Ticket::class)] class {
             public array $projectedEvents = [];
 
             #[EventHandler]
@@ -65,7 +66,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     public function test_polling_projection_processes_events_incrementally(): void
     {
         // Given a polling projection
-        $projection = new #[PollingProjection('incremental_test', endpointId: 'incremental_runner'), FromStream(Ticket::class)] class {
+        $projection = new #[ProjectionV2('incremental_test'), Polling('incremental_runner'), FromStream(Ticket::class)] class {
             public array $projectedEvents = [];
 
             #[EventHandler]
@@ -99,8 +100,8 @@ final class PollingProjectionTest extends ProjectingTestCase
 
     public function test_polling_attribute_throws_exception_when_combined_with_asynchronous(): void
     {
-        // Given a projection with both PollingProjection and Asynchronous attributes
-        $projection = new #[PollingProjection('async_polling', endpointId: 'async_polling_runner'), Asynchronous('async'), FromStream(Ticket::class)] class {
+        // Given a projection with both Polling and Asynchronous attributes
+        $projection = new #[ProjectionV2('async_polling'), Polling('async_polling_runner'), Asynchronous('async'), FromStream(Ticket::class)] class {
             public array $projectedEvents = [];
 
             #[EventHandler]
@@ -112,7 +113,7 @@ final class PollingProjectionTest extends ProjectingTestCase
 
         // Then bootstrapping should throw ConfigurationException
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Projection 'async_polling' cannot use both PollingProjection and #[Asynchronous] attributes");
+        $this->expectExceptionMessage("Projection 'async_polling' cannot use both #[Polling] and #[Asynchronous] attributes");
 
         $this->bootstrapEcotone(
             [$projection::class],

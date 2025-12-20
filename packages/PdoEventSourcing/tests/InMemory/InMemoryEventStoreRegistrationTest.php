@@ -12,7 +12,8 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
-use Ecotone\Projecting\Attribute\PollingProjection;
+use Ecotone\Projecting\Attribute\Polling;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +25,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
     public function test_registers_in_memory_event_store_stream_source_when_pdo_event_sourcing_is_in_memory_mode(): void
     {
         // Given a polling projection (polling projections read from stream sources)
-        $projection = new #[PollingProjection('test_projection', endpointId: 'test_projection_poller')] class {
+        $projection = new #[ProjectionV2('test_projection'), Polling('test_projection_poller')] class {
             public array $events = [];
             public int $callCount = 0;
 

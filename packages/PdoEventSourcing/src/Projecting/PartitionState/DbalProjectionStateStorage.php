@@ -9,6 +9,7 @@ namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\ProjectionInitializationStatus;
 use Ecotone\Projecting\ProjectionPartitionState;
@@ -24,16 +25,41 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 {
     private const INITIALIZATION_STATUS_KEY = 'initialization_status';
 
-    private ?string $saveStateQuery = null;
-
-    private Connection $connection;
-    private bool $initialized = false;
+    /** @var array<string, bool> Track initialization per connection */
+    private array $initialized = [];
 
     public function __construct(
-        DbalConnectionFactory|ManagerRegistryConnectionFactory $connectionFactory,
+        private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
         private string $stateTable = 'ecotone_projection_state',
     ) {
-        $this->connection = $connectionFactory->createContext()->getDbalConnection();
+    }
+
+    private function getConnection(): Connection
+    {
+        if ($this->connectionFactory instanceof MultiTenantConnectionFactory) {
+            return $this->connectionFactory->getConnection();
+        }
+
+        return $this->connectionFactory->createContext()->getDbalConnection();
+    }
+
+    private function getConnectionKey(): string
+    {
+        if ($this->connectionFactory instanceof MultiTenantConnectionFactory) {
+            return $this->connectionFactory->currentActiveTenant();
+        }
+
+        return 'default';
+    }
+
+    private function isInitialized(): bool
+    {
+        return $this->initialized[$this->getConnectionKey()] ?? false;
+    }
+
+    private function markInitialized(): void
+    {
+        $this->initialized[$this->getConnectionKey()] = true;
     }
 
     public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState
@@ -49,7 +75,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             $query .= ' FOR UPDATE';
         }
 
-        $row = $this->connection->fetchAssociative($query, [
+        $row = $this->getConnection()->fetchAssociative($query, [
             'projectionName' => $projectionName,
             'partitionKey' => $partitionKey ?? '',
         ]);
@@ -66,9 +92,11 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     {
         $this->createSchema();
 
+        $connection = $this->getConnection();
+
         // Try to insert the partition state, ignoring if it already exists
         $insertQuery = match (true) {
-            $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
+            $connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
                 INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, metadata)
                 VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :metadata)
                 ON DUPLICATE KEY UPDATE projection_name = projection_name -- no-op to ignore
@@ -83,7 +111,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         $metadata = [
             self::INITIALIZATION_STATUS_KEY => $projectionState->status?->value ?? ProjectionInitializationStatus::UNINITIALIZED->value,
         ];
-        $rowsAffected = $this->connection->executeStatement($insertQuery, [
+        $rowsAffected = $connection->executeStatement($insertQuery, [
             'projectionName' => $projectionName,
             'partitionKey' => $partitionKey ?? '',
             'lastPosition' => '',
@@ -104,25 +132,25 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     {
         $this->createSchema();
 
-        if (! $this->saveStateQuery) {
-            $this->saveStateQuery = match (true) {
-                $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
-                    INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, metadata)
-                    VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :metadata)
-                    ON DUPLICATE KEY UPDATE last_position = :lastPosition, user_state = :userState, metadata = :metadata
-                    SQL,
-                default => <<<SQL
-                    INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, metadata)
-                    VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :metadata)
-                    ON CONFLICT (projection_name, partition_key) DO UPDATE SET last_position = :lastPosition, user_state = :userState, metadata = :metadata
-                    SQL,
-            };
-        }
+        $connection = $this->getConnection();
+
+        $saveStateQuery = match (true) {
+            $connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
+                INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, metadata)
+                VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :metadata)
+                ON DUPLICATE KEY UPDATE last_position = :lastPosition, user_state = :userState, metadata = :metadata
+                SQL,
+            default => <<<SQL
+                INSERT INTO {$this->stateTable} (projection_name, partition_key, last_position, user_state, metadata)
+                VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :metadata)
+                ON CONFLICT (projection_name, partition_key) DO UPDATE SET last_position = :lastPosition, user_state = :userState, metadata = :metadata
+                SQL,
+        };
 
         $metadata = [
             self::INITIALIZATION_STATUS_KEY => $projectionState->status?->value ?? ProjectionInitializationStatus::INITIALIZED->value,
         ];
-        $this->connection->executeStatement($this->saveStateQuery, [
+        $connection->executeStatement($saveStateQuery, [
             'projectionName' => $projectionState->projectionName,
             'partitionKey' => $projectionState->partitionKey ?? '',
             'lastPosition' => $projectionState->lastPosition,
@@ -140,7 +168,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     {
         $this->createSchema();
 
-        $this->connection->executeStatement(<<<SQL
+        $this->getConnection()->executeStatement(<<<SQL
             DELETE FROM {$this->stateTable} WHERE projection_name = :projectionName
             SQL, [
             'projectionName' => $projectionName,
@@ -149,12 +177,11 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function createSchema(): void
     {
-        if ($this->initialized) {
+        if ($this->isInitialized()) {
             return;
         }
 
-        $this->initialized = true;
-        $this->connection->executeStatement(
+        $this->getConnection()->executeStatement(
             <<<SQL
                 CREATE TABLE IF NOT EXISTS {$this->stateTable} (
                     projection_name VARCHAR(255) NOT NULL,
@@ -166,15 +193,17 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
                 )
                 SQL
         );
+        $this->markInitialized();
     }
 
     public function beginTransaction(): Transaction
     {
-        if ($this->connection->isTransactionActive()) {
+        $connection = $this->getConnection();
+        if ($connection->isTransactionActive()) {
             return new NoOpTransaction();
         } else {
-            $this->connection->beginTransaction();
-            return new DbalTransaction($this->connection);
+            $connection->beginTransaction();
+            return new DbalTransaction($connection);
         }
     }
 }

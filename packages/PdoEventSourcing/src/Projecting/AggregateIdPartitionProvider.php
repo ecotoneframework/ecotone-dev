@@ -7,9 +7,11 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting;
 
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Projecting\PartitionProvider;
 use Enqueue\Dbal\DbalConnectionFactory;
 use RuntimeException;
@@ -20,7 +22,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
 {
     private string $streamTable;
     public function __construct(
-        private DbalConnectionFactory $connectionFactory,
+        private DbalConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
         private string $aggregateType,
         private string $streamName
     ) {
@@ -30,7 +32,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
 
     public function partitions(): iterable
     {
-        $connection = $this->connectionFactory->establishConnection();
+        $connection = $this->getConnection();
         $platform = $connection->getDatabasePlatform();
 
         // Build platform-specific query
@@ -55,5 +57,14 @@ class AggregateIdPartitionProvider implements PartitionProvider
         while ($aggregateId = $query->fetchOne()) {
             yield $aggregateId;
         }
+    }
+
+    private function getConnection(): Connection
+    {
+        if ($this->connectionFactory instanceof MultiTenantConnectionFactory) {
+            return $this->connectionFactory->getConnection();
+        }
+
+        return $this->connectionFactory->establishConnection();
     }
 }

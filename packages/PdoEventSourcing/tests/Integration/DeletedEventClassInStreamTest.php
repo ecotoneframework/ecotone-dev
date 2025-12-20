@@ -24,7 +24,7 @@ use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\WithAggregateVersioning;
-use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -111,7 +111,7 @@ class AnAggregate
     }
 }
 
-#[Projection('a-projection'), FromStream('a-stream')]
+#[ProjectionV2('a-projection'), FromStream('a-stream')]
 class AProjection
 {
     public array $events = [];

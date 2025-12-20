@@ -63,7 +63,7 @@ class ProjectingAttributeModule implements AnnotationModule
     ) {
     }
 
-    public static function verifyCorrectApiUsage(bool $isPolling, ?string $asynchronousChannelName, object|ProjectionV2 $projectionAttribute, bool $isEventStreaming, null $partitionHeaderName): void
+    public static function verifyCorrectApiUsage(bool $isPolling, ?string $asynchronousChannelName, ProjectionV2 $projectionAttribute, bool $isEventStreaming, null $partitionHeaderName): void
     {
         if ($isPolling && $asynchronousChannelName !== null) {
             throw ConfigurationException::create(

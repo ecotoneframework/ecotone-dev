@@ -226,6 +226,7 @@ class LazyProophProjectionManager implements ProjectionManager
         $routerChannel = $this->projectionSetupConfigurations[$projectionName]->getActionRouterChannel();
         $conversionService = $this->conversionService;
         $projection = $projection->whenAny(function ($state, Message $event) use ($projectionName, $status, $messagingEntrypoint, $routerChannel, $conversionService): mixed {
+            $isLive = $status != \Ecotone\EventSourcing\ProjectionStatus::REBUILDING();
             $state = $messagingEntrypoint->sendWithHeaders(
                 $event->payload(),
                 array_merge(
@@ -233,7 +234,7 @@ class LazyProophProjectionManager implements ProjectionManager
                     [
                         ProjectionEventHandler::PROJECTION_STATE => $state,
                         ProjectionEventHandler::PROJECTION_EVENT_NAME => $event->messageName(),
-                        ProjectionEventHandler::PROJECTION_IS_REBUILDING => $status == \Ecotone\EventSourcing\ProjectionStatus::REBUILDING(),
+                        ProjectionEventHandler::PROJECTION_LIVE => $isLive,
                         ProjectionEventHandler::PROJECTION_NAME => $projectionName,
                         MessageHeaders::STREAM_BASED_SOURCED => true,
                     ]

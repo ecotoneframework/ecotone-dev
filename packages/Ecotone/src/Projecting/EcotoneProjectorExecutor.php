@@ -13,8 +13,8 @@ use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Event;
-
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
+
 use function is_null;
 
 class EcotoneProjectorExecutor implements ProjectorExecutor

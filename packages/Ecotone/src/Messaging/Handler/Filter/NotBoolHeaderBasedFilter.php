@@ -38,4 +38,3 @@ final class NotBoolHeaderBasedFilter implements DefinedObject
         ]);
     }
 }
-

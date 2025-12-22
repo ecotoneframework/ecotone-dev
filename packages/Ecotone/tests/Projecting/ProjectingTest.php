@@ -21,8 +21,8 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionBatchSize;
+use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
@@ -617,7 +617,7 @@ class ProjectingTest extends TestCase
         $pcntlTerminationFlag->enable();
         try {
             $ecotone->triggerProjection('signals_projection');
-            self::assertCount(2, $projection->processedEvents, "Expect projection to process a single batch of events (2 events)");
+            self::assertCount(2, $projection->processedEvents, 'Expect projection to process a single batch of events (2 events)');
         } finally {
             $pcntlTerminationFlag->disable();
         }

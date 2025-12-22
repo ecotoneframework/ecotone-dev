@@ -14,7 +14,8 @@ class SignalInterceptor implements ConsumerInterceptor
 {
     use ConsumerInterceptorTrait;
 
-    public function __construct(private PcntlTerminationListener $pcntlTerminationListener) {
+    public function __construct(private PcntlTerminationListener $pcntlTerminationListener)
+    {
     }
 
     public function onStartup(): void

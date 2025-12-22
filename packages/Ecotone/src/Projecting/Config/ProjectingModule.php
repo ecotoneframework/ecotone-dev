@@ -114,8 +114,8 @@ class ProjectingModule implements AnnotationModule
                             InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
                             [
                                 $projectionBuilder->partitionHeader()
-                                    ? HeaderBuilder::create('partitionKey', $projectionBuilder->partitionHeader())
-                                    : ValueBuilder::create('partitionKey', null),
+                                    ? HeaderBuilder::create('partitionKeyValue', $projectionBuilder->partitionHeader())
+                                    : ValueBuilder::create('partitionKeyValue', null),
                                 HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
                             ],
                         )

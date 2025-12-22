@@ -520,8 +520,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $linkingRouterHandler =
             MessageProcessorActivatorBuilder::create()
                 ->withInputChannelName(Uuid::uuid4()->toString())
-                /** linkTo can be used outside of Projection, then we should NOT filter events out */
-                ->chain(MessageFilterBuilder::createBoolHeaderFilter(ProjectionEventHandler::PROJECTION_IS_REBUILDING, false))
+                ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectionEventHandler::PROJECTION_LIVE, false))
                 ->chain(RouterProcessorBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),
                     $eventBusChannelName,
@@ -539,7 +538,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             MessageProcessorActivatorBuilder::create()
                 ->withInputChannelName(Uuid::uuid4()->toString())
                 ->chain(new Definition(StreamNameMapper::class))
-                ->chain(MessageFilterBuilder::createBoolHeaderFilter(ProjectionEventHandler::PROJECTION_IS_REBUILDING))
+                ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectionEventHandler::PROJECTION_LIVE))
                 ->chain(RouterProcessorBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),
                     $eventBusChannelName,

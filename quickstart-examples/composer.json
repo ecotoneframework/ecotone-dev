@@ -33,6 +33,7 @@
             "(cd EventSourcing && composer update && php run_example.php)",
             "(cd EventProjecting/PartitionedProjection && composer update && php run_example.php)",
             "(cd WorkingWithAggregateDirectly && composer update && php run_example.php)",
+            "(cd MessageBroker && composer update && php publisher.php && php consumer.php)",
             "(cd Microservices && composer update && php run_example.php)",
             "(cd MicroservicesAdvanced && composer update && php run_example.php)",
             "(cd Schedule && composer update && php run_example.php)",
@@ -68,11 +69,11 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.253.0-dev"
+            "dev-main": "1.284.0-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"
         },
-        "release-time": "2025-04-16 05:35:52"
+        "release-time": "2025-12-21 16:46:09"
     }
 }

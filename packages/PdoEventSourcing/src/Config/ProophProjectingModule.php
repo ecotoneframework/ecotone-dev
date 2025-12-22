@@ -21,7 +21,8 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\Partitioned;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
 
 #[ModuleAnnotation]
@@ -38,8 +39,9 @@ class ProophProjectingModule implements AnnotationModule
         $extensions = [];
 
         foreach ($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
-            $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, Projection::class);
+            $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
             $streamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromStream::class);
+            $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
 
             if (! $projectionAttribute || ! $streamAttribute) {
                 continue;
@@ -48,7 +50,10 @@ class ProophProjectingModule implements AnnotationModule
             $projectionName = $projectionAttribute->name;
             $handledProjections[] = $projectionName;
 
-            if ($projectionAttribute->partitionHeaderName) {
+            // Determine partitionHeaderName from CustomScopeStrategy attribute
+            $partitionHeaderName = $customScopeStrategyAttribute?->partitionHeaderName;
+
+            if ($partitionHeaderName !== null) {
                 $aggregateType = $streamAttribute->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
                 $extensions[] = new EventStoreAggregateStreamSourceBuilder(
                     $projectionName,

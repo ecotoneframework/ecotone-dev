@@ -13,15 +13,18 @@ use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\Projection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketUnassigned;
 
-#[Projection(self::NAME)]
+/**
+ * Base class for ticket projection tests.
+ * Note: This class intentionally has no Projection attribute as it's used as a base class
+ * for anonymous classes in tests that define their own projection attributes.
+ */
 #[FromStream(Ticket::STREAM_NAME, Ticket::class)]
-class DbalTicketProjection
+abstract class DbalTicketProjection
 {
     public const NAME = 'dbal_tickets_projection';
 

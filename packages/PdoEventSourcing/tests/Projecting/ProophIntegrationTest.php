@@ -18,9 +18,11 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionBatchSize;
+use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
 use Ramsey\Uuid\Uuid;
@@ -45,15 +47,18 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_it_can_project_events(): void
     {
         $connectionFactory = self::getConnectionFactory();
+        $projection = new #[ProjectionV2(self::NAME), FromStream(Ticket::STREAM_NAME)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+            public const NAME = 'dbal_tickets_projection';
+        };
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [DbalTicketProjection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
-            [$connectionFactory, new DbalTicketProjection($connectionFactory->establishConnection()), new TicketEventConverter()],
+            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+            [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
-            ->deleteProjection(DbalTicketProjection::NAME)
+            ->deleteProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::uuid4()->toString()))
             ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
@@ -61,13 +66,13 @@ class ProophIntegrationTest extends ProjectingTestCase
         self::assertSame(1, $ticketsCount);
         self::assertSame('assigned', $ecotone->sendQueryWithRouting('getTicketStatus', $ticketId));
 
-        $ticketsCount = $ecotone->deleteProjection(DbalTicketProjection::NAME)
-            ->initializeProjection(DbalTicketProjection::NAME)
+        $ticketsCount = $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME)
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(0, $ticketsCount);
 
-        $ticketsCount = $ecotone->triggerProjection(DbalTicketProjection::NAME)
+        $ticketsCount = $ecotone->triggerProjection($projection::NAME)
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(1, $ticketsCount);
@@ -77,7 +82,8 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_asynchronous_projection(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Asynchronous(self::ASYNC_CHANNEL)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2(self::NAME), FromStream(Ticket::STREAM_NAME), Asynchronous(self::ASYNC_CHANNEL)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+            public const NAME = 'async_dbal_tickets_projection';
             public const ASYNC_CHANNEL = 'async_projection';
         };
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
@@ -165,7 +171,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_auto_initialization_mode_processes_events(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('auto_init_projection', automaticInitialization: true)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2('auto_init_projection'), ProjectionDeployment(manualKickOff: false), FromStream(Ticket::STREAM_NAME)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'auto_init_projection';
             public int $initCallCount = 0;
 
@@ -202,7 +208,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_skip_initialization_mode_skips_events(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('skip_init_projection', automaticInitialization: false)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2('skip_init_projection'), ProjectionDeployment(manualKickOff: true), FromStream(Ticket::STREAM_NAME)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'skip_init_projection';
             public int $initCallCount = 0;
 
@@ -236,7 +242,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_force_execution_bypasses_skip_mode(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('force_skip_projection', automaticInitialization: false)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2('force_skip_projection'), ProjectionDeployment(manualKickOff: true), FromStream(Ticket::STREAM_NAME)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'force_skip_projection';
             public int $initCallCount = 0;
 
@@ -276,7 +282,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_concurrent_initialization_protection(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('concurrent_projection', automaticInitialization: true)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2('concurrent_projection'), ProjectionDeployment(manualKickOff: false), FromStream(Ticket::STREAM_NAME)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'concurrent_projection';
             public int $initCallCount = 0;
 
@@ -319,7 +325,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_projection_state_persistence_across_restarts(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('persistent_projection', automaticInitialization: true)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2('persistent_projection'), ProjectionDeployment(manualKickOff: false), FromStream(Ticket::STREAM_NAME)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'persistent_projection';
             public int $initCallCount = 0;
 
@@ -374,7 +380,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_partitioned_projection_with_auto_mode(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection('partitioned_auto_projection', partitionHeaderName: MessageHeaders::EVENT_AGGREGATE_ID, automaticInitialization: true)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2('partitioned_auto_projection'), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(Ticket::STREAM_NAME, Ticket::class)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'partitioned_auto_projection';
             public int $initCallCount = 0;
 
@@ -414,7 +420,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_it_handles_batches(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection(self::NAME, automaticInitialization: false), ProjectionBatchSize(3)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2(self::NAME), ProjectionDeployment(manualKickOff: true), FromStream(Ticket::STREAM_NAME), ProjectionBatchSize(3)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'batch_projection';
             public int $flushCallCount = 0;
             #[ProjectionFlush]
@@ -452,7 +458,7 @@ class ProophIntegrationTest extends ProjectingTestCase
 
     public function test_it_handles_custom_name_stream_source(): void
     {
-        $basketProjection = new #[Projection(self::NAME), FromStream(Basket::BASKET_STREAM)] class {
+        $basketProjection = new #[ProjectionV2(self::NAME), FromStream(Basket::BASKET_STREAM)] class {
             public const NAME = 'basket_projection';
             public int $basketCount = 0;
 
@@ -481,7 +487,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_it_handles_backfilling_projection_when_stream_does_not_exist(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[Projection(self::NAME)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2(self::NAME), FromStream(Ticket::STREAM_NAME)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'ticket_projection';
             public int $initCallCount = 0;
 

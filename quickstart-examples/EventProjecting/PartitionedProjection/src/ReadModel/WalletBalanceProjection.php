@@ -15,9 +15,13 @@ use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Projecting\Attribute\GlobalProjection;
+use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 
-#[Projection(self::NAME, partitionHeaderName: 'aggregate.id')]
+#[Partitioned]
+#[ProjectionV2(self::NAME)]
 #[FromStream('wallet_stream', Wallet::class)]
 #[Asynchronous('async_projection')]
 class WalletBalanceProjection

@@ -13,13 +13,13 @@ use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\Projection;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use RuntimeException;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasCancelled;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasPlaced;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasShipped;
 
-#[Projection(OrderListProjection::PROJECTION_NAME)]
+#[ProjectionV2(OrderListProjection::PROJECTION_NAME)]
 #[FromStream(Order::STREAM_NAME, 'order')]
 class OrderListProjection
 {

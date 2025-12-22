@@ -6,6 +6,8 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 return static function (ContainerConfigurator $containerConfigurator): void {
 
     $containerConfigurator->parameters()->set('app.customer.activate_on_register', true);
+    $containerConfigurator->parameters()->set('app.multiplier', 10);
+    $containerConfigurator->parameters()->set('app.env_multiplier', '%env(int:APP_MULTIPLIER)%');
 
     $containerConfigurator->extension('ecotone', [
         'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([

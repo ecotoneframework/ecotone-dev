@@ -28,30 +28,27 @@ class ProjectingManager
         }
     }
 
-    /**
-     * This is the method that is linked to the event bus routing channel
-     */
-    public function execute(?string $partitionKey = null, bool $manualInitialization = false): void
+    public function execute(?string $partitionKeyValue = null, bool $manualInitialization = false): void
     {
         do {
-            $processedEvents = $this->executeSingleBatch($partitionKey, $manualInitialization || $this->automaticInitialization);
+            $processedEvents = $this->executeSingleBatch($partitionKeyValue, $manualInitialization || $this->automaticInitialization);
         } while ($processedEvents > 0 && $this->terminationSignalService?->isTerminationRequested() !== true);
     }
 
     /**
      * @return int Number of processed events
      */
-    private function executeSingleBatch(?string $partitionKey, bool $canInitialize): int
+    private function executeSingleBatch(?string $partitionKeyValue, bool $canInitialize): int
     {
         $transaction = $this->projectionStateStorage->beginTransaction();
         try {
-            $projectionState = $this->loadOrInitializePartitionState($partitionKey, $canInitialize);
+            $projectionState = $this->loadOrInitializePartitionState($partitionKeyValue, $canInitialize);
             if ($projectionState === null) {
                 $transaction->commit();
                 return 0;
             }
 
-            $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKey);
+            $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKeyValue);
 
             $userState = $projectionState->userState;
             $processedEvents = 0;

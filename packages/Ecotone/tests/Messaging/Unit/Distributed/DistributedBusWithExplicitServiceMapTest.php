@@ -366,7 +366,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             [$distributedTicketQueue],
             DistributedServiceMap::initialize()
                 ->withCommandMapping(targetServiceName: TestServiceName::TICKET_SERVICE, channelName: $ticketChannelName)
-                // No event mapping - so no events should be received
+            // No event mapping - so no events should be received
         );
         $ticketService = $this->bootstrapEcotone(TestServiceName::TICKET_SERVICE, ['Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicket'], [new \Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicket\TicketServiceReceiver()], $distributedTicketQueue);
 
@@ -812,7 +812,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
         $this->assertNull($consumerService2->getMessageChannel($service2Name)->receive());
     }
 
-    public function test_cannot_use_legacy_withServiceMapping_after_withCommandMapping(): void
+    public function test_cannot_use_legacy_with_service_mapping_after_with_command_mapping(): void
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('Cannot use withServiceMapping() after withCommandMapping() or withEventMapping()');
@@ -822,7 +822,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             ->withServiceMapping('service2', 'channel2');
     }
 
-    public function test_cannot_use_legacy_withServiceMapping_after_withEventMapping(): void
+    public function test_cannot_use_legacy_with_service_mapping_after_with_event_mapping(): void
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('Cannot use withServiceMapping() after withCommandMapping() or withEventMapping()');
@@ -832,7 +832,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             ->withServiceMapping('service2', 'channel2');
     }
 
-    public function test_cannot_use_withCommandMapping_after_legacy_withServiceMapping(): void
+    public function test_cannot_use_with_command_mapping_after_legacy_with_service_mapping(): void
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('Cannot use withCommandMapping() after withServiceMapping()');
@@ -842,7 +842,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             ->withCommandMapping('service2', 'channel2');
     }
 
-    public function test_cannot_use_withEventMapping_after_legacy_withServiceMapping(): void
+    public function test_cannot_use_with_event_mapping_after_legacy_with_service_mapping(): void
     {
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('Cannot use withEventMapping() after withServiceMapping()');

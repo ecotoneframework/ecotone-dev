@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Api\Distribution;
 
+use function array_key_exists;
+
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
@@ -13,6 +15,8 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\MessageHandling\Distribution\UnknownDistributedDestination;
+
+use function in_array;
 
 /**
  * licence Enterprise
@@ -163,7 +167,7 @@ final class DistributedServiceMap implements DefinedObject
             $keys = $config['keys'];
             $exclude = $config['exclude'];
 
-            if (\in_array($sourceServiceName, $exclude, true)) {
+            if (in_array($sourceServiceName, $exclude, true)) {
                 continue;
             }
 
@@ -181,7 +185,7 @@ final class DistributedServiceMap implements DefinedObject
 
     public function getChannelNameFor(string $serviceName): string
     {
-        if (! \array_key_exists($serviceName, $this->commandMapping)) {
+        if (! array_key_exists($serviceName, $this->commandMapping)) {
             throw new UnknownDistributedDestination("Service {$serviceName} is not registered in distributed service map");
         }
 

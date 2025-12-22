@@ -14,23 +14,21 @@ class SignalInterceptor implements ConsumerInterceptor
 {
     use ConsumerInterceptorTrait;
 
-    public function __construct(
-        private TerminationSignalService $terminationSignalService,
-    ) {
+    public function __construct(private PcntlTerminationListener $pcntlTerminationListener) {
     }
 
     public function onStartup(): void
     {
-        $this->terminationSignalService->enable();
+        $this->pcntlTerminationListener->enable();
     }
 
     public function onShutdown(): void
     {
-        $this->terminationSignalService->disable();
+        $this->pcntlTerminationListener->disable();
     }
 
     public function shouldBeStopped(): bool
     {
-        return $this->terminationSignalService->isTerminationRequested();
+        return $this->pcntlTerminationListener->shouldTerminate();
     }
 }

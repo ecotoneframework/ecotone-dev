@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting;
 
-use Ecotone\Messaging\Endpoint\Interceptor\TerminationSignalService;
+use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
 use InvalidArgumentException;
 use Throwable;
 
@@ -15,13 +15,13 @@ class ProjectingManager
 {
     public function __construct(
         private ProjectionStateStorage $projectionStateStorage,
-        private ProjectorExecutor $projectorExecutor,
-        private StreamSource $streamSource,
-        private PartitionProvider $partitionProvider,
-        private string $projectionName,
-        private int $batchSize = 1000,
-        private bool $automaticInitialization = true,
-        private ?TerminationSignalService $terminationSignalService = null,
+        private ProjectorExecutor      $projectorExecutor,
+        private StreamSource           $streamSource,
+        private PartitionProvider      $partitionProvider,
+        private string                 $projectionName,
+        private TerminationListener    $terminationListener,
+        private int                    $batchSize = 1000,
+        private bool                   $automaticInitialization = true,
     ) {
         if ($batchSize < 1) {
             throw new InvalidArgumentException('Batch size must be at least 1');
@@ -32,7 +32,7 @@ class ProjectingManager
     {
         do {
             $processedEvents = $this->executeSingleBatch($partitionKeyValue, $manualInitialization || $this->automaticInitialization);
-        } while ($processedEvents > 0 && $this->terminationSignalService?->isTerminationRequested() !== true);
+        } while ($processedEvents > 0 && $this->terminationListener->shouldTerminate() !== true);
     }
 
     /**
@@ -101,7 +101,7 @@ class ProjectingManager
     {
         foreach ($this->partitionProvider->partitions() as $partition) {
             $this->execute($partition, true);
-            if ($this->terminationSignalService?->isTerminationRequested()) {
+            if ($this->terminationListener->shouldTerminate()) {
                 break;
             }
         }

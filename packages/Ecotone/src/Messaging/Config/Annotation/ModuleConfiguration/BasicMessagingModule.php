@@ -28,7 +28,8 @@ use Ecotone\Messaging\Conversion\StringToUuid\StringToUuidConverter;
 use Ecotone\Messaging\Conversion\UuidToString\UuidToStringConverter;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
-use Ecotone\Messaging\Endpoint\Interceptor\TerminationSignalService;
+use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
+use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
@@ -226,11 +227,11 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
 
         $messagingConfiguration->registerServiceDefinition(PollingMetadataConverter::class, new Definition(PollingMetadataConverter::class));
 
-        // Register TerminationSignalService as singleton
         $messagingConfiguration->registerServiceDefinition(
-            TerminationSignalService::class,
-            new Definition(TerminationSignalService::class)
+            PcntlTerminationListener::class,
+            new Definition(PcntlTerminationListener::class)
         );
+        $messagingConfiguration->registerServiceDefinition(TerminationListener::class, new Reference(PcntlTerminationListener::class));
 
         $messagingConfiguration->registerServiceDefinition(LicenceDecider::class, new Definition(LicenceDecider::class, [$messagingConfiguration->isRunningForEnterpriseLicence()]));
     }

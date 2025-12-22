@@ -19,12 +19,12 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
-use Ecotone\Messaging\Endpoint\Interceptor\TerminationSignalService;
 use Ecotone\Projecting\InMemory\InMemoryProjectionRegistry;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
 use Ecotone\Projecting\NullPartitionProvider;
@@ -99,9 +99,9 @@ class ProjectingModule implements AnnotationModule
                     $components[$projectionName][StreamSource::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have stream source configured. Please check your configuration."),
                     $components[$projectionName][PartitionProvider::class] ?? new Definition(NullPartitionProvider::class),
                     $projectionName,
+                    new Reference(TerminationListener::class),
                     $projectionBuilder->batchSize(), // batchSize
                     $projectionBuilder->automaticInitialization(),
-                    new Reference(TerminationSignalService::class),
                 ])
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);

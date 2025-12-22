@@ -10,7 +10,7 @@ namespace Ecotone\Messaging\Endpoint\Interceptor;
  *
  * licence Apache-2.0
  */
-class TerminationSignalService
+class PcntlTerminationListener implements TerminationListener
 {
     private bool $terminationRequested = false;
     private bool $enabled = false;
@@ -79,7 +79,7 @@ class TerminationSignalService
     /**
      * Check if termination was requested.
      */
-    public function isTerminationRequested(): bool
+    public function shouldTerminate(): bool
     {
         return $this->terminationRequested;
     }

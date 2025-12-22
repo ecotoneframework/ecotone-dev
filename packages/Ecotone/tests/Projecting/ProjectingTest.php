@@ -617,7 +617,7 @@ class ProjectingTest extends TestCase
         $terminationSignalService->enable();
         try {
             $ecotone->triggerProjection('signals_projection');
-            self::assertCount(2, $projection->processedEvents);
+            self::assertCount(2, $projection->processedEvents, "Expect projection to process a single batch of events (2 events)");
         } finally {
             $terminationSignalService->disable();
         }

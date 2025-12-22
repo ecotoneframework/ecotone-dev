@@ -714,18 +714,31 @@ final class DistributedBusWithServiceMapTest extends TestCase
         };
 
         $publisherStreamingChannel = SimpleMessageChannelBuilder::createStreamingChannel($channelName = 'distributed_events');
+        $service0Name = 'service0';
+        $service1Name = 'service1';
+        $service2Name = 'service2';
+        $queueChannelService0 = SimpleMessageChannelBuilder::createQueueChannel($service0Name);
+        $queueChannelService1 = SimpleMessageChannelBuilder::createQueueChannel($service1Name);
+        $queueChannelService2 = SimpleMessageChannelBuilder::createQueueChannel($service2Name);
+        $sharedDistributedMap = DistributedServiceMap::initialize()
+            ->withServiceMapping(serviceName: 'service0_distributed_events', channelName: $publisherStreamingChannel->getMessageChannelName())
+            ->withServiceMapping(serviceName: $service0Name, channelName: $queueChannelService0->getMessageChannelName())
+            ->withServiceMapping(serviceName: $service1Name, channelName: $queueChannelService1->getMessageChannelName())
+            ->withServiceMapping(serviceName: $service2Name, channelName: $queueChannelService2->getMessageChannelName());
 
         // Publisher service
         $publisherService = EcotoneLite::bootstrapFlowTesting(
             [$publisher::class],
             [$publisher, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
-                ->withServiceName('publisher-service')
+                ->withServiceName($service0Name)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     $publisherStreamingChannel,
-                    DistributedServiceMap::initialize()
-                        ->withServiceMapping(serviceName: 'distributed_events_channel', channelName: 'distributed_events'),
+                    $queueChannelService0,
+                    $queueChannelService1,
+                    $queueChannelService2,
+                    $sharedDistributedMap,
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE
@@ -736,10 +749,14 @@ final class DistributedBusWithServiceMapTest extends TestCase
             [$consumer1::class],
             [$consumer1, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
-                ->withServiceName('service1')
+                ->withServiceName($service1Name)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     $publisherStreamingChannel,
+                    $queueChannelService0,
+                    $queueChannelService1,
+                    $queueChannelService2,
+                    $sharedDistributedMap,
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE
@@ -750,10 +767,14 @@ final class DistributedBusWithServiceMapTest extends TestCase
             [$consumer2::class],
             [$consumer2, ConsumerPositionTracker::class => $positionTracker],
             ServiceConfiguration::createWithDefaults()
-                ->withServiceName('service2')
+                ->withServiceName($service2Name)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     $publisherStreamingChannel,
+                    $queueChannelService0,
+                    $queueChannelService1,
+                    $queueChannelService2,
+                    $sharedDistributedMap,
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE
@@ -770,5 +791,8 @@ final class DistributedBusWithServiceMapTest extends TestCase
 
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService1->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService2->sendQueryWithRouting('getConsumed2'));
+        $this->assertNull($publisherService->getMessageChannel($service0Name)->receive());
+        $this->assertNull($consumerService1->getMessageChannel($service1Name)->receive());
+        $this->assertNull($consumerService2->getMessageChannel($service2Name)->receive());
     }
 }

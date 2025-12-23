@@ -63,6 +63,44 @@ final class MultiStreamSynchronousProjectionTest extends ProjectingTestCase
         ], $tickets);
     }
 
+    public function test_reset_and_delete_on_multi_stream_projection(): void
+    {
+        $projection = $this->createMultiStreamProjection();
+        $ecotone = $this->bootstrapEcotone([$projection::class, Basket::class], [$projection]);
+
+        // init
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+
+        // seed some events across both streams
+        $ecotone->sendCommand(new RegisterTicket('301', 'C', 'alert'));
+        $ecotone->sendCommand(new CreateBasket('b-2'));
+        $ecotone->sendCommand(new AddProduct('b-2', 'Pen'));
+        $ecotone->sendCommand(new RegisterTicket('302', 'D', 'warning'));
+
+        // verify current state
+        self::assertEquals([
+            ['ticket_id' => '301', 'ticket_type' => 'alert'],
+            ['ticket_id' => '302', 'ticket_type' => 'warning'],
+        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+
+        // reset and trigger catch up
+        $ecotone->resetProjection($projection::NAME)
+            ->triggerProjection($projection::NAME);
+
+        // after reset and catch-up, state should be re-built
+        self::assertEquals([
+            ['ticket_id' => '301', 'ticket_type' => 'alert'],
+            ['ticket_id' => '302', 'ticket_type' => 'warning'],
+        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+
+        // delete projection table
+        $ecotone->deleteProjection($projection::NAME);
+
+        // table should be gone
+        self::assertFalse(self::tableExists($this->getConnection(), 'in_progress_tickets_multi'));
+    }
+
     public function test_interleaving_two_streams(): void
     {
         $projection = $this->createMultiStreamProjection();
@@ -84,6 +122,37 @@ final class MultiStreamSynchronousProjectionTest extends ProjectingTestCase
         // We only project Ticket events; ensure result reflects Ticket stream while Basket events coexist in another stream
         self::assertEquals([
             ['ticket_id' => '202', 'ticket_type' => 'info'],
+        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_exhaustive_interleaving_and_mutations_across_streams(): void
+    {
+        $projection = $this->createMultiStreamProjection();
+        $ecotone = $this->bootstrapEcotone([$projection::class, Basket::class], [$projection]);
+
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+
+        // Interleave multiple operations across streams
+        $ecotone->sendCommand(new RegisterTicket('401', 'Z', 'alert'));      // T1 add
+        $ecotone->sendCommand(new CreateBasket('b-3'));                      // B create
+        $ecotone->sendCommand(new RegisterTicket('402', 'Y', 'info'));       // T2 add
+        $ecotone->sendCommand(new AddProduct('b-3', 'Notebook'));            // B add
+        $ecotone->sendCommand(new CloseTicket('401'));                       // T1 close
+        $ecotone->sendCommand(new RegisterTicket('403', 'X', 'warning'));    // T3 add
+
+        // Expect tickets 402 and 403 in ascending order by id (projection sorts by id ASC on read)
+        self::assertEquals([
+            ['ticket_id' => '402', 'ticket_type' => 'info'],
+            ['ticket_id' => '403', 'ticket_type' => 'warning'],
+        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+
+        // Reset and rebuild should yield the same
+        $ecotone->resetProjection($projection::NAME)
+            ->triggerProjection($projection::NAME);
+        self::assertEquals([
+            ['ticket_id' => '402', 'ticket_type' => 'info'],
+            ['ticket_id' => '403', 'ticket_type' => 'warning'],
         ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
 

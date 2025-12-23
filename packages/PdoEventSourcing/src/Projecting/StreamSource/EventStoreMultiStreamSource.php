@@ -241,12 +241,11 @@ class EventStoreMultiStreamSource implements StreamSource
      */
     private function encodePositions(array $positions): string
     {
-        ksort($positions);
-        $parts = [];
+        $encoded = '';
         foreach ($positions as $stream => $pos) {
-            $parts[] = $stream . '=' . (string)$pos . ';';
+            $encoded .= "$stream=$pos;";
         }
-        return implode('', $parts);
+        return $encoded;
     }
 
     /**
@@ -259,7 +258,7 @@ class EventStoreMultiStreamSource implements StreamSource
         if ($position === null || $position === '') {
             return $result;
         }
-        $pairs = explode(';', rtrim($position, ';'));
+        $pairs = explode(';', $position);
         foreach ($pairs as $pair) {
             if ($pair === '') {
                 continue;

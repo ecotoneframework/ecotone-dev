@@ -13,6 +13,7 @@ use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSourceBuilder;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreMultiStreamSourceBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -54,18 +55,36 @@ class ProophProjectingModule implements AnnotationModule
             $partitionHeaderName = $customScopeStrategyAttribute?->partitionHeaderName;
 
             if ($partitionHeaderName !== null) {
+                // Partitioned projections must target a single stream (aggregate stream)
+                if ($streamAttribute->isMultiStream()) {
+                    throw ConfigurationException::create("Projection {$projectionName} cannot be partitioned by aggregate id when multiple streams are configured");
+                }
                 $aggregateType = $streamAttribute->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
                 $extensions[] = new EventStoreAggregateStreamSourceBuilder(
                     $projectionName,
                     $aggregateType,
-                    $streamAttribute->stream,
+                    $streamAttribute->getStream(),
                 );
-                $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamAttribute->stream);
+                $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamAttribute->getStream());
             } else {
-                $extensions[] = new EventStoreGlobalStreamSourceBuilder(
-                    $streamAttribute->stream,
-                    [$projectionName],
-                );
+                $streams = $streamAttribute->getStreams();
+                if (count($streams) > 1) {
+                    // Multi-stream: build stream->table map using the same hashing as global builder
+                    $map = [];
+                    foreach ($streams as $s) {
+                        $map[$s] = EventStoreGlobalStreamSourceBuilder::getProophTableName($s);
+                    }
+                    $extensions[] = new EventStoreMultiStreamSourceBuilder(
+                        $map,
+                        [$projectionName],
+                    );
+                } else {
+                    // Single stream: keep global stream source
+                    $extensions[] = new EventStoreGlobalStreamSourceBuilder(
+                        $streams[0],
+                        [$projectionName],
+                    );
+                }
             }
         }
 

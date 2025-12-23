@@ -16,7 +16,6 @@ class Stream
     public function __construct(string $name)
     {
         Assert::notNullAndEmpty($name, "Stream name can't be empty");
-
         $this->name = $name;
     }
 

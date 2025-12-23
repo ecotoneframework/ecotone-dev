@@ -145,7 +145,7 @@ final class MultiStreamSynchronousProjectionTest extends ProjectingTestCase
 
         // Configure FromStream with multiple streams: Calendar/Meeting aggregates
         // Real-world usage: projection reacts to Calendar/Meeting events to generate a read model
-        return new #[ProjectionV2(self::NAME), FromStream([CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class])] class () {
+        return new #[ProjectionV2(self::NAME), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
             public const NAME = 'calendar_multi_stream_projection';
 
             private array $calendars = [];

@@ -39,12 +39,16 @@ class ProophProjectingModule implements AnnotationModule
         $handledProjections = [];
         $extensions = [];
 
-        foreach ($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
+        // Iterate over all projections and gather FromStream attributes per class (supports repeatable usage)
+        foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
-            $streamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromStream::class);
             $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
 
-            if (! $projectionAttribute || ! $streamAttribute) {
+            // collect all FromStream attributes for this class (repeatable)
+            $classAnnotations = $annotationRegistrationService->getAnnotationsForClass($classname);
+            $streamAttributes = array_values(array_filter($classAnnotations, static fn($a) => $a instanceof FromStream));
+
+            if (! $projectionAttribute || empty($streamAttributes)) {
                 continue;
             }
 
@@ -56,22 +60,26 @@ class ProophProjectingModule implements AnnotationModule
 
             if ($partitionHeaderName !== null) {
                 // Partitioned projections must target a single stream (aggregate stream)
-                if ($streamAttribute->isMultiStream()) {
+                if (count($streamAttributes) > 1) {
                     throw ConfigurationException::create("Projection {$projectionName} cannot be partitioned by aggregate id when multiple streams are configured");
                 }
-                $aggregateType = $streamAttribute->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
+                /** @var FromStream $single */
+                $single = $streamAttributes[0];
+                $aggregateType = $single->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
                 $extensions[] = new EventStoreAggregateStreamSourceBuilder(
                     $projectionName,
                     $aggregateType,
-                    $streamAttribute->getStream(),
+                    $single->getStream(),
                 );
-                $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamAttribute->getStream());
+                $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $single->getStream());
             } else {
-                $streams = $streamAttribute->getStreams();
-                if (count($streams) > 1) {
+                // Single or multiple FromStream attributes
+                if (count($streamAttributes) > 1) {
                     // Multi-stream: build stream->table map using the same hashing as global builder
                     $map = [];
-                    foreach ($streams as $s) {
+                    foreach ($streamAttributes as $attr) {
+                        /** @var FromStream $attr */
+                        $s = $attr->getStream();
                         $map[$s] = EventStoreGlobalStreamSourceBuilder::getProophTableName($s);
                     }
                     $extensions[] = new EventStoreMultiStreamSourceBuilder(
@@ -80,10 +88,9 @@ class ProophProjectingModule implements AnnotationModule
                     );
                 } else {
                     // Single stream: keep global stream source
-                    $extensions[] = new EventStoreGlobalStreamSourceBuilder(
-                        $streams[0],
-                        [$projectionName],
-                    );
+                    /** @var FromStream $single */
+                    $single = $streamAttributes[0];
+                    $extensions[] = new EventStoreGlobalStreamSourceBuilder($single->getStream(), [$projectionName]);
                 }
             }
         }

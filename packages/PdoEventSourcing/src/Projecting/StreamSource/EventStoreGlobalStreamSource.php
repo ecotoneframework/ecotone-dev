@@ -12,7 +12,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\EventSourcing\Projecting\PdoEvent;
+use Ecotone\EventSourcing\Projecting\PersistedProophEvent;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
@@ -77,7 +77,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         $now = $this->clock->now();
         $cutoffTimestamp = $this->gapTimeout ? $now->sub($this->gapTimeout)->getTimestamp() : 0;
         foreach ($query->iterateAssociative() as $event) {
-            $events[] = $event = new PdoEvent(
+            $events[] = $event = new PersistedProophEvent(
                 $event['event_name'],
                 json_decode($event['payload'], true),
                 json_decode($event['metadata'], true),

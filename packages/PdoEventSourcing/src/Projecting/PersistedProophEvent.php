@@ -8,7 +8,7 @@ namespace Ecotone\EventSourcing\Projecting;
 
 use Ecotone\Modelling\Event;
 
-class PdoEvent extends Event
+class PersistedProophEvent extends Event
 {
     public function __construct(
         string $eventName,

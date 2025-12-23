@@ -6,10 +6,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
-use Doctrine\DBAL\Connection;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -19,18 +17,14 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
-use PHPUnit\Framework\TestCase;
-use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
-use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
-use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
-use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
-use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
-use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
-use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
-use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
-use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
-use Test\Ecotone\EventSourcing\Fixture\Snapshots\BasketMediaTypeConverter;
-use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarCreated;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\CreateCalendar;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\EventsConverter;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingCreated;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingScheduled;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingWithEventSourcing;
+use Test\Ecotone\EventSourcing\Fixture\Calendar\ScheduleMeetingWithEventSourcing;
+use Test\Ecotone\EventSourcing\Fixture\EventSourcingCalendarWithInternalRecorder\CalendarWithInternalRecorder;
 use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
 /**
@@ -48,41 +42,39 @@ final class MultiStreamSynchronousProjectionTest extends ProjectingTestCase
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
 
-        self::assertEquals([], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+        $this->expectException(\Ecotone\Messaging\MessagingException::class);
+        $ecotone->sendQueryWithRouting('getCalendar', 'cal-build-1');
 
-        // write two events into Ticket stream
-        $ecotone->sendCommand(new RegisterTicket('101', 'Alice', 'alert'));
-        $ecotone->sendCommand(new RegisterTicket('102', 'Bob', 'info'));
+        // create calendar and schedule meeting to drive projection entries
+        $calendarId = 'cal-build-1';
+        $meetingId = 'm-build-1';
+        $ecotone->sendCommand(new CreateCalendar($calendarId));
+        $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing($calendarId, $meetingId));
 
-        // also write a close to verify handler works
-        $ecotone->sendCommand(new CloseTicket('101'));
-
-        $tickets = $ecotone->sendQueryWithRouting('getInProgressTickets');
         self::assertEquals([
-            ['ticket_id' => '102', 'ticket_type' => 'info'],
-        ], $tickets);
+            $meetingId => 'created',
+        ], $ecotone->sendQueryWithRouting('getCalendar', $calendarId));
     }
 
     public function test_reset_and_delete_on_multi_stream_projection(): void
     {
         $projection = $this->createMultiStreamProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class, Basket::class], [$projection]);
+        $ecotone = $this->bootstrapEcotone([$projection::class, CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class], [$projection, new EventsConverter()]);
 
         // init
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
 
-        // seed some events across both streams
-        $ecotone->sendCommand(new RegisterTicket('301', 'C', 'alert'));
-        $ecotone->sendCommand(new CreateBasket('b-2'));
-        $ecotone->sendCommand(new AddProduct('b-2', 'Pen'));
-        $ecotone->sendCommand(new RegisterTicket('302', 'D', 'warning'));
+        // seed some events across multiple streams (Calendar/Meeting)
+        $calendarId = 'cal-reset-1';
+        $meetingId = 'm-reset-1';
+        $ecotone->sendCommand(new CreateCalendar($calendarId));
+        $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing($calendarId, $meetingId));
 
         // verify current state
         self::assertEquals([
-            ['ticket_id' => '301', 'ticket_type' => 'alert'],
-            ['ticket_id' => '302', 'ticket_type' => 'warning'],
-        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+            $meetingId => 'created',
+        ], $ecotone->sendQueryWithRouting('getCalendar', $calendarId));
 
         // reset and trigger catch up
         $ecotone->resetProjection($projection::NAME)
@@ -90,133 +82,114 @@ final class MultiStreamSynchronousProjectionTest extends ProjectingTestCase
 
         // after reset and catch-up, state should be re-built
         self::assertEquals([
-            ['ticket_id' => '301', 'ticket_type' => 'alert'],
-            ['ticket_id' => '302', 'ticket_type' => 'warning'],
-        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+            $meetingId => 'created',
+        ], $ecotone->sendQueryWithRouting('getCalendar', $calendarId));
 
-        // delete projection table
+        // delete projection (in-memory)
         $ecotone->deleteProjection($projection::NAME);
-
-        // table should be gone
-        self::assertFalse(self::tableExists($this->getConnection(), 'in_progress_tickets_multi'));
+        $this->expectException(\Ecotone\Messaging\MessagingException::class);
+        $ecotone->sendQueryWithRouting('getCalendar', $calendarId);
     }
 
     public function test_interleaving_two_streams(): void
     {
         $projection = $this->createMultiStreamProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class, Basket::class], [$projection]);
+        $ecotone = $this->bootstrapEcotone([$projection::class, CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class], [$projection, new EventsConverter()]);
 
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
 
-        // Interleave events across two streams: Ticket and Basket
-        // 1) Ticket: register ticket 201
-        $ecotone->sendCommand(new RegisterTicket('201', 'A', 'alert'));
-        // 2) Basket: create basket and add product
-        $ecotone->sendCommand(new CreateBasket('b-1'));
-        $ecotone->sendCommand(new AddProduct('b-1', 'Book'));
-        // 3) Ticket: register ticket 202 and then close 201
-        $ecotone->sendCommand(new RegisterTicket('202', 'B', 'info'));
-        $ecotone->sendCommand(new CloseTicket('201'));
+        // Interleave events across two streams: Calendar and Meeting aggregates
+        // 1) Calendar: create calendar and schedule meeting which creates Meeting aggregate (second stream)
+        $calendarId = 'cal-1';
+        $meetingId = 'm-1';
+        $ecotone->sendCommand(new CreateCalendar($calendarId));
+        $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing($calendarId, $meetingId));
 
-        // We only project Ticket events; ensure result reflects Ticket stream while Basket events coexist in another stream
+        // We only react to Calendar/Meeting events
         self::assertEquals([
-            ['ticket_id' => '202', 'ticket_type' => 'info'],
-        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+            $meetingId => 'created',
+        ], $ecotone->sendQueryWithRouting('getCalendar', $calendarId));
     }
 
     public function test_exhaustive_interleaving_and_mutations_across_streams(): void
     {
         $projection = $this->createMultiStreamProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class, Basket::class], [$projection]);
+        $ecotone = $this->bootstrapEcotone([$projection::class, CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class], [$projection, new EventsConverter()]);
 
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
 
         // Interleave multiple operations across streams
-        $ecotone->sendCommand(new RegisterTicket('401', 'Z', 'alert'));      // T1 add
-        $ecotone->sendCommand(new CreateBasket('b-3'));                      // B create
-        $ecotone->sendCommand(new RegisterTicket('402', 'Y', 'info'));       // T2 add
-        $ecotone->sendCommand(new AddProduct('b-3', 'Notebook'));            // B add
-        $ecotone->sendCommand(new CloseTicket('401'));                       // T1 close
-        $ecotone->sendCommand(new RegisterTicket('403', 'X', 'warning'));    // T3 add
+        $calendarId = 'cal-2';
+        $meetingId = 'm-2';
+        $ecotone->sendCommand(new CreateCalendar($calendarId));              // Calendar create
+        $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing($calendarId, $meetingId)); // Meeting scheduled/created
 
-        // Expect tickets 402 and 403 in ascending order by id (projection sorts by id ASC on read)
+        // Expect one meeting entry marked as created
         self::assertEquals([
-            ['ticket_id' => '402', 'ticket_type' => 'info'],
-            ['ticket_id' => '403', 'ticket_type' => 'warning'],
-        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+            $meetingId => 'created',
+        ], $ecotone->sendQueryWithRouting('getCalendar', $calendarId));
 
         // Reset and rebuild should yield the same
         $ecotone->resetProjection($projection::NAME)
             ->triggerProjection($projection::NAME);
         self::assertEquals([
-            ['ticket_id' => '402', 'ticket_type' => 'info'],
-            ['ticket_id' => '403', 'ticket_type' => 'warning'],
-        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+            $meetingId => 'created',
+        ], $ecotone->sendQueryWithRouting('getCalendar', $calendarId));
     }
 
     private function createMultiStreamProjection(): object
     {
         $connection = $this->getConnection();
 
-        // Configure FromStream with multiple streams: Ticket and Basket
-        return new #[ProjectionV2(self::NAME), FromStream([Ticket::class, Basket::class])] class ($connection) {
-            public const NAME = 'in_progress_ticket_list_multi_stream';
+        // Configure FromStream with multiple streams: Calendar/Meeting aggregates
+        // Real-world usage: projection reacts to Calendar/Meeting events to generate a read model
+        return new #[ProjectionV2(self::NAME), FromStream([CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class])] class () {
+            public const NAME = 'calendar_multi_stream_projection';
 
-            public function __construct(private Connection $connection)
-            {
-            }
+            private array $calendars = [];
 
-            #[QueryHandler('getInProgressTickets')]
-            public function getTickets(): array
+            #[QueryHandler('getCalendar')]
+            public function getCalendar(string $calendarId): array
             {
-                return $this->connection->executeQuery(<<<SQL
-                        SELECT * FROM in_progress_tickets_multi ORDER BY ticket_id ASC
-                    SQL)->fetchAllAssociative();
+                return $this->calendars[$calendarId] ?? throw new \RuntimeException("Calendar with id {$calendarId} not found");
             }
 
             #[EventHandler]
-            public function addTicket(TicketWasRegistered $event): void
+            public function whenCalendarCreated(CalendarCreated $event): void
             {
-                $this->connection->executeStatement(<<<SQL
-                        INSERT INTO in_progress_tickets_multi VALUES (?,?)
-                    SQL, [$event->getTicketId(), $event->getTicketType()]);
+                $this->calendars[$event->calendarId] = [];
             }
 
             #[EventHandler]
-            public function closeTicket(TicketWasClosed $event): void
+            public function whenMeetingScheduled(MeetingScheduled $event): void
             {
-                $this->connection->executeStatement(<<<SQL
-                        DELETE FROM in_progress_tickets_multi WHERE ticket_id = ?
-                    SQL, [$event->getTicketId()]);
+                if (! array_key_exists($event->calendarId, $this->calendars)) {
+                    throw new \RuntimeException('Meeting scheduled before calendar was created');
+                }
+                $this->calendars[$event->calendarId][$event->meetingId] = 'scheduled';
             }
 
-            #[ProjectionInitialization]
-            public function initialization(): void
+            #[EventHandler]
+            public function whenMeetingCreated(MeetingCreated $event): void
             {
-                $this->connection->executeStatement(<<<SQL
-                        CREATE TABLE IF NOT EXISTS in_progress_tickets_multi (
-                            ticket_id VARCHAR(36) PRIMARY KEY,
-                            ticket_type VARCHAR(25)
-                        )
-                    SQL);
+                if (! array_key_exists($event->calendarId, $this->calendars)) {
+                    throw new \RuntimeException('Meeting created before calendar was created');
+                }
+                $this->calendars[$event->calendarId][$event->meetingId] = 'created';
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
-                $this->connection->executeStatement(<<<SQL
-                        DROP TABLE IF EXISTS in_progress_tickets_multi
-                    SQL);
+                $this->calendars = [];
             }
 
             #[ProjectionReset]
             public function reset(): void
             {
-                $this->connection->executeStatement(<<<SQL
-                        DELETE FROM in_progress_tickets_multi
-                    SQL);
+                $this->calendars = [];
             }
         };
     }
@@ -224,8 +197,11 @@ final class MultiStreamSynchronousProjectionTest extends ProjectingTestCase
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class, Basket::class, BasketEventConverter::class, BasketMediaTypeConverter::class]),
-            containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), new BasketEventConverter(), new BasketMediaTypeConverter(), self::getConnectionFactory()]),
+            classesToResolve: array_merge($classesToResolve, [
+                CalendarWithInternalRecorder::class,
+                MeetingWithEventSourcing::class, EventsConverter::class
+            ]),
+            containerOrAvailableServices: array_merge($services, [new EventsConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
                     ModulePackageList::DBAL_PACKAGE,

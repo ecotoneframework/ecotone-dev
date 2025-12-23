@@ -73,24 +73,19 @@ class ProophProjectingModule implements AnnotationModule
                 );
                 $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $single->getStream());
             } else {
-                // Single or multiple FromStream attributes
                 if (count($streamAttributes) > 1) {
-                    // Multi-stream: build stream->table map using the same hashing as global builder
+                    // Multi-stream: build stream name -> stream source map
                     $map = [];
-                    foreach ($streamAttributes as $attr) {
-                        /** @var FromStream $attr */
-                        $s = $attr->getStream();
-                        $map[$s] = EventStoreGlobalStreamSourceBuilder::getProophTableName($s);
+                    foreach ($streamAttributes as $attribute) {
+                        $map[$attribute->getStream()] = new EventStoreGlobalStreamSourceBuilder($attribute->getStream(), []);
                     }
                     $extensions[] = new EventStoreMultiStreamSourceBuilder(
                         $map,
                         [$projectionName],
                     );
                 } else {
-                    // Single stream: keep global stream source
-                    /** @var FromStream $single */
-                    $single = $streamAttributes[0];
-                    $extensions[] = new EventStoreGlobalStreamSourceBuilder($single->getStream(), [$projectionName]);
+                    $attribute = $streamAttributes[0];
+                    $extensions[] = new EventStoreGlobalStreamSourceBuilder($attribute->getStream(), [$projectionName]);
                 }
             }
         }

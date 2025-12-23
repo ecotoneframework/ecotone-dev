@@ -7,22 +7,9 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
-use DateTimeZone;
-use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
-use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\EventSourcing\Projecting\PdoEvent;
-use Ecotone\Messaging\Scheduling\DatePoint;
-use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\Event;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
-
-use function strlen;
 
 /**
  * Multi-stream source for Prooph, where each stream has its own table and sequence.
@@ -30,22 +17,12 @@ use function strlen;
  */
 class EventStoreMultiStreamSource implements StreamSource
 {
-    /** @var array<string, EventStoreGlobalStreamSource> */
-    private array $sources;
     /**
-     * @param array<string,string> $streamToTable map of logical stream name => prooph table name
+     * @param array<string, EventStoreGlobalStreamSource> $sources map of logical stream name => stream source
      */
     public function __construct(
-        DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
-        EcotoneClockInterface $clock,
-        private array $streamToTable,
-        int $maxGapOffset = 5_000,
-        ?Duration $gapTimeout = null,
+        private array $sources,
     ) {
-        $this->sources = [];
-        foreach ($this->streamToTable as $stream => $table) {
-            $this->sources[$stream] = new EventStoreGlobalStreamSource($connectionFactory, $clock, $table, $maxGapOffset, $gapTimeout);
-        }
     }
 
     public function load(?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
@@ -61,7 +38,7 @@ class EventStoreMultiStreamSource implements StreamSource
         foreach ($this->sources as $stream => $source) {
             $orderIndex[$stream] = $i++;
 
-            $limit = max((int)ceil($count / max(1, count($this->streamToTable))) + 5, 10);
+            $limit = (int)ceil($count / max(1, count($this->sources))) + 5;
 
             $page = $source->load($positions[$stream] ?? null, $limit, $partitionKey);
 

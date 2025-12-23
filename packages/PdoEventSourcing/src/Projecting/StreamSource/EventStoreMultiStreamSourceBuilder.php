@@ -19,14 +19,12 @@ use Enqueue\Dbal\DbalConnectionFactory;
 class EventStoreMultiStreamSourceBuilder implements ProjectionComponentBuilder
 {
     /**
-     * @param array<string,string> $streamToTable
+     * @param array<string,EventStoreMultiStreamSourceBuilder> $streamToSourceBuilder
      * @param string[] $handledProjectionNames
      */
     public function __construct(
-        private array $streamToTable,
+        private array $streamToSourceBuilder,
         private array $handledProjectionNames,
-        private int $maxGapOffset = 5_000,
-        private ?int $gapTimeoutSeconds = 60,
     ) {
     }
 
@@ -37,14 +35,14 @@ class EventStoreMultiStreamSourceBuilder implements ProjectionComponentBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
+        $sourcesDefinitions = array_map(function ($sourceBuilder) use ($builder) {
+            return $sourceBuilder->compile($builder);
+        }, $this->streamToSourceBuilder);
+
         return new Definition(
             EventStoreMultiStreamSource::class,
             [
-                Reference::to(DbalConnectionFactory::class),
-                Reference::to(EcotoneClockInterface::class),
-                $this->streamToTable,
-                $this->maxGapOffset,
-                $this->gapTimeoutSeconds !== null ? new Definition(Duration::class, [$this->gapTimeoutSeconds], 'seconds') : null,
+                $sourcesDefinitions
             ],
         );
     }

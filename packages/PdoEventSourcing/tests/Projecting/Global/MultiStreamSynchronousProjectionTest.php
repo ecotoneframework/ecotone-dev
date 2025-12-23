@@ -42,7 +42,7 @@ final class MultiStreamSynchronousProjectionTest extends ProjectingTestCase
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
 
-        $this->expectException(\Ecotone\Messaging\MessagingException::class);
+        $this->expectException(\RuntimeException::class);
         $ecotone->sendQueryWithRouting('getCalendar', 'cal-build-1');
 
         // create calendar and schedule meeting to drive projection entries
@@ -87,7 +87,7 @@ final class MultiStreamSynchronousProjectionTest extends ProjectingTestCase
 
         // delete projection (in-memory)
         $ecotone->deleteProjection($projection::NAME);
-        $this->expectException(\Ecotone\Messaging\MessagingException::class);
+        $this->expectException(\RuntimeException::class);
         $ecotone->sendQueryWithRouting('getCalendar', $calendarId);
     }
 

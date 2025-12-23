@@ -83,6 +83,15 @@ class EventStoreMultiStreamSource implements StreamSource
             $orderIndex[$stream] = $i++;
             $tracking = GapAwarePosition::fromString($positions[$stream] ?? null);
 
+            // skip querying non-existing tables for this stream
+            if (!SchemaManagerCompatibility::tableExists($connection, $table)) {
+                $perStreamRows[$stream] = [
+                    'rows' => [],
+                    'tracking' => $tracking,
+                ];
+                continue;
+            }
+
             [$gapQueryPart, $gapQueryParams, $gapQueryTypes] = match (($gaps = $tracking->getGaps()) > 0) {
                 true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => \Doctrine\DBAL\ArrayParameterType::INTEGER]],
                 false => ['', [], []],
@@ -170,6 +179,9 @@ class EventStoreMultiStreamSource implements StreamSource
     private function cleanGapsByTimeout(GapAwarePosition $tracking, Connection $connection, string $table): void
     {
         if ($this->gapTimeout === null) {
+            return;
+        }
+        if (!SchemaManagerCompatibility::tableExists($connection, $table)) {
             return;
         }
         $gaps = $tracking->getGaps();

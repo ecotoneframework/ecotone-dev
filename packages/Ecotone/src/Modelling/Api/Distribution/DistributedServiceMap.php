@@ -182,7 +182,7 @@ final class DistributedServiceMap implements DefinedObject
                 continue;
             }
 
-            if ($include !== [] && ! \in_array($sourceServiceName, $include, true)) {
+            if ($include !== [] && ! in_array($sourceServiceName, $include, true)) {
                 continue;
             }
 

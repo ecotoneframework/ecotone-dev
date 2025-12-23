@@ -11,10 +11,6 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 
-/**
- * Multi-stream source for Prooph, where each stream has its own table and sequence.
- * We maintain a GapAwarePosition per stream and interleave by created_at.
- */
 class EventStoreMultiStreamSource implements StreamSource
 {
     /**
@@ -79,7 +75,7 @@ class EventStoreMultiStreamSource implements StreamSource
 
     /**
      * Decodes the map encoded by encodePositions.
-     * Returns array<string,string>
+     * Returns array<string,string> key is stream name, value is position (opaque string)
      */
     private function decodePositions(?string $position): array
     {

@@ -39,12 +39,10 @@ class ProophProjectingModule implements AnnotationModule
         $handledProjections = [];
         $extensions = [];
 
-        // Iterate over all projections and gather FromStream attributes per class (supports repeatable usage)
         foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
             $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
 
-            // collect all FromStream attributes for this class (repeatable)
             $classAnnotations = $annotationRegistrationService->getAnnotationsForClass($classname);
             $streamAttributes = array_values(array_filter($classAnnotations, static fn($a) => $a instanceof FromStream));
 
@@ -55,37 +53,37 @@ class ProophProjectingModule implements AnnotationModule
             $projectionName = $projectionAttribute->name;
             $handledProjections[] = $projectionName;
 
-            // Determine partitionHeaderName from CustomScopeStrategy attribute
             $partitionHeaderName = $customScopeStrategyAttribute?->partitionHeaderName;
 
             if ($partitionHeaderName !== null) {
-                // Partitioned projections must target a single stream (aggregate stream)
                 if (count($streamAttributes) > 1) {
                     throw ConfigurationException::create("Projection {$projectionName} cannot be partitioned by aggregate id when multiple streams are configured");
                 }
-                /** @var FromStream $single */
-                $single = $streamAttributes[0];
-                $aggregateType = $single->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
+                /** @var FromStream $streamAttribute */
+                $streamAttribute = $streamAttributes[0];
+                $aggregateType = $streamAttribute->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
                 $extensions[] = new EventStoreAggregateStreamSourceBuilder(
                     $projectionName,
                     $aggregateType,
-                    $single->getStream(),
+                    $streamAttribute->stream,
                 );
-                $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $single->getStream());
+                $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamAttribute->stream);
             } else {
                 if (count($streamAttributes) > 1) {
                     // Multi-stream: build stream name -> stream source map
                     $map = [];
-                    foreach ($streamAttributes as $attribute) {
-                        $map[$attribute->getStream()] = new EventStoreGlobalStreamSourceBuilder($attribute->getStream(), []);
+                    /** @var FromStream $streamAttribute */
+                    foreach ($streamAttributes as $streamAttribute) {
+                        $map[$streamAttribute->stream] = new EventStoreGlobalStreamSourceBuilder($streamAttribute->stream, []);
                     }
                     $extensions[] = new EventStoreMultiStreamSourceBuilder(
                         $map,
                         [$projectionName],
                     );
                 } else {
-                    $attribute = $streamAttributes[0];
-                    $extensions[] = new EventStoreGlobalStreamSourceBuilder($attribute->getStream(), [$projectionName]);
+                    /** @var FromStream $streamAttribute */
+                    $streamAttribute = $streamAttributes[0];
+                    $extensions[] = new EventStoreGlobalStreamSourceBuilder($streamAttribute->stream, [$projectionName]);
                 }
             }
         }

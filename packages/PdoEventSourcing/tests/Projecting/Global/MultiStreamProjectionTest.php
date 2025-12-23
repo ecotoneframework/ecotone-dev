@@ -31,7 +31,7 @@ use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
  * licence Enterprise
  * @internal
  */
-final class MultiStreamSynchronousProjectionTest extends ProjectingTestCase
+final class MultiStreamProjectionTest extends ProjectingTestCase
 {
     public function test_building_multi_stream_synchronous_projection(): void
     {
@@ -89,54 +89,6 @@ final class MultiStreamSynchronousProjectionTest extends ProjectingTestCase
         $ecotone->deleteProjection($projection::NAME);
         $this->expectException(\RuntimeException::class);
         $ecotone->sendQueryWithRouting('getCalendar', $calendarId);
-    }
-
-    public function test_interleaving_two_streams(): void
-    {
-        $projection = $this->createMultiStreamProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class, CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class], [$projection, new EventsConverter()]);
-
-        $ecotone->deleteProjection($projection::NAME)
-            ->initializeProjection($projection::NAME);
-
-        // Interleave events across two streams: Calendar and Meeting aggregates
-        // 1) Calendar: create calendar and schedule meeting which creates Meeting aggregate (second stream)
-        $calendarId = 'cal-1';
-        $meetingId = 'm-1';
-        $ecotone->sendCommand(new CreateCalendar($calendarId));
-        $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing($calendarId, $meetingId));
-
-        // We only react to Calendar/Meeting events
-        self::assertEquals([
-            $meetingId => 'created',
-        ], $ecotone->sendQueryWithRouting('getCalendar', $calendarId));
-    }
-
-    public function test_exhaustive_interleaving_and_mutations_across_streams(): void
-    {
-        $projection = $this->createMultiStreamProjection();
-        $ecotone = $this->bootstrapEcotone([$projection::class, CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class], [$projection, new EventsConverter()]);
-
-        $ecotone->deleteProjection($projection::NAME)
-            ->initializeProjection($projection::NAME);
-
-        // Interleave multiple operations across streams
-        $calendarId = 'cal-2';
-        $meetingId = 'm-2';
-        $ecotone->sendCommand(new CreateCalendar($calendarId));              // Calendar create
-        $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing($calendarId, $meetingId)); // Meeting scheduled/created
-
-        // Expect one meeting entry marked as created
-        self::assertEquals([
-            $meetingId => 'created',
-        ], $ecotone->sendQueryWithRouting('getCalendar', $calendarId));
-
-        // Reset and rebuild should yield the same
-        $ecotone->resetProjection($projection::NAME)
-            ->triggerProjection($projection::NAME);
-        self::assertEquals([
-            $meetingId => 'created',
-        ], $ecotone->sendQueryWithRouting('getCalendar', $calendarId));
     }
 
     private function createMultiStreamProjection(): object

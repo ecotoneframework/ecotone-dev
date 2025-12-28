@@ -8,7 +8,10 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\EventSourcing\Attribute\FromAggregateStream;
+use Ecotone\EventSourcing\Attribute\AggregateType;
 use Ecotone\EventSourcing\Attribute\FromStream;
+use Ecotone\EventSourcing\Attribute\Stream;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
@@ -21,6 +24,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
@@ -64,6 +68,47 @@ class ProophProjectingModule implements AnnotationModule
             } else {
                 $extensions[] = new EventStoreGlobalStreamSourceBuilder(
                     $streamAttribute->stream,
+                    [$projectionName],
+                );
+            }
+        }
+
+        // Handle AggregateStream attribute
+        foreach ($annotationRegistrationService->findAnnotatedClasses(FromAggregateStream::class) as $classname) {
+            $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
+            $aggregateStreamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromAggregateStream::class);
+            $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
+
+            if (! $projectionAttribute || ! $aggregateStreamAttribute) {
+                continue;
+            }
+
+            $aggregateClass = $aggregateStreamAttribute->aggregateClass;
+            $projectionName = $projectionAttribute->name;
+
+            $eventSourcingAggregateAttribute = $annotationRegistrationService->findAttributeForClass($aggregateClass, EventSourcingAggregate::class);
+            if ($eventSourcingAggregateAttribute === null) {
+                throw ConfigurationException::create("Class {$aggregateClass} referenced in #[AggregateStream] for projection {$projectionName} must be an EventSourcingAggregate. Add #[EventSourcingAggregate] attribute to the class.");
+            }
+
+            $streamAttribute = $annotationRegistrationService->findAttributeForClass($aggregateClass, Stream::class);
+            $streamName = $streamAttribute?->getName() ?? $aggregateClass;
+
+            $aggregateTypeAttribute = $annotationRegistrationService->findAttributeForClass($aggregateClass, AggregateType::class);
+            $aggregateType = $aggregateTypeAttribute?->getName() ?? $aggregateClass;
+
+            $handledProjections[] = $projectionName;
+
+            if ($customScopeStrategyAttribute !== null) {
+                $extensions[] = new EventStoreAggregateStreamSourceBuilder(
+                    $projectionName,
+                    $aggregateType,
+                    $streamName,
+                );
+                $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamName);
+            } else {
+                $extensions[] = new EventStoreGlobalStreamSourceBuilder(
+                    $streamName,
                     [$projectionName],
                 );
             }

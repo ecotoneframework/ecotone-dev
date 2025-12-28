@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -25,6 +26,12 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Command\PlaceOrder;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Command\ShipOrder;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasPlaced;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasShipped;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\EventsConverter;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Order;
 use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
 /**
@@ -131,6 +138,120 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             ['ticket_id' => 'ticket-2', 'ticket_type' => 'info'],
             ['ticket_id' => 'ticket-3', 'ticket_type' => 'warning'],
         ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_building_partitioned_projection_with_aggregate_stream_attribute(): void
+    {
+        $projection = $this->createOrderListProjectionWithAggregateStream();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [$projection::class, Order::class, EventsConverter::class],
+            containerOrAvailableServices: [$projection, new EventsConverter(), self::getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                ])),
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+        self::assertEquals([], $ecotone->sendQueryWithRouting('getOrdersPartitioned'));
+
+        $ecotone->sendCommand(new PlaceOrder('order-1', 'laptop', 2));
+        self::assertEquals([
+            ['order_id' => 'order-1', 'product' => 'laptop', 'quantity' => '2', 'shipped' => '0'],
+        ], $ecotone->sendQueryWithRouting('getOrdersPartitioned'));
+
+        $ecotone->sendCommand(new PlaceOrder('order-2', 'phone', 1));
+        self::assertEquals([
+            ['order_id' => 'order-1', 'product' => 'laptop', 'quantity' => '2', 'shipped' => '0'],
+            ['order_id' => 'order-2', 'product' => 'phone', 'quantity' => '1', 'shipped' => '0'],
+        ], $ecotone->sendQueryWithRouting('getOrdersPartitioned'));
+
+        $ecotone->sendCommand(new ShipOrder('order-1'));
+        self::assertEquals([
+            ['order_id' => 'order-1', 'product' => 'laptop', 'quantity' => '2', 'shipped' => '1'],
+            ['order_id' => 'order-2', 'product' => 'phone', 'quantity' => '1', 'shipped' => '0'],
+        ], $ecotone->sendQueryWithRouting('getOrdersPartitioned'));
+
+        // Test reset and catchup for partitioned projection
+        $ecotone->resetProjection($projection::NAME)
+            ->triggerProjection($projection::NAME);
+
+        self::assertEquals([
+            ['order_id' => 'order-1', 'product' => 'laptop', 'quantity' => '2', 'shipped' => '1'],
+            ['order_id' => 'order-2', 'product' => 'phone', 'quantity' => '1', 'shipped' => '0'],
+        ], $ecotone->sendQueryWithRouting('getOrdersPartitioned'));
+    }
+
+    private function createOrderListProjectionWithAggregateStream(): object
+    {
+        $connection = $this->getConnection();
+
+        return new #[ProjectionV2(self::NAME), Partitioned, FromAggregateStream(Order::class)] class ($connection) {
+            public const NAME = 'order_list_partitioned_aggregate_stream';
+
+            public function __construct(private Connection $connection)
+            {
+            }
+
+            #[QueryHandler('getOrdersPartitioned')]
+            public function getOrders(): array
+            {
+                return $this->connection->executeQuery(<<<SQL
+                        SELECT * FROM order_list_partitioned_aggregate_stream ORDER BY order_id ASC
+                    SQL)->fetchAllAssociative();
+            }
+
+            #[EventHandler]
+            public function addOrder(OrderWasPlaced $event): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        INSERT INTO order_list_partitioned_aggregate_stream VALUES (?,?,?,?)
+                    SQL, [$event->orderId, $event->product, $event->quantity, 0]);
+            }
+
+            #[EventHandler]
+            public function shipOrder(OrderWasShipped $event): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        UPDATE order_list_partitioned_aggregate_stream SET shipped = ? WHERE order_id = ?
+                    SQL, [1, $event->orderId]);
+            }
+
+            #[ProjectionInitialization]
+            public function initialization(): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        CREATE TABLE IF NOT EXISTS order_list_partitioned_aggregate_stream (
+                            order_id VARCHAR(36) PRIMARY KEY,
+                            product VARCHAR(255),
+                            quantity INT,
+                            shipped INT DEFAULT 0
+                        )
+                    SQL);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        DROP TABLE IF EXISTS order_list_partitioned_aggregate_stream
+                    SQL);
+            }
+
+            #[ProjectionReset]
+            public function reset(): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        DELETE FROM order_list_partitioned_aggregate_stream
+                    SQL);
+            }
+        };
     }
 
     private function createInProgressTicketListProjection(): object

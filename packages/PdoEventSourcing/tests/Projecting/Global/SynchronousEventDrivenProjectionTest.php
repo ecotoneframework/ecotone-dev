@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\AggregateStream;
+use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -239,7 +239,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     public function test_aggregate_stream_throws_exception_for_non_event_sourcing_aggregate(): void
     {
         // Create a projection that references a non-EventSourcingAggregate class
-        $projection = new #[ProjectionV2('invalid_projection'), AggregateStream(\stdClass::class)] class {
+        $projection = new #[ProjectionV2('invalid_projection'), FromAggregateStream(\stdClass::class)] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -267,7 +267,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), AggregateStream(Order::class)] class ($connection) {
+        return new #[ProjectionV2(self::NAME), FromAggregateStream(Order::class)] class ($connection) {
             public const NAME = 'order_list_aggregate_stream';
 
             public function __construct(private Connection $connection)

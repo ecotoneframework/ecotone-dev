@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\EventSourcing\Attribute\AggregateStream;
+use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\AggregateType;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\Stream;
@@ -74,9 +74,9 @@ class ProophProjectingModule implements AnnotationModule
         }
 
         // Handle AggregateStream attribute
-        foreach ($annotationRegistrationService->findAnnotatedClasses(AggregateStream::class) as $classname) {
+        foreach ($annotationRegistrationService->findAnnotatedClasses(FromAggregateStream::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
-            $aggregateStreamAttribute = $annotationRegistrationService->findAttributeForClass($classname, AggregateStream::class);
+            $aggregateStreamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromAggregateStream::class);
             $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
 
             if (! $projectionAttribute || ! $aggregateStreamAttribute) {

@@ -24,7 +24,7 @@ use Ecotone\EventSourcing\EventStore;
  * licence Enterprise
  */
 #[Attribute(Attribute::TARGET_CLASS)]
-class AggregateStream
+class FromAggregateStream
 {
     /**
      * @param class-string $aggregateClass The aggregate class to read Stream and AggregateType from.

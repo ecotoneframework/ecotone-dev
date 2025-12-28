@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\AggregateStream;
+use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -192,7 +192,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, AggregateStream(Order::class)] class ($connection) {
+        return new #[ProjectionV2(self::NAME), Partitioned, FromAggregateStream(Order::class)] class ($connection) {
             public const NAME = 'order_list_partitioned_aggregate_stream';
 
             public function __construct(private Connection $connection)

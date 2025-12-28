@@ -24,6 +24,7 @@ use Ecotone\Test\LicenceTesting;
 
 use function get_class;
 
+use stdClass;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\BasketMediaTypeConverter;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\TicketMediaTypeConverter;
@@ -239,7 +240,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     public function test_aggregate_stream_throws_exception_for_non_event_sourcing_aggregate(): void
     {
         // Create a projection that references a non-EventSourcingAggregate class
-        $projection = new #[ProjectionV2('invalid_projection'), FromAggregateStream(\stdClass::class)] class {
+        $projection = new #[ProjectionV2('invalid_projection'), FromAggregateStream(stdClass::class)] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {

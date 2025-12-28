@@ -157,7 +157,8 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteProjection($projection::NAME);
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
         self::assertEquals([], $ecotone->sendQueryWithRouting('getOrdersPartitioned'));
 
         $ecotone->sendCommand(new PlaceOrder('order-1', 'laptop', 2));
@@ -218,8 +219,8 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             public function shipOrder(OrderWasShipped $event): void
             {
                 $this->connection->executeStatement(<<<SQL
-                        UPDATE order_list_partitioned_aggregate_stream SET shipped = 1 WHERE order_id = ?
-                    SQL, [$event->orderId]);
+                        UPDATE order_list_partitioned_aggregate_stream SET shipped = ? WHERE order_id = ?
+                    SQL, [1, $event->orderId]);
             }
 
             #[ProjectionInitialization]
@@ -230,7 +231,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
                             order_id VARCHAR(36) PRIMARY KEY,
                             product VARCHAR(255),
                             quantity INT,
-                            shipped BOOLEAN DEFAULT FALSE
+                            shipped INT DEFAULT 0
                         )
                     SQL);
             }

@@ -99,10 +99,7 @@ class ProophProjectingModule implements AnnotationModule
 
             $handledProjections[] = $projectionName;
 
-            // Determine partitionHeaderName from Partitioned attribute
-            $partitionHeaderName = $customScopeStrategyAttribute?->partitionHeaderName;
-
-            if ($partitionHeaderName !== null) {
+            if ($customScopeStrategyAttribute !== null) {
                 $extensions[] = new EventStoreAggregateStreamSourceBuilder(
                     $projectionName,
                     $aggregateType,

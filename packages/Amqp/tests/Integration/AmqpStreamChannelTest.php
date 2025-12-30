@@ -1370,4 +1370,124 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService2->getQueryBus()->sendWithRouting('getConsumed2'));
     }
 
+    public function test_stream_queue_retention_config_is_applied_using_amqp_queue(): void
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_retention_amqp_' . Uuid::uuid4()->toString();
+
+        $ecotoneLite = $this->bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName)
+                        ->withMaxAge('7D')
+                        ->withMaxLengthBytes(1073741824)
+                        ->withStreamMaxSegmentSizeBytes(52428800),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    ),
+                ])
+        );
+
+        // Send a message to trigger queue creation
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
+
+        // Verify queue arguments via RabbitMQ Management API
+        $queueInfo = $this->getQueueInfoFromManagementApi($queueName);
+        $this->assertNotNull($queueInfo, 'Queue should exist in RabbitMQ');
+        $this->assertEquals('stream', $queueInfo['type'] ?? $queueInfo['arguments']['x-queue-type'] ?? null);
+        $this->assertEquals('7D', $queueInfo['arguments']['x-max-age'] ?? null);
+        $this->assertEquals(1073741824, $queueInfo['arguments']['x-max-length-bytes'] ?? null);
+        $this->assertEquals(52428800, $queueInfo['arguments']['x-stream-max-segment-size-bytes'] ?? null);
+
+        // Verify the stream still works
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertCount(1, $orders);
+        $this->assertContains('milk', $orders);
+    }
+
+    public function test_stream_queue_retention_config_is_applied_using_channel_builder(): void
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_retention_builder_' . Uuid::uuid4()->toString();
+
+        $ecotoneLite = $this->bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    )
+                        ->withMaxAge('14D')
+                        ->withMaxLengthBytes(2147483648)
+                        ->withStreamMaxSegmentSizeBytes(104857600),
+                ])
+        );
+
+        // Send a message to trigger queue creation
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
+
+        // Verify queue arguments via RabbitMQ Management API
+        $queueInfo = $this->getQueueInfoFromManagementApi($queueName);
+        $this->assertNotNull($queueInfo, 'Queue should exist in RabbitMQ');
+        $this->assertEquals('stream', $queueInfo['type'] ?? $queueInfo['arguments']['x-queue-type'] ?? null);
+        $this->assertEquals('14D', $queueInfo['arguments']['x-max-age'] ?? null);
+        $this->assertEquals(2147483648, $queueInfo['arguments']['x-max-length-bytes'] ?? null);
+        $this->assertEquals(104857600, $queueInfo['arguments']['x-stream-max-segment-size-bytes'] ?? null);
+
+        // Verify the stream still works
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertCount(1, $orders);
+        $this->assertContains('milk', $orders);
+    }
+
+    /**
+     * Helper method to query RabbitMQ Management API for queue information.
+     * @return array<string, mixed>|null
+     */
+    private function getQueueInfoFromManagementApi(string $queueName): ?array
+    {
+        $rabbitHost = \getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f';
+        $parsed = \parse_url($rabbitHost);
+        $host = $parsed['host'] ?? 'localhost';
+        $user = $parsed['user'] ?? 'guest';
+        $pass = $parsed['pass'] ?? 'guest';
+
+        $managementUrl = "http://{$host}:15672/api/queues/%2F/" . \urlencode($queueName);
+
+        $context = \stream_context_create([
+            'http' => [
+                'header' => 'Authorization: Basic ' . \base64_encode("{$user}:{$pass}"),
+                'timeout' => 5,
+            ],
+        ]);
+
+        $response = @\file_get_contents($managementUrl, false, $context);
+        if ($response === false) {
+            return null;
+        }
+
+        return \json_decode($response, true);
+    }
+
 }

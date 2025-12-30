@@ -90,18 +90,30 @@ class AmqpModule implements AnnotationModule
             }
         }
 
+        // First pass: collect explicitly defined AmqpQueue instances
+        $explicitQueueNames = [];
         foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof AmqpBackedMessageChannelBuilder) {
-                $amqpQueues[] = AmqpQueue::createWith($extensionObject->getQueueName());
-            } elseif ($extensionObject instanceof AmqpStreamChannelBuilder) {
-                $hasAmqpStreamChannelBuilder = true;
-                $amqpQueues[] = AmqpQueue::createStreamQueue($extensionObject->queueName);
+            if ($extensionObject instanceof AmqpQueue) {
+                $amqpQueues[] = $extensionObject;
+                $explicitQueueNames[$extensionObject->getQueueName()] = true;
             } elseif ($extensionObject instanceof AmqpExchange) {
                 $amqpExchanges[] = $extensionObject;
-            } elseif ($extensionObject instanceof AmqpQueue) {
-                $amqpQueues[] = $extensionObject;
             } elseif ($extensionObject instanceof AmqpBinding) {
                 $amqpBindings[] = $extensionObject;
+            }
+        }
+
+        // Second pass: create queues from channel builders if not explicitly defined
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof AmqpBackedMessageChannelBuilder) {
+                if (! isset($explicitQueueNames[$extensionObject->getQueueName()])) {
+                    $amqpQueues[] = AmqpQueue::createWith($extensionObject->getQueueName());
+                }
+            } elseif ($extensionObject instanceof AmqpStreamChannelBuilder) {
+                $hasAmqpStreamChannelBuilder = true;
+                if (! isset($explicitQueueNames[$extensionObject->queueName])) {
+                    $amqpQueues[] = $extensionObject->getAmqpQueue();
+                }
             }
         }
 

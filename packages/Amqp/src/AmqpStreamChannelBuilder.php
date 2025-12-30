@@ -14,6 +14,9 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
 {
     private string $channelName;
     private string $messageGroupId;
+    private ?string $maxAge = null;
+    private ?int $maxLengthBytes = null;
+    private ?int $streamMaxSegmentSizeBytes = null;
 
     private function __construct(
         string $channelName,
@@ -98,6 +101,68 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
         return $this;
     }
 
+    /**
+     * Sets the maximum age of messages in the stream.
+     * Messages older than this will be removed by retention policy.
+     *
+     * @param string $maxAge Duration string (e.g., '7D' for 7 days, '24h' for 24 hours, '30m' for 30 minutes, '60s' for 60 seconds)
+     * @return self
+     */
+    public function withMaxAge(string $maxAge): self
+    {
+        $this->maxAge = $maxAge;
+
+        return $this;
+    }
+
+    /**
+     * Sets the maximum size of the stream in bytes.
+     * When exceeded, oldest segments will be removed.
+     *
+     * @param int $maxBytes Maximum size in bytes
+     * @return self
+     */
+    public function withMaxLengthBytes(int $maxBytes): self
+    {
+        $this->maxLengthBytes = $maxBytes;
+
+        return $this;
+    }
+
+    /**
+     * Sets the maximum size of stream segments in bytes.
+     * Smaller segments allow more granular retention but may impact performance.
+     *
+     * @param int $segmentSize Segment size in bytes (default is 500MB in RabbitMQ)
+     * @return self
+     */
+    public function withStreamMaxSegmentSizeBytes(int $segmentSize): self
+    {
+        $this->streamMaxSegmentSizeBytes = $segmentSize;
+
+        return $this;
+    }
+
+    /**
+     * Returns an AmqpQueue configured with the stream settings from this builder.
+     */
+    public function getAmqpQueue(): AmqpQueue
+    {
+        $queue = AmqpQueue::createStreamQueue($this->queueName);
+
+        if ($this->maxAge !== null) {
+            $queue->withMaxAge($this->maxAge);
+        }
+        if ($this->maxLengthBytes !== null) {
+            $queue->withMaxLengthBytes($this->maxLengthBytes);
+        }
+        if ($this->streamMaxSegmentSizeBytes !== null) {
+            $queue->withStreamMaxSegmentSizeBytes($this->streamMaxSegmentSizeBytes);
+        }
+
+        return $queue;
+    }
+
     public function getMessageChannelName(): string
     {
         return $this->channelName;
@@ -120,6 +185,6 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
 
     public function __toString()
     {
-        return sprintf('AMQP Stream Channel - %s', $this->channelName);
+        return \sprintf('AMQP Stream Channel - %s', $this->channelName);
     }
 }

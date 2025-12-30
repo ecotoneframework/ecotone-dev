@@ -150,4 +150,57 @@ class AmqpQueue
 
         return $this;
     }
+
+    /**
+     * Sets the maximum age of messages in the stream.
+     * Messages older than this will be removed by retention policy.
+     * Only applicable for stream queues.
+     *
+     * @param string $maxAge Duration string (e.g., '7D' for 7 days, '24h' for 24 hours, '30m' for 30 minutes, '60s' for 60 seconds)
+     * @return self
+     */
+    public function withMaxAge(string $maxAge): self
+    {
+        Assert::isTrue($this->isStream, 'withMaxAge is only applicable for stream queues. Use createStreamQueue() to create a stream queue.');
+        $this->enqueueQueue->setArgument('x-max-age', $maxAge);
+
+        return $this;
+    }
+
+    /**
+     * Sets the maximum size of the stream in bytes.
+     * When exceeded, oldest segments will be removed.
+     * Only applicable for stream queues.
+     *
+     * @param int $maxBytes Maximum size in bytes
+     * @return self
+     */
+    public function withMaxLengthBytes(int $maxBytes): self
+    {
+        Assert::isTrue($this->isStream, 'withMaxLengthBytes is only applicable for stream queues. Use createStreamQueue() to create a stream queue.');
+        $this->enqueueQueue->setArgument('x-max-length-bytes', $maxBytes);
+
+        return $this;
+    }
+
+    /**
+     * Sets the maximum size of stream segments in bytes.
+     * Smaller segments allow more granular retention but may impact performance.
+     * Only applicable for stream queues.
+     *
+     * @param int $segmentSize Segment size in bytes (default is 500MB in RabbitMQ)
+     * @return self
+     */
+    public function withStreamMaxSegmentSizeBytes(int $segmentSize): self
+    {
+        Assert::isTrue($this->isStream, 'withStreamMaxSegmentSizeBytes is only applicable for stream queues. Use createStreamQueue() to create a stream queue.');
+        $this->enqueueQueue->setArgument('x-stream-max-segment-size-bytes', $segmentSize);
+
+        return $this;
+    }
+
+    public function isStream(): bool
+    {
+        return $this->isStream;
+    }
 }

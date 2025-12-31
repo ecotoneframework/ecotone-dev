@@ -1370,4 +1370,108 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService2->getQueryBus()->sendWithRouting('getConsumed2'));
     }
 
+    public function test_stream_queue_retention_config_is_applied_using_amqp_queue(): void
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_retention_amqp_' . Uuid::uuid4()->toString();
+
+        $ecotoneLite = $this->bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName)
+                        ->withArgument('x-max-age', '7D')
+                        ->withArgument('x-max-length-bytes', 1073741824)
+                        ->withArgument('x-stream-max-segment-size-bytes', 52428800),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    ),
+                ])
+        );
+
+        // Send a message to trigger queue creation
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
+
+        // Verify the stream works correctly with retention config
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertCount(1, $orders);
+        $this->assertContains('milk', $orders);
+
+        // Verify queue was created with correct arguments by re-declaring with same args (should not fail)
+        /** @var \Interop\Amqp\AmqpContext $context */
+        $context = self::getRabbitConnectionFactory()->createContext();
+        /** @var \Interop\Amqp\AmqpQueue $queue */
+        $queue = $context->createQueue($queueName);
+        $queue->addFlag(\Interop\Amqp\AmqpQueue::FLAG_DURABLE);
+        $queue->setArgument('x-queue-type', 'stream');
+        $queue->setArgument('x-max-age', '7D');
+        $queue->setArgument('x-max-length-bytes', 1073741824);
+        $queue->setArgument('x-stream-max-segment-size-bytes', 52428800);
+
+        // This would throw an exception if the queue exists with different arguments
+        $context->declareQueue($queue);
+    }
+
+    public function test_stream_queue_retention_config_is_applied_using_queue_argument(): void
+    {
+        $channelName = 'orders';
+        $queueName = 'stream_retention_arg_' . Uuid::uuid4()->toString();
+
+        $ecotoneLite = $this->bootstrapForTesting(
+            [OrderService::class],
+            [
+                new OrderService(),
+                ...$this->getConnectionFactoryReferences(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    AmqpQueue::createStreamQueue($queueName)
+                        ->withArgument('x-max-age', '14D')
+                        ->withArgument('x-max-length-bytes', 2147483648)
+                        ->withArgument('x-stream-max-segment-size-bytes', 104857600),
+                    AmqpStreamChannelBuilder::create(
+                        channelName: $channelName,
+                        startPosition: 'first',
+                        amqpConnectionReferenceName: AmqpLibConnection::class,
+                        queueName: $queueName,
+                    ),
+                ])
+        );
+
+        // Send a message to trigger queue creation
+        $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
+
+        // Verify the stream works correctly with retention config
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+        $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
+        $this->assertCount(1, $orders);
+        $this->assertContains('milk', $orders);
+
+        // Verify queue was created with correct arguments by re-declaring with same args (should not fail)
+        /** @var \Interop\Amqp\AmqpContext $context */
+        $context = self::getRabbitConnectionFactory()->createContext();
+        /** @var \Interop\Amqp\AmqpQueue $queue */
+        $queue = $context->createQueue($queueName);
+        $queue->addFlag(\Interop\Amqp\AmqpQueue::FLAG_DURABLE);
+        $queue->setArgument('x-queue-type', 'stream');
+        $queue->setArgument('x-max-age', '14D');
+        $queue->setArgument('x-max-length-bytes', 2147483648);
+        $queue->setArgument('x-stream-max-segment-size-bytes', 104857600);
+
+        // This would throw an exception if the queue exists with different arguments
+        $context->declareQueue($queue);
+    }
+
 }

@@ -16,6 +16,7 @@ use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSourceBuilder;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreMultiStreamSourceBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -42,22 +43,28 @@ class ProophProjectingModule implements AnnotationModule
         $handledProjections = [];
         $extensions = [];
 
-        foreach ($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
+        foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
-            $streamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromStream::class);
             $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
 
-            if (! $projectionAttribute || ! $streamAttribute) {
+            $classAnnotations = $annotationRegistrationService->getAnnotationsForClass($classname);
+            $streamAttributes = array_values(array_filter($classAnnotations, static fn($a) => $a instanceof FromStream));
+
+            if (! $projectionAttribute || empty($streamAttributes)) {
                 continue;
             }
 
             $projectionName = $projectionAttribute->name;
             $handledProjections[] = $projectionName;
 
-            // Determine partitionHeaderName from CustomScopeStrategy attribute
             $partitionHeaderName = $customScopeStrategyAttribute?->partitionHeaderName;
 
             if ($partitionHeaderName !== null) {
+                if (count($streamAttributes) > 1) {
+                    throw ConfigurationException::create("Projection {$projectionName} cannot be partitioned by aggregate id when multiple streams are configured");
+                }
+                /** @var FromStream $streamAttribute */
+                $streamAttribute = $streamAttributes[0];
                 $aggregateType = $streamAttribute->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
                 $extensions[] = new EventStoreAggregateStreamSourceBuilder(
                     $projectionName,
@@ -66,10 +73,22 @@ class ProophProjectingModule implements AnnotationModule
                 );
                 $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamAttribute->stream);
             } else {
-                $extensions[] = new EventStoreGlobalStreamSourceBuilder(
-                    $streamAttribute->stream,
-                    [$projectionName],
-                );
+                if (count($streamAttributes) > 1) {
+                    // Multi-stream: build stream name -> stream source map
+                    $map = [];
+                    /** @var FromStream $streamAttribute */
+                    foreach ($streamAttributes as $streamAttribute) {
+                        $map[$streamAttribute->stream] = new EventStoreGlobalStreamSourceBuilder($streamAttribute->stream, []);
+                    }
+                    $extensions[] = new EventStoreMultiStreamSourceBuilder(
+                        $map,
+                        [$projectionName],
+                    );
+                } else {
+                    /** @var FromStream $streamAttribute */
+                    $streamAttribute = $streamAttributes[0];
+                    $extensions[] = new EventStoreGlobalStreamSourceBuilder($streamAttribute->stream, [$projectionName]);
+                }
             }
         }
 

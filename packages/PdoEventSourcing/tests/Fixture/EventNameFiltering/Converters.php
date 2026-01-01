@@ -35,4 +35,3 @@ class Converters
         return new SecondEvent($data['id']);
     }
 }
-

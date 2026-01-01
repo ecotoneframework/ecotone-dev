@@ -14,6 +14,8 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\StreamSource;
 
+use function in_array;
+
 class InMemoryEventStoreStreamSourceBuilder implements ProjectionComponentBuilder
 {
     /**
@@ -30,7 +32,7 @@ class InMemoryEventStoreStreamSourceBuilder implements ProjectionComponentBuilde
     public function canHandle(string $projectionName, string $component): bool
     {
         return $component === StreamSource::class
-            && ($this->projectionNames === null || \in_array($projectionName, $this->projectionNames, true));
+            && ($this->projectionNames === null || in_array($projectionName, $this->projectionNames, true));
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference

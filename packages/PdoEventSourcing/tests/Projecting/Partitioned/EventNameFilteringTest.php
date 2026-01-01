@@ -18,13 +18,14 @@ use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
+
+use function get_class;
+
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\EventNameFiltering\Converters;
 use Test\Ecotone\EventSourcing\Fixture\EventNameFiltering\FirstEvent;
 use Test\Ecotone\EventSourcing\Fixture\EventNameFiltering\MultiEventAggregate;
 use Test\Ecotone\EventSourcing\Fixture\EventNameFiltering\SecondEvent;
-
-use function get_class;
 
 /**
  * Tests for event name filtering optimization in partitioned projections.

@@ -265,7 +265,7 @@ class ProophProjectingModule implements AnnotationModule
                 if (str_contains($route, '*')) {
                     throw ConfigurationException::create(
                         "Projection {$projectionName} uses glob pattern '{$route}' which is not allowed. " .
-                        "For query optimization, event handlers must use explicit event names. Use union type parameters instead."
+                        'For query optimization, event handlers must use explicit event names. Use union type parameters instead.'
                     );
                 }
 

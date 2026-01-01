@@ -9,10 +9,10 @@ namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;

@@ -41,4 +41,3 @@ class MultiEventAggregate
         // No-op, just for event sourcing
     }
 }
-

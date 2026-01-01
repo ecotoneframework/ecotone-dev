@@ -40,8 +40,15 @@ class DeduplicationInterceptor
     private array $initialized = [];
     private Duration $minimumTimeToRemoveMessage;
 
-    public function __construct(private ConnectionFactory $connection, private EcotoneClockInterface $clock, int $minimumTimeToRemoveMessageInMilliseconds, private int $deduplicationRemovalBatchSize, private LoggingGateway $logger, private ExpressionEvaluationService $expressionEvaluationService)
-    {
+    public function __construct(
+        private ConnectionFactory $connection,
+        private EcotoneClockInterface $clock,
+        int $minimumTimeToRemoveMessageInMilliseconds,
+        private int $deduplicationRemovalBatchSize,
+        private LoggingGateway $logger,
+        private ExpressionEvaluationService $expressionEvaluationService,
+        private bool $autoDeclare = true,
+    ) {
         $this->minimumTimeToRemoveMessage = Duration::milliseconds($minimumTimeToRemoveMessageInMilliseconds);
         if ($this->minimumTimeToRemoveMessage->isNegativeOrZero()) {
             throw new Exception('Minimum time to remove message must be greater than 0');
@@ -158,6 +165,10 @@ class DeduplicationInterceptor
 
     private function createDataBaseTable(ConnectionFactory $connectionFactory): void
     {
+        if (! $this->autoDeclare) {
+            return;
+        }
+
         $connection = $this->getConnection($connectionFactory);
         $schemaManager = $connection->createSchemaManager();
 

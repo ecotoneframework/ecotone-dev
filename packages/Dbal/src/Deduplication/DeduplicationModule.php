@@ -73,6 +73,7 @@ class DeduplicationModule implements AnnotationModule
                     $dbalConfiguration->deduplicationRemovalBatchSize(),
                     new Reference(LoggingGateway::class),
                     new Reference(ExpressionEvaluationService::REFERENCE),
+                    $dbalConfiguration->isInitializeDatabaseTablesEnabled(),
                 ]
             )
         );
@@ -109,7 +110,19 @@ class DeduplicationModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(
+            DbalConfiguration::class,
+            $serviceExtensions,
+            DbalConfiguration::createWithDefaults()
+        );
+
+        if (! $dbalConfiguration->isDeduplicatedEnabled()) {
+            return [];
+        }
+
+        return [
+            new \Ecotone\Dbal\Database\DeduplicationTableManager(),
+        ];
     }
 
     public function getModulePackageName(): string

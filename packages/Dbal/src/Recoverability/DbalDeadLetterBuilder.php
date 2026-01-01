@@ -41,13 +41,15 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     private string $methodName;
     private string $connectionReferenceName;
     private array $parameterConverters;
+    private bool $autoDeclare;
 
-    private function __construct(string $methodName, string $connectionReferenceName, string $inputChannelName, array $parameterConverters)
+    private function __construct(string $methodName, string $connectionReferenceName, string $inputChannelName, array $parameterConverters, bool $autoDeclare = true)
     {
         $this->methodName              = $methodName;
         $this->connectionReferenceName = $connectionReferenceName;
         $this->parameterConverters     = $parameterConverters;
         $this->inputMessageChannelName = $inputChannelName;
+        $this->autoDeclare             = $autoDeclare;
     }
 
     public static function getChannelName(string $referenceName, string $actionChannel): string
@@ -150,7 +152,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName;
+        $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName.'.'.($this->autoDeclare ? '1' : '0');
         if (! $builder->has($deadLetterHandlerReference)) {
             $deadLetterHandler = new Definition(DbalDeadLetterHandler::class, [
                 new Definition(CachedConnectionFactory::class, [
@@ -161,6 +163,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
                 DefaultHeaderMapper::createAllHeadersMapping(),
                 Reference::to(ConversionService::REFERENCE_NAME),
                 Reference::to(RetryRunner::class),
+                $this->autoDeclare,
             ]);
 
             $builder->register($deadLetterHandlerReference, $deadLetterHandler);
@@ -187,5 +190,13 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public function withEndpointId(string $endpointId): self
     {
         return $this;
+    }
+
+    public function withAutoDeclare(bool $autoDeclare): self
+    {
+        $clone = clone $this;
+        $clone->autoDeclare = $autoDeclare;
+
+        return $clone;
     }
 }

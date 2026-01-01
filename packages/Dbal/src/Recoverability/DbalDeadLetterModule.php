@@ -63,9 +63,11 @@ class DbalDeadLetterModule implements AnnotationModule
         $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
 
-        $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, false, $messagingConfiguration);
+        $autoDeclare = $dbalConfiguration->isInitializeDatabaseTablesEnabled();
+
+        $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, false, $messagingConfiguration, $autoDeclare);
         foreach ($customDeadLetterGateways as $customDeadLetterGateway) {
-            $this->registerGateway($customDeadLetterGateway->getGatewayReferenceName(), $customDeadLetterGateway->getConnectionReferenceName(), true, $messagingConfiguration);
+            $this->registerGateway($customDeadLetterGateway->getGatewayReferenceName(), $customDeadLetterGateway->getConnectionReferenceName(), true, $messagingConfiguration, $autoDeclare);
         }
     }
 
@@ -79,7 +81,19 @@ class DbalDeadLetterModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(
+            DbalConfiguration::class,
+            $serviceExtensions,
+            DbalConfiguration::createWithDefaults()
+        );
+
+        if (! $dbalConfiguration->isDeadLetterEnabled()) {
+            return [];
+        }
+
+        return [
+            new \Ecotone\Dbal\Database\DeadLetterTableManager(),
+        ];
     }
 
     private function registerOneTimeCommand(string $methodName, string $commandName, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -101,20 +115,20 @@ class DbalDeadLetterModule implements AnnotationModule
         return ModulePackageList::DBAL_PACKAGE;
     }
 
-    private function registerGateway(string $referenceName, string $connectionFactoryReference, bool $isCustomGateway, Configuration $configuration): void
+    private function registerGateway(string $referenceName, string $connectionFactoryReference, bool $isCustomGateway, Configuration $configuration, bool $autoDeclare = true): void
     {
         if (! $isCustomGateway) {
-            $configuration->registerMessageHandler(DbalDeadLetterBuilder::createStore($connectionFactoryReference));
+            $configuration->registerMessageHandler(DbalDeadLetterBuilder::createStore($connectionFactoryReference)->withAutoDeclare($autoDeclare));
         }
 
         $configuration
-            ->registerMessageHandler(DbalDeadLetterBuilder::createDelete($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createDeleteAll($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createShow($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createList($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createCount($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createReply($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createReplyAll($referenceName, $connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createDelete($referenceName, $connectionFactoryReference)->withAutoDeclare($autoDeclare))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createDeleteAll($referenceName, $connectionFactoryReference)->withAutoDeclare($autoDeclare))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createShow($referenceName, $connectionFactoryReference)->withAutoDeclare($autoDeclare))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createList($referenceName, $connectionFactoryReference)->withAutoDeclare($autoDeclare))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createCount($referenceName, $connectionFactoryReference)->withAutoDeclare($autoDeclare))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createReply($referenceName, $connectionFactoryReference)->withAutoDeclare($autoDeclare))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createReplyAll($referenceName, $connectionFactoryReference)->withAutoDeclare($autoDeclare))
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create(
                     $referenceName,

@@ -1,0 +1,90 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ecotone\Dbal\Database;
+
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
+use Ecotone\Messaging\Config\Container\Definition;
+
+/**
+ * Table manager for the dead letter table.
+ *
+ * licence Apache-2.0
+ */
+class DeadLetterTableManager implements DbalTableManager
+{
+    public function __construct(
+        private string $tableName = DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE,
+    ) {
+    }
+
+    public function getTableName(): string
+    {
+        return $this->tableName;
+    }
+
+    public function getCreateTableSql(Connection $connection): string|array
+    {
+        $table = new Table($this->tableName);
+
+        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
+        $table->addColumn('failed_at', Types::DATETIME_MUTABLE);
+        $table->addColumn('payload', Types::TEXT);
+        $table->addColumn('headers', Types::TEXT);
+
+        $table->setPrimaryKey(['message_id']);
+        $table->addIndex(['failed_at']);
+
+        return $connection->getDatabasePlatform()->getCreateTableSQL($table);
+    }
+
+    public function getDropTableSql(Connection $connection): string
+    {
+        return 'DROP TABLE IF EXISTS ' . $this->tableName;
+    }
+
+    public function createTable(Connection $connection): void
+    {
+        $schemaManager = $connection->createSchemaManager();
+
+        if ($schemaManager->tablesExist([$this->tableName])) {
+            return;
+        }
+
+        $table = new Table($this->tableName);
+
+        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
+        $table->addColumn('failed_at', Types::DATETIME_MUTABLE);
+        $table->addColumn('payload', Types::TEXT);
+        $table->addColumn('headers', Types::TEXT);
+
+        $table->setPrimaryKey(['message_id']);
+        $table->addIndex(['failed_at']);
+
+        $schemaManager->createTable($table);
+    }
+
+    public function dropTable(Connection $connection): void
+    {
+        $schemaManager = $connection->createSchemaManager();
+
+        if (! $schemaManager->tablesExist([$this->tableName])) {
+            return;
+        }
+
+        $schemaManager->dropTable($this->tableName);
+    }
+
+    public function getDefinition(): Definition
+    {
+        return new Definition(
+            self::class,
+            [$this->tableName]
+        );
+    }
+}
+

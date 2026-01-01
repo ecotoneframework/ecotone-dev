@@ -16,6 +16,8 @@ use Ecotone\EventSourcing\Attribute\Stream;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionChannelAdapter;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionExecutorBuilder;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\ProjectionsTableManager;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore;
@@ -301,10 +303,24 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
         }
 
-        return [
+        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(
+            EventSourcingConfiguration::class,
+            $serviceExtensions,
+            EventSourcingConfiguration::createWithDefaults()
+        );
+
+        $extensions = [
             ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
             new EventSourcingModuleRoutingExtension($pollingProjectionNames),
         ];
+
+        // Only add table managers if not using in-memory event store
+        if (! $eventSourcingConfiguration->isInMemory()) {
+            $extensions[] = new EventStreamTableManager($eventSourcingConfiguration->getEventStreamTableName());
+            $extensions[] = new ProjectionsTableManager($eventSourcingConfiguration->getProjectionsTable());
+        }
+
+        return $extensions;
     }
 
     private function buildEventSourcingRepositoryBuilder(array $serviceExtensions): array

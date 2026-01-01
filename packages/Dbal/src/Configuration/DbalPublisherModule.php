@@ -3,6 +3,8 @@
 namespace Ecotone\Dbal\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\Database\EnqueueTableManager;
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -109,11 +111,20 @@ class DbalPublisherModule implements AnnotationModule
     {
         return
             $extensionObject instanceof DbalMessagePublisherConfiguration
-            || $extensionObject instanceof ServiceConfiguration;
+            || $extensionObject instanceof ServiceConfiguration
+            || $extensionObject instanceof DbalBackedMessageChannelBuilder;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
+        $dbalMessageChannels = ExtensionObjectResolver::resolve(DbalBackedMessageChannelBuilder::class, $serviceExtensions);
+        $dbalPublishers = ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $serviceExtensions);
+
+        // If there are any DBAL message channels or publishers, we need to provide the enqueue table manager
+        if (! empty($dbalMessageChannels) || ! empty($dbalPublishers)) {
+            return [new EnqueueTableManager()];
+        }
+
         return [];
     }
 

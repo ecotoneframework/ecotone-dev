@@ -43,6 +43,7 @@ class DbalDeadLetterHandler
         private HeaderMapper $headerMapper,
         private ConversionService $conversionService,
         private RetryRunner $retryRunner,
+        private bool $autoDeclare = true,
     ) {
     }
 
@@ -51,6 +52,8 @@ class DbalDeadLetterHandler
      */
     public function list(int $limit, int $offset): array
     {
+        $this->initialize();
+
         if (! $this->doesDeadLetterTableExists()) {
             return [];
         }
@@ -203,6 +206,10 @@ class DbalDeadLetterHandler
 
     private function createDataBaseTable(): void
     {
+        if (! $this->autoDeclare) {
+            return;
+        }
+
         $connection = $this->getConnection();
         $schemaManager = $connection->createSchemaManager();
 

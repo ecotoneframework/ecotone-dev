@@ -64,7 +64,7 @@ class ProophProjectingModule implements AnnotationModule
             $extensions = [...$extensions, ...self::createStreamSourceExtensions($config)];
         }
 
-        if (! empty($handledProjections)) {
+        if ($handledProjections !== []) {
             $extensions[] = new DbalProjectionStateStorageBuilder($handledProjections);
         }
 

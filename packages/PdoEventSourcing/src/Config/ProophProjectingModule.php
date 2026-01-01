@@ -30,6 +30,7 @@ use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
 
 #[ModuleAnnotation]
@@ -53,44 +54,77 @@ class ProophProjectingModule implements AnnotationModule
 
         $projectionEventNames = self::collectProjectionEventNames($annotationRegistrationService, $interfaceToCallRegistry, $namedEvents);
 
+        $resolvedConfigs = [
+            ...self::resolveFromStreamConfigs($annotationRegistrationService, $projectionEventNames),
+            ...self::resolveFromAggregateStreamConfigs($annotationRegistrationService, $projectionEventNames),
+        ];
+
+        foreach ($resolvedConfigs as $config) {
+            $handledProjections[] = $config['projectionName'];
+            $extensions = [...$extensions, ...self::createStreamSourceExtensions($config)];
+        }
+
+        if (! empty($handledProjections)) {
+            $extensions[] = new DbalProjectionStateStorageBuilder($handledProjections);
+        }
+
+        return new self($extensions);
+    }
+
+    /**
+     * Resolve stream configurations from FromStream attributes.
+     *
+     * @return array<array{projectionName: string, streamName: string, aggregateType: ?string, isPartitioned: bool, eventNames: array}>
+     */
+    private static function resolveFromStreamConfigs(
+        AnnotationFinder $annotationRegistrationService,
+        array $projectionEventNames
+    ): array {
+        $configs = [];
+
         foreach ($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
             $streamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromStream::class);
-            $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
+            $partitionedAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
 
             if (! $projectionAttribute || ! $streamAttribute) {
                 continue;
             }
 
             $projectionName = $projectionAttribute->name;
-            $handledProjections[] = $projectionName;
+            $isPartitioned = $partitionedAttribute !== null;
 
-            // Determine partitionHeaderName from CustomScopeStrategy attribute
-            $partitionHeaderName = $customScopeStrategyAttribute?->partitionHeaderName;
-
-            if ($partitionHeaderName !== null) {
-                $aggregateType = $streamAttribute->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
-                $eventNames = $projectionEventNames[$projectionName] ?? null;
-                $extensions[] = new EventStoreAggregateStreamSourceBuilder(
-                    $projectionName,
-                    $aggregateType,
-                    $streamAttribute->stream,
-                    $eventNames,
-                );
-                $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamAttribute->stream);
-            } else {
-                $extensions[] = new EventStoreGlobalStreamSourceBuilder(
-                    $streamAttribute->stream,
-                    [$projectionName],
-                );
+            if ($isPartitioned && ! $streamAttribute->aggregateType) {
+                throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
             }
+
+            $configs[] = [
+                'projectionName' => $projectionName,
+                'streamName' => $streamAttribute->stream,
+                'aggregateType' => $streamAttribute->aggregateType,
+                'isPartitioned' => $isPartitioned,
+                'eventNames' => $projectionEventNames[$projectionName] ?? [],
+            ];
         }
 
-        // @TODO refactor to be part of above logic
+        return $configs;
+    }
+
+    /**
+     * Resolve stream configurations from FromAggregateStream attributes.
+     *
+     * @return array<array{projectionName: string, streamName: string, aggregateType: ?string, isPartitioned: bool, eventNames: array}>
+     */
+    private static function resolveFromAggregateStreamConfigs(
+        AnnotationFinder $annotationRegistrationService,
+        array $projectionEventNames
+    ): array {
+        $configs = [];
+
         foreach ($annotationRegistrationService->findAnnotatedClasses(FromAggregateStream::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
             $aggregateStreamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromAggregateStream::class);
-            $customScopeStrategyAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
+            $partitionedAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
 
             if (! $projectionAttribute || ! $aggregateStreamAttribute) {
                 continue;
@@ -110,30 +144,48 @@ class ProophProjectingModule implements AnnotationModule
             $aggregateTypeAttribute = $annotationRegistrationService->findAttributeForClass($aggregateClass, AggregateType::class);
             $aggregateType = $aggregateTypeAttribute?->getName() ?? $aggregateClass;
 
-            $handledProjections[] = $projectionName;
-
-            if ($customScopeStrategyAttribute !== null) {
-                $eventNames = $projectionEventNames[$projectionName] ?? [];
-                $extensions[] = new EventStoreAggregateStreamSourceBuilder(
-                    $projectionName,
-                    $aggregateType,
-                    $streamName,
-                    $eventNames,
-                );
-                $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamName);
-            } else {
-                $extensions[] = new EventStoreGlobalStreamSourceBuilder(
-                    $streamName,
-                    [$projectionName],
-                );
-            }
+            $configs[] = [
+                'projectionName' => $projectionName,
+                'streamName' => $streamName,
+                'aggregateType' => $aggregateType,
+                'isPartitioned' => $partitionedAttribute !== null,
+                'eventNames' => $projectionEventNames[$projectionName] ?? [],
+            ];
         }
 
-        if (! empty($handledProjections)) {
-            $extensions[] = new DbalProjectionStateStorageBuilder($handledProjections);
+        return $configs;
+    }
+
+    /**
+     * Create stream source extensions based on resolved configuration.
+     *
+     * @param array{projectionName: string, streamName: string, aggregateType: ?string, isPartitioned: bool, eventNames: array} $config
+     * @return ProjectionComponentBuilder[]
+     */
+    private static function createStreamSourceExtensions(array $config): array
+    {
+        if ($config['isPartitioned']) {
+            return [
+                new EventStoreAggregateStreamSourceBuilder(
+                    $config['projectionName'],
+                    $config['aggregateType'],
+                    $config['streamName'],
+                    $config['eventNames'],
+                ),
+                new AggregateIdPartitionProviderBuilder(
+                    $config['projectionName'],
+                    $config['aggregateType'],
+                    $config['streamName']
+                ),
+            ];
         }
 
-        return new self($extensions);
+        return [
+            new EventStoreGlobalStreamSourceBuilder(
+                $config['streamName'],
+                [$config['projectionName']],
+            ),
+        ];
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

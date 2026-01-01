@@ -24,7 +24,10 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
+use Ecotone\Modelling\Attribute\NamedEvent;
+use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
@@ -41,6 +44,14 @@ class ProophProjectingModule implements AnnotationModule
     {
         $handledProjections = [];
         $extensions = [];
+
+        $namedEvents = [];
+        foreach ($annotationRegistrationService->findAnnotatedClasses(NamedEvent::class) as $className) {
+            $attribute = $annotationRegistrationService->getAttributeForClass($className, NamedEvent::class);
+            $namedEvents[$className] = $attribute->getName();
+        }
+
+        $projectionEventNames = self::collectProjectionEventNames($annotationRegistrationService, $interfaceToCallRegistry, $namedEvents);
 
         foreach ($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
@@ -59,10 +70,12 @@ class ProophProjectingModule implements AnnotationModule
 
             if ($partitionHeaderName !== null) {
                 $aggregateType = $streamAttribute->aggregateType ?: throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
+                $eventNames = $projectionEventNames[$projectionName] ?? null;
                 $extensions[] = new EventStoreAggregateStreamSourceBuilder(
                     $projectionName,
                     $aggregateType,
                     $streamAttribute->stream,
+                    $eventNames,
                 );
                 $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamAttribute->stream);
             } else {
@@ -73,7 +86,7 @@ class ProophProjectingModule implements AnnotationModule
             }
         }
 
-        // Handle AggregateStream attribute
+        // @TODO refactor to be part of above logic
         foreach ($annotationRegistrationService->findAnnotatedClasses(FromAggregateStream::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
             $aggregateStreamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromAggregateStream::class);
@@ -100,10 +113,12 @@ class ProophProjectingModule implements AnnotationModule
             $handledProjections[] = $projectionName;
 
             if ($customScopeStrategyAttribute !== null) {
+                $eventNames = $projectionEventNames[$projectionName] ?? [];
                 $extensions[] = new EventStoreAggregateStreamSourceBuilder(
                     $projectionName,
                     $aggregateType,
                     $streamName,
+                    $eventNames,
                 );
                 $extensions[] = new AggregateIdPartitionProviderBuilder($projectionName, $aggregateType, $streamName);
             } else {
@@ -154,5 +169,70 @@ class ProophProjectingModule implements AnnotationModule
     public function getModulePackageName(): string
     {
         return ModulePackageList::EVENT_SOURCING_PACKAGE;
+    }
+
+    /**
+     * Collect event names for each partitioned projection.
+     * Returns empty array for projections that use catch-all patterns or object types.
+     *
+     * @param array<class-string, string> $namedEvents Map of class name to named event name
+     * @return array<string, array<string>> Map of projection name to event names (empty array means no filtering)
+     */
+    private static function collectProjectionEventNames(
+        AnnotationFinder $annotationRegistrationService,
+        InterfaceToCallRegistry $interfaceToCallRegistry,
+        array $namedEvents
+    ): array {
+        $projectionEventNames = [];
+        $disabledFiltering = [];
+        $routingMapBuilder = new BusRoutingMapBuilder();
+
+        foreach ($annotationRegistrationService->findCombined(ProjectionV2::class, EventHandler::class) as $projectionEventHandler) {
+            /** @var ProjectionV2 $projectionAttribute */
+            $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
+            $projectionName = $projectionAttribute->name;
+
+            if (! isset($projectionEventNames[$projectionName])) {
+                $projectionEventNames[$projectionName] = [];
+            }
+
+            if (isset($disabledFiltering[$projectionName])) {
+                continue;
+            }
+
+            $routes = $routingMapBuilder->getRoutesFromAnnotatedFinding($projectionEventHandler, $interfaceToCallRegistry);
+            foreach ($routes as $route) {
+                // Check for catch-all pattern - disable filtering by keeping empty array
+                if ($route === '*' || $route === 'object') {
+                    $projectionEventNames[$projectionName] = [];
+                    $disabledFiltering[$projectionName] = true;
+                    break;
+                }
+
+                // Check for glob patterns (containing * but not exactly *)
+                if (str_contains($route, '*')) {
+                    throw ConfigurationException::create(
+                        "Projection {$projectionName} uses glob pattern '{$route}' which is not allowed. " .
+                        "For query optimization, event handlers must use explicit event names. Use union type parameters instead."
+                    );
+                }
+
+                // Check if route is a class with NamedEvent annotation
+                if (class_exists($route) && isset($namedEvents[$route])) {
+                    $projectionEventNames[$projectionName][] = $namedEvents[$route];
+                } else {
+                    $projectionEventNames[$projectionName][] = $route;
+                }
+            }
+        }
+
+        // Deduplicate event names (skip disabled ones which are empty arrays)
+        foreach ($projectionEventNames as $projectionName => $eventNames) {
+            if (! isset($disabledFiltering[$projectionName]) && $eventNames !== []) {
+                $projectionEventNames[$projectionName] = array_values(array_unique($eventNames));
+            }
+        }
+
+        return $projectionEventNames;
     }
 }

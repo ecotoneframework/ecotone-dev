@@ -16,17 +16,21 @@ use Ecotone\Projecting\StreamSource;
 
 class InMemoryEventStoreStreamSourceBuilder implements ProjectionComponentBuilder
 {
+    /**
+     * @param array<string> $eventNames Event names to filter by, empty array means no filtering
+     */
     public function __construct(
         private ?array $projectionNames = null,
         private ?string $streamName = null,
-        private ?string $partitionHeader = null
+        private ?string $partitionHeader = null,
+        private array $eventNames = [],
     ) {
     }
 
     public function canHandle(string $projectionName, string $component): bool
     {
         return $component === StreamSource::class
-            && ($this->projectionNames === null || in_array($projectionName, $this->projectionNames, true));
+            && ($this->projectionNames === null || \in_array($projectionName, $this->projectionNames, true));
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
@@ -37,6 +41,7 @@ class InMemoryEventStoreStreamSourceBuilder implements ProjectionComponentBuilde
                 Reference::to(InMemoryEventStore::class),
                 $this->streamName,
                 $this->partitionHeader,
+                $this->eventNames,
             ]
         );
     }

@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\Messaging\MessageHeaders;
@@ -18,10 +19,14 @@ use RuntimeException;
 
 class EventStoreAggregateStreamSource implements StreamSource
 {
+    /**
+     * @param array<string> $eventNames Event names to filter by, empty array means no filtering
+     */
     public function __construct(
         private EventStore      $eventStore,
         private string          $streamName,
         private ?string         $aggregateType,
+        private array           $eventNames = [],
     ) {
     }
 
@@ -48,6 +53,15 @@ class EventStoreAggregateStreamSource implements StreamSource
             Operator::GREATER_THAN_EQUALS,
             (int)$lastPosition + 1
         );
+
+        if ($this->eventNames !== []) {
+            $metadataMatcher = $metadataMatcher->withMetadataMatch(
+                'event_name',
+                Operator::IN,
+                $this->eventNames,
+                FieldType::MESSAGE_PROPERTY
+            );
+        }
 
         $events = $this->eventStore->load(
             $this->streamName,

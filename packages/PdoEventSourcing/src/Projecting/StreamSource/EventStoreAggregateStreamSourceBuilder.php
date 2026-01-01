@@ -16,8 +16,15 @@ use Ecotone\Projecting\StreamSource;
 
 class EventStoreAggregateStreamSourceBuilder implements ProjectionComponentBuilder
 {
-    public function __construct(public readonly string $handledProjectionName, public ?string $aggregateType, private string $streamName)
-    {
+    /**
+     * @param array<string> $eventNames Event names to filter, empty array means no filtering
+     */
+    public function __construct(
+        public readonly string $handledProjectionName,
+        public ?string $aggregateType,
+        private string $streamName,
+        private array $eventNames = [],
+    ) {
     }
 
     public function canHandle(string $projectionName, string $component): bool
@@ -33,6 +40,7 @@ class EventStoreAggregateStreamSourceBuilder implements ProjectionComponentBuild
                 new Reference(EventStore::class),
                 $this->streamName,
                 $this->aggregateType,
+                $this->eventNames,
             ],
         );
     }

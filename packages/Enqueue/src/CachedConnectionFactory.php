@@ -51,6 +51,16 @@ class CachedConnectionFactory implements ConnectionFactory
         $this->cachedContext = [];
     }
 
+    /**
+     * Clear all cached connection factory instances.
+     * This is useful in tests to ensure clean state between test runs,
+     * especially when switching between different channel modes (confirm vs tx).
+     */
+    public static function clearInstances(): void
+    {
+        self::$instances = [];
+    }
+
     public function getConsumer(Destination $destination): Consumer
     {
         return $this->createContext()->createConsumer($destination);

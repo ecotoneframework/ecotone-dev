@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\InMemory;
 
+use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
@@ -16,10 +17,14 @@ use ReflectionProperty;
 
 class InMemoryEventStoreStreamSource implements StreamSource
 {
+    /**
+     * @param array<string> $eventNames Event names to filter by, empty array means no filtering
+     */
     public function __construct(
         private InMemoryEventStore $eventStore,
         private ?string $streamName = null,
-        private ?string $partitionHeader = null
+        private ?string $partitionHeader = null,
+        private array $eventNames = [],
     ) {
     }
 
@@ -38,20 +43,26 @@ class InMemoryEventStoreStreamSource implements StreamSource
                 continue;
             }
 
-            $metadataMatcher = null;
+            $metadataMatcher = new MetadataMatcher();
             if ($partitionKey !== null && $this->partitionHeader !== null) {
-                $metadataMatcher = (new MetadataMatcher())
+                $metadataMatcher = $metadataMatcher
                     ->withMetadataMatch($this->partitionHeader, Operator::EQUALS, $partitionKey);
+            }
+
+            // Filter by event names if specified (optimization for partitioned projections)
+            if ($this->eventNames !== []) {
+                $metadataMatcher = $metadataMatcher
+                    ->withMetadataMatch('event_name', Operator::IN, $this->eventNames, FieldType::MESSAGE_PROPERTY);
             }
 
             // Load all events from this stream (starting from position 1)
             $events = $this->eventStore->load($stream, 1, null, $metadataMatcher);
-            $allEvents = array_merge($allEvents, is_array($events) ? $events : iterator_to_array($events));
+            $allEvents = array_merge($allEvents, \is_array($events) ? $events : iterator_to_array($events));
         }
 
         // Slice based on global position
         $events = array_slice($allEvents, $from, $count);
-        $to = $from + count($events);
+        $to = $from + \count($events);
 
         return new StreamPage($events, (string) $to);
     }

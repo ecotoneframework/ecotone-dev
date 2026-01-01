@@ -4,6 +4,7 @@ namespace Test\Ecotone\Amqp;
 
 use AMQPQueueException;
 use Ecotone\Amqp\Distribution\AmqpDistributionModule;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnection;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Interop\Amqp\AmqpConnectionFactory;
@@ -75,6 +76,9 @@ abstract class AmqpMessagingTestCase extends TestCase
 
     public function setUp(): void
     {
+        // Clear cached connection factories to prevent channel mode conflicts between tests
+        // (e.g., confirm mode vs transaction mode on the same channel)
+        CachedConnectionFactory::clearInstances();
         // Ensure cache directory is writable for tests
         $this->queueCleanUp();
     }

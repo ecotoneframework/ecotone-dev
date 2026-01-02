@@ -32,16 +32,16 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $this->cleanUpTables();
     }
 
-    public function test_database_setup_manager_lists_table_names(): void
+    public function test_database_setup_manager_lists_feature_names(): void
     {
         $ecotone = $this->bootstrapEcotone();
 
         /** @var DatabaseSetupManager $manager */
         $manager = $ecotone->getServiceFromContainer(DatabaseSetupManager::class);
 
-        $tableNames = $manager->getTableNames();
+        $featureNames = $manager->getFeatureNames();
 
-        self::assertContains(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $tableNames);
+        self::assertContains('dead_letter', $featureNames);
     }
 
     public function test_database_setup_manager_creates_tables(): void
@@ -125,6 +125,55 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $manager->initializeAll();
 
         self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+    }
+
+    public function test_database_setup_manager_returns_initialization_status(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        /** @var DatabaseSetupManager $manager */
+        $manager = $ecotone->getServiceFromContainer(DatabaseSetupManager::class);
+
+        // Before initialization, tables should not exist
+        $status = $manager->getInitializationStatus();
+        self::assertArrayHasKey('dead_letter', $status);
+        self::assertFalse($status['dead_letter']);
+
+        // After initialization, tables should exist
+        $manager->initializeAll();
+        $status = $manager->getInitializationStatus();
+        self::assertTrue($status['dead_letter']);
+    }
+
+    public function test_database_setup_console_command_initializes_tables(): void
+    {
+        $ecotone = $this->bootstrapEcotone(
+            DbalConfiguration::createWithDefaults()
+                ->withInitializeDatabaseTables(false)
+        );
+
+        self::assertFalse($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+
+        $ecotone->runConsoleCommand('ecotone:database:setup', ['initialize' => true]);
+
+        self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+    }
+
+    public function test_database_drop_console_command_drops_tables(): void
+    {
+        $ecotone = $this->bootstrapEcotone(
+            DbalConfiguration::createWithDefaults()
+                ->withInitializeDatabaseTables(false)
+        );
+
+        // First create tables
+        $ecotone->runConsoleCommand('ecotone:database:setup', ['initialize' => true]);
+        self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+
+        // Then drop them
+        $ecotone->runConsoleCommand('ecotone:database:drop', ['force' => true]);
+
+        self::assertFalse($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
     }
 
     private function bootstrapEcotone(?DbalConfiguration $dbalConfiguration = null): FlowTestSupport

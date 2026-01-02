@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\Database;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Messaging\Config\Container\Definition;
 
@@ -14,9 +15,16 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class DocumentStoreTableManager implements DbalTableManager
 {
+    public const FEATURE_NAME = 'document_store';
+
     public function __construct(
         private string $tableName = DbalDocumentStore::ECOTONE_DOCUMENT_STORE,
     ) {
+    }
+
+    public function getFeatureName(): string
+    {
+        return self::FEATURE_NAME;
     }
 
     public function getTableName(): string
@@ -65,6 +73,11 @@ final class DocumentStoreTableManager implements DbalTableManager
     public function getDropTableSql(Connection $connection): string
     {
         return "DROP TABLE IF EXISTS {$this->tableName}";
+    }
+
+    public function isInitialized(Connection $connection): bool
+    {
+        return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
     }
 }
 

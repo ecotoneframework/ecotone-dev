@@ -7,6 +7,7 @@ namespace Ecotone\EventSourcing\Database;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\Database\DbalTableManager;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -16,9 +17,16 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class ProjectionsTableManager implements DbalTableManager
 {
+    public const FEATURE_NAME = 'projections';
+
     public function __construct(
         private string $tableName = LazyProophEventStore::DEFAULT_PROJECTIONS_TABLE,
     ) {
+    }
+
+    public function getFeatureName(): string
+    {
+        return self::FEATURE_NAME;
     }
 
     public function getTableName(): string
@@ -65,6 +73,11 @@ final class ProjectionsTableManager implements DbalTableManager
     public function dropTable(Connection $connection): void
     {
         $connection->executeStatement($this->getDropTableSql($connection));
+    }
+
+    public function isInitialized(Connection $connection): bool
+    {
+        return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
     }
 
     public function getDefinition(): Definition

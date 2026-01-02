@@ -28,12 +28,12 @@ class DatabaseSetupManager implements DefinedObject
     }
 
     /**
-     * @return string[] List of table names managed by this service
+     * @return string[] List of feature names that require database tables
      */
-    public function getTableNames(): array
+    public function getFeatureNames(): array
     {
         return array_map(
-            fn (DbalTableManager $manager) => $manager->getTableName(),
+            fn (DbalTableManager $manager) => $manager->getFeatureName(),
             $this->tableManagers
         );
     }
@@ -95,6 +95,23 @@ class DatabaseSetupManager implements DefinedObject
         foreach ($this->tableManagers as $manager) {
             $manager->dropTable($connection);
         }
+    }
+
+    /**
+     * Returns initialization status for each table manager.
+     *
+     * @return array<string, bool> Map of feature name to initialization status
+     */
+    public function getInitializationStatus(): array
+    {
+        $connection = $this->getConnection();
+        $status = [];
+
+        foreach ($this->tableManagers as $manager) {
+            $status[$manager->getFeatureName()] = $manager->isInitialized($connection);
+        }
+
+        return $status;
     }
 
     private function getConnection(): Connection

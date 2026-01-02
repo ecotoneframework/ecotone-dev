@@ -24,10 +24,10 @@ class DatabaseDropCommand
     public function drop(
         #[ConsoleParameterOption] bool $force = false,
     ): ?ConsoleCommandResultSet {
-        $tableNames = $this->databaseSetupManager->getTableNames();
+        $featureNames = $this->databaseSetupManager->getFeatureNames();
 
-        if (count($tableNames) === 0) {
-            return new ConsoleCommandResultSet(
+        if (count($featureNames) === 0) {
+            return ConsoleCommandResultSet::create(
                 ['Status'],
                 [['No database tables registered for drop.']]
             );
@@ -35,15 +35,15 @@ class DatabaseDropCommand
 
         if ($force) {
             $this->databaseSetupManager->dropAll();
-            return new ConsoleCommandResultSet(
-                ['Table', 'Status'],
-                array_map(fn (string $table) => [$table, 'Dropped'], $tableNames)
+            return ConsoleCommandResultSet::create(
+                ['Feature', 'Status'],
+                array_map(fn (string $feature) => [$feature, 'Dropped'], $featureNames)
             );
         }
 
-        return new ConsoleCommandResultSet(
-            ['Table', 'Warning'],
-            array_map(fn (string $table) => [$table, 'Would be dropped (use --force to confirm)'], $tableNames)
+        return ConsoleCommandResultSet::create(
+            ['Feature', 'Warning'],
+            array_map(fn (string $feature) => [$feature, 'Would be dropped (use --force to confirm)'], $featureNames)
         );
     }
 }

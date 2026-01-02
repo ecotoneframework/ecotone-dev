@@ -7,6 +7,7 @@ namespace Ecotone\Dbal\Database;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Messaging\Config\Container\Definition;
 
@@ -17,9 +18,16 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 class DeadLetterTableManager implements DbalTableManager
 {
+    public const FEATURE_NAME = 'dead_letter';
+
     public function __construct(
         private string $tableName = DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE,
     ) {
+    }
+
+    public function getFeatureName(): string
+    {
+        return self::FEATURE_NAME;
     }
 
     public function getTableName(): string
@@ -77,6 +85,11 @@ class DeadLetterTableManager implements DbalTableManager
         }
 
         $schemaManager->dropTable($this->tableName);
+    }
+
+    public function isInitialized(Connection $connection): bool
+    {
+        return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
     }
 
     public function getDefinition(): Definition

@@ -4,7 +4,6 @@ namespace Ecotone\EventSourcing\Prooph;
 
 use ArrayIterator;
 use Doctrine\DBAL\Driver\PDOConnection;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
@@ -187,8 +186,8 @@ class LazyProophEventStore implements EventStore
         }
 
         $connection = $this->getConnection();
-        $projectionTableExists = SchemaManagerCompatibility::tableExists($connection, $this->projectionsTableManager->getTableName());
-        $eventStreamTableExists = SchemaManagerCompatibility::tableExists($connection, $this->eventStreamTableManager->getTableName());
+        $projectionTableExists = $this->projectionsTableManager->isInitialized($connection);
+        $eventStreamTableExists = $this->eventStreamTableManager->isInitialized($connection);
 
         if ($eventStreamTableExists && $projectionTableExists) {
             $this->initializated[$connectionName] = true;

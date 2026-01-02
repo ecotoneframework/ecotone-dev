@@ -17,9 +17,10 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 interface DbalTableManager extends DefinedObject
 {
     /**
-     * Returns the table name that this manager handles.
+     * Returns the feature name that this manager handles.
+     * Feature names are used to identify features that require database tables.
      */
-    public function getTableName(): string;
+    public function getFeatureName(): string;
 
     /**
      * Returns the SQL statement(s) to create the table.
@@ -45,5 +46,10 @@ interface DbalTableManager extends DefinedObject
      * Drops the table if it exists.
      */
     public function dropTable(Connection $connection): void;
+
+    /**
+     * Checks if the table(s) managed by this manager exist.
+     */
+    public function isInitialized(Connection $connection): bool;
 }
 

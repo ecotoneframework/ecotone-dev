@@ -14,10 +14,16 @@ use Ecotone\Messaging\Config\Container\Definition;
 final class EnqueueTableManager implements DbalTableManager
 {
     public const DEFAULT_TABLE_NAME = 'enqueue';
+    public const FEATURE_NAME = 'message_queue';
 
     public function __construct(
         private string $tableName = self::DEFAULT_TABLE_NAME,
     ) {
+    }
+
+    public function getFeatureName(): string
+    {
+        return self::FEATURE_NAME;
     }
 
     public function getTableName(): string
@@ -77,6 +83,11 @@ final class EnqueueTableManager implements DbalTableManager
     public function getDropTableSql(Connection $connection): string
     {
         return "DROP TABLE IF EXISTS {$this->tableName}";
+    }
+
+    public function isInitialized(Connection $connection): bool
+    {
+        return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
     }
 }
 

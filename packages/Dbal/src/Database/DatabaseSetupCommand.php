@@ -25,10 +25,10 @@ class DatabaseSetupCommand
         #[ConsoleParameterOption] bool $initialize = false,
         #[ConsoleParameterOption] bool $sql = false,
     ): ?ConsoleCommandResultSet {
-        $tableNames = $this->databaseSetupManager->getTableNames();
+        $featureNames = $this->databaseSetupManager->getFeatureNames();
 
-        if (count($tableNames) === 0) {
-            return new ConsoleCommandResultSet(
+        if (count($featureNames) === 0) {
+            return ConsoleCommandResultSet::create(
                 ['Status'],
                 [['No database tables registered for setup.']]
             );
@@ -36,7 +36,7 @@ class DatabaseSetupCommand
 
         if ($sql) {
             $statements = $this->databaseSetupManager->getCreateSqlStatements();
-            return new ConsoleCommandResultSet(
+            return ConsoleCommandResultSet::create(
                 ['SQL Statement'],
                 array_map(fn (string $statement) => [$statement], $statements)
             );
@@ -44,15 +44,22 @@ class DatabaseSetupCommand
 
         if ($initialize) {
             $this->databaseSetupManager->initializeAll();
-            return new ConsoleCommandResultSet(
-                ['Table', 'Status'],
-                array_map(fn (string $table) => [$table, 'Created'], $tableNames)
+            return ConsoleCommandResultSet::create(
+                ['Feature', 'Status'],
+                array_map(fn (string $feature) => [$feature, 'Created'], $featureNames)
             );
         }
 
-        return new ConsoleCommandResultSet(
-            ['Table'],
-            array_map(fn (string $table) => [$table], $tableNames)
+        $initializationStatus = $this->databaseSetupManager->getInitializationStatus();
+        $rows = [];
+        foreach ($featureNames as $featureName) {
+            $isInitialized = $initializationStatus[$featureName] ?? false;
+            $rows[] = [$featureName, $isInitialized ? 'Yes' : 'No'];
+        }
+
+        return ConsoleCommandResultSet::create(
+            ['Feature', 'Initialized'],
+            $rows
         );
     }
 }

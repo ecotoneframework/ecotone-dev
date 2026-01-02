@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
+use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -26,6 +27,7 @@ class DbalProjectionStateStorageBuilder implements ProjectionComponentBuilder
             DbalProjectionStateStorage::class,
             [
                 new Reference(DbalConnectionFactory::class),
+                new Reference(ProjectionStateTableManager::class),
             ],
         );
     }

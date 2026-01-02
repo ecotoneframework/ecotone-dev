@@ -12,6 +12,7 @@ use Ecotone\EventSourcing\Attribute\AggregateType;
 use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\Stream;
+use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
@@ -20,6 +21,7 @@ use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -37,7 +39,8 @@ use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
 class ProophProjectingModule implements AnnotationModule
 {
     public function __construct(
-        private array $extensions
+        private array $extensions,
+        private bool $hasProjections = false,
     ) {
     }
 
@@ -68,7 +71,7 @@ class ProophProjectingModule implements AnnotationModule
             $extensions[] = new DbalProjectionStateStorageBuilder($handledProjections);
         }
 
-        return new self($extensions);
+        return new self($extensions, $handledProjections !== []);
     }
 
     /**
@@ -190,7 +193,11 @@ class ProophProjectingModule implements AnnotationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        // Polling projection registration is now handled by ProjectingAttributeModule
+        // Register the ProjectionStateTableManager as a service so it can be injected into DbalProjectionStateStorage
+        $messagingConfiguration->registerServiceDefinition(
+            ProjectionStateTableManager::class,
+            new Definition(ProjectionStateTableManager::class)
+        );
     }
 
     public function canHandle($extensionObject): bool
@@ -202,18 +209,23 @@ class ProophProjectingModule implements AnnotationModule
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         $extensions = [...$this->extensions];
+        $hasProjections = $this->hasProjections;
 
         foreach ($serviceExtensions as $extensionObject) {
             if (! ($extensionObject instanceof EventStoreChannelAdapter)) {
                 continue;
             }
 
+            $hasProjections = true;
             $projectionName = $extensionObject->getProjectionName();
             $extensions[] = new EventStoreGlobalStreamSourceBuilder(
                 $extensionObject->fromStream,
                 [$projectionName]
             );
         }
+
+        // Always register the table manager, but set isActive based on whether there are projections
+        $extensions[] = new ProjectionStateTableManager(isActive: $hasProjections);
 
         return $extensions;
     }

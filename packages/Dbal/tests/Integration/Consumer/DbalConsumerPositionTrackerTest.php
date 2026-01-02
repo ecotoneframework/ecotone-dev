@@ -29,7 +29,8 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
         $this->documentStore = new DbalDocumentStore(
             CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
             true,
-            InMemoryConversionService::createWithoutConversion()
+            InMemoryConversionService::createWithoutConversion(),
+            new \Ecotone\Dbal\Database\DocumentStoreTableManager()
         );
 
         $this->tracker = new DbalConsumerPositionTracker($this->documentStore);
@@ -113,7 +114,8 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
         $newDocumentStore = new DbalDocumentStore(
             CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
             true,
-            InMemoryConversionService::createWithoutConversion()
+            InMemoryConversionService::createWithoutConversion(),
+            new \Ecotone\Dbal\Database\DocumentStoreTableManager()
         );
         $newTracker = new DbalConsumerPositionTracker($newDocumentStore);
 

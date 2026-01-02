@@ -262,6 +262,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             new Reference(EventSourcingConfiguration::class),
             new Reference(ProophEventMapper::class),
             new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
+            new Definition(EventStreamTableManager::class, [$eventSourcingConfiguration->getEventStreamTableName()]),
+            new Definition(ProjectionsTableManager::class, [$eventSourcingConfiguration->getProjectionsTable()]),
         ]));
 
         $messagingConfiguration->registerServiceDefinition(
@@ -519,6 +521,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventSourcingConfigurationReference,
             new Reference(ProophEventMapper::class),
             new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
+            new Definition(EventStreamTableManager::class, [$eventSourcingConfiguration->getEventStreamTableName()]),
+            new Definition(ProjectionsTableManager::class, [$eventSourcingConfiguration->getProjectionsTable()]),
         ]));
 
         $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration, $eventStoreReference)

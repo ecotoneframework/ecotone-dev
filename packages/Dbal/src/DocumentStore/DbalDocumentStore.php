@@ -4,10 +4,9 @@ namespace Ecotone\Dbal\DocumentStore;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
-use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
+use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -31,6 +30,7 @@ final class DbalDocumentStore implements DocumentStore
         private CachedConnectionFactory $cachedConnectionFactory,
         private bool $autoDeclare,
         private ConversionService $conversionService,
+        private DocumentStoreTableManager $tableManager,
         private array $initialized = [],
     ) {
     }
@@ -190,7 +190,7 @@ final class DbalDocumentStore implements DocumentStore
 
     private function getTableName(): string
     {
-        return self::ECOTONE_DOCUMENT_STORE;
+        return $this->tableManager->getTableName();
     }
 
     private function createDataBaseTable(): void
@@ -199,23 +199,7 @@ final class DbalDocumentStore implements DocumentStore
             return;
         }
 
-        if ($this->doesTableExists()) {
-            return;
-        }
-
-        $schemaManager = SchemaManagerCompatibility::getSchemaManager($this->getConnection());
-
-        $table = new Table($this->getTableName());
-
-        $table->addColumn('collection', 'string', ['length' => 255]);
-        $table->addColumn('document_id', 'string', ['length' => 255]);
-        $table->addColumn('document_type', 'text');
-        $table->addColumn('document', 'json');
-        $table->addColumn('updated_at', 'float', ['length' => 53]);
-
-        $table->setPrimaryKey(['collection', 'document_id']);
-
-        $schemaManager->createTable($table);
+        $this->tableManager->createTable($this->getConnection());
     }
 
     private function getConnection(): Connection

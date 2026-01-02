@@ -2,6 +2,7 @@
 
 namespace Ecotone\Dbal\DocumentStore;
 
+use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -47,6 +48,7 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
                     ], 'createFor'),
                     $this->initializeDocumentStore,
                     new Reference(ConversionService::REFERENCE_NAME),
+                    new Definition(DocumentStoreTableManager::class),
                 ]);
 
             $builder->register($documentStoreReference, $documentStore);

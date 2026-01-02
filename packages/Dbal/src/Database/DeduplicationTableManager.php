@@ -11,8 +11,6 @@ use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
- * Table manager for the deduplication table.
- *
  * licence Apache-2.0
  */
 class DeduplicationTableManager implements DbalTableManager
@@ -29,17 +27,7 @@ class DeduplicationTableManager implements DbalTableManager
 
     public function getCreateTableSql(Connection $connection): string|array
     {
-        $table = new Table($this->tableName);
-
-        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
-        $table->addColumn('consumer_endpoint_id', Types::STRING, ['length' => 255]);
-        $table->addColumn('routing_slip', Types::STRING, ['length' => 255]);
-        $table->addColumn('handled_at', Types::BIGINT);
-
-        $table->setPrimaryKey(['message_id', 'consumer_endpoint_id', 'routing_slip']);
-        $table->addIndex(['handled_at']);
-
-        return $connection->getDatabasePlatform()->getCreateTableSQL($table);
+        return $connection->getDatabasePlatform()->getCreateTableSQL($this->buildTableSchema());
     }
 
     public function getDropTableSql(Connection $connection): string
@@ -55,17 +43,7 @@ class DeduplicationTableManager implements DbalTableManager
             return;
         }
 
-        $table = new Table($this->tableName);
-
-        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
-        $table->addColumn('consumer_endpoint_id', Types::STRING, ['length' => 255]);
-        $table->addColumn('routing_slip', Types::STRING, ['length' => 255]);
-        $table->addColumn('handled_at', Types::BIGINT);
-
-        $table->setPrimaryKey(['message_id', 'consumer_endpoint_id', 'routing_slip']);
-        $table->addIndex(['handled_at']);
-
-        $schemaManager->createTable($table);
+        $schemaManager->createTable($this->buildTableSchema());
     }
 
     public function dropTable(Connection $connection): void
@@ -85,6 +63,21 @@ class DeduplicationTableManager implements DbalTableManager
             self::class,
             [$this->tableName]
         );
+    }
+
+    private function buildTableSchema(): Table
+    {
+        $table = new Table($this->tableName);
+
+        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
+        $table->addColumn('consumer_endpoint_id', Types::STRING, ['length' => 255]);
+        $table->addColumn('routing_slip', Types::STRING, ['length' => 255]);
+        $table->addColumn('handled_at', Types::BIGINT);
+
+        $table->setPrimaryKey(['message_id', 'consumer_endpoint_id', 'routing_slip']);
+        $table->addIndex(['handled_at']);
+
+        return $table;
     }
 }
 

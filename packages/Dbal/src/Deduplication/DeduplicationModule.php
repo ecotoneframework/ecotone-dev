@@ -4,6 +4,7 @@ namespace Ecotone\Dbal\Deduplication;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -74,6 +75,7 @@ class DeduplicationModule implements AnnotationModule
                     new Reference(LoggingGateway::class),
                     new Reference(ExpressionEvaluationService::REFERENCE),
                     $dbalConfiguration->isInitializeDatabaseTablesEnabled(),
+                    new Definition(DeduplicationTableManager::class),
                 ]
             )
         );
@@ -121,7 +123,7 @@ class DeduplicationModule implements AnnotationModule
         }
 
         return [
-            new \Ecotone\Dbal\Database\DeduplicationTableManager(),
+            new DeduplicationTableManager(),
         ];
     }
 

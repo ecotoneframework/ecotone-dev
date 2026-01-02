@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Integration\Recoverability;
 
+use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Messaging\Handler\Logger\StubLoggingGateway;
 use Ecotone\Messaging\Handler\MessageHandlingException;
@@ -27,7 +28,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
 {
     public function test_retrieving_error_message_details()
     {
-        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()));
+        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()), new DeadLetterTableManager());
 
         $errorMessage = MessageBuilder::withPayload('')->build();
         $dbalDeadLetter->store($errorMessage);
@@ -40,7 +41,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
 
     public function test_storing_wrapped_error_message()
     {
-        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()));
+        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()), new DeadLetterTableManager());
 
 
         $errorMessage = MessageBuilder::withPayload('')->build();
@@ -59,7 +60,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
 
     public function test_listing_error_messages()
     {
-        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()));
+        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()), new DeadLetterTableManager());
 
         $errorMessage = MessageBuilder::withPayload('error1')
                                 ->setMultipleHeaders([
@@ -80,7 +81,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
 
     public function test_deleting_error_message()
     {
-        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()));
+        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()), new DeadLetterTableManager());
 
         $message = MessageBuilder::withPayload('error2')->build();
 

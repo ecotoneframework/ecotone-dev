@@ -2,6 +2,7 @@
 
 namespace Ecotone\Dbal\Recoverability;
 
+use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -163,6 +164,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
                 DefaultHeaderMapper::createAllHeadersMapping(),
                 Reference::to(ConversionService::REFERENCE_NAME),
                 Reference::to(RetryRunner::class),
+                new Definition(DeadLetterTableManager::class),
                 $this->autoDeclare,
             ]);
 

@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
+use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
@@ -31,7 +32,9 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             1000,
             1000,
             new StubLoggingGateway(),
-            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty())
+            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty()),
+            true,
+            new DeduplicationTableManager()
         );
 
         $methodInvocation = StubMethodInvocation::create();
@@ -65,7 +68,9 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             1000,
             1000,
             new StubLoggingGateway(),
-            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty())
+            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty()),
+            true,
+            new DeduplicationTableManager()
         );
 
         $methodInvocation = StubMethodInvocation::create();
@@ -99,7 +104,9 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             1000,
             1000,
             new StubLoggingGateway(),
-            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty())
+            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty()),
+            true,
+            new DeduplicationTableManager()
         );
 
         $methodInvocation = StubMethodInvocation::create();
@@ -147,7 +154,9 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             1000,
             1000,
             new StubLoggingGateway(),
-            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty())
+            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty()),
+            true,
+            new DeduplicationTableManager()
         );
 
         $methodInvocation = StubMethodInvocation::create();
@@ -195,7 +204,9 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             1000,
             1000,
             new StubLoggingGateway(),
-            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty())
+            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty()),
+            true,
+            new DeduplicationTableManager()
         );
 
         $methodInvocation = StubMethodInvocation::create();
@@ -243,7 +254,9 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             1000,
             1000,
             new StubLoggingGateway(),
-            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty())
+            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty()),
+            true,
+            new DeduplicationTableManager()
         );
 
         $methodInvocation = StubMethodInvocation::create();
@@ -292,7 +305,9 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             1000,
             1000,
             new StubLoggingGateway(),
-            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty())
+            SymfonyExpressionEvaluationAdapter::create(InMemoryReferenceSearchService::createEmpty()),
+            true,
+            new DeduplicationTableManager()
         );
 
         $methodInvocation = StubMethodInvocation::create();

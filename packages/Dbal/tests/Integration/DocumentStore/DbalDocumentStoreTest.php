@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Integration\DocumentStore;
 
+use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Enqueue\CachedConnectionFactory;
@@ -94,7 +95,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
                 MediaType::APPLICATION_X_PHP,
                 stdClass::class,
                 new stdClass()
-            )
+            ),
+            new DocumentStoreTableManager()
         );
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
@@ -124,7 +126,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
                 MediaType::APPLICATION_X_PHP,
                 Type::createCollection(stdClass::class),
                 $document
-            )
+            ),
+            new DocumentStoreTableManager()
         );
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
@@ -154,7 +157,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
                 MediaType::APPLICATION_X_PHP,
                 Type::ARRAY,
                 $document
-            )
+            ),
+            new DocumentStoreTableManager()
         );
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
@@ -269,7 +273,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
                 MediaType::APPLICATION_X_PHP,
                 stdClass::class,
                 new stdClass()
-            )
+            ),
+            new DocumentStoreTableManager()
         );
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
@@ -327,7 +332,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         return new DbalDocumentStore(
             CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
             true,
-            InMemoryConversionService::createWithoutConversion()
+            InMemoryConversionService::createWithoutConversion(),
+            new DocumentStoreTableManager()
         );
     }
 

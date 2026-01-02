@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Database;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**

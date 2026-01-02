@@ -23,6 +23,12 @@ interface DbalTableManager extends DefinedObject
     public function getFeatureName(): string;
 
     /**
+     * Returns whether this table manager is active based on configuration.
+     * Inactive managers are skipped during setup/drop operations by default.
+     */
+    public function isActive(): bool;
+
+    /**
      * Returns the SQL statement(s) to create the table.
      * Should use CREATE TABLE IF NOT EXISTS.
      *

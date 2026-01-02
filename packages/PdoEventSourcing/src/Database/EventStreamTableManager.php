@@ -21,12 +21,18 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function __construct(
         private string $tableName = LazyProophEventStore::DEFAULT_STREAM_TABLE,
+        private bool $isActive = true,
     ) {
     }
 
     public function getFeatureName(): string
     {
         return self::FEATURE_NAME;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
     }
 
     public function getTableName(): string
@@ -82,7 +88,7 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->tableName]);
+        return new Definition(self::class, [$this->tableName, $this->isActive]);
     }
 
     private function isPostgres(Connection $connection): bool

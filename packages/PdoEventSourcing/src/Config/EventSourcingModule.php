@@ -311,18 +311,14 @@ class EventSourcingModule extends NoExternalConfigurationModule
             EventSourcingConfiguration::createWithDefaults()
         );
 
-        $extensions = [
+        $isActive = ! $eventSourcingConfiguration->isInMemory();
+
+        return [
             ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
             new EventSourcingModuleRoutingExtension($pollingProjectionNames),
+            new EventStreamTableManager($eventSourcingConfiguration->getEventStreamTableName(), $isActive),
+            new ProjectionsTableManager($eventSourcingConfiguration->getProjectionsTable(), $isActive),
         ];
-
-        // Only add table managers if not using in-memory event store
-        if (! $eventSourcingConfiguration->isInMemory()) {
-            $extensions[] = new EventStreamTableManager($eventSourcingConfiguration->getEventStreamTableName());
-            $extensions[] = new ProjectionsTableManager($eventSourcingConfiguration->getProjectionsTable());
-        }
-
-        return $extensions;
     }
 
     private function buildEventSourcingRepositoryBuilder(array $serviceExtensions): array

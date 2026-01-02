@@ -18,12 +18,18 @@ final class EnqueueTableManager implements DbalTableManager
 
     public function __construct(
         private string $tableName = self::DEFAULT_TABLE_NAME,
+        private bool $isActive = true,
     ) {
     }
 
     public function getFeatureName(): string
     {
         return self::FEATURE_NAME;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
     }
 
     public function getTableName(): string
@@ -33,7 +39,7 @@ final class EnqueueTableManager implements DbalTableManager
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->tableName]);
+        return new Definition(self::class, [$this->tableName, $this->isActive]);
     }
 
     public function createTable(Connection $connection): void

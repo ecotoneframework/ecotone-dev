@@ -118,12 +118,10 @@ class DeduplicationModule implements AnnotationModule
             DbalConfiguration::createWithDefaults()
         );
 
-        if (! $dbalConfiguration->isDeduplicatedEnabled()) {
-            return [];
-        }
-
         return [
-            new DeduplicationTableManager(),
+            new DeduplicationTableManager(
+                isActive: $dbalConfiguration->isDeduplicatedEnabled()
+            ),
         ];
     }
 

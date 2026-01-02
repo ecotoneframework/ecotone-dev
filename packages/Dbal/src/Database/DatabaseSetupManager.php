@@ -30,23 +30,23 @@ class DatabaseSetupManager implements DefinedObject
     /**
      * @return string[] List of feature names that require database tables
      */
-    public function getFeatureNames(): array
+    public function getFeatureNames(bool $includeInactive = false): array
     {
         return array_map(
             fn (DbalTableManager $manager) => $manager->getFeatureName(),
-            $this->tableManagers
+            $this->getManagers($includeInactive)
         );
     }
 
     /**
      * @return string[] SQL statements to create all tables
      */
-    public function getCreateSqlStatements(): array
+    public function getCreateSqlStatements(bool $includeInactive = false): array
     {
         $connection = $this->getConnection();
         $statements = [];
 
-        foreach ($this->tableManagers as $manager) {
+        foreach ($this->getManagers($includeInactive) as $manager) {
             $sql = $manager->getCreateTableSql($connection);
             if (is_array($sql)) {
                 $statements = array_merge($statements, $sql);
@@ -61,12 +61,12 @@ class DatabaseSetupManager implements DefinedObject
     /**
      * @return string[] SQL statements to drop all tables
      */
-    public function getDropSqlStatements(): array
+    public function getDropSqlStatements(bool $includeInactive = false): array
     {
         $connection = $this->getConnection();
         $statements = [];
 
-        foreach ($this->tableManagers as $manager) {
+        foreach ($this->getManagers($includeInactive) as $manager) {
             $statements[] = $manager->getDropTableSql($connection);
         }
 
@@ -76,11 +76,11 @@ class DatabaseSetupManager implements DefinedObject
     /**
      * Creates all tables.
      */
-    public function initializeAll(): void
+    public function initializeAll(bool $includeInactive = false): void
     {
         $connection = $this->getConnection();
 
-        foreach ($this->tableManagers as $manager) {
+        foreach ($this->getManagers($includeInactive) as $manager) {
             $manager->createTable($connection);
         }
     }
@@ -88,11 +88,11 @@ class DatabaseSetupManager implements DefinedObject
     /**
      * Drops all tables.
      */
-    public function dropAll(): void
+    public function dropAll(bool $includeInactive = false): void
     {
         $connection = $this->getConnection();
 
-        foreach ($this->tableManagers as $manager) {
+        foreach ($this->getManagers($includeInactive) as $manager) {
             $manager->dropTable($connection);
         }
     }
@@ -102,16 +102,31 @@ class DatabaseSetupManager implements DefinedObject
      *
      * @return array<string, bool> Map of feature name to initialization status
      */
-    public function getInitializationStatus(): array
+    public function getInitializationStatus(bool $includeInactive = false): array
     {
         $connection = $this->getConnection();
         $status = [];
 
-        foreach ($this->tableManagers as $manager) {
+        foreach ($this->getManagers($includeInactive) as $manager) {
             $status[$manager->getFeatureName()] = $manager->isInitialized($connection);
         }
 
         return $status;
+    }
+
+    /**
+     * @return DbalTableManager[]
+     */
+    private function getManagers(bool $includeInactive): array
+    {
+        if ($includeInactive) {
+            return $this->tableManagers;
+        }
+
+        return array_filter(
+            $this->tableManagers,
+            fn (DbalTableManager $manager) => $manager->isActive()
+        );
     }
 
     private function getConnection(): Connection

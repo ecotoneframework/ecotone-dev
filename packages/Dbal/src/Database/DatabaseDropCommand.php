@@ -23,8 +23,9 @@ class DatabaseDropCommand
     #[ConsoleCommand('ecotone:database:drop')]
     public function drop(
         #[ConsoleParameterOption] bool $force = false,
+        #[ConsoleParameterOption] bool $all = false,
     ): ?ConsoleCommandResultSet {
-        $featureNames = $this->databaseSetupManager->getFeatureNames();
+        $featureNames = $this->databaseSetupManager->getFeatureNames($all);
 
         if (count($featureNames) === 0) {
             return ConsoleCommandResultSet::create(
@@ -34,7 +35,7 @@ class DatabaseDropCommand
         }
 
         if ($force) {
-            $this->databaseSetupManager->dropAll();
+            $this->databaseSetupManager->dropAll($all);
             return ConsoleCommandResultSet::create(
                 ['Feature', 'Status'],
                 array_map(fn (string $feature) => [$feature, 'Dropped'], $featureNames)

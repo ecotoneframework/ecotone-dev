@@ -20,12 +20,18 @@ class DeduplicationTableManager implements DbalTableManager
 
     public function __construct(
         private string $tableName = DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE,
+        private bool $isActive = true,
     ) {
     }
 
     public function getFeatureName(): string
     {
         return self::FEATURE_NAME;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
     }
 
     public function getTableName(): string
@@ -74,7 +80,7 @@ class DeduplicationTableManager implements DbalTableManager
     {
         return new Definition(
             self::class,
-            [$this->tableName]
+            [$this->tableName, $this->isActive]
         );
     }
 

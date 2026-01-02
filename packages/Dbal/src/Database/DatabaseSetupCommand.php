@@ -24,8 +24,9 @@ class DatabaseSetupCommand
     public function setup(
         #[ConsoleParameterOption] bool $initialize = false,
         #[ConsoleParameterOption] bool $sql = false,
+        #[ConsoleParameterOption] bool $all = false,
     ): ?ConsoleCommandResultSet {
-        $featureNames = $this->databaseSetupManager->getFeatureNames();
+        $featureNames = $this->databaseSetupManager->getFeatureNames($all);
 
         if (count($featureNames) === 0) {
             return ConsoleCommandResultSet::create(
@@ -35,7 +36,7 @@ class DatabaseSetupCommand
         }
 
         if ($sql) {
-            $statements = $this->databaseSetupManager->getCreateSqlStatements();
+            $statements = $this->databaseSetupManager->getCreateSqlStatements($all);
             return ConsoleCommandResultSet::create(
                 ['SQL Statement'],
                 array_map(fn (string $statement) => [$statement], $statements)
@@ -43,14 +44,14 @@ class DatabaseSetupCommand
         }
 
         if ($initialize) {
-            $this->databaseSetupManager->initializeAll();
+            $this->databaseSetupManager->initializeAll($all);
             return ConsoleCommandResultSet::create(
                 ['Feature', 'Status'],
                 array_map(fn (string $feature) => [$feature, 'Created'], $featureNames)
             );
         }
 
-        $initializationStatus = $this->databaseSetupManager->getInitializationStatus();
+        $initializationStatus = $this->databaseSetupManager->getInitializationStatus($all);
         $rows = [];
         foreach ($featureNames as $featureName) {
             $isInitialized = $initializationStatus[$featureName] ?? false;

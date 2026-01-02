@@ -22,12 +22,18 @@ class DeadLetterTableManager implements DbalTableManager
 
     public function __construct(
         private string $tableName = DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE,
+        private bool $isActive = true,
     ) {
     }
 
     public function getFeatureName(): string
     {
         return self::FEATURE_NAME;
+    }
+
+    public function isActive(): bool
+    {
+        return $this->isActive;
     }
 
     public function getTableName(): string
@@ -96,7 +102,7 @@ class DeadLetterTableManager implements DbalTableManager
     {
         return new Definition(
             self::class,
-            [$this->tableName]
+            [$this->tableName, $this->isActive]
         );
     }
 }

@@ -87,12 +87,10 @@ class DbalDeadLetterModule implements AnnotationModule
             DbalConfiguration::createWithDefaults()
         );
 
-        if (! $dbalConfiguration->isDeadLetterEnabled()) {
-            return [];
-        }
-
         return [
-            new \Ecotone\Dbal\Database\DeadLetterTableManager(),
+            new \Ecotone\Dbal\Database\DeadLetterTableManager(
+                isActive: $dbalConfiguration->isDeadLetterEnabled()
+            ),
         ];
     }
 

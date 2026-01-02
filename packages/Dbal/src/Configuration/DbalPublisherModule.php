@@ -120,12 +120,11 @@ class DbalPublisherModule implements AnnotationModule
         $dbalMessageChannels = ExtensionObjectResolver::resolve(DbalBackedMessageChannelBuilder::class, $serviceExtensions);
         $dbalPublishers = ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $serviceExtensions);
 
-        // If there are any DBAL message channels or publishers, we need to provide the enqueue table manager
-        if (! empty($dbalMessageChannels) || ! empty($dbalPublishers)) {
-            return [new EnqueueTableManager()];
-        }
+        $hasMessageQueues = ! empty($dbalMessageChannels) || ! empty($dbalPublishers);
 
-        return [];
+        return [
+            new EnqueueTableManager(isActive: $hasMessageQueues),
+        ];
     }
 
     public function getModulePackageName(): string

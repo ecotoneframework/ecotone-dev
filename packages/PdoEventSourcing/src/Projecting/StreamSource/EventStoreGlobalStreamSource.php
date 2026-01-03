@@ -12,6 +12,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
@@ -29,7 +30,8 @@ class EventStoreGlobalStreamSource implements StreamSource
     public function __construct(
         private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
         private EcotoneClockInterface $clock,
-        private string $proophStreamTable,
+        private string $streamName,
+        private PdoStreamTableNameProvider $tableNameProvider,
         private int $maxGapOffset = 5_000,
         private ?Duration $gapTimeout = null,
     ) {
@@ -50,7 +52,10 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $connection = $this->getConnection();
 
-        if (empty($lastPosition) && ! SchemaManagerCompatibility::tableExists($connection, $this->proophStreamTable)) {
+        // Resolve table name at runtime using the provider
+        $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($this->streamName);
+
+        if (empty($lastPosition) && ! SchemaManagerCompatibility::tableExists($connection, $proophStreamTable)) {
             return new StreamPage([], '');
         }
 
@@ -63,7 +68,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $query = $connection->executeQuery(<<<SQL
             SELECT no, event_name, payload, metadata, created_at
-                FROM {$this->proophStreamTable}
+                FROM {$proophStreamTable}
                 WHERE no > :position {$gapQueryPart}
             ORDER BY no
             LIMIT {$count}
@@ -106,10 +111,13 @@ class EventStoreGlobalStreamSource implements StreamSource
         $minGap = $gaps[0];
         $maxGap = $gaps[count($gaps) - 1];
 
+        // Resolve table name at runtime
+        $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($this->streamName);
+
         // Query interleaved events in the gap range
         $interleavedEvents = $connection->executeQuery(<<<SQL
             SELECT no, created_at
-                FROM {$this->proophStreamTable}
+                FROM {$proophStreamTable}
                 WHERE no >= :minPosition and no <= :maxPosition
             ORDER BY no
             LIMIT 100

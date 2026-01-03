@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting;
 
+use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -31,6 +32,7 @@ class AggregateIdPartitionProviderBuilder implements ProjectionComponentBuilder
             Reference::to(DbalConnectionFactory::class),
             $this->aggregateType,
             $this->streamName,
+            Reference::to(PdoStreamTableNameProvider::class),
         ]);
     }
 }

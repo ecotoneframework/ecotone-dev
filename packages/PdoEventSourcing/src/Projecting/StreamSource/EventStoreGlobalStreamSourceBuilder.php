@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
+use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -15,8 +16,6 @@ use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\StreamSource;
 use Enqueue\Dbal\DbalConnectionFactory;
-
-use function sha1;
 
 class EventStoreGlobalStreamSourceBuilder implements ProjectionComponentBuilder
 {
@@ -38,15 +37,11 @@ class EventStoreGlobalStreamSourceBuilder implements ProjectionComponentBuilder
             [
                 Reference::to(DbalConnectionFactory::class),
                 Reference::to(EcotoneClockInterface::class),
-                self::getProophTableName($this->streamName),
+                $this->streamName,
+                Reference::to(PdoStreamTableNameProvider::class),
                 5_000,
                 new Definition(Duration::class, [60], 'seconds'),
             ],
         );
-    }
-
-    public static function getProophTableName($streamName): string
-    {
-        return '_' . sha1($streamName);
     }
 }

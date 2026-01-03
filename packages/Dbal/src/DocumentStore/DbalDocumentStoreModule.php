@@ -4,7 +4,10 @@ namespace Ecotone\Dbal\DocumentStore;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Database\DbalTableManagerReference;
+use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -39,6 +42,17 @@ class DbalDocumentStoreModule implements AnnotationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+
+        $isDocumentStoreActive = $dbalConfiguration->isEnableDbalDocumentStore() && ! $dbalConfiguration->isInMemoryDocumentStore();
+
+        // Register the DocumentStoreTableManager service
+        $messagingConfiguration->registerServiceDefinition(
+            DocumentStoreTableManager::class,
+            new Definition(DocumentStoreTableManager::class, [
+                DbalDocumentStore::ECOTONE_DOCUMENT_STORE,
+                $isDocumentStoreActive,
+            ])
+        );
 
         if (! $dbalConfiguration->isEnableDbalDocumentStore()) {
             return;
@@ -209,9 +223,7 @@ class DbalDocumentStoreModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
 
         $extensions = [
-            new \Ecotone\Dbal\Database\DocumentStoreTableManager(
-                isActive: $dbalConfiguration->isEnableDbalDocumentStore() && ! $dbalConfiguration->isInMemoryDocumentStore()
-            ),
+            new DbalTableManagerReference(DocumentStoreTableManager::class),
         ];
 
         if ($dbalConfiguration->isEnableDocumentStoreStandardRepository()) {

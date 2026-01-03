@@ -8,10 +8,12 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\EventSourcing\Attribute\AggregateType;
 use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\Stream;
+use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
@@ -19,6 +21,7 @@ use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourc
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSourceBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -32,21 +35,25 @@ use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Projecting\Config\EcotoneProjectionExecutorBuilder;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
 
 #[ModuleAnnotation]
 class ProophProjectingModule implements AnnotationModule
 {
+    /**
+     * @param ProjectionComponentBuilder[] $extensions
+     * @param string[] $projectionNames
+     */
     public function __construct(
         private array $extensions,
-        private bool $hasProjections = false,
+        private array $projectionNames,
     ) {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $handledProjections = [];
         $extensions = [];
 
         $namedEvents = [];
@@ -63,15 +70,19 @@ class ProophProjectingModule implements AnnotationModule
         ];
 
         foreach ($resolvedConfigs as $config) {
-            $handledProjections[] = $config['projectionName'];
             $extensions = [...$extensions, ...self::createStreamSourceExtensions($config)];
         }
 
-        if ($handledProjections !== []) {
-            $extensions[] = new DbalProjectionStateStorageBuilder($handledProjections);
+        $projectionNames = [];
+        foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
+            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, ProjectionV2::class);
+            $projectionNames[] = $projectionAttribute->name;
         }
 
-        return new self($extensions, $handledProjections !== []);
+        return new self(
+            $extensions,
+            $projectionNames,
+        );
     }
 
     /**
@@ -193,30 +204,30 @@ class ProophProjectingModule implements AnnotationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        // Register the ProjectionStateTableManager as a service so it can be injected into DbalProjectionStateStorage
+
         $messagingConfiguration->registerServiceDefinition(
             ProjectionStateTableManager::class,
-            new Definition(ProjectionStateTableManager::class)
+            new Definition(ProjectionStateTableManager::class, [
+                ProjectionStateTableManager::DEFAULT_TABLE_NAME,
+                $this->projectionNames !== [],
+            ])
         );
     }
 
     public function canHandle($extensionObject): bool
     {
-        // EventStoreChannelAdapter is now handled by EventStoreAdapterModule in Ecotone package
         return false;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         $extensions = [...$this->extensions];
-        $hasProjections = $this->hasProjections;
 
         foreach ($serviceExtensions as $extensionObject) {
             if (! ($extensionObject instanceof EventStoreChannelAdapter)) {
                 continue;
             }
 
-            $hasProjections = true;
             $projectionName = $extensionObject->getProjectionName();
             $extensions[] = new EventStoreGlobalStreamSourceBuilder(
                 $extensionObject->fromStream,
@@ -224,8 +235,14 @@ class ProophProjectingModule implements AnnotationModule
             );
         }
 
-        // Always register the table manager, but set isActive based on whether there are projections
-        $extensions[] = new ProjectionStateTableManager(isActive: $hasProjections);
+        $extensions[] = new DbalTableManagerReference(ProjectionStateTableManager::class);
+
+        /** @var DbalConfiguration $dbalConfiguration */
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
+        // @TODO in memory for tests
+        if ($this->projectionNames) {
+            $extensions[] = new DbalProjectionStateStorageBuilder($this->projectionNames, $dbalConfiguration->isInitializeDatabaseTablesEnabled());
+        }
 
         return $extensions;
     }

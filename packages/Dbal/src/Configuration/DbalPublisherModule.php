@@ -3,6 +3,7 @@
 namespace Ecotone\Dbal\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
@@ -45,6 +46,19 @@ class DbalPublisherModule implements AnnotationModule
     {
         $registeredReferences = [];
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+
+        $dbalMessageChannels = ExtensionObjectResolver::resolve(DbalBackedMessageChannelBuilder::class, $extensionObjects);
+        $dbalPublishers = ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $extensionObjects);
+        $hasMessageQueues = ! empty($dbalMessageChannels) || ! empty($dbalPublishers);
+
+        // Register the EnqueueTableManager service
+        $messagingConfiguration->registerServiceDefinition(
+            EnqueueTableManager::class,
+            new \Ecotone\Messaging\Config\Container\Definition(EnqueueTableManager::class, [
+                EnqueueTableManager::DEFAULT_TABLE_NAME,
+                $hasMessageQueues,
+            ])
+        );
 
         foreach (ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $extensionObjects) as $dbalPublisher) {
             if (in_array($dbalPublisher->getReferenceName(), $registeredReferences)) {
@@ -117,13 +131,8 @@ class DbalPublisherModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        $dbalMessageChannels = ExtensionObjectResolver::resolve(DbalBackedMessageChannelBuilder::class, $serviceExtensions);
-        $dbalPublishers = ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $serviceExtensions);
-
-        $hasMessageQueues = ! empty($dbalMessageChannels) || ! empty($dbalPublishers);
-
         return [
-            new EnqueueTableManager(isActive: $hasMessageQueues),
+            new DbalTableManagerReference(EnqueueTableManager::class),
         ];
     }
 

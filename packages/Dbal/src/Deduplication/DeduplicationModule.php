@@ -5,6 +5,7 @@ namespace Ecotone\Dbal\Deduplication;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
+use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -63,6 +64,15 @@ class DeduplicationModule implements AnnotationModule
             $pointcut .= '||' . AsynchronousRunningEndpoint::class;
         }
 
+        // Register the DeduplicationTableManager service
+        $messagingConfiguration->registerServiceDefinition(
+            DeduplicationTableManager::class,
+            new Definition(DeduplicationTableManager::class, [
+                DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE,
+                $isDeduplicatedEnabled,
+            ])
+        );
+
         $messagingConfiguration->registerServiceDefinition(
             DeduplicationInterceptor::class,
             new Definition(
@@ -75,7 +85,7 @@ class DeduplicationModule implements AnnotationModule
                     new Reference(LoggingGateway::class),
                     new Reference(ExpressionEvaluationService::REFERENCE),
                     $dbalConfiguration->isInitializeDatabaseTablesEnabled(),
-                    new Definition(DeduplicationTableManager::class),
+                    new Reference(DeduplicationTableManager::class),
                 ]
             )
         );
@@ -112,16 +122,8 @@ class DeduplicationModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(
-            DbalConfiguration::class,
-            $serviceExtensions,
-            DbalConfiguration::createWithDefaults()
-        );
-
         return [
-            new DeduplicationTableManager(
-                isActive: $dbalConfiguration->isDeduplicatedEnabled()
-            ),
+            new DbalTableManagerReference(DeduplicationTableManager::class),
         ];
     }
 

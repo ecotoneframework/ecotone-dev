@@ -17,8 +17,11 @@ use Enqueue\Dbal\DbalConnectionFactory;
 
 class DbalProjectionStateStorageBuilder implements ProjectionComponentBuilder
 {
-    public function __construct(private array $handledProjectionNames)
-    {
+    /** @param string[] $handledProjectionNames */
+    public function __construct(
+        private array $handledProjectionNames,
+        private bool $autoDeclare,
+    ) {
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition
@@ -28,6 +31,7 @@ class DbalProjectionStateStorageBuilder implements ProjectionComponentBuilder
             [
                 new Reference(DbalConnectionFactory::class),
                 new Reference(ProjectionStateTableManager::class),
+                $this->autoDeclare,
             ],
         );
     }

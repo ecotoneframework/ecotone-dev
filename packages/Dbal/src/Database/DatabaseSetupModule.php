@@ -41,13 +41,13 @@ class DatabaseSetupModule implements AnnotationModule
             DbalConfiguration::createWithDefaults()
         );
 
-        $tableManagers = ExtensionObjectResolver::resolve(DbalTableManager::class, $extensionObjects);
+        $tableManagerReferences = ExtensionObjectResolver::resolve(DbalTableManagerReference::class, $extensionObjects);
 
         $connectionReference = $dbalConfiguration->getDefaultConnectionReferenceNames()[0] ?? \Enqueue\Dbal\DbalConnectionFactory::class;
 
-        $tableManagerDefinitions = array_map(
-            fn (DbalTableManager $manager) => $manager->getDefinition(),
-            $tableManagers
+        $tableManagerRefs = array_map(
+            fn (DbalTableManagerReference $ref) => new Reference($ref->getReferenceName()),
+            $tableManagerReferences
         );
 
         $messagingConfiguration->registerServiceDefinition(
@@ -56,7 +56,7 @@ class DatabaseSetupModule implements AnnotationModule
                 new Definition(DbalReconnectableConnectionFactory::class, [
                     new Reference($connectionReference),
                 ]),
-                $tableManagerDefinitions,
+                $tableManagerRefs,
             ])
         );
 
@@ -93,7 +93,7 @@ class DatabaseSetupModule implements AnnotationModule
 
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof DbalTableManager
+        return $extensionObject instanceof DbalTableManagerReference
             || $extensionObject instanceof DbalConfiguration;
     }
 

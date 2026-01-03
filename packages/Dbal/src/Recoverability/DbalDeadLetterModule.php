@@ -5,6 +5,8 @@ namespace Ecotone\Dbal\Recoverability;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Database\DeadLetterTableManager;
+use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
@@ -51,6 +53,14 @@ class DbalDeadLetterModule implements AnnotationModule
         $customDeadLetterGateways = ExtensionObjectResolver::resolve(CustomDeadLetterGateway::class, $extensionObjects);
         $connectionFactoryReference     = $dbalConfiguration->getDeadLetterConnectionReference();
 
+        $messagingConfiguration->registerServiceDefinition(
+            DeadLetterTableManager::class,
+            new Definition(DeadLetterTableManager::class, [
+                DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE,
+                $isDeadLetterEnabled,
+            ])
+        );
+
         if (! $isDeadLetterEnabled) {
             return;
         }
@@ -81,16 +91,8 @@ class DbalDeadLetterModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(
-            DbalConfiguration::class,
-            $serviceExtensions,
-            DbalConfiguration::createWithDefaults()
-        );
-
         return [
-            new \Ecotone\Dbal\Database\DeadLetterTableManager(
-                isActive: $dbalConfiguration->isDeadLetterEnabled()
-            ),
+            new DbalTableManagerReference(DeadLetterTableManager::class),
         ];
     }
 

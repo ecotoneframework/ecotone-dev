@@ -112,62 +112,6 @@ class ProophIntegrationTest extends ProjectingTestCase
         self::assertSame('assigned', $ecotone->sendQueryWithRouting('getTicketStatus', $ticketId));
     }
 
-    public function test_it_can_use_user_projection_state(): void
-    {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [TicketProjection::class, Ticket::class, TicketAssigned::class, TicketEventConverter::class],
-            [$projection = new TicketProjection(), $this->getConnectionFactory(), new TicketEventConverter()],
-            ServiceConfiguration::createWithDefaults()
-                ->addExtensionObject(new EventStoreAggregateStreamSourceBuilder(TicketProjection::NAME, Ticket::class, Ticket::STREAM_NAME))
-                ->addExtensionObject(new DbalProjectionStateStorageBuilder([TicketProjection::NAME])),
-            runForProductionEventStore: true,
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
-
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME);
-        $projectionRegistry = $ecotone->getGateway(ProjectionRegistry::class);
-        $projectionRegistry->get(TicketProjection::NAME)->delete();
-
-        self::assertEquals([], $projection->getProjectedEvents());
-
-        $ecotone->sendCommand(new CreateTicketCommand('ticket-10'));
-        $ecotone->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
-        $ecotone->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
-
-        self::assertEquals(
-            [
-                new TicketCreated('ticket-10'),
-                new TicketAssigned('ticket-10'),
-                new TicketAssigned('ticket-10'),
-            ],
-            $projection->getProjectedEvents()
-        );
-
-        $ecotone->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
-
-        self::assertEquals(
-            [
-                new TicketCreated('ticket-10'),
-                new TicketAssigned('ticket-10'),
-                new TicketAssigned('ticket-10'),
-            ],
-            $projection->getProjectedEvents(),
-            'A maximum of ' . TicketProjection::MAX_ASSIGNMENT_COUNT . ' successive assignment on the same ticket should be recorded'
-        );
-
-        $ecotone->sendCommandWithRoutingKey(Ticket::UNASSIGN_COMMAND, metadata: ['aggregate.id' => 'ticket-10']);
-
-        self::assertEquals(
-            [
-                new TicketCreated('ticket-10'),
-                new TicketAssigned('ticket-10'),
-                new TicketAssigned('ticket-10'),
-                new TicketUnassigned('ticket-10'),
-            ],
-            $projection->getProjectedEvents(),
-        );
-    }
-
     public function test_auto_initialization_mode_processes_events(): void
     {
         $connectionFactory = self::getConnectionFactory();

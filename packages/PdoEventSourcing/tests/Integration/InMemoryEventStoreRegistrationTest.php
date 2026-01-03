@@ -25,11 +25,11 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
     {
         $eventSourcingConfiguration = \Ecotone\EventSourcing\EventSourcingConfiguration::createInMemory();
 
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [TestEventConverter::class],
             [new TestEventConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::TEST_PACKAGE]))
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     $eventSourcingConfiguration,
@@ -37,7 +37,7 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
         );
 
         /** @var \Ecotone\EventSourcing\EventStore $eventStore */
-        $eventStore = $ecotoneTestSupport->getGatewayByName(\Ecotone\EventSourcing\EventStore::class);
+        $eventStore = $ecotoneTestSupport->getGateway(\Ecotone\EventSourcing\EventStore::class);
 
         $streamName = Uuid::uuid4()->toString();
         $eventStore->appendTo(

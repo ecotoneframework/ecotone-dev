@@ -15,6 +15,8 @@ use Prooph\EventStore\StreamName;
 
 /**
  * licence Apache-2.0
+ *
+ * @TODO Ecotone 2.0 Leave only meaningful configuration for ProjectionV2
  */
 class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 {

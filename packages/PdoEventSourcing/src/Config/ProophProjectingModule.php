@@ -15,6 +15,7 @@ use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\Stream;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
+use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
@@ -237,10 +238,10 @@ class ProophProjectingModule implements AnnotationModule
 
         $extensions[] = new DbalTableManagerReference(ProjectionStateTableManager::class);
 
-        /** @var DbalConfiguration $dbalConfiguration */
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
-        // @TODO in memory for tests
-        if ($this->projectionNames) {
+        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $serviceExtensions, EventSourcingConfiguration::createWithDefaults());
+        if ($this->projectionNames && !$eventSourcingConfiguration->isInMemory()) {
+            /** @var DbalConfiguration $dbalConfiguration */
+            $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
             $extensions[] = new DbalProjectionStateStorageBuilder($this->projectionNames, $dbalConfiguration->isInitializeDatabaseTablesEnabled());
         }
 

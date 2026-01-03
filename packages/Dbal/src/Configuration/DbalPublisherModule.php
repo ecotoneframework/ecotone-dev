@@ -51,7 +51,6 @@ class DbalPublisherModule implements AnnotationModule
         $dbalPublishers = ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $extensionObjects);
         $hasMessageQueues = ! empty($dbalMessageChannels) || ! empty($dbalPublishers);
 
-        // Register the EnqueueTableManager service
         $messagingConfiguration->registerServiceDefinition(
             EnqueueTableManager::class,
             new \Ecotone\Messaging\Config\Container\Definition(EnqueueTableManager::class, [

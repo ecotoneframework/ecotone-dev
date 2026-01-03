@@ -73,7 +73,7 @@ class DbalDeadLetterModule implements AnnotationModule
         $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
         $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
 
-        $autoDeclare = $dbalConfiguration->isInitializeDatabaseTablesEnabled();
+        $autoDeclare = $dbalConfiguration->isAutomaticTableInitializationEnabled();
 
         $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, false, $messagingConfiguration, $autoDeclare);
         foreach ($customDeadLetterGateways as $customDeadLetterGateway) {

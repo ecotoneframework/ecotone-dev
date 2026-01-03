@@ -54,7 +54,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         $ecotone = $this->bootstrapEcotone(
             [$projection::class],
             [$projection],
-            DbalConfiguration::createWithDefaults()->withInitializeDatabaseTables(false)
+            DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(false)
         );
 
         // Verify projection state table does not exist
@@ -75,7 +75,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         $ecotone = $this->bootstrapEcotone(
             [$projection::class],
             [$projection],
-            DbalConfiguration::createWithDefaults()->withInitializeDatabaseTables(false)
+            DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(false)
         );
 
         // Verify projection state table does not exist
@@ -114,7 +114,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         $ecotone = $this->bootstrapEcotone(
             [$projection::class],
             [$projection],
-            DbalConfiguration::createWithDefaults()->withInitializeDatabaseTables(true)
+            DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)
         );
 
         $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:drop', ['force' => true]);

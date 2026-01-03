@@ -61,7 +61,7 @@ class DbalDocumentStoreModule implements AnnotationModule
         $referenceName = $dbalConfiguration->getDbalDocumentStoreReference();
         $inMemoryDocumentStore = InMemoryDocumentStore::createEmpty();
         // Combine both settings: global initialization and document store specific initialization
-        $autoDeclare = $dbalConfiguration->isInitializeDatabaseTablesEnabled() && $dbalConfiguration->isInitializeDbalDocumentStore();
+        $autoDeclare = $dbalConfiguration->isAutomaticTableInitializationEnabled() && $dbalConfiguration->isInitializeDbalDocumentStore();
 
         $messagingConfiguration
             ->registerGatewayBuilder(

@@ -364,7 +364,7 @@ class DbalConfiguration
      * Controls whether database tables are automatically initialized on first use.
      * When set to false, tables must be created manually using `ecotone:migration:database:setup --initialize`.
      */
-    public function withInitializeDatabaseTables(bool $enabled): self
+    public function withAutomaticTableInitialization(bool $enabled): self
     {
         $self = clone $this;
         $self->initializeDatabaseTables = $enabled;
@@ -372,7 +372,7 @@ class DbalConfiguration
         return $self;
     }
 
-    public function isInitializeDatabaseTablesEnabled(): bool
+    public function isAutomaticTableInitializationEnabled(): bool
     {
         return $this->initializeDatabaseTables;
     }

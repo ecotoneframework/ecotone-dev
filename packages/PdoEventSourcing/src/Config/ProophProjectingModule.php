@@ -246,7 +246,7 @@ class ProophProjectingModule implements AnnotationModule
 
             /** @var DbalConfiguration $dbalConfiguration */
             $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
-            $extensions[] = new DbalProjectionStateStorageBuilder($projectionNames, $dbalConfiguration->isInitializeDatabaseTablesEnabled());
+            $extensions[] = new DbalProjectionStateStorageBuilder($projectionNames, $dbalConfiguration->isAutomaticTableInitializationEnabled());
         }
 
         return $extensions;

@@ -125,7 +125,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapEcotone(
             DbalConfiguration::createWithDefaults()
-                ->withInitializeDatabaseTables(true)
+                ->withAutomaticTableInitialization(true)
         );
 
         self::assertFalse($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
@@ -178,7 +178,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory();
         $dbalConfiguration ??= DbalConfiguration::createWithDefaults()
-            ->withInitializeDatabaseTables(false);
+            ->withAutomaticTableInitialization(false);
 
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [

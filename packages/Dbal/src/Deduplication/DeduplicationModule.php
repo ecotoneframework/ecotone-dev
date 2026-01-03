@@ -84,7 +84,7 @@ class DeduplicationModule implements AnnotationModule
                     $dbalConfiguration->deduplicationRemovalBatchSize(),
                     new Reference(LoggingGateway::class),
                     new Reference(ExpressionEvaluationService::REFERENCE),
-                    $dbalConfiguration->isInitializeDatabaseTablesEnabled(),
+                    $dbalConfiguration->isAutomaticTableInitializationEnabled(),
                     new Reference(DeduplicationTableManager::class),
                 ]
             )

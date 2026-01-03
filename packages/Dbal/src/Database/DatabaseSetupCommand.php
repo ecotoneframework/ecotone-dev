@@ -20,7 +20,7 @@ class DatabaseSetupCommand
     ) {
     }
 
-    #[ConsoleCommand('ecotone:database:setup')]
+    #[ConsoleCommand('ecotone:migration:database:setup')]
     public function setup(
         #[ConsoleParameterOption] bool $initialize = false,
         #[ConsoleParameterOption] bool $sql = false,

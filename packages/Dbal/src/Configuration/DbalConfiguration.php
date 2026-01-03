@@ -362,7 +362,7 @@ class DbalConfiguration
 
     /**
      * Controls whether database tables are automatically initialized on first use.
-     * When set to false, tables must be created manually using `ecotone:database:setup --initialize`.
+     * When set to false, tables must be created manually using `ecotone:migration:database:setup --initialize`.
      */
     public function withInitializeDatabaseTables(bool $enabled): self
     {

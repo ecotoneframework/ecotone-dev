@@ -37,7 +37,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapEcotone();
 
-        $result = $this->executeConsoleCommand($ecotone, 'ecotone:database:setup', []);
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', []);
 
         self::assertEquals(['Feature', 'Initialized'], $result->getColumnHeaders());
         $featureNames = array_column($result->getRows(), 0);
@@ -53,10 +53,10 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         // First initialize
-        $this->executeConsoleCommand($ecotone, 'ecotone:database:setup', ['initialize' => true]);
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
 
         // Then check status
-        $result = $this->executeConsoleCommand($ecotone, 'ecotone:database:setup', []);
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', []);
 
         $deadLetterRow = $this->findRowByFeature($result, 'dead_letter');
         self::assertEquals('Yes', $deadLetterRow[1]);
@@ -68,7 +68,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         self::assertFalse($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
 
-        $result = $this->executeConsoleCommand($ecotone, 'ecotone:database:setup', ['initialize' => true]);
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
 
         self::assertEquals(['Feature', 'Status'], $result->getColumnHeaders());
         self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
@@ -82,7 +82,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapEcotone();
 
-        $result = $this->executeConsoleCommand($ecotone, 'ecotone:database:setup', ['sql' => true]);
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['sql' => true]);
 
         self::assertEquals(['SQL Statement'], $result->getColumnHeaders());
         $allSql = implode(' ', array_column($result->getRows(), 0));
@@ -95,11 +95,11 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         // First create tables
-        $this->executeConsoleCommand($ecotone, 'ecotone:database:setup', ['initialize' => true]);
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
         self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
 
         // Drop tables
-        $result = $this->executeConsoleCommand($ecotone, 'ecotone:database:drop', ['force' => true]);
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:drop', ['force' => true]);
 
         self::assertEquals(['Feature', 'Status'], $result->getColumnHeaders());
         self::assertFalse($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
@@ -110,11 +110,11 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         // First create tables
-        $this->executeConsoleCommand($ecotone, 'ecotone:database:setup', ['initialize' => true]);
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
         self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
 
         // Try to drop without force
-        $result = $this->executeConsoleCommand($ecotone, 'ecotone:database:drop', []);
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:drop', []);
 
         self::assertEquals(['Feature', 'Warning'], $result->getColumnHeaders());
         // Tables should still exist
@@ -151,7 +151,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         self::assertFalse($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
 
         // Manually create the table via console command
-        $this->executeConsoleCommand($ecotone, 'ecotone:database:setup', ['initialize' => true]);
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
 
         self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
     }

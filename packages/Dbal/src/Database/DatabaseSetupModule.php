@@ -76,7 +76,7 @@ class DatabaseSetupModule implements AnnotationModule
 
         $this->registerConsoleCommand(
             'setup',
-            'ecotone:database:setup',
+            'ecotone:migration:database:setup',
             DatabaseSetupCommand::class,
             $messagingConfiguration,
             $interfaceToCallRegistry
@@ -84,7 +84,7 @@ class DatabaseSetupModule implements AnnotationModule
 
         $this->registerConsoleCommand(
             'drop',
-            'ecotone:database:drop',
+            'ecotone:migration:database:drop',
             DatabaseDropCommand::class,
             $messagingConfiguration,
             $interfaceToCallRegistry

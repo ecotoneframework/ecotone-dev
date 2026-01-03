@@ -82,7 +82,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         self::assertFalse($this->projectionStateTableExists());
 
         // Run console command to create tables
-        $result = $this->executeConsoleCommand($ecotone, 'ecotone:database:setup', ['initialize' => true]);
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
 
         // Debug: Print features that were registered
         $featureNames = array_column($result->getRows(), 0);
@@ -117,7 +117,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
             DbalConfiguration::createWithDefaults()->withInitializeDatabaseTables(true)
         );
 
-        $this->executeConsoleCommand($ecotone, 'ecotone:database:drop', ['force' => true]);
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:drop', ['force' => true]);
         // Verify projection state table does not exist
         self::assertFalse($this->projectionStateTableExists());
 

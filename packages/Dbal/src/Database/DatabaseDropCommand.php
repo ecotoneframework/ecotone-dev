@@ -20,7 +20,7 @@ class DatabaseDropCommand
     ) {
     }
 
-    #[ConsoleCommand('ecotone:database:drop')]
+    #[ConsoleCommand('ecotone:migration:database:drop')]
     public function drop(
         #[ConsoleParameterOption] bool $force = false,
         #[ConsoleParameterOption] bool $all = false,

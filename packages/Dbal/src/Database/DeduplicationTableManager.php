@@ -51,13 +51,11 @@ class DeduplicationTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
-        $schemaManager = $connection->createSchemaManager();
-
-        if ($schemaManager->tablesExist([$this->tableName])) {
+        if (self::isInitialized($connection)) {
             return;
         }
 
-        $schemaManager->createTable($this->buildTableSchema());
+        SchemaManagerCompatibility::getSchemaManager($connection)->createTable($this->buildTableSchema());
     }
 
     public function dropTable(Connection $connection): void

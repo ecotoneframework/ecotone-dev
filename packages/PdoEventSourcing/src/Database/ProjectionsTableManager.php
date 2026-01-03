@@ -66,6 +66,10 @@ final class ProjectionsTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
+        if ($this->isInitialized($connection)) {
+            return;
+        }
+
         $sql = $this->getCreateTableSql($connection);
         if (\is_array($sql)) {
             foreach ($sql as $statement) {

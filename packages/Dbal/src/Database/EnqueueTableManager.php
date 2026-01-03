@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Database;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\Table;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Messaging\Config\Container\Definition;
 
@@ -44,15 +45,11 @@ final class EnqueueTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
-        $schemaManager = $connection->createSchemaManager();
-
-        if ($schemaManager->tablesExist([$this->tableName])) {
+        if ($this->isInitialized($connection)) {
             return;
         }
 
-        foreach ($this->getCreateTableSql($connection) as $sql) {
-            $connection->executeStatement($sql);
-        }
+        SchemaManagerCompatibility::getSchemaManager($connection)->createTable($this->buildTableSchema());
     }
 
     public function dropTable(Connection $connection): void
@@ -62,7 +59,12 @@ final class EnqueueTableManager implements DbalTableManager
 
     public function getCreateTableSql(Connection $connection): array
     {
-        $table = SchemaManagerCompatibility::getTableToCreate($connection, $this->tableName);
+        return $connection->getDatabasePlatform()->getCreateTableSQL($this->buildTableSchema());
+    }
+
+    private function buildTableSchema(): Table
+    {
+        $table = new Table($this->tableName);
 
         $table->addColumn('id', 'guid', ['length' => 16, 'fixed' => true]);
         $table->addColumn('published_at', 'bigint');
@@ -83,7 +85,7 @@ final class EnqueueTableManager implements DbalTableManager
         $table->addIndex(['time_to_live', 'delivery_id']);
         $table->addIndex(['delivery_id']);
 
-        return $connection->getDatabasePlatform()->getCreateTableSQL($table);
+        return $table;
     }
 
     public function getDropTableSql(Connection $connection): string

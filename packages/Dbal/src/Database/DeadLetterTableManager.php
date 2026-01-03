@@ -43,15 +43,7 @@ class DeadLetterTableManager implements DbalTableManager
 
     public function getCreateTableSql(Connection $connection): string|array
     {
-        $table = new Table($this->tableName);
-
-        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
-        $table->addColumn('failed_at', Types::DATETIME_MUTABLE);
-        $table->addColumn('payload', Types::TEXT);
-        $table->addColumn('headers', Types::TEXT);
-
-        $table->setPrimaryKey(['message_id']);
-        $table->addIndex(['failed_at']);
+        $table = $this->buildTableSchema();
 
         return $connection->getDatabasePlatform()->getCreateTableSQL($table);
     }
@@ -63,23 +55,11 @@ class DeadLetterTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
-        $schemaManager = $connection->createSchemaManager();
-
-        if ($schemaManager->tablesExist([$this->tableName])) {
+        if (self::isInitialized($connection)) {
             return;
         }
 
-        $table = new Table($this->tableName);
-
-        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
-        $table->addColumn('failed_at', Types::DATETIME_MUTABLE);
-        $table->addColumn('payload', Types::TEXT);
-        $table->addColumn('headers', Types::TEXT);
-
-        $table->setPrimaryKey(['message_id']);
-        $table->addIndex(['failed_at']);
-
-        $schemaManager->createTable($table);
+        SchemaManagerCompatibility::getSchemaManager($connection)->createTable($this->buildTableSchema());
     }
 
     public function dropTable(Connection $connection): void
@@ -104,6 +84,20 @@ class DeadLetterTableManager implements DbalTableManager
             self::class,
             [$this->tableName, $this->isActive]
         );
+    }
+
+    public function buildTableSchema(): Table
+    {
+        $table = new Table($this->tableName);
+
+        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
+        $table->addColumn('failed_at', Types::DATETIME_MUTABLE);
+        $table->addColumn('payload', Types::TEXT);
+        $table->addColumn('headers', Types::TEXT);
+
+        $table->setPrimaryKey(['message_id']);
+        $table->addIndex(['failed_at']);
+        return $table;
     }
 }
 

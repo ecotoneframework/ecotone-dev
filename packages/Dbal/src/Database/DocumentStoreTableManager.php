@@ -45,15 +45,11 @@ final class DocumentStoreTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
-        $schemaManager = $connection->createSchemaManager();
-
-        if ($schemaManager->tablesExist([$this->tableName])) {
+        if ($this->isInitialized($connection)) {
             return;
         }
 
-        foreach ($this->getCreateTableSql($connection) as $sql) {
-            $connection->executeStatement($sql);
-        }
+        SchemaManagerCompatibility::getSchemaManager($connection)->createTable($this->buildTableSchema());
     }
 
     public function dropTable(Connection $connection): void
@@ -62,6 +58,11 @@ final class DocumentStoreTableManager implements DbalTableManager
     }
 
     public function getCreateTableSql(Connection $connection): array
+    {
+        return $connection->getDatabasePlatform()->getCreateTableSQL($this->buildTableSchema());
+    }
+
+    private function buildTableSchema(): Table
     {
         $table = new Table($this->tableName);
 
@@ -73,7 +74,7 @@ final class DocumentStoreTableManager implements DbalTableManager
 
         $table->setPrimaryKey(['collection', 'document_id']);
 
-        return $connection->getDatabasePlatform()->getCreateTableSQL($table);
+        return $table;
     }
 
     public function getDropTableSql(Connection $connection): string

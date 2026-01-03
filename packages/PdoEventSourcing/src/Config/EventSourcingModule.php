@@ -25,6 +25,7 @@ use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
+use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\ProjectionLifeCycleConfiguration;
 use Ecotone\EventSourcing\ProjectionManager;
@@ -285,6 +286,12 @@ class EventSourcingModule extends NoExternalConfigurationModule
             Reference::to(EventStreamTableManager::class),
             Reference::to(LegacyProjectionsTableManager::class),
         ]));
+
+        // Register PdoStreamTableNameProvider as an alias to LazyProophEventStore
+        $messagingConfiguration->registerServiceDefinition(
+            PdoStreamTableNameProvider::class,
+            Reference::to(LazyProophEventStore::class)
+        );
 
         $messagingConfiguration->registerServiceDefinition(
             LazyProophProjectionManager::class,

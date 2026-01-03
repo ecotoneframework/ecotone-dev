@@ -10,6 +10,7 @@ use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\Database\LegacyProjectionsTableManager;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\InMemory\StreamIteratorWithPosition;
+use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamStrategy;
 use Ecotone\EventSourcing\ProophEventMapper;
@@ -35,6 +36,7 @@ use Prooph\EventStore\Stream;
 use Prooph\EventStore\StreamName;
 use RuntimeException;
 
+use function sha1;
 use function spl_object_id;
 use function str_contains;
 
@@ -43,7 +45,7 @@ use Throwable;
 /**
  * licence Apache-2.0
  */
-class LazyProophEventStore implements EventStore
+class LazyProophEventStore implements EventStore, PdoStreamTableNameProvider
 {
     public const DEFAULT_ENABLE_WRITE_LOCK_STRATEGY = false;
     public const INITIALIZE_ON_STARTUP = true;
@@ -303,6 +305,26 @@ class LazyProophEventStore implements EventStore
             self::SIMPLE_STREAM_PERSISTENCE => new PersistenceStrategy\PostgresSimpleStreamStrategy($this->messageConverter),
             self::CUSTOM_STREAM_PERSISTENCE => $this->eventSourcingConfiguration->getCustomPersistenceStrategy(),
         };
+    }
+
+    public function generateTableNameForStream(string $streamName): string
+    {
+        $streamNameObj = new StreamName($streamName);
+        $eventStoreType = $this->getEventStoreType();
+
+        if ($this->eventSourcingConfiguration->isInMemory()) {
+            // In-memory doesn't use table names, but return consistent format
+            return '_' . sha1($streamName);
+        }
+
+        $persistenceStrategy = match ($eventStoreType) {
+            self::EVENT_STORE_TYPE_MYSQL => $this->getMysqlPersistenceStrategyFor($streamNameObj),
+            self::EVENT_STORE_TYPE_MARIADB => $this->getMariaDbPersistenceStrategyFor($streamNameObj),
+            self::EVENT_STORE_TYPE_POSTGRES => $this->getPostgresPersistenceStrategyFor($streamNameObj),
+            default => throw InvalidArgumentException::create('Unexpected match value ' . $eventStoreType)
+        };
+
+        return $persistenceStrategy->generateTableName($streamNameObj);
     }
 
     public function getEventStoreType(): string

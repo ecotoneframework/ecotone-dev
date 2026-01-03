@@ -60,15 +60,12 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         // Verify projection state table does not exist
         self::assertFalse($this->projectionStateTableExists());
 
+        // Triggering projection should fail because projection_state table doesn't exist
+        $this->expectException(TableNotFoundException::class);
+
         // Initialize projection and send events
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
-
-        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
-
-        // Triggering projection should fail because projection_state table doesn't exist
-        $this->expectException(TableNotFoundException::class);
-        $ecotone->triggerProjection($projection::NAME);
     }
 
     public function test_projection_works_after_console_command_creates_table(): void
@@ -96,6 +93,33 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         // Verify the result contains projection_state feature
         $featureNames = array_column($result->getRows(), 0);
         self::assertContains(ProjectionStateTableManager::FEATURE_NAME, $featureNames);
+
+        // Initialize projection and run projection
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+        $ecotone->triggerProjection($projection::NAME);
+
+        // Verify projection worked
+        self::assertEquals([
+            ['ticket_id' => '123', 'ticket_type' => 'alert'],
+        ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_projection_works_with_auto_initialization_enabled(): void
+    {
+        $projection = $this->createPollingProjection();
+
+        $ecotone = $this->bootstrapEcotone(
+            [$projection::class],
+            [$projection],
+            DbalConfiguration::createWithDefaults()->withInitializeDatabaseTables(true)
+        );
+
+        $this->executeConsoleCommand($ecotone, 'ecotone:database:drop', ['force' => true]);
+        // Verify projection state table does not exist
+        self::assertFalse($this->projectionStateTableExists());
 
         // Initialize projection and run projection
         $ecotone->deleteProjection($projection::NAME)

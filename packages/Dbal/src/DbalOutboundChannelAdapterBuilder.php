@@ -2,6 +2,7 @@
 
 namespace Ecotone\Dbal;
 
+use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
@@ -60,6 +61,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $this->autoDeclare,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
+            new Reference(EnqueueTableManager::class),
         ]);
     }
 }

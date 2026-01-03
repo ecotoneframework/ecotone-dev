@@ -18,7 +18,6 @@ use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ClockSensitiveTrait;
-use Ecotone\Test\ComponentTestBuilder;
 use Ecotone\Test\StubLogger;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
@@ -42,23 +41,28 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::uuid4()->toString();
 
-        $messaging = ComponentTestBuilder::create()
-                ->withReference(DbalConnectionFactory::class, $this->getConnectionFactory())
-                ->withChannel(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($channelName)
-                        ->withReceiveTimeout(1)
-                )
-                ->build();
+                        ->withReceiveTimeout(1),
+                ])
+        );
 
         $payload = 'some';
         $headerName = 'token';
-        $messaging->getMessageChannel($channelName)->send(
+        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
+        $messageChannel->send(
             MessageBuilder::withPayload($payload)
                 ->setHeader($headerName, 123)
                 ->build()
         );
 
-        $receivedMessage = $messaging->getMessageChannel($channelName)->receive();
+        $receivedMessage = $messageChannel->receive();
 
         $this->assertNotNull($receivedMessage, 'Not received message');
         $this->assertEquals($payload, $receivedMessage->getPayload(), 'Payload of received is different that sent one');
@@ -69,15 +73,20 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::uuid4()->toString();
 
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                'managerRegistry' => $this->getConnectionFactory(true),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create($channelName, 'managerRegistry')
+                        ->withReceiveTimeout(1),
+                ])
+        );
+
         /** @var PollableChannel $messageChannel */
-        $messageChannel = ComponentTestBuilder::create()
-            ->withReference('managerRegistry', $this->getConnectionFactory(true))
-            ->withChannel(
-                DbalBackedMessageChannelBuilder::create($channelName, 'managerRegistry')
-                    ->withReceiveTimeout(1)
-            )
-            ->build()
-            ->getMessageChannel($channelName);
+        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
 
         $payload = 'some';
         $headerName = 'token';
@@ -98,11 +107,19 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::uuid4()->toString();
 
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1),
+                ])
+        );
+
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $this->getComponentTestingWithConnection(true)
-            ->withChannel(DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1))
-            ->build()
-            ->getMessageChannel($channelName);
+        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
 
         $payload = 'some';
         $headerName = 'token';
@@ -122,14 +139,22 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     public function test_reconnecting_on_disconnected_channel()
     {
         $connectionFactory = $this->getConnectionFactory();
+        $queueName = Uuid::uuid4()->toString();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $connectionFactory,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create($queueName)
+                        ->withReceiveTimeout(1),
+                ])
+        );
+
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $this->getComponentTestingWithConnection()
-            ->withChannel(
-                DbalBackedMessageChannelBuilder::create($queueName = Uuid::uuid4()->toString())
-                    ->withReceiveTimeout(1)
-            )
-            ->build()
-            ->getMessageChannel($queueName);
+        $messageChannel = $ecotoneLite->getMessageChannel($queueName);
 
         /** @var DbalContext $dbalContext */
         $dbalContext = $connectionFactory->createContext();
@@ -144,14 +169,22 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     public function test_reconnecting_on_disconnected_channel_with_manager_registry()
     {
         $connectionFactory = $this->getConnectionFactory(true);
+        $channelName = Uuid::uuid4()->toString();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $connectionFactory,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create($channelName)
+                        ->withReceiveTimeout(1),
+                ])
+        );
+
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $this->getComponentTestingWithConnection()
-            ->withChannel(
-                DbalBackedMessageChannelBuilder::create($channelName = Uuid::uuid4()->toString())
-                    ->withReceiveTimeout(1)
-            )
-            ->build()
-            ->getMessageChannel($channelName);
+        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
 
         /** @var DbalContext $dbalContext */
         $dbalContext = $connectionFactory->createContext();
@@ -165,15 +198,24 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
     public function test_delaying_the_message()
     {
+        $channelName = Uuid::uuid4()->toString();
+        $clock = new StubUTCClock();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+                ClockInterface::class => $clock,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create($channelName)
+                        ->withReceiveTimeout(1),
+                ])
+        );
+
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $this->getComponentTestingWithConnection(true)
-            ->withReference(ClockInterface::class, $clock = new StubUTCClock())
-            ->withChannel(
-                DbalBackedMessageChannelBuilder::create($channelName = Uuid::uuid4()->toString())
-                    ->withReceiveTimeout(1)
-            )
-            ->build()
-            ->getMessageChannel($channelName);
+        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
 
         Clock::set($clock);
 
@@ -195,7 +237,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $queueName = Uuid::uuid4()->toString();
         $messagePayload = 'some';
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
@@ -207,7 +249,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+        $messageChannel = $ecotoneLite->getMessageChannel($queueName);
 
         $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
 
@@ -223,7 +265,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $queueName = Uuid::uuid4()->toString();
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
@@ -236,7 +278,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         );
 
         /** @var PollableChannel $messageChannel */
-        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+        $messageChannel = $ecotoneLite->getMessageChannel($queueName);
 
         $this->expectException(TableNotFoundException::class);
 
@@ -246,7 +288,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     public function test_failing_to_consume_due_to_connection_failure()
     {
         $loggerExample = StubLogger::create();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             containerOrAvailableServices: [
                 new OrderService(),

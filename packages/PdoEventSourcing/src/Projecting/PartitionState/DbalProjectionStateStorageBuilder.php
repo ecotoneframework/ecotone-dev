@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
+use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -16,8 +17,10 @@ use Enqueue\Dbal\DbalConnectionFactory;
 
 class DbalProjectionStateStorageBuilder implements ProjectionComponentBuilder
 {
-    public function __construct(private array $handledProjectionNames)
-    {
+    /** @param string[] $handledProjectionNames */
+    public function __construct(
+        private array $handledProjectionNames,
+    ) {
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition
@@ -26,6 +29,7 @@ class DbalProjectionStateStorageBuilder implements ProjectionComponentBuilder
             DbalProjectionStateStorage::class,
             [
                 new Reference(DbalConnectionFactory::class),
+                new Reference(ProjectionStateTableManager::class),
             ],
         );
     }

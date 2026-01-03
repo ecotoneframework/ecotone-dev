@@ -95,7 +95,7 @@ class ProjectingModule implements AnnotationModule
             $messagingConfiguration->registerServiceDefinition(
                 $projectingManagerReference = ProjectingManager::class . ':' . $projectionName,
                 new Definition(ProjectingManager::class, [
-                    $components[$projectionName][ProjectionStateStorage::class] ?? new Definition(InMemoryProjectionStateStorage::class),
+                    $components[$projectionName][ProjectionStateStorage::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have projection state storage configured. Please check your configuration."),
                     new Reference($reference),
                     $components[$projectionName][StreamSource::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have stream source configured. Please check your configuration."),
                     $components[$projectionName][PartitionProvider::class] ?? new Definition(NullPartitionProvider::class),

@@ -4,9 +4,10 @@ namespace Ecotone\EventSourcing\Prooph;
 
 use ArrayIterator;
 use Doctrine\DBAL\Driver\PDOConnection;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\LegacyProjectionsTableManager;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\InMemory\StreamIteratorWithPosition;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
@@ -83,9 +84,11 @@ class LazyProophEventStore implements EventStore
     private array $ensuredExistingStreams = [];
 
     public function __construct(
-        private EventSourcingConfiguration $eventSourcingConfiguration,
-        private ProophEventMapper          $messageFactory,
-        private ConnectionFactory|null     $connectionFactory,
+        private EventSourcingConfiguration    $eventSourcingConfiguration,
+        private ProophEventMapper             $messageFactory,
+        private ConnectionFactory|null        $connectionFactory,
+        private EventStreamTableManager       $eventStreamTableManager,
+        private LegacyProjectionsTableManager $projectionsTableManager,
     ) {
         $this->messageConverter = new FromProophMessageToArrayConverter();
         $this->canBeInitialized = $eventSourcingConfiguration->isInitializedOnStart();
@@ -177,17 +180,14 @@ class LazyProophEventStore implements EventStore
 
     public function prepareEventStore(): void
     {
-        /**
-         * @TODO expose CLI for setting up all required tables (including deduplication tables)
-         */
-
         $connectionName = $this->getContextName();
         if (! $this->canBeInitialized || isset($this->initializated[$connectionName]) || $this->eventSourcingConfiguration->isInMemory()) {
             return;
         }
 
-        $projectionTableExists = SchemaManagerCompatibility::tableExists($this->getConnection(), $this->eventSourcingConfiguration->getProjectionsTable());
-        $eventStreamTableExists = SchemaManagerCompatibility::tableExists($this->getConnection(), $this->eventSourcingConfiguration->getEventStreamTableName());
+        $connection = $this->getConnection();
+        $projectionTableExists = !$this->projectionsTableManager->shouldBeInitializedAutomatically() || $this->projectionsTableManager->isInitialized($connection);
+        $eventStreamTableExists = !$this->eventStreamTableManager->shouldBeInitializedAutomatically() || $this->eventStreamTableManager->isInitialized($connection);
 
         if ($eventStreamTableExists && $projectionTableExists) {
             $this->initializated[$connectionName] = true;
@@ -195,18 +195,10 @@ class LazyProophEventStore implements EventStore
         }
 
         if (! $eventStreamTableExists) {
-            match ($this->getEventStoreType()) {
-                self::EVENT_STORE_TYPE_POSTGRES => $this->createPostgresEventStreamTable(),
-                self::EVENT_STORE_TYPE_MARIADB => $this->createMariadbEventStreamTable(),
-                self::EVENT_STORE_TYPE_MYSQL => $this->createMysqlEventStreamTable()
-            };
+            $this->eventStreamTableManager->createTable($connection);
         }
         if (! $projectionTableExists) {
-            match ($this->getEventStoreType()) {
-                self::EVENT_STORE_TYPE_POSTGRES => $this->createPostgresProjectionTable(),
-                self::EVENT_STORE_TYPE_MARIADB => $this->createMariadbProjectionTable(),
-                self::EVENT_STORE_TYPE_MYSQL => $this->createMysqlProjectionTable()
-            };
+            $this->projectionsTableManager->createTable($connection);
         }
     }
 
@@ -350,111 +342,6 @@ class LazyProophEventStore implements EventStore
         } catch (Throwable) {
             return $this->getConnectionInLegacyOrLaravelWay();
         }
-    }
-
-    private function createMysqlEventStreamTable(): void
-    {
-        $this->getConnection()->executeStatement(<<<SQL
-               CREATE TABLE IF NOT EXISTS `event_streams` (
-              `no` BIGINT(20) NOT NULL AUTO_INCREMENT,
-              `real_stream_name` VARCHAR(150) NOT NULL,
-              `stream_name` CHAR(41) NOT NULL,
-              `metadata` JSON,
-              `category` VARCHAR(150),
-              PRIMARY KEY (`no`),
-              UNIQUE KEY `ix_rsn` (`real_stream_name`),
-              KEY `ix_cat` (`category`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-            SQL);
-    }
-
-    private function createMariadbEventStreamTable(): void
-    {
-        $this->getConnection()->executeStatement(<<<SQL
-            CREATE TABLE IF NOT EXISTS `event_streams` (
-                `no` BIGINT(20) NOT NULL AUTO_INCREMENT,
-                `real_stream_name` VARCHAR(150) NOT NULL,
-                `stream_name` CHAR(41) NOT NULL,
-                `metadata` LONGTEXT NOT NULL,
-                `category` VARCHAR(150),
-                CHECK (`metadata` IS NOT NULL OR JSON_VALID(`metadata`)),
-                PRIMARY KEY (`no`),
-                UNIQUE KEY `ix_rsn` (`real_stream_name`),
-                KEY `ix_cat` (`category`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-            SQL);
-    }
-
-    private function createPostgresEventStreamTable(): void
-    {
-        $this->getConnection()->executeStatement(<<<SQL
-            CREATE TABLE IF NOT EXISTS event_streams (
-              no BIGSERIAL,
-              real_stream_name VARCHAR(150) NOT NULL,
-              stream_name CHAR(41) NOT NULL,
-              metadata JSONB,
-              category VARCHAR(150),
-              PRIMARY KEY (no),
-              UNIQUE (stream_name)
-            );
-            CREATE INDEX on event_streams (category);
-            SQL);
-    }
-
-    private function createMysqlProjectionTable(): void
-    {
-        $this->getConnection()->executeStatement(
-            <<<SQL
-                CREATE TABLE IF NOT EXISTS `projections` (
-                  `no` BIGINT(20) NOT NULL AUTO_INCREMENT,
-                  `name` VARCHAR(150) NOT NULL,
-                  `position` JSON,
-                  `state` JSON,
-                  `status` VARCHAR(28) NOT NULL,
-                  `locked_until` CHAR(26),
-                  PRIMARY KEY (`no`),
-                  UNIQUE KEY `ix_name` (`name`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-                SQL
-        );
-    }
-
-    private function createMariadbProjectionTable(): void
-    {
-        $this->getConnection()->executeStatement(
-            <<<SQL
-                CREATE TABLE IF NOT EXISTS `projections` (
-                  `no` BIGINT(20) NOT NULL AUTO_INCREMENT,
-                  `name` VARCHAR(150) NOT NULL,
-                  `position` LONGTEXT,
-                  `state` LONGTEXT,
-                  `status` VARCHAR(28) NOT NULL,
-                  `locked_until` CHAR(26),
-                  CHECK (`position` IS NULL OR JSON_VALID(`position`)),
-                  CHECK (`state` IS NULL OR JSON_VALID(`state`)),
-                  PRIMARY KEY (`no`),
-                  UNIQUE KEY `ix_name` (`name`)
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-                SQL
-        );
-    }
-
-    private function createPostgresProjectionTable(): void
-    {
-        $this->getConnection()->executeStatement(
-            <<<SQL
-                CREATE TABLE IF NOT EXISTS projections (
-                  no BIGSERIAL,
-                  name VARCHAR(150) NOT NULL,
-                  position JSONB,
-                  state JSONB,
-                  status VARCHAR(28) NOT NULL,
-                  locked_until CHAR(26),
-                  PRIMARY KEY (no),
-                  UNIQUE (name)
-                );
-                SQL
-        );
     }
 
     private function hasConnectionChanged(string $contextName): bool

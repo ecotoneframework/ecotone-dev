@@ -2,17 +2,19 @@
 
 namespace Test\Ecotone\Dbal\Integration\Recoverability;
 
+use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
-use Ecotone\Messaging\Handler\Logger\StubLoggingGateway;
+use Ecotone\Dbal\Recoverability\DeadLetterGateway;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
-use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Ecotone\Messaging\Scheduling\NativeClock;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Test\InMemoryConversionService;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Throwable;
 
@@ -25,30 +27,43 @@ use Throwable;
  */
 class DbalDeadLetterTest extends DbalMessagingTestCase
 {
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->cleanUpTables();
+    }
+
+    public function tearDown(): void
+    {
+        parent::tearDown();
+        $this->cleanUpTables();
+    }
+
     public function test_retrieving_error_message_details()
     {
-        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()));
+        $ecotone = $this->bootstrapEcotone();
+        $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
         $errorMessage = MessageBuilder::withPayload('')->build();
-        $dbalDeadLetter->store($errorMessage);
+        $gateway->store($errorMessage);
 
-        $this->assertEquals(
-            $errorMessage,
-            $dbalDeadLetter->show($errorMessage->getHeaders()->getMessageId())
-        );
+        $retrievedMessage = $gateway->show($errorMessage->getHeaders()->getMessageId());
+
+        $this->assertEquals($errorMessage->getPayload(), $retrievedMessage->getPayload());
+        $this->assertEquals($errorMessage->getHeaders()->getMessageId(), $retrievedMessage->getHeaders()->getMessageId());
     }
 
     public function test_storing_wrapped_error_message()
     {
-        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()));
-
+        $ecotone = $this->bootstrapEcotone();
+        $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
         $errorMessage = MessageBuilder::withPayload('')->build();
-        $dbalDeadLetter->store($this->createFailedMessage($errorMessage));
+        $gateway->store($this->createFailedMessage($errorMessage));
 
         $this->assertEquals(
             $errorMessage->getHeaders()->getMessageId(),
-            $dbalDeadLetter->show($errorMessage->getHeaders()->getMessageId())->getHeaders()->getMessageId()
+            $gateway->show($errorMessage->getHeaders()->getMessageId())->getHeaders()->getMessageId()
         );
     }
 
@@ -59,7 +74,8 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
 
     public function test_listing_error_messages()
     {
-        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()));
+        $ecotone = $this->bootstrapEcotone();
+        $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
         $errorMessage = MessageBuilder::withPayload('error1')
                                 ->setMultipleHeaders([
@@ -70,28 +86,56 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
                                     ErrorContext::EXCEPTION_MESSAGE => 'some',
                                 ])
                                 ->build();
-        $dbalDeadLetter->store($errorMessage);
+        $gateway->store($errorMessage);
 
         $this->assertEquals(
             [ErrorContext::fromHeaders($errorMessage->getHeaders()->headers())],
-            $dbalDeadLetter->list(1, 0)
+            $gateway->list(1, 0)
         );
     }
 
     public function test_deleting_error_message()
     {
-        $dbalDeadLetter = new DbalDeadLetterHandler($this->getConnectionFactory(), DefaultHeaderMapper::createAllHeadersMapping(), InMemoryConversionService::createWithoutConversion(), new RetryRunner(new NativeClock(), new StubLoggingGateway()));
+        $ecotone = $this->bootstrapEcotone();
+        $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
         $message = MessageBuilder::withPayload('error2')->build();
 
-        $this->assertEquals(0, $dbalDeadLetter->count());
+        $this->assertEquals(0, $gateway->count());
 
-        $dbalDeadLetter->store($message);
-        $this->assertEquals(1, $dbalDeadLetter->count());
+        $gateway->store($message);
+        $this->assertEquals(1, $gateway->count());
 
-        $dbalDeadLetter->delete($message->getHeaders()->getMessageId());
+        $gateway->delete($message->getHeaders()->getMessageId());
 
-        $this->assertEquals([], $dbalDeadLetter->list(1, 0));
-        $this->assertEquals(0, $dbalDeadLetter->count());
+        $this->assertEquals([], $gateway->list(1, 0));
+        $this->assertEquals(0, $gateway->count());
+    }
+
+    private function bootstrapEcotone(): FlowTestSupport
+    {
+        $connectionFactory = $this->getConnectionFactory();
+
+        return EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $connectionFactory,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true),
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../../',
+        );
+    }
+
+    private function cleanUpTables(): void
+    {
+        $connection = $this->getConnection();
+        if (self::checkIfTableExists($connection, DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE)) {
+            $connection->executeStatement('DROP TABLE ' . DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE);
+        }
     }
 }

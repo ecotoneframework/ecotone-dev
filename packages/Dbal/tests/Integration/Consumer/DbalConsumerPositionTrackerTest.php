@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Consumer;
 
+use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\Consumer\DbalConsumerPositionTracker;
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Store\Document\DocumentStore;
-use Ecotone\Test\InMemoryConversionService;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
@@ -26,12 +27,19 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
     {
         parent::setUp();
 
-        $this->documentStore = new DbalDocumentStore(
-            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
-            true,
-            InMemoryConversionService::createWithoutConversion()
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true),
+                ])
         );
 
+        $this->documentStore = $ecotoneLite->getGateway(DocumentStore::class);
         $this->tracker = new DbalConsumerPositionTracker($this->documentStore);
     }
 
@@ -109,12 +117,20 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
         // Save with first tracker instance
         $this->tracker->savePosition($consumerId, $position);
 
-        // Create new tracker instance (simulates reconnection)
-        $newDocumentStore = new DbalDocumentStore(
-            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
-            true,
-            InMemoryConversionService::createWithoutConversion()
+        // Create new EcotoneLite instance (simulates reconnection)
+        $newEcotoneLite = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true),
+                ])
         );
+
+        $newDocumentStore = $newEcotoneLite->getGateway(DocumentStore::class);
         $newTracker = new DbalConsumerPositionTracker($newDocumentStore);
 
         // Position should still be there

@@ -10,6 +10,8 @@ use Ecotone\Messaging\Message;
  */
 interface DeadLetterGateway
 {
+    public function store(Message $message): void;
+
     /**
      * @return ErrorContext[]
      */

@@ -81,6 +81,10 @@ class DatabaseSetupManager implements DefinedObject
         $connection = $this->getConnection();
 
         foreach ($this->getManagers($includeInactive) as $manager) {
+            if ($manager->isInitialized($connection)) {
+                continue;
+            }
+
             $manager->createTable($connection);
         }
     }

@@ -39,6 +39,10 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         /** @var DbalContext $context */
         $context = $this->connectionFactory->createContext();
 
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+            return;
+        }
+
         $this->tableManager->createTable($context->getDbalConnection());
         $context->createQueue($this->queueName);
     }

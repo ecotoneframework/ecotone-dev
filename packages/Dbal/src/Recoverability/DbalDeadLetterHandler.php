@@ -44,7 +44,6 @@ class DbalDeadLetterHandler
         private ConversionService $conversionService,
         private RetryRunner $retryRunner,
         private DeadLetterTableManager $tableManager,
-        private bool $autoDeclare = true,
     ) {
     }
 
@@ -207,7 +206,7 @@ class DbalDeadLetterHandler
 
     private function createDataBaseTable(): void
     {
-        if (! $this->autoDeclare) {
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
             return;
         }
 

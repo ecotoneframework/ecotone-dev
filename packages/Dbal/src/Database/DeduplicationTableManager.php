@@ -19,8 +19,9 @@ class DeduplicationTableManager implements DbalTableManager
     public const FEATURE_NAME = 'deduplication';
 
     public function __construct(
-        private string $tableName = DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE,
-        private bool $isActive = true,
+        private string $tableName,
+        private bool $isActive,
+        private bool $shouldAutoInitialize,
     ) {
     }
 
@@ -74,11 +75,16 @@ class DeduplicationTableManager implements DbalTableManager
         return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
     }
 
+    public function shouldBeInitializedAutomatically(): bool
+    {
+        return $this->shouldAutoInitialize;
+    }
+
     public function getDefinition(): Definition
     {
         return new Definition(
             self::class,
-            [$this->tableName, $this->isActive]
+            [$this->tableName, $this->isActive, $this->shouldAutoInitialize]
         );
     }
 

@@ -42,15 +42,13 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     private string $methodName;
     private string $connectionReferenceName;
     private array $parameterConverters;
-    private bool $autoDeclare;
 
-    private function __construct(string $methodName, string $connectionReferenceName, string $inputChannelName, array $parameterConverters, bool $autoDeclare = true)
+    private function __construct(string $methodName, string $connectionReferenceName, string $inputChannelName, array $parameterConverters)
     {
         $this->methodName              = $methodName;
         $this->connectionReferenceName = $connectionReferenceName;
         $this->parameterConverters     = $parameterConverters;
         $this->inputMessageChannelName = $inputChannelName;
-        $this->autoDeclare             = $autoDeclare;
     }
 
     public static function getChannelName(string $referenceName, string $actionChannel): string
@@ -153,7 +151,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName.'.'.($this->autoDeclare ? '1' : '0');
+        $deadLetterHandlerReference = DbalDeadLetterHandler::class.'.'.$this->connectionReferenceName;
         if (! $builder->has($deadLetterHandlerReference)) {
             $deadLetterHandler = new Definition(DbalDeadLetterHandler::class, [
                 new Definition(CachedConnectionFactory::class, [
@@ -164,8 +162,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
                 DefaultHeaderMapper::createAllHeadersMapping(),
                 Reference::to(ConversionService::REFERENCE_NAME),
                 Reference::to(RetryRunner::class),
-                new Definition(DeadLetterTableManager::class),
-                $this->autoDeclare,
+                Reference::to(DeadLetterTableManager::class),
             ]);
 
             $builder->register($deadLetterHandlerReference, $deadLetterHandler);
@@ -194,11 +191,4 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         return $this;
     }
 
-    public function withAutoDeclare(bool $autoDeclare): self
-    {
-        $clone = clone $this;
-        $clone->autoDeclare = $autoDeclare;
-
-        return $clone;
-    }
 }

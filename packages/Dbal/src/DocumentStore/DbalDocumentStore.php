@@ -28,7 +28,6 @@ final class DbalDocumentStore implements DocumentStore
 
     public function __construct(
         private CachedConnectionFactory $cachedConnectionFactory,
-        private bool $autoDeclare,
         private ConversionService $conversionService,
         private DocumentStoreTableManager $tableManager,
         private array $initialized = [],
@@ -195,7 +194,7 @@ final class DbalDocumentStore implements DocumentStore
 
     private function createDataBaseTable(): void
     {
-        if (! $this->autoDeclare) {
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
             return;
         }
 
@@ -212,7 +211,7 @@ final class DbalDocumentStore implements DocumentStore
 
     private function doesTableExists(): bool
     {
-        if (! $this->autoDeclare) {
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
             return true;
         }
         $connection = $this->getConnection();

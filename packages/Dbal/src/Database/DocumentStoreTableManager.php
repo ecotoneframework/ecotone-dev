@@ -18,8 +18,9 @@ final class DocumentStoreTableManager implements DbalTableManager
     public const FEATURE_NAME = 'document_store';
 
     public function __construct(
-        private string $tableName = DbalDocumentStore::ECOTONE_DOCUMENT_STORE,
-        private bool $isActive = true,
+        private string $tableName,
+        private bool $isActive,
+        private bool $shouldAutoInitialize,
     ) {
     }
 
@@ -40,7 +41,12 @@ final class DocumentStoreTableManager implements DbalTableManager
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->tableName, $this->isActive]);
+        return new Definition(self::class, [$this->tableName, $this->isActive, $this->shouldAutoInitialize]);
+    }
+
+    public function shouldBeInitializedAutomatically(): bool
+    {
+        return $this->shouldAutoInitialize;
     }
 
     public function createTable(Connection $connection): void

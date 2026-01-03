@@ -42,7 +42,6 @@ class DeduplicationInterceptor
         private int $deduplicationRemovalBatchSize,
         private LoggingGateway $logger,
         private ExpressionEvaluationService $expressionEvaluationService,
-        private bool $autoDeclare,
         private DeduplicationTableManager $tableManager,
     ) {
         $this->minimumTimeToRemoveMessage = Duration::milliseconds($minimumTimeToRemoveMessageInMilliseconds);
@@ -161,7 +160,7 @@ class DeduplicationInterceptor
 
     private function createDataBaseTable(ConnectionFactory $connectionFactory): void
     {
-        if (! $this->autoDeclare) {
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
             return;
         }
 

@@ -47,15 +47,18 @@ class DbalPublisherModule implements AnnotationModule
         $registeredReferences = [];
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
         $dbalMessageChannels = ExtensionObjectResolver::resolve(DbalBackedMessageChannelBuilder::class, $extensionObjects);
         $dbalPublishers = ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $extensionObjects);
         $hasMessageQueues = ! empty($dbalMessageChannels) || ! empty($dbalPublishers);
+        $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled();
 
         $messagingConfiguration->registerServiceDefinition(
             EnqueueTableManager::class,
             new \Ecotone\Messaging\Config\Container\Definition(EnqueueTableManager::class, [
                 EnqueueTableManager::DEFAULT_TABLE_NAME,
                 $hasMessageQueues,
+                $shouldAutoInitialize,
             ])
         );
 
@@ -125,7 +128,8 @@ class DbalPublisherModule implements AnnotationModule
         return
             $extensionObject instanceof DbalMessagePublisherConfiguration
             || $extensionObject instanceof ServiceConfiguration
-            || $extensionObject instanceof DbalBackedMessageChannelBuilder;
+            || $extensionObject instanceof DbalBackedMessageChannelBuilder
+            || $extensionObject instanceof DbalConfiguration;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

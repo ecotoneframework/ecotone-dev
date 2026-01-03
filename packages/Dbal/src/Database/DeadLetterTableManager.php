@@ -21,8 +21,9 @@ class DeadLetterTableManager implements DbalTableManager
     public const FEATURE_NAME = 'dead_letter';
 
     public function __construct(
-        private string $tableName = DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE,
-        private bool $isActive = true,
+        private string $tableName,
+        private bool $isActive,
+        private bool $shouldAutoInitialize,
     ) {
     }
 
@@ -78,11 +79,16 @@ class DeadLetterTableManager implements DbalTableManager
         return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
     }
 
+    public function shouldBeInitializedAutomatically(): bool
+    {
+        return $this->shouldAutoInitialize;
+    }
+
     public function getDefinition(): Definition
     {
         return new Definition(
             self::class,
-            [$this->tableName, $this->isActive]
+            [$this->tableName, $this->isActive, $this->shouldAutoInitialize]
         );
     }
 

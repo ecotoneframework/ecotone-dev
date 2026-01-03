@@ -19,7 +19,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
+use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -71,7 +71,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 ]))
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
-                    EventStoreChannelAdapter::create(
+                    EventStreamingChannelAdapter::create(
                         streamChannelName: 'event_stream',
                         endpointId: 'event_store_feeder',
                         fromStream: Ticket::class
@@ -135,7 +135,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
-                    EventStoreChannelAdapter::create(
+                    EventStreamingChannelAdapter::create(
                         streamChannelName: 'event_stream',
                         endpointId: 'event_store_feeder',
                         fromStream: Ticket::class
@@ -226,7 +226,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
-                    EventStoreChannelAdapter::create(
+                    EventStreamingChannelAdapter::create(
                         streamChannelName: 'event_stream',
                         endpointId: 'event_store_feeder',
                         fromStream: Ticket::class

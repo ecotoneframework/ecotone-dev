@@ -38,7 +38,7 @@ use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\Config\EcotoneProjectionExecutorBuilder;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
-use Ecotone\Projecting\EventStoreAdapter\EventStoreChannelAdapter;
+use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 
 #[ModuleAnnotation]
 class ProophProjectingModule implements AnnotationModule
@@ -225,7 +225,7 @@ class ProophProjectingModule implements AnnotationModule
         $extensions = [...$this->extensions];
 
         foreach ($serviceExtensions as $extensionObject) {
-            if (! ($extensionObject instanceof EventStoreChannelAdapter)) {
+            if (! ($extensionObject instanceof EventStreamingChannelAdapter)) {
                 continue;
             }
 
@@ -239,10 +239,14 @@ class ProophProjectingModule implements AnnotationModule
         $extensions[] = new DbalTableManagerReference(ProjectionStateTableManager::class);
 
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $serviceExtensions, EventSourcingConfiguration::createWithDefaults());
-        if ($this->projectionNames && !$eventSourcingConfiguration->isInMemory()) {
+        $eventStreamingChannelAdapters = ExtensionObjectResolver::resolve(EventStreamingChannelAdapter::class, $serviceExtensions);
+
+        if (($this->projectionNames || $eventStreamingChannelAdapters) && !$eventSourcingConfiguration->isInMemory()) {
+            $projectionNames = array_unique([...$this->projectionNames, ...array_map(fn(EventStreamingChannelAdapter $adapter) => $adapter->getProjectionName(), $eventStreamingChannelAdapters)]);
+
             /** @var DbalConfiguration $dbalConfiguration */
             $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
-            $extensions[] = new DbalProjectionStateStorageBuilder($this->projectionNames, $dbalConfiguration->isInitializeDatabaseTablesEnabled());
+            $extensions[] = new DbalProjectionStateStorageBuilder($projectionNames, $dbalConfiguration->isInitializeDatabaseTablesEnabled());
         }
 
         return $extensions;

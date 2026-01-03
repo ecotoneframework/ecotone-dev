@@ -15,9 +15,9 @@ use Ecotone\Messaging\Config\Container\Definition;
 /**
  * licence Enterprise
  */
-final class ProjectionsTableManager implements DbalTableManager
+final class LegacyProjectionsTableManager implements DbalTableManager
 {
-    public const FEATURE_NAME = 'projections';
+    public const FEATURE_NAME = 'projections_v1';
 
     public function __construct(
         private string $tableName,

@@ -32,7 +32,6 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     public function __construct(
         private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
         private ProjectionStateTableManager $tableManager,
-        private bool $autoDeclare,
     ) {
     }
 
@@ -188,12 +187,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function createSchema(): void
     {
-        if ($this->isInitialized()) {
-            return;
-        }
-
-        if (! $this->autoDeclare) {
-            $this->markInitialized();
+        if (! $this->tableManager->shouldBeInitializedAutomatically() || $this->isInitialized()) {
             return;
         }
 

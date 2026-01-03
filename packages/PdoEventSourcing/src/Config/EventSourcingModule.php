@@ -4,6 +4,8 @@ namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\AggregateStreamMapping;
 use Ecotone\EventSourcing\AggregateTypeMapping;
 use Ecotone\EventSourcing\Attribute\AggregateType;
@@ -17,7 +19,8 @@ use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionChannelAdapter;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionExecutorBuilder;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
-use Ecotone\EventSourcing\Database\ProjectionsTableManager;
+use Ecotone\EventSourcing\Database\LegacyProjectionsTableManager;
+use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore;
@@ -255,15 +258,32 @@ class EventSourcingModule extends NoExternalConfigurationModule
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
         $messagingConfiguration->registerServiceDefinition(EventSourcingConfiguration::class, DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
+        $messagingConfiguration->registerServiceDefinition(
+            EventStreamTableManager::class,
+            new Definition(EventStreamTableManager::class, [
+                $eventSourcingConfiguration->getEventStreamTableName(),
+                true,
+                $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+            ])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            LegacyProjectionsTableManager::class,
+            new Definition(LegacyProjectionsTableManager::class, [
+                $eventSourcingConfiguration->getProjectionsTable(),
+                $this->projectionSetupConfigurations !== [],
+                $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+            ])
+        );
 
         $messagingConfiguration->registerServiceDefinition(LazyProophEventStore::class, new Definition(LazyProophEventStore::class, [
             new Reference(EventSourcingConfiguration::class),
             new Reference(ProophEventMapper::class),
             new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
-            new Definition(EventStreamTableManager::class, [$eventSourcingConfiguration->getEventStreamTableName()]),
-            new Definition(ProjectionsTableManager::class, [$eventSourcingConfiguration->getProjectionsTable()]),
+            Reference::to(EventStreamTableManager::class),
+            Reference::to(LegacyProjectionsTableManager::class),
         ]));
 
         $messagingConfiguration->registerServiceDefinition(
@@ -305,19 +325,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
             }
         }
 
-        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(
-            EventSourcingConfiguration::class,
-            $serviceExtensions,
-            EventSourcingConfiguration::createWithDefaults()
-        );
-
-        $isActive = ! $eventSourcingConfiguration->isInMemory();
-
         return [
             ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
             new EventSourcingModuleRoutingExtension($pollingProjectionNames),
-            new EventStreamTableManager($eventSourcingConfiguration->getEventStreamTableName(), $isActive),
-            new ProjectionsTableManager($eventSourcingConfiguration->getProjectionsTable(), $isActive),
+            new DbalTableManagerReference(EventStreamTableManager::class),
+            new DbalTableManagerReference(LegacyProjectionsTableManager::class),
         ];
     }
 
@@ -517,8 +529,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventSourcingConfigurationReference,
             new Reference(ProophEventMapper::class),
             new Reference($eventSourcingConfiguration->getConnectionReferenceName(), ContainerImplementation::NULL_ON_INVALID_REFERENCE),
-            new Definition(EventStreamTableManager::class, [$eventSourcingConfiguration->getEventStreamTableName()]),
-            new Definition(ProjectionsTableManager::class, [$eventSourcingConfiguration->getProjectionsTable()]),
+            Reference::to(EventStreamTableManager::class),
+            Reference::to(LegacyProjectionsTableManager::class),
         ]));
 
         $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration, $eventStoreReference)

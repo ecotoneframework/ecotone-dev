@@ -205,19 +205,21 @@ class ProophProjectingModule implements AnnotationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
 
         $messagingConfiguration->registerServiceDefinition(
             ProjectionStateTableManager::class,
             new Definition(ProjectionStateTableManager::class, [
                 ProjectionStateTableManager::DEFAULT_TABLE_NAME,
                 $this->projectionNames !== [],
+                $dbalConfiguration->isAutomaticTableInitializationEnabled(),
             ])
         );
     }
 
     public function canHandle($extensionObject): bool
     {
-        return false;
+        return $extensionObject instanceof DbalConfiguration;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
@@ -244,9 +246,7 @@ class ProophProjectingModule implements AnnotationModule
         if (($this->projectionNames || $eventStreamingChannelAdapters) && !$eventSourcingConfiguration->isInMemory()) {
             $projectionNames = array_unique([...$this->projectionNames, ...array_map(fn(EventStreamingChannelAdapter $adapter) => $adapter->getProjectionName(), $eventStreamingChannelAdapters)]);
 
-            /** @var DbalConfiguration $dbalConfiguration */
-            $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
-            $extensions[] = new DbalProjectionStateStorageBuilder($projectionNames, $dbalConfiguration->isAutomaticTableInitializationEnabled());
+            $extensions[] = new DbalProjectionStateStorageBuilder($projectionNames);
         }
 
         return $extensions;

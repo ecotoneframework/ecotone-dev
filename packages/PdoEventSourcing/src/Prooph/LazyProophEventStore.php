@@ -7,7 +7,7 @@ use Doctrine\DBAL\Driver\PDOConnection;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
-use Ecotone\EventSourcing\Database\ProjectionsTableManager;
+use Ecotone\EventSourcing\Database\LegacyProjectionsTableManager;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\InMemory\StreamIteratorWithPosition;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
@@ -84,11 +84,11 @@ class LazyProophEventStore implements EventStore
     private array $ensuredExistingStreams = [];
 
     public function __construct(
-        private EventSourcingConfiguration $eventSourcingConfiguration,
-        private ProophEventMapper $messageFactory,
-        private ConnectionFactory|null $connectionFactory,
-        private EventStreamTableManager $eventStreamTableManager,
-        private ProjectionsTableManager $projectionsTableManager,
+        private EventSourcingConfiguration    $eventSourcingConfiguration,
+        private ProophEventMapper             $messageFactory,
+        private ConnectionFactory|null        $connectionFactory,
+        private EventStreamTableManager       $eventStreamTableManager,
+        private LegacyProjectionsTableManager $projectionsTableManager,
     ) {
         $this->messageConverter = new FromProophMessageToArrayConverter();
         $this->canBeInitialized = $eventSourcingConfiguration->isInitializedOnStart();

@@ -20,7 +20,6 @@ class DbalProjectionStateStorageBuilder implements ProjectionComponentBuilder
     /** @param string[] $handledProjectionNames */
     public function __construct(
         private array $handledProjectionNames,
-        private bool $autoDeclare,
     ) {
     }
 
@@ -31,7 +30,6 @@ class DbalProjectionStateStorageBuilder implements ProjectionComponentBuilder
             [
                 new Reference(DbalConnectionFactory::class),
                 new Reference(ProjectionStateTableManager::class),
-                $this->autoDeclare,
             ],
         );
     }

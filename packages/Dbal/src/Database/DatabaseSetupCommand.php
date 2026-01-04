@@ -22,17 +22,22 @@ class DatabaseSetupCommand
 
     #[ConsoleCommand('ecotone:migration:database:setup')]
     public function setup(
-        #[ConsoleParameterOption] array $features = [],
-        #[ConsoleParameterOption] bool $initialize = false,
-        #[ConsoleParameterOption] bool $sql = false,
-        #[ConsoleParameterOption] bool $onlyUsed = true,
+        #[ConsoleParameterOption] array $feature = [],
+        #[ConsoleParameterOption] bool|string $initialize = false,
+        #[ConsoleParameterOption] bool|string $sql = false,
+        #[ConsoleParameterOption] bool|string $onlyUsed = true,
     ): ?ConsoleCommandResultSet {
+        // Normalize boolean parameters from CLI strings
+        $initialize = $this->normalizeBoolean($initialize);
+        $sql = $this->normalizeBoolean($sql);
+        $onlyUsed = $this->normalizeBoolean($onlyUsed);
+
         // If specific feature names provided
-        if (count($features) > 0) {
+        if (count($feature) > 0) {
             $rows = [];
 
             if ($sql) {
-                $statements = $this->databaseSetupManager->getCreateSqlStatementsForFeatures($features);
+                $statements = $this->databaseSetupManager->getCreateSqlStatementsForFeatures($feature);
                 return ConsoleCommandResultSet::create(
                     ['SQL Statement'],
                     [[implode("\n", $statements)]]
@@ -40,7 +45,7 @@ class DatabaseSetupCommand
             }
 
             if ($initialize) {
-                foreach ($features as $featureName) {
+                foreach ($feature as $featureName) {
                     $this->databaseSetupManager->initialize($featureName);
                     $rows[] = [$featureName, 'Created'];
                 }
@@ -49,7 +54,7 @@ class DatabaseSetupCommand
 
             $initStatus = $this->databaseSetupManager->getInitializationStatus();
             $usageStatus = $this->databaseSetupManager->getUsageStatus();
-            foreach ($features as $featureName) {
+            foreach ($feature as $featureName) {
                 $isInitialized = $initStatus[$featureName] ?? false;
                 $isUsed = $usageStatus[$featureName] ?? false;
                 $rows[] = [$featureName, $isUsed ? 'Yes' : 'No', $isInitialized ? 'Yes' : 'No'];
@@ -96,5 +101,19 @@ class DatabaseSetupCommand
             ['Feature', 'Used', 'Initialized'],
             $rows
         );
+    }
+
+    /**
+     * Normalize boolean parameter from CLI string to actual boolean.
+     * Handles cases where CLI passes "false" as a string.
+     */
+    private function normalizeBoolean(bool|string $value): bool
+    {
+        if (\is_bool($value)) {
+            return $value;
+        }
+
+        // Handle string values from CLI
+        return $value !== 'false' && $value !== '0' && $value !== '';
     }
 }

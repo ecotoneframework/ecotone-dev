@@ -159,7 +159,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Initialize multiple channels at once
         $result = $runner->execute('ecotone:migration:channel:setup', [
-            'channels' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
+            'channel' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
             'initialize' => true,
         ]);
 
@@ -198,7 +198,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Delete multiple channels at once
         $result = $runner->execute('ecotone:migration:channel:delete', [
-            'channels' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
+            'channel' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
             'force' => true,
         ]);
 
@@ -230,7 +230,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Initialize stream channel
         $result = $runner->execute('ecotone:migration:channel:setup', [
-            'channels' => [self::TEST_STREAM_CHANNEL_NAME],
+            'channel' => [self::TEST_STREAM_CHANNEL_NAME],
             'initialize' => true,
         ]);
 
@@ -248,7 +248,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Delete stream channel
         $result = $runner->execute('ecotone:migration:channel:delete', [
-            'channels' => [self::TEST_STREAM_CHANNEL_NAME],
+            'channel' => [self::TEST_STREAM_CHANNEL_NAME],
             'force' => true,
         ]);
 

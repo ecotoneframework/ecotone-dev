@@ -49,9 +49,9 @@ final class SqsChannelManagerModule extends NoExternalConfigurationModule implem
         // Configure channel builders and register channel managers
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof SqsBackedMessageChannelBuilder) {
-                // Set declareOnStartup based on channel initialization configuration
-                $extensionObject->getInboundChannelAdapter()->withDeclareOnStartup($shouldAutoInitialize);
-                $extensionObject->getOutboundChannelAdapter()->withAutoDeclareOnSend($shouldAutoInitialize);
+                if (!$shouldAutoInitialize) {
+                    $extensionObject->withAutoDeclare(false);
+                }
 
                 $channelName = $extensionObject->getMessageChannelName();
                 $queueName = $channelName; // For SQS, queue name is same as channel name

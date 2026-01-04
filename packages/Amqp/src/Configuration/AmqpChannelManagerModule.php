@@ -51,9 +51,9 @@ final class AmqpChannelManagerModule extends NoExternalConfigurationModule imple
         // Configure channel builders and register channel managers
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof AmqpBackedMessageChannelBuilder) {
-                // Set declareOnStartup based on channel initialization configuration
-                $extensionObject->getInboundChannelAdapter()->withDeclareOnStartup($shouldAutoInitialize);
-                $extensionObject->getOutboundChannelAdapter()->withAutoDeclareOnSend($shouldAutoInitialize);
+                if (!$shouldAutoInitialize) {
+                    $extensionObject->withAutoDeclare($shouldAutoInitialize);
+                }
 
                 $channelName = $extensionObject->getMessageChannelName();
                 $queueName = $extensionObject->getQueueName();
@@ -72,9 +72,9 @@ final class AmqpChannelManagerModule extends NoExternalConfigurationModule imple
                     ])
                 );
             } elseif ($extensionObject instanceof AmqpStreamChannelBuilder) {
-                // Set declareOnStartup based on channel initialization configuration
-                $extensionObject->getInboundChannelAdapter()->withDeclareOnStartup($shouldAutoInitialize);
-                $extensionObject->getOutboundChannelAdapter()->withAutoDeclareOnSend($shouldAutoInitialize);
+                if (!$shouldAutoInitialize) {
+                    $extensionObject->withAutoDeclare($shouldAutoInitialize);
+                }
 
                 $channelName = $extensionObject->getMessageChannelName();
                 $queueName = $extensionObject->queueName;

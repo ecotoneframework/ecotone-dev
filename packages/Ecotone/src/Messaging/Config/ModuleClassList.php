@@ -71,6 +71,7 @@ use Ecotone\Redis\Configuration\RedisMessageConsumerModule;
 use Ecotone\Redis\Configuration\RedisMessagePublisherModule;
 use Ecotone\Sqs\Configuration\SqsMessageConsumerModule;
 use Ecotone\Sqs\Configuration\SqsMessagePublisherModule;
+use Ecotone\Sqs\Configuration\SqsModule;
 use Ecotone\SymfonyBundle\Config\SymfonyConnectionModule;
 
 /**
@@ -155,6 +156,7 @@ class ModuleClassList
     ];
 
     public const SQS_MODULES = [
+        SqsModule::class,
         SqsMessageConsumerModule::class,
         SqsMessagePublisherModule::class,
     ];

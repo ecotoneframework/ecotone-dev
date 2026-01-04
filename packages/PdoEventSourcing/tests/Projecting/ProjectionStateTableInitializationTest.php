@@ -116,7 +116,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
             DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)
         );
 
-        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:drop', ['force' => true]);
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', ['force' => true]);
         // Verify projection state table does not exist
         self::assertFalse($this->projectionStateTableExists());
 

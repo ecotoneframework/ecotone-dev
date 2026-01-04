@@ -102,6 +102,74 @@ class DatabaseSetupManager implements DefinedObject
     }
 
     /**
+     * Initialize specific feature by name.
+     */
+    public function initialize(string $featureName): void
+    {
+        $manager = $this->findManager($featureName);
+        $connection = $this->getConnection();
+
+        if ($manager->isInitialized($connection)) {
+            return;
+        }
+
+        $manager->createTable($connection);
+    }
+
+    /**
+     * Drop specific feature by name.
+     */
+    public function drop(string $featureName): void
+    {
+        $manager = $this->findManager($featureName);
+        $connection = $this->getConnection();
+        $manager->dropTable($connection);
+    }
+
+    /**
+     * Get SQL statements for specific features.
+     *
+     * @param string[] $featureNames
+     * @return string[] SQL statements to create tables for specified features
+     */
+    public function getCreateSqlStatementsForFeatures(array $featureNames): array
+    {
+        $connection = $this->getConnection();
+        $statements = [];
+
+        foreach ($featureNames as $featureName) {
+            $manager = $this->findManager($featureName);
+            $sql = $manager->getCreateTableSql($connection);
+            if (is_array($sql)) {
+                $statements = array_merge($statements, $sql);
+            } else {
+                $statements[] = $sql;
+            }
+        }
+
+        return $statements;
+    }
+
+    /**
+     * Get SQL statements to drop specific features.
+     *
+     * @param string[] $featureNames
+     * @return string[] SQL statements to drop tables for specified features
+     */
+    public function getDropSqlStatementsForFeatures(array $featureNames): array
+    {
+        $connection = $this->getConnection();
+        $statements = [];
+
+        foreach ($featureNames as $featureName) {
+            $manager = $this->findManager($featureName);
+            $statements[] = $manager->getDropTableSql($connection);
+        }
+
+        return $statements;
+    }
+
+    /**
      * Returns initialization status for each table manager.
      *
      * @return array<string, bool> Map of feature name to initialization status
@@ -131,6 +199,17 @@ class DatabaseSetupManager implements DefinedObject
             $this->tableManagers,
             fn (DbalTableManager $manager) => $manager->isActive()
         );
+    }
+
+    private function findManager(string $featureName): DbalTableManager
+    {
+        foreach ($this->tableManagers as $manager) {
+            if ($manager->getFeatureName() === $featureName) {
+                return $manager;
+            }
+        }
+
+        throw new \InvalidArgumentException("Table manager not found for feature: {$featureName}");
     }
 
     private function getConnection(): Connection

@@ -90,7 +90,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         self::assertStringContainsString(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $allSql);
     }
 
-    public function test_database_drop_drops_tables(): void
+    public function test_database_delete_deletes_tables(): void
     {
         $ecotone = $this->bootstrapEcotone();
 
@@ -98,14 +98,14 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
         self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
 
-        // Drop tables
-        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:drop', ['force' => true]);
+        // Delete tables
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', ['force' => true]);
 
         self::assertEquals(['Feature', 'Status'], $result->getColumnHeaders());
         self::assertFalse($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
     }
 
-    public function test_database_drop_shows_warning_without_force(): void
+    public function test_database_delete_shows_warning_without_force(): void
     {
         $ecotone = $this->bootstrapEcotone();
 
@@ -113,8 +113,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
         self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
 
-        // Try to drop without force
-        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:drop', []);
+        // Try to delete without force
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', []);
 
         self::assertEquals(['Feature', 'Warning'], $result->getColumnHeaders());
         // Tables should still exist
@@ -153,6 +153,94 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         // Manually create the table via console command
         $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
 
+        self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+    }
+
+    public function test_database_setup_with_specific_features(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        // Initialize only specific feature
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', [
+            'features' => ['dead_letter'],
+            'initialize' => true,
+        ]);
+
+        self::assertEquals(['Feature', 'Status'], $result->getColumnHeaders());
+        self::assertEquals([['dead_letter', 'Created']], $result->getRows());
+        self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+    }
+
+    public function test_database_setup_shows_status_for_specific_features(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        // First initialize
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', [
+            'features' => ['dead_letter'],
+            'initialize' => true,
+        ]);
+
+        // Check status for specific feature
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', [
+            'features' => ['dead_letter'],
+        ]);
+
+        self::assertEquals(['Feature', 'Initialized'], $result->getColumnHeaders());
+        self::assertEquals([['dead_letter', 'Yes']], $result->getRows());
+    }
+
+    public function test_database_setup_returns_sql_for_specific_features(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', [
+            'features' => ['dead_letter'],
+            'sql' => true,
+        ]);
+
+        self::assertEquals(['SQL Statement'], $result->getColumnHeaders());
+        self::assertCount(1, $result->getRows());
+        $sql = $result->getRows()[0][0];
+        self::assertStringContainsString('CREATE TABLE', $sql);
+        self::assertStringContainsString(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $sql);
+    }
+
+    public function test_database_delete_with_specific_features(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        // First create tables
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
+        self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+
+        // Delete specific feature
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', [
+            'features' => ['dead_letter'],
+            'force' => true,
+        ]);
+
+        self::assertEquals(['Feature', 'Status'], $result->getColumnHeaders());
+        self::assertEquals([['dead_letter', 'Deleted']], $result->getRows());
+        self::assertFalse($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+    }
+
+    public function test_database_delete_shows_warning_for_specific_features_without_force(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        // First create tables
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
+        self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+
+        // Try to delete without force
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', [
+            'features' => ['dead_letter'],
+        ]);
+
+        self::assertEquals(['Feature', 'Warning'], $result->getColumnHeaders());
+        self::assertEquals([['dead_letter', 'Would be deleted (use --force to confirm)']], $result->getRows());
+        // Table should still exist
         self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
     }
 

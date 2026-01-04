@@ -22,10 +22,39 @@ class DatabaseSetupCommand
 
     #[ConsoleCommand('ecotone:migration:database:setup')]
     public function setup(
+        #[ConsoleParameterOption] array $features = [],
         #[ConsoleParameterOption] bool $initialize = false,
         #[ConsoleParameterOption] bool $sql = false,
         #[ConsoleParameterOption] bool $all = false,
     ): ?ConsoleCommandResultSet {
+        // If specific feature names provided
+        if (count($features) > 0) {
+            $rows = [];
+
+            if ($sql) {
+                $statements = $this->databaseSetupManager->getCreateSqlStatementsForFeatures($features);
+                return ConsoleCommandResultSet::create(
+                    ['SQL Statement'],
+                    [[implode("\n", $statements)]]
+                );
+            }
+
+            if ($initialize) {
+                foreach ($features as $featureName) {
+                    $this->databaseSetupManager->initialize($featureName);
+                    $rows[] = [$featureName, 'Created'];
+                }
+                return ConsoleCommandResultSet::create(['Feature', 'Status'], $rows);
+            }
+
+            $status = $this->databaseSetupManager->getInitializationStatus();
+            foreach ($features as $featureName) {
+                $rows[] = [$featureName, $status[$featureName] ?? false ? 'Yes' : 'No'];
+            }
+            return ConsoleCommandResultSet::create(['Feature', 'Initialized'], $rows);
+        }
+
+        // Show all features
         $featureNames = $this->databaseSetupManager->getFeatureNames($all);
 
         if (count($featureNames) === 0) {
@@ -39,7 +68,7 @@ class DatabaseSetupCommand
             $statements = $this->databaseSetupManager->getCreateSqlStatements($all);
             return ConsoleCommandResultSet::create(
                 ['SQL Statement'],
-                array_map(fn (string $statement) => [$statement], $statements)
+                [[implode("\n", $statements)]]
             );
         }
 

@@ -41,7 +41,7 @@ final class ChannelSetupCommandTest extends TestCase
         }
 
         self::assertNotNull($inMemoryChannelRow, 'In-memory channel should be listed');
-        self::assertEquals([self::IN_MEMORY_CHANNEL, 'Not managed by migration'], $inMemoryChannelRow);
+        self::assertEquals([self::IN_MEMORY_CHANNEL, 'Not managed by channel migration'], $inMemoryChannelRow);
     }
 
     public function test_throwing_exception_when_trying_to_setup_non_managed_channel(): void

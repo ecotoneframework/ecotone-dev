@@ -205,4 +205,3 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         }
     }
 }
-

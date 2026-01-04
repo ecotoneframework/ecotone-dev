@@ -8,7 +8,6 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
-use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -103,4 +102,3 @@ class DeduplicationTableManager implements DbalTableManager
         return $table;
     }
 }
-

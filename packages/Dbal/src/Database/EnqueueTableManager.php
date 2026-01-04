@@ -104,4 +104,3 @@ final class EnqueueTableManager implements DbalTableManager
         return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
     }
 }
-

@@ -188,8 +188,8 @@ class LazyProophEventStore implements EventStore, PdoStreamTableNameProvider
         }
 
         $connection = $this->getConnection();
-        $projectionTableExists = !$this->projectionsTableManager->shouldBeInitializedAutomatically() || $this->projectionsTableManager->isInitialized($connection);
-        $eventStreamTableExists = !$this->eventStreamTableManager->shouldBeInitializedAutomatically() || $this->eventStreamTableManager->isInitialized($connection);
+        $projectionTableExists = ! $this->projectionsTableManager->shouldBeInitializedAutomatically() || $this->projectionsTableManager->isInitialized($connection);
+        $eventStreamTableExists = ! $this->eventStreamTableManager->shouldBeInitializedAutomatically() || $this->eventStreamTableManager->isInitialized($connection);
 
         if ($eventStreamTableExists && $projectionTableExists) {
             $this->initializated[$connectionName] = true;

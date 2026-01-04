@@ -9,8 +9,9 @@ use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\Database\DbalTableManager;
-use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Messaging\Config\Container\Definition;
+
+use function is_array;
 
 /**
  * licence Enterprise
@@ -72,7 +73,7 @@ final class EventStreamTableManager implements DbalTableManager
         }
 
         $sql = $this->getCreateTableSql($connection);
-        if (\is_array($sql)) {
+        if (is_array($sql)) {
             foreach ($sql as $statement) {
                 $connection->executeStatement($statement);
             }
@@ -117,16 +118,16 @@ final class EventStreamTableManager implements DbalTableManager
 
         return [
             <<<SQL
-            CREATE TABLE IF NOT EXISTS {$tableName} (
-              no BIGSERIAL,
-              real_stream_name VARCHAR(150) NOT NULL,
-              stream_name CHAR(41) NOT NULL,
-              metadata JSONB,
-              category VARCHAR(150),
-              PRIMARY KEY (no),
-              UNIQUE (stream_name)
-            )
-            SQL,
+                CREATE TABLE IF NOT EXISTS {$tableName} (
+                  no BIGSERIAL,
+                  real_stream_name VARCHAR(150) NOT NULL,
+                  stream_name CHAR(41) NOT NULL,
+                  metadata JSONB,
+                  category VARCHAR(150),
+                  PRIMARY KEY (no),
+                  UNIQUE (stream_name)
+                )
+                SQL,
             "CREATE INDEX IF NOT EXISTS ix_{$tableName}_category ON {$tableName} (category)",
         ];
     }
@@ -168,4 +169,3 @@ final class EventStreamTableManager implements DbalTableManager
             SQL;
     }
 }
-

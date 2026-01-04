@@ -159,4 +159,3 @@ class DatabaseSetupManager implements DefinedObject
         );
     }
 }
-

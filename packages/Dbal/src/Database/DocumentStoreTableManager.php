@@ -7,7 +7,6 @@ namespace Ecotone\Dbal\Database;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
-use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -93,4 +92,3 @@ final class DocumentStoreTableManager implements DbalTableManager
         return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
     }
 }
-

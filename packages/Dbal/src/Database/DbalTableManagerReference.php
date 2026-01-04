@@ -23,4 +23,3 @@ final class DbalTableManagerReference
         return $this->referenceName;
     }
 }
-

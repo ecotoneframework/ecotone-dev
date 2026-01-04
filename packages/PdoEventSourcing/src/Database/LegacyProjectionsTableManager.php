@@ -9,8 +9,9 @@ use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\Database\DbalTableManager;
-use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Messaging\Config\Container\Definition;
+
+use function is_array;
 
 /**
  * licence Enterprise
@@ -72,7 +73,7 @@ final class LegacyProjectionsTableManager implements DbalTableManager
         }
 
         $sql = $this->getCreateTableSql($connection);
-        if (\is_array($sql)) {
+        if (is_array($sql)) {
             foreach ($sql as $statement) {
                 $connection->executeStatement($statement);
             }
@@ -167,4 +168,3 @@ final class LegacyProjectionsTableManager implements DbalTableManager
             SQL;
     }
 }
-

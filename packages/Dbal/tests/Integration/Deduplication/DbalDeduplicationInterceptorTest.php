@@ -25,7 +25,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 {
     public function test_not_deduplicating_for_different_endpoints()
     {
-        $handler = new class {
+        $handler = new class () {
             private int $called = 0;
 
             #[Deduplicated]
@@ -66,7 +66,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
     public function test_not_handling_same_message_twice()
     {
-        $handler = new class {
+        $handler = new class () {
             private int $called = 0;
 
             #[Deduplicated]
@@ -100,7 +100,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_header_expression()
     {
-        $handler = new class {
+        $handler = new class () {
             private int $called = 0;
 
             #[Deduplicated(expression: "headers['orderId']")]
@@ -139,7 +139,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_payload_expression()
     {
-        $handler = new class {
+        $handler = new class () {
             private int $called = 0;
 
             #[Deduplicated(expression: 'payload')]
@@ -178,7 +178,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_complex_expression()
     {
-        $handler = new class {
+        $handler = new class () {
             private int $called = 0;
 
             #[Deduplicated(expression: "headers['customerId'] ~ '_' ~ payload")]
@@ -217,7 +217,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_tracking_name_isolation()
     {
-        $handler = new class {
+        $handler = new class () {
             private int $trackingOneCalled = 0;
             private int $trackingTwoCalled = 0;
 
@@ -273,7 +273,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_same_tracking_name_and_different_endpoint_id()
     {
-        $handler = new class {
+        $handler = new class () {
             private int $called = 0;
 
             #[Deduplicated(expression: "headers['orderId']", trackingName: 'custom_tracking')]

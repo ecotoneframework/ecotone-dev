@@ -23,7 +23,6 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
@@ -218,4 +217,3 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         }
     }
 }
-

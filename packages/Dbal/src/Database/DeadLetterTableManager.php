@@ -8,7 +8,6 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -106,4 +105,3 @@ class DeadLetterTableManager implements DbalTableManager
         return $table;
     }
 }
-

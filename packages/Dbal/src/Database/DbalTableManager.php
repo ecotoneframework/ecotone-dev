@@ -64,4 +64,3 @@ interface DbalTableManager extends DefinedObject
      */
     public function shouldBeInitializedAutomatically(): bool;
 }
-

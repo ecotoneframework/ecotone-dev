@@ -24,13 +24,14 @@ use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Psr\Clock\ClockInterface;
+
+use function sha1;
+
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
-
-use function sha1;
 
 /**
  * @internal
@@ -52,7 +53,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         self::$clock = new StubUTCClock();
 
         // Create a stub table name provider
-        self::$tableNameProvider = new class implements PdoStreamTableNameProvider {
+        self::$tableNameProvider = new class () implements PdoStreamTableNameProvider {
             public function generateTableNameForStream(string $streamName): string
             {
                 return '_' . sha1($streamName);

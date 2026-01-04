@@ -127,4 +127,3 @@ class DatabaseSetupModule implements AnnotationModule
             ->registerConsoleCommand($oneTimeCommandConfiguration);
     }
 }
-

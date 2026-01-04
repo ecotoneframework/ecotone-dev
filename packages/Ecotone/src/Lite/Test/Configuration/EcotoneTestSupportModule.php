@@ -43,7 +43,6 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 use Ecotone\Projecting\InMemory\InMemoryEventStoreStreamSourceBuilder;
-use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorageBuilder;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 

@@ -11,11 +11,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
-use Ecotone\Projecting\NoOpTransaction;
-use Ecotone\Projecting\ProjectionInitializationStatus;
-use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
-use Ecotone\Projecting\Transaction;
 
 class InMemoryProjectionStateStorageBuilder implements ProjectionComponentBuilder
 {

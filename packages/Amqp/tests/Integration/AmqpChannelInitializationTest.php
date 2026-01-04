@@ -159,8 +159,13 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Initialize multiple channels at once
         $result = $runner->execute('ecotone:migration:channel:setup', [
+<<<<<<< Updated upstream
             'channels' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
             'initialize' => true,
+=======
+            'channel' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
+            'initialize' => true
+>>>>>>> Stashed changes
         ]);
 
         self::assertNotNull($result);
@@ -198,8 +203,13 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Delete multiple channels at once
         $result = $runner->execute('ecotone:migration:channel:delete', [
+<<<<<<< Updated upstream
             'channels' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
             'force' => true,
+=======
+            'channel' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
+            'force' => true
+>>>>>>> Stashed changes
         ]);
 
         self::assertNotNull($result);
@@ -230,8 +240,13 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Initialize stream channel
         $result = $runner->execute('ecotone:migration:channel:setup', [
+<<<<<<< Updated upstream
             'channels' => [self::TEST_STREAM_CHANNEL_NAME],
             'initialize' => true,
+=======
+            'channel' => [self::TEST_STREAM_CHANNEL_NAME],
+            'initialize' => true
+>>>>>>> Stashed changes
         ]);
 
         self::assertNotNull($result);
@@ -248,8 +263,13 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
 
         // Delete stream channel
         $result = $runner->execute('ecotone:migration:channel:delete', [
+<<<<<<< Updated upstream
             'channels' => [self::TEST_STREAM_CHANNEL_NAME],
             'force' => true,
+=======
+            'channel' => [self::TEST_STREAM_CHANNEL_NAME],
+            'force' => true
+>>>>>>> Stashed changes
         ]);
 
         self::assertNotNull($result);

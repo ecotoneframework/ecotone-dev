@@ -24,21 +24,29 @@ class ChannelDeleteCommand
 
     #[ConsoleCommand('ecotone:migration:channel:delete')]
     public function delete(
-        #[ConsoleParameterOption] array $channels = [],
+        #[ConsoleParameterOption] array $channel = [],
         #[ConsoleParameterOption] bool $force = false,
     ): ?ConsoleCommandResultSet {
         // If specific channel names provided
+<<<<<<< Updated upstream
         if (count($channels) > 0) {
             $rows = [];
 
             if (! $force) {
                 foreach ($channels as $channelName) {
+=======
+        if (\count($channel) > 0) {
+            $rows = [];
+
+            if (!$force) {
+                foreach ($channel as $channelName) {
+>>>>>>> Stashed changes
                     $rows[] = [$channelName, 'Would be deleted (use --force to confirm)'];
                 }
                 return ConsoleCommandResultSet::create(['Channel', 'Warning'], $rows);
             }
 
-            foreach ($channels as $channelName) {
+            foreach ($channel as $channelName) {
                 $this->channelSetupManager->delete($channelName);
                 $rows[] = [$channelName, 'Deleted'];
             }

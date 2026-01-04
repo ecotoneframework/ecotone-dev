@@ -164,7 +164,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         // Initialize only specific feature
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', [
-            'features' => ['dead_letter'],
+            'feature' => ['dead_letter'],
             'initialize' => true,
         ]);
 
@@ -179,13 +179,13 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         // First initialize
         $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', [
-            'features' => ['dead_letter'],
+            'feature' => ['dead_letter'],
             'initialize' => true,
         ]);
 
         // Check status for specific feature
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', [
-            'features' => ['dead_letter'],
+            'feature' => ['dead_letter'],
         ]);
 
         self::assertEquals(['Feature', 'Used', 'Initialized'], $result->getColumnHeaders());
@@ -197,7 +197,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', [
-            'features' => ['dead_letter'],
+            'feature' => ['dead_letter'],
             'sql' => true,
         ]);
 
@@ -218,7 +218,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         // Delete specific feature
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', [
-            'features' => ['dead_letter'],
+            'feature' => ['dead_letter'],
             'force' => true,
         ]);
 
@@ -237,7 +237,7 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         // Try to delete without force
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', [
-            'features' => ['dead_letter'],
+            'feature' => ['dead_letter'],
         ]);
 
         self::assertEquals(['Feature', 'Warning'], $result->getColumnHeaders());

@@ -22,22 +22,27 @@ class DatabaseDeleteCommand
 
     #[ConsoleCommand('ecotone:migration:database:delete')]
     public function delete(
-        #[ConsoleParameterOption] array $features = [],
+        #[ConsoleParameterOption] array $feature = [],
         #[ConsoleParameterOption] bool $force = false,
         #[ConsoleParameterOption] bool $onlyUsed = true,
     ): ?ConsoleCommandResultSet {
         // If specific feature names provided
-        if (\count($features) > 0) {
+        if (\count($feature) > 0) {
             $rows = [];
 
+<<<<<<< Updated upstream
             if (! $force) {
                 foreach ($features as $featureName) {
+=======
+            if (!$force) {
+                foreach ($feature as $featureName) {
+>>>>>>> Stashed changes
                     $rows[] = [$featureName, 'Would be deleted (use --force to confirm)'];
                 }
                 return ConsoleCommandResultSet::create(['Feature', 'Warning'], $rows);
             }
 
-            foreach ($features as $featureName) {
+            foreach ($feature as $featureName) {
                 $this->databaseSetupManager->drop($featureName);
                 $rows[] = [$featureName, 'Deleted'];
             }

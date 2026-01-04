@@ -54,7 +54,7 @@ final class ChannelSetupCommandTest extends TestCase
         $this->expectExceptionMessage("Channel 'in_memory_test_channel' is not managed by the migration system");
 
         $runner->execute('ecotone:migration:channel:setup', [
-            'channels' => [self::IN_MEMORY_CHANNEL],
+            'channel' => [self::IN_MEMORY_CHANNEL],
             'initialize' => true,
         ]);
     }
@@ -69,7 +69,7 @@ final class ChannelSetupCommandTest extends TestCase
         $this->expectExceptionMessage("Channel 'in_memory_test_channel' is not managed by the migration system");
 
         $runner->execute('ecotone:migration:channel:delete', [
-            'channels' => [self::IN_MEMORY_CHANNEL],
+            'channel' => [self::IN_MEMORY_CHANNEL],
             'force' => true,
         ]);
     }

@@ -22,17 +22,17 @@ class DatabaseSetupCommand
 
     #[ConsoleCommand('ecotone:migration:database:setup')]
     public function setup(
-        #[ConsoleParameterOption] array $features = [],
+        #[ConsoleParameterOption] array $feature = [],
         #[ConsoleParameterOption] bool $initialize = false,
         #[ConsoleParameterOption] bool $sql = false,
         #[ConsoleParameterOption] bool $onlyUsed = true,
     ): ?ConsoleCommandResultSet {
         // If specific feature names provided
-        if (count($features) > 0) {
+        if (count($feature) > 0) {
             $rows = [];
 
             if ($sql) {
-                $statements = $this->databaseSetupManager->getCreateSqlStatementsForFeatures($features);
+                $statements = $this->databaseSetupManager->getCreateSqlStatementsForFeatures($feature);
                 return ConsoleCommandResultSet::create(
                     ['SQL Statement'],
                     [[implode("\n", $statements)]]
@@ -40,7 +40,7 @@ class DatabaseSetupCommand
             }
 
             if ($initialize) {
-                foreach ($features as $featureName) {
+                foreach ($feature as $featureName) {
                     $this->databaseSetupManager->initialize($featureName);
                     $rows[] = [$featureName, 'Created'];
                 }
@@ -49,7 +49,7 @@ class DatabaseSetupCommand
 
             $initStatus = $this->databaseSetupManager->getInitializationStatus();
             $usageStatus = $this->databaseSetupManager->getUsageStatus();
-            foreach ($features as $featureName) {
+            foreach ($feature as $featureName) {
                 $isInitialized = $initStatus[$featureName] ?? false;
                 $isUsed = $usageStatus[$featureName] ?? false;
                 $rows[] = [$featureName, $isUsed ? 'Yes' : 'No', $isInitialized ? 'Yes' : 'No'];

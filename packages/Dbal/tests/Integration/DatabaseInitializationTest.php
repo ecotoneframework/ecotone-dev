@@ -39,13 +39,14 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
 
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', []);
 
-        self::assertEquals(['Feature', 'Initialized'], $result->getColumnHeaders());
+        self::assertEquals(['Feature', 'Used', 'Initialized'], $result->getColumnHeaders());
         $featureNames = array_column($result->getRows(), 0);
         self::assertContains('dead_letter', $featureNames);
 
-        // Verify dead_letter shows as not initialized
+        // Verify dead_letter shows as used and not initialized
         $deadLetterRow = $this->findRowByFeature($result, 'dead_letter');
-        self::assertEquals('No', $deadLetterRow[1]);
+        self::assertEquals('Yes', $deadLetterRow[1]); // Used
+        self::assertEquals('No', $deadLetterRow[2]); // Initialized
     }
 
     public function test_database_setup_shows_initialized_status_after_initialization(): void
@@ -59,7 +60,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', []);
 
         $deadLetterRow = $this->findRowByFeature($result, 'dead_letter');
-        self::assertEquals('Yes', $deadLetterRow[1]);
+        self::assertEquals('Yes', $deadLetterRow[1]); // Used
+        self::assertEquals('Yes', $deadLetterRow[2]); // Initialized
     }
 
     public function test_database_setup_initializes_tables(): void
@@ -186,8 +188,8 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
             'features' => ['dead_letter'],
         ]);
 
-        self::assertEquals(['Feature', 'Initialized'], $result->getColumnHeaders());
-        self::assertEquals([['dead_letter', 'Yes']], $result->getRows());
+        self::assertEquals(['Feature', 'Used', 'Initialized'], $result->getColumnHeaders());
+        self::assertEquals([['dead_letter', 'Yes', 'Yes']], $result->getRows());
     }
 
     public function test_database_setup_returns_sql_for_specific_features(): void

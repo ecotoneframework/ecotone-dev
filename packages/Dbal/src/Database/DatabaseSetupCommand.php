@@ -25,7 +25,7 @@ class DatabaseSetupCommand
         #[ConsoleParameterOption] array $features = [],
         #[ConsoleParameterOption] bool $initialize = false,
         #[ConsoleParameterOption] bool $sql = false,
-        #[ConsoleParameterOption] bool $all = false,
+        #[ConsoleParameterOption] bool $unused = false,
     ): ?ConsoleCommandResultSet {
         // If specific feature names provided
         if (count($features) > 0) {
@@ -47,15 +47,18 @@ class DatabaseSetupCommand
                 return ConsoleCommandResultSet::create(['Feature', 'Status'], $rows);
             }
 
-            $status = $this->databaseSetupManager->getInitializationStatus();
+            $initStatus = $this->databaseSetupManager->getInitializationStatus();
+            $usageStatus = $this->databaseSetupManager->getUsageStatus();
             foreach ($features as $featureName) {
-                $rows[] = [$featureName, $status[$featureName] ?? false ? 'Yes' : 'No'];
+                $isInitialized = $initStatus[$featureName] ?? false;
+                $isUsed = $usageStatus[$featureName] ?? false;
+                $rows[] = [$featureName, $isUsed ? 'Yes' : 'No', $isInitialized ? 'Yes' : 'No'];
             }
-            return ConsoleCommandResultSet::create(['Feature', 'Initialized'], $rows);
+            return ConsoleCommandResultSet::create(['Feature', 'Used', 'Initialized'], $rows);
         }
 
         // Show all features
-        $featureNames = $this->databaseSetupManager->getFeatureNames($all);
+        $featureNames = $this->databaseSetupManager->getFeatureNames($unused);
 
         if (count($featureNames) === 0) {
             return ConsoleCommandResultSet::create(
@@ -65,7 +68,7 @@ class DatabaseSetupCommand
         }
 
         if ($sql) {
-            $statements = $this->databaseSetupManager->getCreateSqlStatements($all);
+            $statements = $this->databaseSetupManager->getCreateSqlStatements($unused);
             return ConsoleCommandResultSet::create(
                 ['SQL Statement'],
                 [[implode("\n", $statements)]]
@@ -73,22 +76,24 @@ class DatabaseSetupCommand
         }
 
         if ($initialize) {
-            $this->databaseSetupManager->initializeAll($all);
+            $this->databaseSetupManager->initializeAll($unused);
             return ConsoleCommandResultSet::create(
                 ['Feature', 'Status'],
                 array_map(fn (string $feature) => [$feature, 'Created'], $featureNames)
             );
         }
 
-        $initializationStatus = $this->databaseSetupManager->getInitializationStatus($all);
+        $initializationStatus = $this->databaseSetupManager->getInitializationStatus($unused);
+        $usageStatus = $this->databaseSetupManager->getUsageStatus();
         $rows = [];
         foreach ($featureNames as $featureName) {
             $isInitialized = $initializationStatus[$featureName] ?? false;
-            $rows[] = [$featureName, $isInitialized ? 'Yes' : 'No'];
+            $isUsed = $usageStatus[$featureName] ?? false;
+            $rows[] = [$featureName, $isUsed ? 'Yes' : 'No', $isInitialized ? 'Yes' : 'No'];
         }
 
         return ConsoleCommandResultSet::create(
-            ['Feature', 'Initialized'],
+            ['Feature', 'Used', 'Initialized'],
             $rows
         );
     }

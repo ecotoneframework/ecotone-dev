@@ -23,8 +23,11 @@ class ChannelSetupCommand
     #[ConsoleCommand('ecotone:migration:channel:setup')]
     public function setup(
         #[ConsoleParameterOption] array $channel = [],
-        #[ConsoleParameterOption] bool $initialize = false,
+        #[ConsoleParameterOption] bool|string $initialize = false,
     ): ?ConsoleCommandResultSet {
+        // Normalize boolean parameters from CLI strings
+        $initialize = $this->normalizeBoolean($initialize);
+
         // If specific channel names provided
         if (count($channel) > 0) {
             $rows = [];
@@ -72,6 +75,20 @@ class ChannelSetupCommand
         }
 
         return ConsoleCommandResultSet::create(['Channel', 'Initialized'], $rows);
+    }
+
+    /**
+     * Normalize boolean parameter from CLI string to actual boolean.
+     * Handles cases where CLI passes "false" as a string.
+     */
+    private function normalizeBoolean(bool|string $value): bool
+    {
+        if (\is_bool($value)) {
+            return $value;
+        }
+
+        // Handle string values from CLI
+        return $value !== 'false' && $value !== '0' && $value !== '';
     }
 
     /**

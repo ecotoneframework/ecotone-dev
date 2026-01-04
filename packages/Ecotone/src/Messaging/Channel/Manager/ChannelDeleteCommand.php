@@ -25,22 +25,17 @@ class ChannelDeleteCommand
     #[ConsoleCommand('ecotone:migration:channel:delete')]
     public function delete(
         #[ConsoleParameterOption] array $channel = [],
-        #[ConsoleParameterOption] bool $force = false,
+        #[ConsoleParameterOption] bool|string $force = false,
     ): ?ConsoleCommandResultSet {
-        // If specific channel names provided
-<<<<<<< Updated upstream
-        if (count($channels) > 0) {
-            $rows = [];
+        // Normalize boolean parameters from CLI strings
+        $force = $this->normalizeBoolean($force);
 
-            if (! $force) {
-                foreach ($channels as $channelName) {
-=======
+        // If specific channel names provided
         if (\count($channel) > 0) {
             $rows = [];
 
             if (!$force) {
                 foreach ($channel as $channelName) {
->>>>>>> Stashed changes
                     $rows[] = [$channelName, 'Would be deleted (use --force to confirm)'];
                 }
                 return ConsoleCommandResultSet::create(['Channel', 'Warning'], $rows);
@@ -63,7 +58,7 @@ class ChannelDeleteCommand
             );
         }
 
-        if (! $force) {
+        if (!$force) {
             return ConsoleCommandResultSet::create(
                 ['Channel', 'Warning'],
                 array_map(fn (string $channel) => [$channel, 'Would be deleted (use --force to confirm)'], $channelNames)
@@ -75,5 +70,19 @@ class ChannelDeleteCommand
             ['Channel', 'Status'],
             array_map(fn (string $channel) => [$channel, 'Deleted'], $channelNames)
         );
+    }
+
+    /**
+     * Normalize boolean parameter from CLI string to actual boolean.
+     * Handles cases where CLI passes "false" as a string.
+     */
+    private function normalizeBoolean(bool|string $value): bool
+    {
+        if (\is_bool($value)) {
+            return $value;
+        }
+
+        // Handle string values from CLI
+        return $value !== 'false' && $value !== '0' && $value !== '';
     }
 }

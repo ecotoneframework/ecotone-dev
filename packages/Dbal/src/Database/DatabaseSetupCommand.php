@@ -23,10 +23,15 @@ class DatabaseSetupCommand
     #[ConsoleCommand('ecotone:migration:database:setup')]
     public function setup(
         #[ConsoleParameterOption] array $feature = [],
-        #[ConsoleParameterOption] bool $initialize = false,
-        #[ConsoleParameterOption] bool $sql = false,
-        #[ConsoleParameterOption] bool $onlyUsed = true,
+        #[ConsoleParameterOption] bool|string $initialize = false,
+        #[ConsoleParameterOption] bool|string $sql = false,
+        #[ConsoleParameterOption] bool|string $onlyUsed = true,
     ): ?ConsoleCommandResultSet {
+        // Normalize boolean parameters from CLI strings
+        $initialize = $this->normalizeBoolean($initialize);
+        $sql = $this->normalizeBoolean($sql);
+        $onlyUsed = $this->normalizeBoolean($onlyUsed);
+
         // If specific feature names provided
         if (count($feature) > 0) {
             $rows = [];
@@ -96,5 +101,19 @@ class DatabaseSetupCommand
             ['Feature', 'Used', 'Initialized'],
             $rows
         );
+    }
+
+    /**
+     * Normalize boolean parameter from CLI string to actual boolean.
+     * Handles cases where CLI passes "false" as a string.
+     */
+    private function normalizeBoolean(bool|string $value): bool
+    {
+        if (\is_bool($value)) {
+            return $value;
+        }
+
+        // Handle string values from CLI
+        return $value !== 'false' && $value !== '0' && $value !== '';
     }
 }

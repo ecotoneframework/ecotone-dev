@@ -294,4 +294,43 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
             $connection->executeStatement('DROP TABLE ' . DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE);
         }
     }
+
+    public function test_database_setup_respects_string_false_for_initialize(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        // Pass "false" as a string for initialize parameter
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => 'false']);
+
+        // Should show status, not initialize
+        self::assertEquals(['Feature', 'Used', 'Initialized'], $result->getColumnHeaders());
+        self::assertFalse($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+    }
+
+    public function test_database_setup_respects_string_false_for_sql(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        // Pass "false" as a string for sql parameter
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['sql' => 'false']);
+
+        // Should show status, not SQL
+        self::assertEquals(['Feature', 'Used', 'Initialized'], $result->getColumnHeaders());
+    }
+
+    public function test_database_delete_respects_string_false_for_force(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        // First create tables
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
+        self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+
+        // Pass "false" as a string for force parameter
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:delete', ['force' => 'false']);
+
+        // Should show warning, not delete
+        self::assertEquals(['Feature', 'Warning'], $result->getColumnHeaders());
+        self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
+    }
 }

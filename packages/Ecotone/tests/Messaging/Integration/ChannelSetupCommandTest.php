@@ -74,6 +74,34 @@ final class ChannelSetupCommandTest extends TestCase
         ]);
     }
 
+    public function test_channel_setup_respects_string_false_for_initialize(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        $runner = $ecotone->getGateway(ConsoleCommandRunner::class);
+
+        // Pass "false" as a string for initialize parameter
+        $result = $runner->execute('ecotone:migration:channel:setup', ['initialize' => 'false']);
+
+        // Should show status, not initialize
+        self::assertNotNull($result);
+        self::assertEquals(['Channel', 'Initialized'], $result->getColumnHeaders());
+    }
+
+    public function test_channel_delete_respects_string_false_for_force(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        $runner = $ecotone->getGateway(ConsoleCommandRunner::class);
+
+        // Pass "false" as a string for force parameter
+        $result = $runner->execute('ecotone:migration:channel:delete', ['force' => 'false']);
+
+        // Should show warning, not delete
+        self::assertNotNull($result);
+        self::assertEquals(['Channel', 'Warning'], $result->getColumnHeaders());
+    }
+
     private function bootstrapEcotone(): \Ecotone\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(

@@ -23,20 +23,19 @@ class DatabaseDeleteCommand
     #[ConsoleCommand('ecotone:migration:database:delete')]
     public function delete(
         #[ConsoleParameterOption] array $feature = [],
-        #[ConsoleParameterOption] bool $force = false,
-        #[ConsoleParameterOption] bool $onlyUsed = true,
+        #[ConsoleParameterOption] bool|string $force = false,
+        #[ConsoleParameterOption] bool|string $onlyUsed = true,
     ): ?ConsoleCommandResultSet {
+        // Normalize boolean parameters from CLI strings
+        $force = $this->normalizeBoolean($force);
+        $onlyUsed = $this->normalizeBoolean($onlyUsed);
+
         // If specific feature names provided
         if (\count($feature) > 0) {
             $rows = [];
 
-<<<<<<< Updated upstream
-            if (! $force) {
-                foreach ($features as $featureName) {
-=======
             if (!$force) {
                 foreach ($feature as $featureName) {
->>>>>>> Stashed changes
                     $rows[] = [$featureName, 'Would be deleted (use --force to confirm)'];
                 }
                 return ConsoleCommandResultSet::create(['Feature', 'Warning'], $rows);
@@ -59,7 +58,7 @@ class DatabaseDeleteCommand
             );
         }
 
-        if (! $force) {
+        if (!$force) {
             return ConsoleCommandResultSet::create(
                 ['Feature', 'Warning'],
                 array_map(fn (string $feature) => [$feature, 'Would be deleted (use --force to confirm)'], $featureNames)
@@ -71,5 +70,19 @@ class DatabaseDeleteCommand
             ['Feature', 'Status'],
             array_map(fn (string $feature) => [$feature, 'Deleted'], $featureNames)
         );
+    }
+
+    /**
+     * Normalize boolean parameter from CLI string to actual boolean.
+     * Handles cases where CLI passes "false" as a string.
+     */
+    private function normalizeBoolean(bool|string $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        // Handle string values from CLI
+        return $value !== 'false' && $value !== '0' && $value !== '';
     }
 }

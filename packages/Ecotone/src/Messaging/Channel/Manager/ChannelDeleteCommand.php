@@ -22,29 +22,31 @@ class ChannelDeleteCommand
 
     #[ConsoleCommand('ecotone:migration:channel:delete')]
     public function delete(
-        ?string $channelName = null,
+        #[ConsoleParameterOption] array $channels = [],
         #[ConsoleParameterOption] bool $force = false,
     ): ?ConsoleCommandResultSet {
-        // If specific channel name provided
-        if ($channelName !== null) {
+        // If specific channel names provided
+        if (\count($channels) > 0) {
+            $rows = [];
+
             if (!$force) {
-                return ConsoleCommandResultSet::create(
-                    ['Channel', 'Warning'],
-                    [[$channelName, 'Would be deleted (use --force to confirm)']]
-                );
+                foreach ($channels as $channelName) {
+                    $rows[] = [$channelName, 'Would be deleted (use --force to confirm)'];
+                }
+                return ConsoleCommandResultSet::create(['Channel', 'Warning'], $rows);
             }
 
-            $this->channelSetupManager->delete($channelName);
-            return ConsoleCommandResultSet::create(
-                ['Channel', 'Status'],
-                [[$channelName, 'Deleted']]
-            );
+            foreach ($channels as $channelName) {
+                $this->channelSetupManager->delete($channelName);
+                $rows[] = [$channelName, 'Deleted'];
+            }
+            return ConsoleCommandResultSet::create(['Channel', 'Status'], $rows);
         }
 
         // Show all channels
         $channelNames = $this->channelSetupManager->getChannelNames();
 
-        if (count($channelNames) === 0) {
+        if (\count($channelNames) === 0) {
             return ConsoleCommandResultSet::create(
                 ['Status'],
                 [['No message channels registered for deletion.']]

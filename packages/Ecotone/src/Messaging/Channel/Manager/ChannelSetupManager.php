@@ -40,10 +40,6 @@ class ChannelSetupManager implements DefinedObject
     public function initializeAll(): void
     {
         foreach ($this->channelManagers as $manager) {
-            if ($manager->isInitialized()) {
-                continue;
-            }
-
             $manager->initialize();
         }
     }

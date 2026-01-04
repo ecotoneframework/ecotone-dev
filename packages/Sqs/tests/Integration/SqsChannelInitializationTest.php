@@ -20,6 +20,8 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
 {
 
     private const TEST_CHANNEL_NAME = 'test_channel_init';
+    private const TEST_CHANNEL_NAME_2 = 'test_channel_init_2';
+    private const TEST_CHANNEL_NAME_3 = 'test_channel_init_3';
 
     public function test_sending_fails_when_auto_initialization_disabled_and_channel_not_setup(): void
     {
@@ -113,7 +115,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
     public function test_channel_status_command_shows_initialization_state(): void
     {
         $this->cleanUpSqs();
-        
+
         $ecotone = $this->bootstrapEcotone(
             ChannelInitializationConfiguration::createWithDefaults()
                 ->withAutomaticChannelInitialization(false)
@@ -139,6 +141,73 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         self::assertEquals([self::TEST_CHANNEL_NAME, 'Yes'], $rows[0]);
     }
 
+    public function test_initialize_multiple_channels_at_once(): void
+    {
+        $this->cleanUpSqs();
+
+        $ecotone = $this->bootstrapEcotoneWithMultipleChannels(
+            ChannelInitializationConfiguration::createWithDefaults()
+                ->withAutomaticChannelInitialization(false)
+        );
+
+        $runner = $ecotone->getGateway(ConsoleCommandRunner::class);
+
+        // Initialize multiple channels at once
+        $result = $runner->execute('ecotone:migration:channel:setup', [
+            'channels' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
+            'initialize' => true
+        ]);
+
+        self::assertNotNull($result);
+        $rows = $result->getRows();
+        self::assertCount(2, $rows);
+        self::assertEquals([self::TEST_CHANNEL_NAME_2, 'Initialized'], $rows[0]);
+        self::assertEquals([self::TEST_CHANNEL_NAME_3, 'Initialized'], $rows[1]);
+
+        // Verify we can send and receive on both channels
+        $ecotone->sendDirectToChannel(self::TEST_CHANNEL_NAME_2, 'message 2');
+        $ecotone->sendDirectToChannel(self::TEST_CHANNEL_NAME_3, 'message 3');
+
+        $message2 = $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME_2)->receive();
+        $message3 = $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME_3)->receive();
+
+        self::assertNotNull($message2);
+        self::assertNotNull($message3);
+        self::assertEquals('message 2', $message2->getPayload());
+        self::assertEquals('message 3', $message3->getPayload());
+    }
+
+    public function test_delete_multiple_channels_at_once(): void
+    {
+        $this->cleanUpSqs();
+
+        $ecotone = $this->bootstrapEcotoneWithMultipleChannels(
+            ChannelInitializationConfiguration::createWithDefaults()
+                ->withAutomaticChannelInitialization(false)
+        );
+
+        $runner = $ecotone->getGateway(ConsoleCommandRunner::class);
+
+        // Initialize all channels first
+        $runner->execute('ecotone:migration:channel:setup', ['initialize' => true]);
+
+        // Delete multiple channels at once
+        $result = $runner->execute('ecotone:migration:channel:delete', [
+            'channels' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
+            'force' => true
+        ]);
+
+        self::assertNotNull($result);
+        $rows = $result->getRows();
+        self::assertCount(2, $rows);
+        self::assertEquals([self::TEST_CHANNEL_NAME_2, 'Deleted'], $rows[0]);
+        self::assertEquals([self::TEST_CHANNEL_NAME_3, 'Deleted'], $rows[1]);
+
+        // Verify channels are deleted - receiving should fail
+        $this->expectException(\Exception::class);
+        $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME_2)->receive();
+    }
+
     private function bootstrapEcotone(ChannelInitializationConfiguration $config, bool $autoDeclare = true): \Ecotone\Lite\Test\FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
@@ -159,15 +228,43 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         );
     }
 
+    private function bootstrapEcotoneWithMultipleChannels(ChannelInitializationConfiguration $config): \Ecotone\Lite\Test\FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                self::getConnection(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(\Ecotone\Messaging\Config\ModulePackageList::allPackagesExcept([
+                    \Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Messaging\Config\ModulePackageList::SQS_PACKAGE,
+                ]))
+                ->withExtensionObjects([
+                    $config,
+                    SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),
+                    SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_3)->withAutoDeclare(false),
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+        );
+    }
+
     public static function cleanUpSqs(): void
     {
         try {
             /** @var \Enqueue\Sqs\SqsContext $context */
             $context = self::getConnection()->createContext();
-            $queue = $context->createQueue(self::TEST_CHANNEL_NAME);
-            $context->deleteQueue($queue);
+
+            // Clean up all test channels
+            foreach ([self::TEST_CHANNEL_NAME, self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3] as $channelName) {
+                try {
+                    $queue = $context->createQueue($channelName);
+                    $context->deleteQueue($queue);
+                } catch (\Exception $e) {
+                    // Queue might not exist, that's fine
+                }
+            }
         } catch (\Exception $e) {
-            // Queue might not exist, that's fine
+            // Connection might fail, that's fine
         }
     }
 }

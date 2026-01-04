@@ -22,24 +22,26 @@ class ChannelSetupCommand
 
     #[ConsoleCommand('ecotone:migration:channel:setup')]
     public function setup(
-        ?string $channelName = null,
+        #[ConsoleParameterOption] array $channels = [],
         #[ConsoleParameterOption] bool $initialize = false,
     ): ?ConsoleCommandResultSet {
-        // If specific channel name provided
-        if ($channelName !== null) {
+        // If specific channel names provided
+        if (count($channels) > 0) {
+            $rows = [];
+
             if ($initialize) {
-                $this->channelSetupManager->initialize($channelName);
-                return ConsoleCommandResultSet::create(
-                    ['Channel', 'Status'],
-                    [[$channelName, 'Initialized']]
-                );
+                foreach ($channels as $channelName) {
+                    $this->channelSetupManager->initialize($channelName);
+                    $rows[] = [$channelName, 'Initialized'];
+                }
+                return ConsoleCommandResultSet::create(['Channel', 'Status'], $rows);
             }
 
             $status = $this->channelSetupManager->getInitializationStatus();
-            return ConsoleCommandResultSet::create(
-                ['Channel', 'Initialized'],
-                [[$channelName, $status[$channelName] ? 'Yes' : 'No']]
-            );
+            foreach ($channels as $channelName) {
+                $rows[] = [$channelName, $status[$channelName] ?? false ? 'Yes' : 'No'];
+            }
+            return ConsoleCommandResultSet::create(['Channel', 'Initialized'], $rows);
         }
 
         // Show all channels

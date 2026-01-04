@@ -155,13 +155,8 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
 
         // Initialize multiple channels at once
         $result = $runner->execute('ecotone:migration:channel:setup', [
-<<<<<<< Updated upstream
-            'channels' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
-            'initialize' => true,
-=======
             'channel' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
-            'initialize' => true
->>>>>>> Stashed changes
+            'initialize' => true,
         ]);
 
         self::assertNotNull($result);
@@ -199,13 +194,8 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
 
         // Delete multiple channels at once
         $result = $runner->execute('ecotone:migration:channel:delete', [
-<<<<<<< Updated upstream
-            'channels' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
-            'force' => true,
-=======
             'channel' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
-            'force' => true
->>>>>>> Stashed changes
+            'force' => true,
         ]);
 
         self::assertNotNull($result);

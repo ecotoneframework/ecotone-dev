@@ -39,7 +39,8 @@ class ChannelSetupCommand
 
             $status = $this->channelSetupManager->getInitializationStatus();
             foreach ($channels as $channelName) {
-                $rows[] = [$channelName, $status[$channelName] ?? false ? 'Yes' : 'No'];
+                $channelStatus = $status[$channelName] ?? false;
+                $rows[] = [$channelName, $this->formatStatus($channelStatus)];
             }
             return ConsoleCommandResultSet::create(['Channel', 'Initialized'], $rows);
         }
@@ -66,11 +67,22 @@ class ChannelSetupCommand
         $initializationStatus = $this->channelSetupManager->getInitializationStatus();
         $rows = [];
         foreach ($channelNames as $channelName) {
-            $isInitialized = $initializationStatus[$channelName] ?? false;
-            $rows[] = [$channelName, $isInitialized ? 'Yes' : 'No'];
+            $channelStatus = $initializationStatus[$channelName] ?? false;
+            $rows[] = [$channelName, $this->formatStatus($channelStatus)];
         }
 
         return ConsoleCommandResultSet::create(['Channel', 'Initialized'], $rows);
+    }
+
+    /**
+     * Format the initialization status for display
+     */
+    private function formatStatus(bool|string $status): string
+    {
+        if (is_string($status)) {
+            return $status;
+        }
+        return $status ? 'Yes' : 'No';
     }
 }
 

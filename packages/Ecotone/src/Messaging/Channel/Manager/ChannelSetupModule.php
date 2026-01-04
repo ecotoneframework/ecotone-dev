@@ -40,9 +40,19 @@ class ChannelSetupModule extends NoExternalConfigurationModule implements Annota
             $channelManagerReferences
         );
 
+        // Collect all pollable channels from extension objects
+        $messageChannelBuilders = ExtensionObjectResolver::resolve(\Ecotone\Messaging\Channel\MessageChannelBuilder::class, $extensionObjects);
+        $allPollableChannelNames = array_map(
+            fn (\Ecotone\Messaging\Channel\MessageChannelBuilder $builder) => $builder->getMessageChannelName(),
+            array_filter(
+                $messageChannelBuilders,
+                fn (\Ecotone\Messaging\Channel\MessageChannelBuilder $builder) => $builder->isPollable()
+            )
+        );
+
         $messagingConfiguration->registerServiceDefinition(
             ChannelSetupManager::class,
-            new Definition(ChannelSetupManager::class, [$channelManagerRefs])
+            new Definition(ChannelSetupManager::class, [$channelManagerRefs, $allPollableChannelNames])
         );
 
         $messagingConfiguration->registerServiceDefinition(
@@ -63,7 +73,8 @@ class ChannelSetupModule extends NoExternalConfigurationModule implements Annota
     public function canHandle($extensionObject): bool
     {
         return $extensionObject instanceof ChannelManagerReference
-            || $extensionObject instanceof ChannelInitializationConfiguration;
+            || $extensionObject instanceof ChannelInitializationConfiguration
+            || $extensionObject instanceof \Ecotone\Messaging\Channel\MessageChannelBuilder;
     }
 
     public function getModulePackageName(): string

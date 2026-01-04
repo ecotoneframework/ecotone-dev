@@ -17,21 +17,39 @@ class ChannelSetupManager implements DefinedObject
 {
     /**
      * @param ChannelManager[] $channelManagers
+     * @param string[] $allPollableChannelNames All pollable channel names (including non-managed ones)
      */
     public function __construct(
         private array $channelManagers = [],
+        private array $allPollableChannelNames = [],
     ) {
     }
 
     /**
-     * @return string[] List of channel names
+     * @return string[] List of all channel names (managed and non-managed)
      */
     public function getChannelNames(): array
     {
-        return array_map(
+        $managedChannelNames = array_map(
             fn (ChannelManager $manager) => $manager->getChannelName(),
             $this->channelManagers
         );
+
+        // Combine managed and non-managed channels, removing duplicates
+        return array_values(array_unique(array_merge($managedChannelNames, $this->allPollableChannelNames)));
+    }
+
+    /**
+     * Check if a channel is managed by migration system
+     */
+    private function isManagedChannel(string $channelName): bool
+    {
+        foreach ($this->channelManagers as $manager) {
+            if ($manager->getChannelName() === $channelName) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -49,6 +67,13 @@ class ChannelSetupManager implements DefinedObject
      */
     public function initialize(string $channelName): void
     {
+        if (!$this->isManagedChannel($channelName)) {
+            throw new \InvalidArgumentException(
+                "Channel '{$channelName}' is not managed by the migration system. " .
+                "Only channels registered via ChannelManagerReference can be initialized through this command."
+            );
+        }
+
         $manager = $this->findManager($channelName);
         $manager->initialize();
     }
@@ -68,13 +93,20 @@ class ChannelSetupManager implements DefinedObject
      */
     public function delete(string $channelName): void
     {
+        if (!$this->isManagedChannel($channelName)) {
+            throw new \InvalidArgumentException(
+                "Channel '{$channelName}' is not managed by the migration system. " .
+                "Only channels registered via ChannelManagerReference can be deleted through this command."
+            );
+        }
+
         $manager = $this->findManager($channelName);
         $manager->delete();
     }
 
     /**
      * Returns initialization status for each channel
-     * @return array<string, bool> Map of channel name to initialization status
+     * @return array<string, bool|string> Map of channel name to initialization status (bool for managed, 'Not managed by migration' for non-managed)
      */
     public function getInitializationStatus(): array
     {
@@ -82,6 +114,12 @@ class ChannelSetupManager implements DefinedObject
 
         foreach ($this->channelManagers as $manager) {
             $status[$manager->getChannelName()] = $manager->isInitialized();
+        }
+
+        foreach ($this->allPollableChannelNames as $channelName) {
+            if (!isset($status[$channelName])) {
+                $status[$channelName] = 'Not managed by migration';
+            }
         }
 
         return $status;
@@ -107,7 +145,7 @@ class ChannelSetupManager implements DefinedObject
 
         return new Definition(
             self::class,
-            [$channelManagerDefinitions]
+            [$channelManagerDefinitions, $this->allPollableChannelNames]
         );
     }
 }

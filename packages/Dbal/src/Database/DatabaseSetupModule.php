@@ -68,8 +68,8 @@ class DatabaseSetupModule implements AnnotationModule
         );
 
         $messagingConfiguration->registerServiceDefinition(
-            DatabaseDropCommand::class,
-            new Definition(DatabaseDropCommand::class, [
+            DatabaseDeleteCommand::class,
+            new Definition(DatabaseDeleteCommand::class, [
                 new Reference(DatabaseSetupManager::class),
             ])
         );
@@ -83,9 +83,9 @@ class DatabaseSetupModule implements AnnotationModule
         );
 
         $this->registerConsoleCommand(
-            'drop',
-            'ecotone:migration:database:drop',
-            DatabaseDropCommand::class,
+            'delete',
+            'ecotone:migration:database:delete',
+            DatabaseDeleteCommand::class,
             $messagingConfiguration,
             $interfaceToCallRegistry
         );

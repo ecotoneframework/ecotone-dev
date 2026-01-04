@@ -19,7 +19,7 @@ class DeduplicationTableManager implements DbalTableManager
 
     public function __construct(
         private string $tableName,
-        private bool $isActive,
+        private bool $isUsed,
         private bool $shouldAutoInitialize,
     ) {
     }
@@ -29,9 +29,9 @@ class DeduplicationTableManager implements DbalTableManager
         return self::FEATURE_NAME;
     }
 
-    public function isActive(): bool
+    public function isUsed(): bool
     {
-        return $this->isActive;
+        return $this->isUsed;
     }
 
     public function getTableName(): string
@@ -83,7 +83,7 @@ class DeduplicationTableManager implements DbalTableManager
     {
         return new Definition(
             self::class,
-            [$this->tableName, $this->isActive, $this->shouldAutoInitialize]
+            [$this->tableName, $this->isUsed, $this->shouldAutoInitialize]
         );
     }
 

@@ -24,7 +24,7 @@ class DatabaseDeleteCommand
     public function delete(
         #[ConsoleParameterOption] array $features = [],
         #[ConsoleParameterOption] bool $force = false,
-        #[ConsoleParameterOption] bool $unused = false,
+        #[ConsoleParameterOption] bool $onlyUsed = true,
     ): ?ConsoleCommandResultSet {
         // If specific feature names provided
         if (\count($features) > 0) {
@@ -45,7 +45,7 @@ class DatabaseDeleteCommand
         }
 
         // Show all features
-        $featureNames = $this->databaseSetupManager->getFeatureNames($unused);
+        $featureNames = $this->databaseSetupManager->getFeatureNames($onlyUsed);
 
         if (count($featureNames) === 0) {
             return ConsoleCommandResultSet::create(
@@ -61,7 +61,7 @@ class DatabaseDeleteCommand
             );
         }
 
-        $this->databaseSetupManager->dropAll($unused);
+        $this->databaseSetupManager->dropAll($onlyUsed);
         return ConsoleCommandResultSet::create(
             ['Feature', 'Status'],
             array_map(fn (string $feature) => [$feature, 'Deleted'], $featureNames)

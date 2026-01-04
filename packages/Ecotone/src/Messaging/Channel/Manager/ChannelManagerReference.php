@@ -23,4 +23,3 @@ final class ChannelManagerReference
         return $this->referenceName;
     }
 }
-

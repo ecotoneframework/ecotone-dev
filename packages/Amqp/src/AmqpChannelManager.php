@@ -6,6 +6,7 @@ namespace Ecotone\Amqp;
 
 use Ecotone\Messaging\Channel\Manager\ChannelManager;
 use Ecotone\Messaging\Config\Container\Definition;
+use Exception;
 use Interop\Amqp\AmqpQueue;
 use Interop\Queue\ConnectionFactory;
 
@@ -59,14 +60,14 @@ final class AmqpChannelManager implements ChannelManager
         try {
             $context = $this->connectionFactory->createContext();
             $queue = $this->amqpAdmin->getQueueByName($this->queueName);
-            
+
             // Use passive declaration to check if queue exists
             $passiveQueue = clone $queue;
             $passiveQueue->addFlag(AmqpQueue::FLAG_PASSIVE);
             $context->declareQueue($passiveQueue);
-            
+
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Queue doesn't exist or other error
             return false;
         }
@@ -89,4 +90,3 @@ final class AmqpChannelManager implements ChannelManager
         ]);
     }
 }
-

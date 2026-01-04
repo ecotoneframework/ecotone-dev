@@ -44,4 +44,3 @@ interface ChannelManager extends DefinedObject
      */
     public function shouldBeInitializedAutomatically(): bool;
 }
-

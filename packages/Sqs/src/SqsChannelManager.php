@@ -7,6 +7,7 @@ namespace Ecotone\Sqs;
 use Ecotone\Messaging\Channel\Manager\ChannelManager;
 use Ecotone\Messaging\Config\Container\Definition;
 use Enqueue\Sqs\SqsContext;
+use Exception;
 use Interop\Queue\ConnectionFactory;
 
 /**
@@ -63,7 +64,7 @@ final class SqsChannelManager implements ChannelManager
             // Use GetQueueUrl to check existence
             $context->getQueueUrl($queue);
             return true;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // QueueDoesNotExist exception or other error
             return false;
         }
@@ -84,4 +85,3 @@ final class SqsChannelManager implements ChannelManager
         ]);
     }
 }
-

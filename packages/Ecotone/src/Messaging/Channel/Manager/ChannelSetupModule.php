@@ -102,4 +102,3 @@ class ChannelSetupModule extends NoExternalConfigurationModule implements Annota
             ->registerConsoleCommand($oneTimeCommandConfiguration);
     }
 }
-

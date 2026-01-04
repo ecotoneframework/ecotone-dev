@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Enqueue\Dbal\DbalContext;
 use Interop\Queue\ConnectionFactory;
+use InvalidArgumentException;
 
 /**
  * Manages database setup and teardown for all registered table managers.
@@ -207,7 +208,7 @@ class DatabaseSetupManager implements DefinedObject
      */
     private function getManagers(bool $onlyUsed): array
     {
-        if (!$onlyUsed) {
+        if (! $onlyUsed) {
             // Return all managers when onlyUsed is false
             return $this->tableManagers;
         }
@@ -227,7 +228,7 @@ class DatabaseSetupManager implements DefinedObject
             }
         }
 
-        throw new \InvalidArgumentException("Table manager not found for feature: {$featureName}");
+        throw new InvalidArgumentException("Table manager not found for feature: {$featureName}");
     }
 
     private function getConnection(): Connection

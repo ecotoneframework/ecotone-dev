@@ -8,12 +8,14 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Tests for ChannelSetupCommand with non-managed channels.
  *
  * licence Apache-2.0
+ * @internal
  */
 final class ChannelSetupCommandTest extends TestCase
 {
@@ -48,7 +50,7 @@ final class ChannelSetupCommandTest extends TestCase
 
         $runner = $ecotone->getGateway(ConsoleCommandRunner::class);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage("Channel 'in_memory_test_channel' is not managed by the migration system");
 
         $runner->execute('ecotone:migration:channel:setup', [
@@ -63,7 +65,7 @@ final class ChannelSetupCommandTest extends TestCase
 
         $runner = $ecotone->getGateway(ConsoleCommandRunner::class);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage("Channel 'in_memory_test_channel' is not managed by the migration system");
 
         $runner->execute('ecotone:migration:channel:delete', [
@@ -84,4 +86,3 @@ final class ChannelSetupCommandTest extends TestCase
         );
     }
 }
-

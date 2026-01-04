@@ -51,7 +51,7 @@ final class AmqpChannelManagerModule extends NoExternalConfigurationModule imple
         // Configure channel builders and register channel managers
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof AmqpBackedMessageChannelBuilder) {
-                if (!$shouldAutoInitialize) {
+                if (! $shouldAutoInitialize) {
                     $extensionObject->withAutoDeclare($shouldAutoInitialize);
                 }
 
@@ -72,7 +72,7 @@ final class AmqpChannelManagerModule extends NoExternalConfigurationModule imple
                     ])
                 );
             } elseif ($extensionObject instanceof AmqpStreamChannelBuilder) {
-                if (!$shouldAutoInitialize) {
+                if (! $shouldAutoInitialize) {
                     $extensionObject->withAutoDeclare($shouldAutoInitialize);
                 }
 
@@ -127,4 +127,3 @@ final class AmqpChannelManagerModule extends NoExternalConfigurationModule imple
         return ModulePackageList::AMQP_PACKAGE;
     }
 }
-

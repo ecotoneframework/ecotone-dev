@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Channel\Manager;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use InvalidArgumentException;
 
 /**
  * Manages channel setup and teardown for all registered channel managers.
@@ -67,10 +68,10 @@ class ChannelSetupManager implements DefinedObject
      */
     public function initialize(string $channelName): void
     {
-        if (!$this->isManagedChannel($channelName)) {
-            throw new \InvalidArgumentException(
+        if (! $this->isManagedChannel($channelName)) {
+            throw new InvalidArgumentException(
                 "Channel '{$channelName}' is not managed by the migration system. " .
-                "Only channels registered via ChannelManagerReference can be initialized through this command."
+                'Only channels registered via ChannelManagerReference can be initialized through this command.'
             );
         }
 
@@ -93,10 +94,10 @@ class ChannelSetupManager implements DefinedObject
      */
     public function delete(string $channelName): void
     {
-        if (!$this->isManagedChannel($channelName)) {
-            throw new \InvalidArgumentException(
+        if (! $this->isManagedChannel($channelName)) {
+            throw new InvalidArgumentException(
                 "Channel '{$channelName}' is not managed by the migration system. " .
-                "Only channels registered via ChannelManagerReference can be deleted through this command."
+                'Only channels registered via ChannelManagerReference can be deleted through this command.'
             );
         }
 
@@ -117,7 +118,7 @@ class ChannelSetupManager implements DefinedObject
         }
 
         foreach ($this->allPollableChannelNames as $channelName) {
-            if (!isset($status[$channelName])) {
+            if (! isset($status[$channelName])) {
                 $status[$channelName] = 'Not managed by migration';
             }
         }
@@ -133,7 +134,7 @@ class ChannelSetupManager implements DefinedObject
             }
         }
 
-        throw new \InvalidArgumentException("Channel manager not found for channel: {$channelName}");
+        throw new InvalidArgumentException("Channel manager not found for channel: {$channelName}");
     }
 
     public function getDefinition(): Definition
@@ -149,4 +150,3 @@ class ChannelSetupManager implements DefinedObject
         );
     }
 }
-

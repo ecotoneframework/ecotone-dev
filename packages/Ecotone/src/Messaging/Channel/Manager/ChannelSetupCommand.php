@@ -85,4 +85,3 @@ class ChannelSetupCommand
         return $status ? 'Yes' : 'No';
     }
 }
-

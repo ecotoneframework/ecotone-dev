@@ -9,16 +9,17 @@ use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
+use Exception;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 
 /**
  * Tests for SQS channel initialization with manual setup.
  *
  * licence Apache-2.0
+ * @internal
  */
 final class SqsChannelInitializationTest extends ConnectionTestCase
 {
-
     private const TEST_CHANNEL_NAME = 'test_channel_init';
     private const TEST_CHANNEL_NAME_2 = 'test_channel_init_2';
     private const TEST_CHANNEL_NAME_3 = 'test_channel_init_3';
@@ -26,14 +27,14 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
     public function test_sending_fails_when_auto_initialization_disabled_and_channel_not_setup(): void
     {
         $this->cleanUpSqs();
-        
+
         $ecotone = $this->bootstrapEcotone(
             ChannelInitializationConfiguration::createWithDefaults()
                 ->withAutomaticChannelInitialization(false)
         );
 
         // Try to receive message - should fail because queue doesn't exist and auto-init is disabled
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
         $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
     }
 
@@ -48,14 +49,14 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         );
 
         // Try to receive message - should fail because queue doesn't exist and auto-init is disabled
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
         $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
     }
 
     public function test_manual_channel_initialization_via_console_command_then_send_succeeds(): void
     {
         $this->cleanUpSqs();
-        
+
         $ecotone = $this->bootstrapEcotone(
             ChannelInitializationConfiguration::createWithDefaults()
                 ->withAutomaticChannelInitialization(false)
@@ -83,7 +84,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
     public function test_setup_then_delete_then_send_fails(): void
     {
         $this->cleanUpSqs();
-        
+
         $ecotone = $this->bootstrapEcotone(
             ChannelInitializationConfiguration::createWithDefaults()
                 ->withAutomaticChannelInitialization(false)
@@ -108,7 +109,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         self::assertEquals([self::TEST_CHANNEL_NAME, 'Deleted'], $rows[0]);
 
         // Try to receive message - should fail because queue was deleted
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
         $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME)->receive();
     }
 
@@ -155,7 +156,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         // Initialize multiple channels at once
         $result = $runner->execute('ecotone:migration:channel:setup', [
             'channels' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
-            'initialize' => true
+            'initialize' => true,
         ]);
 
         self::assertNotNull($result);
@@ -194,7 +195,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         // Delete multiple channels at once
         $result = $runner->execute('ecotone:migration:channel:delete', [
             'channels' => [self::TEST_CHANNEL_NAME_2, self::TEST_CHANNEL_NAME_3],
-            'force' => true
+            'force' => true,
         ]);
 
         self::assertNotNull($result);
@@ -204,7 +205,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
         self::assertEquals([self::TEST_CHANNEL_NAME_3, 'Deleted'], $rows[1]);
 
         // Verify channels are deleted - receiving should fail
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
         $ecotone->getMessageChannel(self::TEST_CHANNEL_NAME_2)->receive();
     }
 
@@ -259,13 +260,12 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
                 try {
                     $queue = $context->createQueue($channelName);
                     $context->deleteQueue($queue);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
                     // Queue might not exist, that's fine
                 }
             }
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             // Connection might fail, that's fine
         }
     }
 }
-

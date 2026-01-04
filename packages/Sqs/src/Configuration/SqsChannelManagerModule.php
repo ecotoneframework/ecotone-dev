@@ -49,7 +49,7 @@ final class SqsChannelManagerModule extends NoExternalConfigurationModule implem
         // Configure channel builders and register channel managers
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof SqsBackedMessageChannelBuilder) {
-                if (!$shouldAutoInitialize) {
+                if (! $shouldAutoInitialize) {
                     $extensionObject->withAutoDeclare(false);
                 }
 
@@ -98,4 +98,3 @@ final class SqsChannelManagerModule extends NoExternalConfigurationModule implem
         return ModulePackageList::SQS_PACKAGE;
     }
 }
-

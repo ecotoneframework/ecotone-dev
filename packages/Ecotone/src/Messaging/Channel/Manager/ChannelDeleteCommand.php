@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\Manager;
 
+use function count;
+
 use Ecotone\Messaging\Attribute\ConsoleCommand;
 use Ecotone\Messaging\Attribute\ConsoleParameterOption;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
@@ -26,10 +28,10 @@ class ChannelDeleteCommand
         #[ConsoleParameterOption] bool $force = false,
     ): ?ConsoleCommandResultSet {
         // If specific channel names provided
-        if (\count($channels) > 0) {
+        if (count($channels) > 0) {
             $rows = [];
 
-            if (!$force) {
+            if (! $force) {
                 foreach ($channels as $channelName) {
                     $rows[] = [$channelName, 'Would be deleted (use --force to confirm)'];
                 }
@@ -46,14 +48,14 @@ class ChannelDeleteCommand
         // Show all channels
         $channelNames = $this->channelSetupManager->getChannelNames();
 
-        if (\count($channelNames) === 0) {
+        if (count($channelNames) === 0) {
             return ConsoleCommandResultSet::create(
                 ['Status'],
                 [['No message channels registered for deletion.']]
             );
         }
 
-        if (!$force) {
+        if (! $force) {
             return ConsoleCommandResultSet::create(
                 ['Channel', 'Warning'],
                 array_map(fn (string $channel) => [$channel, 'Would be deleted (use --force to confirm)'], $channelNames)
@@ -67,4 +69,3 @@ class ChannelDeleteCommand
         );
     }
 }
-

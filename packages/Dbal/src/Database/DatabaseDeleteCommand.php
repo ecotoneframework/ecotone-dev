@@ -34,7 +34,7 @@ class DatabaseDeleteCommand
         if (\count($feature) > 0) {
             $rows = [];
 
-            if (!$force) {
+            if (! $force) {
                 foreach ($feature as $featureName) {
                     $rows[] = [$featureName, 'Would be deleted (use --force to confirm)'];
                 }
@@ -58,7 +58,7 @@ class DatabaseDeleteCommand
             );
         }
 
-        if (!$force) {
+        if (! $force) {
             return ConsoleCommandResultSet::create(
                 ['Feature', 'Warning'],
                 array_map(fn (string $feature) => [$feature, 'Would be deleted (use --force to confirm)'], $featureNames)

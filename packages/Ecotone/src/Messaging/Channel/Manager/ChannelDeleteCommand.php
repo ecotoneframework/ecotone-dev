@@ -10,6 +10,8 @@ use Ecotone\Messaging\Attribute\ConsoleCommand;
 use Ecotone\Messaging\Attribute\ConsoleParameterOption;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
+use function is_bool;
+
 /**
  * Console command for deleting message channels.
  *
@@ -31,10 +33,10 @@ class ChannelDeleteCommand
         $force = $this->normalizeBoolean($force);
 
         // If specific channel names provided
-        if (\count($channel) > 0) {
+        if (count($channel) > 0) {
             $rows = [];
 
-            if (!$force) {
+            if (! $force) {
                 foreach ($channel as $channelName) {
                     $rows[] = [$channelName, 'Would be deleted (use --force to confirm)'];
                 }
@@ -58,7 +60,7 @@ class ChannelDeleteCommand
             );
         }
 
-        if (!$force) {
+        if (! $force) {
             return ConsoleCommandResultSet::create(
                 ['Channel', 'Warning'],
                 array_map(fn (string $channel) => [$channel, 'Would be deleted (use --force to confirm)'], $channelNames)
@@ -78,7 +80,7 @@ class ChannelDeleteCommand
      */
     private function normalizeBoolean(bool|string $value): bool
     {
-        if (\is_bool($value)) {
+        if (is_bool($value)) {
             return $value;
         }
 

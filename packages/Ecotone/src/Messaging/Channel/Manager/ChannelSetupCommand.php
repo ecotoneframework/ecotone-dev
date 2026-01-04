@@ -8,6 +8,8 @@ use Ecotone\Messaging\Attribute\ConsoleCommand;
 use Ecotone\Messaging\Attribute\ConsoleParameterOption;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
+use function is_bool;
+
 /**
  * Console command for setting up message channels.
  *
@@ -83,7 +85,7 @@ class ChannelSetupCommand
      */
     private function normalizeBoolean(bool|string $value): bool
     {
-        if (\is_bool($value)) {
+        if (is_bool($value)) {
             return $value;
         }
 

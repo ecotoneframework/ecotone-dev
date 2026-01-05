@@ -245,11 +245,18 @@ class FileSystemAnnotationFinder implements AnnotationFinder
     }
 
     /**
+     * @param string $className
+     * @param string|null $attributeClassName
      * @inheritDoc
      */
-    public function getAnnotationsForClass(string $className): array
+    public function getAnnotationsForClass(string $className, ?string $attributeClassName = null): array
     {
-        return $this->getCachedAnnotationsForClass($className);
+        $attributes = $this->getCachedAnnotationsForClass($className);
+        if ($attributeClassName) {
+            return array_values(array_filter($attributes, fn (object $attribute) => $attribute instanceof $attributeClassName));
+        } else {
+            return $attributes;
+        }
     }
 
     /**

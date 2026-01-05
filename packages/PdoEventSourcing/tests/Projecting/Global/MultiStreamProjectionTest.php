@@ -93,8 +93,6 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
     private function createMultiStreamProjection(): object
     {
-        $connection = $this->getConnection();
-
         // Configure FromStream with multiple streams: Calendar/Meeting aggregates
         // Real-world usage: projection reacts to Calendar/Meeting events to generate a read model
         return new #[ProjectionV2(self::NAME), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {

@@ -10,7 +10,11 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 interface AnnotationFinder extends AnnotationResolver
 {
     /**
-     * @return AnnotatedDefinition[]
+     * @template TClassAttribute of object
+     * @template TMethodAttribute of object
+     * @param class-string<TClassAttribute> $classAnnotationName
+     * @param class-string<TMethodAttribute> $methodAnnotationClassName
+     * @return list<AnnotatedDefinition<TClassAttribute,TMethodAttribute>>
      */
     public function findCombined(string $classAnnotationName, string $methodAnnotationClassName): array;
 

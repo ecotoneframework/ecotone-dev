@@ -20,6 +20,7 @@ use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSourceBuilder;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreMultiStreamSourceBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -40,9 +41,6 @@ use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 
 #[ModuleAnnotation]
-/**
- * @phpstan-type ProjectionConfiguration array{projectionName: string, streamName: string, aggregateType: ?string, isPartitioned: bool, eventNames: array}
- */
 class ProophProjectingModule implements AnnotationModule
 {
     /**
@@ -57,8 +55,6 @@ class ProophProjectingModule implements AnnotationModule
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $extensions = [];
-
         $namedEvents = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(NamedEvent::class) as $className) {
             $attribute = $annotationRegistrationService->getAttributeForClass($className, NamedEvent::class);
@@ -67,14 +63,7 @@ class ProophProjectingModule implements AnnotationModule
 
         $projectionEventNames = self::collectProjectionEventNames($annotationRegistrationService, $interfaceToCallRegistry, $namedEvents);
 
-        $resolvedConfigs = [
-            ...self::resolveFromStreamConfigs($annotationRegistrationService, $projectionEventNames),
-            ...self::resolveFromAggregateStream($annotationRegistrationService, $projectionEventNames),
-        ];
-
-        foreach ($resolvedConfigs as $config) {
-            $extensions = [...$extensions, ...self::createStreamSourceExtensions($config)];
-        }
+        $extensions = self::resolveConfigs($annotationRegistrationService, $projectionEventNames);
 
         $projectionNames = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
@@ -91,20 +80,23 @@ class ProophProjectingModule implements AnnotationModule
     /**
      * Resolve stream configurations from FromStream attributes.
      *
-     * @return list<ProjectionConfiguration>
+     * @return list<ProjectionComponentBuilder>
      */
-    private static function resolveFromStreamConfigs(
+    private static function resolveConfigs(
         AnnotationFinder $annotationRegistrationService,
-        array $projectionEventNames
-    ): array {
-        $configs = [];
+        array            $projectionEventNames
+    ): array
+    {
+        $extensions = [];
 
         foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($classname, ProjectionV2::class);
-            $aggregateStreamAttributes = $annotationRegistrationService->getAnnotationsForClass($classname, FromAggregateStream::class);
             $streamAttributes = [
                 ...$annotationRegistrationService->getAnnotationsForClass($classname, FromStream::class),
-                ...array_map(fn (FromAggregateStream $attribute) => self::resolveFromAggregateStream($annotationRegistrationService, $attribute, $projectionAttribute->name), $aggregateStreamAttributes)
+                ...\array_map(
+                    fn(FromAggregateStream $aggregateStreamAttribute) => self::resolveFromAggregateStream($annotationRegistrationService, $aggregateStreamAttribute, $projectionAttribute->name),
+                    $annotationRegistrationService->getAnnotationsForClass($classname, FromAggregateStream::class)
+                )
             ];
             $partitionedAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
 
@@ -115,20 +107,41 @@ class ProophProjectingModule implements AnnotationModule
             $projectionName = $projectionAttribute->name;
             $isPartitioned = $partitionedAttribute !== null;
 
-            if ($isPartitioned && ! $streamAttributes->aggregateType) {
-                throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
+            $sources = [];
+            foreach ($streamAttributes as $streamAttribute) {
+                if ($isPartitioned && ! $streamAttribute->aggregateType) {
+                    throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
+                }
+                if ($isPartitioned) {
+                    $sources[$streamAttribute->stream.'.'.$streamAttribute->aggregateType] = new EventStoreAggregateStreamSourceBuilder(
+                        $projectionName,
+                        $streamAttribute->aggregateType,
+                        $streamAttribute->stream,
+                        $projectionEventNames[$projectionName] ?? [],
+                    );
+                    $extensions[] = new AggregateIdPartitionProviderBuilder(
+                        $projectionName,
+                        $streamAttribute->aggregateType,
+                        $streamAttribute->stream,
+                    );
+                } else {
+                    $sources[$streamAttribute->stream] = new EventStoreGlobalStreamSourceBuilder(
+                        $streamAttribute->stream,
+                        [$projectionName]
+                    );
+                }
             }
-
-            $configs[] = [
-                'projectionName' => $projectionName,
-                'streamName' => $streamAttributes->stream,
-                'aggregateType' => $streamAttributes->aggregateType,
-                'isPartitioned' => $isPartitioned,
-                'eventNames' => $projectionEventNames[$projectionName] ?? [],
-            ];
+            if (count($sources) > 1) {
+                $extensions[] = new EventStoreMultiStreamSourceBuilder(
+                    $sources,
+                    [$projectionName],
+                );
+            } else {
+                $extensions[] = current($sources);
+            }
         }
 
-        return $configs;
+        return $extensions;
     }
 
     /**
@@ -153,38 +166,6 @@ class ProophProjectingModule implements AnnotationModule
         $aggregateType = $aggregateTypeAttribute?->getName() ?? $aggregateClass;
 
         return new FromStream($streamName, $aggregateType, $aggregateStreamAttribute->eventStoreReferenceName);
-    }
-
-    /**
-     * Create stream source extensions based on resolved configuration.
-     *
-     * @param ProjectionConfiguration $config
-     * @return ProjectionComponentBuilder[]
-     */
-    private static function createStreamSourceExtensions(array $config): array
-    {
-        if ($config['isPartitioned']) {
-            return [
-                new EventStoreAggregateStreamSourceBuilder(
-                    $config['projectionName'],
-                    $config['aggregateType'],
-                    $config['streamName'],
-                    $config['eventNames'],
-                ),
-                new AggregateIdPartitionProviderBuilder(
-                    $config['projectionName'],
-                    $config['aggregateType'],
-                    $config['streamName']
-                ),
-            ];
-        }
-
-        return [
-            new EventStoreGlobalStreamSourceBuilder(
-                $config['streamName'],
-                [$config['projectionName']],
-            ),
-        ];
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void

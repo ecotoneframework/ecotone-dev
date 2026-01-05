@@ -108,6 +108,13 @@ class ProophProjectingModule implements AnnotationModule
             $projectionName = $projectionAttribute->name;
             $isPartitioned = $partitionedAttribute !== null;
 
+            // @todo: Partitioned projections cannot be declared with multiple streams because the current partition provider cannot merge partitions from multiple streams.
+            if ($isPartitioned && count($streamAttributes) > 1) {
+                throw ConfigurationException::create(
+                    "Partitioned projection {$projectionName} cannot declare multiple streams. Use a single aggregate stream or remove #[Partitioned]."
+                );
+            }
+
             $sources = [];
             foreach ($streamAttributes as $streamAttribute) {
                 if ($isPartitioned && ! $streamAttribute->aggregateType) {

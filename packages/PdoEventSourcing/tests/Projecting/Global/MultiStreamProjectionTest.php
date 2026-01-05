@@ -14,6 +14,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -51,7 +52,6 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         $this->expectExceptionMessage('Calendar with id cal-build-1 not found');
         $ecotone->sendQueryWithRouting('getCalendar', 'cal-build-1');
 
-        // create calendar and schedule meeting to drive projection entries
         $calendarId = 'cal-build-1';
         $meetingId = 'm-build-1';
         $ecotone->sendCommand(new CreateCalendar($calendarId));
@@ -150,10 +150,21 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-reset');
     }
 
+    public function test_declaring_partitioned_multi_stream_projection_throws_exception(): void
+    {
+        $projection = new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
+            public const NAME = 'calendar_multi_stream_projection';
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('Partitioned projection calendar_multi_stream_projection cannot declare multiple streams');
+
+        // Bootstrapping should fail due to invalid configuration
+        $this->bootstrapEcotone([$projection::class], [$projection]);
+    }
+
     private function createMultiStreamProjection(): object
     {
-        // Configure FromStream with multiple streams: Calendar/Meeting aggregates
-        // Real-world usage: projection reacts to Calendar/Meeting events to generate a read model
         return new #[ProjectionV2(self::NAME), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
             public const NAME = 'calendar_multi_stream_projection';
 

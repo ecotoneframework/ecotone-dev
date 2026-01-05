@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
+use Ecotone\Amqp\Distribution\AmqpDistributedBusConfiguration;
+use Ecotone\Amqp\Distribution\AmqpDistributionModule;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -91,6 +94,51 @@ final class DistributedCommandBusTest extends AmqpMessagingTestCase
         $ticketService->run('async', $executionPollingMetadata);
         // When message failed on acknowledgment, it will re-publish on re-deliver
         self::assertGreaterThanOrEqual(3, $ticketService->sendQueryWithRouting(TicketNotificationEventHandler::GET_TICKETS_NOTIFICATION_COUNT));
+    }
+
+    public function test_sending_fails_when_auto_declare_disabled_and_exchange_not_declared(): void
+    {
+        // Delete the distributed exchange to ensure it doesn't exist
+        $context = $this->getCachedConnectionFactory()->createContext();
+        try {
+            $context->deleteTopic($context->createTopic(AmqpDistributionModule::AMQP_DISTRIBUTED_EXCHANGE));
+        } catch (\Exception) {
+            // Exchange may not exist
+        }
+
+        $publisherConfiguration = new class {
+            #[ServiceContext]
+            public function registerPublisher(): AmqpDistributedBusConfiguration
+            {
+                return AmqpDistributedBusConfiguration::createPublisher()
+                    ->withAutoDeclare(false);
+            }
+        };
+
+        $userService = $this->bootstrapFlowTesting(
+            classesToResolve: [UserService::class, $publisherConfiguration::class],
+            containerOrAvailableServices: array_merge(
+                $this->getConnectionFactoryReferences(),
+                [new UserService(), $publisherConfiguration]
+            ),
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withServiceName('user_service')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                    ModulePackageList::AMQP_PACKAGE,
+                ])),
+            pathToRootCatalog: __DIR__ . '/../../',
+        );
+
+        $this->expectException(\Exception::class);
+
+        /** @var DistributedBus $distributedBus */
+        $distributedBus = $userService->getGateway(DistributedBus::class);
+        $distributedBus->sendCommand(
+            TicketServiceMessagingConfiguration::SERVICE_NAME,
+            TicketServiceReceiver::CREATE_TICKET_ENDPOINT,
+            'test payload',
+        );
     }
 
     private function bootstrapEcotone(string $serviceName, array $namespaces, array $services, array $amqpConfig = []): FlowTestSupport

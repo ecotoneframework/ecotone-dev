@@ -25,6 +25,7 @@ class AmqpDistributedBusConfiguration
     private string $referenceName;
     private string $headerMapper = '*';
     private bool $defaultPersistentDelivery = true;
+    private bool $autoDeclare = true;
     private string $distributionType;
 
     private function __construct(string $amqpConnectionReference, ?string $outputDefaultConversionMediaType, string $referenceName, string $distributionType)
@@ -95,6 +96,22 @@ class AmqpDistributedBusConfiguration
     public function getDefaultPersistentDelivery(): bool
     {
         return $this->defaultPersistentDelivery;
+    }
+
+    /**
+     * Whether to automatically declare the exchange and queues on send.
+     * When set to false, the exchange and queues must be declared manually.
+     */
+    public function withAutoDeclare(bool $autoDeclare): static
+    {
+        $this->autoDeclare = $autoDeclare;
+
+        return $this;
+    }
+
+    public function isAutoDeclare(): bool
+    {
+        return $this->autoDeclare;
     }
 
     /**

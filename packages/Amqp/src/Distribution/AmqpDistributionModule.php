@@ -104,7 +104,11 @@ class AmqpDistributionModule
                 Assert::isFalse($applicationConfiguration->getServiceName() === ServiceConfiguration::DEFAULT_SERVICE_NAME, "Service name can't be default when using distribution. Set up correct Service Name");
 
                 $channelName = self::CHANNEL_PREFIX . $applicationConfiguration->getServiceName();
-                $configuration->registerMessageChannel(AmqpBackedMessageChannelBuilder::create($channelName, $distributedBusConfiguration->getConnectionReference()));
+                $amqpChannel = AmqpBackedMessageChannelBuilder::create($channelName, $distributedBusConfiguration->getConnectionReference());
+                if (! $distributedBusConfiguration->isAutoDeclare()) {
+                    $amqpChannel = $amqpChannel->withAutoDeclare(false);
+                }
+                $configuration->registerMessageChannel($amqpChannel);
                 $configuration->registerMessageHandler(
                     TransformerBuilder::createHeaderEnricher([
                         MessageHeaders::ROUTING_SLIP => DistributedBusHeader::DISTRIBUTED_ROUTING_SLIP_VALUE,
@@ -205,7 +209,7 @@ class AmqpDistributionModule
                     ->withEndpointId($amqpPublisher->getReferenceName() . '.handler')
                     ->withInputChannelName($amqpPublisher->getReferenceName())
                     ->withDefaultPersistentMode($amqpPublisher->getDefaultPersistentDelivery())
-                    ->withAutoDeclareOnSend(true)
+                    ->withAutoDeclareOnSend($amqpPublisher->isAutoDeclare())
                     ->withHeaderMapper($amqpPublisher->getHeaderMapper())
                     ->withRoutingKeyFromHeader(self::AMQP_ROUTING_KEY)
                     ->withDefaultConversionMediaType($mediaType)

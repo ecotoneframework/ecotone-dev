@@ -8,7 +8,7 @@ namespace Ecotone\EventSourcing\Projecting;
 
 use Ecotone\Modelling\Event;
 
-class PersistedProophEvent extends Event
+class StreamEvent extends Event
 {
     public function __construct(
         string $eventName,

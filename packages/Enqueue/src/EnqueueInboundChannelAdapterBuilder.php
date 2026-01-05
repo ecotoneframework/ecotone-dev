@@ -75,6 +75,11 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
         return $this->messageChannelName;
     }
 
+    public function getConnectionReferenceName(): string
+    {
+        return $this->connectionReferenceName;
+    }
+
     /**
      * @param string $headerMapper
      * @return static

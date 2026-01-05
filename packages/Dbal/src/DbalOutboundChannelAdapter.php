@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal;
 
+use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
@@ -16,8 +17,14 @@ use Enqueue\Dbal\DbalDestination;
  */
 class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 {
-    public function __construct(CachedConnectionFactory $connectionFactory, private string $queueName, bool $autoDeclare, OutboundMessageConverter $outboundMessageConverter, ConversionService $conversionService)
-    {
+    public function __construct(
+        CachedConnectionFactory $connectionFactory,
+        private string $queueName,
+        bool $autoDeclare,
+        OutboundMessageConverter $outboundMessageConverter,
+        ConversionService $conversionService,
+        private EnqueueTableManager $tableManager,
+    ) {
         parent::__construct(
             $connectionFactory,
             new DbalDestination($this->queueName),
@@ -32,7 +39,11 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         /** @var DbalContext $context */
         $context = $this->connectionFactory->createContext();
 
-        $context->createDataBaseTable();
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+            return;
+        }
+
+        $this->tableManager->createTable($context->getDbalConnection());
         $context->createQueue($this->queueName);
     }
 }

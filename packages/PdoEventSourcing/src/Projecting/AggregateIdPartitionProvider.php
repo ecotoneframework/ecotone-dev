@@ -12,22 +12,19 @@ use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\Projecting\PartitionProvider;
 use Enqueue\Dbal\DbalConnectionFactory;
 use RuntimeException;
 
-use function sha1;
-
 class AggregateIdPartitionProvider implements PartitionProvider
 {
-    private string $streamTable;
     public function __construct(
         private DbalConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
         private string $aggregateType,
-        private string $streamName
+        private string $streamName,
+        private PdoStreamTableNameProvider $tableNameProvider
     ) {
-        // This is the name Prooph uses to store events in the database
-        $this->streamTable = '_' . sha1($this->streamName);
     }
 
     public function partitions(): iterable
@@ -35,19 +32,22 @@ class AggregateIdPartitionProvider implements PartitionProvider
         $connection = $this->getConnection();
         $platform = $connection->getDatabasePlatform();
 
+        // Resolve table name at runtime using the provider
+        $streamTable = $this->tableNameProvider->generateTableNameForStream($this->streamName);
+
         // Build platform-specific query
         if ($platform instanceof PostgreSQLPlatform) {
             // PostgreSQL: Use JSONB operators
             $query = $connection->executeQuery(<<<SQL
                 SELECT DISTINCT metadata->>'_aggregate_id' AS aggregate_id
-                FROM {$this->streamTable}
+                FROM {$streamTable}
                 WHERE metadata->>'_aggregate_type' = ?
                 SQL, [$this->aggregateType]);
         } elseif ($platform instanceof MySQLPlatform || $platform instanceof MariaDBPlatform) {
             // MySQL/MariaDB: Use generated indexed columns for better performance
             $query = $connection->executeQuery(<<<SQL
                 SELECT DISTINCT aggregate_id
-                FROM {$this->streamTable}
+                FROM {$streamTable}
                 WHERE aggregate_type = ?
                 SQL, [$this->aggregateType]);
         } else {

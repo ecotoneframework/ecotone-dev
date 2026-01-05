@@ -2,6 +2,7 @@
 
 namespace Ecotone\Dbal;
 
+use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
@@ -46,6 +47,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             $this->receiveTimeoutInMilliseconds,
             $inboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
+            new Reference(EnqueueTableManager::class),
         ]);
     }
 }

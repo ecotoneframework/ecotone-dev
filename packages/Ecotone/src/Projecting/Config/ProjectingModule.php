@@ -26,7 +26,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Projecting\InMemory\InMemoryProjectionRegistry;
-use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
 use Ecotone\Projecting\NullPartitionProvider;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\ProjectingHeaders;
@@ -67,8 +66,6 @@ class ProjectingModule implements AnnotationModule
         /** @var array<string, array<string, string>> $components [projection name][component name][reference] */
         $components = [];
         foreach ($componentBuilders as $componentBuilder) {
-            $reference = Uuid::uuid4()->toString();
-            $moduleReferenceSearchService->store($reference, $componentBuilder);
             foreach ($projectionBuilders as $projectionBuilder) {
                 $projectionName = $projectionBuilder->projectionName();
                 foreach ([StreamSource::class, PartitionProvider::class, ProjectionStateStorage::class] as $component) {
@@ -79,6 +76,9 @@ class ProjectingModule implements AnnotationModule
                                 . ' You can only register one component of each type per projection. Please check your configuration.'
                             );
                         }
+
+                        $reference = Uuid::uuid4()->toString();
+                        $moduleReferenceSearchService->store($reference, $componentBuilder);
                         $components[$projectionName][$component] = new Reference($reference);
                     }
                 }
@@ -94,7 +94,7 @@ class ProjectingModule implements AnnotationModule
             $messagingConfiguration->registerServiceDefinition(
                 $projectingManagerReference = ProjectingManager::class . ':' . $projectionName,
                 new Definition(ProjectingManager::class, [
-                    $components[$projectionName][ProjectionStateStorage::class] ?? new Definition(InMemoryProjectionStateStorage::class),
+                    $components[$projectionName][ProjectionStateStorage::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have projection state storage configured. Please check your configuration."),
                     new Reference($reference),
                     $components[$projectionName][StreamSource::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have stream source configured. Please check your configuration."),
                     $components[$projectionName][PartitionProvider::class] ?? new Definition(NullPartitionProvider::class),

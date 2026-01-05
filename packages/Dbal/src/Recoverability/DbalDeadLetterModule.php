@@ -5,6 +5,8 @@ namespace Ecotone\Dbal\Recoverability;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Database\DbalTableManagerReference;
+use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
@@ -50,6 +52,16 @@ class DbalDeadLetterModule implements AnnotationModule
         $isDeadLetterEnabled = $dbalConfiguration->isDeadLetterEnabled();
         $customDeadLetterGateways = ExtensionObjectResolver::resolve(CustomDeadLetterGateway::class, $extensionObjects);
         $connectionFactoryReference     = $dbalConfiguration->getDeadLetterConnectionReference();
+        $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled();
+
+        $messagingConfiguration->registerServiceDefinition(
+            DeadLetterTableManager::class,
+            new Definition(DeadLetterTableManager::class, [
+                DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE,
+                $isDeadLetterEnabled,
+                $shouldAutoInitialize,
+            ])
+        );
 
         if (! $isDeadLetterEnabled) {
             return;
@@ -79,7 +91,9 @@ class DbalDeadLetterModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        return [
+            new DbalTableManagerReference(DeadLetterTableManager::class),
+        ];
     }
 
     private function registerOneTimeCommand(string $methodName, string $commandName, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -115,6 +129,14 @@ class DbalDeadLetterModule implements AnnotationModule
             ->registerMessageHandler(DbalDeadLetterBuilder::createCount($referenceName, $connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createReply($referenceName, $connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createReplyAll($referenceName, $connectionFactoryReference))
+            ->registerGatewayBuilder(
+                GatewayProxyBuilder::create(
+                    $referenceName,
+                    DeadLetterGateway::class,
+                    'store',
+                    DbalDeadLetterBuilder::STORE_CHANNEL
+                )
+            )
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create(
                     $referenceName,

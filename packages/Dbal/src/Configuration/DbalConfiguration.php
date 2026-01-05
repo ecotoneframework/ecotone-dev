@@ -51,6 +51,8 @@ class DbalConfiguration
     private int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS;
     private int $deduplicationRemovalBatchSize = 1000;
 
+    private bool $initializeDatabaseTables = true;
+
     private function __construct()
     {
     }
@@ -356,5 +358,22 @@ class DbalConfiguration
     public function getConsumerPositionTrackingConnectionReference(): string
     {
         return $this->consumerPositionTrackingConnectionReference;
+    }
+
+    /**
+     * Controls whether database tables are automatically initialized on first use.
+     * When set to false, tables must be created manually using `ecotone:migration:database:setup --initialize`.
+     */
+    public function withAutomaticTableInitialization(bool $enabled): self
+    {
+        $self = clone $this;
+        $self->initializeDatabaseTables = $enabled;
+
+        return $self;
+    }
+
+    public function isAutomaticTableInitializationEnabled(): bool
+    {
+        return $this->initializeDatabaseTables;
     }
 }

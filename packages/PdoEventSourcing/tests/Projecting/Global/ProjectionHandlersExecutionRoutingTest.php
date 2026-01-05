@@ -9,6 +9,7 @@ namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -51,27 +52,20 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
         );
     }
 
-    public function test_projection_with_regex_routing(): void
+    public function test_projection_with_glob_pattern_throws_exception(): void
     {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("glob pattern 'test.*' which is not allowed");
+
         $projection = $this->getProjectionWithRegexRouting();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE])),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
-        );
-
-        $ecotone->sendCommandWithRoutingKey('create', '123');
-
-        self::assertEquals(
-            [
-                ['id' => '123'],
-            ],
-            $projection->events,
-            'Projection should receive named event with regex routing'
         );
     }
 

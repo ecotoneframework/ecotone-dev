@@ -7,9 +7,9 @@ namespace Ecotone\Dbal\Recoverability;
 use DateTime;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
+use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
@@ -43,6 +43,7 @@ class DbalDeadLetterHandler
         private HeaderMapper $headerMapper,
         private ConversionService $conversionService,
         private RetryRunner $retryRunner,
+        private DeadLetterTableManager $tableManager,
     ) {
     }
 
@@ -51,6 +52,8 @@ class DbalDeadLetterHandler
      */
     public function list(int $limit, int $offset): array
     {
+        $this->initialize();
+
         if (! $this->doesDeadLetterTableExists()) {
             return [];
         }
@@ -198,29 +201,16 @@ class DbalDeadLetterHandler
 
     private function getTableName(): string
     {
-        return self::DEFAULT_DEAD_LETTER_TABLE;
+        return $this->tableManager->getTableName();
     }
 
     private function createDataBaseTable(): void
     {
-        $connection = $this->getConnection();
-        $schemaManager = $connection->createSchemaManager();
-
-        if ($this->doesDeadLetterTableExists()) {
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
             return;
         }
 
-        $table = new Table($this->getTableName());
-
-        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
-        $table->addColumn('failed_at', Types::DATETIME_MUTABLE);
-        $table->addColumn('payload', Types::TEXT);
-        $table->addColumn('headers', Types::TEXT);
-
-        $table->setPrimaryKey(['message_id']);
-        $table->addIndex(['failed_at']);
-
-        $schemaManager->createTable($table);
+        $this->tableManager->createTable($this->getConnection());
     }
 
     private function doesDeadLetterTableExists(): bool

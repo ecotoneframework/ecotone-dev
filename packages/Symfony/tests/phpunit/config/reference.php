@@ -300,7 +300,7 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
  *         },
  *     },
  *     translator?: bool|array{ // Translator configuration
- *         enabled?: bool, // Default: true
+ *         enabled?: bool, // Default: false
  *         fallbacks?: list<scalar|null>,
  *         logging?: bool, // Default: false
  *         formatter?: scalar|null, // Default: "translator.formatter.default"

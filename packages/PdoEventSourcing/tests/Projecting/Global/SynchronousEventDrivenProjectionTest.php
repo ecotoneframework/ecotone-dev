@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -12,6 +13,7 @@ use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -22,6 +24,7 @@ use Ecotone\Test\LicenceTesting;
 
 use function get_class;
 
+use stdClass;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\BasketMediaTypeConverter;
 use Test\Ecotone\EventSourcing\Fixture\Snapshots\TicketMediaTypeConverter;
@@ -32,6 +35,10 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Command\PlaceOrder;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasPlaced;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\EventsConverter;
+use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Order;
 use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
 /**
@@ -186,6 +193,132 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new RegisterTicket('124', 'Johnny', 'info'));
 
         self::assertEquals([['ticket_id' => '124', 'ticket_type' => 'info']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_building_global_projection_with_aggregate_stream_attribute(): void
+    {
+        $projection = $this->createOrderListProjectionWithAggregateStream();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [$projection::class, Order::class, EventsConverter::class],
+            containerOrAvailableServices: [$projection, new EventsConverter(), self::getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                ])),
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+        self::assertEquals([], $ecotone->sendQueryWithRouting('getOrders'));
+
+        $ecotone->sendCommand(new PlaceOrder('order-1', 'laptop', 2));
+        self::assertEquals([
+            ['order_id' => 'order-1', 'product' => 'laptop', 'quantity' => '2'],
+        ], $ecotone->sendQueryWithRouting('getOrders'));
+
+        $ecotone->sendCommand(new PlaceOrder('order-2', 'phone', 1));
+        self::assertEquals([
+            ['order_id' => 'order-1', 'product' => 'laptop', 'quantity' => '2'],
+            ['order_id' => 'order-2', 'product' => 'phone', 'quantity' => '1'],
+        ], $ecotone->sendQueryWithRouting('getOrders'));
+
+        // Test reset and catchup
+        $ecotone->resetProjection($projection::NAME)
+            ->triggerProjection($projection::NAME);
+
+        self::assertEquals([
+            ['order_id' => 'order-1', 'product' => 'laptop', 'quantity' => '2'],
+            ['order_id' => 'order-2', 'product' => 'phone', 'quantity' => '1'],
+        ], $ecotone->sendQueryWithRouting('getOrders'));
+    }
+
+    public function test_aggregate_stream_throws_exception_for_non_event_sourcing_aggregate(): void
+    {
+        // Create a projection that references a non-EventSourcingAggregate class
+        $projection = new #[ProjectionV2('invalid_projection'), FromAggregateStream(stdClass::class)] class {
+            #[EventHandler('*')]
+            public function handle(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('must be an EventSourcingAggregate');
+
+        EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [$projection::class],
+            containerOrAvailableServices: [$projection, self::getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                ])),
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    private function createOrderListProjectionWithAggregateStream(): object
+    {
+        $connection = $this->getConnection();
+
+        return new #[ProjectionV2(self::NAME), FromAggregateStream(Order::class)] class ($connection) {
+            public const NAME = 'order_list_aggregate_stream';
+
+            public function __construct(private Connection $connection)
+            {
+            }
+
+            #[QueryHandler('getOrders')]
+            public function getOrders(): array
+            {
+                return $this->connection->executeQuery(<<<SQL
+                        SELECT * FROM order_list_aggregate_stream ORDER BY order_id ASC
+                    SQL)->fetchAllAssociative();
+            }
+
+            #[EventHandler]
+            public function addOrder(OrderWasPlaced $event): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        INSERT INTO order_list_aggregate_stream VALUES (?,?,?)
+                    SQL, [$event->orderId, $event->product, $event->quantity]);
+            }
+
+            #[ProjectionInitialization]
+            public function initialization(): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        CREATE TABLE IF NOT EXISTS order_list_aggregate_stream (
+                            order_id VARCHAR(36) PRIMARY KEY,
+                            product VARCHAR(255),
+                            quantity INT
+                        )
+                    SQL);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        DROP TABLE IF EXISTS order_list_aggregate_stream
+                    SQL);
+            }
+
+            #[ProjectionReset]
+            public function reset(): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        DELETE FROM order_list_aggregate_stream
+                    SQL);
+            }
+        };
     }
 
     private function createNotificationEventHandler(): object

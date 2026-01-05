@@ -2,14 +2,14 @@
 
 namespace Test\Ecotone\Dbal\Integration\DocumentStore;
 
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
-use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\Type;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentStore;
-use Ecotone\Test\InMemoryConversionService;
+use Enqueue\Dbal\DbalConnectionFactory;
 
 use function json_decode;
 use function json_encode;
@@ -26,11 +26,22 @@ use Test\Ecotone\Dbal\DbalMessagingTestCase;
  */
 final class DbalDocumentStoreTest extends DbalMessagingTestCase
 {
-    private CachedConnectionFactory $cachedConnectionFactory;
+    public function setUp(): void
+    {
+        parent::setUp();
+        $this->cleanUpTables();
+    }
+
+    public function tearDown(): void
+    {
+        parent::tearDown();
+        $this->cleanUpTables();
+    }
 
     public function test_adding_document_to_collection()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
@@ -42,7 +53,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_finding_document_to_collection()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->assertNull($documentStore->findDocument('users', '123'));
 
@@ -53,7 +65,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_updating_document()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
@@ -65,7 +78,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_updating_document_with_same_content()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
@@ -77,25 +91,36 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_adding_document_as_object_should_return_object()
     {
-        $documentStore = new DbalDocumentStore(
-            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
-            true,
-            InMemoryConversionService::createWithConversion(
-                new stdClass(),
-                MediaType::APPLICATION_X_PHP,
-                stdClass::class,
-                MediaType::APPLICATION_JSON,
-                Type::STRING,
-                '{"name":"johny"}'
-            )->registerConversion(
-                '{"name": "johny"}',
-                MediaType::APPLICATION_JSON,
-                Type::STRING,
-                MediaType::APPLICATION_X_PHP,
-                stdClass::class,
-                new stdClass()
-            )
+        $converter = new #[\Ecotone\Messaging\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
+            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
+            {
+                if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
+                    return '{"name":"johny"}';
+                }
+
+                return new stdClass();
+            }
+
+            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType): bool
+            {
+                return ($sourceType->toString() === 'stdClass'
+                        && $targetMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson()))
+                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson())
+                        && $targetType->toString() === 'stdClass');
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [get_class($converter)],
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withNamespaces([]),
+            pathToRootCatalog: __DIR__ . '/../../..',
+            addInMemoryStateStoredRepository: false,
         );
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
@@ -106,56 +131,80 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_adding_document_as_collection_of_objects_should_return_object()
     {
-        $document = [new stdClass(), new stdClass()];
-        $documentStore = new DbalDocumentStore(
-            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
-            true,
-            InMemoryConversionService::createWithConversion(
-                $document,
-                MediaType::APPLICATION_X_PHP,
-                Type::createCollection(stdClass::class),
-                MediaType::APPLICATION_JSON,
-                Type::STRING,
-                '[{"name":"johny"},{"name":"franco"}]'
-            )->registerConversion(
-                '[{"name": "johny"}, {"name": "franco"}]',
-                MediaType::APPLICATION_JSON,
-                Type::STRING,
-                MediaType::APPLICATION_X_PHP,
-                Type::createCollection(stdClass::class),
-                $document
-            )
+        $converter = new #[\Ecotone\Messaging\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
+            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
+            {
+                if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
+                    return '[{"name":"johny"},{"name":"franco"}]';
+                }
+
+                return [new stdClass(), new stdClass()];
+            }
+
+            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType): bool
+            {
+                return ($sourceType->toString() === 'array<stdClass>'
+                        && $targetMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson()))
+                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson())
+                        && $targetType->toString() === 'array<stdClass>');
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [get_class($converter)],
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withNamespaces([]),
+            pathToRootCatalog: __DIR__ . '/../../..',
+            addInMemoryStateStoredRepository: false,
         );
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
+
+        $document = [new stdClass(), new stdClass()];
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
         $documentStore->addDocument('users', '123', $document);
 
-        $this->assertEquals($document, $documentStore->getDocument('users', '123'));
+        $this->assertEquals([$document], $documentStore->getAllDocuments('users'));
     }
 
     public function test_adding_document_as_array_should_return_array()
     {
-        $document = [1, 2, 5];
-        $documentStore = new DbalDocumentStore(
-            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
-            true,
-            InMemoryConversionService::createWithConversion(
-                $document,
-                MediaType::APPLICATION_X_PHP,
-                Type::ARRAY,
-                MediaType::APPLICATION_JSON,
-                Type::STRING,
-                '[1,2,5]'
-            )->registerConversion(
-                '[1, 2, 5]',
-                MediaType::APPLICATION_JSON,
-                Type::STRING,
-                MediaType::APPLICATION_X_PHP,
-                Type::ARRAY,
-                $document
-            )
+        $converter = new #[\Ecotone\Messaging\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
+            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
+            {
+                if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
+                    return '[1,2,5]';
+                }
+
+                return [1, 2, 5];
+            }
+
+            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType): bool
+            {
+                return ($sourceType->isIterable() && ! $sourceType->isClassOrInterface()
+                        && $targetMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson()))
+                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson())
+                        && $targetType->isIterable() && ! $targetType->isClassOrInterface());
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [get_class($converter)],
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withNamespaces([]),
+            pathToRootCatalog: __DIR__ . '/../../..',
+            addInMemoryStateStoredRepository: false,
         );
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
+
+        $document = [1, 2, 5];
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
@@ -166,7 +215,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_adding_non_json_document_should_fail()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
@@ -177,7 +227,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_deleting_document()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $documentStore->addDocument('users', '123', '{"name":"Johny"}');
         $documentStore->addDocument('companies', '123', '{"name":"Document Stores, INC."}');
@@ -193,7 +244,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_deleting_non_existing_document()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $documentStore->deleteDocument('users', '123');
 
@@ -202,7 +254,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_throwing_exception_if_looking_for_non_existing_document()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->expectException(DocumentException::class);
 
@@ -211,7 +264,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_throwing_exception_if_looking_for_previously_existing_document()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $documentStore->addDocument('users', '123', '{"name":"Johny"}');
         $documentStore->deleteDocument('users', '123');
@@ -223,7 +277,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_dropping_collection()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
         $documentStore->addDocument('users', '123', '{"name":"Johny"}');
         $documentStore->addDocument('users', '124', '{"name":"Johny"}');
         $documentStore->addDocument('companies', '123', '{"name":"Document Stores, INC."}');
@@ -237,7 +292,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_retrieving_whole_collection()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->assertEquals([], $documentStore->getAllDocuments('users'));
 
@@ -252,25 +308,36 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_retrieving_whole_collection_of_objects()
     {
-        $documentStore = new DbalDocumentStore(
-            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
-            true,
-            InMemoryConversionService::createWithConversion(
-                new stdClass(),
-                MediaType::APPLICATION_X_PHP,
-                stdClass::class,
-                MediaType::APPLICATION_JSON,
-                Type::STRING,
-                '{"name":"johny"}'
-            )->registerConversion(
-                '{"name": "johny"}',
-                MediaType::APPLICATION_JSON,
-                Type::STRING,
-                MediaType::APPLICATION_X_PHP,
-                stdClass::class,
-                new stdClass()
-            )
+        $converter = new #[\Ecotone\Messaging\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
+            public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
+            {
+                if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
+                    return '{"name":"johny"}';
+                }
+
+                return new stdClass();
+            }
+
+            public function matches(\Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType): bool
+            {
+                return ($sourceType->toString() === 'stdClass'
+                        && $targetMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson()))
+                    || ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationJson())
+                        && $targetType->toString() === 'stdClass');
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [get_class($converter)],
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withNamespaces([]),
+            pathToRootCatalog: __DIR__ . '/../../..',
+            addInMemoryStateStoredRepository: false,
         );
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
@@ -282,7 +349,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_dropping_non_existing_collection()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $documentStore->dropCollection('users');
 
@@ -291,7 +359,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_replacing_document()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
@@ -303,7 +372,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_upserting_new_document()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->assertEquals(0, $documentStore->countDocuments('users'));
 
@@ -314,7 +384,8 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_excepting_if_trying_to_add_document_twice()
     {
-        $documentStore = $this->getDocumentStore();
+        $ecotone = $this->bootstrapEcotone();
+        $documentStore = $ecotone->getGateway(DocumentStore::class);
 
         $this->expectException(DocumentException::class);
 
@@ -322,13 +393,31 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
         $documentStore->addDocument('users', '123', '{"name":"Johny Mac"}');
     }
 
-    private function getDocumentStore(): DocumentStore
+    private function bootstrapEcotone(): FlowTestSupport
     {
-        return new DbalDocumentStore(
-            CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->getConnectionFactory())),
-            true,
-            InMemoryConversionService::createWithoutConversion()
+        return EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withNamespaces([]),
+            pathToRootCatalog: __DIR__ . '/../../..',
+            addInMemoryStateStoredRepository: false,
         );
+    }
+
+    private function cleanUpTables(): void
+    {
+        $connection = $this->getConnection();
+        $schemaManager = method_exists($connection, 'createSchemaManager')
+            ? $connection->createSchemaManager()
+            : $connection->getSchemaManager();
+
+        foreach ($schemaManager->listTableNames() as $tableName) {
+            if ($tableName === DbalDocumentStore::ECOTONE_DOCUMENT_STORE) {
+                $schemaManager->dropTable($tableName);
+            }
+        }
     }
 
     private function assertJsons(string $expectedJson, string $givenJson): void

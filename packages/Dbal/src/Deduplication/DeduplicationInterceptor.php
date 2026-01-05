@@ -4,8 +4,8 @@ namespace Ecotone\Dbal\Deduplication;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
@@ -27,11 +27,6 @@ use function spl_object_id;
 use Throwable;
 
 /**
- * Class DbalTransactionInterceptor
- * @package Ecotone\Amqp\DbalTransaction
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
-/**
  * licence Apache-2.0
  */
 class DeduplicationInterceptor
@@ -40,8 +35,15 @@ class DeduplicationInterceptor
     private array $initialized = [];
     private Duration $minimumTimeToRemoveMessage;
 
-    public function __construct(private ConnectionFactory $connection, private EcotoneClockInterface $clock, int $minimumTimeToRemoveMessageInMilliseconds, private int $deduplicationRemovalBatchSize, private LoggingGateway $logger, private ExpressionEvaluationService $expressionEvaluationService)
-    {
+    public function __construct(
+        private ConnectionFactory $connection,
+        private EcotoneClockInterface $clock,
+        int $minimumTimeToRemoveMessageInMilliseconds,
+        private int $deduplicationRemovalBatchSize,
+        private LoggingGateway $logger,
+        private ExpressionEvaluationService $expressionEvaluationService,
+        private DeduplicationTableManager $tableManager,
+    ) {
         $this->minimumTimeToRemoveMessage = Duration::milliseconds($minimumTimeToRemoveMessageInMilliseconds);
         if ($this->minimumTimeToRemoveMessage->isNegativeOrZero()) {
             throw new Exception('Minimum time to remove message must be greater than 0');
@@ -153,29 +155,17 @@ class DeduplicationInterceptor
 
     private function getTableName(): string
     {
-        return self::DEFAULT_DEDUPLICATION_TABLE;
+        return $this->tableManager->getTableName();
     }
 
     private function createDataBaseTable(ConnectionFactory $connectionFactory): void
     {
-        $connection = $this->getConnection($connectionFactory);
-        $schemaManager = $connection->createSchemaManager();
-
-        if ($schemaManager->tablesExist([$this->getTableName()])) {
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
             return;
         }
 
-        $table = new Table($this->getTableName());
-
-        $table->addColumn('message_id', Types::STRING, ['length' => 255]);
-        $table->addColumn('consumer_endpoint_id', Types::STRING, ['length' => 255]);
-        $table->addColumn('routing_slip', Types::STRING, ['length' => 255]);
-        $table->addColumn('handled_at', Types::BIGINT);
-
-        $table->setPrimaryKey(['message_id', 'consumer_endpoint_id', 'routing_slip']);
-        $table->addIndex(['handled_at']);
-
-        $schemaManager->createTable($table);
+        $connection = $this->getConnection($connectionFactory);
+        $this->tableManager->createTable($connection);
         $this->logger->info('Deduplication table was created');
     }
 

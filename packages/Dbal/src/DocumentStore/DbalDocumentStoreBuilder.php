@@ -2,6 +2,7 @@
 
 namespace Ecotone\Dbal\DocumentStore;
 
+use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -24,7 +25,7 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
     /**
      * @param ParameterConverterBuilder[] $methodParameterConverterBuilders
      */
-    public function __construct(protected string $inputMessageChannelName, private string $method, private bool $initializeDocumentStore, private string $connectionReferenceName, private bool $inMemoryEventStore, private InMemoryDocumentStore $inMemoryDocumentStore, private array $methodParameterConverterBuilders)
+    public function __construct(protected string $inputMessageChannelName, private string $method, private string $connectionReferenceName, private bool $inMemoryEventStore, private InMemoryDocumentStore $inMemoryDocumentStore, private array $methodParameterConverterBuilders)
     {
     }
 
@@ -45,8 +46,8 @@ final class DbalDocumentStoreBuilder extends InputOutputMessageHandlerBuilder
                             new Reference($this->connectionReferenceName),
                         ]),
                     ], 'createFor'),
-                    $this->initializeDocumentStore,
                     new Reference(ConversionService::REFERENCE_NAME),
+                    Reference::to(DocumentStoreTableManager::class),
                 ]);
 
             $builder->register($documentStoreReference, $documentStore);

@@ -4,6 +4,8 @@ namespace Ecotone\Dbal\Deduplication;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Database\DbalTableManagerReference;
+use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -62,6 +64,18 @@ class DeduplicationModule implements AnnotationModule
             $pointcut .= '||' . AsynchronousRunningEndpoint::class;
         }
 
+        $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled();
+
+        // Register the DeduplicationTableManager service
+        $messagingConfiguration->registerServiceDefinition(
+            DeduplicationTableManager::class,
+            new Definition(DeduplicationTableManager::class, [
+                DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE,
+                $isDeduplicatedEnabled,
+                $shouldAutoInitialize,
+            ])
+        );
+
         $messagingConfiguration->registerServiceDefinition(
             DeduplicationInterceptor::class,
             new Definition(
@@ -73,6 +87,7 @@ class DeduplicationModule implements AnnotationModule
                     $dbalConfiguration->deduplicationRemovalBatchSize(),
                     new Reference(LoggingGateway::class),
                     new Reference(ExpressionEvaluationService::REFERENCE),
+                    new Reference(DeduplicationTableManager::class),
                 ]
             )
         );
@@ -109,7 +124,9 @@ class DeduplicationModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [];
+        return [
+            new DbalTableManagerReference(DeduplicationTableManager::class),
+        ];
     }
 
     public function getModulePackageName(): string

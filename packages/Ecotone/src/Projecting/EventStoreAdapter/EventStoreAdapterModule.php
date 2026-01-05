@@ -40,7 +40,7 @@ class EventStoreAdapterModule implements AnnotationModule
         // Collect EventStoreChannelAdapter extension objects
         $channelAdapters = [];
         foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof EventStoreChannelAdapter) {
+            if ($extensionObject instanceof EventStreamingChannelAdapter) {
                 $channelAdapters[] = $extensionObject;
             }
         }
@@ -60,7 +60,7 @@ class EventStoreAdapterModule implements AnnotationModule
 
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof EventStoreChannelAdapter;
+        return $extensionObject instanceof EventStreamingChannelAdapter;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
@@ -68,11 +68,11 @@ class EventStoreAdapterModule implements AnnotationModule
         $extensions = [...$this->extensions];
 
         foreach ($serviceExtensions as $extensionObject) {
-            if (! ($extensionObject instanceof EventStoreChannelAdapter)) {
+            if (! ($extensionObject instanceof EventStreamingChannelAdapter)) {
                 continue;
             }
 
-            $extensions[] = new EventStoreChannelAdapterProjectionBuilder($extensionObject);
+            $extensions[] = new EventStoreStreamingChannelAdapterBuilder($extensionObject);
         }
 
         return $extensions;

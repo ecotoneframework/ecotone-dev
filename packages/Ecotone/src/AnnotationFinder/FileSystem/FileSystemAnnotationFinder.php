@@ -208,14 +208,23 @@ class FileSystemAnnotationFinder implements AnnotationFinder
 
         $classesWithAnnotations = [];
         foreach ($this->registeredClasses as $class) {
-            $classAnnotation = $this->getAnnotationForClass($class, $annotationClassName);
-
-            if ($classAnnotation) {
+            if ($this->hasAnnotation($class, $annotationClassName)) {
                 $classesWithAnnotations[] = $class;
             }
         }
 
         return $classesWithAnnotations;
+    }
+
+    private function hasAnnotation(string $className, string $annotationClassNameToFind): bool
+    {
+        $annotationsForClass = $this->getAnnotationsForClass($className);
+        foreach ($annotationsForClass as $annotationForClass) {
+            if (is_a($annotationForClass, $annotationClassNameToFind)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private function getAnnotationForClass(string $className, string $annotationClassNameToFind): ?object
@@ -345,7 +354,7 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         return $registrations;
     }
 
-    private function isMethodBannedFromCurrentEnvironment(string $className, string $methodName)
+    private function isMethodBannedFromCurrentEnvironment(string $className, string $methodName): bool
     {
         return isset($this->bannedEnvironmentClassMethods[$className][$methodName]);
     }

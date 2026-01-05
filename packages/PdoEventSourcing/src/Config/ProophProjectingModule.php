@@ -40,6 +40,9 @@ use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 
 #[ModuleAnnotation]
+/**
+ * @phpstan-type ProjectionConfiguration array{projectionName: string, streamName: string, aggregateType: ?string, isPartitioned: bool, eventNames: array}
+ */
 class ProophProjectingModule implements AnnotationModule
 {
     /**
@@ -66,7 +69,7 @@ class ProophProjectingModule implements AnnotationModule
 
         $resolvedConfigs = [
             ...self::resolveFromStreamConfigs($annotationRegistrationService, $projectionEventNames),
-            ...self::resolveFromAggregateStreamConfigs($annotationRegistrationService, $projectionEventNames),
+            ...self::resolveFromAggregateStream($annotationRegistrationService, $projectionEventNames),
         ];
 
         foreach ($resolvedConfigs as $config) {
@@ -88,7 +91,7 @@ class ProophProjectingModule implements AnnotationModule
     /**
      * Resolve stream configurations from FromStream attributes.
      *
-     * @return array<array{projectionName: string, streamName: string, aggregateType: ?string, isPartitioned: bool, eventNames: array}>
+     * @return list<ProjectionConfiguration>
      */
     private static function resolveFromStreamConfigs(
         AnnotationFinder $annotationRegistrationService,
@@ -96,26 +99,30 @@ class ProophProjectingModule implements AnnotationModule
     ): array {
         $configs = [];
 
-        foreach ($annotationRegistrationService->findAnnotatedClasses(FromStream::class) as $classname) {
-            $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
-            $streamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromStream::class);
+        foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $classname) {
+            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($classname, ProjectionV2::class);
+            $aggregateStreamAttributes = $annotationRegistrationService->getAnnotationsForClass($classname, FromAggregateStream::class);
+            $streamAttributes = [
+                ...$annotationRegistrationService->getAnnotationsForClass($classname, FromStream::class),
+                ...array_map(fn (FromAggregateStream $attribute) => self::resolveFromAggregateStream($annotationRegistrationService, $attribute, $projectionAttribute->name), $aggregateStreamAttributes)
+            ];
             $partitionedAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
 
-            if (! $projectionAttribute || ! $streamAttribute) {
+            if (empty($streamAttributes)) {
                 continue;
             }
 
             $projectionName = $projectionAttribute->name;
             $isPartitioned = $partitionedAttribute !== null;
 
-            if ($isPartitioned && ! $streamAttribute->aggregateType) {
+            if ($isPartitioned && ! $streamAttributes->aggregateType) {
                 throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
             }
 
             $configs[] = [
                 'projectionName' => $projectionName,
-                'streamName' => $streamAttribute->stream,
-                'aggregateType' => $streamAttribute->aggregateType,
+                'streamName' => $streamAttributes->stream,
+                'aggregateType' => $streamAttributes->aggregateType,
                 'isPartitioned' => $isPartitioned,
                 'eventNames' => $projectionEventNames[$projectionName] ?? [],
             ];
@@ -126,54 +133,32 @@ class ProophProjectingModule implements AnnotationModule
 
     /**
      * Resolve stream configurations from FromAggregateStream attributes.
-     *
-     * @return array<array{projectionName: string, streamName: string, aggregateType: ?string, isPartitioned: bool, eventNames: array}>
      */
-    private static function resolveFromAggregateStreamConfigs(
+    private static function resolveFromAggregateStream(
         AnnotationFinder $annotationRegistrationService,
-        array $projectionEventNames
-    ): array {
-        $configs = [];
+        FromAggregateStream $aggregateStreamAttribute,
+        string $projectionName
+    ): FromStream {
+        $aggregateClass = $aggregateStreamAttribute->aggregateClass;
 
-        foreach ($annotationRegistrationService->findAnnotatedClasses(FromAggregateStream::class) as $classname) {
-            $projectionAttribute = $annotationRegistrationService->findAttributeForClass($classname, ProjectionV2::class);
-            $aggregateStreamAttribute = $annotationRegistrationService->findAttributeForClass($classname, FromAggregateStream::class);
-            $partitionedAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
-
-            if (! $projectionAttribute || ! $aggregateStreamAttribute) {
-                continue;
-            }
-
-            $aggregateClass = $aggregateStreamAttribute->aggregateClass;
-            $projectionName = $projectionAttribute->name;
-
-            $eventSourcingAggregateAttribute = $annotationRegistrationService->findAttributeForClass($aggregateClass, EventSourcingAggregate::class);
-            if ($eventSourcingAggregateAttribute === null) {
-                throw ConfigurationException::create("Class {$aggregateClass} referenced in #[AggregateStream] for projection {$projectionName} must be an EventSourcingAggregate. Add #[EventSourcingAggregate] attribute to the class.");
-            }
-
-            $streamAttribute = $annotationRegistrationService->findAttributeForClass($aggregateClass, Stream::class);
-            $streamName = $streamAttribute?->getName() ?? $aggregateClass;
-
-            $aggregateTypeAttribute = $annotationRegistrationService->findAttributeForClass($aggregateClass, AggregateType::class);
-            $aggregateType = $aggregateTypeAttribute?->getName() ?? $aggregateClass;
-
-            $configs[] = [
-                'projectionName' => $projectionName,
-                'streamName' => $streamName,
-                'aggregateType' => $aggregateType,
-                'isPartitioned' => $partitionedAttribute !== null,
-                'eventNames' => $projectionEventNames[$projectionName] ?? [],
-            ];
+        $eventSourcingAggregateAttribute = $annotationRegistrationService->findAttributeForClass($aggregateClass, EventSourcingAggregate::class);
+        if ($eventSourcingAggregateAttribute === null) {
+            throw ConfigurationException::create("Class {$aggregateClass} referenced in #[AggregateStream] for projection {$projectionName} must be an EventSourcingAggregate. Add #[EventSourcingAggregate] attribute to the class.");
         }
 
-        return $configs;
+        $streamAttribute = $annotationRegistrationService->findAttributeForClass($aggregateClass, Stream::class);
+        $streamName = $streamAttribute?->getName() ?? $aggregateClass;
+
+        $aggregateTypeAttribute = $annotationRegistrationService->findAttributeForClass($aggregateClass, AggregateType::class);
+        $aggregateType = $aggregateTypeAttribute?->getName() ?? $aggregateClass;
+
+        return new FromStream($streamName, $aggregateType, $aggregateStreamAttribute->eventStoreReferenceName);
     }
 
     /**
      * Create stream source extensions based on resolved configuration.
      *
-     * @param array{projectionName: string, streamName: string, aggregateType: ?string, isPartitioned: bool, eventNames: array} $config
+     * @param ProjectionConfiguration $config
      * @return ProjectionComponentBuilder[]
      */
     private static function createStreamSourceExtensions(array $config): array

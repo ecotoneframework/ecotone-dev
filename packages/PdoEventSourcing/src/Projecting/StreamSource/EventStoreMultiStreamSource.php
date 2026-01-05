@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 
@@ -23,8 +22,6 @@ class EventStoreMultiStreamSource implements StreamSource
 
     public function load(?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
     {
-        Assert::null($partitionKey, 'Partition key is not supported for EventStoreMultiStreamSource');
-
         $positions = $this->decodePositions($lastPosition);
 
         $orderIndex = [];

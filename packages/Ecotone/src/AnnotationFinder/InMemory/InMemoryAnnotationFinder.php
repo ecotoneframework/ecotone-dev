@@ -313,4 +313,9 @@ class InMemoryAnnotationFinder implements AnnotationFinder
 
         return false;
     }
+
+    public function getAttributesForClass(string $className, string $attributeClassName): array
+    {
+        // TODO: Implement getAttributesForClass() method.
+    }
 }

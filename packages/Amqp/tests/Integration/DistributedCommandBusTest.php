@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\DistributedBus;
+use Exception;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Interceptor\CustomDistributedBusInterceptor;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher\UserService;
@@ -102,11 +103,11 @@ final class DistributedCommandBusTest extends AmqpMessagingTestCase
         $context = $this->getCachedConnectionFactory()->createContext();
         try {
             $context->deleteTopic($context->createTopic(AmqpDistributionModule::AMQP_DISTRIBUTED_EXCHANGE));
-        } catch (\Exception) {
+        } catch (Exception) {
             // Exchange may not exist
         }
 
-        $publisherConfiguration = new class {
+        $publisherConfiguration = new class () {
             #[ServiceContext]
             public function registerPublisher(): AmqpDistributedBusConfiguration
             {
@@ -130,7 +131,7 @@ final class DistributedCommandBusTest extends AmqpMessagingTestCase
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
-        $this->expectException(\Exception::class);
+        $this->expectException(Exception::class);
 
         /** @var DistributedBus $distributedBus */
         $distributedBus = $userService->getGateway(DistributedBus::class);

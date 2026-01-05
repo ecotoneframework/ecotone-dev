@@ -26,7 +26,7 @@ use Ecotone\Modelling\Attribute\EventSourcingAggregate;
  *
  * licence Enterprise
  */
-#[Attribute(Attribute::TARGET_CLASS)]
+#[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
 class FromAggregateStream
 {
     /**

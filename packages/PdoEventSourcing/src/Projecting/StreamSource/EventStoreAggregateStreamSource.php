@@ -34,6 +34,10 @@ class EventStoreAggregateStreamSource implements StreamSource
     {
         Assert::notNull($partitionKey, 'Partition key cannot be null for aggregate stream source');
 
+        if (! $this->eventStore->hasStream($this->streamName)) {
+            return new StreamPage([], $lastPosition ?? '');
+        }
+
         $metadataMatcher = new MetadataMatcher();
         if ($this->aggregateType !== null) {
             // @todo: watch out ! Prooph's event store has an index on (aggregate_type, aggregate_id). Not adding aggregate type here will result in a full table scan
@@ -73,11 +77,11 @@ class EventStoreAggregateStreamSource implements StreamSource
         return new StreamPage($events, $this->createPositionFrom($lastPosition, $events));
     }
 
-    private function createPositionFrom(?string $lastPosition, array $events): ?string
+    private function createPositionFrom(?string $lastPosition, array $events): string
     {
         $lastEvent = end($events);
         if ($lastEvent === false) {
-            return $lastPosition;
+            return $lastPosition ?? '';
         }
         return (string) $lastEvent->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? throw new RuntimeException('Last event does not have aggregate version');
     }

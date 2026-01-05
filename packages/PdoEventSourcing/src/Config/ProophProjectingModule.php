@@ -88,6 +88,7 @@ class ProophProjectingModule implements AnnotationModule
     ): array
     {
         $extensions = [];
+        $partitionProviders = [];
 
         foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $classname) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($classname, ProjectionV2::class);
@@ -113,13 +114,14 @@ class ProophProjectingModule implements AnnotationModule
                     throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
                 }
                 if ($isPartitioned) {
-                    $sources[$streamAttribute->stream.'.'.$streamAttribute->aggregateType] = new EventStoreAggregateStreamSourceBuilder(
+                    $sourceIdentifier = $streamAttribute->stream.'.'.$streamAttribute->aggregateType;
+                    $sources[$sourceIdentifier] = new EventStoreAggregateStreamSourceBuilder(
                         $projectionName,
                         $streamAttribute->aggregateType,
                         $streamAttribute->stream,
                         $projectionEventNames[$projectionName] ?? [],
                     );
-                    $extensions[] = new AggregateIdPartitionProviderBuilder(
+                    $partitionProviders[$streamAttribute->stream] ??= new AggregateIdPartitionProviderBuilder(
                         $projectionName,
                         $streamAttribute->aggregateType,
                         $streamAttribute->stream,
@@ -139,6 +141,7 @@ class ProophProjectingModule implements AnnotationModule
             } else {
                 $extensions[] = current($sources);
             }
+            $extensions = [...$extensions, ...array_values($partitionProviders)];
         }
 
         return $extensions;

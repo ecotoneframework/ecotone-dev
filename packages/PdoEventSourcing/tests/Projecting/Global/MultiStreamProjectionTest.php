@@ -43,6 +43,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             ->initializeProjection($projection::NAME);
 
         $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Calendar with id cal-build-1 not found');
         $ecotone->sendQueryWithRouting('getCalendar', 'cal-build-1');
 
         // create calendar and schedule meeting to drive projection entries
@@ -88,6 +89,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         // delete projection (in-memory)
         $ecotone->deleteProjection($projection::NAME);
         $this->expectException(\RuntimeException::class);
+        $this->expectExceptionMessage('Calendar with id cal-reset-1 not found');
         $ecotone->sendQueryWithRouting('getCalendar', $calendarId);
     }
 

@@ -13,6 +13,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\PdoStreamTableNameProvider;
+use Ecotone\EventSourcing\Projecting\StreamEvent;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
@@ -81,14 +82,15 @@ class EventStoreGlobalStreamSource implements StreamSource
         $now = $this->clock->now();
         $cutoffTimestamp = $this->gapTimeout ? $now->sub($this->gapTimeout)->getTimestamp() : 0;
         foreach ($query->iterateAssociative() as $event) {
-            $events[] = Event::createWithType(
+            $events[] = $event = new StreamEvent(
                 $event['event_name'],
                 json_decode($event['payload'], true),
                 json_decode($event['metadata'], true),
+                (int) $event['no'],
+                $this->getTimestamp($event['created_at'])
             );
-            $timestamp = $this->getTimestamp($event['created_at']);
-            $insertGaps = $timestamp > $cutoffTimestamp;
-            $tracking->advanceTo((int) $event['no'], $insertGaps);
+            $insertGaps = $event->timestamp > $cutoffTimestamp;
+            $tracking->advanceTo($event->no, $insertGaps);
         }
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);

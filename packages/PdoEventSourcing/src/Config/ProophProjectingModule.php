@@ -85,8 +85,7 @@ class ProophProjectingModule implements AnnotationModule
     private static function resolveConfigs(
         AnnotationFinder $annotationRegistrationService,
         array            $projectionEventNames
-    ): array
-    {
+    ): array {
         $extensions = [];
         $partitionProviders = [];
 
@@ -95,9 +94,9 @@ class ProophProjectingModule implements AnnotationModule
             $streamAttributes = [
                 ...$annotationRegistrationService->getAnnotationsForClass($classname, FromStream::class),
                 ...\array_map(
-                    fn(FromAggregateStream $aggregateStreamAttribute) => self::resolveFromAggregateStream($annotationRegistrationService, $aggregateStreamAttribute, $projectionAttribute->name),
+                    fn (FromAggregateStream $aggregateStreamAttribute) => self::resolveFromAggregateStream($annotationRegistrationService, $aggregateStreamAttribute, $projectionAttribute->name),
                     $annotationRegistrationService->getAnnotationsForClass($classname, FromAggregateStream::class)
-                )
+                ),
             ];
             $partitionedAttribute = $annotationRegistrationService->findAttributeForClass($classname, Partitioned::class);
 

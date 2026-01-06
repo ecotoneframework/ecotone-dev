@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Attribute;
 
 use Attribute;
-use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 
 /*

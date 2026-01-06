@@ -6,7 +6,7 @@ use Ecotone\Messaging\Handler\Type;
 
 /**
  * licence Apache-2.0
- * 
+ *
  * @template TMethodAttribute of object
  */
 interface AnnotatedFinding

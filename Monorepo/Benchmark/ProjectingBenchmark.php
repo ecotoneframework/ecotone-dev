@@ -174,7 +174,7 @@ class ProjectingBenchmark
         Assert::assertEquals([],
             self::$ecotone->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])
         );
-        $projectionManager->backfill();
+        $projectionManager->prepareBackfill();
         Assert::assertEquals([
             new PriceChange(100, 0),
             new PriceChange(120, 20),

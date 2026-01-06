@@ -8,11 +8,14 @@ declare(strict_types=1);
 namespace Ecotone\Projecting;
 
 use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
+use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use InvalidArgumentException;
 use Throwable;
 
 class ProjectingManager
 {
+    private const DEFAULT_BACKFILL_BATCH_SIZE = 100;
+
     public function __construct(
         private ProjectionStateStorage $projectionStateStorage,
         private ProjectorExecutor      $projectorExecutor,
@@ -20,11 +23,16 @@ class ProjectingManager
         private PartitionProvider      $partitionProvider,
         private string                 $projectionName,
         private TerminationListener    $terminationListener,
+        private MessagingEntrypoint    $messagingEntrypoint,
         private int                    $batchSize = 1000,
         private bool                   $automaticInitialization = true,
+        private int                    $backfillBatchSize = self::DEFAULT_BACKFILL_BATCH_SIZE,
     ) {
         if ($batchSize < 1) {
             throw new InvalidArgumentException('Batch size must be at least 1');
+        }
+        if ($backfillBatchSize < 1) {
+            throw new InvalidArgumentException('Backfill batch size must be at least 1');
         }
     }
 
@@ -83,6 +91,16 @@ class ProjectingManager
         return $this->projectionStateStorage->loadPartition($this->projectionName, $partitionKey);
     }
 
+    public function getPartitionProvider(): PartitionProvider
+    {
+        return $this->partitionProvider;
+    }
+
+    public function getProjectionName(): string
+    {
+        return $this->projectionName;
+    }
+
     public function init(): void
     {
         $this->projectionStateStorage->init($this->projectionName);
@@ -97,14 +115,41 @@ class ProjectingManager
         $this->projectorExecutor->delete();
     }
 
+    /**
+     * Prepares backfill by calculating batches and sending messages to BackfillExecutorHandler.
+     * Each batch message contains a limit and offset for processing a subset of partitions.
+     * This enables the backfill to be executed synchronously or asynchronously depending on configuration.
+     */
+    public function prepareBackfill(): void
+    {
+        $totalPartitions = $this->partitionProvider->count();
+
+        if ($totalPartitions === 0) {
+            return;
+        }
+
+        $numberOfBatches = (int) ceil($totalPartitions / $this->backfillBatchSize);
+
+        for ($batch = 0; $batch < $numberOfBatches; $batch++) {
+            $offset = $batch * $this->backfillBatchSize;
+
+            $this->messagingEntrypoint->sendWithHeaders(
+                $this->projectionName,
+                [
+                    'backfill.limit' => $this->backfillBatchSize,
+                    'backfill.offset' => $offset,
+                ],
+                BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL
+            );
+        }
+    }
+
+    /**
+     * @deprecated Use prepareBackfill() instead. This method is kept for backward compatibility.
+     */
     public function backfill(): void
     {
-        foreach ($this->partitionProvider->partitions() as $partition) {
-            $this->execute($partition, true);
-            if ($this->terminationListener->shouldTerminate()) {
-                break;
-            }
-        }
+        $this->prepareBackfill();
     }
 
     private function loadOrInitializePartitionState(?string $partitionKey, bool $canInitialize): ?ProjectionPartitionState

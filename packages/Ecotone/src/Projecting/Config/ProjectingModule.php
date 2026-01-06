@@ -20,13 +20,16 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\Interceptor\TerminationListener;
+use Ecotone\Messaging\Gateway\MessagingEntrypoint;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
+use Ecotone\Projecting\BackfillExecutorHandler;
 use Ecotone\Projecting\InMemory\InMemoryProjectionRegistry;
-use Ecotone\Projecting\NullPartitionProvider;
+use Ecotone\Projecting\SinglePartitionProvider;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\ProjectingHeaders;
 use Ecotone\Projecting\ProjectingManager;
@@ -97,11 +100,13 @@ class ProjectingModule implements AnnotationModule
                     $components[$projectionName][ProjectionStateStorage::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have projection state storage configured. Please check your configuration."),
                     new Reference($reference),
                     $components[$projectionName][StreamSource::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have stream source configured. Please check your configuration."),
-                    $components[$projectionName][PartitionProvider::class] ?? new Definition(NullPartitionProvider::class),
+                    $components[$projectionName][PartitionProvider::class] ?? new Definition(SinglePartitionProvider::class),
                     $projectionName,
                     new Reference(TerminationListener::class),
+                    new Reference(MessagingEntrypoint::class),
                     $projectionBuilder->batchSize(), // batchSize
                     $projectionBuilder->automaticInitialization(),
+                    100, // backfillBatchSize - default value, can be made configurable via #[Backfill] attribute
                 ])
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);
@@ -140,6 +145,32 @@ class ProjectingModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(
             ProjectionRegistry::class,
             new Definition(InMemoryProjectionRegistry::class, [$projectionRegistryMap])
+        );
+
+        // Register BackfillExecutorHandler and its message handler
+        $messagingConfiguration->registerServiceDefinition(
+            BackfillExecutorHandler::class,
+            new Definition(BackfillExecutorHandler::class, [
+                new Reference(ProjectionRegistry::class),
+                new Reference(TerminationListener::class),
+            ])
+        );
+
+        $messagingConfiguration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::create()
+                ->chainInterceptedProcessor(
+                    MethodInvokerBuilder::create(
+                        BackfillExecutorHandler::class,
+                        InterfaceToCallReference::create(BackfillExecutorHandler::class, 'executeBackfillBatch'),
+                        [
+                            PayloadBuilder::create('projectionName'),
+                            HeaderBuilder::createOptional('limit', 'backfill.limit'),
+                            HeaderBuilder::createOptional('offset', 'backfill.offset'),
+                        ],
+                    )
+                )
+                ->withEndpointId('backfill_executor_handler')
+                ->withInputChannelName(BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL)
         );
 
         // Register console commands

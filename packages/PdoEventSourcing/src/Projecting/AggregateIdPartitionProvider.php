@@ -27,13 +27,50 @@ class AggregateIdPartitionProvider implements PartitionProvider
     ) {
     }
 
-    public function partitions(): iterable
+    public function count(): int
     {
         $connection = $this->getConnection();
         $platform = $connection->getDatabasePlatform();
 
         // Resolve table name at runtime using the provider
         $streamTable = $this->tableNameProvider->generateTableNameForStream($this->streamName);
+
+        // Build platform-specific count query
+        if ($platform instanceof PostgreSQLPlatform) {
+            // PostgreSQL: Use JSONB operators
+            $result = $connection->executeQuery(<<<SQL
+                SELECT COUNT(DISTINCT metadata->>'_aggregate_id')
+                FROM {$streamTable}
+                WHERE metadata->>'_aggregate_type' = ?
+                SQL, [$this->aggregateType]);
+        } elseif ($platform instanceof MySQLPlatform || $platform instanceof MariaDBPlatform) {
+            // MySQL/MariaDB: Use generated indexed columns for better performance
+            $result = $connection->executeQuery(<<<SQL
+                SELECT COUNT(DISTINCT aggregate_id)
+                FROM {$streamTable}
+                WHERE aggregate_type = ?
+                SQL, [$this->aggregateType]);
+        } else {
+            throw new RuntimeException('Unsupported database platform: ' . get_class($platform));
+        }
+
+        return (int) $result->fetchOne();
+    }
+
+    public function partitions(?int $limit = null, int $offset = 0): iterable
+    {
+        $connection = $this->getConnection();
+        $platform = $connection->getDatabasePlatform();
+
+        // Resolve table name at runtime using the provider
+        $streamTable = $this->tableNameProvider->generateTableNameForStream($this->streamName);
+
+        // Build pagination clause
+        $limitClause = '';
+        if ($limit !== null) {
+            $limitClause = " LIMIT {$limit}";
+        }
+        $offsetClause = $offset > 0 ? " OFFSET {$offset}" : '';
 
         // Build platform-specific query
         if ($platform instanceof PostgreSQLPlatform) {
@@ -42,6 +79,8 @@ class AggregateIdPartitionProvider implements PartitionProvider
                 SELECT DISTINCT metadata->>'_aggregate_id' AS aggregate_id
                 FROM {$streamTable}
                 WHERE metadata->>'_aggregate_type' = ?
+                ORDER BY aggregate_id
+                {$limitClause}{$offsetClause}
                 SQL, [$this->aggregateType]);
         } elseif ($platform instanceof MySQLPlatform || $platform instanceof MariaDBPlatform) {
             // MySQL/MariaDB: Use generated indexed columns for better performance
@@ -49,6 +88,8 @@ class AggregateIdPartitionProvider implements PartitionProvider
                 SELECT DISTINCT aggregate_id
                 FROM {$streamTable}
                 WHERE aggregate_type = ?
+                ORDER BY aggregate_id
+                {$limitClause}{$offsetClause}
                 SQL, [$this->aggregateType]);
         } else {
             throw new RuntimeException('Unsupported database platform: ' . get_class($platform));

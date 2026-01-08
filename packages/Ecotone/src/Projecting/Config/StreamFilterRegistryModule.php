@@ -68,6 +68,12 @@ class StreamFilterRegistryModule implements AnnotationModule
             foreach ($annotationFinder->getAnnotationsForClass($classname, FromAggregateStream::class) as $aggregateStreamAttribute) {
                 $streamFilters[$projectionName][] = self::resolveFromAggregateStream($annotationFinder, $aggregateStreamAttribute, $projectionName);
             }
+
+            if (! isset($streamFilters[$projectionName]) || $streamFilters[$projectionName] === []) {
+                throw ConfigurationException::create(
+                    "Projection '{$projectionName}' must have at least one #[FromStream] or #[FromAggregateStream] attribute defined on class {$classname}."
+                );
+            }
         }
 
         return $streamFilters;

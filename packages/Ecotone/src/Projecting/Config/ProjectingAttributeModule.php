@@ -34,6 +34,7 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\Polling;
+use Ecotone\Projecting\Attribute\ProjectionBackfill;
 use Ecotone\Projecting\Attribute\ProjectionBatchSize;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
@@ -78,6 +79,7 @@ class ProjectingAttributeModule implements AnnotationModule
         foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, ProjectionV2::class);
             $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBatchSize::class);
+            $backfillAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBackfill::class);
             $pollingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Polling::class);
             $streamingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Streaming::class);
             $projectionDeployment = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionDeployment::class);
@@ -88,7 +90,15 @@ class ProjectingAttributeModule implements AnnotationModule
             $automaticInitialization = self::resolveAutomaticInitialization($partitionAttribute, $projectionDeployment);
             $isLive = $projectionDeployment?->live ?? true;
 
-            $projectionBuilder = new EcotoneProjectionExecutorBuilder($projectionAttribute->name, $partitionHeaderName, $automaticInitialization, $isLive, $namedEvents, batchSize: $batchSizeAttribute?->batchSize);
+            $projectionBuilder = new EcotoneProjectionExecutorBuilder(
+                $projectionAttribute->name,
+                $partitionHeaderName,
+                $automaticInitialization,
+                $isLive,
+                $namedEvents,
+                eventLoadingBatchSize: $batchSizeAttribute?->eventLoadingBatchSize,
+                backfillPartitionBatchSize: $backfillAttribute?->backfillPartitionBatchSize,
+            );
 
             $asynchronousChannelName = self::getProjectionAsynchronousChannel($annotationRegistrationService, $projectionClassName);
             $isPolling = $pollingAttribute !== null;

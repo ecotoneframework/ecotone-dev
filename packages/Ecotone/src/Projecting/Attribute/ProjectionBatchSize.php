@@ -12,7 +12,14 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 class ProjectionBatchSize
 {
-    public function __construct(public readonly int $batchSize)
+    public function __construct(
+        /**
+         * Configure the batch size for loading events during projection execution.
+         * * This controls how many events are loaded from the stream in a single batch.
+
+         */
+        public readonly int $eventLoadingBatchSize
+    )
     {
     }
 }

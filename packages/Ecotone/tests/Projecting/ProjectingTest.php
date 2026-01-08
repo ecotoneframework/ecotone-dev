@@ -592,7 +592,7 @@ class ProjectingTest extends TestCase
     #[RequiresPhpExtension('posix')]
     public function test_pcntl_signals_handling(): void
     {
-        $projection = new #[ProjectionV2('signals_projection'), ProjectionBatchSize(2)] class () {
+        $projection = new #[ProjectionV2('signals_projection'), ProjectionBatchSize(eventLoadingBatchSize: 2)] class () {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void

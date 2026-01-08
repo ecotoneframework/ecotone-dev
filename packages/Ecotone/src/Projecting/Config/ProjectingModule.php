@@ -106,9 +106,9 @@ class ProjectingModule implements AnnotationModule
                     $projectionName,
                     new Reference(TerminationListener::class),
                     new Reference(MessagingEntrypoint::class),
-                    $projectionBuilder->batchSize(), // batchSize
+                    $projectionBuilder->eventLoadingBatchSize(),
                     $projectionBuilder->automaticInitialization(),
-                    100, // backfillBatchSize - default value, can be made configurable via #[Backfill] attribute
+                    $projectionBuilder->backfillPartitionBatchSize(),
                 ])
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);

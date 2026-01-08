@@ -14,7 +14,7 @@ use Throwable;
 
 class ProjectingManager
 {
-    private const DEFAULT_BACKFILL_BATCH_SIZE = 100;
+    private const DEFAULT_BACKFILL_PARTITION_BATCH_SIZE = 100;
 
     public function __construct(
         private ProjectionStateStorage $projectionStateStorage,
@@ -25,15 +25,15 @@ class ProjectingManager
         private string                 $projectionName,
         private TerminationListener    $terminationListener,
         private MessagingEntrypoint    $messagingEntrypoint,
-        private int                    $batchSize = 1000,
+        private int                    $eventLoadingBatchSize = 1000,
         private bool                   $automaticInitialization = true,
-        private int                    $backfillBatchSize = self::DEFAULT_BACKFILL_BATCH_SIZE,
+        private int                    $backfillPartitionBatchSize = self::DEFAULT_BACKFILL_PARTITION_BATCH_SIZE,
     ) {
-        if ($batchSize < 1) {
-            throw new InvalidArgumentException('Batch size must be at least 1');
+        if ($eventLoadingBatchSize < 1) {
+            throw new InvalidArgumentException('Event loading batch size must be at least 1');
         }
-        if ($backfillBatchSize < 1) {
-            throw new InvalidArgumentException('Backfill batch size must be at least 1');
+        if ($backfillPartitionBatchSize < 1) {
+            throw new InvalidArgumentException('Backfill partition batch size must be at least 1');
         }
     }
 
@@ -57,7 +57,7 @@ class ProjectingManager
                 return 0;
             }
 
-            $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->batchSize, $partitionKeyValue);
+            $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->eventLoadingBatchSize, $partitionKeyValue);
 
             $userState = $projectionState->userState;
             $processedEvents = 0;
@@ -138,15 +138,15 @@ class ProjectingManager
             return;
         }
 
-        $numberOfBatches = (int) ceil($totalPartitions / $this->backfillBatchSize);
+        $numberOfBatches = (int) ceil($totalPartitions / $this->backfillPartitionBatchSize);
 
         for ($batch = 0; $batch < $numberOfBatches; $batch++) {
-            $offset = $batch * $this->backfillBatchSize;
+            $offset = $batch * $this->backfillPartitionBatchSize;
 
             $this->messagingEntrypoint->sendWithHeaders(
                 $this->projectionName,
                 [
-                    'backfill.limit' => $this->backfillBatchSize,
+                    'backfill.limit' => $this->backfillPartitionBatchSize,
                     'backfill.offset' => $offset,
                     'backfill.streamName' => $streamFilter->streamName,
                     'backfill.aggregateType' => $streamFilter->aggregateType,

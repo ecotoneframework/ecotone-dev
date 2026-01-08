@@ -109,6 +109,7 @@ class ProjectingModule implements AnnotationModule
                     $projectionBuilder->eventLoadingBatchSize(),
                     $projectionBuilder->automaticInitialization(),
                     $projectionBuilder->backfillPartitionBatchSize(),
+                    $projectionBuilder->backfillAsyncChannelName(),
                 ])
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);

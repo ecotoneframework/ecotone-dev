@@ -98,6 +98,7 @@ class ProjectingAttributeModule implements AnnotationModule
                 $namedEvents,
                 eventLoadingBatchSize: $batchSizeAttribute?->eventLoadingBatchSize,
                 backfillPartitionBatchSize: $backfillAttribute?->backfillPartitionBatchSize,
+                backfillAsyncChannelName: $backfillAttribute?->asyncChannelName,
             );
 
             $asynchronousChannelName = self::getProjectionAsynchronousChannel($annotationRegistrationService, $projectionClassName);

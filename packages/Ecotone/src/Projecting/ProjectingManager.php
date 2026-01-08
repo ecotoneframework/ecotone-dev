@@ -28,6 +28,7 @@ class ProjectingManager
         private int                    $eventLoadingBatchSize = 1000,
         private bool                   $automaticInitialization = true,
         private int                    $backfillPartitionBatchSize = self::DEFAULT_BACKFILL_PARTITION_BATCH_SIZE,
+        private ?string                $backfillAsyncChannelName = null,
     ) {
         if ($eventLoadingBatchSize < 1) {
             throw new InvalidArgumentException('Event loading batch size must be at least 1');
@@ -143,15 +144,31 @@ class ProjectingManager
         for ($batch = 0; $batch < $numberOfBatches; $batch++) {
             $offset = $batch * $this->backfillPartitionBatchSize;
 
+            $headers = [
+                'backfill.limit' => $this->backfillPartitionBatchSize,
+                'backfill.offset' => $offset,
+                'backfill.streamName' => $streamFilter->streamName,
+                'backfill.aggregateType' => $streamFilter->aggregateType,
+                'backfill.eventStoreReferenceName' => $streamFilter->eventStoreReferenceName,
+            ];
+
+            $this->sendBackfillMessage($headers);
+        }
+    }
+
+    private function sendBackfillMessage(array $headers): void
+    {
+        if ($this->backfillAsyncChannelName !== null) {
             $this->messagingEntrypoint->sendWithHeaders(
                 $this->projectionName,
-                [
-                    'backfill.limit' => $this->backfillPartitionBatchSize,
-                    'backfill.offset' => $offset,
-                    'backfill.streamName' => $streamFilter->streamName,
-                    'backfill.aggregateType' => $streamFilter->aggregateType,
-                    'backfill.eventStoreReferenceName' => $streamFilter->eventStoreReferenceName,
-                ],
+                $headers,
+                $this->backfillAsyncChannelName,
+                BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL
+            );
+        } else {
+            $this->messagingEntrypoint->sendWithHeaders(
+                $this->projectionName,
+                $headers,
                 BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL
             );
         }

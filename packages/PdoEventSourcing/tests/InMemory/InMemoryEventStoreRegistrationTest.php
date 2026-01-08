@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
+use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Converter;
@@ -24,8 +25,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
 {
     public function test_registers_in_memory_event_store_stream_source_when_pdo_event_sourcing_is_in_memory_mode(): void
     {
-        // Given a polling projection (polling projections read from stream sources)
-        $projection = new #[ProjectionV2('test_projection'), Polling('test_projection_poller')] class {
+        $projection = new #[ProjectionV2('test_projection'), Polling('test_projection_poller'), FromStream('test_stream')] class {
             public array $events = [];
             public int $callCount = 0;
 

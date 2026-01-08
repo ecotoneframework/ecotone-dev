@@ -55,6 +55,11 @@ class EventStoreStreamingChannelAdapterBuilder implements ProjectionExecutorBuil
         return 100; // Default value, streaming channel adapters don't support partitioned backfill
     }
 
+    public function backfillAsyncChannelName(): ?string
+    {
+        return null; // Streaming channel adapters don't support async backfill
+    }
+
     public function compile(MessagingContainerBuilder $builder): Definition|Reference
     {
         // Create the projection executor that forwards events to the streaming channel

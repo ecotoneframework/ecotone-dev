@@ -10,7 +10,7 @@ namespace Ecotone\Projecting\Attribute;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-class ProjectionBatchSize
+class ProjectionExecution
 {
     public function __construct(
         /**

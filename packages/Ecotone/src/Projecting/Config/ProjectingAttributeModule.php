@@ -35,7 +35,7 @@ use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionBackfill;
-use Ecotone\Projecting\Attribute\ProjectionBatchSize;
+use Ecotone\Projecting\Attribute\ProjectionExecution;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
@@ -78,7 +78,7 @@ class ProjectingAttributeModule implements AnnotationModule
         $eventStreamingProjections = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, ProjectionV2::class);
-            $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBatchSize::class);
+            $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionExecution::class);
             $backfillAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBackfill::class);
             $pollingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Polling::class);
             $streamingAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, Streaming::class);

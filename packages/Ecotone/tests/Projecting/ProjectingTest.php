@@ -21,7 +21,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionBatchSize;
+use Ecotone\Projecting\Attribute\ProjectionExecution;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
@@ -592,7 +592,7 @@ class ProjectingTest extends TestCase
     #[RequiresPhpExtension('posix')]
     public function test_pcntl_signals_handling(): void
     {
-        $projection = new #[ProjectionV2('signals_projection'), ProjectionBatchSize(eventLoadingBatchSize: 2)] class () {
+        $projection = new #[ProjectionV2('signals_projection'), ProjectionExecution(eventLoadingBatchSize: 2)] class () {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void

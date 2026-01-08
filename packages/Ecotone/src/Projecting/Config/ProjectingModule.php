@@ -35,6 +35,7 @@ use Ecotone\Projecting\ProjectingHeaders;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Projecting\ProjectionStateStorage;
+use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamSource;
 use Ramsey\Uuid\Uuid;
 
@@ -101,6 +102,7 @@ class ProjectingModule implements AnnotationModule
                     new Reference($reference),
                     $components[$projectionName][StreamSource::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have stream source configured. Please check your configuration."),
                     $components[$projectionName][PartitionProvider::class] ?? new Definition(SinglePartitionProvider::class),
+                    new Reference(StreamFilterRegistry::class),
                     $projectionName,
                     new Reference(TerminationListener::class),
                     new Reference(MessagingEntrypoint::class),
@@ -166,6 +168,9 @@ class ProjectingModule implements AnnotationModule
                             PayloadBuilder::create('projectionName'),
                             HeaderBuilder::createOptional('limit', 'backfill.limit'),
                             HeaderBuilder::createOptional('offset', 'backfill.offset'),
+                            HeaderBuilder::createOptional('streamName', 'backfill.streamName'),
+                            HeaderBuilder::createOptional('aggregateType', 'backfill.aggregateType'),
+                            HeaderBuilder::createOptional('eventStoreReferenceName', 'backfill.eventStoreReferenceName'),
                         ],
                     )
                 )

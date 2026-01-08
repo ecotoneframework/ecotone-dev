@@ -21,6 +21,7 @@ class ProjectingManager
         private ProjectorExecutor      $projectorExecutor,
         private StreamSource           $streamSource,
         private PartitionProvider      $partitionProvider,
+        private StreamFilterRegistry   $streamFilterRegistry,
         private string                 $projectionName,
         private TerminationListener    $terminationListener,
         private MessagingEntrypoint    $messagingEntrypoint,
@@ -122,7 +123,16 @@ class ProjectingManager
      */
     public function prepareBackfill(): void
     {
-        $totalPartitions = $this->partitionProvider->count();
+        $streamFilters = $this->streamFilterRegistry->provide($this->projectionName);
+
+        foreach ($streamFilters as $streamFilter) {
+            $this->prepareBackfillForFilter($streamFilter);
+        }
+    }
+
+    private function prepareBackfillForFilter(StreamFilter $streamFilter): void
+    {
+        $totalPartitions = $this->partitionProvider->count($streamFilter);
 
         if ($totalPartitions === 0) {
             return;
@@ -138,6 +148,9 @@ class ProjectingManager
                 [
                     'backfill.limit' => $this->backfillBatchSize,
                     'backfill.offset' => $offset,
+                    'backfill.streamName' => $streamFilter->streamName,
+                    'backfill.aggregateType' => $streamFilter->aggregateType,
+                    'backfill.eventStoreReferenceName' => $streamFilter->eventStoreReferenceName,
                 ],
                 BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL
             );

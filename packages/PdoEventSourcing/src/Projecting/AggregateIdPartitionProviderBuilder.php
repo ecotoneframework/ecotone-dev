@@ -17,7 +17,7 @@ use Enqueue\Dbal\DbalConnectionFactory;
 
 class AggregateIdPartitionProviderBuilder implements ProjectionComponentBuilder
 {
-    public function __construct(public readonly string $handledProjectionName, public readonly ?string $aggregateType, private string $streamName)
+    public function __construct(public readonly string $handledProjectionName)
     {
     }
 
@@ -30,8 +30,6 @@ class AggregateIdPartitionProviderBuilder implements ProjectionComponentBuilder
     {
         return new Definition(AggregateIdPartitionProvider::class, [
             Reference::to(DbalConnectionFactory::class),
-            $this->aggregateType,
-            $this->streamName,
             Reference::to(PdoStreamTableNameProvider::class),
         ]);
     }

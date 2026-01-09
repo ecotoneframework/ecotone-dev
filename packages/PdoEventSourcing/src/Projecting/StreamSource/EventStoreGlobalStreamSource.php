@@ -18,7 +18,7 @@ use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\Event;
+use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -31,7 +31,7 @@ class EventStoreGlobalStreamSource implements StreamSource
     public function __construct(
         private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
         private EcotoneClockInterface $clock,
-        private string $streamName,
+        private StreamFilter $streamFilter,
         private PdoStreamTableNameProvider $tableNameProvider,
         private int $maxGapOffset = 5_000,
         private ?Duration $gapTimeout = null,
@@ -53,8 +53,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $connection = $this->getConnection();
 
-        // Resolve table name at runtime using the provider
-        $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($this->streamName);
+        $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($this->streamFilter->streamName);
 
         if (empty($lastPosition) && ! SchemaManagerCompatibility::tableExists($connection, $proophStreamTable)) {
             return new StreamPage([], '');
@@ -111,12 +110,10 @@ class EventStoreGlobalStreamSource implements StreamSource
         }
 
         $minGap = $gaps[0];
-        $maxGap = $gaps[count($gaps) - 1];
+        $maxGap = $gaps[\count($gaps) - 1];
 
-        // Resolve table name at runtime
-        $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($this->streamName);
+        $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($this->streamFilter->streamName);
 
-        // Query interleaved events in the gap range
         $interleavedEvents = $connection->executeQuery(<<<SQL
             SELECT no, created_at
                 FROM {$proophStreamTable}
@@ -130,22 +127,19 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $timestampThreshold = $this->clock->now()->sub($this->gapTimeout)->unixTime()->inSeconds();
 
-        // Find the highest position with timestamp < timeThreshold
-        $cutoffPosition = $minGap; // default: keep all gaps
+        $cutoffPosition = $minGap;
         foreach ($interleavedEvents as $event) {
             $interleavedEventPosition = $event['no'];
             $timestamp = $this->getTimestamp($event['created_at']);
 
             if ($timestamp > $timestampThreshold) {
-                // Event is recent, do not remove any gaps below this position
                 break;
             }
-            if (in_array($interleavedEventPosition, $gaps, true)) {
-                // This position is a gap that could be filled, stop cleaning
+            if (\in_array($interleavedEventPosition, $gaps, true)) {
                 break;
             }
             if ($timestamp < $timestampThreshold && $interleavedEventPosition > $cutoffPosition) {
-                $cutoffPosition = $interleavedEventPosition + 1; // Remove gaps below this position
+                $cutoffPosition = $interleavedEventPosition + 1;
             }
         }
 

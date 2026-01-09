@@ -7,23 +7,18 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
+use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamSource;
 
 class EventStoreAggregateStreamSourceBuilder implements ProjectionComponentBuilder
 {
-    /**
-     * @param array<string> $eventNames Event names to filter, empty array means no filtering
-     */
     public function __construct(
         public readonly string $handledProjectionName,
-        public ?string $aggregateType,
-        private string $streamName,
-        private array $eventNames = [],
+        public readonly StreamFilter $streamFilter,
     ) {
     }
 
@@ -37,10 +32,13 @@ class EventStoreAggregateStreamSourceBuilder implements ProjectionComponentBuild
         return new Definition(
             EventStoreAggregateStreamSource::class,
             [
-                new Reference(EventStore::class),
-                $this->streamName,
-                $this->aggregateType,
-                $this->eventNames,
+                new Reference($this->streamFilter->eventStoreReferenceName),
+                new Definition(StreamFilter::class, [
+                    $this->streamFilter->streamName,
+                    $this->streamFilter->aggregateType,
+                    $this->streamFilter->eventStoreReferenceName,
+                    $this->streamFilter->eventNames,
+                ]),
             ],
         );
     }

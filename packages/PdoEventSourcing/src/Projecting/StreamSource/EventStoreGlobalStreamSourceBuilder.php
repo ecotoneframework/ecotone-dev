@@ -14,13 +14,14 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
+use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamSource;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 class EventStoreGlobalStreamSourceBuilder implements ProjectionComponentBuilder
 {
     public function __construct(
-        private string $streamName,
+        private StreamFilter $streamFilter,
         private array $handledProjectionNames,
     ) {
     }
@@ -37,7 +38,12 @@ class EventStoreGlobalStreamSourceBuilder implements ProjectionComponentBuilder
             [
                 Reference::to(DbalConnectionFactory::class),
                 Reference::to(EcotoneClockInterface::class),
-                $this->streamName,
+                new Definition(StreamFilter::class, [
+                    $this->streamFilter->streamName,
+                    $this->streamFilter->aggregateType,
+                    $this->streamFilter->eventStoreReferenceName,
+                    $this->streamFilter->eventNames,
+                ]),
                 Reference::to(PdoStreamTableNameProvider::class),
                 5_000,
                 new Definition(Duration::class, [60], 'seconds'),

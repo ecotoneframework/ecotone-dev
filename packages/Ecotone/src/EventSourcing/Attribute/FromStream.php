@@ -10,6 +10,9 @@ namespace Ecotone\EventSourcing\Attribute;
 use Attribute;
 use Ecotone\EventSourcing\EventStore;
 
+/**
+ * Configures a projection to read from a specific event stream.
+ */
 #[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
 readonly class FromStream
 {
@@ -20,3 +23,4 @@ readonly class FromStream
     ) {
     }
 }
+

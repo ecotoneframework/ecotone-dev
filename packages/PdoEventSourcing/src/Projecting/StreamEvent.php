@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -16,8 +17,7 @@ class StreamEvent extends Event
         array $metadata,
         public readonly int $no,
         public readonly int $timestamp,
-    )
-    {
+    ) {
         parent::__construct($eventName, $payload, $metadata);
     }
 }

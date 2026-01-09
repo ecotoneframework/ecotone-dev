@@ -10,11 +10,8 @@ namespace Ecotone\EventSourcing\Projecting\StreamSource;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\StreamSource;
-use Enqueue\Dbal\DbalConnectionFactory;
 
 class EventStoreMultiStreamSourceBuilder implements ProjectionComponentBuilder
 {
@@ -42,7 +39,7 @@ class EventStoreMultiStreamSourceBuilder implements ProjectionComponentBuilder
         return new Definition(
             EventStoreMultiStreamSource::class,
             [
-                $sourcesDefinitions
+                $sourcesDefinitions,
             ],
         );
     }

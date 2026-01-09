@@ -53,7 +53,7 @@ class EventStoreMultiStreamSource implements StreamSource
             return $a->timestamp <=> $b->timestamp;
         });
 
-        $events = array_map(fn(array $tuple) => $tuple[1], $all);
+        $events = array_map(fn (array $tuple) => $tuple[1], $all);
 
         return new StreamPage($events, $this->encodePositions($newPositions));
     }

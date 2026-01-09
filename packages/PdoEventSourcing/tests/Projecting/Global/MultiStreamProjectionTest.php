@@ -1,4 +1,5 @@
 <?php
+
 /*
  * licence Enterprise
  */
@@ -12,9 +13,9 @@ use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -23,6 +24,7 @@ use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
+use RuntimeException;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarCreated;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CreateCalendar;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\EventsConverter;
@@ -48,7 +50,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Calendar with id cal-build-1 not found');
         $ecotone->sendQueryWithRouting('getCalendar', 'cal-build-1');
 
@@ -93,7 +95,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
         // delete projection (in-memory)
         $ecotone->deleteProjection($projection::NAME);
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Calendar with id cal-reset-1 not found');
         $ecotone->sendQueryWithRouting('getCalendar', $calendarId);
     }
@@ -108,7 +110,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             ->initializeProjection($projection::NAME);
 
         // before running polling consumer nothing is projected
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Calendar with id cal-poll-1 not found');
         $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-1');
 
@@ -145,7 +147,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
         // delete projection wipes state
         $ecotone->deleteProjection($projection::NAME);
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Calendar with id cal-poll-reset not found');
         $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-reset');
     }
@@ -173,7 +175,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             #[QueryHandler('getCalendar')]
             public function getCalendar(string $calendarId): array
             {
-                return $this->calendars[$calendarId] ?? throw new \RuntimeException("Calendar with id {$calendarId} not found");
+                return $this->calendars[$calendarId] ?? throw new RuntimeException("Calendar with id {$calendarId} not found");
             }
 
             #[EventHandler]
@@ -186,7 +188,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             public function whenMeetingScheduled(MeetingScheduled $event): void
             {
                 if (! array_key_exists($event->calendarId, $this->calendars)) {
-                    throw new \RuntimeException('Meeting scheduled before calendar was created');
+                    throw new RuntimeException('Meeting scheduled before calendar was created');
                 }
                 $this->calendars[$event->calendarId][$event->meetingId] = 'scheduled';
             }
@@ -195,7 +197,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             public function whenMeetingCreated(MeetingCreated $event): void
             {
                 if (! array_key_exists($event->calendarId, $this->calendars)) {
-                    throw new \RuntimeException('Meeting created before calendar was created');
+                    throw new RuntimeException('Meeting created before calendar was created');
                 }
                 $this->calendars[$event->calendarId][$event->meetingId] = 'created';
             }
@@ -224,7 +226,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             #[QueryHandler('getCalendar')]
             public function getCalendar(string $calendarId): array
             {
-                return $this->calendars[$calendarId] ?? throw new \RuntimeException("Calendar with id {$calendarId} not found");
+                return $this->calendars[$calendarId] ?? throw new RuntimeException("Calendar with id {$calendarId} not found");
             }
 
             #[EventHandler]
@@ -237,7 +239,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             public function whenMeetingScheduled(MeetingScheduled $event): void
             {
                 if (! array_key_exists($event->calendarId, $this->calendars)) {
-                    throw new \RuntimeException('Meeting scheduled before calendar was created');
+                    throw new RuntimeException('Meeting scheduled before calendar was created');
                 }
                 $this->calendars[$event->calendarId][$event->meetingId] = 'scheduled';
             }
@@ -246,7 +248,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             public function whenMeetingCreated(MeetingCreated $event): void
             {
                 if (! array_key_exists($event->calendarId, $this->calendars)) {
-                    throw new \RuntimeException('Meeting created before calendar was created');
+                    throw new RuntimeException('Meeting created before calendar was created');
                 }
                 $this->calendars[$event->calendarId][$event->meetingId] = 'created';
             }
@@ -276,7 +278,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             #[QueryHandler('getCalendar')]
             public function getCalendar(string $calendarId): array
             {
-                return $this->calendars[$calendarId] ?? throw new \RuntimeException("Calendar with id {$calendarId} not found");
+                return $this->calendars[$calendarId] ?? throw new RuntimeException("Calendar with id {$calendarId} not found");
             }
 
             #[EventHandler(endpointId: 'pollingMultiStream.whenCalendarCreated')]
@@ -289,7 +291,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             public function whenMeetingScheduled(MeetingScheduled $event): void
             {
                 if (! array_key_exists($event->calendarId, $this->calendars)) {
-                    throw new \RuntimeException('Meeting scheduled before calendar was created');
+                    throw new RuntimeException('Meeting scheduled before calendar was created');
                 }
                 $this->calendars[$event->calendarId][$event->meetingId] = 'scheduled';
             }
@@ -298,7 +300,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
             public function whenMeetingCreated(MeetingCreated $event): void
             {
                 if (! array_key_exists($event->calendarId, $this->calendars)) {
-                    throw new \RuntimeException('Meeting created before calendar was created');
+                    throw new RuntimeException('Meeting created before calendar was created');
                 }
                 $this->calendars[$event->calendarId][$event->meetingId] = 'created';
             }
@@ -322,7 +324,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [
                 CalendarWithInternalRecorder::class,
-                MeetingWithEventSourcing::class, EventsConverter::class
+                MeetingWithEventSourcing::class, EventsConverter::class,
             ]),
             containerOrAvailableServices: array_merge($services, [new EventsConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()

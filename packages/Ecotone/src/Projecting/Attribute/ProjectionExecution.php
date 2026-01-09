@@ -16,10 +16,9 @@ class ProjectionExecution
         /**
          * Configure the batch size for loading events during projection execution.
          * * This controls how many events are loaded from the stream in a single batch.
-
+         *
          */
         public readonly int $eventLoadingBatchSize
-    )
-    {
+    ) {
     }
 }

@@ -206,4 +206,3 @@ class StreamFilterRegistryModule implements AnnotationModule
         return ModulePackageList::CORE_PACKAGE;
     }
 }
-

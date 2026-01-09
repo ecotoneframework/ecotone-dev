@@ -23,4 +23,3 @@ readonly class FromStream
     ) {
     }
 }
-

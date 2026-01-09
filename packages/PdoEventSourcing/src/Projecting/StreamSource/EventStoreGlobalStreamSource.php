@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
+use function count;
+
 use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
@@ -24,6 +26,7 @@ use Ecotone\Projecting\StreamSource;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 
+use function in_array;
 use function strlen;
 
 class EventStoreGlobalStreamSource implements StreamSource
@@ -110,7 +113,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         }
 
         $minGap = $gaps[0];
-        $maxGap = $gaps[\count($gaps) - 1];
+        $maxGap = $gaps[count($gaps) - 1];
 
         $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($this->streamFilter->streamName);
 
@@ -135,7 +138,7 @@ class EventStoreGlobalStreamSource implements StreamSource
             if ($timestamp > $timestampThreshold) {
                 break;
             }
-            if (\in_array($interleavedEventPosition, $gaps, true)) {
+            if (in_array($interleavedEventPosition, $gaps, true)) {
                 break;
             }
             if ($timestamp < $timestampThreshold && $interleavedEventPosition > $cutoffPosition) {

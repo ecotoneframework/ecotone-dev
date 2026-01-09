@@ -29,4 +29,3 @@ final class StreamFilterRegistry
         return $this->filters[$projectionName] ?? [];
     }
 }
-

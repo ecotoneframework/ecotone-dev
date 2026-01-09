@@ -4,14 +4,18 @@
  */
 namespace Monorepo\ExampleAppEventSourcing\EcotoneProjection;
 
+use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
 use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
 use Monorepo\ExampleAppEventSourcing\Common\PriceChange;
+use Monorepo\ExampleAppEventSourcing\Common\Product;
 
-#[\Ecotone\Projecting\Attribute\ProjectionV2("price_change_over_time")]
+#[ProjectionV2("price_change_over_time")]
+#[FromAggregateStream(Product::class)]
 class PriceChangeOverTimeProjectionWithEcotoneProjection
 {
     public const NAME = "price_change_over_time";

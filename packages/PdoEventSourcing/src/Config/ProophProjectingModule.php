@@ -175,7 +175,8 @@ class ProophProjectingModule implements AnnotationModule
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        $extensions = [...$this->extensions];
+        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $serviceExtensions, EventSourcingConfiguration::createWithDefaults());
+        $extensions = $eventSourcingConfiguration->isInMemory() ? [] : [...$this->extensions];
 
         foreach ($serviceExtensions as $extensionObject) {
             if (! ($extensionObject instanceof EventStreamingChannelAdapter)) {
@@ -187,11 +188,10 @@ class ProophProjectingModule implements AnnotationModule
                 $extensionObject->fromStream,
                 [$projectionName]
             );
-        }
+        };
 
         $extensions[] = new DbalTableManagerReference(ProjectionStateTableManager::class);
 
-        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $serviceExtensions, EventSourcingConfiguration::createWithDefaults());
         $eventStreamingChannelAdapters = ExtensionObjectResolver::resolve(EventStreamingChannelAdapter::class, $serviceExtensions);
 
         if (($this->projectionNames || $eventStreamingChannelAdapters) && ! $eventSourcingConfiguration->isInMemory()) {

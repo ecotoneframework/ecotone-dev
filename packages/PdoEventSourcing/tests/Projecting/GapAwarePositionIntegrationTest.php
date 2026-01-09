@@ -21,6 +21,7 @@ use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionRegistry;
+use Ecotone\Projecting\StreamFilter;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Psr\Clock\ClockInterface;
@@ -113,7 +114,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            Ticket::STREAM_NAME,
+            new StreamFilter(Ticket::STREAM_NAME),
             self::$tableNameProvider,
             maxGapOffset: 3, // Only keep gaps within 3 positions
             gapTimeout: null
@@ -151,7 +152,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            Ticket::STREAM_NAME,
+            new StreamFilter(Ticket::STREAM_NAME),
             self::$tableNameProvider,
             gapTimeout: Duration::seconds(5)
         );
@@ -185,7 +186,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            Ticket::STREAM_NAME,
+            new StreamFilter(Ticket::STREAM_NAME),
             self::$tableNameProvider,
             maxGapOffset: 1000,
             gapTimeout: Duration::seconds(5)
@@ -207,7 +208,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            Ticket::STREAM_NAME,
+            new StreamFilter(Ticket::STREAM_NAME),
             self::$tableNameProvider,
             maxGapOffset: 1000,
             gapTimeout: null // No timeout

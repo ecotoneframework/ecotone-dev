@@ -28,6 +28,16 @@ The quickstart [page](https://docs.ecotone.tech/quick-start) of the
 [reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.
 Read more on the [Ecotone's Blog](https://blog.ecotone.tech).
 
+## AI-Friendly Documentation
+
+Ecotone provides AI-optimized documentation for use with AI assistants and code editors:
+
+- **MCP Server**: `https://docs.ecotone.tech/~gitbook/mcp` - [Install in VSCode](vscode:mcp/install?%7B%22name%22%3A%22Ecotone%22%2C%22url%22%3A%22https%3A%2F%2Fdocs.ecotone.tech%2F~gitbook%2Fmcp%22%7D)
+- **LLMs.txt**: [ecotone.tech/llms.txt](https://ecotone.tech/llms.txt)
+- **Context7**: Available via [@upstash/context7-mcp](https://github.com/upstash/context7)
+
+Learn more: [AI Integration Guide](https://docs.ecotone.tech/other/ai-integration)
+
 ## AMQP Package
 
 This package provides AMQP integration for Ecotone, supporting both:

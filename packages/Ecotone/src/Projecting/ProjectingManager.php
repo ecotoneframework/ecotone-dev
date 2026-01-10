@@ -17,18 +17,18 @@ class ProjectingManager
     private const DEFAULT_BACKFILL_PARTITION_BATCH_SIZE = 100;
 
     public function __construct(
-        private ProjectionStateStorage $projectionStateStorage,
-        private ProjectorExecutor      $projectorExecutor,
-        private StreamSource           $streamSource,
-        private PartitionProvider      $partitionProvider,
-        private StreamFilterRegistry   $streamFilterRegistry,
-        private string                 $projectionName,
-        private TerminationListener    $terminationListener,
-        private MessagingEntrypoint    $messagingEntrypoint,
-        private int                    $eventLoadingBatchSize = 1000,
-        private bool                   $automaticInitialization = true,
-        private int                    $backfillPartitionBatchSize = self::DEFAULT_BACKFILL_PARTITION_BATCH_SIZE,
-        private ?string                $backfillAsyncChannelName = null,
+        private ProjectionStateStorage    $projectionStateStorage,
+        private ProjectorExecutor         $projectorExecutor,
+        private StreamSource              $streamSource,
+        private PartitionProviderRegistry $partitionProviderRegistry,
+        private StreamFilterRegistry      $streamFilterRegistry,
+        private string                    $projectionName,
+        private TerminationListener       $terminationListener,
+        private MessagingEntrypoint       $messagingEntrypoint,
+        private int                       $eventLoadingBatchSize = 1000,
+        private bool                      $automaticInitialization = true,
+        private int                       $backfillPartitionBatchSize = self::DEFAULT_BACKFILL_PARTITION_BATCH_SIZE,
+        private ?string                   $backfillAsyncChannelName = null,
     ) {
         if ($eventLoadingBatchSize < 1) {
             throw new InvalidArgumentException('Event loading batch size must be at least 1');
@@ -95,7 +95,7 @@ class ProjectingManager
 
     public function getPartitionProvider(): PartitionProvider
     {
-        return $this->partitionProvider;
+        return $this->partitionProviderRegistry->getPartitionProviderFor($this->projectionName);
     }
 
     public function getProjectionName(): string
@@ -133,7 +133,7 @@ class ProjectingManager
 
     private function prepareBackfillForFilter(StreamFilter $streamFilter): void
     {
-        $totalPartitions = $this->partitionProvider->count($streamFilter);
+        $totalPartitions = $this->getPartitionProvider()->count($streamFilter);
 
         if ($totalPartitions === 0) {
             return;

@@ -29,7 +29,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Projecting\BackfillExecutorHandler;
 use Ecotone\Projecting\InMemory\InMemoryProjectionRegistry;
-use Ecotone\Projecting\PartitionProvider;
+use Ecotone\Projecting\PartitionProviderRegistry;
 use Ecotone\Projecting\ProjectingHeaders;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionRegistry;
@@ -72,7 +72,7 @@ class ProjectingModule implements AnnotationModule
         foreach ($componentBuilders as $componentBuilder) {
             foreach ($projectionBuilders as $projectionBuilder) {
                 $projectionName = $projectionBuilder->projectionName();
-                foreach ([StreamSource::class, PartitionProvider::class, ProjectionStateStorage::class] as $component) {
+                foreach ([StreamSource::class, ProjectionStateStorage::class] as $component) {
                     if ($componentBuilder->canHandle($projectionName, $component)) {
                         if (isset($components[$projectionName][$component])) {
                             throw ConfigurationException::create(
@@ -89,6 +89,11 @@ class ProjectingModule implements AnnotationModule
             }
         }
 
+        $messagingConfiguration->registerServiceDefinition(
+            SinglePartitionProvider::class,
+            new Definition(SinglePartitionProvider::class)
+        );
+
         $projectionRegistryMap = [];
         foreach ($projectionBuilders as $projectionBuilder) {
             $projectionName = $projectionBuilder->projectionName();
@@ -101,7 +106,7 @@ class ProjectingModule implements AnnotationModule
                     $components[$projectionName][ProjectionStateStorage::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have projection state storage configured. Please check your configuration."),
                     new Reference($reference),
                     $components[$projectionName][StreamSource::class] ?? throw ConfigurationException::create("Projection with name {$projectionName} does not have stream source configured. Please check your configuration."),
-                    $components[$projectionName][PartitionProvider::class] ?? new Definition(SinglePartitionProvider::class),
+                    new Reference(PartitionProviderRegistry::class),
                     new Reference(StreamFilterRegistry::class),
                     $projectionName,
                     new Reference(TerminationListener::class),

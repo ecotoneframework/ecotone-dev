@@ -9,6 +9,7 @@ namespace Ecotone\Projecting\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -18,6 +19,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Projecting\Attribute\PartitionProvider as PartitionProviderAttribute;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\PartitionProviderReference;
 use Ecotone\Projecting\PartitionProviderRegistry;
@@ -28,9 +30,11 @@ class PartitionProviderRegistryModule extends NoExternalConfigurationModule impl
 {
     /**
      * @param string[] $allProjectionNames
+     * @param string[] $userlandPartitionProviderReferences
      */
     public function __construct(
         private array $allProjectionNames = [],
+        private array $userlandPartitionProviderReferences = [],
     ) {
     }
 
@@ -42,7 +46,12 @@ class PartitionProviderRegistryModule extends NoExternalConfigurationModule impl
             $allProjectionNames[] = $projectionAttribute->name;
         }
 
-        return new self($allProjectionNames);
+        $userlandPartitionProviderReferences = [];
+        foreach ($annotationFinder->findAnnotatedClasses(PartitionProviderAttribute::class) as $providerClassName) {
+            $userlandPartitionProviderReferences[] = AnnotatedDefinitionReference::getReferenceForClassName($annotationFinder, $providerClassName);
+        }
+
+        return new self($allProjectionNames, $userlandPartitionProviderReferences);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -60,7 +69,12 @@ class PartitionProviderRegistryModule extends NoExternalConfigurationModule impl
 
         $nonPartitionedProjectionNames = array_values(array_diff($this->allProjectionNames, $partitionedProjectionNames));
 
-        $partitionProviders = array_map(
+        $userlandProviders = array_map(
+            fn (string $reference) => new Reference($reference),
+            $this->userlandPartitionProviderReferences
+        );
+
+        $builtinProviders = array_map(
             fn (PartitionProviderReference $ref) => new Reference($ref->getReferenceName()),
             $partitionProviderReferences
         );
@@ -70,11 +84,13 @@ class PartitionProviderRegistryModule extends NoExternalConfigurationModule impl
             new Definition(SinglePartitionProvider::class, [$nonPartitionedProjectionNames])
         );
 
-        $partitionProviders[] = new Reference(SinglePartitionProvider::class);
+        $builtinProviders[] = new Reference(SinglePartitionProvider::class);
+
+        $allProviders = array_merge($userlandProviders, $builtinProviders);
 
         $messagingConfiguration->registerServiceDefinition(
             PartitionProviderRegistry::class,
-            new Definition(PartitionProviderRegistry::class, [$partitionProviders])
+            new Definition(PartitionProviderRegistry::class, [$allProviders])
         );
     }
 

@@ -21,6 +21,7 @@ use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
+use Ecotone\Projecting\Attribute;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionExecution;
@@ -28,6 +29,8 @@ use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorageBuilder;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
+use Ecotone\Projecting\PartitionProvider;
+use Ecotone\Projecting\StreamFilter;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
@@ -644,5 +647,109 @@ class ProjectingTest extends TestCase
         } finally {
             $pcntlTerminationFlag->disable();
         }
+    }
+
+    public function test_userland_partition_provider_is_used_during_backfill(): void
+    {
+        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class implements PartitionProvider {
+            public function canHandle(string $projectionName): bool
+            {
+                return $projectionName === 'userland_backfill_projection';
+            }
+
+            public function count(StreamFilter $filter): int
+            {
+                return 3;
+            }
+
+            public function partitions(StreamFilter $filter, ?int $limit = null, int $offset = 0): iterable
+            {
+                $partitions = ['partition-a', 'partition-b', 'partition-c'];
+                $partitions = array_slice($partitions, $offset, $limit);
+                yield from $partitions;
+            }
+        };
+
+        $projection = new #[ProjectionV2('userland_backfill_projection'), FromStream('test_stream'), Partitioned('partitionHeader'), Attribute\ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_async')] class {
+            public array $processedEvents = [];
+            #[EventHandler('*')]
+            public function handle(array $event): void
+            {
+                $this->processedEvents[] = $event;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class, $userlandPartitionProvider::class],
+            [$projection, $userlandPartitionProvider],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: 'partitionId'))
+                ->addExtensionObject(new InMemoryProjectionStateStorageBuilder())
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
+            addInMemoryStateStoredRepository: false,
+            testConfiguration: \Ecotone\Lite\Test\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
+        );
+
+        $streamSource->append(
+            Event::createWithType('test-event', ['name' => 'Test'], ['partitionId' => 'partition-a']),
+            Event::createWithType('test-event', ['name' => 'Test'], ['partitionId' => 'partition-b']),
+            Event::createWithType('test-event', ['name' => 'Test'], ['partitionId' => 'partition-c']),
+        );
+
+        $ecotone->initializeProjection('userland_backfill_projection');
+        $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'userland_backfill_projection']);
+
+        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_async');
+        self::assertCount(2, $messages, 'Expected 2 batches for 3 partitions with batch size 2');
+    }
+
+    public function test_non_handled_projection_falls_back_to_single_partition_during_backfill(): void
+    {
+        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class implements PartitionProvider {
+            public function canHandle(string $projectionName): bool
+            {
+                return $projectionName === 'only_this_projection';
+            }
+
+            public function count(StreamFilter $filter): int
+            {
+                return 10;
+            }
+
+            public function partitions(StreamFilter $filter, ?int $limit = null, int $offset = 0): iterable
+            {
+                yield from range(1, 10);
+            }
+        };
+
+        $projection = new #[ProjectionV2('different_projection'), FromStream('test_stream'), Attribute\ProjectionBackfill(asyncChannelName: 'backfill_async')] class {
+            public array $processedEvents = [];
+            #[EventHandler('*')]
+            public function handle(array $event): void
+            {
+                $this->processedEvents[] = $event;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class, $userlandPartitionProvider::class],
+            [$projection, $userlandPartitionProvider],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->addExtensionObject(new InMemoryStreamSourceBuilder())
+                ->addExtensionObject(new InMemoryProjectionStateStorageBuilder())
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
+            addInMemoryStateStoredRepository: false,
+            testConfiguration: \Ecotone\Lite\Test\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
+        );
+
+        $ecotone->initializeProjection('different_projection');
+        $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'different_projection']);
+
+        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_async');
+        self::assertCount(1, $messages, 'SinglePartitionProvider should produce exactly 1 batch');
     }
 }

@@ -26,6 +26,7 @@ use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Projecting\Attribute\Streaming;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 
@@ -71,7 +72,8 @@ class StreamFilterRegistryModule implements AnnotationModule
                 $streamFilters[$projectionName][] = self::resolveFromAggregateStream($annotationFinder, $aggregateStreamAttribute, $projectionName, $eventNames);
             }
 
-            if (! isset($streamFilters[$projectionName]) || $streamFilters[$projectionName] === []) {
+            $isStreamingProjection = $annotationFinder->findAttributeForClass($classname, Streaming::class) !== null;
+            if (! $isStreamingProjection && (! isset($streamFilters[$projectionName]) || $streamFilters[$projectionName] === [])) {
                 throw ConfigurationException::create(
                     "Projection '{$projectionName}' must have at least one #[FromStream] or #[FromAggregateStream] attribute defined on class {$classname}."
                 );

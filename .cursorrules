@@ -1,0 +1,28 @@
+# Cursor Rules for Ecotone
+
+For comprehensive guidelines, read AGENTS.md in the project root.
+
+## Quick Reference
+
+- Ecotone is a PHP framework for message-driven architecture (DDD, CQRS, Event Sourcing)
+- Use PHP 8.1+ attributes: #[CommandHandler], #[EventHandler], #[QueryHandler]
+- Test with EcotoneLite::bootstrapForTesting()
+- No comments in code - use descriptive method names instead
+- Documentation: https://docs.ecotone.tech
+
+## Code Style
+
+- PHP 8.1+ features (attributes, enums, named arguments)
+- All public APIs need @param/@return PHPDoc
+- Follow existing patterns in the codebase
+- Messages (Commands, Events, Queries) are first-class citizens
+
+## Testing
+
+Run tests inside Docker container:
+```bash
+docker exec -it -u root ecotone_development /bin/bash
+cd packages/PackageName
+composer tests:ci
+```
+

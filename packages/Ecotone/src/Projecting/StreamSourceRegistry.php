@@ -12,16 +12,23 @@ use RuntimeException;
 final class StreamSourceRegistry
 {
     /**
-     * @param StreamSource[] $sources
+     * @param StreamSource[] $userlandSources
      */
     public function __construct(
-        private array $sources,
+        private array $userlandSources,
+        private array $builtinSources,
     ) {
     }
 
     public function getFor(string $projectionName): StreamSource
     {
-        foreach ($this->sources as $source) {
+        foreach ($this->userlandSources as $source) {
+            if ($source->canHandle($projectionName)) {
+                return $source;
+            }
+        }
+
+        foreach ($this->builtinSources as $source) {
             if ($source->canHandle($projectionName)) {
                 return $source;
             }

@@ -66,71 +66,18 @@ class StreamSourceRegistryModule extends NoExternalConfigurationModule implement
             $streamSourceReferences
         );
 
-        $componentBuilderSources = $this->collectStreamSourcesFromComponentBuilders(
-            $extensionObjects,
-            $messagingConfiguration,
-            $moduleReferenceSearchService
-        );
-
-        $definedObjectSources = $this->collectStreamSourcesFromDefinedObjects(
-            $extensionObjects,
-            $messagingConfiguration
-        );
-
-        $allSources = array_merge($userlandSources, $builtinSources, $componentBuilderSources, $definedObjectSources);
-
         $messagingConfiguration->registerServiceDefinition(
             StreamSourceRegistry::class,
-            new Definition(StreamSourceRegistry::class, [$allSources])
+            new Definition(StreamSourceRegistry::class, [
+                $userlandSources,
+                $builtinSources,
+            ])
         );
-    }
-
-    /**
-     * @return Reference[]
-     */
-    private function collectStreamSourcesFromComponentBuilders(
-        array $extensionObjects,
-        Configuration $messagingConfiguration,
-        ModuleReferenceSearchService $moduleReferenceSearchService
-    ): array {
-        $componentBuilders = ExtensionObjectResolver::resolve(
-            ProjectionComponentBuilder::class,
-            $extensionObjects
-        );
-
-        $sources = [];
-        foreach ($componentBuilders as $componentBuilder) {
-            if ($componentBuilder->canHandle('*', StreamSource::class)) {
-                $reference = Uuid::uuid4()->toString();
-                $moduleReferenceSearchService->store($reference, $componentBuilder);
-                $sources[] = new Reference($reference);
-            }
-        }
-
-        return $sources;
-    }
-
-    /**
-     * @return Definition[]
-     */
-    private function collectStreamSourcesFromDefinedObjects(
-        array $extensionObjects,
-        Configuration $messagingConfiguration
-    ): array {
-        $sources = [];
-        foreach ($extensionObjects as $extensionObject) {
-            if ($extensionObject instanceof StreamSource && $extensionObject instanceof DefinedObject) {
-                $sources[] = new DefinedObjectWrapper($extensionObject);
-            }
-        }
-
-        return $sources;
     }
 
     public function canHandle($extensionObject): bool
     {
         return $extensionObject instanceof StreamSourceReference
-            || $extensionObject instanceof ProjectionComponentBuilder
             || ($extensionObject instanceof StreamSource && $extensionObject instanceof DefinedObject);
     }
 

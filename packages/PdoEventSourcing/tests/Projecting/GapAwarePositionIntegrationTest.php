@@ -22,6 +22,7 @@ use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\ProjectingManager;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Projecting\StreamFilter;
+use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Psr\Clock\ClockInterface;
@@ -110,12 +111,18 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
     public function test_max_gap_offset_cleaning(): void
     {
+        $projectionName = 'test_projection';
+        $streamFilterRegistry = new StreamFilterRegistry([
+            $projectionName => [new StreamFilter(Ticket::STREAM_NAME)],
+        ]);
+
         // Create a stream source with small max gap offset
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            new StreamFilter(Ticket::STREAM_NAME),
             self::$tableNameProvider,
+            $streamFilterRegistry,
+            [$projectionName],
             maxGapOffset: 3, // Only keep gaps within 3 positions
             gapTimeout: null
         );
@@ -124,7 +131,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $tracking = new GapAwarePosition(10, [2, 5, 7, 9]);
 
         // Execute
-        $result = $streamSource->load((string) $tracking, 100);
+        $result = $streamSource->load($projectionName, (string) $tracking, 100);
 
         // Verify: Only gaps within 3 positions should remain (7, 9)
         $newTracking = GapAwarePosition::fromString($result->lastPosition);
@@ -133,6 +140,11 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
     public function test_gap_timeout_cleaning(): void
     {
+        $projectionName = 'test_projection';
+        $streamFilterRegistry = new StreamFilterRegistry([
+            $projectionName => [new StreamFilter(Ticket::STREAM_NAME)],
+        ]);
+
         // Create events with specific timestamps
         $now = self::$clock->now()->getTimestamp();
 
@@ -152,13 +164,14 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            new StreamFilter(Ticket::STREAM_NAME),
             self::$tableNameProvider,
+            $streamFilterRegistry,
+            [$projectionName],
             gapTimeout: Duration::seconds(5)
         );
 
         // Execute
-        $result = $streamSource->load(null, 100);
+        $result = $streamSource->load($projectionName, null, 100);
 
         // All gaps should be present initially
         $tracking = GapAwarePosition::fromString($result->lastPosition);
@@ -168,7 +181,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         self::$clock->sleep(Duration::seconds(2));
 
         // Execute
-        $result = $streamSource->load(null, 100);
+        $result = $streamSource->load($projectionName, null, 100);
 
         // Verify: Gaps 2, 4 should be removed (old timestamps), gap 6 should remain (recent timestamps)
         $newTracking = GapAwarePosition::fromString($result->lastPosition);
@@ -176,18 +189,24 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
         // Delay 4 more second to exceed timeout for all gaps (6 seconds since insertion of the last event)
         self::$clock->sleep(Duration::seconds(4));
-        $result = $streamSource->load($result->lastPosition, 100);
+        $result = $streamSource->load($projectionName, $result->lastPosition, 100);
         $newTracking = GapAwarePosition::fromString($result->lastPosition);
         self::assertSame([], $newTracking->getGaps());
     }
 
     public function test_gap_cleaning_noop_when_no_gaps(): void
     {
+        $projectionName = 'test_projection';
+        $streamFilterRegistry = new StreamFilterRegistry([
+            $projectionName => [new StreamFilter(Ticket::STREAM_NAME)],
+        ]);
+
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            new StreamFilter(Ticket::STREAM_NAME),
             self::$tableNameProvider,
+            $streamFilterRegistry,
+            [$projectionName],
             maxGapOffset: 1000,
             gapTimeout: Duration::seconds(5)
         );
@@ -196,7 +215,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $tracking = new GapAwarePosition(10, []);
 
         // Execute
-        $result = $streamSource->load((string) $tracking, 100);
+        $result = $streamSource->load($projectionName, (string) $tracking, 100);
 
         // Verify: No gaps should remain
         $newTracking = GapAwarePosition::fromString($result->lastPosition);
@@ -205,11 +224,17 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
     public function test_gap_cleaning_noop_when_timeout_disabled(): void
     {
+        $projectionName = 'test_projection';
+        $streamFilterRegistry = new StreamFilterRegistry([
+            $projectionName => [new StreamFilter(Ticket::STREAM_NAME)],
+        ]);
+
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            new StreamFilter(Ticket::STREAM_NAME),
             self::$tableNameProvider,
+            $streamFilterRegistry,
+            [$projectionName],
             maxGapOffset: 1000,
             gapTimeout: null // No timeout
         );
@@ -218,7 +243,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $tracking = new GapAwarePosition(10, [2, 5, 7]);
 
         // Execute
-        $result = $streamSource->load((string) $tracking, 100);
+        $result = $streamSource->load($projectionName, (string) $tracking, 100);
 
         // Verify: All gaps should remain (no timeout cleaning)
         $newTracking = GapAwarePosition::fromString($result->lastPosition);

@@ -70,6 +70,7 @@ use Ecotone\Projecting\Config\ProjectingAttributeModule;
 use Ecotone\Projecting\Config\ProjectingConsoleCommands;
 use Ecotone\Projecting\Config\ProjectingModule;
 use Ecotone\Projecting\Config\StreamFilterRegistryModule;
+use Ecotone\Projecting\Config\StreamSourceRegistryModule;
 use Ecotone\Projecting\EventStoreAdapter\EventStoreAdapterModule;
 use Ecotone\Redis\Configuration\RedisMessageConsumerModule;
 use Ecotone\Redis\Configuration\RedisMessagePublisherModule;
@@ -119,6 +120,7 @@ class ModuleClassList
         ProjectingModule::class,
         ProjectingAttributeModule::class,
         StreamFilterRegistryModule::class,
+        StreamSourceRegistryModule::class,
         EventStoreAdapterModule::class,
 
         /** Attribute based configurations */

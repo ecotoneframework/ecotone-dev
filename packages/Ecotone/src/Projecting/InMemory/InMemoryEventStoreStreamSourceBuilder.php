@@ -41,6 +41,7 @@ class InMemoryEventStoreStreamSourceBuilder implements ProjectionComponentBuilde
             InMemoryEventStoreStreamSource::class,
             [
                 Reference::to(InMemoryEventStore::class),
+                $this->projectionNames,
                 $this->streamName,
                 $this->partitionHeader,
                 $this->eventNames,

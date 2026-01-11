@@ -27,6 +27,7 @@ use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\Attribute\Streaming;
+use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 
@@ -195,7 +196,7 @@ class StreamFilterRegistryModule implements AnnotationModule
 
     public function canHandle($extensionObject): bool
     {
-        return false;
+        return $extensionObject instanceof EventStreamingChannelAdapter;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions, ?InterfaceToCallRegistry $interfaceToCallRegistry = null): array

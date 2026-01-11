@@ -19,7 +19,7 @@ class ProjectingManager
     public function __construct(
         private ProjectionStateStorage    $projectionStateStorage,
         private ProjectorExecutor         $projectorExecutor,
-        private StreamSource              $streamSource,
+        private StreamSourceRegistry      $streamSourceRegistry,
         private PartitionProviderRegistry $partitionProviderRegistry,
         private StreamFilterRegistry      $streamFilterRegistry,
         private string                    $projectionName,
@@ -58,7 +58,8 @@ class ProjectingManager
                 return 0;
             }
 
-            $streamPage = $this->streamSource->load($projectionState->lastPosition, $this->eventLoadingBatchSize, $partitionKeyValue);
+            $streamSource = $this->streamSourceRegistry->getFor($this->projectionName);
+            $streamPage = $streamSource->load($this->projectionName, $projectionState->lastPosition, $this->eventLoadingBatchSize, $partitionKeyValue);
 
             $userState = $projectionState->userState;
             $processedEvents = 0;

@@ -37,4 +37,3 @@ final class ProjectionStateStorageRegistry
         throw new RuntimeException("No projection state storage found for projection: {$projectionName}");
     }
 }
-

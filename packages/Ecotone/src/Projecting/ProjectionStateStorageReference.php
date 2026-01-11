@@ -27,4 +27,3 @@ class ProjectionStateStorageReference
         return $this->referenceName;
     }
 }
-

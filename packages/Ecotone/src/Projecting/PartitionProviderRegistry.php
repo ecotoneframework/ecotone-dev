@@ -30,4 +30,3 @@ final class PartitionProviderRegistry
         throw new RuntimeException("No partition provider found for projection: {$projectionName}");
     }
 }
-

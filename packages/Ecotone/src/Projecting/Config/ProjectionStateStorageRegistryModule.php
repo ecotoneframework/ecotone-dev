@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\Config;
 
+use function array_map;
+
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
@@ -61,12 +63,12 @@ class ProjectionStateStorageRegistryModule extends NoExternalConfigurationModule
             $extensionObjects
         );
 
-        $userlandStorages = \array_map(
+        $userlandStorages = array_map(
             fn (string $reference) => new Reference($reference),
             $this->userlandStateStorageReferences
         );
 
-        $builtinStorages = \array_map(
+        $builtinStorages = array_map(
             fn (ProjectionStateStorageReference $ref) => new Reference($ref->getReferenceName()),
             $stateStorageReferences
         );
@@ -95,4 +97,3 @@ class ProjectionStateStorageRegistryModule extends NoExternalConfigurationModule
         return ModulePackageList::CORE_PACKAGE;
     }
 }
-

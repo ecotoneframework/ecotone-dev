@@ -16,6 +16,7 @@ use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 
+use function in_array;
 use function is_array;
 
 use ReflectionProperty;
@@ -37,7 +38,7 @@ class InMemoryEventStoreStreamSource implements StreamSource
 
     public function canHandle(string $projectionName): bool
     {
-        return $this->projectionNames === null || \in_array($projectionName, $this->projectionNames, true);
+        return $this->projectionNames === null || in_array($projectionName, $this->projectionNames, true);
     }
 
     public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage

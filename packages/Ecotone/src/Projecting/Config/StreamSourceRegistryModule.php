@@ -17,16 +17,13 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\DefinedObjectWrapper;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Projecting\Attribute\StreamSource as StreamSourceAttribute;
-use Ecotone\Projecting\InMemory\InMemoryEventStoreStreamSource;
 use Ecotone\Projecting\StreamSource;
 use Ecotone\Projecting\StreamSourceReference;
 use Ecotone\Projecting\StreamSourceRegistry;
-use Ramsey\Uuid\Uuid;
 
 #[ModuleAnnotation]
 class StreamSourceRegistryModule extends NoExternalConfigurationModule implements AnnotationModule
@@ -86,4 +83,3 @@ class StreamSourceRegistryModule extends NoExternalConfigurationModule implement
         return ModulePackageList::CORE_PACKAGE;
     }
 }
-

@@ -11,6 +11,8 @@ use Ecotone\Modelling\Event;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 
+use function in_array;
+
 class InMemoryStreamSource implements StreamSource
 {
     /**
@@ -27,7 +29,7 @@ class InMemoryStreamSource implements StreamSource
     public function canHandle(string $projectionName): bool
     {
         return $this->handledProjectionNames === null
-            || \in_array($projectionName, $this->handledProjectionNames, true);
+            || in_array($projectionName, $this->handledProjectionNames, true);
     }
 
     public function append(Event ...$events): void

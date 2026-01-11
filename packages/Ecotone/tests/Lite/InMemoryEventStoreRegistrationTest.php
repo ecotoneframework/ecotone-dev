@@ -95,7 +95,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
             }
         };
 
-        $customStreamSource = new #[Attribute\StreamSource] class implements StreamSource {
+        $customStreamSource = new #[Attribute\StreamSource] class () implements StreamSource {
             private array $events = [];
 
             public function append(Event ...$events): void

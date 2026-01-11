@@ -325,7 +325,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
     public function test_userland_partition_provider_is_prioritized_over_builtin_during_backfill(): void
     {
-        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class implements PartitionProvider {
+        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class () implements PartitionProvider {
             public function canHandle(string $projectionName): bool
             {
                 return $projectionName === 'userland_backfill_projection';

@@ -104,4 +104,3 @@ class PartitionProviderRegistryModule extends NoExternalConfigurationModule impl
         return ModulePackageList::CORE_PACKAGE;
     }
 }
-

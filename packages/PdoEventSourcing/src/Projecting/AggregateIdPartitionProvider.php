@@ -16,6 +16,9 @@ use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\StreamFilter;
 use Enqueue\Dbal\DbalConnectionFactory;
+
+use function in_array;
+
 use RuntimeException;
 
 class AggregateIdPartitionProvider implements PartitionProvider
@@ -32,7 +35,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
 
     public function canHandle(string $projectionName): bool
     {
-        return \in_array($projectionName, $this->partitionedProjections, true);
+        return in_array($projectionName, $this->partitionedProjections, true);
     }
 
     public function count(StreamFilter $filter): int

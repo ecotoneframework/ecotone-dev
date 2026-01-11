@@ -38,4 +38,3 @@ final class PartitionProviderReference
         return $this->partitionedProjectionNames;
     }
 }
-

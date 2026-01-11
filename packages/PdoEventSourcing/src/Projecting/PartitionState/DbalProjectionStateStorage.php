@@ -19,6 +19,7 @@ use Ecotone\Projecting\Transaction;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 
+use function in_array;
 use function json_decode;
 use function json_encode;
 
@@ -41,7 +42,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function canHandle(string $projectionName): bool
     {
-        return $this->projectionNames === null || \in_array($projectionName, $this->projectionNames, true);
+        return $this->projectionNames === null || in_array($projectionName, $this->projectionNames, true);
     }
 
     public function getTableName(): string

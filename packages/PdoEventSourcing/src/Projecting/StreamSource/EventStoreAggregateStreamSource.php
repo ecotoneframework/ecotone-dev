@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Projecting\StreamSource;
 
+use function count;
+
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
@@ -16,9 +18,10 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
-use RuntimeException;
 
-use function count;
+use function in_array;
+
+use RuntimeException;
 
 class EventStoreAggregateStreamSource implements StreamSource
 {
@@ -34,7 +37,7 @@ class EventStoreAggregateStreamSource implements StreamSource
 
     public function canHandle(string $projectionName): bool
     {
-        return \in_array($projectionName, $this->handledProjectionNames, true);
+        return in_array($projectionName, $this->handledProjectionNames, true);
     }
 
     public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage

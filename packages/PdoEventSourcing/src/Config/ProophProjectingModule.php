@@ -17,7 +17,6 @@ use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProvider;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorage;
-use Ecotone\Projecting\ProjectionStateStorageReference;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSource;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -38,10 +37,13 @@ use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\Config\StreamFilterRegistryModule;
 use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 use Ecotone\Projecting\PartitionProviderReference;
+use Ecotone\Projecting\ProjectionStateStorageReference;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamSourceReference;
 use Enqueue\Dbal\DbalConnectionFactory;
+
+use function in_array;
 
 #[ModuleAnnotation]
 class ProophProjectingModule implements AnnotationModule
@@ -116,11 +118,11 @@ class ProophProjectingModule implements AnnotationModule
                     throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
                 }
                 if ($isPartitioned) {
-                    if (!\in_array($projectionName, $partitionedProjectionNames, true)) {
+                    if (! in_array($projectionName, $partitionedProjectionNames, true)) {
                         $partitionedProjectionNames[] = $projectionName;
                     }
                 } else {
-                    if (!\in_array($projectionName, $globalStreamProjectionNames, true)) {
+                    if (! in_array($projectionName, $globalStreamProjectionNames, true)) {
                         $globalStreamProjectionNames[] = $projectionName;
                     }
                 }

@@ -37,4 +37,3 @@ final class StreamSourceRegistry
         throw new RuntimeException("No stream source found for projection: {$projectionName}");
     }
 }
-

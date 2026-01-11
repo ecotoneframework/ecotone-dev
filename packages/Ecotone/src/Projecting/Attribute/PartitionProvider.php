@@ -18,4 +18,3 @@ use Attribute;
 final class PartitionProvider
 {
 }
-

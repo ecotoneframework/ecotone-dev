@@ -88,7 +88,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
             private array $events = [];
             private string $partitionHeader = 'id';
 
@@ -149,7 +149,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
             private array $events = [];
             private string $partitionHeader = 'id';
 
@@ -545,7 +545,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
             public function canHandle(string $projectionName): bool
             {
                 return true;
@@ -722,7 +722,7 @@ class ProjectingTest extends TestCase
 
     public function test_userland_partition_provider_is_used_during_backfill(): void
     {
-        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class implements PartitionProvider {
+        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class () implements PartitionProvider {
             public function canHandle(string $projectionName): bool
             {
                 return $projectionName === 'userland_backfill_projection';
@@ -750,7 +750,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
             private array $events = [];
             private string $partitionHeader = 'partitionId';
 
@@ -807,7 +807,7 @@ class ProjectingTest extends TestCase
 
     public function test_non_handled_projection_falls_back_to_single_partition_during_backfill(): void
     {
-        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class implements PartitionProvider {
+        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class () implements PartitionProvider {
             public function canHandle(string $projectionName): bool
             {
                 return $projectionName === 'only_this_projection';
@@ -833,7 +833,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
             public function canHandle(string $projectionName): bool
             {
                 return true;
@@ -865,7 +865,7 @@ class ProjectingTest extends TestCase
 
     public function test_userland_state_storage_is_prioritized_over_built_in(): void
     {
-        $userlandStorage = new #[Attribute\StateStorage] class implements ProjectionStateStorage {
+        $userlandStorage = new #[Attribute\StateStorage] class () implements ProjectionStateStorage {
             public bool $wasUsed = false;
             private array $projectionStates = [];
 
@@ -924,7 +924,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
             private array $events = [];
 
             public function append(Event ...$events): void

@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting;
 
+use function in_array;
+
 class SinglePartitionProvider implements PartitionProvider
 {
     /**
@@ -19,7 +21,7 @@ class SinglePartitionProvider implements PartitionProvider
 
     public function canHandle(string $projectionName): bool
     {
-        return \in_array($projectionName, $this->nonPartitionedProjectionNames, true);
+        return in_array($projectionName, $this->nonPartitionedProjectionNames, true);
     }
 
     public function count(StreamFilter $filter): int

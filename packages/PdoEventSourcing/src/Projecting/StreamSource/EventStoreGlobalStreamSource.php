@@ -47,7 +47,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
     public function canHandle(string $projectionName): bool
     {
-        return \in_array($projectionName, $this->handledProjectionNames, true);
+        return in_array($projectionName, $this->handledProjectionNames, true);
     }
 
     private function getConnection(): Connection

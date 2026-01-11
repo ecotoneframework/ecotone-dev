@@ -13,6 +13,8 @@ use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Ecotone\Projecting\Transaction;
 
+use function in_array;
+
 class InMemoryProjectionStateStorage implements ProjectionStateStorage
 {
     /**
@@ -30,7 +32,7 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
 
     public function canHandle(string $projectionName): bool
     {
-        return $this->projectionNames === null || \in_array($projectionName, $this->projectionNames, true);
+        return $this->projectionNames === null || in_array($projectionName, $this->projectionNames, true);
     }
 
     public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState

@@ -20,6 +20,19 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
      */
     private array $projectionStates = [];
 
+    /**
+     * @param string[]|null $projectionNames
+     */
+    public function __construct(
+        private ?array $projectionNames = null,
+    ) {
+    }
+
+    public function canHandle(string $projectionName): bool
+    {
+        return $this->projectionNames === null || \in_array($projectionName, $this->projectionNames, true);
+    }
+
     public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState
     {
         $key = $this->getKey($projectionName, $partitionKey);

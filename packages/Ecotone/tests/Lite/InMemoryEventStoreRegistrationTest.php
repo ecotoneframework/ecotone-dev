@@ -14,7 +14,6 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorageBuilder;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -103,7 +102,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects([$customStreamSource, new InMemoryProjectionStateStorageBuilder()])
+                ->withExtensionObjects([$customStreamSource])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 

@@ -16,7 +16,8 @@ use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProvider;
-use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
+use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorage;
+use Ecotone\Projecting\ProjectionStateStorageReference;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSource;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
@@ -140,11 +141,12 @@ class ProophProjectingModule implements AnnotationModule
             }
         }
 
+        $hasProjections = $this->projectionNames !== [] || $this->globalStreamProjectionNames !== [];
         $messagingConfiguration->registerServiceDefinition(
             ProjectionStateTableManager::class,
             new Definition(ProjectionStateTableManager::class, [
                 ProjectionStateTableManager::DEFAULT_TABLE_NAME,
-                $this->projectionNames !== [],
+                $hasProjections,
                 $dbalConfiguration->isAutomaticTableInitializationEnabled(),
             ])
         );
@@ -163,7 +165,24 @@ class ProophProjectingModule implements AnnotationModule
         if (! $eventSourcingConfiguration->isInMemory()) {
             $this->registerGlobalStreamSource($messagingConfiguration);
             $this->registerAggregateStreamSource($messagingConfiguration);
+            $this->registerDbalProjectionStateStorage($messagingConfiguration);
         }
+    }
+
+    private function registerDbalProjectionStateStorage(Configuration $messagingConfiguration): void
+    {
+        $hasProjections = $this->projectionNames !== [] || $this->globalStreamProjectionNames !== [];
+        if (! $hasProjections) {
+            return;
+        }
+
+        $messagingConfiguration->registerServiceDefinition(
+            DbalProjectionStateStorage::class,
+            new Definition(DbalProjectionStateStorage::class, [
+                new Reference(DbalConnectionFactory::class),
+                new Reference(ProjectionStateTableManager::class),
+            ])
+        );
     }
 
     private function registerGlobalStreamSource(Configuration $messagingConfiguration): void
@@ -221,7 +240,7 @@ class ProophProjectingModule implements AnnotationModule
         if (($this->projectionNames || $eventStreamingChannelAdapters) && ! $eventSourcingConfiguration->isInMemory()) {
             $projectionNames = array_unique([...$this->projectionNames, ...array_map(fn (EventStreamingChannelAdapter $adapter) => $adapter->getProjectionName(), $eventStreamingChannelAdapters)]);
 
-            $extensions[] = new DbalProjectionStateStorageBuilder($projectionNames);
+            $extensions[] = new ProjectionStateStorageReference(DbalProjectionStateStorage::class, $projectionNames);
         }
 
         if ($this->partitionedProjectionNames !== [] && ! $eventSourcingConfiguration->isInMemory()) {

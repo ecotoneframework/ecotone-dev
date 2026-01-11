@@ -27,10 +27,14 @@ use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionExecution;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorageBuilder;
 use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
+use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\PartitionProvider;
+use Ecotone\Projecting\ProjectionInitializationStatus;
+use Ecotone\Projecting\ProjectionPartitionState;
+use Ecotone\Projecting\ProjectionStateStorage;
 use Ecotone\Projecting\StreamFilter;
+use Ecotone\Projecting\Transaction;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
@@ -90,7 +94,6 @@ class ProjectingTest extends TestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: 'id'))
-                ->addExtensionObject(new InMemoryProjectionStateStorageBuilder())
         );
 
         $streamSource->append(
@@ -125,7 +128,6 @@ class ProjectingTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: 'id'))
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
-                ->addExtensionObject(new InMemoryProjectionStateStorageBuilder())
         );
 
         $streamSource->append(
@@ -686,7 +688,6 @@ class ProjectingTest extends TestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: 'partitionId'))
-                ->addExtensionObject(new InMemoryProjectionStateStorageBuilder())
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
             addInMemoryStateStoredRepository: false,
             testConfiguration: \Ecotone\Lite\Test\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
@@ -740,7 +741,6 @@ class ProjectingTest extends TestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(new InMemoryStreamSourceBuilder())
-                ->addExtensionObject(new InMemoryProjectionStateStorageBuilder())
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
             addInMemoryStateStoredRepository: false,
             testConfiguration: \Ecotone\Lite\Test\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
@@ -751,5 +751,85 @@ class ProjectingTest extends TestCase
 
         $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_async');
         self::assertCount(1, $messages, 'SinglePartitionProvider should produce exactly 1 batch');
+    }
+
+    public function test_userland_state_storage_is_prioritized_over_built_in(): void
+    {
+        $userlandStorage = new #[Attribute\StateStorage] class implements ProjectionStateStorage {
+            public bool $wasUsed = false;
+            private array $projectionStates = [];
+
+            public function canHandle(string $projectionName): bool
+            {
+                return $projectionName === 'userland_storage_projection';
+            }
+
+            public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState
+            {
+                $this->wasUsed = true;
+                $key = $projectionName . ($partitionKey ? '-' . $partitionKey : '');
+                return $this->projectionStates[$key] ?? null;
+            }
+
+            public function initPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
+            {
+                $this->wasUsed = true;
+                $key = $projectionName . ($partitionKey ? '-' . $partitionKey : '');
+                if (! isset($this->projectionStates[$key])) {
+                    $this->projectionStates[$key] = new ProjectionPartitionState($projectionName, $partitionKey, null, null, ProjectionInitializationStatus::UNINITIALIZED);
+                    return $this->projectionStates[$key];
+                }
+                return null;
+            }
+
+            public function savePartition(ProjectionPartitionState $projectionState): void
+            {
+                $this->wasUsed = true;
+                $key = $projectionState->projectionName . ($projectionState->partitionKey ? '-' . $projectionState->partitionKey : '');
+                $this->projectionStates[$key] = $projectionState;
+            }
+
+            public function delete(string $projectionName): void
+            {
+                $this->wasUsed = true;
+            }
+
+            public function init(string $projectionName): void
+            {
+                $this->wasUsed = true;
+            }
+
+            public function beginTransaction(): Transaction
+            {
+                return new NoOpTransaction();
+            }
+        };
+
+        $projection = new #[ProjectionV2('userland_storage_projection'), FromStream('test_stream')] class {
+            public array $processedEvents = [];
+            #[EventHandler('*')]
+            public function handle(array $event): void
+            {
+                $this->processedEvents[] = $event;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class, $userlandStorage::class],
+            [$projection, $userlandStorage],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder()),
+            addInMemoryStateStoredRepository: false,
+        );
+
+        $streamSource->append(
+            Event::createWithType('test-event', ['name' => 'Test']),
+        );
+
+        $ecotone->initializeProjection('userland_storage_projection');
+
+        self::assertTrue($userlandStorage->wasUsed, 'Userland state storage should be prioritized and used');
     }
 }

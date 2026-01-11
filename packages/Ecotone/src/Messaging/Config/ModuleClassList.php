@@ -69,6 +69,7 @@ use Ecotone\Projecting\Config\PartitionProviderRegistryModule;
 use Ecotone\Projecting\Config\ProjectingAttributeModule;
 use Ecotone\Projecting\Config\ProjectingConsoleCommands;
 use Ecotone\Projecting\Config\ProjectingModule;
+use Ecotone\Projecting\Config\ProjectionStateStorageRegistryModule;
 use Ecotone\Projecting\Config\StreamFilterRegistryModule;
 use Ecotone\Projecting\Config\StreamSourceRegistryModule;
 use Ecotone\Projecting\EventStoreAdapter\EventStoreAdapterModule;
@@ -119,6 +120,7 @@ class ModuleClassList
         PartitionProviderRegistryModule::class,
         ProjectingModule::class,
         ProjectingAttributeModule::class,
+        ProjectionStateStorageRegistryModule::class,
         StreamFilterRegistryModule::class,
         StreamSourceRegistryModule::class,
         EventStoreAdapterModule::class,

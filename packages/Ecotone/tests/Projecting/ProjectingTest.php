@@ -27,13 +27,14 @@ use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionExecution;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\ProjectionInitializationStatus;
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Ecotone\Projecting\StreamFilter;
+use Ecotone\Projecting\StreamPage;
+use Ecotone\Projecting\StreamSource;
 use Ecotone\Projecting\Transaction;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
@@ -78,7 +79,6 @@ class ProjectingTest extends TestCase
 
     public function test_partitioned_projection(): void
     {
-        // Given a partitioned projection
         $projection = new #[ProjectionV2('test'), FromStream('test_stream'), Partitioned('partitionHeader')] class {
             public array $handledEvents = [];
             #[EventHandler('*')]
@@ -87,13 +87,44 @@ class ProjectingTest extends TestCase
                 $this->handledEvents[] = $event;
             }
         };
+
+        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+            private array $events = [];
+            private string $partitionHeader = 'id';
+
+            public function append(Event ...$events): void
+            {
+                foreach ($events as $event) {
+                    $this->events[] = $event;
+                }
+            }
+
+            public function canHandle(string $projectionName): bool
+            {
+                return true;
+            }
+
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            {
+                $from = $lastPosition !== null ? (int) $lastPosition : 0;
+                if ($partitionKey) {
+                    $events = array_filter($this->events, fn (Event $event) => $event->getMetadata()[$this->partitionHeader] === $partitionKey);
+                    $events = array_values($events);
+                } else {
+                    $events = $this->events;
+                }
+                $events = array_slice($events, $from, $count);
+                $to = $from + count($events);
+                return new StreamPage($events, (string) $to);
+            }
+        };
+
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
-            [$projection],
+            [$projection::class, $streamSource::class],
+            [$projection, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: 'id'))
         );
 
         $streamSource->append(
@@ -102,16 +133,13 @@ class ProjectingTest extends TestCase
             Event::createWithType('test-event', ['name' => 'Test'], ['id' => '1']),
         );
 
-        // When event is published, triggering the projection
         $ecotone->publishEventWithRoutingKey('trigger', metadata: ['partitionHeader' => '1']);
 
-        // Then only events from partition 1 are handled
         $this->assertCount(2, $projection->handledEvents);
     }
 
     public function test_asynchronous_partitioned_projection(): void
     {
-        // Given a partitioned async projection
         $projection = new #[ProjectionV2('test'), FromStream('test_stream'), Partitioned('partitionHeader'), Asynchronous('async')] class {
             public array $handledEvents = [];
             #[EventHandler('*')]
@@ -120,13 +148,44 @@ class ProjectingTest extends TestCase
                 $this->handledEvents[] = $event;
             }
         };
+
+        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+            private array $events = [];
+            private string $partitionHeader = 'id';
+
+            public function append(Event ...$events): void
+            {
+                foreach ($events as $event) {
+                    $this->events[] = $event;
+                }
+            }
+
+            public function canHandle(string $projectionName): bool
+            {
+                return true;
+            }
+
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            {
+                $from = $lastPosition !== null ? (int) $lastPosition : 0;
+                if ($partitionKey) {
+                    $events = array_filter($this->events, fn (Event $event) => $event->getMetadata()[$this->partitionHeader] === $partitionKey);
+                    $events = array_values($events);
+                } else {
+                    $events = $this->events;
+                }
+                $events = array_slice($events, $from, $count);
+                $to = $from + count($events);
+                return new StreamPage($events, (string) $to);
+            }
+        };
+
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
-            [$projection],
+            [$projection::class, $streamSource::class],
+            [$projection, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: 'id'))
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
@@ -136,10 +195,8 @@ class ProjectingTest extends TestCase
             Event::createWithType('test-event', ['name' => 'Test'], ['id' => '1']),
         );
 
-        // When event is published, triggering the projection
         $ecotone->publishEventWithRoutingKey('trigger', metadata: ['partitionHeader' => '1']);
 
-        // Then no event is handled until async channel is run
         $this->assertCount(0, $projection->handledEvents);
         $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertCount(2, $projection->handledEvents);
@@ -487,12 +544,24 @@ class ProjectingTest extends TestCase
             {
             }
         };
+
+        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+            public function canHandle(string $projectionName): bool
+            {
+                return true;
+            }
+
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            {
+                return new StreamPage([], '0');
+            }
+        };
+
         EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
-            [$projection],
+            [$projection::class, $streamSource::class],
+            [$projection, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
-                ->addExtensionObject(new InMemoryStreamSourceBuilder())
         );
     }
 
@@ -681,13 +750,43 @@ class ProjectingTest extends TestCase
             }
         };
 
+        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+            private array $events = [];
+            private string $partitionHeader = 'partitionId';
+
+            public function append(Event ...$events): void
+            {
+                foreach ($events as $event) {
+                    $this->events[] = $event;
+                }
+            }
+
+            public function canHandle(string $projectionName): bool
+            {
+                return true;
+            }
+
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            {
+                $from = $lastPosition !== null ? (int) $lastPosition : 0;
+                if ($partitionKey) {
+                    $events = array_filter($this->events, fn (Event $event) => $event->getMetadata()[$this->partitionHeader] === $partitionKey);
+                    $events = array_values($events);
+                } else {
+                    $events = $this->events;
+                }
+                $events = array_slice($events, $from, $count);
+                $to = $from + count($events);
+                return new StreamPage($events, (string) $to);
+            }
+        };
+
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $userlandPartitionProvider::class],
-            [$projection, $userlandPartitionProvider],
+            [$projection::class, $userlandPartitionProvider::class, $streamSource::class],
+            [$projection, $userlandPartitionProvider, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder(partitionField: 'partitionId'))
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
             addInMemoryStateStoredRepository: false,
             testConfiguration: \Ecotone\Lite\Test\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
@@ -734,13 +833,24 @@ class ProjectingTest extends TestCase
             }
         };
 
+        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+            public function canHandle(string $projectionName): bool
+            {
+                return true;
+            }
+
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            {
+                return new StreamPage([], '0');
+            }
+        };
+
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $userlandPartitionProvider::class],
-            [$projection, $userlandPartitionProvider],
+            [$projection::class, $userlandPartitionProvider::class, $streamSource::class],
+            [$projection, $userlandPartitionProvider, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->addExtensionObject(new InMemoryStreamSourceBuilder())
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
             addInMemoryStateStoredRepository: false,
             testConfiguration: \Ecotone\Lite\Test\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
@@ -814,13 +924,36 @@ class ProjectingTest extends TestCase
             }
         };
 
+        $streamSource = new #[Attribute\StreamSource] class implements StreamSource {
+            private array $events = [];
+
+            public function append(Event ...$events): void
+            {
+                foreach ($events as $event) {
+                    $this->events[] = $event;
+                }
+            }
+
+            public function canHandle(string $projectionName): bool
+            {
+                return true;
+            }
+
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            {
+                $from = $lastPosition !== null ? (int) $lastPosition : 0;
+                $events = array_slice($this->events, $from, $count);
+                $to = $from + count($events);
+                return new StreamPage($events, (string) $to);
+            }
+        };
+
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [$projection::class, $userlandStorage::class],
-            [$projection, $userlandStorage],
+            [$projection::class, $userlandStorage::class, $streamSource::class],
+            [$projection, $userlandStorage, $streamSource],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->addExtensionObject($streamSource = new InMemoryStreamSourceBuilder()),
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE),
             addInMemoryStateStoredRepository: false,
         );
 

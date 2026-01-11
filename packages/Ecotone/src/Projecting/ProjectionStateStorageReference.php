@@ -16,25 +16,15 @@ class ProjectionStateStorageReference
 {
     /**
      * @param string $referenceName
-     * @param string[] $projectionNames
      */
     public function __construct(
         private string $referenceName,
-        private array $projectionNames,
     ) {
     }
 
     public function getReferenceName(): string
     {
         return $this->referenceName;
-    }
-
-    /**
-     * @return string[]
-     */
-    public function getProjectionNames(): array
-    {
-        return $this->projectionNames;
     }
 }
 

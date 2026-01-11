@@ -15,13 +15,20 @@ final class ProjectionStateStorageRegistry
      * @param ProjectionStateStorage[] $storages
      */
     public function __construct(
-        private array $storages,
+        private array $userlandStorages,
+        private array $builtinStorages,
     ) {
     }
 
     public function getFor(string $projectionName): ProjectionStateStorage
     {
-        foreach ($this->storages as $storage) {
+        foreach ($this->userlandStorages as $storage) {
+            if ($storage->canHandle($projectionName)) {
+                return $storage;
+            }
+        }
+
+        foreach ($this->builtinStorages as $storage) {
             if ($storage->canHandle($projectionName)) {
                 return $storage;
             }

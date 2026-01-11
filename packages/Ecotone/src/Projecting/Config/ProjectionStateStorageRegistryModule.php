@@ -76,11 +76,12 @@ class ProjectionStateStorageRegistryModule extends NoExternalConfigurationModule
             new Definition(InMemoryProjectionStateStorage::class, [null])
         );
 
-        $allStorages = \array_merge($userlandStorages, $builtinStorages, [new Reference(InMemoryProjectionStateStorage::class)]);
-
         $messagingConfiguration->registerServiceDefinition(
             ProjectionStateStorageRegistry::class,
-            new Definition(ProjectionStateStorageRegistry::class, [$allStorages])
+            new Definition(ProjectionStateStorageRegistry::class, [
+                $userlandStorages,
+                $builtinStorages,
+            ])
         );
     }
 

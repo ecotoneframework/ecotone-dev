@@ -29,10 +29,19 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     /** @var array<string, bool> Track initialization per connection */
     private array $initialized = [];
 
+    /**
+     * @param string[]|null $projectionNames
+     */
     public function __construct(
         private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
         private ProjectionStateTableManager $tableManager,
+        private ?array $projectionNames = null,
     ) {
+    }
+
+    public function canHandle(string $projectionName): bool
+    {
+        return $this->projectionNames === null || \in_array($projectionName, $this->projectionNames, true);
     }
 
     public function getTableName(): string

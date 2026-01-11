@@ -12,13 +12,18 @@ use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Lite\Test\TestConfiguration;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Projecting\Attribute;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Projecting\PartitionProvider;
+use Ecotone\Projecting\StreamFilter;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -318,6 +323,46 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         };
     }
 
+    public function test_userland_partition_provider_is_prioritized_over_builtin_during_backfill(): void
+    {
+        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class implements PartitionProvider {
+            public function canHandle(string $projectionName): bool
+            {
+                return $projectionName === 'userland_backfill_projection';
+            }
+
+            public function count(StreamFilter $filter): int
+            {
+                return 7;
+            }
+
+            public function partitions(StreamFilter $filter, ?int $limit = null, int $offset = 0): iterable
+            {
+                $partitions = ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7'];
+                $partitions = array_slice($partitions, $offset, $limit);
+                yield from $partitions;
+            }
+        };
+
+        $projection = new #[ProjectionV2('userland_backfill_projection'), FromAggregateStream(Ticket::class), Partitioned, Attribute\ProjectionBackfill(backfillPartitionBatchSize: 3, asyncChannelName: 'backfill_channel')] class {
+            #[EventHandler]
+            public function handle(TicketWasRegistered $event): void
+            {
+            }
+        };
+
+        $ecotone = $this->bootstrapEcotoneWithAsyncChannel(
+            [$projection::class, $userlandPartitionProvider::class],
+            [$projection, $userlandPartitionProvider]
+        );
+
+        $ecotone->initializeProjection('userland_backfill_projection');
+        $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'userland_backfill_projection']);
+
+        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_channel');
+        self::assertCount(3, $messages, 'Expected 3 batches for 7 partitions with batch size 3 (3+3+1)');
+    }
+
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
@@ -331,6 +376,24 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
                 ])),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    private function bootstrapEcotoneWithAsyncChannel(array $classesToResolve, array $services): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
+            containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                ])),
+            runForProductionEventStore: true,
+            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('backfill_channel')],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_channel'),
         );
     }
 }

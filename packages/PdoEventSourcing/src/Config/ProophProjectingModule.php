@@ -14,38 +14,47 @@ use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProviderBuilder;
-use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorageBuilder;
-use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSourceBuilder;
-use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSourceBuilder;
-use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreMultiStreamSourceBuilder;
+use Ecotone\EventSourcing\PdoStreamTableNameProvider;
+use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProvider;
+use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorage;
+use Ecotone\Projecting\ProjectionStateStorageReference;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSource;
+use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\Config\ProjectionComponentBuilder;
 use Ecotone\Projecting\Config\StreamFilterRegistryModule;
 use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
+use Ecotone\Projecting\PartitionProviderReference;
 use Ecotone\Projecting\StreamFilter;
+use Ecotone\Projecting\StreamFilterRegistry;
+use Ecotone\Projecting\StreamSourceReference;
+use Enqueue\Dbal\DbalConnectionFactory;
 
 #[ModuleAnnotation]
 class ProophProjectingModule implements AnnotationModule
 {
     /**
-     * @param ProjectionComponentBuilder[] $extensions
      * @param string[] $projectionNames
+     * @param string[] $partitionedProjectionNames
+     * @param string[] $globalStreamProjectionNames
      */
     public function __construct(
-        private array $extensions,
         private array $projectionNames,
+        private array $partitionedProjectionNames,
+        private array $globalStreamProjectionNames,
     ) {
     }
 
@@ -53,7 +62,7 @@ class ProophProjectingModule implements AnnotationModule
     {
         $allStreamFilters = StreamFilterRegistryModule::collectStreamFilters($annotationRegistrationService, $interfaceToCallRegistry);
 
-        $extensions = self::resolveConfigs($annotationRegistrationService, $allStreamFilters);
+        [$partitionedProjectionNames, $globalStreamProjectionNames] = self::resolveProjectionTypes($annotationRegistrationService, $allStreamFilters);
 
         $projectionNames = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
@@ -62,21 +71,22 @@ class ProophProjectingModule implements AnnotationModule
         }
 
         return new self(
-            $extensions,
             $projectionNames,
+            $partitionedProjectionNames,
+            $globalStreamProjectionNames,
         );
     }
 
     /**
      * @param array<string, StreamFilter[]> $allStreamFilters
-     * @return list<ProjectionComponentBuilder>
+     * @return array{list<string>, list<string>}
      */
-    private static function resolveConfigs(
+    private static function resolveProjectionTypes(
         AnnotationFinder $annotationRegistrationService,
         array $allStreamFilters,
     ): array {
-        $extensions = [];
-        $partitionProviders = [];
+        $partitionedProjectionNames = [];
+        $globalStreamProjectionNames = [];
 
         foreach ($allStreamFilters as $projectionName => $streamFilters) {
             $projectionClass = null;
@@ -101,85 +111,152 @@ class ProophProjectingModule implements AnnotationModule
                 );
             }
 
-            $sources = [];
             foreach ($streamFilters as $streamFilter) {
                 if ($isPartitioned && ! $streamFilter->aggregateType) {
                     throw ConfigurationException::create("Aggregate type must be provided for projection {$projectionName} as partition header name is provided");
                 }
                 if ($isPartitioned) {
-                    $sourceIdentifier = $streamFilter->streamName . '.' . $streamFilter->aggregateType;
-                    $sources[$sourceIdentifier] = new EventStoreAggregateStreamSourceBuilder(
-                        $projectionName,
-                        $streamFilter,
-                    );
-                    if (! isset($partitionProviders[$projectionName])) {
-                        $partitionProviders[$projectionName] = new AggregateIdPartitionProviderBuilder($projectionName);
+                    if (!\in_array($projectionName, $partitionedProjectionNames, true)) {
+                        $partitionedProjectionNames[] = $projectionName;
                     }
                 } else {
-                    $sources[$streamFilter->streamName] = new EventStoreGlobalStreamSourceBuilder(
-                        $streamFilter,
-                        [$projectionName]
-                    );
+                    if (!\in_array($projectionName, $globalStreamProjectionNames, true)) {
+                        $globalStreamProjectionNames[] = $projectionName;
+                    }
                 }
             }
-            if (count($sources) > 1) {
-                $extensions[] = new EventStoreMultiStreamSourceBuilder(
-                    $sources,
-                    [$projectionName],
-                );
-            } else {
-                $extensions[] = current($sources);
-            }
-            $extensions = [...$extensions, ...array_values($partitionProviders)];
         }
 
-        return $extensions;
+        return [$partitionedProjectionNames, $globalStreamProjectionNames];
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
 
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof EventStreamingChannelAdapter) {
+                $this->globalStreamProjectionNames[] = $extensionObject->getProjectionName();
+            }
+        }
+
+        $hasProjections = $this->projectionNames !== [] || $this->globalStreamProjectionNames !== [];
         $messagingConfiguration->registerServiceDefinition(
             ProjectionStateTableManager::class,
             new Definition(ProjectionStateTableManager::class, [
                 ProjectionStateTableManager::DEFAULT_TABLE_NAME,
-                $this->projectionNames !== [],
+                $hasProjections,
                 $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+            ])
+        );
+
+        if ($this->partitionedProjectionNames !== [] && ! $eventSourcingConfiguration->isInMemory()) {
+            $messagingConfiguration->registerServiceDefinition(
+                AggregateIdPartitionProvider::class,
+                new Definition(AggregateIdPartitionProvider::class, [
+                    new Reference(DbalConnectionFactory::class),
+                    new Reference(PdoStreamTableNameProvider::class),
+                    $this->partitionedProjectionNames,
+                ])
+            );
+        }
+
+        if (! $eventSourcingConfiguration->isInMemory()) {
+            $this->registerGlobalStreamSource($messagingConfiguration);
+            $this->registerAggregateStreamSource($messagingConfiguration);
+            $this->registerDbalProjectionStateStorage($messagingConfiguration);
+        }
+    }
+
+    private function registerDbalProjectionStateStorage(Configuration $messagingConfiguration): void
+    {
+        $hasProjections = $this->projectionNames !== [] || $this->globalStreamProjectionNames !== [];
+        if (! $hasProjections) {
+            return;
+        }
+
+        $messagingConfiguration->registerServiceDefinition(
+            DbalProjectionStateStorage::class,
+            new Definition(DbalProjectionStateStorage::class, [
+                new Reference(DbalConnectionFactory::class),
+                new Reference(ProjectionStateTableManager::class),
+            ])
+        );
+    }
+
+    private function registerGlobalStreamSource(Configuration $messagingConfiguration): void
+    {
+        if ($this->globalStreamProjectionNames === []) {
+            return;
+        }
+
+        $messagingConfiguration->registerServiceDefinition(
+            EventStoreGlobalStreamSource::class,
+            new Definition(EventStoreGlobalStreamSource::class, [
+                new Reference(DbalConnectionFactory::class),
+                new Reference(EcotoneClockInterface::class),
+                new Reference(PdoStreamTableNameProvider::class),
+                new Reference(StreamFilterRegistry::class),
+                $this->globalStreamProjectionNames,
+                5_000,
+                new Definition(Duration::class, [60 * 1_000_000]),
+            ])
+        );
+    }
+
+    private function registerAggregateStreamSource(Configuration $messagingConfiguration): void
+    {
+        if ($this->partitionedProjectionNames === []) {
+            return;
+        }
+
+        $messagingConfiguration->registerServiceDefinition(
+            EventStoreAggregateStreamSource::class,
+            new Definition(EventStoreAggregateStreamSource::class, [
+                new Reference('Ecotone\EventSourcing\EventStore'),
+                new Reference(StreamFilterRegistry::class),
+                $this->partitionedProjectionNames,
             ])
         );
     }
 
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof DbalConfiguration;
+        return $extensionObject instanceof DbalConfiguration
+            || $extensionObject instanceof EventSourcingConfiguration
+            || $extensionObject instanceof EventStreamingChannelAdapter;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $serviceExtensions, EventSourcingConfiguration::createWithDefaults());
-        $extensions = $eventSourcingConfiguration->isInMemory() ? [] : [...$this->extensions];
-
-        foreach ($serviceExtensions as $extensionObject) {
-            if (! ($extensionObject instanceof EventStreamingChannelAdapter)) {
-                continue;
-            }
-
-            $projectionName = $extensionObject->getProjectionName();
-            $extensions[] = new EventStoreGlobalStreamSourceBuilder(
-                new StreamFilter($extensionObject->fromStream),
-                [$projectionName]
-            );
-        }
+        $extensions = [];
 
         $extensions[] = new DbalTableManagerReference(ProjectionStateTableManager::class);
 
         $eventStreamingChannelAdapters = ExtensionObjectResolver::resolve(EventStreamingChannelAdapter::class, $serviceExtensions);
 
         if (($this->projectionNames || $eventStreamingChannelAdapters) && ! $eventSourcingConfiguration->isInMemory()) {
-            $projectionNames = array_unique([...$this->projectionNames, ...array_map(fn (EventStreamingChannelAdapter $adapter) => $adapter->getProjectionName(), $eventStreamingChannelAdapters)]);
+            $extensions[] = new ProjectionStateStorageReference(DbalProjectionStateStorage::class);
+        }
 
-            $extensions[] = new DbalProjectionStateStorageBuilder($projectionNames);
+        if ($this->partitionedProjectionNames !== [] && ! $eventSourcingConfiguration->isInMemory()) {
+            $extensions[] = new PartitionProviderReference(AggregateIdPartitionProvider::class, $this->partitionedProjectionNames);
+        }
+
+        if (! $eventSourcingConfiguration->isInMemory()) {
+            $globalStreamProjectionNames = array_unique([
+                ...$this->globalStreamProjectionNames,
+                ...array_map(fn (EventStreamingChannelAdapter $adapter) => $adapter->getProjectionName(), $eventStreamingChannelAdapters),
+            ]);
+
+            if ($globalStreamProjectionNames !== []) {
+                $extensions[] = new StreamSourceReference(EventStoreGlobalStreamSource::class);
+            }
+            if ($this->partitionedProjectionNames !== []) {
+                $extensions[] = new StreamSourceReference(EventStoreAggregateStreamSource::class);
+            }
         }
 
         return $extensions;

@@ -20,7 +20,7 @@ use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Projecting\StreamFilter;
+use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -31,14 +31,23 @@ use function strlen;
 
 class EventStoreGlobalStreamSource implements StreamSource
 {
+    /**
+     * @param string[] $handledProjectionNames
+     */
     public function __construct(
         private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
         private EcotoneClockInterface $clock,
-        private StreamFilter $streamFilter,
         private PdoStreamTableNameProvider $tableNameProvider,
+        private StreamFilterRegistry $streamFilterRegistry,
+        private array $handledProjectionNames,
         private int $maxGapOffset = 5_000,
         private ?Duration $gapTimeout = null,
     ) {
+    }
+
+    public function canHandle(string $projectionName): bool
+    {
+        return \in_array($projectionName, $this->handledProjectionNames, true);
     }
 
     private function getConnection(): Connection
@@ -50,13 +59,24 @@ class EventStoreGlobalStreamSource implements StreamSource
         return $this->connectionFactory->createContext()->getDbalConnection();
     }
 
-    public function load(?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
     {
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
 
-        $connection = $this->getConnection();
+        $streamFilters = $this->streamFilterRegistry->provide($projectionName);
+        Assert::isTrue(count($streamFilters) > 0, "No stream filter found for projection: {$projectionName}");
 
-        $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($this->streamFilter->streamName);
+        if (count($streamFilters) === 1) {
+            return $this->loadFromSingleStream($streamFilters[0], $lastPosition, $count);
+        }
+
+        return $this->loadFromMultipleStreams($streamFilters, $lastPosition, $count);
+    }
+
+    private function loadFromSingleStream(\Ecotone\Projecting\StreamFilter $streamFilter, ?string $lastPosition, int $count): StreamPage
+    {
+        $connection = $this->getConnection();
+        $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($streamFilter->streamName);
 
         if (empty($lastPosition) && ! SchemaManagerCompatibility::tableExists($connection, $proophStreamTable)) {
             return new StreamPage([], '');
@@ -97,12 +117,85 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);
 
-        $this->cleanGapsByTimeout($tracking, $connection);
+        $this->cleanGapsByTimeout($tracking, $connection, $proophStreamTable);
 
         return new StreamPage($events, (string) $tracking);
     }
 
-    private function cleanGapsByTimeout(GapAwarePosition $tracking, Connection $connection): void
+    /**
+     * @param \Ecotone\Projecting\StreamFilter[] $streamFilters
+     */
+    private function loadFromMultipleStreams(array $streamFilters, ?string $lastPosition, int $count): StreamPage
+    {
+        $positions = $this->decodeMultiStreamPositions($lastPosition);
+
+        $orderIndex = [];
+        $i = 0;
+        $newPositions = [];
+        $all = [];
+
+        foreach ($streamFilters as $streamFilter) {
+            $streamName = $streamFilter->streamName;
+            $orderIndex[$streamName] = $i++;
+
+            $streamPosition = $positions[$streamName] ?? null;
+            $limit = (int) ceil($count / max(1, count($streamFilters))) + 5;
+
+            $streamPage = $this->loadFromSingleStream($streamFilter, $streamPosition, $limit);
+            $newPositions[$streamName] = $streamPage->lastPosition;
+
+            foreach ($streamPage->events as $event) {
+                $all[] = [$streamName, $event];
+            }
+        }
+
+        usort($all, function (array $aTuple, array $bTuple) use ($orderIndex): int {
+            [$aStream, $a] = $aTuple;
+            [$bStream, $b] = $bTuple;
+            if ($aStream === $bStream) {
+                return $a->no <=> $b->no;
+            }
+            if ($a->timestamp === $b->timestamp) {
+                return $orderIndex[$aStream] <=> $orderIndex[$bStream];
+            }
+            return $a->timestamp <=> $b->timestamp;
+        });
+
+        $events = array_map(fn (array $tuple) => $tuple[1], $all);
+
+        return new StreamPage($events, $this->encodeMultiStreamPositions($newPositions));
+    }
+
+    private function encodeMultiStreamPositions(array $positions): string
+    {
+        $encoded = '';
+        foreach ($positions as $stream => $pos) {
+            $encoded .= "{$stream}={$pos};";
+        }
+        return $encoded;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function decodeMultiStreamPositions(?string $position): array
+    {
+        $result = [];
+        if ($position === null || $position === '') {
+            return $result;
+        }
+        $pairs = explode(';', $position);
+        foreach ($pairs as $pair) {
+            if ($pair === '') {
+                continue;
+            }
+            [$stream, $pos] = explode('=', $pair, 2);
+            $result[$stream] = $pos;
+        }
+        return $result;
+    }
+
+    private function cleanGapsByTimeout(GapAwarePosition $tracking, Connection $connection, string $proophStreamTable): void
     {
         if ($this->gapTimeout === null) {
             return;
@@ -114,8 +207,6 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $minGap = $gaps[0];
         $maxGap = $gaps[count($gaps) - 1];
-
-        $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($this->streamFilter->streamName);
 
         $interleavedEvents = $connection->executeQuery(<<<SQL
             SELECT no, created_at

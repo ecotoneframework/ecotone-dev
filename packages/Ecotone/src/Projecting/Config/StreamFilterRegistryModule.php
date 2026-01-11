@@ -12,6 +12,7 @@ use Ecotone\EventSourcing\Attribute\AggregateType;
 use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\Stream;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -185,6 +186,20 @@ class StreamFilterRegistryModule implements AnnotationModule
                     $filter->eventStoreReferenceName,
                     $filter->eventNames,
                 ]);
+            }
+        }
+
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof EventStreamingChannelAdapter) {
+                $projectionName = $extensionObject->getProjectionName();
+                $filtersDefinition[$projectionName] = [
+                    new Definition(StreamFilter::class, [
+                        $extensionObject->fromStream,
+                        $extensionObject->aggregateType,
+                        EventStore::class,
+                        $extensionObject->eventNames,
+                    ]),
+                ];
             }
         }
 

@@ -128,7 +128,6 @@ class EventStoreGlobalStreamSource implements StreamSource
     private function loadFromMultipleStreams(array $streamFilters, ?string $lastPosition, int $count): StreamPage
     {
         $positions = $this->decodeMultiStreamPositions($lastPosition);
-        $connection = $this->getConnection();
 
         $orderIndex = [];
         $i = 0;
@@ -139,53 +138,15 @@ class EventStoreGlobalStreamSource implements StreamSource
             $streamName = $streamFilter->streamName;
             $orderIndex[$streamName] = $i++;
 
-            $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($streamName);
-
-            if (! SchemaManagerCompatibility::tableExists($connection, $proophStreamTable)) {
-                $newPositions[$streamName] = $positions[$streamName] ?? '';
-                continue;
-            }
-
             $streamPosition = $positions[$streamName] ?? null;
-            $tracking = GapAwarePosition::fromString($streamPosition);
-
             $limit = (int) ceil($count / max(1, count($streamFilters))) + 5;
 
-            [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
-                true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => ArrayParameterType::INTEGER]],
-                false => ['', [], []],
-            };
+            $streamPage = $this->loadFromSingleStream($streamFilter, $streamPosition, $limit);
+            $newPositions[$streamName] = $streamPage->lastPosition;
 
-            $query = $connection->executeQuery(<<<SQL
-                SELECT no, event_name, payload, metadata, created_at
-                    FROM {$proophStreamTable}
-                    WHERE no > :position {$gapQueryPart}
-                ORDER BY no
-                LIMIT {$limit}
-                SQL, [
-                'position' => $tracking->getPosition(),
-                ...$gapQueryPartParams,
-            ], $gapQueryPartParamTypes);
-
-            $now = $this->clock->now();
-            $cutoffTimestamp = $this->gapTimeout ? $now->sub($this->gapTimeout)->getTimestamp() : 0;
-
-            foreach ($query->iterateAssociative() as $event) {
-                $streamEvent = new StreamEvent(
-                    $event['event_name'],
-                    json_decode($event['payload'], true),
-                    json_decode($event['metadata'], true),
-                    (int) $event['no'],
-                    $this->getTimestamp($event['created_at'])
-                );
-                $insertGaps = $streamEvent->timestamp > $cutoffTimestamp;
-                $tracking->advanceTo($streamEvent->no, $insertGaps);
-                $all[] = [$streamName, $streamEvent];
+            foreach ($streamPage->events as $event) {
+                $all[] = [$streamName, $event];
             }
-
-            $tracking->cleanByMaxOffset($this->maxGapOffset);
-            $this->cleanGapsByTimeout($tracking, $connection, $proophStreamTable);
-            $newPositions[$streamName] = (string) $tracking;
         }
 
         usort($all, function (array $aTuple, array $bTuple) use ($orderIndex): int {

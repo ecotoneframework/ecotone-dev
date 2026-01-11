@@ -238,9 +238,7 @@ class ProophProjectingModule implements AnnotationModule
         $eventStreamingChannelAdapters = ExtensionObjectResolver::resolve(EventStreamingChannelAdapter::class, $serviceExtensions);
 
         if (($this->projectionNames || $eventStreamingChannelAdapters) && ! $eventSourcingConfiguration->isInMemory()) {
-            $projectionNames = array_unique([...$this->projectionNames, ...array_map(fn (EventStreamingChannelAdapter $adapter) => $adapter->getProjectionName(), $eventStreamingChannelAdapters)]);
-
-            $extensions[] = new ProjectionStateStorageReference(DbalProjectionStateStorage::class, $projectionNames);
+            $extensions[] = new ProjectionStateStorageReference(DbalProjectionStateStorage::class);
         }
 
         if ($this->partitionedProjectionNames !== [] && ! $eventSourcingConfiguration->isInMemory()) {
@@ -254,16 +252,10 @@ class ProophProjectingModule implements AnnotationModule
             ]);
 
             if ($globalStreamProjectionNames !== []) {
-                $extensions[] = new StreamSourceReference(
-                    EventStoreGlobalStreamSource::class,
-                    $globalStreamProjectionNames
-                );
+                $extensions[] = new StreamSourceReference(EventStoreGlobalStreamSource::class);
             }
             if ($this->partitionedProjectionNames !== []) {
-                $extensions[] = new StreamSourceReference(
-                    EventStoreAggregateStreamSource::class,
-                    $this->partitionedProjectionNames
-                );
+                $extensions[] = new StreamSourceReference(EventStoreAggregateStreamSource::class);
             }
         }
 

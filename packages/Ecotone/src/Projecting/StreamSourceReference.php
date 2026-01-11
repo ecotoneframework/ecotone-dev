@@ -16,25 +16,15 @@ final class StreamSourceReference
 {
     /**
      * @param string $referenceName
-     * @param string[] $handledProjectionNames
      */
     public function __construct(
         private string $referenceName,
-        private array $handledProjectionNames,
     ) {
     }
 
     public function getReferenceName(): string
     {
         return $this->referenceName;
-    }
-
-    /**
-     * @return string[]
-     */
-    public function getHandledProjectionNames(): array
-    {
-        return $this->handledProjectionNames;
     }
 }
 

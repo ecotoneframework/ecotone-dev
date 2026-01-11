@@ -22,6 +22,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Projecting\Attribute\StreamSource as StreamSourceAttribute;
+use Ecotone\Projecting\InMemory\InMemoryEventStoreStreamSource;
 use Ecotone\Projecting\StreamSource;
 use Ecotone\Projecting\StreamSourceReference;
 use Ecotone\Projecting\StreamSourceRegistry;

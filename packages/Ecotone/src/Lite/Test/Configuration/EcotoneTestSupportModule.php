@@ -42,10 +42,11 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\Projecting\InMemory\InMemoryEventStoreStreamSource;
 use Ecotone\Projecting\InMemory\InMemoryEventStoreStreamSourceBuilder;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
-use Ecotone\Projecting\InMemory\InMemoryStreamSourceBuilder;
 use Ecotone\Projecting\ProjectionStateStorageReference;
+use Ecotone\Projecting\StreamSourceReference;
 
 #[ModuleAnnotation]
 /**
@@ -198,6 +199,13 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                     GatewayHeaderBuilder::create('channelName', 'ecotone.test_support_gateway.channel_name'),
                 ]));
         }
+
+        $messagingConfiguration->registerServiceDefinition(
+            InMemoryEventStoreStreamSource::class,
+            new Definition(InMemoryEventStoreStreamSource::class, [
+                new Reference(InMemoryEventStore::class),
+            ])
+        );
     }
 
     public function canHandle($extensionObject): bool
@@ -239,7 +247,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             return [];
         }
 
-        return [new InMemoryEventStoreStreamSourceBuilder(), new ProjectionStateStorageReference(InMemoryProjectionStateStorage::class)];
+        return [new StreamSourceReference(InMemoryEventStoreStreamSource::class), new ProjectionStateStorageReference(InMemoryProjectionStateStorage::class)];
     }
 
     public function getModulePackageName(): string

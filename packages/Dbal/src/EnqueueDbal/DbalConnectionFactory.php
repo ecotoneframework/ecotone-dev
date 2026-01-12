@@ -160,7 +160,7 @@ class DbalConnectionFactory implements ConnectionFactory
         $doctrineScheme = $supported[$parsedDsn->getScheme()];
 
         if ($doctrineScheme === 'pdo_sqlite') {
-            return $this->buildSqliteConfig($parsedDsn, $config);
+            return $this->buildSqliteConfig($parsedDsn, $dsn, $config);
         }
 
         $dsnHasProtocolOnly = $parsedDsn->getScheme().':' === $dsn;
@@ -192,12 +192,12 @@ class DbalConnectionFactory implements ConnectionFactory
         ];
     }
 
-    private function buildSqliteConfig(Dsn $parsedDsn, ?array $config = null): array
+    private function buildSqliteConfig(Dsn $parsedDsn, string $originalDsn, ?array $config = null): array
     {
         $path = $parsedDsn->getPath();
 
         if ($path === null || $path === '') {
-            $path = ':memory:';
+            $path = $this->extractSqlitePathFromDsn($originalDsn);
         }
 
         if ($path !== ':memory:') {
@@ -220,5 +220,21 @@ class DbalConnectionFactory implements ConnectionFactory
             'lazy' => true,
             'connection' => $connectionConfig,
         ];
+    }
+
+    private function extractSqlitePathFromDsn(string $dsn): string
+    {
+        if (preg_match('#^sqlite3?:///?(.*)$#', $dsn, $matches)) {
+            $pathPart = $matches[1];
+            if ($pathPart === '' || $pathPart === ':memory:') {
+                return ':memory:';
+            }
+            if (str_starts_with($pathPart, '/')) {
+                return $pathPart;
+            }
+            return '/' . $pathPart;
+        }
+
+        return ':memory:';
     }
 }

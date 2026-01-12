@@ -152,13 +152,15 @@ jobs:
         rm -f /tmp/ecotone_test.db /tmp/ecotone_test_b.db
         vendor/bin/phpunit --no-coverage --exclude-testsuite 'Event Sourcing tests'
       env:
-        DATABASE_DSN: sqlite:///tmp/ecotone_test.db
-        SECONDARY_DATABASE_DSN: sqlite:///tmp/ecotone_test_b.db
+        # Use 4 slashes for absolute paths: sqlite:// + / + /path = sqlite:////path
+        DATABASE_DSN: sqlite:////tmp/ecotone_test.db
+        SECONDARY_DATABASE_DSN: sqlite:////tmp/ecotone_test_b.db
 
     - name: Test Behat on SQLite
       run: |
         rm -f /tmp/ecotone_test.db /tmp/ecotone_test_b.db
         vendor/bin/behat -vvv
       env:
-        DATABASE_DSN: sqlite:///tmp/ecotone_test.db
-        SECONDARY_DATABASE_DSN: sqlite:///tmp/ecotone_test_b.db
+        # Use 4 slashes for absolute paths: sqlite:// + / + /path = sqlite:////path
+        DATABASE_DSN: sqlite:////tmp/ecotone_test.db
+        SECONDARY_DATABASE_DSN: sqlite:////tmp/ecotone_test_b.db

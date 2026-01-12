@@ -134,8 +134,13 @@ final class ORMTest extends DbalMessagingTestCase
      */
     public function test_flushing_object_manager_on_command_bus_with_tenant(array $services, array $namespaces, bool $enableDoctrineORMAggregates, MultiTenantConfiguration $multiTenantConfiguration): void
     {
-        $this->setupUserTable($this->connectionForTenantA()->getConnection());
-        $this->setupUserTable($this->connectionForTenantB()->getConnection());
+        /** @var EcotoneManagerRegistryConnectionFactory $tenantAConnection */
+        $tenantAConnection = $services['tenant_a_connection'];
+        /** @var EcotoneManagerRegistryConnectionFactory $tenantBConnection */
+        $tenantBConnection = $services['tenant_b_connection'];
+
+        $this->setupUserTable($tenantAConnection->getConnection());
+        $this->setupUserTable($tenantBConnection->getConnection());
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: array_merge([
@@ -209,7 +214,9 @@ final class ORMTest extends DbalMessagingTestCase
      */
     public function test_flushing_object_manager_on_command_bus_without_multi_tenancy(array $services, array $namespaces, bool $enableDoctrineORMAggregates): void
     {
-        $this->setupUserTable();
+        /** @var EcotoneManagerRegistryConnectionFactory $connectionFactory */
+        $connectionFactory = $services[DbalConnectionFactory::class];
+        $this->setupUserTable($connectionFactory->getConnection());
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: array_merge([
@@ -253,9 +260,9 @@ final class ORMTest extends DbalMessagingTestCase
      */
     public function test_disabling_flushing_object_manager_on_command_bus(array $services, array $namespaces, bool $enableDoctrineORMAggregates)
     {
-        $this->setupUserTable();
         /** @var EcotoneManagerRegistryConnectionFactory $connectionFactory */
         $connectionFactory = $services[DbalConnectionFactory::class];
+        $this->setupUserTable($connectionFactory->getConnection());
         $entityManager = $connectionFactory->getRegistry()->getManager();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -286,9 +293,9 @@ final class ORMTest extends DbalMessagingTestCase
      */
     public function test_object_manager_reconnects_on_command_bus(array $services, array $namespaces, bool $enableDoctrineORMAggregates)
     {
-        $this->setupUserTable();
         /** @var EcotoneManagerRegistryConnectionFactory $connectionFactory */
         $connectionFactory = $services[DbalConnectionFactory::class];
+        $this->setupUserTable($connectionFactory->getConnection());
         $entityManager = $connectionFactory->getRegistry()->getManager();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(

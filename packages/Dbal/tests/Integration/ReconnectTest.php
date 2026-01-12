@@ -26,6 +26,10 @@ final class ReconnectTest extends DbalMessagingTestCase
 {
     public function test_it_will_automatically_reconnect(): void
     {
+        if ($this->isUsingSqlite()) {
+            $this->markTestSkipped('SQLite uses file-based connections that do not support reconnection testing');
+        }
+
         $connectionFactory = $this->connectionForTenantA();
 
         // Create the necessary database tables
@@ -49,6 +53,10 @@ final class ReconnectTest extends DbalMessagingTestCase
 
     public function test_it_will_automatically_reconnect_for_multi_tenant_connection(): void
     {
+        if ($this->isUsingSqlite()) {
+            $this->markTestSkipped('SQLite uses file-based connections that do not support reconnection testing');
+        }
+
         $connectionFactory = $this->connectionForTenantA();
 
         // Create the necessary database tables

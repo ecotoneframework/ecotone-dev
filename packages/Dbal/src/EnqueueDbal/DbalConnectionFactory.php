@@ -158,6 +158,11 @@ class DbalConnectionFactory implements ConnectionFactory
         }
 
         $doctrineScheme = $supported[$parsedDsn->getScheme()];
+
+        if ($doctrineScheme === 'pdo_sqlite') {
+            return $this->buildSqliteConfig($parsedDsn, $config);
+        }
+
         $dsnHasProtocolOnly = $parsedDsn->getScheme().':' === $dsn;
         if ($dsnHasProtocolOnly && is_array($config) && array_key_exists('connection', $config)) {
             $default = [
@@ -178,14 +183,42 @@ class DbalConnectionFactory implements ConnectionFactory
             'lazy' => true,
             'connection' => [
                 'driver' => $doctrineScheme,
-                // Don't use the URL directly, as it might cause issues
-                // 'url' => $url,
                 'host' => $parsedDsn->getHost() ?: 'localhost',
                 'port' => $parsedDsn->getPort() ?: ($doctrineScheme === 'pdo_pgsql' ? 5432 : 3306),
                 'user' => $parsedDsn->getUser() ?: 'root',
                 'password' => $parsedDsn->getPassword() ?: '',
                 'dbname' => ltrim($parsedDsn->getPath() ?: '', '/') ?: '',
             ],
+        ];
+    }
+
+    private function buildSqliteConfig(Dsn $parsedDsn, ?array $config = null): array
+    {
+        $path = $parsedDsn->getPath();
+
+        if ($path === null || $path === '') {
+            $path = ':memory:';
+        }
+
+        if ($path !== ':memory:') {
+            $path = ltrim($path, '/');
+            if (! str_starts_with($path, '/')) {
+                $path = '/' . $path;
+            }
+        }
+
+        $connectionConfig = [
+            'driver' => 'pdo_sqlite',
+            'path' => $path,
+        ];
+
+        if (is_array($config) && array_key_exists('connection', $config)) {
+            $connectionConfig = array_replace_recursive($connectionConfig, $config['connection']);
+        }
+
+        return [
+            'lazy' => true,
+            'connection' => $connectionConfig,
         ];
     }
 }

@@ -84,6 +84,10 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_reconnecting_on_lost_connection_during_commit()
     {
+        if ($this->isUsingSqlite()) {
+            $this->markTestSkipped('SQLite does not support connection breaking/recovering testing');
+        }
+
         // Now create the actual test instance with the connection breaking module
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class, ConnectionBreakingModule::class],
@@ -131,6 +135,10 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
      */
     public function test_reconnecting_on_lost_connection_during_dead_letter_storage()
     {
+        if ($this->isUsingSqlite()) {
+            $this->markTestSkipped('SQLite does not support connection breaking/recovering testing');
+        }
+
         // First, create a regular EcotoneLite instance to set up the database tables
         $setupEcotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],

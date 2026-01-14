@@ -6,6 +6,7 @@ namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Kafka\Outbound\MessagePublishingException;
@@ -324,5 +325,39 @@ final class KafkaChannelAdapterTest extends TestCase
         // 4. Consumer would pick it up again after delay (in real scenario)
         // 5. This continues until max delayed retries reached or success
         // 6. If all retries fail, message goes to dead letter channel or is resent to Kafka (based on finalFailureStrategy)
+    }
+
+    public function test_sending_and_receiving_with_kafka_consumer_configuration(): void
+    {
+        $topicName = Uuid::uuid4()->toString();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ExampleKafkaConsumer::class],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+                new ExampleKafkaConsumer(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults($topicName),
+                    TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
+                    KafkaConsumerConfiguration::createWithDefaults('exampleConsumer'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        /** @var MessagePublisher $kafkaPublisher */
+        $kafkaPublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+
+        $kafkaPublisher->sendWithMetadata('exampleData', 'application/text', ['key' => 'value']);
+
+        $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
+            maxExecutionTimeInMilliseconds: 30000
+        ));
+
+        $messages = $ecotoneLite->sendQueryWithRouting('getMessages');
+
+        self::assertCount(1, $messages);
+        self::assertEquals('exampleData', $messages[0]['payload']);
     }
 }

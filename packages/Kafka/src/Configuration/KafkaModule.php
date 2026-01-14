@@ -117,7 +117,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
         foreach ($extensionObjects as $extensionObject) {
             if ($extensionObject instanceof KafkaConsumerConfiguration) {
-                $consumerConfigurations[$extensionObject->getEndpointId()] = $consumerConfigurations;
+                $consumerConfigurations[$extensionObject->getEndpointId()] = $extensionObject;
             } elseif ($extensionObject instanceof TopicConfiguration) {
                 $topicConfigurations[$extensionObject->getTopicName()] = $extensionObject;
                 $topicReferenceMapping[$extensionObject->referenceName] = $extensionObject->getTopicName();

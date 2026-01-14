@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Integration;
 
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Lite\EcotoneLite;
@@ -14,8 +15,10 @@ use Ecotone\Modelling\Event;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList;
 
@@ -302,5 +305,39 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
             new TicketWasClosed('123'),
             $events[0]->getPayload()
         );
+    }
+
+    public function test_deleting_event_stream_table_also_deletes_stream_tables(): void
+    {
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            containerOrAvailableServices: [
+                new InProgressTicketList($this->getConnection()),
+                new TicketEventConverter(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
+        );
+
+        $ecotone->sendCommand(new RegisterTicket('1', 'johny', 'alert'));
+
+        $connection = $this->getConnection();
+        $eventStreamsTable = LazyProophEventStore::DEFAULT_STREAM_TABLE;
+        $streamTableName = '_' . sha1(Ticket::class);
+
+        $this->assertTrue(self::tableExists($connection, $eventStreamsTable));
+        $this->assertTrue(self::tableExists($connection, $streamTableName));
+
+        $tableManager = new EventStreamTableManager($eventStreamsTable, true, true);
+        $tableManager->dropTable($connection);
+
+        $this->assertFalse(self::tableExists($connection, $streamTableName));
+        $this->assertFalse(self::tableExists($connection, $eventStreamsTable));
     }
 }

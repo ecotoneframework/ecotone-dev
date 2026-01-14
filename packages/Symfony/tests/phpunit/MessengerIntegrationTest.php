@@ -312,4 +312,25 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
+
+    public function test_sending_with_delay_using_datetime()
+    {
+        $channelName = 'messenger_async';
+        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [MessengerAsyncCommandHandler::class],
+            $this->bootKernel()->getContainer(),
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    SymfonyMessengerMessageChannelBuilder::create($channelName),
+                ])
+        );
+
+        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload, metadata: [
+            MessageHeaders::DELIVERY_DELAY => (new \DateTimeImmutable())->modify('+1 second'),
+        ]);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000));
+        $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
+    }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\SymfonyBundle\Messenger;
 
+use DateTimeInterface;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
@@ -11,6 +12,9 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Scheduling\DatePoint;
+use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\Stamp\DelayStamp;
@@ -53,10 +57,37 @@ final class SymfonyMessageConverter
         $envelopeToSend = new Envelope($payload, [new MetadataStamp($headers)]);
 
         if ($message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY) && $withDelay) {
-            $envelopeToSend = $envelopeToSend->with(new DelayStamp($message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY)));
+            $deliveryDelay = $this->convertDeliveryDelayToMilliseconds(
+                $message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY),
+                $message->getHeaders()->getTimestamp()
+            );
+            if ($deliveryDelay !== null) {
+                $envelopeToSend = $envelopeToSend->with(new DelayStamp($deliveryDelay));
+            }
         }
 
         return $envelopeToSend;
+    }
+
+    private function convertDeliveryDelayToMilliseconds(mixed $deliveryDelay, int $messageTimestamp): ?int
+    {
+        if ($deliveryDelay instanceof DateTimeInterface) {
+            $deliveryDelay = DatePoint::createFromInterface($deliveryDelay)->durationSince(DatePoint::createFromTimestamp($messageTimestamp));
+        }
+
+        if ($deliveryDelay instanceof Duration) {
+            $deliveryDelay = $deliveryDelay->inMilliseconds();
+        }
+
+        if ($deliveryDelay instanceof TimeSpan) {
+            $deliveryDelay = $deliveryDelay->toMilliseconds();
+        }
+
+        if ($deliveryDelay !== null && $deliveryDelay < 0) {
+            return null;
+        }
+
+        return $deliveryDelay;
     }
 
     public function convertFromSymfonyMessage(Envelope $symfonyEnvelope, TransportInterface $symfonyTransport): Message

@@ -84,7 +84,24 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function dropTable(Connection $connection): void
     {
+        if ($this->isInitialized($connection)) {
+            $this->dropStreamTables($connection);
+        }
         $connection->executeStatement($this->getDropTableSql($connection));
+    }
+
+    private function dropStreamTables(Connection $connection): void
+    {
+        $streamTableNames = $connection->fetchFirstColumn(
+            "SELECT stream_name FROM {$this->tableName}"
+        );
+
+        foreach ($streamTableNames as $streamTableName) {
+            $dropSql = $this->isPostgres($connection)
+                ? "DROP TABLE IF EXISTS {$streamTableName}"
+                : "DROP TABLE IF EXISTS `{$streamTableName}`";
+            $connection->executeStatement($dropSql);
+        }
     }
 
     public function isInitialized(Connection $connection): bool

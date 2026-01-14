@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Queue;
 
+use DateTimeImmutable;
 use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
@@ -11,7 +12,9 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Exception;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
@@ -84,6 +87,29 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         );
     }
 
+    public function test_sending_with_delay_using_datetime()
+    {
+        $container = $this->getContainer();
+        $delayedService = new DelayedService();
+        $container->instance(DelayedService::class, $delayedService);
+
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [DelayedService::class],
+            $container,
+            ServiceConfiguration::createWithAsynchronicityOnly()
+                ->withExtensionObjects([
+                    LaravelQueueMessageChannelBuilder::create('async', 'database'),
+                ])
+        );
+
+        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.delayed_command', new DelayedCommand('test_1'), metadata: [
+            MessageHeaders::DELIVERY_DELAY => (new DateTimeImmutable())->modify('+1 second'),
+        ]);
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000));
+
+        $this->assertEquals(['test_1'], $delayedService->getMessages());
+    }
+
     private function getContainer(): ContainerInterface
     {
         $app = require __DIR__ . '/../Application/bootstrap/app.php';
@@ -107,5 +133,34 @@ class FailingService
     public function execute(FailingCommand $command): void
     {
         throw new Exception('Failing');
+    }
+}
+
+class DelayedCommand
+{
+    public function __construct(public readonly string $payload)
+    {
+    }
+}
+
+class DelayedService
+{
+    /** @var string[] */
+    private array $messages = [];
+
+    #[Asynchronous('async')]
+    #[CommandHandler('execute.delayed_command', 'delayed_endpoint')]
+    public function execute(DelayedCommand $command): void
+    {
+        $this->messages[] = $command->payload;
+    }
+
+    /**
+     * @return string[]
+     */
+    #[QueryHandler('get.delayed_messages')]
+    public function getMessages(): array
+    {
+        return $this->messages;
     }
 }

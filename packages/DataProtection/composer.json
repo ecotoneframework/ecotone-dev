@@ -1,0 +1,80 @@
+{
+    "name": "ecotone/data-protection",
+    "license": [
+        "Apache-2.0",
+        "proprietary"
+    ],
+    "homepage": "https://docs.ecotone.tech/",
+    "forum": "https://discord.gg/GwM2BSuXeg",
+    "type": "library",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Dariusz Gafka",
+            "email": "support@simplycodedsoftware.com"
+        }
+    ],
+    "keywords": ["ecotone", "Encryption", "OpenSSL", "Data Protection", "Data Obfuscation"],
+    "description": "Extends Ecotone with Data Protection features allowing to obfuscate messages with sensitive data.",
+    "autoload": {
+        "psr-4": {
+            "Ecotone\\DataProtection\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Test\\Ecotone\\DataProtection\\": [
+                "tests"
+            ]
+        }
+    },
+    "require": {
+        "ext-openssl": "*",
+        "ecotone/ecotone": "~1.293.0",
+        "defuse/php-encryption": "^2.4"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5|^10.5|^11.0",
+        "phpstan/phpstan": "^1.8",
+        "psr/container": "^2.0",
+        "wikimedia/composer-merge-plugin": "^2.1"
+    },
+    "scripts": {
+        "tests:phpstan": "vendor/bin/phpstan",
+        "tests:phpunit": "vendor/bin/phpunit",
+        "tests:ci": [
+            "@tests:phpstan",
+            "@tests:phpunit"
+        ]
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.62-dev"
+        },
+        "ecotone": {
+            "repository": "DataProtection"
+        },
+        "merge-plugin": {
+            "include": [
+                "../local_packages.json"
+            ]
+        },
+        "license-info": {
+            "Apache-2.0": {
+                "name": "Apache License 2.0",
+                "url": "https://github.com/ecotoneframework/ecotone-dev/blob/main/LICENSE",
+                "description": "Allows to use non Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            },
+            "proprietary": {
+                "name": "Enterprise License",
+                "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            }
+        }
+    },
+    "config": {
+        "allow-plugins": {
+            "wikimedia/composer-merge-plugin": true
+        }
+    }
+}

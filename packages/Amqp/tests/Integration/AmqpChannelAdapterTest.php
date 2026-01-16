@@ -42,6 +42,7 @@ use Ramsey\Uuid\Uuid;
 use RuntimeException;
 use stdClass;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
+use Test\Ecotone\Amqp\Fixture\AmqpChannel\SpyDelayStrategy;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
 use Test\Ecotone\Amqp\Fixture\Handler\ExceptionalMessageHandler;
 
@@ -892,6 +893,33 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
             $inboundAmqpAdapterForWhite,
             $inboundRequestChannel
         ));
+    }
+
+    public function test_using_custom_delay_strategy_from_channel_builder()
+    {
+        $queueName = Uuid::uuid4()->toString();
+        $customDelayStrategy = new SpyDelayStrategy();
+
+        $ecotoneLite = $this->bootstrapForTesting(
+            [],
+            array_merge($this->getConnectionFactoryReferences(), ['customDelayStrategy' => $customDelayStrategy]),
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpBackedMessageChannelBuilder::create($queueName)
+                        ->withDelayStrategy($customDelayStrategy),
+                ])
+        );
+
+        /** @var PollableChannel $messageChannel */
+        $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
+        $messageChannel->send(
+            MessageBuilder::withPayload('some')
+                ->setHeader(MessageHeaders::DELIVERY_DELAY, 10)
+                ->build()
+        );
+
+        $this->assertTrue(SpyDelayStrategy::$wasCalled);
     }
 
     /**

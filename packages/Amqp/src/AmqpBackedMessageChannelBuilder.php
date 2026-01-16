@@ -4,6 +4,7 @@ namespace Ecotone\Amqp;
 
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Enqueue\AmqpTools\DelayStrategy;
 
 /**
  * Class AmqpBackedMessageChannelBuilder
@@ -67,6 +68,13 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
     public function withPublisherConfirms(bool $enabled): self
     {
         $this->getAmqpOutboundChannelAdapter()->withPublisherConfirms($enabled);
+
+        return $this;
+    }
+
+    public function withDelayStrategy(DelayStrategy $delayStrategy): self
+    {
+        $this->getAmqpOutboundChannelAdapter()->withDelayStrategy($delayStrategy);
 
         return $this;
     }

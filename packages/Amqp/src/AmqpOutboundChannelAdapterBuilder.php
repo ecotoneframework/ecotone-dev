@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Enqueue\AmqpTools\DelayStrategy;
 
 /**
  * licence Apache-2.0
@@ -28,6 +29,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     private bool $defaultPersistentDelivery = self::DEFAULT_PERSISTENT_MODE;
     private array $staticHeadersToAdd = [];
     private bool $publisherConfirms = true;
+    private ?DelayStrategy $delayStrategy = null;
 
     private function __construct(string $exchangeName, string $amqpConnectionFactoryReferenceName)
     {
@@ -61,6 +63,13 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     public function withPublisherConfirms(bool $publisherConfirms): self
     {
         $this->publisherConfirms = $publisherConfirms;
+
+        return $this;
+    }
+
+    public function withDelayStrategy(DelayStrategy $delayStrategy): self
+    {
+        $this->delayStrategy = $delayStrategy;
 
         return $this;
     }
@@ -140,6 +149,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
             Reference::to(AmqpTransactionInterceptor::class),
+            $this->delayStrategy
         ]);
     }
 }

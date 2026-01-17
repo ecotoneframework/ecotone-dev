@@ -16,6 +16,7 @@ class Clock implements EcotoneClockInterface
     public function __construct(
         private readonly ?PsrClockInterface $clock = null,
     ) {
+        self::$globalClock = $this->clock ? $this : self::defaultClock();
     }
 
     public static function set(PsrClockInterface $clock): void
@@ -28,7 +29,12 @@ class Clock implements EcotoneClockInterface
      */
     public static function get(): EcotoneClockInterface
     {
-        return self::$globalClock ??= new NativeClock();
+        return self::$globalClock ??= self::defaultClock();
+    }
+
+    public static function resetGlobalClock(): void
+    {
+        self::$globalClock = null;
     }
 
     public function now(): DatePoint
@@ -48,7 +54,12 @@ class Clock implements EcotoneClockInterface
         if ($clock instanceof SleepInterface) {
             $clock->sleep($duration);
         } else {
-            (new NativeClock())->sleep($duration);
+            self::defaultClock()->sleep($duration);
         }
+    }
+
+    private static function defaultClock(): EcotoneClockInterface
+    {
+        return new NativeClock();
     }
 }

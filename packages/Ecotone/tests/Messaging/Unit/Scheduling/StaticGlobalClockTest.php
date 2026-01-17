@@ -28,8 +28,13 @@ class StaticGlobalClockTest extends TestCase
 {
     protected function setUp(): void
     {
-        parent::setUp();
+        parent::tearDown();
+        Clock::resetGlobalClock();
+    }
 
+    protected function tearDown(): void
+    {
+        parent::tearDown();
         Clock::resetGlobalClock();
     }
 

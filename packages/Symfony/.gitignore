@@ -9,3 +9,7 @@ phpunit.xml
 # Ignore generated container files
 /var/cache/
 /tests/phpunit/*/var/cache/
+# Ignore generated reference files
+/config/reference.php
+/tests/phpunit/config/reference.php
+/tests/phpunit/*/config/reference.php

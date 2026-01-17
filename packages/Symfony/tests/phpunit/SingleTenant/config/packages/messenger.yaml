@@ -1,14 +1,7 @@
-doctrine:
-  dbal:
-    connections:
-      default:
-        schema_filter: '~^(?!messenger_messages)~'
-        url: "%env(DATABASE_DSN)%"
-
 framework:
   messenger:
     transports:
       notifications:
-        dsn: 'doctrine://default?queue_name=async'
+        dsn: 'doctrine://defined_connection?queue_name=async'
         options:
           use_notify: false

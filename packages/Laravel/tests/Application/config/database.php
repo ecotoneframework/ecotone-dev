@@ -55,14 +55,14 @@ return [
             'database' => env('DB_DATABASE', (function () {
                 $dsn = getenv('DATABASE_DSN');
                 if ($dsn && str_starts_with($dsn, 'sqlite:')) {
-                    // SQLite URL format: sqlite://host/path
-                    // For file-based: sqlite:///path (empty host, absolute path)
-                    // Or: sqlite:////path (empty host + extra slash for absolute)
-                    // Remove sqlite:// prefix, keeping the path intact
-                    $path = preg_replace('#^sqlite://#', '', $dsn);
-                    // Handle extra slash for absolute paths (sqlite:////path -> //path -> /path)
-                    if (str_starts_with($path, '//')) {
-                        $path = substr($path, 1);
+                    $path = preg_replace('/^sqlite:(\/\/)?/', '', $dsn);
+                    if ($path === '/:memory:') {
+                        return ':memory:';
+                    }
+                    $path = ltrim($path, '/');
+                    $path = '/' . $path;
+                    if (!file_exists($path)) {
+                        touch($path);
                     }
                     return $path;
                 }

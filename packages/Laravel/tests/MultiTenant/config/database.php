@@ -12,7 +12,7 @@ $getSqlitePath = function (string $dsn): string {
     }
     $path = ltrim($path, '/');
     $path = '/' . $path;
-    if (!file_exists($path)) {
+    if (! file_exists($path)) {
         touch($path);
     }
     return $path;

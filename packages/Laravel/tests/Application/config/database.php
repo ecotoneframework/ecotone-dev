@@ -54,8 +54,17 @@ return [
             'driver' => 'sqlite',
             'database' => env('DB_DATABASE', (function () {
                 $dsn = getenv('DATABASE_DSN');
-                if ($dsn && str_starts_with($dsn, 'sqlite:///')) {
-                    return substr($dsn, strlen('sqlite://'));
+                if ($dsn && str_starts_with($dsn, 'sqlite:')) {
+                    // SQLite URL format: sqlite://host/path
+                    // For file-based: sqlite:///path (empty host, absolute path)
+                    // Or: sqlite:////path (empty host + extra slash for absolute)
+                    // Remove sqlite:// prefix, keeping the path intact
+                    $path = preg_replace('#^sqlite://#', '', $dsn);
+                    // Handle extra slash for absolute paths (sqlite:////path -> //path -> /path)
+                    if (str_starts_with($path, '//')) {
+                        $path = substr($path, 1);
+                    }
+                    return $path;
                 }
                 return database_path('database.sqlite');
             })()),

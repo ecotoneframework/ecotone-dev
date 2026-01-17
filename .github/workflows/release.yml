@@ -66,6 +66,44 @@ jobs:
       - name: Run Update Required Packages
         run: php bin/update-required-packages.php ${{ github.ref_name }}
 
+      - name: Update CHANGELOG.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.ref_name }}
+        run: |
+          RELEASE_BODY=$(gh release view "$VERSION" --repo ecotoneframework/ecotone-dev --json body -q '.body // "No release notes available"')
+          RELEASE_DATE=$(date +%Y-%m-%d)
+
+          if [ -f CHANGELOG.md ]; then
+            # Read current content, skip the header (first 5 lines)
+            HEADER=$(head -n 5 CHANGELOG.md)
+            CONTENT=$(tail -n +6 CHANGELOG.md)
+
+            # Create temp file with new content
+            {
+              echo "$HEADER"
+              echo ""
+              echo "## [$VERSION] - $RELEASE_DATE"
+              echo ""
+              echo "$RELEASE_BODY"
+              echo ""
+              echo "$CONTENT"
+            } > CHANGELOG.md.tmp
+            mv CHANGELOG.md.tmp CHANGELOG.md
+          else
+            {
+              echo "# Changelog"
+              echo ""
+              echo "All notable changes to Ecotone will be documented in this file."
+              echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)."
+              echo ""
+              echo "## [$VERSION] - $RELEASE_DATE"
+              echo ""
+              echo "$RELEASE_BODY"
+              echo ""
+            } > CHANGELOG.md
+          fi
+
       - name: Commit changes
         uses: stefanzweifel/git-auto-commit-action@v4
         with:

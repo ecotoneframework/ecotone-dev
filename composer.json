@@ -116,7 +116,6 @@
         "enqueue/amqp-lib": "^0.10.25",
         "enqueue/redis": "^0.10.9",
         "enqueue/sqs": "^0.10.15",
-        "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0",
         "ext-amqp": "*",
         "laminas/laminas-code": "^4",
@@ -165,7 +164,8 @@
         "timacdonald/log-fake": "^2.0",
         "symfony/monolog-bundle": "^3.10",
         "kwn/php-rdkafka-stubs": "^2.2",
-        "symfony/var-exporter": "^6.4|^7.0|^8.0"
+        "symfony/var-exporter": "^6.4|^7.0|^8.0",
+        "enqueue/dsn": "^0.10.27"
     },
     "conflict": {
         "symfony/doctrine-messenger": ">7.0.5 < 7.1.0",

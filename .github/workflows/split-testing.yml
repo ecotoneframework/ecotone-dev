@@ -208,6 +208,23 @@ jobs:
                 ${run_tests_cmd}"; then
                 overall_exit_code=1
               fi
+
+              # Run SQLite pass (skip for PdoEventSourcing - SQLite event store not supported)
+              if [[ "$dir" != *"PdoEventSourcing"* ]]; then
+                local sqlite_db="/tmp/ecotone_${slug}_test.db"
+                local sqlite_db_secondary="/tmp/ecotone_${slug}_test_b.db"
+                # Use 4 slashes for absolute paths: sqlite:// + / + /path = sqlite:////path
+                # This is needed because both enqueue/dsn and Doctrine's DsnParser
+                # require 4 slashes for absolute paths to be parsed correctly
+                if ! _run_tests "$dir (SQLite)" "\
+                  rm -f '${sqlite_db}' '${sqlite_db_secondary}' && \
+                  cd '${dir}' && \
+                  DATABASE_DSN='sqlite:///${sqlite_db}' \
+                  SECONDARY_DATABASE_DSN='sqlite:///${sqlite_db_secondary}' \
+                  ${run_tests_cmd}"; then
+                  overall_exit_code=1
+                fi
+              fi
             else
               # No DB dependency: run tests with no DB env vars
               if ! _run_tests "$dir" "cd '${dir}' && ${run_tests_cmd}"; then

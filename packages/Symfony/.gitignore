@@ -10,6 +10,6 @@ phpunit.xml
 /var/cache/
 /tests/phpunit/*/var/cache/
 # Ignore generated reference files
-config/reference.php
-tests/phpunit/config/reference.php
-tests/phpunit/*/config/reference.php
+/config/reference.php
+/tests/phpunit/config/reference.php
+/tests/phpunit/*/config/reference.php

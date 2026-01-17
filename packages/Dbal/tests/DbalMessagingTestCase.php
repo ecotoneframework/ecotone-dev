@@ -60,6 +60,11 @@ abstract class DbalMessagingTestCase extends TestCase
         return $this->getConnectionFactory()->createContext()->getDbalConnection();
     }
 
+    protected function isUsingSqlite(): bool
+    {
+        return $this->getConnection()->getDatabasePlatform() instanceof \Doctrine\DBAL\Platforms\SqlitePlatform;
+    }
+
     public static function cleanUpDbalTables(Connection $connection): void
     {
         self::deleteTable('enqueue', $connection);
@@ -140,9 +145,17 @@ abstract class DbalMessagingTestCase extends TestCase
             return $this->tenantBConnection;
         }
 
-        $connectionFactory = DbalConnection::fromDsn(
-            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@localhost:3306/ecotone'
-        );
+        $secondaryDsn = getenv('SECONDARY_DATABASE_DSN');
+        if (! $secondaryDsn) {
+            $primaryDsn = getenv('DATABASE_DSN') ?: '';
+            if (str_starts_with($primaryDsn, 'sqlite')) {
+                $secondaryDsn = 'sqlite:///tmp/ecotone_tenant_b.db';
+            } else {
+                $secondaryDsn = 'mysql://ecotone:secret@localhost:3306/ecotone';
+            }
+        }
+
+        $connectionFactory = DbalConnection::fromDsn($secondaryDsn);
 
         $this->tenantBConnection = $connectionFactory;
         return $connectionFactory;

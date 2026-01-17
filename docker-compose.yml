@@ -17,6 +17,7 @@ services:
       COMPOSER_ROOT_VERSION: 'dev-main'
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16
+      SQLITE_DATABASE_DSN: sqlite:////tmp/ecotone_test.db
       SECONDARY_DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
@@ -41,6 +42,7 @@ services:
       COMPOSER_ROOT_VERSION: 'dev-main'
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
+      SQLITE_DATABASE_DSN: sqlite:////tmp/ecotone_test.db
       SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest

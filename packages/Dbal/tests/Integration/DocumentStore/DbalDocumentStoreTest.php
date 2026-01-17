@@ -215,6 +215,10 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_adding_non_json_document_should_fail()
     {
+        if ($this->isUsingSqlite()) {
+            $this->markTestSkipped('SQLite does not validate JSON at the database level');
+        }
+
         $ecotone = $this->bootstrapEcotone();
         $documentStore = $ecotone->getGateway(DocumentStore::class);
 

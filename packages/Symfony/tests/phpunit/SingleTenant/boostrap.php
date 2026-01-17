@@ -46,4 +46,24 @@ function migrateSymfonyForSingleTenant(Connection $connection): void
                 customer_id INTEGER PRIMARY KEY
             )
         SQL);
+    $connection->executeStatement(<<<SQL
+            CREATE TABLE messenger_messages (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                body TEXT NOT NULL,
+                headers TEXT NOT NULL,
+                queue_name VARCHAR(190) NOT NULL,
+                created_at TEXT NOT NULL,
+                available_at TEXT NOT NULL,
+                delivered_at TEXT DEFAULT NULL
+            )
+        SQL);
+    $connection->executeStatement(<<<SQL
+            CREATE INDEX IF NOT EXISTS IDX_75EA56E0FB7336F0 ON messenger_messages (queue_name)
+        SQL);
+    $connection->executeStatement(<<<SQL
+            CREATE INDEX IF NOT EXISTS IDX_75EA56E0E3BD61CE ON messenger_messages (available_at)
+        SQL);
+    $connection->executeStatement(<<<SQL
+            CREATE INDEX IF NOT EXISTS IDX_75EA56E016BA31DB ON messenger_messages (delivered_at)
+        SQL);
 }

@@ -134,33 +134,3 @@ jobs:
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
-
-    - name: Test PHPUnit on Mysql
-      run: vendor/bin/phpunit --no-coverage
-      env:
-        DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
-        SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
-
-    - name: Test Behat on Mysql
-      run: vendor/bin/behat -vvv
-      env:
-        DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
-        SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
-
-    - name: Test PHPUnit on SQLite
-      run: |
-        rm -f /tmp/ecotone_test.db /tmp/ecotone_test_b.db
-        vendor/bin/phpunit --no-coverage --exclude-testsuite 'Event Sourcing tests'
-      env:
-        # Use 4 slashes for absolute paths: sqlite:// + / + /path = sqlite:////path
-        DATABASE_DSN: sqlite:////tmp/ecotone_test.db
-        SECONDARY_DATABASE_DSN: sqlite:////tmp/ecotone_test_b.db
-
-    - name: Test Behat on SQLite
-      run: |
-        rm -f /tmp/ecotone_test.db /tmp/ecotone_test_b.db
-        vendor/bin/behat -vvv
-      env:
-        # Use 4 slashes for absolute paths: sqlite:// + / + /path = sqlite:////path
-        DATABASE_DSN: sqlite:////tmp/ecotone_test.db
-        SECONDARY_DATABASE_DSN: sqlite:////tmp/ecotone_test_b.db

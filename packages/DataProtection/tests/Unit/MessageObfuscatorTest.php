@@ -2,9 +2,7 @@
 
 namespace Test\Ecotone\DataProtection\Unit;
 
-use Defuse\Crypto\Key;
 use Ecotone\DataProtection\Obfuscator\MessageObfuscator;
-use Ecotone\DataProtection\Obfuscator\Obfuscator;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;

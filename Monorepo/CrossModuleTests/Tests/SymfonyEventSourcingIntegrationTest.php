@@ -10,6 +10,11 @@ use PHPUnit\Framework\TestCase;
 
 class SymfonyEventSourcingIntegrationTest extends TestCase
 {
+    protected function tearDown(): void
+    {
+        restore_exception_handler();
+    }
+
     #[DoesNotPerformAssertions]
     public function test_symfony_in_test_mode_with_es_should_boot(): void
     {

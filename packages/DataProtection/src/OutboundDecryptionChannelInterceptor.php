@@ -7,6 +7,7 @@ use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 
 class OutboundDecryptionChannelInterceptor extends AbstractChannelInterceptor
@@ -32,6 +33,8 @@ class OutboundDecryptionChannelInterceptor extends AbstractChannelInterceptor
 
     private function canHandle(Message $message): bool
     {
-        return $message->getHeaders()->containsKey('contentType') && MediaType::parseMediaType($message->getHeaders()->get('contentType'))->isCompatibleWith(MediaType::createApplicationJson());
+        return $message->getHeaders()->containsKey(MessageHeaders::CONTENT_TYPE)
+            && MediaType::parseMediaType($message->getHeaders()->get(MessageHeaders::CONTENT_TYPE))->isCompatibleWith(MediaType::createApplicationJson())
+        ;
     }
 }

@@ -31,7 +31,8 @@
     },
     "require": {
         "ext-openssl": "*",
-        "ecotone/ecotone": "~1.293.0",
+        "ecotone/ecotone": "~1.295.0",
+        "ecotone/jms-converter": "~1.295.0",
         "defuse/php-encryption": "^2.4"
     },
     "require-dev": {

@@ -31,8 +31,6 @@ class OutboundEncryptionChannelBuilder implements ChannelInterceptorBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return new Definition(OutboundEncryptionChannelInterceptor::class, [
-            Reference::to(MessageObfuscator::class),
-        ]);
+        return new Definition(OutboundEncryptionChannelInterceptor::class, [Reference::to(MessageObfuscator::class)]);
     }
 }

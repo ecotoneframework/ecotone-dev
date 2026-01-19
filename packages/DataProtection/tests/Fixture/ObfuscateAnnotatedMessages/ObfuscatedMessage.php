@@ -11,7 +11,7 @@ use Test\Ecotone\DataProtection\Fixture\TestEnum;
 #[UsingSensitiveData]
 #[WithSensitiveHeaders(['foo', 'bar'])]
 #[WithSensitiveHeader('fos')]
-class FullyObfuscatedMessage
+class ObfuscatedMessage
 {
     public function __construct(
         public TestClass $class,

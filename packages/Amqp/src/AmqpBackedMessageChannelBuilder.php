@@ -48,6 +48,11 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         );
     }
 
+    private function getAmqpOutboundChannelAdapter(): AmqpOutboundChannelAdapterBuilder
+    {
+        return $this->outboundChannelAdapter;
+    }
+
     /**
      * @deprecated use withPublisherConfirms
      * @TODO Ecotone 2.0 remove

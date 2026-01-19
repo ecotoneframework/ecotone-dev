@@ -907,7 +907,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName)
-                        ->withDelayStrategy($customDelayStrategy),
+                        ->withDelayStrategy('customDelayStrategy'),
                 ])
         );
 

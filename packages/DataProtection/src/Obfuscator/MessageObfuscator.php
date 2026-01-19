@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * licence Enterprise
+ */
 namespace Ecotone\DataProtection\Obfuscator;
 
 use Ecotone\Messaging\Message;

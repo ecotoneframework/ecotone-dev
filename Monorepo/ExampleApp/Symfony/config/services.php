@@ -18,7 +18,6 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         'defaultErrorChannel' => 'errorChannel',
         'failFast' => false,
         'skippedModulePackageNames' => \json_decode(\getenv('APP_SKIPPED_PACKAGES'), true),
-        'test' => true,
     ]);
 
     $services = $containerConfigurator->services();

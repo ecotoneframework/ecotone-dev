@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * licence Enterprise
+ */
 declare(strict_types=1);
 
 namespace Ecotone\DataProtection\Configuration;

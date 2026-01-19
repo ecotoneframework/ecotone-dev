@@ -4,14 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Scheduling;
 
-use DateTimeImmutable;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\DatePoint;
-use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\NativeClock;
-use Ecotone\Messaging\Scheduling\SleepInterface;
 use PHPUnit\Framework\TestCase;
-use Psr\Clock\ClockInterface;
+use Test\Ecotone\Messaging\Fixture\Scheduling\StaticPsrClock;
 
 /**
  * Class StaticGlobalClockTest
@@ -29,13 +26,13 @@ class StaticGlobalClockTest extends TestCase
     protected function setUp(): void
     {
         parent::tearDown();
-        Clock::resetGlobalClock();
+        Clock::resetToNativeClock();
     }
 
     protected function tearDown(): void
     {
         parent::tearDown();
-        Clock::resetGlobalClock();
+        Clock::resetToNativeClock();
     }
 
     public function test_when_clock_is_not_instantiated_returns_default_native_clock()
@@ -59,40 +56,11 @@ class StaticGlobalClockTest extends TestCase
 
     public function test_when_clock_is_not_instantiated_with_not_null_internal_clock_returns_ecotone_clock()
     {
-        $staticClock = $this->createStaticClock('2025-08-11 16:00:00');
-        $clock = new Clock($staticClock);
+        $clock = new Clock(new StaticPsrClock('2025-08-11 16:00:00'));
 
         $globalClock = Clock::get();
 
         $this->assertInstanceOf(Clock::class, $globalClock);
         $this->assertEquals('2025-08-11 16:00:00', $globalClock->now()->format('Y-m-d H:i:s'));
-    }
-
-    /**
-     * @description Create static clock with given date time to mimic external PsrClockInterface implementation
-     * as Ecotone's Clock dependency override.
-     * @param string $currentDateTime
-     * @return ClockInterface
-     */
-    private function createStaticClock(string $currentDateTime): ClockInterface
-    {
-        return new class ($currentDateTime) implements ClockInterface, SleepInterface {
-            private static DateTimeImmutable $now;
-
-            public function __construct(string $now)
-            {
-                self::$now = new DateTimeImmutable($now);
-            }
-
-            public function now(): DateTimeImmutable
-            {
-                return self::$now;
-            }
-
-            public function sleep(Duration $duration): void
-            {
-                self::$now = self::$now->modify("+{$duration->zeroIfNegative()->inMicroseconds()} microseconds");
-            }
-        };
     }
 }

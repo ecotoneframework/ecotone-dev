@@ -1,6 +1,8 @@
 <?php
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\Table;
+use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Symfony\Component\HttpKernel\Kernel;
@@ -19,31 +21,31 @@ function runMigrationForSymfony(Kernel $kernel): void
 
 function migrateSymfonyForSingleTenant(Connection $connection): void
 {
-    $connection->executeStatement(<<<SQL
-                DROP TABLE IF EXISTS persons
-        SQL);
-    $connection->executeStatement(<<<SQL
-                DROP TABLE IF EXISTS ecotone_error_messages
-        SQL);
-    $connection->executeStatement(<<<SQL
-                DROP TABLE IF EXISTS messenger_messages
-        SQL);
-    $connection->executeStatement(<<<SQL
-                DROP TABLE IF EXISTS customer_notifications
-        SQL);
-    $connection->executeStatement(<<<SQL
-            CREATE TABLE persons (
-                customer_id INTEGER PRIMARY KEY,
-                name VARCHAR(255),
-                is_active bool DEFAULT false
-            )
-        SQL);
-    $connection->executeStatement(<<<SQL
-                DROP TABLE IF EXISTS customer_notifications
-        SQL);
-    $connection->executeStatement(<<<SQL
-            CREATE TABLE customer_notifications (
-                customer_id INTEGER PRIMARY KEY
-            )
-        SQL);
+    $schemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
+
+    $personsTable = new Table('persons');
+    $personsTable->addColumn('customer_id', Types::INTEGER);
+    $personsTable->addColumn('name', Types::STRING, ['length' => 255, 'notnull' => false]);
+    $personsTable->addColumn('is_active', Types::BOOLEAN, ['default' => false, 'notnull' => false]);
+    $personsTable->setPrimaryKey(['customer_id']);
+    $schemaManager->createTable($personsTable);
+
+    $notificationsTable = new Table('customer_notifications');
+    $notificationsTable->addColumn('customer_id', Types::INTEGER);
+    $notificationsTable->setPrimaryKey(['customer_id']);
+    $schemaManager->createTable($notificationsTable);
+
+    $messengerTable = new Table('messenger_messages');
+    $messengerTable->addColumn('id', Types::BIGINT, ['autoincrement' => true]);
+    $messengerTable->addColumn('body', Types::TEXT);
+    $messengerTable->addColumn('headers', Types::TEXT);
+    $messengerTable->addColumn('queue_name', Types::STRING, ['length' => 190]);
+    $messengerTable->addColumn('created_at', Types::DATETIME_MUTABLE);
+    $messengerTable->addColumn('available_at', Types::DATETIME_MUTABLE);
+    $messengerTable->addColumn('delivered_at', Types::DATETIME_MUTABLE, ['notnull' => false]);
+    $messengerTable->setPrimaryKey(['id']);
+    $messengerTable->addIndex(['queue_name']);
+    $messengerTable->addIndex(['available_at']);
+    $messengerTable->addIndex(['delivered_at']);
+    $schemaManager->createTable($messengerTable);
 }

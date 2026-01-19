@@ -44,7 +44,7 @@ final class LaravelConnectionResolver
         $className = match ($driverName) {
             'pgsql' => 'PostgresDriver',
             'mysql' => 'MySqlDriver',
-            'sqlite' => 'SqliteDriver',
+            'sqlite' => 'SQLiteDriver',
             'sqlsrv' => 'SqlServerDriver',
         };
         $className = '\Ecotone\Laravel\Config\PDO\\' . $className;

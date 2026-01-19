@@ -13,10 +13,10 @@ use Ecotone\Messaging\Conversion\MediaType;
  */
 interface PersonService
 {
-    #[DbalWrite('INSERT INTO persons VALUES (:personId, :name, DEFAULT)')]
+    #[DbalWrite('INSERT INTO persons (person_id, name) VALUES (:personId, :name)')]
     public function insert(int $personId, string $name): void;
 
-    #[DbalWrite('INSERT INTO persons VALUES (:personId, :name, DEFAULT)')]
+    #[DbalWrite('INSERT INTO persons (person_id, name) VALUES (:personId, :name)')]
     public function insertWithParameterName(
         #[DbalParameter(name: 'personId')] int $id,
         string $name
@@ -43,23 +43,23 @@ interface PersonService
         #[DbalParameter(convertToMediaType: MediaType::APPLICATION_JSON)] array $roles
     ): void;
 
-    #[DbalWrite('INSERT INTO persons VALUES (:personId, :name, DEFAULT)')]
+    #[DbalWrite('INSERT INTO persons (person_id, name) VALUES (:personId, :name)')]
     public function insertWithExpression(
         int $personId,
         #[DbalParameter(expression: 'payload.toLowerCase()')] PersonName $name
     ): void;
 
-    #[DbalWrite('INSERT INTO persons VALUES (:personId, :name, DEFAULT)')]
+    #[DbalWrite('INSERT INTO persons (person_id, name) VALUES (:personId, :name)')]
     public function insertWithServiceExpression(
         int $personId,
         #[DbalParameter(expression: "reference('converter').normalize(payload)")] PersonName $name
     ): void;
 
-    #[DbalWrite('INSERT INTO persons VALUES (:personId, :name, :roles)')]
+    #[DbalWrite('INSERT INTO persons (person_id, name, roles) VALUES (:personId, :name, :roles)')]
     #[DbalParameter(name: 'roles', expression: "['ROLE_ADMIN']", convertToMediaType: MediaType::APPLICATION_JSON)]
     public function registerAdmin(int $personId, string $name): void;
 
-    #[DbalWrite('INSERT INTO persons VALUES (:personId, :name, :roles)')]
+    #[DbalWrite('INSERT INTO persons (person_id, name, roles) VALUES (:personId, :name, :roles)')]
     #[DbalParameter(name: 'roles', expression: "name === 'Johny' ? ['ROLE_ADMIN'] : []", convertToMediaType: MediaType::APPLICATION_JSON)]
     public function registerUsingMethodParameters(int $personId, string $name): void;
 }

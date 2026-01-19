@@ -15,7 +15,22 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', \getenv('APP_DB_DRIVER') == 'pdo_pgsql' ? 'pgsql' : 'mysql'),
+    'default' => env('DB_CONNECTION', (function () {
+        $dsn = getenv('DATABASE_DSN');
+        if ($dsn && str_starts_with($dsn, 'pgsql')) {
+            return 'pgsql';
+        }
+        if ($dsn && str_starts_with($dsn, 'mysql')) {
+            return 'mysql';
+        }
+        if ($dsn && str_starts_with($dsn, 'sqlite')) {
+            return 'sqlite';
+        }
+        if (getenv('APP_DB_DRIVER') == 'pdo_pgsql') {
+            return 'pgsql';
+        }
+        return 'mysql';
+    })()),
 
     /*
     |--------------------------------------------------------------------------
@@ -37,8 +52,22 @@ return [
 
         'sqlite' => [
             'driver' => 'sqlite',
-            'url' => env('DATABASE_URL'),
-            'database' => env('DB_DATABASE', database_path('database.sqlite')),
+            'database' => env('DB_DATABASE', (function () {
+                $dsn = getenv('DATABASE_DSN');
+                if ($dsn && str_starts_with($dsn, 'sqlite:')) {
+                    $path = preg_replace('/^sqlite:(\/\/)?/', '', $dsn);
+                    if ($path === '/:memory:') {
+                        return ':memory:';
+                    }
+                    $path = ltrim($path, '/');
+                    $path = '/' . $path;
+                    if (! file_exists($path)) {
+                        touch($path);
+                    }
+                    return $path;
+                }
+                return database_path('database.sqlite');
+            })()),
             'prefix' => '',
             'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
         ],

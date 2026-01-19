@@ -7,13 +7,16 @@ use Ecotone\Messaging\Support\Assert;
 
 class DataProtectionConfiguration
 {
-    private function __construct(private array $keys, private Key $defaultKey)
+    /**
+     * @param array<string, Key> $keys
+     */
+    private function __construct(private array $keys, private string $defaultKey)
     {
     }
 
     public static function create(string $name, Key $key): self
     {
-        return new self(keys: [$name => $key], defaultKey: $key);
+        return new self(keys: [$name => $key], defaultKey: $name);
     }
 
     public function withKey(string $name, Key $key, bool $asDefault = false): self
@@ -24,7 +27,7 @@ class DataProtectionConfiguration
         $config->keys[$name] = $key;
 
         if ($asDefault) {
-            $config->defaultKey = $key;
+            $config->defaultKey = $name;
         }
 
         return $config;
@@ -32,6 +35,16 @@ class DataProtectionConfiguration
 
     public function key(?string $name): Key
     {
-        return $this->keys[$name] ?? $this->defaultKey;
+        return $this->keys[$name] ?? $this->keys[$this->defaultKey];
+    }
+
+    public function keyName(?string $name): string
+    {
+        return array_key_exists($name, $this->keys) ? $name : $this->defaultKey;
+    }
+
+    public function keys(): array
+    {
+        return $this->keys;
     }
 }

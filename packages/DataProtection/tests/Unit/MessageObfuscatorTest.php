@@ -17,6 +17,7 @@ use Test\Ecotone\DataProtection\Fixture\ObfuscatedMessage;
 class MessageObfuscatorTest extends TestCase
 {
     private Message $message;
+    private Message $messageWithoutTypeId;
 
     protected function setUp(): void
     {
@@ -25,77 +26,27 @@ class MessageObfuscatorTest extends TestCase
             'bar' => 'value',
         ], JSON_THROW_ON_ERROR))
             ->setHeader(MessageHeaders::TYPE_ID, ObfuscatedMessage::class)
+            ->setHeader('foo', 'bar')
+            ->build()
+        ;
+
+        $this->messageWithoutTypeId = MessageBuilder::withPayload(json_encode([
+            'foo' => 'value',
+            'bar' => 'value',
+        ], JSON_THROW_ON_ERROR))
+            ->setHeader('foo', 'bar')
             ->build()
         ;
     }
 
-    public function test_obfuscate_message_fully(): void
+    public function test_obfuscate_only_supported_message(): void
     {
-        $obfuscator = new Obfuscator([], ['foo', 'bar'], Key::createNewRandomKey());
-        $messageObfuscator = new MessageObfuscator([ObfuscatedMessage::class => $obfuscator]);
+        $messageObfuscator = new MessageObfuscator();
 
-        $encryptedPayload = $messageObfuscator->encrypt($this->message);
+        self::assertSame($this->message, $messageObfuscator->encrypt($this->message));
+        self::assertSame($this->messageWithoutTypeId, $messageObfuscator->encrypt($this->messageWithoutTypeId));
 
-        $encryptedMessage = MessageBuilder::fromMessage($this->message)
-            ->setPayload($encryptedPayload)
-            ->build()
-        ;
-
-        $decryptedPayload = $messageObfuscator->decrypt($encryptedMessage);
-
-        $payload = json_decode($encryptedPayload, true, 512, JSON_THROW_ON_ERROR);
-
-        self::assertNotEquals('value', $payload['foo']);
-        self::assertNotEquals('value', $payload['bar']);
-        self::assertNotEquals($this->message->getPayload(), $encryptedPayload);
-        self::assertEquals($this->message->getPayload(), $decryptedPayload);
-    }
-
-    public function test_obfuscate_message_partially(): void
-    {
-        $obfuscator = new Obfuscator(['foo', 'non-existing-argument'], ['foo', 'bar'], Key::createNewRandomKey());
-        $messageObfuscator = new MessageObfuscator([ObfuscatedMessage::class => $obfuscator]);
-
-        $encryptedPayload = $messageObfuscator->encrypt($this->message);
-
-        $encryptedMessage = MessageBuilder::fromMessage($this->message)
-            ->setPayload($encryptedPayload)
-            ->build()
-        ;
-
-        $decryptedPayload = $messageObfuscator->decrypt($encryptedMessage);
-
-        $payload = json_decode($encryptedPayload, true, 512, JSON_THROW_ON_ERROR);
-
-        self::assertNotEquals('value', $payload['foo']);
-        self::assertEquals('value', $payload['bar']);
-        self::assertNotEquals($this->message->getPayload(), $encryptedPayload);
-        self::assertEquals($this->message->getPayload(), $decryptedPayload);
-        self::assertArrayNotHasKey('non-existing-argument', $payload);
-        self::assertArrayNotHasKey('non-existing-argument', json_decode($decryptedPayload, true, 512, JSON_THROW_ON_ERROR));
-    }
-
-    public function test_dont_obfuscate_unsupported_message(): void
-    {
-        $obfuscator = new Obfuscator(['foo', 'bar'], ['foo', 'bar'], Key::createNewRandomKey());
-        $messageObfuscator = new MessageObfuscator([\stdClass::class => $obfuscator]);
-
-        $encryptedPayload = $messageObfuscator->encrypt($this->message);
-
-        $encryptedMessage = MessageBuilder::fromMessage($this->message)
-            ->setPayload($encryptedPayload)
-            ->build()
-        ;
-
-        $decryptedPayload = $messageObfuscator->decrypt($encryptedMessage);
-
-        $payload = json_decode($encryptedPayload, true, 512, JSON_THROW_ON_ERROR);
-
-        self::assertEquals('value', $payload['foo']);
-        self::assertEquals('value', $payload['bar']);
-        self::assertEquals($this->message->getPayload(), $encryptedPayload);
-        self::assertEquals($this->message->getPayload(), $decryptedPayload);
-        self::assertArrayNotHasKey('non-existing-argument', $payload);
-        self::assertArrayNotHasKey('non-existing-argument', json_decode($decryptedPayload, true, 512, JSON_THROW_ON_ERROR));
+        self::assertSame($this->message, $messageObfuscator->decrypt($this->message));
+        self::assertSame($this->messageWithoutTypeId, $messageObfuscator->decrypt($this->messageWithoutTypeId));
     }
 }

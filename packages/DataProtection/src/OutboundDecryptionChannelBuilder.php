@@ -3,6 +3,7 @@
 /**
  * licence Enterprise
  */
+
 namespace Ecotone\DataProtection;
 
 use Ecotone\DataProtection\Obfuscator\MessageObfuscator;
@@ -14,9 +15,8 @@ use Ecotone\Messaging\PrecedenceChannelInterceptor;
 
 class OutboundDecryptionChannelBuilder implements ChannelInterceptorBuilder
 {
-    public function __construct(
-        private string $relatedChannel
-    ) {
+    public function __construct(private string $relatedChannel)
+    {
     }
 
     public function relatedChannelName(): string
@@ -31,8 +31,6 @@ class OutboundDecryptionChannelBuilder implements ChannelInterceptorBuilder
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return new Definition(OutboundDecryptionChannelInterceptor::class, [
-            Reference::to(MessageObfuscator::class),
-        ]);
+        return new Definition(OutboundDecryptionChannelInterceptor::class, [Reference::to(MessageObfuscator::class)]);
     }
 }

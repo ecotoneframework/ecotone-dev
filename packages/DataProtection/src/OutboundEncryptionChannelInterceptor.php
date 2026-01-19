@@ -11,7 +11,6 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\MessageBuilder;
 
 class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
 {
@@ -25,13 +24,7 @@ class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
             return $message;
         }
 
-        $payload = $this->messageObfuscator->encrypt($message);
-
-        $preparedMessage = MessageBuilder::withPayload($payload)
-            ->setMultipleHeaders($message->getHeaders()->headers())
-        ;
-
-        return $preparedMessage->build();
+        return $this->messageObfuscator->encrypt($message);
     }
 
     private function canHandle(Message $message): bool

@@ -36,11 +36,6 @@ class DataProtectionConfiguration
         return $config;
     }
 
-    public function key(?string $name): Key
-    {
-        return $this->keys[$name] ?? $this->keys[$this->defaultKey];
-    }
-
     public function keyName(?string $name): string
     {
         return array_key_exists($name, $this->keys) ? $name : $this->defaultKey;

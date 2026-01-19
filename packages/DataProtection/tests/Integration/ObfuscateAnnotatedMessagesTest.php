@@ -48,19 +48,31 @@ class ObfuscateAnnotatedMessagesTest extends TestCase
                 class: new TestClass('value', TestEnum::FIRST),
                 enum: TestEnum::FIRST,
                 argument: 'value',
-            )
+            ),
+            metadata: $metadataSent = [
+                'foo' => 'secret-value',
+                'bar' => 'even-more-secret-value',
+                'baz' => 'non-sensitive-value',
+            ]
         );
 
-        $messagePayload = json_decode($channel->receive()->getPayload(), true);
+        $channelMessage = $channel->receive();
+        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messageHeaders = $channelMessage->getHeaders();
 
-        self::assertEquals('{"argument":"value","enum":"first"}', Crypto::decrypt(base64_decode($messagePayload['class']), $this->primaryKey));
-        self::assertEquals(TestEnum::FIRST->value, Crypto::decrypt(base64_decode($messagePayload['enum']), $this->primaryKey));
-        self::assertEquals('value', Crypto::decrypt(base64_decode($messagePayload['argument']), $this->primaryKey));
+        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
+        self::assertEquals('secret-value', Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
+        self::assertEquals('even-more-secret-value', Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals('non-sensitive-value', $messageHeaders->get('baz'));
 
-        $ecotone->sendCommand($messageSent);
+        $ecotone->sendCommand($messageSent, metadata: $metadataSent);
         $ecotone->run('test', ExecutionPollingMetadata::createWithTestingSetup());
 
+        $receivedHeaders = $messageReceiver->receivedHeaders();
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals('secret-value', $receivedHeaders['foo']);
+        self::assertEquals('even-more-secret-value', $receivedHeaders['bar']);
+        self::assertEquals('non-sensitive-value', $receivedHeaders['baz']);
     }
 
     public function test_partially_obfuscated_command_handler_message(): void
@@ -72,19 +84,31 @@ class ObfuscateAnnotatedMessagesTest extends TestCase
                 class: new TestClass('value', TestEnum::FIRST),
                 enum: TestEnum::FIRST,
                 argument: 'value',
-            )
+            ),
+            metadata: $metadataSent = [
+                'foo' => 'secret-value',
+                'bar' => 'even-more-secret-value',
+                'baz' => 'non-sensitive-value',
+            ]
         );
 
-        $messagePayload = json_decode($channel->receive()->getPayload(), true);
+        $channelMessage = $channel->receive();
+        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messageHeaders = $channelMessage->getHeaders();
 
-        self::assertEquals('{"argument":"value","enum":"first"}', Crypto::decrypt(base64_decode($messagePayload['class']), $this->primaryKey));
-        self::assertEquals(TestEnum::FIRST->value, Crypto::decrypt(base64_decode($messagePayload['enum']), $this->primaryKey));
-        self::assertEquals('value', $messagePayload['argument']);
+        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
+        self::assertEquals('secret-value', Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
+        self::assertEquals('even-more-secret-value', Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals('non-sensitive-value', $messageHeaders->get('baz'));
 
-        $ecotone->sendCommand($messageSent);
+        $ecotone->sendCommand($messageSent, metadata: $metadataSent);
         $ecotone->run('test', ExecutionPollingMetadata::createWithTestingSetup());
 
+        $receivedHeaders = $messageReceiver->receivedHeaders();
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals('secret-value', $receivedHeaders['foo']);
+        self::assertEquals('even-more-secret-value', $receivedHeaders['bar']);
+        self::assertEquals('non-sensitive-value', $receivedHeaders['baz']);
     }
 
     public function test_obfuscate_command_handler_message_with_non_default_key(): void
@@ -93,9 +117,10 @@ class ObfuscateAnnotatedMessagesTest extends TestCase
 
         $ecotone->sendCommand($messageSent = new MessageWithSecondaryKeyEncryption(argument: 'value'));
 
-        $messagePayload = json_decode($channel->receive()->getPayload(), true);
+        $channelMessage = $channel->receive();
+        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->secondaryKey);
 
-        self::assertEquals('value', Crypto::decrypt(base64_decode($messagePayload['argument']), $this->secondaryKey));
+        self::assertEquals('{"argument":"value"}', $messagePayload);
 
         $ecotone->sendCommand($messageSent);
         $ecotone->run('test', ExecutionPollingMetadata::createWithTestingSetup());
@@ -112,19 +137,31 @@ class ObfuscateAnnotatedMessagesTest extends TestCase
                 class: new TestClass('value', TestEnum::FIRST),
                 enum: TestEnum::FIRST,
                 argument: 'value',
-            )
+            ),
+            metadata: $metadataSent = [
+                'foo' => 'secret-value',
+                'bar' => 'even-more-secret-value',
+                'baz' => 'non-sensitive-value',
+            ]
         );
 
-        $messagePayload = json_decode($channel->receive()->getPayload(), true);
+        $channelMessage = $channel->receive();
+        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messageHeaders = $channelMessage->getHeaders();
 
-        self::assertEquals('{"argument":"value","enum":"first"}', Crypto::decrypt(base64_decode($messagePayload['class']), $this->primaryKey));
-        self::assertEquals(TestEnum::FIRST->value, Crypto::decrypt(base64_decode($messagePayload['enum']), $this->primaryKey));
-        self::assertEquals('value', Crypto::decrypt(base64_decode($messagePayload['argument']), $this->primaryKey));
+        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
+        self::assertEquals('secret-value', Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
+        self::assertEquals('even-more-secret-value', Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals('non-sensitive-value', $messageHeaders->get('baz'));
 
-        $ecotone->publishEvent($messageSent);
+        $ecotone->publishEvent($messageSent, metadata: $metadataSent);
         $ecotone->run('test', ExecutionPollingMetadata::createWithTestingSetup());
 
+        $receivedHeaders = $messageReceiver->receivedHeaders();
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals('secret-value', $receivedHeaders['foo']);
+        self::assertEquals('even-more-secret-value', $receivedHeaders['bar']);
+        self::assertEquals('non-sensitive-value', $receivedHeaders['baz']);
     }
 
     public function test_partially_obfuscated_event_handler_message(): void
@@ -136,19 +173,31 @@ class ObfuscateAnnotatedMessagesTest extends TestCase
                 class: new TestClass('value', TestEnum::FIRST),
                 enum: TestEnum::FIRST,
                 argument: 'value',
-            )
+            ),
+            metadata: $metadataSent = [
+                'foo' => 'secret-value',
+                'bar' => 'even-more-secret-value',
+                'baz' => 'non-sensitive-value',
+            ]
         );
 
-        $messagePayload = json_decode($channel->receive()->getPayload(), true);
+        $channelMessage = $channel->receive();
+        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messageHeaders = $channelMessage->getHeaders();
 
-        self::assertEquals('{"argument":"value","enum":"first"}', Crypto::decrypt(base64_decode($messagePayload['class']), $this->primaryKey));
-        self::assertEquals(TestEnum::FIRST->value, Crypto::decrypt(base64_decode($messagePayload['enum']), $this->primaryKey));
-        self::assertEquals('value', $messagePayload['argument']);
+        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
+        self::assertEquals('secret-value', Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
+        self::assertEquals('even-more-secret-value', Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals('non-sensitive-value', $messageHeaders->get('baz'));
 
-        $ecotone->publishEvent($messageSent);
+        $ecotone->publishEvent($messageSent, metadata: $metadataSent);
         $ecotone->run('test', ExecutionPollingMetadata::createWithTestingSetup());
 
+        $receivedHeaders = $messageReceiver->receivedHeaders();
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals('secret-value', $receivedHeaders['foo']);
+        self::assertEquals('even-more-secret-value', $receivedHeaders['bar']);
+        self::assertEquals('non-sensitive-value', $receivedHeaders['baz']);
     }
 
     public function test_obfuscate_event_handler_message_with_non_default_key(): void
@@ -157,9 +206,10 @@ class ObfuscateAnnotatedMessagesTest extends TestCase
 
         $ecotone->publishEvent($messageSent = new MessageWithSecondaryKeyEncryption(argument: 'value'));
 
-        $messagePayload = json_decode($channel->receive()->getPayload(), true);
+        $channelMessage = $channel->receive();
+        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->secondaryKey);
 
-        self::assertEquals('value', Crypto::decrypt(base64_decode($messagePayload['argument']), $this->secondaryKey));
+        self::assertEquals('{"argument":"value"}', $messagePayload);
 
         $ecotone->publishEvent($messageSent);
         $ecotone->run('test', ExecutionPollingMetadata::createWithTestingSetup());

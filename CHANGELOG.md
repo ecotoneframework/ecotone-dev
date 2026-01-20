@@ -3,6 +3,17 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.296.0] - 2026-01-20
+
+## What's Changed
+* Fix Symfony with Event sourcing and test modules by @jlabedo in https://github.com/ecotoneframework/ecotone-dev/pull/619
+* feat(amqp): Allow configurable delay strategy for backed channel by @bakhritdinov in https://github.com/ecotoneframework/ecotone-dev/pull/616
+
+## New Contributors
+* @bakhritdinov made their first contribution in https://github.com/ecotoneframework/ecotone-dev/pull/616
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.295.0...1.296.0
+
 ## [1.295.0] - 2026-01-17
 
 ## What's Changed

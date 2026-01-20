@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.295.0] - 2026-01-17
+
+## What's Changed
+* feat: Introduce change log file by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/617
+* Feat: sqlite support by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/609
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.294.1...1.295.0
+
 ## [1.294.1] - 2026-01-14
 
 ## What's Changed
@@ -1993,4 +2002,3 @@ This is revert to [1.109.2](https://github.com/ecotoneframework/ecotone-dev/rele
 
 
 **Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.82.0...1.83.0
-

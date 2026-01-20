@@ -28,6 +28,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     private bool $defaultPersistentDelivery = self::DEFAULT_PERSISTENT_MODE;
     private array $staticHeadersToAdd = [];
     private bool $publisherConfirms = true;
+    private ?string $delayStrategyReferenceName = null;
 
     private function __construct(string $exchangeName, string $amqpConnectionFactoryReferenceName)
     {
@@ -61,6 +62,13 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     public function withPublisherConfirms(bool $publisherConfirms): self
     {
         $this->publisherConfirms = $publisherConfirms;
+
+        return $this;
+    }
+
+    public function withDelayStrategy(string $delayStrategyReferenceName): self
+    {
+        $this->delayStrategyReferenceName = $delayStrategyReferenceName;
 
         return $this;
     }
@@ -140,6 +148,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
             Reference::to(AmqpTransactionInterceptor::class),
+            $this->delayStrategyReferenceName ? new Reference($this->delayStrategyReferenceName) : null,
         ]);
     }
 }

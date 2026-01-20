@@ -71,6 +71,13 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return $this;
     }
 
+    public function withDelayStrategy(string $delayStrategyReferenceName): self
+    {
+        $this->getAmqpOutboundChannelAdapter()->withDelayStrategy($delayStrategyReferenceName);
+
+        return $this;
+    }
+
     public function getMessageChannelName(): string
     {
         return $this->channelName;

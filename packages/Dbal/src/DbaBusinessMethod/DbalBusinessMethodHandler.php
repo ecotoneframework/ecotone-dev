@@ -297,24 +297,14 @@ final class DbalBusinessMethodHandler
         return $this->getArrayStringTypeValue();
     }
 
-    /**
-     * Get the integer value for ArrayParameterType::INTEGER
-     */
     private function getArrayIntegerTypeValue(): int
     {
-        // DBAL 3.x uses Connection::ARRAY_PARAM_OFFSET (100) + ParameterType::INTEGER (1) = 101
-        // But the actual implementation uses 102 for INTEGER arrays
-        return 102;
+        return 101;
     }
 
-    /**
-     * Get the integer value for ArrayParameterType::STRING
-     */
     private function getArrayStringTypeValue(): int
     {
-        // DBAL 3.x uses Connection::ARRAY_PARAM_OFFSET (100) + ParameterType::STRING (2) = 102
-        // But the actual implementation uses 101 for STRING arrays
-        return 101;
+        return 102;
     }
 
     /**

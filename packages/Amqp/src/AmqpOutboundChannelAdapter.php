@@ -13,6 +13,7 @@ use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
+use Enqueue\AmqpTools\DelayStrategy;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
 
@@ -43,6 +44,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private OutboundMessageConverter   $outboundMessageConverter,
         private ConversionService          $conversionService,
         private AmqpTransactionInterceptor $amqpTransactionInterceptor,
+        private ?DelayStrategy             $delayStrategy = null
     ) {
     }
 
@@ -87,7 +89,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $context = $this->connectionFactory->createContext();
         $this->connectionFactory->getProducer()
             ->setTimeToLive($outboundMessage->getTimeToLive())
-            ->setDelayStrategy(new HeadersExchangeDelayStrategy())
+            ->setDelayStrategy($this->delayStrategy ?? new HeadersExchangeDelayStrategy())
             ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);

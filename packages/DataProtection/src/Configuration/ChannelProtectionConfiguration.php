@@ -4,6 +4,9 @@ namespace Ecotone\DataProtection\Configuration;
 
 use Ecotone\Messaging\Support\Assert;
 
+/**
+ * licence Enterprise
+ */
 class ChannelProtectionConfiguration
 {
     private array $sensitiveHeaders = [];

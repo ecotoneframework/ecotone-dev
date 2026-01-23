@@ -7,7 +7,7 @@ class MessageReceiver
     private ?object $receivedMessage = null;
     private array $receivedHeaders = [];
 
-    public function withReceived(object $message, array $headers): void
+    public function withReceived(?object $message, array $headers): void
     {
         $this->receivedMessage = $message;
         $this->receivedHeaders = $headers;

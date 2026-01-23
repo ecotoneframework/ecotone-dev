@@ -5,32 +5,72 @@
  */
 namespace Ecotone\DataProtection;
 
-use Ecotone\DataProtection\Obfuscator\MessageObfuscator;
+use Ecotone\DataProtection\Obfuscator\Obfuscator;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\Assert;
 
 class OutboundDecryptionChannelInterceptor extends AbstractChannelInterceptor
 {
-    public function __construct(private MessageObfuscator $messageObfuscator)
-    {
+    /**
+     * @param array<Obfuscator> $messageObfuscators
+     */
+    public function __construct(
+        private readonly ?Obfuscator $channelObfuscator,
+        private readonly array $messageObfuscators,
+    ) {
+        Assert::allInstanceOfType($this->messageObfuscators, Obfuscator::class);
     }
 
     public function postReceive(Message $message, MessageChannel $messageChannel): ?Message
     {
-        if (! $this->canHandle($message)) {
+        if (! $message->getHeaders()->getContentType()?->isCompatibleWith(MediaType::createApplicationJson())) {
             return $message;
         }
 
-        return $this->messageObfuscator->decrypt($message);
+        if ($messageObfuscator = $this->findMessageObfuscator($message)) {
+            return $messageObfuscator->decrypt($message);
+        }
+
+        if ($routingObfuscator = $this->findRoutingObfuscator($message)) {
+            return $routingObfuscator->decrypt($message);
+        }
+
+        if ($this->channelObfuscator) {
+            return $this->channelObfuscator->decrypt($message);
+        }
+
+        return $message;
     }
 
-    private function canHandle(Message $message): bool
+    private function findMessageObfuscator(Message $message): ?Obfuscator
     {
-        return $message->getHeaders()->containsKey(MessageHeaders::CONTENT_TYPE)
-            && MediaType::parseMediaType($message->getHeaders()->get(MessageHeaders::CONTENT_TYPE))->isCompatibleWith(MediaType::createApplicationJson())
-        ;
+        if (! $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
+            return null;
+        }
+
+        $type = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
+
+        return $this->messageObfuscators[$type] ?? null;
+    }
+
+    private function findRoutingObfuscator(Message $message): ?Obfuscator
+    {
+        if (! $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)) {
+            return null;
+        }
+
+        $routingSlip = $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP);
+
+        foreach ($this->messageObfuscators as $routing => $obfuscator) {
+            if (str_starts_with($routingSlip, $routing)) {
+                return $obfuscator;
+            }
+        }
+
+        return null;
     }
 }

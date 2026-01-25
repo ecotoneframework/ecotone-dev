@@ -10,6 +10,8 @@ namespace Ecotone\Messaging\Scheduling;
 use Ecotone\Test\StaticPsrClock;
 use Psr\Clock\ClockInterface as PsrClockInterface;
 
+use function usleep;
+
 class Clock implements EcotoneClockInterface
 {
     private static ?EcotoneClockInterface $globalClock = null;
@@ -48,7 +50,16 @@ class Clock implements EcotoneClockInterface
 
     public function sleep(Duration $duration): void
     {
-        $this->clock->sleep($duration);
+        if ($this->clock instanceof SleepInterface) {
+            $this->clock->sleep($duration);
+            return;
+        }
+
+        if ($duration->isNegativeOrZero()) {
+            return;
+        }
+
+        self::defaultClock()->sleep($duration);
     }
 
     private static function defaultClock(): EcotoneClockInterface

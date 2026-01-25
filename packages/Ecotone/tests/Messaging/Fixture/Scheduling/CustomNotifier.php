@@ -13,7 +13,7 @@ class CustomNotifier
 
     public function notify(string $eventName, $value): void
     {
-        if (!isset($this->notifications[$eventName])) {
+        if (! isset($this->notifications[$eventName])) {
             $this->notifications[$eventName] = [];
         }
 

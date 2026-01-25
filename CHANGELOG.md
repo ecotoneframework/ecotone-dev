@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.297.0] - 2026-01-25
+
+## What's Changed
+* feat(scheduling): Sync Static Global Clock with Clock Service (Quick Solution) by @jb-needhelp in https://github.com/ecotoneframework/ecotone-dev/pull/618
+* feat: clock testing DX by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/620
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.296.0...1.297.0
+
 ## [1.296.0] - 2026-01-20
 
 ## What's Changed

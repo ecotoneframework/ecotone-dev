@@ -47,7 +47,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
             [ClockInterface::class => $clock = new StaticPsrClock('2025-08-11 16:00:00'), new OrderService(), new NotificationService(), $notifier = new CustomNotifier()],
             enableAsynchronousProcessing: [
                 // 1. Turn on Delayable In Memory Pollable Channel
-                SimpleMessageChannelBuilder::createQueueChannel('notifications', true)
+                SimpleMessageChannelBuilder::createQueueChannel('notifications', true),
             ]
         );
 
@@ -71,7 +71,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
             [new OrderService(), new NotificationService(), $notifier = new CustomNotifier()],
             enableAsynchronousProcessing: [
                 // 1. Turn on Delayable In Memory Pollable Channel
-                SimpleMessageChannelBuilder::createQueueChannel('notifications', true)
+                SimpleMessageChannelBuilder::createQueueChannel('notifications', true),
             ]
         );
 
@@ -95,7 +95,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
             [OrderService::class, NotificationService::class, CustomNotifier::class],
             [new OrderService(), new NotificationService(), $notifier = new CustomNotifier()],
             enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('notifications', true)
+                SimpleMessageChannelBuilder::createQueueChannel('notifications', true),
             ]
         );
 

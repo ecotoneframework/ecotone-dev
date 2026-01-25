@@ -18,7 +18,6 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\Clock;
-use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\Assert;
@@ -200,9 +199,10 @@ final class FlowTestSupport
             }
         }
 
-        $this->clock->sleep($time instanceof TimeSpan
+        $this->clock->sleep(
+            $time instanceof TimeSpan
             ? $time->toDuration()
-            : Timespan::fromDateInterval($time->diff($this->clock->now()))->toDuration()
+            : TimeSpan::fromDateInterval($time->diff($this->clock->now()))->toDuration()
         );
 
         return $this;

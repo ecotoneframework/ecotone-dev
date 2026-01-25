@@ -10,8 +10,6 @@ namespace Ecotone\Messaging\Scheduling;
 use Ecotone\Test\StaticPsrClock;
 use Psr\Clock\ClockInterface as PsrClockInterface;
 
-use function usleep;
-
 class Clock implements EcotoneClockInterface
 {
     private static ?EcotoneClockInterface $globalClock = null;

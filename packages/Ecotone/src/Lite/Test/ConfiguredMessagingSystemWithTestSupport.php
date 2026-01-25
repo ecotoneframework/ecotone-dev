@@ -12,7 +12,6 @@ use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
-use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\CommandBus;

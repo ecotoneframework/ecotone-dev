@@ -31,6 +31,7 @@
   </coverage>
   <php>
     <server name="KERNEL_CLASS" value="Ecotone\SymfonyBundle\App\Kernel" />
+    <env name="APP_ENV" value="test" force="true" />
     <server name="APP_SECRET" value="test" />
     <ini name="memory_limit" value="384M" />
   </php>

@@ -22,10 +22,10 @@ final class TimeSpan implements DefinedObject
 
     }
 
-    public static function fromDateInterval(DateInterval $dateInterval): self
+    public static function fromDateInterval(\DateInterval $dateInterval): self
     {
         return new self(
-            milliseconds: $dateInterval->f * 1000,
+            milliseconds: (int)($dateInterval->f * 1000),
             seconds: $dateInterval->s,
             minutes: $dateInterval->i,
             hours: $dateInterval->h,

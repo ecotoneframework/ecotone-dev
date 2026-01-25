@@ -15,6 +15,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\Duration;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -232,12 +233,10 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     public function test_delaying_the_message_with_native_clock()
     {
         $channelName = Uuid::uuid4()->toString();
-        $clock = new StubUTCClock();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
-                ClockInterface::class => $clock,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
@@ -261,6 +260,42 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $this->assertNull($messageChannel->receive());
 
         $ecotoneLite->waitTill(TimeSpan::withSeconds(3));
+
+        $this->assertNotNull($messageChannel->receive());
+    }
+
+    public function test_delaying_the_message_with_native_clock_using_date_time()
+    {
+        $channelName = Uuid::uuid4()->toString();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                DbalConnectionFactory::class => $this->getConnectionFactory(true),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    DbalBackedMessageChannelBuilder::create($channelName)
+                        ->withReceiveTimeout(1),
+                ])
+        );
+
+        /** @var PollableChannel $messageChannel */
+        $messageChannel = $ecotoneLite->getMessageChannel($channelName);
+
+        $messageChannel->send(
+            MessageBuilder::withPayload('some')
+                ->setHeader(MessageHeaders::DELIVERY_DELAY, 2000)
+                ->build()
+        );
+
+        /** @var EcotoneClockInterface $clock */
+        $clock = $ecotoneLite->getServiceFromContainer(EcotoneClockInterface::class);
+        $ecotoneLite->waitTill($clock->now()->add(Duration::seconds(1)));
+
+        $this->assertNull($messageChannel->receive());
+
+        $ecotoneLite->waitTill($clock->now()->add(Duration::seconds(3)));
 
         $this->assertNotNull($messageChannel->receive());
     }

@@ -22,6 +22,17 @@ final class TimeSpan implements DefinedObject
 
     }
 
+    public static function fromDateInterval(DateInterval $dateInterval): self
+    {
+        return new self(
+            milliseconds: $dateInterval->f * 1000,
+            seconds: $dateInterval->s,
+            minutes: $dateInterval->i,
+            hours: $dateInterval->h,
+            days: $dateInterval->d,
+        );
+    }
+
     public static function withMilliseconds(int $milliseconds): self
     {
         return new self(milliseconds: $milliseconds);
@@ -50,6 +61,11 @@ final class TimeSpan implements DefinedObject
     public function toMilliseconds(): int
     {
         return $this->milliseconds + $this->seconds * 1000 + $this->minutes * 60 * 1000 + $this->hours * 60 * 60 * 1000 + $this->days * 24 * 60 * 60 * 1000;
+    }
+
+    public function toDuration(): Duration
+    {
+        return Duration::milliseconds($this->toMilliseconds());
     }
 
     public function getDefinition(): Definition

@@ -47,10 +47,9 @@ final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
     {
         $channelName = 'messenger_async';
 
-        // Boot in dev environment to have Messenger transport configured
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
-            $this->bootKernel(['environment' => 'dev'])->getContainer(),
+            $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithAsynchronicityOnly()
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName)

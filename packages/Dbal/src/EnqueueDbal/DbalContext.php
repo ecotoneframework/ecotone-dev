@@ -41,7 +41,6 @@ class DbalContext implements Context
      * @var array
      */
     private $config;
-    private EcotoneClockInterface $clock;
 
     /**
      * Callable must return instance of Doctrine\DBAL\Connection once called.
@@ -63,8 +62,6 @@ class DbalContext implements Context
         } else {
             throw new InvalidArgumentException(sprintf('The connection argument must be either %s or callable that returns %s.', Connection::class, Connection::class));
         }
-
-        $this->clock = Clock::get();
     }
 
     /**
@@ -257,6 +254,6 @@ class DbalContext implements Context
 
     public function getClock(): EcotoneClockInterface
     {
-        return $this->clock;
+        return Clock::get();
     }
 }

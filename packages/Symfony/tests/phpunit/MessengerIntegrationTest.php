@@ -331,7 +331,8 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload, metadata: [
             MessageHeaders::DELIVERY_DELAY => (new DateTimeImmutable())->modify('+1 second'),
         ]);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000));
+        sleep(1);
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 }

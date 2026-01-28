@@ -11,7 +11,6 @@ use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Kafka\Outbound\MessagePublishingException;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -24,6 +23,7 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -400,7 +400,7 @@ final class KafkaChannelAdapterTest extends TestCase
     {
         $topicName = 'test_topic_no_config_' . Uuid::uuid4()->toString();
 
-        $consumer = new class {
+        $consumer = new class () {
             private array $messages = [];
 
             #[KafkaConsumer('ordersConsumer', 'orders')]

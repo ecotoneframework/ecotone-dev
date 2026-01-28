@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.297.1] - 2026-01-28
+
+## What's Changed
+* bugfix/ ProjectionV2 and Isolated Kafka Consumers by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/622
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.297.0...1.297.1
+
 ## [1.297.0] - 2026-01-25
 
 ## What's Changed

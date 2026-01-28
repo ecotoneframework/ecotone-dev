@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
+use Ecotone\Dbal\DbalConnection;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\Lite\EcotoneLite;
@@ -450,5 +451,73 @@ class ProophIntegrationTest extends ProjectingTestCase
         $ecotone->triggerProjection($projection::NAME);
 
         self::assertSame(1, $projection->initCallCount, 'Init should be called once');
+    }
+
+    public function test_projecting_with_already_connected_dbal_connection_factory(): void
+    {
+        $dbalConnectionFactory = self::getConnectionFactory();
+        $connection = $dbalConnectionFactory->createContext()->getDbalConnection();
+        $alreadyConnectedFactory = DbalConnection::create($connection);
+
+        $projection = new #[ProjectionV2(self::NAME), FromStream(Ticket::STREAM_NAME)] class ($connection) extends DbalTicketProjection {
+            public const NAME = 'already_connected_projection';
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+            [\Enqueue\Dbal\DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+            ->deleteProjection($projection::NAME)
+            ->sendCommand(new CreateTicketCommand($ticketId = Uuid::uuid4()->toString()))
+            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
+            ->sendQueryWithRouting('getTicketsCount');
+
+        self::assertSame(1, $ticketsCount);
+        self::assertSame('assigned', $ecotone->sendQueryWithRouting('getTicketStatus', $ticketId));
+    }
+
+    public function test_partitioned_projection_with_already_connected_dbal_connection_factory(): void
+    {
+        $dbalConnectionFactory = self::getConnectionFactory();
+        $connection = $dbalConnectionFactory->createContext()->getDbalConnection();
+        $alreadyConnectedFactory = DbalConnection::create($connection);
+
+        $projection = new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(Ticket::STREAM_NAME, Ticket::class)] class ($connection) extends DbalTicketProjection {
+            public const NAME = 'already_connected_partitioned_projection';
+            public int $initCallCount = 0;
+
+            #[ProjectionInitialization]
+            public function init(): void
+            {
+                parent::init();
+                $this->initCallCount++;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+            [\Enqueue\Dbal\DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+            ->deleteProjection($projection::NAME);
+
+        $ticketId1 = Uuid::uuid4()->toString();
+        $ticketId2 = Uuid::uuid4()->toString();
+
+        $ticketsCount = $ecotone->sendCommand(new CreateTicketCommand($ticketId1))
+            ->sendCommand(new CreateTicketCommand($ticketId2))
+            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1])
+            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2])
+            ->sendQueryWithRouting('getTicketsCount');
+
+        self::assertSame(2, $ticketsCount);
+        self::assertSame(2, $projection->initCallCount);
     }
 }

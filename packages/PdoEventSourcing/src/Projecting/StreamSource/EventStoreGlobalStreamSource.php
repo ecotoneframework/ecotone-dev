@@ -12,6 +12,7 @@ use function count;
 use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\PdoStreamTableNameProvider;
@@ -35,7 +36,7 @@ class EventStoreGlobalStreamSource implements StreamSource
      * @param string[] $handledProjectionNames
      */
     public function __construct(
-        private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
+        private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory|AlreadyConnectedDbalConnectionFactory $connectionFactory,
         private EcotoneClockInterface $clock,
         private PdoStreamTableNameProvider $tableNameProvider,
         private StreamFilterRegistry $streamFilterRegistry,

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Kafka\Api\KafkaHeader;
+use Ecotone\Kafka\Attribute\KafkaConsumer;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Kafka\Outbound\MessagePublishingException;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -359,5 +361,103 @@ final class KafkaChannelAdapterTest extends TestCase
 
         self::assertCount(1, $messages);
         self::assertEquals('exampleData', $messages[0]['payload']);
+    }
+
+    public function test_sending_and_receiving_without_kafka_consumer_configuration(): void
+    {
+        $topicName = Uuid::uuid4()->toString();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ExampleKafkaConsumer::class],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+                new ExampleKafkaConsumer(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults($topicName),
+                    TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        /** @var MessagePublisher $kafkaPublisher */
+        $kafkaPublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+
+        $kafkaPublisher->sendWithMetadata('exampleData', 'application/text', ['key' => 'value']);
+
+        $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
+            maxExecutionTimeInMilliseconds: 30000
+        ));
+
+        $messages = $ecotoneLite->sendQueryWithRouting('getMessages');
+
+        self::assertCount(1, $messages);
+        self::assertEquals('exampleData', $messages[0]['payload']);
+    }
+
+    public function test_kafka_consumer_works_without_explicit_configuration(): void
+    {
+        $topicName = 'test_topic_no_config_' . Uuid::uuid4()->toString();
+
+        $consumer = new class {
+            private array $messages = [];
+
+            #[KafkaConsumer('ordersConsumer', 'orders')]
+            public function handle(string $payload): void
+            {
+                $this->messages[] = $payload;
+            }
+
+            #[QueryHandler('consumer.getMessages')]
+            public function getMessages(): array
+            {
+                return $this->messages;
+            }
+        };
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [$consumer::class],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+                $consumer,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    TopicConfiguration::createWithReferenceName('orders', $topicName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotoneLite->run('ordersConsumer', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $messages = $ecotoneLite->sendQueryWithRouting('consumer.getMessages');
+
+        self::assertCount(0, $messages);
+    }
+
+    public function test_kafka_publisher_works_without_explicit_configuration(): void
+    {
+        $topicName = 'test_topic_publisher_' . Uuid::uuid4()->toString();
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults($topicName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        /** @var MessagePublisher $kafkaPublisher */
+        $kafkaPublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+        $kafkaPublisher->send('test-payload');
+
+        $this->assertTrue(true);
     }
 }

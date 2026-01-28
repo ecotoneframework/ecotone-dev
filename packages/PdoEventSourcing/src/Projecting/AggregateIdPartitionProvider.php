@@ -11,6 +11,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\Projecting\PartitionProvider;
@@ -27,7 +28,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
      * @param array<string> $partitionedProjections List of projection names this provider handles
      */
     public function __construct(
-        private DbalConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
+        private DbalConnectionFactory|MultiTenantConnectionFactory|AlreadyConnectedDbalConnectionFactory $connectionFactory,
         private PdoStreamTableNameProvider $tableNameProvider,
         private array $partitionedProjections = [],
     ) {
@@ -114,6 +115,10 @@ class AggregateIdPartitionProvider implements PartitionProvider
     private function getConnection(): Connection
     {
         if ($this->connectionFactory instanceof MultiTenantConnectionFactory) {
+            return $this->connectionFactory->getConnection();
+        }
+
+        if ($this->connectionFactory instanceof AlreadyConnectedDbalConnectionFactory) {
             return $this->connectionFactory->getConnection();
         }
 

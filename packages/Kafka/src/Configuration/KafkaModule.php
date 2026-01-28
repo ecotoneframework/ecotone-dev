@@ -133,6 +133,9 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         foreach ($publisherConfigurations as $publisherConfiguration) {
             $kafkaBrokerConfigurations[$publisherConfiguration->getBrokerConfigurationReference()] = Reference::to($publisherConfiguration->getBrokerConfigurationReference());
         }
+        if ($kafkaConsumers !== [] && ! array_key_exists(KafkaBrokerConfiguration::class, $kafkaBrokerConfigurations)) {
+            $kafkaBrokerConfigurations[KafkaBrokerConfiguration::class] = Reference::to(KafkaBrokerConfiguration::class);
+        }
 
         foreach ($this->kafkaConsumersAnnotatedMethods as $kafkaConsumerAnnotatedMethod) {
             /** @var KafkaConsumer $kafkaConsumer */

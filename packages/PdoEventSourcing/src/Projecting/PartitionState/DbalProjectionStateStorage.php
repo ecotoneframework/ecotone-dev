@@ -9,6 +9,7 @@ namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\Projecting\NoOpTransaction;
@@ -34,7 +35,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
      * @param string[]|null $projectionNames
      */
     public function __construct(
-        private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory $connectionFactory,
+        private DbalConnectionFactory|ManagerRegistryConnectionFactory|MultiTenantConnectionFactory|AlreadyConnectedDbalConnectionFactory $connectionFactory,
         private ProjectionStateTableManager $tableManager,
         private ?array $projectionNames = null,
     ) {

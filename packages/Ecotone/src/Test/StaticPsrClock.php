@@ -16,17 +16,22 @@ final class StaticPsrClock implements ClockInterface, SleepInterface
 {
     private ?DateTimeImmutable $frozenTime = null;
     private bool $hasBeenChanged = false;
+    private Duration $sleepDuration;
 
-    public function __construct(?string $now = null)
+    public function __construct(private ?string $now = null)
     {
-        if ($now !== null) {
-            $this->frozenTime = new DateTimeImmutable($now);
-        }
+        $this->sleepDuration = Duration::zero();
     }
 
     public function now(): DateTimeImmutable
     {
-        return $this->frozenTime ?? new DateTimeImmutable();
+        if ($this->frozenTime !== null) {
+            return $this->frozenTime;
+        }
+
+        $now = $this->now === null ? new DateTimeImmutable() : new DateTimeImmutable($this->now);
+
+        return $now->modify("+{$this->sleepDuration->zeroIfNegative()->inMicroseconds()} microseconds");
     }
 
     public function sleep(Duration $duration): void

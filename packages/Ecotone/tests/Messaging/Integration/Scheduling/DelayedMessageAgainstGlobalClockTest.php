@@ -175,6 +175,17 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         $this->assertGreaterThan($time1, $time2);
     }
 
+    public function test_time_advances_when_constructed_with_now_string(): void
+    {
+        $clock = new StaticPsrClock('now');
+
+        $time1 = $clock->now();
+        usleep(1000);
+        $time2 = $clock->now();
+
+        $this->assertGreaterThan($time1, $time2);
+    }
+
     public function test_time_freezes_after_change_time_with_duration(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
@@ -188,6 +199,30 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         $ecotoneTestSupport->changeTime(Duration::seconds(1));
 
         $clock = $ecotoneTestSupport->getServiceFromContainer(ClockInterface::class);
+        $time1 = $clock->now();
+        usleep(1000);
+        $time2 = $clock->now();
+
+        $this->assertEquals($time1, $time2);
+    }
+
+    public function test_time_advances_when_constructed_with_null(): void
+    {
+        $clock = new StaticPsrClock(null);
+
+        $time1 = $clock->now();
+        usleep(1000);
+        $time2 = $clock->now();
+
+        $this->assertGreaterThan($time1, $time2);
+    }
+
+    public function test_time_freezes_after_sleep_is_called(): void
+    {
+        $clock = new StaticPsrClock('now');
+
+        $clock->sleep(Duration::seconds(1));
+
         $time1 = $clock->now();
         usleep(1000);
         $time2 = $clock->now();

@@ -163,4 +163,35 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
 
         $ecotoneTestSupport->changeTime(new \DateTimeImmutable('2025-08-11 16:30:00'));
     }
+
+    public function test_time_advances_before_change_time_is_called(): void
+    {
+        $clock = new StaticPsrClock();
+
+        $time1 = $clock->now();
+        usleep(1000);
+        $time2 = $clock->now();
+
+        $this->assertGreaterThan($time1, $time2);
+    }
+
+    public function test_time_freezes_after_change_time_with_duration(): void
+    {
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, NotificationService::class, CustomNotifier::class],
+            [ClockInterface::class => new StaticPsrClock(), new OrderService(), new NotificationService(), new CustomNotifier()],
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('notifications', true),
+            ]
+        );
+
+        $ecotoneTestSupport->changeTime(Duration::seconds(1));
+
+        $clock = $ecotoneTestSupport->getServiceFromContainer(ClockInterface::class);
+        $time1 = $clock->now();
+        usleep(1000);
+        $time2 = $clock->now();
+
+        $this->assertEquals($time1, $time2);
+    }
 }

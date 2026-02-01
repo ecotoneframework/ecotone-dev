@@ -140,7 +140,9 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
         $psrClock = $this->getStaticPsrClockFromContainer();
 
         if ($time instanceof Duration) {
-            $psrClock->sleep($time);
+            $psrClock->setCurrentTime(
+                DateTimeImmutable::createFromInterface($psrClock->now())->modify("+{$time->inMicroseconds()} microseconds")
+            );
             return $this;
         }
 

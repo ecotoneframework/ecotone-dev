@@ -64,31 +64,6 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         );
     }
 
-    public function test_delayed_message_observes_clock_changes_natively_by_moving_time()
-    {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [EcotoneClockInterface::class, OrderService::class, NotificationService::class, CustomNotifier::class],
-            [new OrderService(), new NotificationService(), $notifier = new CustomNotifier()],
-            enableAsynchronousProcessing: [
-                // 1. Turn on Delayable In Memory Pollable Channel
-                SimpleMessageChannelBuilder::createQueueChannel('notifications', true),
-            ]
-        );
-
-        $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'));
-
-        $clock = Clock::get();
-        $clock->sleep(Duration::minutes(1)->add(Duration::seconds(1)));
-
-        // 2. Releasing messages awaiting for 60 seconds
-        $ecotoneTestSupport->run('notifications');
-
-        $this->assertEquals(
-            1,
-            count($notifier->getNotificationsOf('placedOrder'))
-        );
-    }
-
     public function test_delayed_message_is_released_when_moving_time_forward_using_change_time(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
@@ -217,7 +192,20 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         $this->assertGreaterThan($time1, $time2);
     }
 
-    public function test_time_freezes_after_sleep_is_called(): void
+    public function test_time_freezes_after_sleep_is_called_with_fixed_time(): void
+    {
+        $clock = new StaticPsrClock('2025-08-11 16:00:00');
+
+        $clock->sleep(Duration::seconds(1));
+
+        $time1 = $clock->now();
+        usleep(1000);
+        $time2 = $clock->now();
+
+        $this->assertEquals($time1, $time2);
+    }
+
+    public function test_time_continues_advancing_after_sleep_when_using_now(): void
     {
         $clock = new StaticPsrClock('now');
 
@@ -227,6 +215,6 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         usleep(1000);
         $time2 = $clock->now();
 
-        $this->assertEquals($time1, $time2);
+        $this->assertGreaterThan($time1, $time2);
     }
 }

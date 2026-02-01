@@ -14,24 +14,21 @@ use Psr\Clock\ClockInterface;
  */
 final class StaticPsrClock implements ClockInterface, SleepInterface
 {
-    private ?DateTimeImmutable $frozenTime = null;
     private bool $hasBeenChanged = false;
-    private Duration $sleepDuration;
+    private ?DateTimeImmutable $now = null;
 
-    public function __construct(private ?string $now = null)
+    public function __construct(?string $now = null)
     {
-        $this->sleepDuration = Duration::zero();
+        $this->now = ($now === null || $now === 'now') ? null : new DateTimeImmutable($now);
     }
 
     public function now(): DateTimeImmutable
     {
-        if ($this->frozenTime !== null) {
-            return $this->frozenTime;
+        if ($this->now !== null) {
+            return $this->now;
         }
 
-        $now = $this->now === null ? new DateTimeImmutable() : new DateTimeImmutable($this->now);
-
-        return $now->modify("+{$this->sleepDuration->zeroIfNegative()->inMicroseconds()} microseconds");
+        return new DateTimeImmutable('now');
     }
 
     public function sleep(Duration $duration): void
@@ -40,8 +37,12 @@ final class StaticPsrClock implements ClockInterface, SleepInterface
             return;
         }
 
-        $this->frozenTime = $this->now()->modify("+{$duration->inMicroseconds()} microseconds");
-        $this->hasBeenChanged = true;
+        if ($this->now === null) {
+
+            return;
+        }
+
+        $this->now = $this->now()->modify("+{$duration->inMicroseconds()} microseconds");
     }
 
     public function hasBeenChanged(): bool
@@ -51,7 +52,7 @@ final class StaticPsrClock implements ClockInterface, SleepInterface
 
     public function setCurrentTime(DateTimeImmutable $time): void
     {
-        $this->frozenTime = $time;
+        $this->now = $time;
         $this->hasBeenChanged = true;
     }
 }

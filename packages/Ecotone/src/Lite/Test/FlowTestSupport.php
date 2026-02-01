@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test;
 
+use DateTimeImmutable;
 use DateTimeInterface;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProjectionManager;
@@ -32,6 +33,8 @@ use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 use Ecotone\Projecting\ProjectionRegistry;
+use Ecotone\Test\StaticPsrClock;
+use InvalidArgumentException;
 
 /**
  * @template T
@@ -206,6 +209,46 @@ final class FlowTestSupport
         );
 
         return $this;
+    }
+
+    public function withCurrentTime(DateTimeImmutable $targetTime): self
+    {
+        $psrClock = $this->getStaticPsrClockFromContainer();
+
+        if ($psrClock->hasBeenChanged() && $targetTime <= $psrClock->now()) {
+            throw new InvalidArgumentException(
+                \sprintf(
+                    'Cannot move time backwards. Current clock time: %s, requested time: %s',
+                    $psrClock->now()->format('Y-m-d H:i:s.u'),
+                    $targetTime->format('Y-m-d H:i:s.u')
+                )
+            );
+        }
+
+        $psrClock->setCurrentTime($targetTime);
+
+        return $this;
+    }
+
+    private function getStaticPsrClockFromContainer(): StaticPsrClock
+    {
+        try {
+            $psrClock = $this->configuredMessagingSystem->getServiceFromContainer(\Psr\Clock\ClockInterface::class);
+        } catch (\Throwable) {
+            throw new InvalidArgumentException(
+                'Changing time is only possible when using StaticPsrClock as the ClockInterface. ' .
+                'Register ClockInterface::class => new StaticPsrClock() in your container services.'
+            );
+        }
+
+        if (! $psrClock instanceof StaticPsrClock) {
+            throw new InvalidArgumentException(
+                'Changing time is only possible when using StaticPsrClock as the ClockInterface. ' .
+                'Register ClockInterface::class => new StaticPsrClock() in your container services.'
+            );
+        }
+
+        return $psrClock;
     }
 
     /**

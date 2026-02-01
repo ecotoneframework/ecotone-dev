@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test;
 
+use DateTimeImmutable;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -18,6 +19,9 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\Test\StaticPsrClock;
+use InvalidArgumentException;
+use Psr\Clock\ClockInterface;
 
 /**
  * licence Apache-2.0
@@ -128,5 +132,45 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
     public function replaceWith(ConfiguredMessagingSystem $messagingSystem): void
     {
         $this->configuredMessagingSystem->replaceWith($messagingSystem);
+    }
+
+    public function withCurrentTime(DateTimeImmutable $targetTime): self
+    {
+        $psrClock = $this->getStaticPsrClockFromContainer();
+
+        if ($psrClock->hasBeenChanged() && $targetTime <= $psrClock->now()) {
+            throw new InvalidArgumentException(
+                sprintf(
+                    'Cannot move time backwards. Current clock time: %s, requested time: %s',
+                    $psrClock->now()->format('Y-m-d H:i:s.u'),
+                    $targetTime->format('Y-m-d H:i:s.u')
+                )
+            );
+        }
+
+        $psrClock->setCurrentTime($targetTime);
+
+        return $this;
+    }
+
+    private function getStaticPsrClockFromContainer(): StaticPsrClock
+    {
+        try {
+            $psrClock = $this->configuredMessagingSystem->getServiceFromContainer(ClockInterface::class);
+        } catch (\Throwable) {
+            throw new InvalidArgumentException(
+                'Changing time is only possible when using StaticPsrClock as the ClockInterface. ' .
+                'Register ClockInterface::class => new StaticPsrClock() in your container services.'
+            );
+        }
+
+        if (! $psrClock instanceof StaticPsrClock) {
+            throw new InvalidArgumentException(
+                'Changing time is only possible when using StaticPsrClock as the ClockInterface. ' .
+                'Register ClockInterface::class => new StaticPsrClock() in your container services.'
+            );
+        }
+
+        return $psrClock;
     }
 }

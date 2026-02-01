@@ -19,6 +19,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\Assert;
@@ -211,21 +212,26 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function withCurrentTime(DateTimeImmutable $targetTime): self
+    public function changeTime(DateTimeImmutable|Duration $time): self
     {
         $psrClock = $this->getStaticPsrClockFromContainer();
 
-        if ($psrClock->hasBeenChanged() && $targetTime <= $psrClock->now()) {
+        if ($time instanceof Duration) {
+            $psrClock->sleep($time);
+            return $this;
+        }
+
+        if ($psrClock->hasBeenChanged() && $time <= $psrClock->now()) {
             throw new InvalidArgumentException(
                 \sprintf(
                     'Cannot move time backwards. Current clock time: %s, requested time: %s',
                     $psrClock->now()->format('Y-m-d H:i:s.u'),
-                    $targetTime->format('Y-m-d H:i:s.u')
+                    $time->format('Y-m-d H:i:s.u')
                 )
             );
         }
 
-        $psrClock->setCurrentTime($targetTime);
+        $psrClock->setCurrentTime($time);
 
         return $this;
     }

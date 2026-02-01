@@ -39,6 +39,7 @@ final class StaticPsrClock implements ClockInterface, SleepInterface
 
         if ($this->now === null) {
 
+            usleep($duration->inMicroseconds());
             return;
         }
 

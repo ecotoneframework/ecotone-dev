@@ -68,18 +68,19 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, NotificationService::class, CustomNotifier::class],
-            [ClockInterface::class => new StaticPsrClock('2025-08-11 16:00:00'), new OrderService(), new NotificationService(), $notifier = new CustomNotifier()],
+            [new OrderService(), new NotificationService(), $notifier = new CustomNotifier()],
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel('notifications', true),
             ]
         );
 
+        $ecotoneTestSupport->changeTimeTo(new \DateTimeImmutable('2025-08-11 16:00:00'));
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'));
 
         $ecotoneTestSupport->run('notifications');
         $this->assertCount(0, $notifier->getNotificationsOf('placedOrder'));
 
-        $ecotoneTestSupport->changeTime(new \DateTimeImmutable('2025-08-11 16:01:01'));
+        $ecotoneTestSupport->changeTimeTo(new \DateTimeImmutable('2025-08-11 16:01:01'));
         $ecotoneTestSupport->run('notifications');
 
         $this->assertCount(1, $notifier->getNotificationsOf('placedOrder'));
@@ -89,7 +90,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, NotificationService::class, CustomNotifier::class],
-            [ClockInterface::class => new StaticPsrClock('2025-08-11 16:00:00'), new OrderService(), new NotificationService(), $notifier = new CustomNotifier()],
+            [new OrderService(), new NotificationService(), $notifier = new CustomNotifier()],
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel('notifications', true),
             ]
@@ -100,7 +101,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         $ecotoneTestSupport->run('notifications');
         $this->assertCount(0, $notifier->getNotificationsOf('placedOrder'));
 
-        $ecotoneTestSupport->advanceTime(Duration::minutes(2));
+        $ecotoneTestSupport->advanceTimeTo(Duration::minutes(2));
         $ecotoneTestSupport->run('notifications');
 
         $this->assertCount(1, $notifier->getNotificationsOf('placedOrder'));
@@ -110,33 +111,33 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, NotificationService::class, CustomNotifier::class],
-            [ClockInterface::class => new StaticPsrClock('2025-08-11 16:00:00'), new OrderService(), new NotificationService(), new CustomNotifier()],
+            [new OrderService(), new NotificationService(), new CustomNotifier()],
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel('notifications', true),
             ]
         );
 
-        $ecotoneTestSupport->changeTime(new \DateTimeImmutable('2020-01-01 12:00:00'));
+        $ecotoneTestSupport->changeTimeTo(new \DateTimeImmutable('2020-01-01 12:00:00'));
 
-        $this->assertEquals('2020-01-01 12:00:00', $ecotoneTestSupport->getServiceFromContainer(ClockInterface::class)->now()->format('Y-m-d H:i:s'));
+        $this->assertEquals('2020-01-01 12:00:00', $ecotoneTestSupport->getServiceFromContainer(EcotoneClockInterface::class)->now()->format('Y-m-d H:i:s'));
     }
 
     public function test_change_time_throws_exception_when_moving_backwards_after_first_setup(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, NotificationService::class, CustomNotifier::class],
-            [ClockInterface::class => new StaticPsrClock('2025-08-11 16:00:00'), new OrderService(), new NotificationService(), new CustomNotifier()],
+            [new OrderService(), new NotificationService(), new CustomNotifier()],
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel('notifications', true),
             ]
         );
 
-        $ecotoneTestSupport->changeTime(new \DateTimeImmutable('2025-08-11 17:00:00'));
+        $ecotoneTestSupport->changeTimeTo(new \DateTimeImmutable('2025-08-11 17:00:00'));
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot move time backwards');
 
-        $ecotoneTestSupport->changeTime(new \DateTimeImmutable('2025-08-11 16:30:00'));
+        $ecotoneTestSupport->changeTimeTo(new \DateTimeImmutable('2025-08-11 16:30:00'));
     }
 
     public function test_time_advances_before_change_time_is_called(): void
@@ -171,7 +172,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
             ]
         );
 
-        $ecotoneTestSupport->advanceTime(Duration::seconds(1));
+        $ecotoneTestSupport->advanceTimeTo(Duration::seconds(1));
 
         $clock = $ecotoneTestSupport->getServiceFromContainer(ClockInterface::class);
         $time1 = $clock->now();

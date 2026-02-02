@@ -195,24 +195,7 @@ final class FlowTestSupport
         return $this->getGateway(EventStore::class)->load($streamName);
     }
 
-    public function waitTill(TimeSpan|DateTimeInterface $time): self
-    {
-        if ($time instanceof DateTimeInterface) {
-            if ($time < $this->clock->now()) {
-                throw new MessagingException("Time to wait is in the past. Now: {$this->clock->now()}, time to wait: {$time}");
-            }
-        }
-
-        $this->clock->sleep(
-            $time instanceof TimeSpan
-            ? $time->toDuration()
-            : TimeSpan::fromDateInterval($time->diff($this->clock->now()))->toDuration()
-        );
-
-        return $this;
-    }
-
-    public function changeTime(DateTimeImmutable $time): self
+    public function changeTimeTo(DateTimeImmutable $time): self
     {
         $psrClock = $this->getStaticPsrClockFromContainer();
 
@@ -231,7 +214,7 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function advanceTime(Duration $duration): self
+    public function advanceTimeTo(Duration $duration): self
     {
         $psrClock = $this->getStaticPsrClockFromContainer();
         $psrClock->setCurrentTime(
@@ -244,7 +227,8 @@ final class FlowTestSupport
     private function getStaticPsrClockFromContainer(): StaticPsrClock
     {
         try {
-            $psrClock = $this->configuredMessagingSystem->getServiceFromContainer(\Psr\Clock\ClockInterface::class);
+            /** @var Clock $clock */
+            $clock = $this->configuredMessagingSystem->getServiceFromContainer(EcotoneClockInterface::class);
         } catch (\Throwable) {
             throw new InvalidArgumentException(
                 'Changing time is only possible when using StaticPsrClock as the ClockInterface. ' .
@@ -252,14 +236,22 @@ final class FlowTestSupport
             );
         }
 
-        if (! $psrClock instanceof StaticPsrClock) {
+        if (! $clock instanceof Clock) {
+            throw new InvalidArgumentException(
+                'Changing time is only possible when using Clock as the EcotoneClockInterface. ' .
+                'Register EcotoneClockInterface::class => new Clock(new StaticPsrClock()) in your container services.'
+            );
+        }
+
+        $clock = $clock->internalClock();
+        if (! $clock instanceof StaticPsrClock) {
             throw new InvalidArgumentException(
                 'Changing time is only possible when using StaticPsrClock as the ClockInterface. ' .
                 'Register ClockInterface::class => new StaticPsrClock() in your container services.'
             );
         }
 
-        return $psrClock;
+        return $clock;
     }
 
     /**

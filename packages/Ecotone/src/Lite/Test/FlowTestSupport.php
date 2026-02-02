@@ -212,16 +212,9 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function changeTime(DateTimeImmutable|Duration $time): self
+    public function changeTime(DateTimeImmutable $time): self
     {
         $psrClock = $this->getStaticPsrClockFromContainer();
-
-        if ($time instanceof Duration) {
-            $psrClock->setCurrentTime(
-                DateTimeImmutable::createFromInterface($psrClock->now())->modify("+{$time->inMicroseconds()} microseconds")
-            );
-            return $this;
-        }
 
         if ($psrClock->hasBeenChanged() && $time <= $psrClock->now()) {
             throw new InvalidArgumentException(
@@ -234,6 +227,16 @@ final class FlowTestSupport
         }
 
         $psrClock->setCurrentTime($time);
+
+        return $this;
+    }
+
+    public function advanceTime(Duration $duration): self
+    {
+        $psrClock = $this->getStaticPsrClockFromContainer();
+        $psrClock->setCurrentTime(
+            DateTimeImmutable::createFromInterface($psrClock->now())->modify("+{$duration->inMicroseconds()} microseconds")
+        );
 
         return $this;
     }

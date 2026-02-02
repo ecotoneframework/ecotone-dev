@@ -100,7 +100,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         $ecotoneTestSupport->run('notifications');
         $this->assertCount(0, $notifier->getNotificationsOf('placedOrder'));
 
-        $ecotoneTestSupport->changeTime(Duration::minutes(2));
+        $ecotoneTestSupport->advanceTime(Duration::minutes(2));
         $ecotoneTestSupport->run('notifications');
 
         $this->assertCount(1, $notifier->getNotificationsOf('placedOrder'));
@@ -161,7 +161,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         $this->assertGreaterThan($time1, $time2);
     }
 
-    public function test_time_freezes_after_change_time_with_duration(): void
+    public function test_time_freezes_after_advance_time_with_duration(): void
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, NotificationService::class, CustomNotifier::class],
@@ -171,7 +171,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
             ]
         );
 
-        $ecotoneTestSupport->changeTime(Duration::seconds(1));
+        $ecotoneTestSupport->advanceTime(Duration::seconds(1));
 
         $clock = $ecotoneTestSupport->getServiceFromContainer(ClockInterface::class);
         $time1 = $clock->now();

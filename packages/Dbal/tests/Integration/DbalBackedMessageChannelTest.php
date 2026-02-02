@@ -253,11 +253,11 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 ->build()
         );
 
-        $ecotoneLite->waitTill(TimeSpan::withSeconds(1));
+        $ecotoneLite->advanceTimeTo(Duration::seconds(1));
 
         $this->assertNull($messageChannel->receive());
 
-        $ecotoneLite->waitTill(TimeSpan::withSeconds(3));
+        $ecotoneLite->advanceTimeTo(Duration::seconds(3));
 
         $this->assertNotNull($messageChannel->receive());
     }
@@ -289,11 +289,11 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
         /** @var EcotoneClockInterface $clock */
         $clock = $ecotoneLite->getServiceFromContainer(EcotoneClockInterface::class);
-        $ecotoneLite->waitTill($clock->now()->add(Duration::seconds(1)));
+        $ecotoneLite->changeTimeTo($clock->now()->add(Duration::seconds(1)));
 
         $this->assertNull($messageChannel->receive());
 
-        $ecotoneLite->waitTill($clock->now()->add(Duration::seconds(3)));
+        $ecotoneLite->changeTimeTo($clock->now()->add(Duration::seconds(3)));
 
         $this->assertNotNull($messageChannel->receive());
     }

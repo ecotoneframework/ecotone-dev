@@ -28,15 +28,11 @@ class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
         if (! $message->getHeaders()->getContentType()?->isCompatibleWith(MediaType::createApplicationJson())) {
-            return null;
+            return $message;
         }
 
         if ($messageObfuscator = $this->findMessageObfuscator($message)) {
             return $messageObfuscator->encrypt($message);
-        }
-
-        if ($routingObfuscator = $this->findRoutingObfuscator($message)) {
-            return $routingObfuscator->encrypt($message);
         }
 
         if ($this->channelObfuscator) {
@@ -55,22 +51,5 @@ class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
         $type = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
 
         return $this->messageObfuscators[$type] ?? null;
-    }
-
-    private function findRoutingObfuscator(Message $message): ?Obfuscator
-    {
-        if (! $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)) {
-            return null;
-        }
-
-        $routingSlip = $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP);
-
-        foreach ($this->messageObfuscators as $routing => $obfuscator) {
-            if (str_starts_with($routingSlip, $routing)) {
-                return $obfuscator;
-            }
-        }
-
-        return null;
     }
 }

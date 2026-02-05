@@ -8,16 +8,18 @@ declare(strict_types=1);
 namespace Ecotone\DataProtection\Configuration;
 
 use Defuse\Crypto\Key;
+use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\DataProtection\Attribute\UsingSensitiveData;
+use Ecotone\DataProtection\Attribute\Sensitive;
+use Ecotone\DataProtection\Attribute\WithEncryptionKey;
 use Ecotone\DataProtection\Attribute\WithSensitiveHeader;
-use Ecotone\DataProtection\Attribute\WithSensitiveHeaders;
 use Ecotone\DataProtection\Obfuscator\Obfuscator;
 use Ecotone\DataProtection\OutboundDecryptionChannelBuilder;
 use Ecotone\DataProtection\OutboundEncryptionChannelBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
+use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -34,75 +36,25 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use stdClass;
 
+use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
+
 #[ModuleAnnotation]
 final class DataProtectionModule extends NoExternalConfigurationModule
 {
     /**
-     * @param array<ObfuscatorConfig> $messageObfuscators
+     * @param array<ObfuscatorConfig> $obfuscatorConfigs
      */
-    public function __construct(
-        private array $messageObfuscators,
-    ) {
+    public function __construct(private array $obfuscatorConfigs)
+    {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $messageObfuscators = [];
+        $obfuscatorConfigs = self::resolveObfuscatorConfigsFromAnnotatedClasses($annotationRegistrationService->findAnnotatedClasses(Sensitive::class), [], $interfaceToCallRegistry);
+        $obfuscatorConfigs = self::resolveObfuscatorConfigsFromAnnotatedMethods($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class), $obfuscatorConfigs, $interfaceToCallRegistry);
+        $obfuscatorConfigs = self::resolveObfuscatorConfigsFromAnnotatedMethods($annotationRegistrationService->findAnnotatedMethods(EventHandler::class), $obfuscatorConfigs, $interfaceToCallRegistry);
 
-        $messagesUsingSensitiveData = $annotationRegistrationService->findAnnotatedClasses(UsingSensitiveData::class);
-
-        foreach ($messagesUsingSensitiveData as $messageUsingSensitiveData) {
-            $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::create($messageUsingSensitiveData));
-            $usingSensitiveDataAttribute = $classDefinition->getSingleClassAnnotation(Type::create(UsingSensitiveData::class));
-
-            $sensitiveHeaders = $classDefinition->findSingleClassAnnotation(Type::create(WithSensitiveHeaders::class))?->headers ?? [];
-            foreach ($classDefinition->getClassAnnotations(Type::create(WithSensitiveHeader::class)) as $sensitiveHeader) {
-                $sensitiveHeaders[] = $sensitiveHeader->header;
-            }
-
-            $messageObfuscators[$messageUsingSensitiveData] = new ObfuscatorConfig($usingSensitiveDataAttribute->encryptionKeyName(), $sensitiveHeaders);
-        }
-
-        $endpointsUsingSensitiveData = $annotationRegistrationService->findAnnotatedMethods(UsingSensitiveData::class);
-
-        foreach ($endpointsUsingSensitiveData as $endpointUsingSensitiveData) {
-            $methodDefinition = $interfaceToCallRegistry->getFor($endpointUsingSensitiveData->getClassName(), $endpointUsingSensitiveData->getMethodName());
-
-            if (! $methodDefinition->hasAnnotation(CommandHandler::class) && ! $methodDefinition->hasAnnotation(EventHandler::class)) {
-                Assert::isTrue(false, 'Only CommandHandler and EventHandler can be annotated with UsingSensitiveData.');
-            }
-
-            $message = $methodDefinition->getFirstParameter();
-
-            if (array_key_exists($message->getTypeHint(), $messageObfuscators)) {
-                continue;
-            }
-
-            if ($message->hasAnnotation(Payload::class)) {
-                $registerObfuscatorFor = $message->getTypeHint();
-            } else {
-                $registerObfuscatorFor = self::resolveEndpointId($methodDefinition);
-            }
-
-            $usingSensitiveDataAttribute = $methodDefinition->getSingleMethodAnnotationOf(Type::create(UsingSensitiveData::class));
-            $sensitiveHeaders = $methodDefinition->findSingleMethodAnnotation(Type::create(WithSensitiveHeaders::class))?->headers ?? [];
-            foreach ($methodDefinition->getMethodAnnotationsOf(Type::create(WithSensitiveHeader::class)) as $sensitiveHeader) {
-                $sensitiveHeaders[] = $sensitiveHeader->header;
-            }
-
-            $messageObfuscators[$registerObfuscatorFor] = new ObfuscatorConfig($usingSensitiveDataAttribute->encryptionKeyName(), $sensitiveHeaders);
-        }
-
-        return new self($messageObfuscators);
-    }
-
-    private static function resolveEndpointId(InterfaceToCall $methodDefinition): string
-    {
-        if ($methodDefinition->hasAnnotation(CommandHandler::class)) {
-            return $methodDefinition->getSingleMethodAnnotationOf(Type::create(CommandHandler::class))->getEndpointId();
-        }
-
-        return $methodDefinition->getSingleMethodAnnotationOf(Type::create(EventHandler::class))->getEndpointId();
+        return new self($obfuscatorConfigs);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -133,6 +85,7 @@ final class DataProtectionModule extends NoExternalConfigurationModule
                     Obfuscator::class,
                     [
                         Reference::to(sprintf('ecotone.encryption.key.%s', $obfuscatorConfig->encryptionKeyName($dataProtectionConfiguration))),
+                        $obfuscatorConfig->isPayloadSensitive,
                         $obfuscatorConfig->sensitiveHeaders,
                     ],
                 )
@@ -141,13 +94,14 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             $channelObfuscatorReferences[$channelProtectionConfiguration->channelName()] = Reference::to($id);
         }
 
-        foreach($this->messageObfuscators as $messageClass => $obfuscatorConfig) {
+        foreach ($this->obfuscatorConfigs as $messageClass => $obfuscatorConfig) {
             $messagingConfiguration->registerServiceDefinition(
                 id: $id = sprintf('ecotone.encryption.obfuscator.%s', $messageClass),
                 definition: new Definition(
                     Obfuscator::class,
                     [
                         Reference::to(sprintf('ecotone.encryption.key.%s', $obfuscatorConfig->encryptionKeyName($dataProtectionConfiguration))),
+                        $obfuscatorConfig->isPayloadSensitive,
                         $obfuscatorConfig->sensitiveHeaders,
                     ],
                 )
@@ -186,5 +140,48 @@ final class DataProtectionModule extends NoExternalConfigurationModule
     public function getModulePackageName(): string
     {
         return ModulePackageList::DATA_PROTECTION_PACKAGE;
+    }
+
+    private static function resolveObfuscatorConfigsFromAnnotatedClasses(array $sensitiveMessages, array $obfuscatorConfigs, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    {
+        foreach ($sensitiveMessages as $message) {
+            $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::create($message));
+            $encryptionKey = $classDefinition->findSingleClassAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
+            $sensitiveHeaders = array_map(static fn (WithSensitiveHeader $annotation) => $annotation->header, $classDefinition->getClassAnnotations(Type::create(WithSensitiveHeader::class)) ?? []);
+
+            $obfuscatorConfigs[$message] = new ObfuscatorConfig(encryptionKey: $encryptionKey, isPayloadSensitive: true, sensitiveHeaders: $sensitiveHeaders);
+        }
+
+        return $obfuscatorConfigs;
+    }
+
+    private static function resolveObfuscatorConfigsFromAnnotatedMethods(array $annotatedMethods, array $obfuscatorConfigs, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    {
+        /** @var AnnotatedMethod $method */
+        foreach ($annotatedMethods as $method) {
+            $methodDefinition = $interfaceToCallRegistry->getFor($method->getClassName(), $method->getMethodName());
+            $payload = $methodDefinition->getFirstParameter();
+
+            if (
+                $payload->hasAnnotation(Header::class)
+                || $payload->hasAnnotation(Headers::class)
+                || $payload->hasAnnotation(Reference::class)
+                || array_key_exists($payload->getTypeHint(), $obfuscatorConfigs)
+            ) {
+                continue;
+            }
+
+            $isPayloadSensitive = $payload->hasAnnotation(Sensitive::class) || $methodDefinition->hasAnnotation(Sensitive::class);
+            if (! $isPayloadSensitive) {
+                continue;
+            }
+
+            $encryptionKey = $methodDefinition->findSingleMethodAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
+            $sensitiveHeaders = array_map(static fn (WithSensitiveHeader $annotation) => $annotation->header, $methodDefinition->getMethodAnnotationsOf(Type::create(WithSensitiveHeader::class)) ?? []);
+
+            $obfuscatorConfigs[$payload->getTypeHint()] = new ObfuscatorConfig($encryptionKey, $isPayloadSensitive, $sensitiveHeaders);
+        }
+
+        return $obfuscatorConfigs;
     }
 }

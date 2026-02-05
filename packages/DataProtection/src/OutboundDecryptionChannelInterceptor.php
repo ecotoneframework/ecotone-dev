@@ -35,10 +35,6 @@ class OutboundDecryptionChannelInterceptor extends AbstractChannelInterceptor
             return $messageObfuscator->decrypt($message);
         }
 
-        if ($routingObfuscator = $this->findRoutingObfuscator($message)) {
-            return $routingObfuscator->decrypt($message);
-        }
-
         if ($this->channelObfuscator) {
             return $this->channelObfuscator->decrypt($message);
         }
@@ -55,22 +51,5 @@ class OutboundDecryptionChannelInterceptor extends AbstractChannelInterceptor
         $type = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
 
         return $this->messageObfuscators[$type] ?? null;
-    }
-
-    private function findRoutingObfuscator(Message $message): ?Obfuscator
-    {
-        if (! $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)) {
-            return null;
-        }
-
-        $routingSlip = $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP);
-
-        foreach ($this->messageObfuscators as $routing => $obfuscator) {
-            if (str_starts_with($routingSlip, $routing)) {
-                return $obfuscator;
-            }
-        }
-
-        return null;
     }
 }

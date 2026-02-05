@@ -8,21 +8,22 @@ use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
+use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 
 #[Asynchronous('test')]
 class TestCommandHandler
 {
-    #[CommandHandler(endpointId: 'test.commandHandler.FullyObfuscatedMessage')]
-    public function handleFullyObfuscatedMessage(
-        #[Payload] ObfuscatedMessage $message,
+    #[CommandHandler(endpointId: 'test.ObfuscateChannel.commandHandler.withPayload')]
+    public function withPayload(
+        SomeMessage $message,
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,
     ): void {
         $messageReceiver->withReceived($message, $headers);
     }
 
-    #[CommandHandler(routingKey: 'command', endpointId: 'test.commandHandler.withRoutingKey')]
-    public function handleRoutingKey(
+    #[CommandHandler(routingKey: 'command', endpointId: 'test.ObfuscateChannel.commandHandler.withoutPayload')]
+    public function withoutPayload(
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,
     ): void {

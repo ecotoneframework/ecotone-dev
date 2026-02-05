@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * licence Enterprise
+ */
 namespace Ecotone\DataProtection\Configuration;
 
 use Ecotone\Messaging\Support\Assert;
@@ -11,7 +14,8 @@ final readonly class ObfuscatorConfig
      */
     public function __construct(
         public ?string $encryptionKey,
-        public array $sensitiveHeaders
+        public bool $isPayloadSensitive,
+        public array $sensitiveHeaders,
     ) {
         Assert::allStrings($this->sensitiveHeaders, 'Sensitive Headers should be array of strings');
     }

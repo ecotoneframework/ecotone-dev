@@ -16,9 +16,9 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageChannel;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateChannel\ObfuscatedMessage;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateChannel\TestCommandHandler;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateChannel\TestEventHandler;
+use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
 use Test\Ecotone\Messaging\Unit\Channel\TestQueueChannel;
@@ -40,14 +40,15 @@ class ObfuscateChannelTest extends TestCase
     public function test_obfuscate_command_handler_channel_with_default_encryption_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
-            ->withSensitiveHeaders(['foo', 'bar'])
+            ->withSensitiveHeader('foo')
+            ->withSensitiveHeader('bar')
             ->withSensitiveHeader('fos')
         ;
 
         $ecotone = $this->bootstrapEcotone($channelProtectionConfiguration, $channel = TestQueueChannel::create('test'), $messageReceiver = new MessageReceiver());
 
         $ecotone->sendCommand(
-            $messageSent = new ObfuscatedMessage(
+            $messageSent = new SomeMessage(
                 class: new TestClass('value', TestEnum::FIRST),
                 enum: TestEnum::FIRST,
                 argument: 'value',
@@ -80,17 +81,62 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_command_handler_channel_with_non_default_key(): void
+    public function test_obfuscate_command_handler_channel_with_default_encryption_key_and_no_sensitive_payload(): void
     {
-        $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test', 'secondary')
-            ->withSensitiveHeaders(['foo', 'bar'])
+        $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
+            ->withSensitivePayload(false)
+            ->withSensitiveHeader('foo')
+            ->withSensitiveHeader('bar')
             ->withSensitiveHeader('fos')
         ;
 
         $ecotone = $this->bootstrapEcotone($channelProtectionConfiguration, $channel = TestQueueChannel::create('test'), $messageReceiver = new MessageReceiver());
 
         $ecotone->sendCommand(
-            $messageSent = new ObfuscatedMessage(
+            $messageSent = new SomeMessage(
+                class: new TestClass('value', TestEnum::FIRST),
+                enum: TestEnum::FIRST,
+                argument: 'value',
+            ),
+            metadata: $metadataSent = [
+                'foo' => 'secret-value',
+                'bar' => 'even-more-secret-value',
+                'baz' => 'non-sensitive-value',
+            ]
+        );
+
+        $ecotone
+            ->sendCommand($messageSent, metadata: $metadataSent)
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        $receivedHeaders = $messageReceiver->receivedHeaders();
+        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
+        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
+        self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
+
+        $channelMessage = $channel->getLastSentMessage();
+        $messageHeaders = $channelMessage->getHeaders();
+
+        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $channelMessage->getPayload());
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
+    }
+
+    public function test_obfuscate_command_handler_channel_with_non_default_key(): void
+    {
+        $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test', 'secondary')
+            ->withSensitiveHeader('foo')
+            ->withSensitiveHeader('bar')
+            ->withSensitiveHeader('fos')
+        ;
+
+        $ecotone = $this->bootstrapEcotone($channelProtectionConfiguration, $channel = TestQueueChannel::create('test'), $messageReceiver = new MessageReceiver());
+
+        $ecotone->sendCommand(
+            $messageSent = new SomeMessage(
                 class: new TestClass('value', TestEnum::FIRST),
                 enum: TestEnum::FIRST,
                 argument: 'value',
@@ -126,7 +172,8 @@ class ObfuscateChannelTest extends TestCase
     public function test_obfuscate_command_handler_channel_called_with_routing_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
-            ->withSensitiveHeaders(['foo', 'bar'])
+            ->withSensitiveHeader('foo')
+            ->withSensitiveHeader('bar')
             ->withSensitiveHeader('fos')
         ;
 
@@ -159,10 +206,48 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
+    public function test_obfuscate_command_handler_channel_called_with_routing_key_and_no_sensitive_payload(): void
+    {
+        $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
+            ->withSensitivePayload(false)
+            ->withSensitiveHeader('foo')
+            ->withSensitiveHeader('bar')
+            ->withSensitiveHeader('fos')
+        ;
+
+        $ecotone = $this->bootstrapEcotone($channelProtectionConfiguration, $channel = TestQueueChannel::create('test'), $messageReceiver = new MessageReceiver());
+
+        $ecotone
+            ->sendCommandWithRoutingKey(
+                routingKey: 'command',
+                metadata: $metadataSent = [
+                    'foo' => 'secret-value',
+                    'bar' => 'even-more-secret-value',
+                    'baz' => 'non-sensitive-value',
+                ]
+            )
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        $receivedHeaders = $messageReceiver->receivedHeaders();
+        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
+        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
+        self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
+
+        $channelMessage = $channel->getLastSentMessage();
+        $messageHeaders = $channelMessage->getHeaders();
+
+        self::assertEquals('[]', $channelMessage->getPayload());
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
+    }
+
     public function test_obfuscate_event_handler_channel_with_default_encryption_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
-            ->withSensitiveHeaders(['foo', 'bar'])
+            ->withSensitiveHeader('foo')
+            ->withSensitiveHeader('bar')
             ->withSensitiveHeader('fos')
         ;
 
@@ -170,7 +255,7 @@ class ObfuscateChannelTest extends TestCase
 
         $ecotone
             ->publishEvent(
-                $messageSent = new ObfuscatedMessage(
+                $messageSent = new SomeMessage(
                     class: new TestClass('value', TestEnum::FIRST),
                     enum: TestEnum::FIRST,
                     argument: 'value',
@@ -203,7 +288,8 @@ class ObfuscateChannelTest extends TestCase
     public function test_obfuscate_event_handler_channel_with_non_default_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test', 'secondary')
-            ->withSensitiveHeaders(['foo', 'bar'])
+            ->withSensitiveHeader('foo')
+            ->withSensitiveHeader('bar')
             ->withSensitiveHeader('fos')
         ;
 
@@ -211,7 +297,7 @@ class ObfuscateChannelTest extends TestCase
 
         $ecotone
             ->publishEvent(
-                $messageSent = new ObfuscatedMessage(
+                $messageSent = new SomeMessage(
                     class: new TestClass('value', TestEnum::FIRST),
                     enum: TestEnum::FIRST,
                     argument: 'value',
@@ -244,7 +330,8 @@ class ObfuscateChannelTest extends TestCase
     public function test_obfuscate_event_handler_channel_called_with_routing_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
-            ->withSensitiveHeaders(['foo', 'bar'])
+            ->withSensitiveHeader('foo')
+            ->withSensitiveHeader('bar')
             ->withSensitiveHeader('fos')
         ;
 

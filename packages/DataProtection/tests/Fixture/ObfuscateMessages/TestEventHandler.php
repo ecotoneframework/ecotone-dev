@@ -1,0 +1,44 @@
+<?php
+
+namespace Test\Ecotone\DataProtection\Fixture\ObfuscateMessages;
+
+use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\Parameter\Headers;
+use Ecotone\Messaging\Attribute\Parameter\Payload;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Modelling\Attribute\EventHandler;
+use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
+use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveHeaders;
+use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
+use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
+
+#[Asynchronous('test')]
+class TestEventHandler
+{
+    #[EventHandler(endpointId: 'test.obfuscateAnnotatedMessages.eventHandler.AnnotatedMessage')]
+    public function handleAnnotatedMessage(
+        #[Payload] AnnotatedMessage $message,
+        #[Headers] array $headers,
+        #[Reference] MessageReceiver $messageReceiver,
+    ): void {
+        $messageReceiver->withReceived($message, $headers);
+    }
+
+    #[EventHandler(endpointId: 'test.obfuscateAnnotatedMessages.eventHandler.AnnotatedMessageWithSecondaryEncryptionKey')]
+    public function handleAnnotatedMessageWithSecondaryEncryptionKey(
+        #[Payload] AnnotatedMessageWithSecondaryEncryptionKey $message,
+        #[Headers] array $headers,
+        #[Reference] MessageReceiver $messageReceiver,
+    ): void {
+        $messageReceiver->withReceived($message, $headers);
+    }
+
+    #[EventHandler(endpointId: 'test.obfuscateAnnotatedMessages.eventHandler.AnnotatedMessageWithSensitiveHeaders')]
+    public function handleAnnotatedMessageWithSensitiveHeaders(
+        #[Payload] AnnotatedMessageWithSensitiveHeaders $message,
+        #[Headers] array $headers,
+        #[Reference] MessageReceiver $messageReceiver,
+    ): void {
+        $messageReceiver->withReceived($message, $headers);
+    }
+}

@@ -2,22 +2,22 @@
 
 namespace Ecotone\DataProtection\Configuration;
 
-use Ecotone\Messaging\Support\Assert;
-
 /**
  * licence Enterprise
  */
 class ChannelProtectionConfiguration
 {
-    private array $sensitiveHeaders = [];
-
-    private function __construct(private string $channelName, private ?string $encryptionKey = null)
-    {
+    private function __construct(
+        private string $channelName,
+        private ?string $encryptionKey,
+        private bool $isPayloadSensitive,
+        private array $sensitiveHeaders,
+    ) {
     }
 
-    public static function create(string $channelName, ?string $encryptionKey = null): self
+    public static function create(string $channelName, ?string $encryptionKey = null, $isPayloadSensitive = true, array $sensitiveHeaders = []): self
     {
-        return new self($channelName, $encryptionKey);
+        return new self($channelName, $encryptionKey, $isPayloadSensitive, $sensitiveHeaders);
     }
 
     public function channelName(): string
@@ -27,15 +27,13 @@ class ChannelProtectionConfiguration
 
     public function obfuscatorConfig(): ObfuscatorConfig
     {
-        return new ObfuscatorConfig($this->encryptionKey, $this->sensitiveHeaders);
+        return new ObfuscatorConfig($this->encryptionKey, $this->isPayloadSensitive, $this->sensitiveHeaders);
     }
 
-    public function withSensitiveHeaders(array $sensitiveHeaders): self
+    public function withSensitivePayload(bool $isPayloadSensitive): self
     {
-        Assert::allStrings($sensitiveHeaders, 'Sensitive Headers should be array of strings');
-
         $config = clone $this;
-        $config->sensitiveHeaders = array_merge($this->sensitiveHeaders, $sensitiveHeaders);
+        $config->isPayloadSensitive = $isPayloadSensitive;
 
         return $config;
     }

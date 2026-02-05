@@ -1,5 +1,8 @@
 <?php
 
+/**
+ * licence Enterprise
+ */
 namespace Ecotone\DataProtection\Obfuscator;
 
 use Defuse\Crypto\Crypto;
@@ -12,6 +15,7 @@ readonly class Obfuscator
 {
     public function __construct(
         private Key $encryptionKey,
+        private bool $isPayloadSensitive,
         private array $sensitiveHeaders,
     ) {
         Assert::allStrings($this->sensitiveHeaders, 'Sensitive headers should be array of strings');
@@ -19,7 +23,12 @@ readonly class Obfuscator
 
     public function encrypt(Message $message): Message
     {
-        $encryptedPayload = base64_encode(Crypto::encrypt($message->getPayload(), $this->encryptionKey));
+        $payload = $message->getPayload();
+
+        if ($this->isPayloadSensitive) {
+            $payload = base64_encode(Crypto::encrypt($payload, $this->encryptionKey));
+        }
+
         $headers = $message->getHeaders()->headers();
         foreach ($this->sensitiveHeaders as $sensitiveHeader) {
             if (array_key_exists($sensitiveHeader, $headers)) {
@@ -27,16 +36,19 @@ readonly class Obfuscator
             }
         }
 
-        $preparedMessage = MessageBuilder::withPayload($encryptedPayload)
+        return MessageBuilder::withPayload($payload)
             ->setMultipleHeaders($headers)
+            ->build()
         ;
-
-        return $preparedMessage->build();
     }
 
     public function decrypt(Message $message): Message
     {
-        $decryptedPayload = Crypto::decrypt(base64_decode($message->getPayload()), $this->encryptionKey);
+        $payload = $message->getPayload();
+        if ($this->isPayloadSensitive) {
+            $payload = Crypto::decrypt(base64_decode($payload), $this->encryptionKey);
+        }
+
         $headers = $message->getHeaders()->headers();
         foreach ($this->sensitiveHeaders as $sensitiveHeader) {
             if (array_key_exists($sensitiveHeader, $headers)) {
@@ -44,10 +56,9 @@ readonly class Obfuscator
             }
         }
 
-        $preparedMessage = MessageBuilder::withPayload($decryptedPayload)
+        return MessageBuilder::withPayload($payload)
             ->setMultipleHeaders($headers)
+            ->build()
         ;
-
-        return $preparedMessage->build();
     }
 }

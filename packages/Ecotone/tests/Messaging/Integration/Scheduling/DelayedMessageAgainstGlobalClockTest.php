@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Integration\Scheduling;
 
+use DateTimeImmutable;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Test\StaticPsrClock;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Psr\Clock\ClockInterface;
 use Test\Ecotone\Messaging\Fixture\Scheduling\CustomNotifier;
@@ -74,13 +76,13 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
             ]
         );
 
-        $ecotoneTestSupport->changeTimeTo(new \DateTimeImmutable('2025-08-11 16:00:00'));
+        $ecotoneTestSupport->changeTimeTo(new DateTimeImmutable('2025-08-11 16:00:00'));
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'));
 
         $ecotoneTestSupport->run('notifications');
         $this->assertCount(0, $notifier->getNotificationsOf('placedOrder'));
 
-        $ecotoneTestSupport->changeTimeTo(new \DateTimeImmutable('2025-08-11 16:01:01'));
+        $ecotoneTestSupport->changeTimeTo(new DateTimeImmutable('2025-08-11 16:01:01'));
         $ecotoneTestSupport->run('notifications');
 
         $this->assertCount(1, $notifier->getNotificationsOf('placedOrder'));
@@ -117,7 +119,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
             ]
         );
 
-        $ecotoneTestSupport->changeTimeTo(new \DateTimeImmutable('2020-01-01 12:00:00'));
+        $ecotoneTestSupport->changeTimeTo(new DateTimeImmutable('2020-01-01 12:00:00'));
 
         $this->assertEquals('2020-01-01 12:00:00', $ecotoneTestSupport->getServiceFromContainer(EcotoneClockInterface::class)->now()->format('Y-m-d H:i:s'));
     }
@@ -132,12 +134,12 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
             ]
         );
 
-        $ecotoneTestSupport->changeTimeTo(new \DateTimeImmutable('2025-08-11 17:00:00'));
+        $ecotoneTestSupport->changeTimeTo(new DateTimeImmutable('2025-08-11 17:00:00'));
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Cannot move time backwards');
 
-        $ecotoneTestSupport->changeTimeTo(new \DateTimeImmutable('2025-08-11 16:30:00'));
+        $ecotoneTestSupport->changeTimeTo(new DateTimeImmutable('2025-08-11 16:30:00'));
     }
 
     public function test_time_advances_before_change_time_is_called(): void

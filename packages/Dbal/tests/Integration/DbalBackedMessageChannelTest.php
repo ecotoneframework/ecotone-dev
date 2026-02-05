@@ -16,7 +16,6 @@ use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
-use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\StubLogger;
 use Enqueue\Dbal\DbalConnectionFactory;

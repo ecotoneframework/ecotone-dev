@@ -23,6 +23,7 @@ use Ecotone\Modelling\QueryBus;
 use Ecotone\Test\StaticPsrClock;
 use InvalidArgumentException;
 use Psr\Clock\ClockInterface;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -165,7 +166,7 @@ final class ConfiguredMessagingSystemWithTestSupport implements ConfiguredMessag
     {
         try {
             $psrClock = $this->configuredMessagingSystem->getServiceFromContainer(ClockInterface::class);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             throw new InvalidArgumentException(
                 'Changing time is only possible when using StaticPsrClock as the ClockInterface. ' .
                 'Register ClockInterface::class => new StaticPsrClock() in your container services.'

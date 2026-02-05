@@ -8,10 +8,6 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Ecotone\Messaging\Attribute\Endpoint\AddHeader;
 use Ecotone\Messaging\Attribute\Endpoint\Delayed;
-
-use function is_string;
-use function preg_match;
-use function str_ends_with;
 use Ecotone\Messaging\Attribute\Endpoint\Priority;
 use Ecotone\Messaging\Attribute\Endpoint\RemoveHeader;
 use Ecotone\Messaging\Attribute\Endpoint\TimeToLive;
@@ -25,6 +21,10 @@ use Ecotone\Messaging\Handler\Type\UnionType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\TimeSpan;
+
+use function is_string;
+use function preg_match;
+use function str_ends_with;
 
 /**
  * Class EndpointHeadersInterceptor

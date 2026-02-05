@@ -37,6 +37,10 @@ use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\StaticPsrClock;
 use InvalidArgumentException;
 
+use function sprintf;
+
+use Throwable;
+
 /**
  * @template T
  */
@@ -201,7 +205,7 @@ final class FlowTestSupport
 
         if ($psrClock->hasBeenChanged() && $time <= $psrClock->now()) {
             throw new InvalidArgumentException(
-                \sprintf(
+                sprintf(
                     'Cannot move time backwards. Current clock time: %s, requested time: %s',
                     $psrClock->now()->format('Y-m-d H:i:s.u'),
                     $time->format('Y-m-d H:i:s.u')
@@ -229,7 +233,7 @@ final class FlowTestSupport
         try {
             /** @var Clock $clock */
             $clock = $this->configuredMessagingSystem->getServiceFromContainer(EcotoneClockInterface::class);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             throw new InvalidArgumentException(
                 'Changing time is only possible when using StaticPsrClock as the ClockInterface. ' .
                 'Register ClockInterface::class => new StaticPsrClock() in your container services.'

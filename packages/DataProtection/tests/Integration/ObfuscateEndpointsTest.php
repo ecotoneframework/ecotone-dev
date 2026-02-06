@@ -9,11 +9,13 @@ use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
@@ -27,9 +29,11 @@ use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnot
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedEndpointWithAlreadyAnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedEndpointWithSecondaryEncryptionKey;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedMethodWithoutPayload;
+use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\NoPollableEventHandler;
 use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
+use Test\Ecotone\Messaging\Fixture\Handler\StatefulHandler;
 use Test\Ecotone\Messaging\Unit\Channel\TestQueueChannel;
 
 /**
@@ -652,6 +656,7 @@ class ObfuscateEndpointsTest extends TestCase
             classesToResolve: $classesToResolve,
             containerOrAvailableServices: $container,
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
                 ->withExtensionObjects(
                     array_merge([

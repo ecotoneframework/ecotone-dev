@@ -9,11 +9,14 @@ use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateChannel\TestCommandHandler;
@@ -364,6 +367,30 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
+    public function test_obfuscate_non_pollable_channel(): void
+    {
+        $this->expectExceptionObject(InvalidArgumentException::create("`test` channel must be pollable channel to use Data Protection."));
+
+        $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test');
+
+        EcotoneLite::bootstrapFlowTesting(
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DATA_PROTECTION_PACKAGE]))
+                ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\NonPollable'])
+                ->withExtensionObjects(
+                    [
+                        $channelProtectionConfiguration,
+                        DataProtectionConfiguration::create('primary', $this->primaryKey)
+                            ->withKey('secondary', $this->secondaryKey),
+                        SimpleMessageChannelBuilder::create('test', new DirectChannel('test')),
+                        JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true),
+                    ]
+                )
+        )
+        ;
+    }
+
     private function bootstrapEcotone(ChannelProtectionConfiguration $channelProtectionConfiguration, MessageChannel $messageChannel, MessageReceiver $receivedMessage): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
@@ -373,6 +400,7 @@ class ObfuscateChannelTest extends TestCase
                 new TestEventHandler(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
                 ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\ObfuscateChannel'])
                 ->withExtensionObjects([

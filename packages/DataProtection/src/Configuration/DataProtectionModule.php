@@ -28,10 +28,10 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use stdClass;
@@ -59,6 +59,8 @@ final class DataProtectionModule extends NoExternalConfigurationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $this->verifyLicense($messagingConfiguration, $extensionObjects);
+
         Assert::isTrue(ExtensionObjectResolver::contains(DataProtectionConfiguration::class, $extensionObjects), sprintf('%s was not found.', DataProtectionConfiguration::class));
         Assert::isTrue(ExtensionObjectResolver::contains(JMSConverterConfiguration::class, $extensionObjects), sprintf('%s package require %s package to be enabled. Did you forget to define %s?', ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE, JMSConverterConfiguration::class));
 
@@ -78,6 +80,8 @@ final class DataProtectionModule extends NoExternalConfigurationModule
 
         $channelObfuscatorReferences = $messageObfuscatorReferences = [];
         foreach ($channelProtectionConfigurations as $channelProtectionConfiguration) {
+            Assert::isTrue($messagingConfiguration->isPollableChannel($channelProtectionConfiguration->channelName()), sprintf('`%s` channel must be pollable channel to use Data Protection.', $channelProtectionConfiguration->channelName()));
+
             $obfuscatorConfig = $channelProtectionConfiguration->obfuscatorConfig();
             $messagingConfiguration->registerServiceDefinition(
                 id: $id = sprintf('ecotone.encryption.obfuscator.%s', $channelProtectionConfiguration->channelName()),
@@ -110,6 +114,10 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         }
 
         foreach (ExtensionObjectResolver::resolve(MessageChannelWithSerializationBuilder::class, $extensionObjects) as $pollableMessageChannel) {
+            if (! $pollableMessageChannel->isPollable()) {
+                continue;
+            }
+
             $messagingConfiguration->registerChannelInterceptor(
                 new OutboundEncryptionChannelBuilder(
                     relatedChannel: $pollableMessageChannel->getMessageChannelName(),
@@ -183,5 +191,16 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         }
 
         return $obfuscatorConfigs;
+    }
+
+    private function verifyLicense(Configuration $messagingConfiguration, array $extensionObjects): void
+    {
+        if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
+            return;
+        }
+
+        if (ExtensionObjectResolver::contains(DataProtectionConfiguration::class, $extensionObjects)) {
+            throw LicensingException::create('Data Protection module is available only with Ecotone Enterprise Licence.');
+        }
     }
 }

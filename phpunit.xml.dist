@@ -11,6 +11,7 @@
   <source>
     <include>
       <directory suffix=".php">packages/Ecotone/src</directory>
+      <directory suffix=".php">packages/DataProtection/src</directory>
       <directory suffix=".php">packages/Dbal/src</directory>
       <directory suffix=".php">packages/PdoEventSourcing/src</directory>
       <directory suffix=".php">packages/JmsConverter/src</directory>
@@ -38,6 +39,9 @@
   <testsuites>
     <testsuite name="Core tests">
       <directory>packages/Ecotone/tests</directory>
+    </testsuite>
+    <testsuite name="DataProtection">
+      <directory>packages/DataProtection/tests</directory>
     </testsuite>
     <testsuite name="Dbal tests">
       <directory>packages/Dbal/tests</directory>

@@ -36,8 +36,6 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use stdClass;
 
-use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
-
 #[ModuleAnnotation]
 final class DataProtectionModule extends NoExternalConfigurationModule
 {

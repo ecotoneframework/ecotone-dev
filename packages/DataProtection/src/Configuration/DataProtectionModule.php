@@ -185,6 +185,9 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             }
 
             $encryptionKey = $methodDefinition->findSingleMethodAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
+            if ($encryptionKey === null) {
+                $encryptionKey = $payload->findSingleAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
+            }
             $sensitiveHeaders = array_map(static fn (WithSensitiveHeader $annotation) => $annotation->header, $methodDefinition->getMethodAnnotationsOf(Type::create(WithSensitiveHeader::class)) ?? []);
 
             foreach ($methodDefinition->getInterfaceParameters() as $parameter) {

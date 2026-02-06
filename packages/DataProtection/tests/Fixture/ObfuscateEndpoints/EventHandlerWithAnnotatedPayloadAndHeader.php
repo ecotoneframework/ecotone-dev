@@ -3,6 +3,7 @@
 namespace Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints;
 
 use Ecotone\DataProtection\Attribute\Sensitive;
+use Ecotone\DataProtection\Attribute\WithEncryptionKey;
 use Ecotone\DataProtection\Attribute\WithSensitiveHeader;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Header;
@@ -18,7 +19,7 @@ class EventHandlerWithAnnotatedPayloadAndHeader
     #[WithSensitiveHeader('bar')]
     #[EventHandler(endpointId: 'test.obfuscateAnnotatedEndpoints.eventHandler.annotatedMethod')]
     public function annotatedMethod(
-        #[Sensitive] SomeMessage $message,
+        #[Sensitive] #[WithEncryptionKey('secondary')] SomeMessage $message,
         #[Sensitive] #[Header('foo')] string $foo,
         #[Header('bar')] string $bar,
         #[Reference] MessageReceiver $messageReceiver,

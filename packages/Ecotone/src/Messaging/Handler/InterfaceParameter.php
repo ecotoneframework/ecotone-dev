@@ -149,7 +149,12 @@ final class InterfaceParameter
 
     public function findSingleAnnotation(Type $annotationType): ?object
     {
-        return array_find($this->annotations, fn ($annotation) => $annotationType->accepts($annotation));
+        foreach ($this->annotations as $annotation) {
+            if ($annotationType->accepts($annotation)) {
+                return $annotation;
+            }
+        }
+        return null;
 
     }
 

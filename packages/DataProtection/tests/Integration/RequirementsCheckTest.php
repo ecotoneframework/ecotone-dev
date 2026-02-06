@@ -31,26 +31,4 @@ class RequirementsCheckTest extends TestCase
                 ])
         );
     }
-
-    public function test_module_require_data_protection_configuration(): void
-    {
-        $this->expectExceptionObject(InvalidArgumentException::create('Ecotone\DataProtection\Configuration\DataProtectionConfiguration was not found.'));
-
-        EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DATA_PROTECTION_PACKAGE]))
-        );
-    }
-
-    public function test_module_require_jms_converter_configuration(): void
-    {
-        $this->expectExceptionObject(InvalidArgumentException::create('Ecotone\DataProtection\Configuration\DataProtectionConfiguration was not found.'));
-
-        EcotoneLite::bootstrapFlowTesting(
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DATA_PROTECTION_PACKAGE]))
-        );
-    }
 }

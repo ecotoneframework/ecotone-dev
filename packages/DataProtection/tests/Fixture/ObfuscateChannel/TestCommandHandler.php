@@ -4,7 +4,6 @@ namespace Test\Ecotone\DataProtection\Fixture\ObfuscateChannel;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;

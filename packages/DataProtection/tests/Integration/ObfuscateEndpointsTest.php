@@ -9,7 +9,6 @@ use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -35,7 +34,6 @@ use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\NoPollableEventHandle
 use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
-use Test\Ecotone\Messaging\Fixture\Handler\StatefulHandler;
 use Test\Ecotone\Messaging\Unit\Channel\TestQueueChannel;
 
 /**

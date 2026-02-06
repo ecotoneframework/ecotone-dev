@@ -6,7 +6,6 @@
 
 namespace Ecotone\DataProtection;
 
-use Ecotone\DataProtection\Obfuscator\Obfuscator;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;

@@ -211,8 +211,6 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             return;
         }
 
-        if (ExtensionObjectResolver::contains(DataProtectionConfiguration::class, $extensionObjects)) {
-            throw LicensingException::create('Data Protection module is available only with Ecotone Enterprise Licence.');
-        }
+        throw LicensingException::create('Data Protection module is available only with Ecotone Enterprise Licence.');
     }
 }

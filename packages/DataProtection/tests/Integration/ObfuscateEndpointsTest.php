@@ -24,11 +24,13 @@ use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\CommandHandlerWithAnn
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\CommandHandlerWithAnnotatedEndpointWithAlreadyAnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\CommandHandlerWithAnnotatedEndpointWithSecondaryEncryptionKey;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\CommandHandlerWithAnnotatedMethodWithoutPayload;
+use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\CommandHandlerWithAnnotatedPayloadAndHeader;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerCalledWithRoutingKey;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedEndpoint;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedEndpointWithAlreadyAnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedEndpointWithSecondaryEncryptionKey;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedMethodWithoutPayload;
+use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedPayloadAndHeader;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\NoPollableEventHandler;
 use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
@@ -309,6 +311,48 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
         self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
+    }
+
+    public function test_command_handler_with_annotated_method_with_annotated_payload_and_header(): void
+    {
+        $ecotone = $this->bootstrapEcotone(
+            classesToResolve: [
+                CommandHandlerWithAnnotatedPayloadAndHeader::class,
+            ],
+            container: [
+                $messageReceiver = new MessageReceiver(),
+                new CommandHandlerWithAnnotatedPayloadAndHeader(),
+            ],
+            messageChannel: $channel = TestQueueChannel::create('test'),
+        );
+
+        $ecotone
+            ->sendCommand(
+                $messageSent = new SomeMessage(
+                    class: new TestClass('value', TestEnum::FIRST),
+                    enum: TestEnum::FIRST,
+                    argument: 'value',
+                ),
+                metadata: $metadataSent = [
+                    'foo' => 'secret-value',
+                    'bar' => 'even-more-secret-value',
+                ]
+            )
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        $receivedHeaders = $messageReceiver->receivedHeaders();
+        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
+        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
+
+        $channelMessage = $channel->getLastSentMessage();
+        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messageHeaders = $channelMessage->getHeaders();
+
+        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
     }
 
     public function test_command_handler_with_annotated_method_without_payload(): void
@@ -609,6 +653,48 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
         self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
+    }
+
+    public function test_event_handler_with_annotated_method_with_annotated__payload_and_header(): void
+    {
+        $ecotone = $this->bootstrapEcotone(
+            classesToResolve: [
+                EventHandlerWithAnnotatedPayloadAndHeader::class,
+            ],
+            container: [
+                $messageReceiver = new MessageReceiver(),
+                new EventHandlerWithAnnotatedPayloadAndHeader(),
+            ],
+            messageChannel: $channel = TestQueueChannel::create('test'),
+        );
+
+        $ecotone
+            ->publishEvent(
+                $messageSent = new SomeMessage(
+                    class: new TestClass('value', TestEnum::FIRST),
+                    enum: TestEnum::FIRST,
+                    argument: 'value',
+                ),
+                metadata: $metadataSent = [
+                    'foo' => 'secret-value',
+                    'bar' => 'even-more-secret-value',
+                ]
+            )
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        $receivedHeaders = $messageReceiver->receivedHeaders();
+        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
+        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
+
+        $channelMessage = $channel->getLastSentMessage();
+        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messageHeaders = $channelMessage->getHeaders();
+
+        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
     }
 
     public function test_event_handler_with_annotated_method_without_payload(): void

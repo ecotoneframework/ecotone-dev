@@ -19,9 +19,10 @@ class EventHandlerWithAnnotatedPayloadAndHeader
     #[EventHandler(endpointId: 'test.obfuscateAnnotatedEndpoints.eventHandler.annotatedMethod')]
     public function annotatedMethod(
         #[Sensitive] SomeMessage $message,
-        #[Sensitive] #[Header('foo')] string $header,
+        #[Sensitive] #[Header('foo')] string $foo,
+        #[Header('bar')] string $bar,
         #[Reference] MessageReceiver $messageReceiver,
     ): void {
-        $messageReceiver->withReceived($message, [$header]);
+        $messageReceiver->withReceived($message, ['foo' => $foo, 'bar' => $bar]);
     }
 }

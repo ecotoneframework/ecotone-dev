@@ -187,6 +187,12 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             $encryptionKey = $methodDefinition->findSingleMethodAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
             $sensitiveHeaders = array_map(static fn (WithSensitiveHeader $annotation) => $annotation->header, $methodDefinition->getMethodAnnotationsOf(Type::create(WithSensitiveHeader::class)) ?? []);
 
+            foreach ($methodDefinition->getInterfaceParameters() as $parameter) {
+                if ($parameter->hasAnnotation(Header::class) && $parameter->hasAnnotation(Sensitive::class)) {
+                    $sensitiveHeaders[] = $parameter->getName();
+                }
+            }
+
             $obfuscatorConfigs[$payload->getTypeHint()] = new ObfuscatorConfig($encryptionKey, $isPayloadSensitive, $sensitiveHeaders);
         }
 

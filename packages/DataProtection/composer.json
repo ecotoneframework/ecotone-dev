@@ -43,7 +43,7 @@
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
-        "tests:phpunit": "vendor/bin/phpunit",
+        "tests:phpunit": "vendor/bin/phpunit --no-coverage --testdox",
         "tests:ci": [
             "@tests:phpstan",
             "@tests:phpunit"
@@ -51,10 +51,10 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.62-dev"
+            "dev-main": "1.298.0-dev"
         },
         "ecotone": {
-            "repository": "DataProtection"
+            "repository": "data-protection"
         },
         "merge-plugin": {
             "include": [

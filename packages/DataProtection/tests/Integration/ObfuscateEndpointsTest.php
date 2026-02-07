@@ -30,11 +30,10 @@ use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnot
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedEndpointWithSecondaryEncryptionKey;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedMethodWithoutPayload;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedPayloadAndHeader;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\NoPollableEventHandler;
 use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
-use Test\Ecotone\Messaging\Unit\Channel\TestQueueChannel;
+use Test\Ecotone\DataProtection\TestQueueChannel;
 
 /**
  * @internal

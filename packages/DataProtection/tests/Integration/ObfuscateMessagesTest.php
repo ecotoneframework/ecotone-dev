@@ -24,7 +24,7 @@ use Test\Ecotone\DataProtection\Fixture\ObfuscateMessages\TestCommandHandler;
 use Test\Ecotone\DataProtection\Fixture\ObfuscateMessages\TestEventHandler;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
-use Test\Ecotone\Messaging\Unit\Channel\TestQueueChannel;
+use Test\Ecotone\DataProtection\TestQueueChannel;
 
 /**
  * @internal

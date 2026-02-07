@@ -3,6 +3,7 @@
 /**
  * licence Enterprise
  */
+
 namespace Ecotone\DataProtection\Configuration;
 
 use Defuse\Crypto\Key;

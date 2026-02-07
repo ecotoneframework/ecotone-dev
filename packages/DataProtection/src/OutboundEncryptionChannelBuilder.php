@@ -3,6 +3,7 @@
 /**
  * licence Enterprise
  */
+
 namespace Ecotone\DataProtection;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;

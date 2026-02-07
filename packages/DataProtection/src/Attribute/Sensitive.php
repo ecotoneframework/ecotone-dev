@@ -3,6 +3,7 @@
 /**
  * licence Enterprise
  */
+
 namespace Ecotone\DataProtection\Attribute;
 
 use Attribute;

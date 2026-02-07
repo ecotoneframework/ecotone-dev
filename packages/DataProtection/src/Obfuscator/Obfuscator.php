@@ -3,6 +3,7 @@
 /**
  * licence Enterprise
  */
+
 namespace Ecotone\DataProtection\Obfuscator;
 
 use Defuse\Crypto\Crypto;

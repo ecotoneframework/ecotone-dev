@@ -206,7 +206,7 @@ class ModuleClassList
         KafkaModule::class,
     ];
 
-    const DATA_PROTECTION_MODULES = [
+    public const DATA_PROTECTION_MODULES = [
         DataProtectionModule::class,
     ];
 }

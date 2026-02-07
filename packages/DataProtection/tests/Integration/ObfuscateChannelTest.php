@@ -369,7 +369,7 @@ class ObfuscateChannelTest extends TestCase
 
     public function test_obfuscate_non_pollable_channel(): void
     {
-        $this->expectExceptionObject(InvalidArgumentException::create("`test` channel must be pollable channel to use Data Protection."));
+        $this->expectExceptionObject(InvalidArgumentException::create('`test` channel must be pollable channel to use Data Protection.'));
 
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test');
 

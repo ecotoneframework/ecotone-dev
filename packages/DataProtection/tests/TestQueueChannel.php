@@ -6,7 +6,6 @@ namespace Test\Ecotone\DataProtection;
 
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Message;
-use InvalidArgumentException;
 
 /**
  * Test implementation of QueueChannel for PHPUnit 10 compatibility

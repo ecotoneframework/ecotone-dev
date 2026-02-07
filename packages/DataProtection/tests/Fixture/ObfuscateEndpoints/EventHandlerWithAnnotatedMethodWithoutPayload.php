@@ -13,7 +13,6 @@ use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
 #[Asynchronous('test')]
 class EventHandlerWithAnnotatedMethodWithoutPayload
 {
-    #[Sensitive]
     #[WithSensitiveHeader('foo')]
     #[WithSensitiveHeader('bar')]
     #[WithSensitiveHeader('fos')]

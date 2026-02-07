@@ -59,14 +59,14 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
      */
     public function withPublisherAcknowledgments(bool $enabled): self
     {
-        $this->getAmqpOutboundChannelAdapter()->withPublisherConfirms($enabled);
+        $this->outboundChannelAdapter->withPublisherConfirms($enabled);
 
         return $this;
     }
 
     public function withPublisherConfirms(bool $enabled): self
     {
-        $this->getAmqpOutboundChannelAdapter()->withPublisherConfirms($enabled);
+        $this->outboundChannelAdapter->withPublisherConfirms($enabled);
 
         return $this;
     }

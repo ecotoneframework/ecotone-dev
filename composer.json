@@ -27,6 +27,9 @@
             ],
             "Ecotone\\Amqp\\": "packages/Amqp/src",
             "Ecotone\\AnnotationFinder\\": "packages/Ecotone/src/AnnotationFinder/",
+            "Ecotone\\DataProtection\\": [
+                "packages/DataProtection/src"
+            ],
             "Ecotone\\Dbal\\": [
                 "packages/Ecotone/src/Dbal/",
                 "packages/Dbal/src"
@@ -75,6 +78,9 @@
             "Test\\Ecotone\\Amqp\\": [
                 "packages/Amqp/tests"
             ],
+            "Test\\Ecotone\\DataProtection\\": [
+                "packages/DataProtection/tests"
+            ],
             "Test\\Ecotone\\Dbal\\": [
                 "packages/Dbal/tests"
             ],
@@ -113,6 +119,7 @@
         "php": "^8.2",
         "doctrine/dbal": "^3.9|^4.0",
         "doctrine/persistence": "^2.5|^3.4",
+        "defuse/php-encryption": "^2.4",
         "enqueue/amqp-lib": "^0.10.25",
         "enqueue/redis": "^0.10.9",
         "enqueue/sqs": "^0.10.15",

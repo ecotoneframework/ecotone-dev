@@ -15,13 +15,11 @@ use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 #[Asynchronous('test')]
 class EventHandlerWithAnnotatedEndpointWithSecondaryEncryptionKey
 {
-    #[Sensitive]
-    #[WithEncryptionKey('secondary')]
     #[WithSensitiveHeader('foo')]
     #[WithSensitiveHeader('bar')]
     #[EventHandler(endpointId: 'test.obfuscateAnnotatedEndpoints.eventHandler.annotatedMethodWithSecondaryEncryptionKey')]
     public function annotatedMethodWithSecondaryEncryptionKey(
-        SomeMessage $message,
+        #[Sensitive] #[WithEncryptionKey('secondary')] SomeMessage $message,
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,
     ): void {

@@ -15,14 +15,12 @@ use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
 #[Asynchronous('test')]
 class EventHandlerWithAnnotatedEndpointWithAlreadyAnnotatedMessage
 {
-    #[Sensitive]
-    #[WithEncryptionKey('secondary')]
     #[WithSensitiveHeader('foo')]
     #[WithSensitiveHeader('bar')]
     #[WithSensitiveHeader('fos')]
     #[EventHandler(endpointId: 'test.obfuscateAnnotatedEndpoints.eventHandler.annotatedMethod')]
     public function annotatedMethod(
-        AnnotatedMessage $message,
+        #[Sensitive] #[WithEncryptionKey('secondary')] AnnotatedMessage $message,
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,
     ): void {

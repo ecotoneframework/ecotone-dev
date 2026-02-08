@@ -9,7 +9,7 @@ namespace Ecotone\DataProtection\Attribute;
 
 use Attribute;
 
-#[Attribute(Attribute::TARGET_METHOD | Attribute::TARGET_CLASS | Attribute::TARGET_PARAMETER)]
+#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_PARAMETER)]
 class WithEncryptionKey
 {
     public function __construct(private ?string $encryptionKey = null)

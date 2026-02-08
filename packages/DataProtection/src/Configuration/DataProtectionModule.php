@@ -61,7 +61,7 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             return;
         }
 
-        $this->verifyLicense($messagingConfiguration, $extensionObjects);
+        $this->verifyLicense($messagingConfiguration);
 
         Assert::isTrue(ExtensionObjectResolver::contains(JMSConverterConfiguration::class, $extensionObjects), sprintf('%s package require %s package to be enabled. Did you forget to define %s?', ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE, JMSConverterConfiguration::class));
 
@@ -180,30 +180,26 @@ final class DataProtectionModule extends NoExternalConfigurationModule
                 continue;
             }
 
-            $isPayloadSensitive = $payload->hasAnnotation(Sensitive::class) || $methodDefinition->hasAnnotation(Sensitive::class);
+            $isPayloadSensitive = $payload->hasAnnotation(Sensitive::class);
             if (! $isPayloadSensitive) {
                 continue;
             }
 
             $encryptionKey = $payload->findSingleAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
-            if ($encryptionKey === null) {
-                $encryptionKey = $methodDefinition->findSingleMethodAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
-            }
             $sensitiveHeaders = array_map(static fn (WithSensitiveHeader $annotation) => $annotation->header, $methodDefinition->getMethodAnnotationsOf(Type::create(WithSensitiveHeader::class)) ?? []);
-
             foreach ($methodDefinition->getInterfaceParameters() as $parameter) {
                 if ($parameter->hasAnnotation(Header::class) && $parameter->hasAnnotation(Sensitive::class)) {
                     $sensitiveHeaders[] = $parameter->getName();
                 }
             }
 
-            $obfuscatorConfigs[$payload->getTypeHint()] = new ObfuscatorConfig($encryptionKey, $isPayloadSensitive, $sensitiveHeaders);
+            $obfuscatorConfigs[$payload->getTypeHint()] = new ObfuscatorConfig(encryptionKey: $encryptionKey, isPayloadSensitive: true, sensitiveHeaders: $sensitiveHeaders);
         }
 
         return $obfuscatorConfigs;
     }
 
-    private function verifyLicense(Configuration $messagingConfiguration, array $extensionObjects): void
+    private function verifyLicense(Configuration $messagingConfiguration): void
     {
         if ($messagingConfiguration->isRunningForEnterpriseLicence()) {
             return;

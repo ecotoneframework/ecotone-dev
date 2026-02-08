@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints;
 
-use Ecotone\DataProtection\Attribute\Sensitive;
 use Ecotone\DataProtection\Attribute\WithSensitiveHeader;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Headers;

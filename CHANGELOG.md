@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.299.2] - 2026-02-08
+
+## What's Changed
+* data protection follow-up by @unixslayer in https://github.com/ecotoneframework/ecotone-dev/pull/625
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.299.1...1.299.2
+
 ## [1.299.1] - 2026-02-07
 
 **Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.299.0...1.299.1

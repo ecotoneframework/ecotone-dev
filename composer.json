@@ -44,6 +44,7 @@
                 "packages/PdoEventSourcing/src"
             ],
             "Ecotone\\JMSConverter\\": "packages/JmsConverter/src",
+            "Ecotone\\PHPEncryption\\": "packages/PHPEncryption/src",
             "Ecotone\\Redis\\": "packages/Redis/src",
             "Ecotone\\Sqs\\": "packages/Sqs/src",
             "Ecotone\\Laravel\\": "packages/Laravel/src",
@@ -94,6 +95,9 @@
             "Test\\Ecotone\\JMSConverter\\": [
                 "packages/JmsConverter/tests"
             ],
+            "Test\\Ecotone\\PHPEncryption\\": [
+                "packages/PHPEncryption/tests/unit"
+            ],
             "Test\\Ecotone\\Redis\\": [
                 "packages/Redis/tests"
             ],
@@ -117,17 +121,18 @@
     },
     "require": {
         "php": "^8.2",
+        "ext-amqp": "*",
+        "ext-openssl": "*",
         "doctrine/dbal": "^3.9|^4.0",
         "doctrine/persistence": "^2.5|^3.4",
-        "defuse/php-encryption": "^2.4",
         "enqueue/amqp-lib": "^0.10.25",
         "enqueue/redis": "^0.10.9",
         "enqueue/sqs": "^0.10.15",
         "enqueue/enqueue": "^0.10.0",
-        "ext-amqp": "*",
         "laminas/laminas-code": "^4",
         "jms/serializer": "^3.32",
         "laravel/framework": "^9.5.2|^10.0|^11.0|^12.0|^13.0",
+        "paragonie/random_compat": "^2.0",
         "prooph/pdo-event-store": "^1.16.3",
         "psr/log": "^2.0|^3.0",
         "queue-interop/queue-interop": "^0.8",
@@ -172,7 +177,8 @@
         "symfony/monolog-bundle": "^3.10",
         "kwn/php-rdkafka-stubs": "^2.2",
         "symfony/var-exporter": "^6.4|^7.0|^8.0",
-        "enqueue/dsn": "^0.10.27"
+        "enqueue/dsn": "^0.10.27",
+        "yoast/phpunit-polyfills": "^4.0.0"
     },
     "conflict": {
         "symfony/doctrine-messenger": ">7.0.5 < 7.1.0",
@@ -212,7 +218,10 @@
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
-        "tests:phpunit": "vendor/bin/phpunit --no-coverage",
+        "tests:phpunit": [
+            "(cd packages/PHPEncryption && tests/before-tests.sh)",
+            "vendor/bin/phpunit --no-coverage"
+        ],
         "tests:behat": "vendor/bin/behat -vvv",
         "tests:ci": [
             "@tests:phpstan",

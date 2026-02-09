@@ -1,0 +1,11 @@
+.idea/
+vendor/
+bin/
+tests/coverage
+!tests/coverage/.gitkeep
+file
+.phpunit.result.cache
+composer.lock
+phpunit.xml
+
+tests/unit/File/big-generated-file

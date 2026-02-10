@@ -5,13 +5,14 @@ namespace Ecotone\PHPEncryption;
 use Ecotone\PHPEncryption\Exception\CryptoException;
 use Ecotone\PHPEncryption\Exception\EnvironmentIsBrokenException;
 use Ecotone\PHPEncryption\Exception\WrongKeyOrModifiedCiphertextException;
-use SensitiveParameter;
-use Throwable;
 
 use function hash_hmac;
 use function is_string;
 use function openssl_decrypt;
 use function openssl_encrypt;
+
+use SensitiveParameter;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -56,61 +57,6 @@ class Crypto
     public static function decryptWithPassword(string $ciphertext, #[SensitiveParameter] string $password, bool $raw_binary = false): string
     {
         return self::decryptInternal($ciphertext, KeyOrPassword::createFromPassword($password), $raw_binary);
-    }
-
-    /**
-     * Decrypts a legacy ciphertext produced by version 1 of this library.
-     *
-     * @throws WrongKeyOrModifiedCiphertextException|EnvironmentIsBrokenException
-     */
-    public static function legacyDecrypt(string $ciphertext, #[SensitiveParameter] string $key): string
-    {
-        RuntimeTests::runtimeTest();
-
-        // Extract the HMAC from the front of the ciphertext.
-        if (Core::strlen($ciphertext) <= Core::LEGACY_MAC_BYTE_SIZE) {
-            throw new WrongKeyOrModifiedCiphertextException('Ciphertext is too short.');
-        }
-
-        $hmac = Core::substr($ciphertext, 0, Core::LEGACY_MAC_BYTE_SIZE);
-        Core::ensureTrue(is_string($hmac));
-
-        $messageCiphertext = Core::substr($ciphertext, Core::LEGACY_MAC_BYTE_SIZE);
-        Core::ensureTrue(is_string($messageCiphertext));
-
-        // Regenerate the same authentication sub-key.
-        $akey = Core::HKDF(
-            hash: Core::LEGACY_HASH_FUNCTION_NAME,
-            ikm: $key,
-            length: Core::LEGACY_KEY_BYTE_SIZE,
-            info: Core::LEGACY_AUTHENTICATION_INFO_STRING,
-        );
-
-        if (self::verifyHMAC($hmac, $messageCiphertext, $akey)) {
-            // Regenerate the same encryption sub-key.
-            $ekey = Core::HKDF(
-                hash: Core::LEGACY_HASH_FUNCTION_NAME,
-                ikm: $key,
-                length: Core::LEGACY_KEY_BYTE_SIZE,
-                info: Core::LEGACY_ENCRYPTION_INFO_STRING,
-            );
-
-            // Extract the IV from the ciphertext.
-            if (Core::strlen($messageCiphertext) <= Core::LEGACY_BLOCK_BYTE_SIZE) {
-                throw new WrongKeyOrModifiedCiphertextException('Ciphertext is too short.');
-            }
-
-            $iv = Core::substr($messageCiphertext, 0, Core::LEGACY_BLOCK_BYTE_SIZE);
-            Core::ensureTrue(is_string($iv));
-
-            $actualCiphertext = Core::substr($messageCiphertext, Core::LEGACY_BLOCK_BYTE_SIZE);
-            Core::ensureTrue(is_string($actualCiphertext));
-
-            // Do the decryption.
-            return self::plainDecrypt($actualCiphertext, $ekey, $iv, Core::LEGACY_CIPHER_METHOD);
-        }
-
-        throw new WrongKeyOrModifiedCiphertextException('Integrity check failed.');
     }
 
     /**

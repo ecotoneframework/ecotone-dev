@@ -44,7 +44,7 @@
         "paragonie/random_compat": "^2.0"
     },
     "require-dev": {
-        "phpstan/phpstan": "^1.8",
+        "phpstan/phpstan": "^2.1",
         "phpunit/phpunit": "^11",
         "yoast/phpunit-polyfills": "^4.0.0"
     },

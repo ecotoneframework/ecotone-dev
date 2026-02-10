@@ -5,20 +5,21 @@ namespace Ecotone\PHPEncryption;
 use Ecotone\PHPEncryption\Exception\BadFormatException;
 use Ecotone\PHPEncryption\Exception\CryptoException;
 use Ecotone\PHPEncryption\Exception\EnvironmentIsBrokenException;
-use SensitiveParameter;
 
 use function hash;
 use function ord;
 use function pack;
+
+use SensitiveParameter;
 
 /**
  * licence Apache-2.0
  */
 final class Encoding
 {
-    public const int CHECKSUM_BYTE_SIZE = 32;
-    public const string CHECKSUM_HASH_ALGO = 'sha256';
-    public const int SERIALIZE_HEADER_BYTES = 4;
+    public const CHECKSUM_BYTE_SIZE = 32;
+    public const CHECKSUM_HASH_ALGO = 'sha256';
+    public const SERIALIZE_HEADER_BYTES = 4;
 
     /**
      * Converts a byte string to a hexadecimal string without leaking information through side channels.

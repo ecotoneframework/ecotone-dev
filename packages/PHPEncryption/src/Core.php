@@ -38,28 +38,20 @@ use function substr;
  */
 final class Core
 {
-    public const int HEADER_VERSION_SIZE = 4;
-    public const int MINIMUM_CIPHERTEXT_SIZE = 84;
+    public const HEADER_VERSION_SIZE = 4;
+    public const MINIMUM_CIPHERTEXT_SIZE = 84;
 
-    public const string CURRENT_VERSION = "\xDE\xF5\x02\x00";
+    public const CURRENT_VERSION = "\xDE\xF5\x02\x00";
 
-    public const string CIPHER_METHOD = 'aes-256-ctr';
-    public const int BLOCK_BYTE_SIZE = 16;
-    public const int KEY_BYTE_SIZE = 32;
-    public const int SALT_BYTE_SIZE = 32;
-    public const int MAC_BYTE_SIZE = 32;
-    public const string HASH_FUNCTION_NAME = 'sha256';
-    public const string ENCRYPTION_INFO_STRING = 'Ecotone|V2|KeyForEncryption';
-    public const string AUTHENTICATION_INFO_STRING = 'Ecotone|V2|KeyForAuthentication';
-    public const int BUFFER_BYTE_SIZE = 1048576;
-
-    public const string LEGACY_CIPHER_METHOD = 'aes-128-cbc';
-    public const int LEGACY_BLOCK_BYTE_SIZE = 16;
-    public const int LEGACY_KEY_BYTE_SIZE = 16;
-    public const string LEGACY_HASH_FUNCTION_NAME = 'sha256';
-    public const int LEGACY_MAC_BYTE_SIZE = 32;
-    public const string LEGACY_ENCRYPTION_INFO_STRING = 'Ecotone|KeyForEncryption';
-    public const string LEGACY_AUTHENTICATION_INFO_STRING = 'Ecotone|KeyForAuthentication';
+    public const CIPHER_METHOD = 'aes-256-ctr';
+    public const BLOCK_BYTE_SIZE = 16;
+    public const KEY_BYTE_SIZE = 32;
+    public const SALT_BYTE_SIZE = 32;
+    public const MAC_BYTE_SIZE = 32;
+    public const HASH_FUNCTION_NAME = 'sha256';
+    public const ENCRYPTION_INFO_STRING = 'Ecotone|KeyForEncryption';
+    public const AUTHENTICATION_INFO_STRING = 'Ecotone|KeyForAuthentication';
+    public const BUFFER_BYTE_SIZE = 1048576;
 
     /*
      * V2.0 Format: VERSION (4 bytes) || SALT (32 bytes) || IV (16 bytes) ||
@@ -78,7 +70,6 @@ final class Core
     public static function incrementCounter(string $ctr, int $inc): string
     {
         self::ensureTrue(self::strlen($ctr) === self::BLOCK_BYTE_SIZE, 'Trying to increment a nonce of the wrong size.');
-        self::ensureTrue(is_int($inc), 'Trying to increment nonce by a non-integer.');
         self::ensureTrue($inc > 0, 'Trying to increment a nonce by a nonpositive amount'); // The caller is probably re-using CTR-mode keystream if they increment by 0.
         self::ensureTrue($inc <= PHP_INT_MAX - 255, 'Integer overflow may occur');
 
@@ -141,7 +132,7 @@ final class Core
         $digest_length = self::strlen(hash_hmac($hash, '', '', true));
 
         // Sanity-check the desired output length.
-        self::ensureTrue(! empty($length) && is_int($length) && $length >= 0 && $length <= 255 * $digest_length, 'Bad output length requested of HDKF.');
+        self::ensureTrue(! empty($length) && $length >= 0 && $length <= 255 * $digest_length, 'Bad output length requested of HDKF.');
 
         // "if [salt] not provided, is set to a string of HashLen zeroes."
         if (is_null($salt)) {

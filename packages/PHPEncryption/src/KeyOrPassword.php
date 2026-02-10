@@ -14,9 +14,9 @@ use SensitiveParameter;
  */
 final class KeyOrPassword
 {
-    public const int PBKDF2_ITERATIONS = 100000;
-    public const int SECRET_TYPE_KEY = 1;
-    public const int SECRET_TYPE_PASSWORD = 2;
+    public const PBKDF2_ITERATIONS = 100000;
+    public const SECRET_TYPE_KEY = 1;
+    public const SECRET_TYPE_PASSWORD = 2;
 
     private int $secret_type;
     private Key|string $secret;

@@ -125,6 +125,7 @@
         "ext-openssl": "*",
         "doctrine/dbal": "^3.9|^4.0",
         "doctrine/persistence": "^2.5|^3.4",
+        "defuse/php-encryption": "^2.4",
         "enqueue/amqp-lib": "^0.10.25",
         "enqueue/redis": "^0.10.9",
         "enqueue/sqs": "^0.10.15",

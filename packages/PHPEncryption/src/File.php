@@ -40,7 +40,7 @@ final class File
     /**
      * Encrypts the input file, saving the ciphertext to the output file.
      *
-     * @throws IOException
+     * @throws IOException|EnvironmentIsBrokenException
      */
     public static function encryptFile(string $inputFilename, string $outputFilename, Key $key): void
     {
@@ -50,7 +50,7 @@ final class File
     /**
      * Encrypts a file with a password, using a slow key derivation function to make password cracking more expensive.
      *
-     * @throws IOException
+     * @throws IOException|EnvironmentIsBrokenException
      */
     public static function encryptFileWithPassword(string $inputFilename, string $outputFilename, #[SensitiveParameter] string $password): void
     {
@@ -64,7 +64,7 @@ final class File
     /**
      * Decrypts the input file, saving the plaintext to the output file.
      *
-     * @throws IOException
+     * @throws CryptoException|EnvironmentIsBrokenException|IOException|WrongKeyOrModifiedCiphertextException
      */
     public static function decryptFile(string $inputFilename, string $outputFilename, Key $key): void
     {
@@ -74,7 +74,7 @@ final class File
     /**
      * Decrypts a file with a password, using a slow key derivation function to make password cracking more expensive.
      *
-     * @throws IOException
+     * @throws CryptoException|EnvironmentIsBrokenException|IOException|WrongKeyOrModifiedCiphertextException
      */
     public static function decryptFileWithPassword(string $inputFilename, string $outputFilename, #[SensitiveParameter] string $password): void
     {
@@ -84,7 +84,7 @@ final class File
     /**
      * Takes two resource handles and encrypts the contents of the first, writing the ciphertext into the second.
      *
-     * @throws EnvironmentIsBrokenException|IOException
+     * @throws CryptoException|EnvironmentIsBrokenException|IOException|WrongKeyOrModifiedCiphertextException
      */
     public static function encryptResource($inputHandle, $outputHandle, Key $key): void
     {
@@ -94,7 +94,7 @@ final class File
     /**
      * Encrypts the contents of one resource handle into another with a password, using a slow key derivation function to make password cracking more expensive.
      *
-     * @throws EnvironmentIsBrokenException|IOException
+     * @throws CryptoException|EnvironmentIsBrokenException|IOException|WrongKeyOrModifiedCiphertextException
      */
     public static function encryptResourceWithPassword($inputHandle, $outputHandle, #[SensitiveParameter] string $password): void
     {
@@ -124,7 +124,7 @@ final class File
     /**
      * Encrypts a file with either a key or a password.
      *
-     * @throws IOException|EnvironmentIsBrokenException
+     * @throws CryptoException|EnvironmentIsBrokenException|IOException|WrongKeyOrModifiedCiphertextException
      */
     private static function encryptFileInternal(string $inputFilename, string $outputFilename, KeyOrPassword $secret): void
     {

@@ -26,8 +26,8 @@ Let's start with the following definitions:
     - *i*: The iteration count.
     - *n*: The output length in bytes.
 - VERSION is the string `"\xDE\xF5\x02\x00"`.
-- AUTHINFO is the string `"Ecotone|V2|KeyForAuthentication"`.
-- ENCRINFO is the string `"Ecotone|V2|KeyForEncryption"`.
+- AUTHINFO is the string `"Ecotone|KeyForAuthentication"`.
+- ENCRINFO is the string `"Ecotone|KeyForEncryption"`.
 
 To encrypt a message *m* using a 32-byte key *k*, the following steps are taken:
 

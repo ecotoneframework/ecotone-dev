@@ -12,8 +12,8 @@ use SensitiveParameter;
  */
 final class Key
 {
-    public const string KEY_CURRENT_VERSION = "\xDE\xF0\x00\x00";
-    public const int KEY_BYTE_SIZE = 32;
+    public const KEY_CURRENT_VERSION = "\xDE\xF0\x00\x00";
+    public const KEY_BYTE_SIZE = 32;
 
     private string $key_bytes;
 
@@ -46,7 +46,7 @@ final class Key
      *
      * @throws CryptoException|EnvironmentIsBrokenException|BadFormatException
      */
-    public static function loadFromAsciiSafeString(#[SensitiveParameter]string $saved_key_string, bool $do_not_trim = false): self
+    public static function loadFromAsciiSafeString(#[SensitiveParameter] string $saved_key_string, bool $do_not_trim = false): self
     {
         if (! $do_not_trim) {
             $saved_key_string = Encoding::trimTrailingWhitespace($saved_key_string);

@@ -16,7 +16,7 @@ use SensitiveParameter;
  */
 final class KeyProtectedByPassword
 {
-    public const string PASSWORD_KEY_CURRENT_VERSION = "\xDE\xF1\x00\x00";
+    public const PASSWORD_KEY_CURRENT_VERSION = "\xDE\xF1\x00\x00";
 
     private function __construct(private string $encrypted_key)
     {

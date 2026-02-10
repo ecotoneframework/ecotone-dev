@@ -44,7 +44,6 @@
                 "packages/PdoEventSourcing/src"
             ],
             "Ecotone\\JMSConverter\\": "packages/JmsConverter/src",
-            "Ecotone\\PHPEncryption\\": "packages/PHPEncryption/src",
             "Ecotone\\Redis\\": "packages/Redis/src",
             "Ecotone\\Sqs\\": "packages/Sqs/src",
             "Ecotone\\Laravel\\": "packages/Laravel/src",
@@ -94,9 +93,6 @@
             ],
             "Test\\Ecotone\\JMSConverter\\": [
                 "packages/JmsConverter/tests"
-            ],
-            "Test\\Ecotone\\PHPEncryption\\": [
-                "packages/PHPEncryption/tests/unit"
             ],
             "Test\\Ecotone\\Redis\\": [
                 "packages/Redis/tests"
@@ -220,7 +216,7 @@
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": [
-            "(cd packages/PHPEncryption && tests/before-tests.sh)",
+            "(cd packages/DataProtection && tests/before-tests.sh)",
             "vendor/bin/phpunit --no-coverage"
         ],
         "tests:behat": "vendor/bin/behat -vvv",

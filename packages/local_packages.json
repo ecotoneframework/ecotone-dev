@@ -26,10 +26,6 @@
       },
       {
         "type": "path",
-        "url": "PHPEncryption"
-      },
-      {
-        "type": "path",
         "url": "JmsConverter"
       },
       {

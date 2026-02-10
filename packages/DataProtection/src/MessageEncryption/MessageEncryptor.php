@@ -6,11 +6,11 @@
 
 namespace Ecotone\DataProtection\MessageEncryption;
 
+use Ecotone\DataProtection\Encryption\Crypto;
+use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\PHPEncryption\Crypto;
-use Ecotone\PHPEncryption\Key;
 
 readonly class MessageEncryptor
 {

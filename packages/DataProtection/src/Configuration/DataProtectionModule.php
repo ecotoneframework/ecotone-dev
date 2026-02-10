@@ -12,6 +12,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\DataProtection\Attribute\Sensitive;
 use Ecotone\DataProtection\Attribute\WithEncryptionKey;
 use Ecotone\DataProtection\Attribute\WithSensitiveHeader;
+use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\DataProtection\MessageEncryption\MessageEncryptor;
 use Ecotone\DataProtection\OutboundDecryptionChannelBuilder;
 use Ecotone\DataProtection\OutboundEncryptionChannelBuilder;
@@ -33,7 +34,6 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\PHPEncryption\Key;
 use stdClass;
 
 #[ModuleAnnotation]

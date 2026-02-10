@@ -123,6 +123,9 @@ jobs:
     - name: Test PHPStan
       run: vendor/bin/phpstan
 
+    - name: Create random file for encryption tests
+      run: (cd packages/DataProtection && tests/before-tests.sh)
+
     - name: Test PHPUnit on Postgres
       run: vendor/bin/phpunit --no-coverage
       env:

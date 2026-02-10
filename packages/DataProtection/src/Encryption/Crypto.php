@@ -184,6 +184,6 @@ class Crypto
     {
         $message_hmac = hash_hmac(Core::HASH_FUNCTION_NAME, $message, $key, true);
 
-        return Core::hashEquals($message_hmac, $expected_hmac);
+        return hash_equals($message_hmac, $expected_hmac);
     }
 }

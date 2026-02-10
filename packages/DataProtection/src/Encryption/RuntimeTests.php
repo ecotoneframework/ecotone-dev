@@ -175,7 +175,7 @@ class RuntimeTests extends Crypto
             '2d2d0a90cf1a5a4c5db02d56ecc4c5bf' .
             '34007208d5b887185865'
         );
-        $computed_okm = Core::HKDF('sha256', $ikm, $length, $info, $salt);
+        $computed_okm = hash_hkdf('sha256', $ikm, $length, $info, $salt);
         Core::ensureTrue($computed_okm === $okm);
 
         // Test Case 7
@@ -186,7 +186,7 @@ class RuntimeTests extends Crypto
             'b3bae548aa53d423b0d1f27ebba6f5e5' .
             '673a081d70cce7acfc48'
         );
-        $computed_okm = Core::HKDF(hash: 'sha1', ikm: $ikm, length: $length);
+        $computed_okm = hash_hkdf('sha1', $ikm, $length);
 
         Core::ensureTrue($computed_okm === $okm);
     }

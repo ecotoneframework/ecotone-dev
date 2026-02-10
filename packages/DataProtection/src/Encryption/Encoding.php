@@ -216,7 +216,7 @@ final class Encoding
         $checksum_b = hash(self::CHECKSUM_HASH_ALGO, $checked_bytes, true);
 
         // Check if the checksum matches.
-        if (! Core::hashEquals($checksum_a, $checksum_b)) {
+        if (! hash_equals($checksum_a, $checksum_b)) {
             throw new BadFormatException("Data is corrupted, the checksum doesn't match");
         }
 

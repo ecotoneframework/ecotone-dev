@@ -40,7 +40,7 @@ final class File
     /**
      * Encrypts the input file, saving the ciphertext to the output file.
      *
-     * @throws IOException|EnvironmentIsBrokenException
+     * @throws CryptoException|EnvironmentIsBrokenException|IOException|WrongKeyOrModifiedCiphertextException
      */
     public static function encryptFile(string $inputFilename, string $outputFilename, Key $key): void
     {
@@ -50,7 +50,7 @@ final class File
     /**
      * Encrypts a file with a password, using a slow key derivation function to make password cracking more expensive.
      *
-     * @throws IOException|EnvironmentIsBrokenException
+     * @throws CryptoException|EnvironmentIsBrokenException|IOException|WrongKeyOrModifiedCiphertextException
      */
     public static function encryptFileWithPassword(string $inputFilename, string $outputFilename, #[SensitiveParameter] string $password): void
     {
@@ -446,7 +446,7 @@ final class File
         $final_mac = hash_final($hmac, true);
 
         // Verify the HMAC.
-        if (! Core::hashEquals($final_mac, $stored_mac)) {
+        if (! hash_equals($final_mac, $stored_mac)) {
             throw new WrongKeyOrModifiedCiphertextException('Integrity check failed.');
         }
 
@@ -490,7 +490,7 @@ final class File
                 throw new WrongKeyOrModifiedCiphertextException('File was modified after MAC verification');
             }
 
-            if (! Core::hashEquals(array_shift($macs), $calc)) {
+            if (! hash_equals(array_shift($macs), $calc)) {
                 throw new WrongKeyOrModifiedCiphertextException('File was modified after MAC verification');
             }
 

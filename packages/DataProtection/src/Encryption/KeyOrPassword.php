@@ -74,7 +74,7 @@ final class KeyOrPassword
         if ($this->secret_type === self::SECRET_TYPE_KEY) {
             Core::ensureTrue($this->secret instanceof Key);
 
-            $authenticationKey = Core::HKDF(
+            $authenticationKey = hash_hkdf(
                 Core::HASH_FUNCTION_NAME,
                 $this->secret->getRawBytes(),
                 Core::KEY_BYTE_SIZE,
@@ -82,7 +82,7 @@ final class KeyOrPassword
                 $salt
             );
 
-            $encryptionKey = Core::HKDF(
+            $encryptionKey = hash_hkdf(
                 Core::HASH_FUNCTION_NAME,
                 $this->secret->getRawBytes(),
                 Core::KEY_BYTE_SIZE,
@@ -103,7 +103,7 @@ final class KeyOrPassword
 
             $prehash = hash(Core::HASH_FUNCTION_NAME, $this->secret, true);
 
-            $prekey = Core::pbkdf2(
+            $prekey = hash_pbkdf2(
                 Core::HASH_FUNCTION_NAME,
                 $prehash,
                 $salt,
@@ -111,7 +111,7 @@ final class KeyOrPassword
                 Core::KEY_BYTE_SIZE,
                 true
             );
-            $authenticationKey = Core::HKDF(
+            $authenticationKey = hash_hkdf(
                 Core::HASH_FUNCTION_NAME,
                 $prekey,
                 Core::KEY_BYTE_SIZE,
@@ -119,7 +119,7 @@ final class KeyOrPassword
                 $salt
             );
             /* Note the cryptographic re-use of $salt here. */
-            $encryptionKey = Core::HKDF(
+            $encryptionKey = hash_hkdf(
                 Core::HASH_FUNCTION_NAME,
                 $prekey,
                 Core::KEY_BYTE_SIZE,

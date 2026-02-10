@@ -110,7 +110,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
                 return true;
             }
 
-            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage
             {
                 $from = $lastPosition !== null ? (int) $lastPosition : 0;
                 $events = array_slice($this->events, $from, $count);

@@ -46,7 +46,7 @@ class BackfillExecutorHandler
         $streamFilter = new StreamFilter($streamName, $aggregateType, $eventStoreReferenceName);
 
         foreach ($projectingManager->getPartitionProvider()->partitions($streamFilter, $limit, $offset) as $partition) {
-            $projectingManager->execute($partition, true);
+            $projectingManager->execute($partition, $streamName, true);
             if ($this->terminationListener->shouldTerminate()) {
                 break;
             }

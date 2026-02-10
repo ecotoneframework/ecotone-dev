@@ -40,13 +40,11 @@ class EventStoreAggregateStreamSource implements StreamSource
         return in_array($projectionName, $this->handledProjectionNames, true);
     }
 
-    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage
     {
         Assert::notNull($partitionKey, 'Partition key cannot be null for aggregate stream source');
 
-        $streamFilters = $this->streamFilterRegistry->provide($projectionName);
-        Assert::isTrue(count($streamFilters) > 0, "No stream filter found for projection: {$projectionName}");
-        $streamFilter = $streamFilters[0];
+        $streamFilter = $this->findStreamFilterByName($projectionName, $streamName);
 
         if (! $this->eventStore->hasStream($streamFilter->streamName)) {
             return new StreamPage([], $lastPosition ?? '');
@@ -88,6 +86,20 @@ class EventStoreAggregateStreamSource implements StreamSource
         );
 
         return new StreamPage($events, $this->createPositionFrom($lastPosition, $events));
+    }
+
+    private function findStreamFilterByName(string $projectionName, string $streamName): \Ecotone\Projecting\StreamFilter
+    {
+        $streamFilters = $this->streamFilterRegistry->provide($projectionName);
+        Assert::isTrue(count($streamFilters) > 0, "No stream filter found for projection: {$projectionName}");
+
+        foreach ($streamFilters as $streamFilter) {
+            if ($streamFilter->streamName === $streamName) {
+                return $streamFilter;
+            }
+        }
+
+        throw new RuntimeException("No stream filter found for stream: {$streamName} in projection: {$projectionName}");
     }
 
     /**

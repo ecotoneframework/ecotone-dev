@@ -294,7 +294,7 @@ class EventStreamingProjectionTest extends TestCase
         $positionTracker = new InMemoryConsumerPositionTracker();
 
         // Given an event-driven projection (catches up from stream when triggered)
-        $eventDrivenProjection = new #[ProjectionV2('event_driven_product_count'), FromStream('test_stream')] class {
+        $eventDrivenProjection = new #[ProjectionV2('event_driven_product_count'), FromStream('product_stream')] class {
             public int $productCount = 0;
 
             #[EventHandler]

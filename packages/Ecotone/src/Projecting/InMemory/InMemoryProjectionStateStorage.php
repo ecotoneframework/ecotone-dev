@@ -35,18 +35,18 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
         return $this->projectionNames === null || in_array($projectionName, $this->projectionNames, true);
     }
 
-    public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState
+    public function loadPartition(string $projectionName, ?string $partitionKey, string $streamName, bool $lock = true): ?ProjectionPartitionState
     {
-        $key = $this->getKey($projectionName, $partitionKey);
+        $key = $this->getKey($projectionName, $partitionKey, $streamName);
         return $this->projectionStates[$key] ?? null;
     }
 
-    public function initPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
+    public function initPartition(string $projectionName, ?string $partitionKey, string $streamName): ?ProjectionPartitionState
     {
-        $key = $this->getKey($projectionName, $partitionKey);
+        $key = $this->getKey($projectionName, $partitionKey, $streamName);
 
         if (! isset($this->projectionStates[$key])) {
-            $this->projectionStates[$key] = new ProjectionPartitionState($projectionName, $partitionKey, null, null, ProjectionInitializationStatus::UNINITIALIZED);
+            $this->projectionStates[$key] = new ProjectionPartitionState($projectionName, $partitionKey, $streamName, null, null, ProjectionInitializationStatus::UNINITIALIZED);
             return $this->projectionStates[$key];
         }
 
@@ -55,21 +55,25 @@ class InMemoryProjectionStateStorage implements ProjectionStateStorage
 
     public function savePartition(ProjectionPartitionState $projectionState): void
     {
-        $key = $this->getKey($projectionState->projectionName, $projectionState->partitionKey);
+        $key = $this->getKey($projectionState->projectionName, $projectionState->partitionKey, $projectionState->streamName);
         $this->projectionStates[$key] = $projectionState;
     }
 
-    private function getKey(string $projectionName, ?string $partitionKey): string
+    private function getKey(string $projectionName, ?string $partitionKey, string $streamName): string
     {
-        if ($partitionKey === null) {
-            return $projectionName;
+        $key = $projectionName;
+        if ($streamName !== '') {
+            $key .= '::' . $streamName;
         }
-        return $projectionName . '-' . $partitionKey;
+        if ($partitionKey !== null) {
+            $key .= '-' . $partitionKey;
+        }
+        return $key;
     }
 
     public function delete(string $projectionName): void
     {
-        $projectionStartKey = $this->getKey($projectionName, null);
+        $projectionStartKey = $projectionName;
         foreach ($this->projectionStates as $key => $value) {
             if (str_starts_with($key, $projectionStartKey)) {
                 unset($this->projectionStates[$key]);

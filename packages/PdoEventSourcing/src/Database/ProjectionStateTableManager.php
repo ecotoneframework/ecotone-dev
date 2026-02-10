@@ -99,11 +99,12 @@ final class ProjectionStateTableManager implements DbalTableManager
         return <<<SQL
             CREATE TABLE IF NOT EXISTS {$this->tableName} (
                 projection_name VARCHAR(255) NOT NULL,
+                stream_name VARCHAR(255) NOT NULL DEFAULT '',
                 partition_key VARCHAR(255) NOT NULL DEFAULT '',
                 last_position TEXT NOT NULL,
                 metadata JSON NOT NULL,
                 user_state JSON,
-                PRIMARY KEY (projection_name, partition_key)
+                PRIMARY KEY (projection_name, stream_name, partition_key)
             )
             SQL;
     }
@@ -113,11 +114,12 @@ final class ProjectionStateTableManager implements DbalTableManager
         return <<<SQL
             CREATE TABLE IF NOT EXISTS `{$this->tableName}` (
                 `projection_name` VARCHAR(255) NOT NULL,
+                `stream_name` VARCHAR(255) NOT NULL DEFAULT '',
                 `partition_key` VARCHAR(255) NOT NULL DEFAULT '',
                 `last_position` TEXT NOT NULL,
                 `metadata` JSON NOT NULL,
                 `user_state` JSON,
-                PRIMARY KEY (`projection_name`, `partition_key`)
+                PRIMARY KEY (`projection_name`, `stream_name`, `partition_key`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             SQL;
     }

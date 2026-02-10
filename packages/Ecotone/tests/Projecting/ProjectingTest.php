@@ -66,7 +66,7 @@ class ProjectingTest extends TestCase
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
-        $ecotone->withEvents([Event::createWithType('test-event', ['name' => 'Test'])]);
+        $ecotone->withEventStream('test_stream', [Event::createWithType('test-event', ['name' => 'Test'])]);
 
         // When event is published, triggering the projection
         $ecotone->publishEventWithRoutingKey('trigger', []);
@@ -104,7 +104,7 @@ class ProjectingTest extends TestCase
                 return true;
             }
 
-            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage
             {
                 $from = $lastPosition !== null ? (int) $lastPosition : 0;
                 if ($partitionKey) {
@@ -165,7 +165,7 @@ class ProjectingTest extends TestCase
                 return true;
             }
 
-            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage
             {
                 $from = $lastPosition !== null ? (int) $lastPosition : 0;
                 if ($partitionKey) {
@@ -235,7 +235,7 @@ class ProjectingTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-4']),
         ]);
@@ -265,7 +265,7 @@ class ProjectingTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']),
         ]);
 
@@ -277,7 +277,7 @@ class ProjectingTest extends TestCase
         self::assertCount(1, $projection->projectedEvents, 'Projection should have processed previous events after manual initialization');
 
         // Now events should be processed since projection is initialized
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-3']),
         ]);
@@ -313,7 +313,7 @@ class ProjectingTest extends TestCase
         );
 
         // Add all events to the stream first
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-3']),
@@ -356,7 +356,7 @@ class ProjectingTest extends TestCase
         );
 
         // Add events to stream
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']),
         ]);
@@ -396,7 +396,7 @@ class ProjectingTest extends TestCase
         );
 
         // Add events to stream
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']),
         ]);
@@ -436,7 +436,7 @@ class ProjectingTest extends TestCase
         );
 
         // Add multiple events to stream
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-3']),
@@ -479,7 +479,7 @@ class ProjectingTest extends TestCase
         );
 
         // Add multiple events to stream
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-3']),
@@ -521,7 +521,7 @@ class ProjectingTest extends TestCase
         );
 
         // Add events for different partitions
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1', 'tenantId' => 'tenant-1']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2', 'tenantId' => 'tenant-2']),
         ]);
@@ -551,7 +551,7 @@ class ProjectingTest extends TestCase
                 return true;
             }
 
-            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage
             {
                 return new StreamPage([], '0');
             }
@@ -628,7 +628,7 @@ class ProjectingTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType('no-priority', []),
         ]);
 
@@ -636,7 +636,7 @@ class ProjectingTest extends TestCase
         self::assertEquals(['projectionA-no-priority', 'projectionB-no-priority'], $db);
 
         $db = [];
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType('with-priority', []),
         ]);
         $ecotone->publishEventWithRoutingKey('with-priority');
@@ -668,7 +668,7 @@ class ProjectingTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType('event1', []),
             Event::createWithType('event2', []),
             Event::createWithType('event3', []),
@@ -702,7 +702,7 @@ class ProjectingTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
-        $ecotone->withEvents([
+        $ecotone->withEventStream('test_stream', [
             Event::createWithType('event1', []),
             Event::createWithType('event2', []),
             Event::createWithType('event3', []),
@@ -766,7 +766,7 @@ class ProjectingTest extends TestCase
                 return true;
             }
 
-            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage
             {
                 $from = $lastPosition !== null ? (int) $lastPosition : 0;
                 if ($partitionKey) {
@@ -839,7 +839,7 @@ class ProjectingTest extends TestCase
                 return true;
             }
 
-            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage
             {
                 return new StreamPage([], '0');
             }
@@ -874,19 +874,31 @@ class ProjectingTest extends TestCase
                 return $projectionName === 'userland_storage_projection';
             }
 
-            public function loadPartition(string $projectionName, ?string $partitionKey = null, bool $lock = true): ?ProjectionPartitionState
+            private function getKey(string $projectionName, ?string $partitionKey, string $streamName): string
+            {
+                $key = $projectionName;
+                if ($streamName !== '') {
+                    $key .= '::' . $streamName;
+                }
+                if ($partitionKey !== null) {
+                    $key .= '-' . $partitionKey;
+                }
+                return $key;
+            }
+
+            public function loadPartition(string $projectionName, ?string $partitionKey, string $streamName, bool $lock = true): ?ProjectionPartitionState
             {
                 $this->wasUsed = true;
-                $key = $projectionName . ($partitionKey ? '-' . $partitionKey : '');
+                $key = $this->getKey($projectionName, $partitionKey, $streamName);
                 return $this->projectionStates[$key] ?? null;
             }
 
-            public function initPartition(string $projectionName, ?string $partitionKey = null): ?ProjectionPartitionState
+            public function initPartition(string $projectionName, ?string $partitionKey, string $streamName): ?ProjectionPartitionState
             {
                 $this->wasUsed = true;
-                $key = $projectionName . ($partitionKey ? '-' . $partitionKey : '');
+                $key = $this->getKey($projectionName, $partitionKey, $streamName);
                 if (! isset($this->projectionStates[$key])) {
-                    $this->projectionStates[$key] = new ProjectionPartitionState($projectionName, $partitionKey, null, null, ProjectionInitializationStatus::UNINITIALIZED);
+                    $this->projectionStates[$key] = new ProjectionPartitionState($projectionName, $partitionKey, $streamName, null, null, ProjectionInitializationStatus::UNINITIALIZED);
                     return $this->projectionStates[$key];
                 }
                 return null;
@@ -895,7 +907,7 @@ class ProjectingTest extends TestCase
             public function savePartition(ProjectionPartitionState $projectionState): void
             {
                 $this->wasUsed = true;
-                $key = $projectionState->projectionName . ($projectionState->partitionKey ? '-' . $projectionState->partitionKey : '');
+                $key = $this->getKey($projectionState->projectionName, $projectionState->partitionKey, $projectionState->streamName);
                 $this->projectionStates[$key] = $projectionState;
             }
 
@@ -939,7 +951,7 @@ class ProjectingTest extends TestCase
                 return true;
             }
 
-            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+            public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage
             {
                 $from = $lastPosition !== null ? (int) $lastPosition : 0;
                 $events = array_slice($this->events, $from, $count);
@@ -964,5 +976,123 @@ class ProjectingTest extends TestCase
         $ecotone->initializeProjection('userland_storage_projection');
 
         self::assertTrue($userlandStorage->wasUsed, 'Userland state storage should be prioritized and used');
+    }
+
+    public function test_partitioned_projection_with_multiple_streams_tracks_positions_separately(): void
+    {
+        $projection = new #[ProjectionV2('multi_stream_projection'), FromStream('stream_a'), FromStream('stream_b'), Partitioned('tenantId')] class {
+            public array $processedEvents = [];
+
+            #[EventHandler('*')]
+            public function on(array $event): void
+            {
+                $this->processedEvents[] = $event;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+        );
+
+        $ecotone->withEventStream('stream_a', [
+            Event::createWithType('event_a1', ['source' => 'A'], ['tenantId' => 'tenant-1']),
+            Event::createWithType('event_a2', ['source' => 'A'], ['tenantId' => 'tenant-1']),
+        ]);
+        $ecotone->withEventStream('stream_b', [
+            Event::createWithType('event_b1', ['source' => 'B'], ['tenantId' => 'tenant-1']),
+            Event::createWithType('event_b2', ['source' => 'B'], ['tenantId' => 'tenant-1']),
+        ]);
+
+        $ecotone->triggerProjection('multi_stream_projection');
+
+        self::assertCount(4, $projection->processedEvents, 'All events from both streams should be processed');
+
+        $sources = array_column($projection->processedEvents, 'source');
+        self::assertContains('A', $sources);
+        self::assertContains('B', $sources);
+    }
+
+    public function test_same_partition_key_in_different_streams_does_not_collide(): void
+    {
+        $projection = new #[ProjectionV2('collision_test_projection'), FromStream('stream_a'), FromStream('stream_b'), Partitioned('tenantId')] class {
+            public array $processedEvents = [];
+
+            #[EventHandler('*')]
+            public function on(array $event): void
+            {
+                $this->processedEvents[] = $event;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+        );
+
+        $ecotone->withEventStream('stream_a', [
+            Event::createWithType('event_a1', ['id' => 1], ['tenantId' => 'same-partition']),
+            Event::createWithType('event_a2', ['id' => 2], ['tenantId' => 'same-partition']),
+        ]);
+        $ecotone->withEventStream('stream_b', [
+            Event::createWithType('event_b1', ['id' => 3], ['tenantId' => 'same-partition']),
+            Event::createWithType('event_b2', ['id' => 4], ['tenantId' => 'same-partition']),
+        ]);
+
+        $ecotone->triggerProjection('collision_test_projection');
+
+        self::assertCount(4, $projection->processedEvents, 'Events from both streams with same partition key should be processed independently');
+
+        $eventIds = array_map(fn ($e) => $e['id'], $projection->processedEvents);
+        self::assertContains(1, $eventIds);
+        self::assertContains(2, $eventIds);
+        self::assertContains(3, $eventIds);
+        self::assertContains(4, $eventIds);
+    }
+
+    public function test_partitioned_projection_catches_up_all_streams_on_trigger(): void
+    {
+        $projection = new #[ProjectionV2('catchup_test_projection'), FromStream('stream_a'), FromStream('stream_b'), Partitioned('tenantId')] class {
+            public array $processedEvents = [];
+
+            #[EventHandler('*')]
+            public function on(array $event): void
+            {
+                $this->processedEvents[] = $event;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+        );
+
+        $ecotone->withEventStream('stream_a', [
+            Event::createWithType('event1', ['v' => 1], ['tenantId' => 'tenant-1']),
+        ]);
+        $ecotone->withEventStream('stream_b', [
+            Event::createWithType('event2', ['v' => 2], ['tenantId' => 'tenant-2']),
+        ]);
+
+        $ecotone->triggerProjection('catchup_test_projection');
+
+        self::assertCount(2, $projection->processedEvents);
+
+        $ecotone->withEventStream('stream_a', [
+            Event::createWithType('event3', ['v' => 3], ['tenantId' => 'tenant-1']),
+        ]);
+        $ecotone->withEventStream('stream_b', [
+            Event::createWithType('event4', ['v' => 4], ['tenantId' => 'tenant-2']),
+        ]);
+
+        $ecotone->triggerProjection('catchup_test_projection');
+
+        self::assertCount(4, $projection->processedEvents, 'All new events from all streams should be caught up');
     }
 }

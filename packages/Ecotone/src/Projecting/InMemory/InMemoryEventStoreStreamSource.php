@@ -41,15 +41,12 @@ class InMemoryEventStoreStreamSource implements StreamSource
         return $this->projectionNames === null || in_array($projectionName, $this->projectionNames, true);
     }
 
-    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage
     {
-        // Position is 0-based index into the global event array (like InMemoryStreamSource)
         $from = $lastPosition !== null ? (int) $lastPosition : 0;
 
-        // Determine which streams to read from
-        $streams = $this->getStreamsToRead();
+        $streams = $this->getStreamsToRead($streamName);
 
-        // Collect all events from all streams
         $allEvents = [];
         foreach ($streams as $stream) {
             if (! $this->eventStore->hasStream($stream)) {
@@ -62,36 +59,37 @@ class InMemoryEventStoreStreamSource implements StreamSource
                     ->withMetadataMatch($this->partitionHeader, Operator::EQUALS, $partitionKey);
             }
 
-            // Filter by event names if specified (optimization for partitioned projections)
             if ($this->eventNames !== []) {
                 $metadataMatcher = $metadataMatcher
                     ->withMetadataMatch('event_name', Operator::IN, $this->eventNames, FieldType::MESSAGE_PROPERTY);
             }
 
-            // Load all events from this stream (starting from position 1)
             $events = $this->eventStore->load($stream, 1, null, $metadataMatcher);
             $allEvents = array_merge($allEvents, is_array($events) ? $events : iterator_to_array($events));
         }
 
-        // Slice based on global position
         $events = array_slice($allEvents, $from, $count);
         $to = $from + count($events);
 
         return new StreamPage($events, (string) $to);
     }
 
-    private function getStreamsToRead(): array
+    /**
+     * @return array<string>
+     */
+    private function getStreamsToRead(string $streamName): array
     {
+        if ($streamName !== '') {
+            return [$streamName];
+        }
+
         if ($this->streamName !== null) {
             return [$this->streamName];
         }
 
-        // Read from all streams (global stream)
         $reflection = new ReflectionProperty($this->eventStore, 'streams');
-        $reflection->setAccessible(true);
         $allStreams = array_keys($reflection->getValue($this->eventStore));
 
-        // Filter out internal streams (starting with $)
         return array_filter($allStreams, fn ($stream) => ! str_starts_with($stream, '$'));
     }
 }

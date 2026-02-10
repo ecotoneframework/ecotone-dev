@@ -39,7 +39,7 @@ class InMemoryStreamSource implements StreamSource
         }
     }
 
-    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage
     {
         $from = $lastPosition !== null ? (int) $lastPosition : 0;
 

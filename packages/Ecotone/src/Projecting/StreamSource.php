@@ -11,5 +11,5 @@ interface StreamSource
 {
     public function canHandle(string $projectionName): bool;
 
-    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage;
+    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey, string $streamName): StreamPage;
 }

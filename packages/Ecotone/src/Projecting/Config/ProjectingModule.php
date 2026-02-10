@@ -100,7 +100,7 @@ class ProjectingModule implements AnnotationModule
                     ->chainInterceptedProcessor(
                         MethodInvokerBuilder::create(
                             $projectingManagerReference,
-                            InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
+                            InterfaceToCallReference::create(ProjectingManager::class, 'executeAllStreams'),
                             [
                                 $projectionBuilder->partitionHeader()
                                     ? HeaderBuilder::create('partitionKeyValue', $projectionBuilder->partitionHeader())

@@ -7,13 +7,12 @@ declare(strict_types=1);
 
 namespace Ecotone\DataProtection\Configuration;
 
-use Defuse\Crypto\Key;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\DataProtection\Attribute\Sensitive;
 use Ecotone\DataProtection\Attribute\WithEncryptionKey;
 use Ecotone\DataProtection\Attribute\WithSensitiveHeader;
-use Ecotone\DataProtection\Obfuscator\Obfuscator;
+use Ecotone\DataProtection\MessageEncryption\MessageEncryptor;
 use Ecotone\DataProtection\OutboundDecryptionChannelBuilder;
 use Ecotone\DataProtection\OutboundEncryptionChannelBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
@@ -34,25 +33,29 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\PHPEncryption\Key;
 use stdClass;
 
 #[ModuleAnnotation]
 final class DataProtectionModule extends NoExternalConfigurationModule
 {
+    final public const ENCRYPTOR_SERVICE_ID_FORMAT = 'ecotone.data-protection.encryptor.%s';
+    final public const KEY_SERVICE_ID_FORMAT = 'ecotone.encryption.key.%s';
+
     /**
-     * @param array<ObfuscatorConfig> $obfuscatorConfigs
+     * @param array<MessageEncryptionConfig> $encryptionConfigs
      */
-    public function __construct(private array $obfuscatorConfigs)
+    public function __construct(private array $encryptionConfigs)
     {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $obfuscatorConfigs = self::resolveObfuscatorConfigsFromAnnotatedClasses($annotationRegistrationService->findAnnotatedClasses(Sensitive::class), [], $interfaceToCallRegistry);
-        $obfuscatorConfigs = self::resolveObfuscatorConfigsFromAnnotatedMethods($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class), $obfuscatorConfigs, $interfaceToCallRegistry);
-        $obfuscatorConfigs = self::resolveObfuscatorConfigsFromAnnotatedMethods($annotationRegistrationService->findAnnotatedMethods(EventHandler::class), $obfuscatorConfigs, $interfaceToCallRegistry);
+        $encryptionConfigs = self::resolveEncryptionConfigsFromAnnotatedClasses($annotationRegistrationService->findAnnotatedClasses(Sensitive::class), $interfaceToCallRegistry);
+        $encryptionConfigs = self::resolveEncryptionConfigsFromAnnotatedMethods($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class), $encryptionConfigs, $interfaceToCallRegistry);
+        $encryptionConfigs = self::resolveEncryptionConfigsFromAnnotatedMethods($annotationRegistrationService->findAnnotatedMethods(EventHandler::class), $encryptionConfigs, $interfaceToCallRegistry);
 
-        return new self($obfuscatorConfigs);
+        return new self($encryptionConfigs);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -70,7 +73,7 @@ final class DataProtectionModule extends NoExternalConfigurationModule
 
         foreach ($dataProtectionConfiguration->keys() as $encryptionKeyName => $key) {
             $messagingConfiguration->registerServiceDefinition(
-                id: sprintf('ecotone.encryption.key.%s', $encryptionKeyName),
+                id: sprintf(self::KEY_SERVICE_ID_FORMAT, $encryptionKeyName),
                 definition: new Definition(
                     Key::class,
                     [$key->saveToAsciiSafeString()],
@@ -79,39 +82,39 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             );
         }
 
-        $channelObfuscatorReferences = $messageObfuscatorReferences = [];
+        $channelEncryptorReferences = $messageEncryptorReferences = [];
         foreach ($channelProtectionConfigurations as $channelProtectionConfiguration) {
             Assert::isTrue($messagingConfiguration->isPollableChannel($channelProtectionConfiguration->channelName()), sprintf('`%s` channel must be pollable channel to use Data Protection.', $channelProtectionConfiguration->channelName()));
 
-            $obfuscatorConfig = $channelProtectionConfiguration->obfuscatorConfig();
+            $encryptionConfig = $channelProtectionConfiguration->messageEncryptionConfig();
             $messagingConfiguration->registerServiceDefinition(
-                id: $id = sprintf('ecotone.encryption.obfuscator.%s', $channelProtectionConfiguration->channelName()),
+                id: $id = sprintf(self::ENCRYPTOR_SERVICE_ID_FORMAT, $channelProtectionConfiguration->channelName()),
                 definition: new Definition(
-                    Obfuscator::class,
+                    MessageEncryptor::class,
                     [
-                        Reference::to(sprintf('ecotone.encryption.key.%s', $obfuscatorConfig->encryptionKeyName($dataProtectionConfiguration))),
-                        $obfuscatorConfig->isPayloadSensitive,
-                        $obfuscatorConfig->sensitiveHeaders,
+                        Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $encryptionConfig->encryptionKeyName($dataProtectionConfiguration))),
+                        $encryptionConfig->isPayloadSensitive,
+                        $encryptionConfig->sensitiveHeaders,
                     ],
                 )
             );
 
-            $channelObfuscatorReferences[$channelProtectionConfiguration->channelName()] = Reference::to($id);
+            $channelEncryptorReferences[$channelProtectionConfiguration->channelName()] = Reference::to($id);
         }
 
-        foreach ($this->obfuscatorConfigs as $messageClass => $obfuscatorConfig) {
+        foreach ($this->encryptionConfigs as $messageClass => $encryptionConfig) {
             $messagingConfiguration->registerServiceDefinition(
-                id: $id = sprintf('ecotone.encryption.obfuscator.%s', $messageClass),
+                id: $id = sprintf(self::ENCRYPTOR_SERVICE_ID_FORMAT, $messageClass),
                 definition: new Definition(
-                    Obfuscator::class,
+                    MessageEncryptor::class,
                     [
-                        Reference::to(sprintf('ecotone.encryption.key.%s', $obfuscatorConfig->encryptionKeyName($dataProtectionConfiguration))),
-                        $obfuscatorConfig->isPayloadSensitive,
-                        $obfuscatorConfig->sensitiveHeaders,
+                        Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $encryptionConfig->encryptionKeyName($dataProtectionConfiguration))),
+                        $encryptionConfig->isPayloadSensitive,
+                        $encryptionConfig->sensitiveHeaders,
                     ],
                 )
             );
-            $messageObfuscatorReferences[$messageClass] = Reference::to($id);
+            $messageEncryptorReferences[$messageClass] = Reference::to($id);
         }
 
         foreach (ExtensionObjectResolver::resolve(MessageChannelWithSerializationBuilder::class, $extensionObjects) as $pollableMessageChannel) {
@@ -122,15 +125,15 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             $messagingConfiguration->registerChannelInterceptor(
                 new OutboundEncryptionChannelBuilder(
                     relatedChannel: $pollableMessageChannel->getMessageChannelName(),
-                    channelObfuscatorReference: $channelObfuscatorReferences[$pollableMessageChannel->getMessageChannelName()] ?? null,
-                    messageObfuscatorReferences: $messageObfuscatorReferences,
+                    channelEncryptorReference: $channelEncryptorReferences[$pollableMessageChannel->getMessageChannelName()] ?? null,
+                    messageEncryptorReferences: $messageEncryptorReferences,
                 )
             );
             $messagingConfiguration->registerChannelInterceptor(
                 new OutboundDecryptionChannelBuilder(
                     relatedChannel: $pollableMessageChannel->getMessageChannelName(),
-                    channelObfuscatorReference: $channelObfuscatorReferences[$pollableMessageChannel->getMessageChannelName()] ?? null,
-                    messageObfuscatorReferences: $messageObfuscatorReferences,
+                    channelEncryptionReference: $channelEncryptorReferences[$pollableMessageChannel->getMessageChannelName()] ?? null,
+                    messageEncryptionReferences: $messageEncryptorReferences,
                 )
             );
         }
@@ -151,20 +154,21 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         return ModulePackageList::DATA_PROTECTION_PACKAGE;
     }
 
-    private static function resolveObfuscatorConfigsFromAnnotatedClasses(array $sensitiveMessages, array $obfuscatorConfigs, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    private static function resolveEncryptionConfigsFromAnnotatedClasses(array $sensitiveMessages, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
+        $encryptionConfigs = [];
         foreach ($sensitiveMessages as $message) {
             $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::create($message));
             $encryptionKey = $classDefinition->findSingleClassAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
             $sensitiveHeaders = array_map(static fn (WithSensitiveHeader $annotation) => $annotation->header, $classDefinition->getClassAnnotations(Type::create(WithSensitiveHeader::class)) ?? []);
 
-            $obfuscatorConfigs[$message] = new ObfuscatorConfig(encryptionKey: $encryptionKey, isPayloadSensitive: true, sensitiveHeaders: $sensitiveHeaders);
+            $encryptionConfigs[$message] = new MessageEncryptionConfig(encryptionKey: $encryptionKey, isPayloadSensitive: true, sensitiveHeaders: $sensitiveHeaders);
         }
 
-        return $obfuscatorConfigs;
+        return $encryptionConfigs;
     }
 
-    private static function resolveObfuscatorConfigsFromAnnotatedMethods(array $annotatedMethods, array $obfuscatorConfigs, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    private static function resolveEncryptionConfigsFromAnnotatedMethods(array $annotatedMethods, array $encryptionConfigs, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
         /** @var AnnotatedMethod $method */
         foreach ($annotatedMethods as $method) {
@@ -175,7 +179,7 @@ final class DataProtectionModule extends NoExternalConfigurationModule
                 $payload->hasAnnotation(Header::class)
                 || $payload->hasAnnotation(Headers::class)
                 || $payload->hasAnnotation(Reference::class)
-                || array_key_exists($payload->getTypeHint(), $obfuscatorConfigs)
+                || array_key_exists($payload->getTypeHint(), $encryptionConfigs)
             ) {
                 continue;
             }
@@ -193,10 +197,10 @@ final class DataProtectionModule extends NoExternalConfigurationModule
                 }
             }
 
-            $obfuscatorConfigs[$payload->getTypeHint()] = new ObfuscatorConfig(encryptionKey: $encryptionKey, isPayloadSensitive: true, sensitiveHeaders: $sensitiveHeaders);
+            $encryptionConfigs[$payload->getTypeHint()] = new MessageEncryptionConfig(encryptionKey: $encryptionKey, isPayloadSensitive: true, sensitiveHeaders: $sensitiveHeaders);
         }
 
-        return $obfuscatorConfigs;
+        return $encryptionConfigs;
     }
 
     private function verifyLicense(Configuration $messagingConfiguration): void

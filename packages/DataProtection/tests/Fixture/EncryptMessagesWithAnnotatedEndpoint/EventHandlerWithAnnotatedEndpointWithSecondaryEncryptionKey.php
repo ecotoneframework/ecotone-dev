@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints;
+namespace Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint;
 
 use Ecotone\DataProtection\Attribute\Sensitive;
 use Ecotone\DataProtection\Attribute\WithEncryptionKey;
@@ -17,7 +17,7 @@ class EventHandlerWithAnnotatedEndpointWithSecondaryEncryptionKey
 {
     #[WithSensitiveHeader('foo')]
     #[WithSensitiveHeader('bar')]
-    #[EventHandler(endpointId: 'test.obfuscateAnnotatedEndpoints.eventHandler.annotatedMethodWithSecondaryEncryptionKey')]
+    #[EventHandler(endpointId: 'test.EncryptMessagesWithAnnotatedEndpoint.eventHandler.annotatedMethodWithSecondaryEncryptionKey')]
     public function annotatedMethodWithSecondaryEncryptionKey(
         #[Sensitive] #[WithEncryptionKey('secondary')] SomeMessage $message,
         #[Headers] array $headers,

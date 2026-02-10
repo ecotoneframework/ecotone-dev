@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints;
+namespace Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint;
 
 use Ecotone\DataProtection\Attribute\Sensitive;
 use Ecotone\DataProtection\Attribute\WithEncryptionKey;
@@ -9,18 +9,18 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
-use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 
 #[Asynchronous('test')]
-class CommandHandlerWithAnnotatedPayloadWithSecondaryEncryptionKey
+class CommandHandlerWithAnnotatedEndpointWithAlreadyAnnotatedMessage
 {
     #[WithSensitiveHeader('foo')]
     #[WithSensitiveHeader('bar')]
     #[WithSensitiveHeader('fos')]
-    #[CommandHandler(endpointId: 'test.obfuscateAnnotatedEndpoints.commandHandler.annotatedMethod')]
+    #[CommandHandler(endpointId: 'test.EncryptMessagesWithAnnotatedEndpoint.commandHandler.annotatedMethod')]
     public function annotatedMethod(
-        #[Sensitive] #[WithEncryptionKey('secondary')] SomeMessage $message,
+        #[Sensitive] #[WithEncryptionKey('secondary')] AnnotatedMessage $message,
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,
     ): void {

@@ -4,15 +4,15 @@
  * licence Enterprise
  */
 
-namespace Ecotone\DataProtection\Obfuscator;
+namespace Ecotone\DataProtection\MessageEncryption;
 
-use Defuse\Crypto\Crypto;
-use Defuse\Crypto\Key;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\PHPEncryption\Crypto;
+use Ecotone\PHPEncryption\Key;
 
-readonly class Obfuscator
+readonly class MessageEncryptor
 {
     public function __construct(
         private Key $encryptionKey,

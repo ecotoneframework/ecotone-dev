@@ -6,7 +6,7 @@
 
 namespace Ecotone\DataProtection;
 
-use Ecotone\DataProtection\Obfuscator\Obfuscator;
+use Ecotone\DataProtection\MessageEncryption\MessageEncryptor;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Message;
@@ -17,13 +17,13 @@ use Ecotone\Messaging\Support\Assert;
 class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
 {
     /**
-     * @param array<Obfuscator> $messageObfuscators
+     * @param array<MessageEncryptor> $messageEncryptors
      */
     public function __construct(
-        private readonly ?Obfuscator $channelObfuscator,
-        private readonly array $messageObfuscators,
+        private readonly ?MessageEncryptor $channelEncryptor,
+        private readonly array             $messageEncryptors,
     ) {
-        Assert::allInstanceOfType($this->messageObfuscators, Obfuscator::class);
+        Assert::allInstanceOfType($this->messageEncryptors, MessageEncryptor::class);
     }
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
@@ -32,18 +32,18 @@ class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
             return $message;
         }
 
-        if ($messageObfuscator = $this->findMessageObfuscator($message)) {
-            return $messageObfuscator->encrypt($message);
+        if ($messageEncryptor = $this->findMessageEncryptor($message)) {
+            return $messageEncryptor->encrypt($message);
         }
 
-        if ($this->channelObfuscator) {
-            return $this->channelObfuscator->encrypt($message);
+        if ($this->channelEncryptor) {
+            return $this->channelEncryptor->encrypt($message);
         }
 
         return $message;
     }
 
-    private function findMessageObfuscator(Message $message): ?Obfuscator
+    private function findMessageEncryptor(Message $message): ?MessageEncryptor
     {
         if (! $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
             return null;
@@ -51,6 +51,6 @@ class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
 
         $type = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
 
-        return $this->messageObfuscators[$type] ?? null;
+        return $this->messageEncryptors[$type] ?? null;
     }
 }

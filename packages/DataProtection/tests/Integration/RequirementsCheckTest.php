@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\DataProtection\Integration;
 
-use Defuse\Crypto\Key;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\PHPEncryption\Key;
 use PHPUnit\Framework\TestCase;
 
 /**

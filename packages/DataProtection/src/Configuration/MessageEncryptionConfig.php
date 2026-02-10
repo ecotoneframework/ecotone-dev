@@ -8,7 +8,7 @@ namespace Ecotone\DataProtection\Configuration;
 
 use Ecotone\Messaging\Support\Assert;
 
-final readonly class ObfuscatorConfig
+final readonly class MessageEncryptionConfig
 {
     /**
      * @param array<string> $sensitiveHeaders

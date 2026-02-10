@@ -2,8 +2,6 @@
 
 namespace Test\Ecotone\DataProtection\Integration;
 
-use Defuse\Crypto\Crypto;
-use Defuse\Crypto\Key;
 use Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
@@ -16,11 +14,13 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\PHPEncryption\Crypto;
+use Ecotone\PHPEncryption\Key;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration\TestCommandHandler;
+use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration\TestEventHandler;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateChannel\TestCommandHandler;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateChannel\TestEventHandler;
 use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
@@ -29,7 +29,7 @@ use Test\Ecotone\DataProtection\TestQueueChannel;
 /**
  * @internal
  */
-class ObfuscateChannelTest extends TestCase
+class EncryptMessagesWithChannelConfigurationTest extends TestCase
 {
     private Key $primaryKey;
     private Key $secondaryKey;
@@ -40,7 +40,7 @@ class ObfuscateChannelTest extends TestCase
         $this->secondaryKey = Key::createNewRandomKey();
     }
 
-    public function test_obfuscate_command_handler_channel_with_default_encryption_key(): void
+    public function test_protect_commands_using_channel_configuration_with_default_encryption_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
             ->withSensitiveHeader('foo')
@@ -84,7 +84,7 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_command_handler_channel_with_default_encryption_key_and_no_sensitive_payload(): void
+    public function test_protect_commands_using_channel_configuration_with_default_encryption_key_and_no_sensitive_payload(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
             ->withSensitivePayload(false)
@@ -128,7 +128,7 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_command_handler_channel_with_non_default_key(): void
+    public function test_protect_commands_using_channel_configuration_with_non_default_encryption_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test', 'secondary')
             ->withSensitiveHeader('foo')
@@ -172,7 +172,7 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_command_handler_channel_called_with_routing_key(): void
+    public function test_protect_commands_using_channel_configuration_with_default_encryption_key_and_routing_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
             ->withSensitiveHeader('foo')
@@ -209,7 +209,7 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_command_handler_channel_called_with_routing_key_and_no_sensitive_payload(): void
+    public function test_protect_commands_using_channel_configuration_with_default_encryption_key_and_routing_key_with_no_sensitive_payload(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
             ->withSensitivePayload(false)
@@ -246,7 +246,7 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_event_handler_channel_with_default_encryption_key(): void
+    public function test_protect_events_using_channel_configuration_with_default_encryption_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
             ->withSensitiveHeader('foo')
@@ -288,7 +288,7 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_event_handler_channel_with_non_default_key(): void
+    public function test_protect_events_using_channel_configuration_with_non_default_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test', 'secondary')
             ->withSensitiveHeader('foo')
@@ -330,7 +330,7 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_event_handler_channel_called_with_routing_key(): void
+    public function test_protect_events_using_channel_configuration_and_routing_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
             ->withSensitiveHeader('foo')
@@ -367,7 +367,7 @@ class ObfuscateChannelTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_non_pollable_channel(): void
+    public function test_protecting_messages_with_non_pollable_channel_is_not_possible(): void
     {
         $this->expectExceptionObject(InvalidArgumentException::create('`test` channel must be pollable channel to use Data Protection.'));
 
@@ -402,7 +402,7 @@ class ObfuscateChannelTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
-                ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\ObfuscateChannel'])
+                ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration'])
                 ->withExtensionObjects([
                     $channelProtectionConfiguration,
                     DataProtectionConfiguration::create('primary', $this->primaryKey)

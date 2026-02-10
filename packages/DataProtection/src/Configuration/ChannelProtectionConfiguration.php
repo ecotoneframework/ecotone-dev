@@ -25,9 +25,9 @@ class ChannelProtectionConfiguration
         return $this->channelName;
     }
 
-    public function obfuscatorConfig(): ObfuscatorConfig
+    public function messageEncryptionConfig(): MessageEncryptionConfig
     {
-        return new ObfuscatorConfig($this->encryptionKey, $this->isPayloadSensitive, $this->sensitiveHeaders);
+        return new MessageEncryptionConfig($this->encryptionKey, $this->isPayloadSensitive, $this->sensitiveHeaders);
     }
 
     public function withSensitivePayload(bool $isPayloadSensitive): self

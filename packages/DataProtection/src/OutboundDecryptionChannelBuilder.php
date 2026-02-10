@@ -15,9 +15,9 @@ use Ecotone\Messaging\PrecedenceChannelInterceptor;
 readonly class OutboundDecryptionChannelBuilder implements ChannelInterceptorBuilder
 {
     public function __construct(
-        private string $relatedChannel,
-        private ?Reference $channelObfuscatorReference,
-        private array $messageObfuscatorReferences,
+        private string     $relatedChannel,
+        private ?Reference $channelEncryptionReference,
+        private array      $messageEncryptionReferences,
     ) {
     }
 
@@ -36,8 +36,8 @@ readonly class OutboundDecryptionChannelBuilder implements ChannelInterceptorBui
         return new Definition(
             OutboundDecryptionChannelInterceptor::class,
             [
-                $this->channelObfuscatorReference,
-                $this->messageObfuscatorReferences,
+                $this->channelEncryptionReference,
+                $this->messageEncryptionReferences,
             ]
         );
     }

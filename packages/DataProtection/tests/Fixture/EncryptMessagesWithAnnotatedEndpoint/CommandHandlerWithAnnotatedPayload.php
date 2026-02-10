@@ -1,23 +1,23 @@
 <?php
 
-namespace Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints;
+namespace Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint;
 
 use Ecotone\DataProtection\Attribute\Sensitive;
 use Ecotone\DataProtection\Attribute\WithSensitiveHeader;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\CommandHandler;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
 use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 
 #[Asynchronous('test')]
-class EventHandlerWithAnnotatedPayload
+class CommandHandlerWithAnnotatedPayload
 {
     #[WithSensitiveHeader('foo')]
     #[WithSensitiveHeader('bar')]
     #[WithSensitiveHeader('fos')]
-    #[EventHandler(endpointId: 'test.obfuscateAnnotatedEndpoints.eventHandler.annotatedMethod')]
+    #[CommandHandler(endpointId: 'test.EncryptMessagesWithAnnotatedEndpoint.commandHandler.annotatedMethod')]
     public function annotatedMethod(
         #[Sensitive] SomeMessage $message,
         #[Headers] array $headers,

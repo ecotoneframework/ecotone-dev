@@ -2,8 +2,6 @@
 
 namespace Test\Ecotone\DataProtection\Integration;
 
-use Defuse\Crypto\Crypto;
-use Defuse\Crypto\Key;
 use Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
@@ -14,18 +12,20 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\PHPEncryption\Crypto;
+use Ecotone\PHPEncryption\Key;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
+use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint\CommandHandlerWithAnnotatedEndpointWithAlreadyAnnotatedMessage;
+use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint\CommandHandlerWithAnnotatedEndpointWithSecondaryEncryptionKey;
+use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint\CommandHandlerWithAnnotatedMethodWithoutPayload;
+use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint\CommandHandlerWithAnnotatedPayloadAndHeader;
+use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint\EventHandlerWithAnnotatedEndpointWithAlreadyAnnotatedMessage;
+use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint\EventHandlerWithAnnotatedEndpointWithSecondaryEncryptionKey;
+use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint\EventHandlerWithAnnotatedMethodWithoutPayload;
+use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint\EventHandlerWithAnnotatedPayloadAndHeader;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\CommandHandlerWithAnnotatedEndpointWithAlreadyAnnotatedMessage;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\CommandHandlerWithAnnotatedEndpointWithSecondaryEncryptionKey;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\CommandHandlerWithAnnotatedMethodWithoutPayload;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\CommandHandlerWithAnnotatedPayloadAndHeader;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedEndpointWithAlreadyAnnotatedMessage;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedEndpointWithSecondaryEncryptionKey;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedMethodWithoutPayload;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints\EventHandlerWithAnnotatedPayloadAndHeader;
 use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
@@ -34,7 +34,7 @@ use Test\Ecotone\DataProtection\TestQueueChannel;
 /**
  * @internal
  */
-class ObfuscateEndpointsTest extends TestCase
+class EncryptMessagesWithAnnotatedEndpointTest extends TestCase
 {
     private Key $primaryKey;
     private Key $secondaryKey;
@@ -45,7 +45,7 @@ class ObfuscateEndpointsTest extends TestCase
         $this->secondaryKey = Key::createNewRandomKey();
     }
 
-    public function test_command_handler_with_annotated_endpoint_with_already_annotated_message(): void
+    public function test_protect_commands_using_annotated_endpoint_with_already_annotated_message(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -91,7 +91,7 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_command_handler_with_annotated_endpoint_and_secondary_encryption_key(): void
+    public function test_protect_commands_using_annotated_endpoint_and_secondary_encryption_key(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -136,7 +136,7 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_command_handler_with_annotated_method_without_payload_will_use_channel_obfuscator(): void
+    public function test_protecting_commands_using_annotated_endpoint_without_payload_will_use_channel_obfuscator(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -179,7 +179,7 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_command_handler_with_annotated_method_with_annotated_payload_and_header(): void
+    public function test_protect_commands_using_annotated_endpoint_with_annotated_payload_and_header(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -221,7 +221,7 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
     }
 
-    public function test_command_handler_with_annotated_method_without_payload(): void
+    public function test_protect_commands_using_annotated_endpoint_without_payload(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -260,7 +260,7 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_event_handler_with_annotated_endpoint_with_already_annotated_message(): void
+    public function test_protecting_events_using_annotated_endpoint_with_already_annotated_message(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -306,7 +306,7 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_event_handler_with_annotated_endpoint_and_secondary_encryption_key(): void
+    public function test_protect_events_using_annotated_endpoint_and_secondary_encryption_key(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -351,7 +351,7 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_event_handler_with_annotated_method_without_payload_will_use_channel_obfuscator(): void
+    public function test_protecting_events_using_annotated_endpoint_without_payload_will_use_channel_obfuscator(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -394,7 +394,7 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_event_handler_with_annotated_method_with_annotated__payload_and_header(): void
+    public function test_protect_events_using_annotated_endpoint_with_annotated_payload_and_header(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -436,7 +436,7 @@ class ObfuscateEndpointsTest extends TestCase
         self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->secondaryKey));
     }
 
-    public function test_event_handler_with_annotated_method_without_payload(): void
+    public function test_protect_events_using_annotated_method_without_payload(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [

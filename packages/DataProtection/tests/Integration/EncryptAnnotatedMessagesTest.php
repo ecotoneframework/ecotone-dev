@@ -2,8 +2,6 @@
 
 namespace Test\Ecotone\DataProtection\Integration;
 
-use Defuse\Crypto\Crypto;
-use Defuse\Crypto\Key;
 use Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
@@ -14,14 +12,16 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\PHPEncryption\Crypto;
+use Ecotone\PHPEncryption\Key;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveHeaders;
+use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestCommandHandler;
+use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestEventHandler;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateMessages\TestCommandHandler;
-use Test\Ecotone\DataProtection\Fixture\ObfuscateMessages\TestEventHandler;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
 use Test\Ecotone\DataProtection\TestQueueChannel;
@@ -29,7 +29,7 @@ use Test\Ecotone\DataProtection\TestQueueChannel;
 /**
  * @internal
  */
-class ObfuscateMessagesTest extends TestCase
+class EncryptAnnotatedMessagesTest extends TestCase
 {
     private Key $primaryKey;
     private Key $secondaryKey;
@@ -40,7 +40,7 @@ class ObfuscateMessagesTest extends TestCase
         $this->secondaryKey = Key::createNewRandomKey();
     }
 
-    public function test_command_handler_with_obfuscate_annotated_message(): void
+    public function test_protect_commands_using_message_annotations(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -86,7 +86,7 @@ class ObfuscateMessagesTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_command_handler_message_with_non_default_key(): void
+    public function test_protect_commands_using_non_default_key(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -135,7 +135,7 @@ class ObfuscateMessagesTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_command_handler_message_with_sensitive_headers(): void
+    public function test_protect_commands_with_sensitive_headers(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -183,7 +183,7 @@ class ObfuscateMessagesTest extends TestCase
         self::assertFalse($messageHeaders->containsKey('fos'));
     }
 
-    public function test_obfuscate_event_handler_with_annotated_message(): void
+    public function test_protect_events_using_message_annotations(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -229,7 +229,7 @@ class ObfuscateMessagesTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_event_handler_message_with_non_default_key(): void
+    public function test_protect_events_using_non_default_key(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -278,7 +278,7 @@ class ObfuscateMessagesTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
-    public function test_obfuscate_event_handler_message_with_sensitive_headers(): void
+    public function test_protect_events_with_sensitive_headers(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
@@ -334,7 +334,7 @@ class ObfuscateMessagesTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
-                ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\ObfuscateAnnotatedMessages'])
+                ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages'])
                 ->withExtensionObjects(
                     array_merge(
                         [

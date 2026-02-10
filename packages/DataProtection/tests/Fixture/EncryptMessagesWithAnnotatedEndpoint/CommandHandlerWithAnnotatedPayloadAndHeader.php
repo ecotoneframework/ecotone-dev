@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\DataProtection\Fixture\ObfuscateEndpoints;
+namespace Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithAnnotatedEndpoint;
 
 use Ecotone\DataProtection\Attribute\Sensitive;
 use Ecotone\DataProtection\Attribute\WithSensitiveHeader;
@@ -15,7 +15,7 @@ use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 class CommandHandlerWithAnnotatedPayloadAndHeader
 {
     #[WithSensitiveHeader('bar')]
-    #[CommandHandler(endpointId: 'test.obfuscateAnnotatedEndpoints.commandHandler.annotatedMethod')]
+    #[CommandHandler(endpointId: 'test.EncryptMessagesWithAnnotatedEndpoint.commandHandler.annotatedMethod')]
     public function annotatedMethod(
         #[Sensitive] SomeMessage $message,
         #[Sensitive] #[Header('foo')] string $foo,

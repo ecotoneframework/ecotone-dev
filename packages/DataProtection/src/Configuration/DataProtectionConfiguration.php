@@ -6,8 +6,8 @@
 
 namespace Ecotone\DataProtection\Configuration;
 
-use Defuse\Crypto\Key;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\PHPEncryption\Key;
 
 class DataProtectionConfiguration
 {

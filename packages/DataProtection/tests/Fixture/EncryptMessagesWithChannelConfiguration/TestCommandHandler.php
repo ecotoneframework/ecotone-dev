@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\DataProtection\Fixture\ObfuscateChannel;
+namespace Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
@@ -12,7 +12,7 @@ use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 #[Asynchronous('test')]
 class TestCommandHandler
 {
-    #[CommandHandler(endpointId: 'test.ObfuscateChannel.commandHandler.withPayload')]
+    #[CommandHandler(endpointId: 'test.EncryptMessagesWithChannelConfiguration.commandHandler.withPayload')]
     public function withPayload(
         SomeMessage $message,
         #[Headers] array $headers,
@@ -21,7 +21,7 @@ class TestCommandHandler
         $messageReceiver->withReceived($message, $headers);
     }
 
-    #[CommandHandler(routingKey: 'command', endpointId: 'test.ObfuscateChannel.commandHandler.withoutPayload')]
+    #[CommandHandler(routingKey: 'command', endpointId: 'test.EncryptMessagesWithChannelConfiguration.commandHandler.withoutPayload')]
     public function withoutPayload(
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,

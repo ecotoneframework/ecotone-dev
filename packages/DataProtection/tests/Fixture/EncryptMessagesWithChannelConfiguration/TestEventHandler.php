@@ -1,6 +1,6 @@
 <?php
 
-namespace Test\Ecotone\DataProtection\Fixture\ObfuscateChannel;
+namespace Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
@@ -12,7 +12,7 @@ use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 #[Asynchronous('test')]
 class TestEventHandler
 {
-    #[EventHandler(endpointId: 'test.ObfuscateChannel.eventHandler.withPayload')]
+    #[EventHandler(endpointId: 'test.EncryptMessagesWithChannelConfiguration.eventHandler.withPayload')]
     public function handleFullyObfuscatedMessage(
         SomeMessage $message,
         #[Headers] array $headers,
@@ -21,7 +21,7 @@ class TestEventHandler
         $messageReceiver->withReceived($message, $headers);
     }
 
-    #[EventHandler(listenTo: 'event', endpointId: 'test.ObfuscateChannel.eventHandler.withoutPayload')]
+    #[EventHandler(listenTo: 'event', endpointId: 'test.EncryptMessagesWithChannelConfiguration.eventHandler.withoutPayload')]
     public function handleRoutingKey(
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,

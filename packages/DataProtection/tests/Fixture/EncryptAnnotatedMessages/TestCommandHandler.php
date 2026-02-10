@@ -1,21 +1,21 @@
 <?php
 
-namespace Test\Ecotone\DataProtection\Fixture\ObfuscateMessages;
+namespace Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\CommandHandler;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveHeaders;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
 
 #[Asynchronous('test')]
-class TestEventHandler
+class TestCommandHandler
 {
-    #[EventHandler(endpointId: 'test.obfuscateAnnotatedMessages.eventHandler.AnnotatedMessage')]
+    #[CommandHandler(endpointId: 'test.EncryptAnnotatedMessages.commandHandler.AnnotatedMessage')]
     public function handleAnnotatedMessage(
         #[Payload] AnnotatedMessage $message,
         #[Headers] array $headers,
@@ -24,7 +24,7 @@ class TestEventHandler
         $messageReceiver->withReceived($message, $headers);
     }
 
-    #[EventHandler(endpointId: 'test.obfuscateAnnotatedMessages.eventHandler.AnnotatedMessageWithSecondaryEncryptionKey')]
+    #[CommandHandler(endpointId: 'test.EncryptAnnotatedMessages.commandHandler.AnnotatedMessageWithSecondaryEncryptionKey')]
     public function handleAnnotatedMessageWithSecondaryEncryptionKey(
         #[Payload] AnnotatedMessageWithSecondaryEncryptionKey $message,
         #[Headers] array $headers,
@@ -33,7 +33,7 @@ class TestEventHandler
         $messageReceiver->withReceived($message, $headers);
     }
 
-    #[EventHandler(endpointId: 'test.obfuscateAnnotatedMessages.eventHandler.AnnotatedMessageWithSensitiveHeaders')]
+    #[CommandHandler(endpointId: 'test.EncryptAnnotatedMessages.commandHandler.AnnotatedMessageWithSensitiveHeaders')]
     public function handleAnnotatedMessageWithSensitiveHeaders(
         #[Payload] AnnotatedMessageWithSensitiveHeaders $message,
         #[Headers] array $headers,

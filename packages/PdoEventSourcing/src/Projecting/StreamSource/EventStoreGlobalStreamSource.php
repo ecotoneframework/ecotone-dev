@@ -60,7 +60,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         return $this->connectionFactory->createContext()->getDbalConnection();
     }
 
-    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null): StreamPage
+    public function load(string $projectionName, ?string $lastPosition, int $count, ?string $partitionKey = null, ?string $streamName = null): StreamPage
     {
         Assert::null($partitionKey, 'Partition key is not supported for EventStoreGlobalStreamSource');
 

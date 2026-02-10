@@ -48,28 +48,45 @@ class ProjectingManager
         return $this->projectionStateStorage;
     }
 
-    public function execute(?string $partitionKeyValue = null, bool $manualInitialization = false): void
+    public function execute(?string $partitionKeyValue = null, bool $manualInitialization = false, ?string $streamName = null): void
+    {
+        $streamFilters = $this->streamFilterRegistry->provide($this->projectionName);
+
+        if ($streamName !== null) {
+            $this->executeForStream($partitionKeyValue, $streamName, $manualInitialization || $this->automaticInitialization);
+            return;
+        }
+
+        foreach ($streamFilters as $streamFilter) {
+            $this->executeForStream($partitionKeyValue, $streamFilter->streamName, $manualInitialization || $this->automaticInitialization);
+            if ($this->terminationListener->shouldTerminate()) {
+                break;
+            }
+        }
+    }
+
+    private function executeForStream(?string $partitionKeyValue, string $streamName, bool $canInitialize): void
     {
         do {
-            $processedEvents = $this->executeSingleBatch($partitionKeyValue, $manualInitialization || $this->automaticInitialization);
+            $processedEvents = $this->executeSingleBatch($partitionKeyValue, $streamName, $canInitialize);
         } while ($processedEvents > 0 && $this->terminationListener->shouldTerminate() !== true);
     }
 
     /**
      * @return int Number of processed events
      */
-    private function executeSingleBatch(?string $partitionKeyValue, bool $canInitialize): int
+    private function executeSingleBatch(?string $partitionKeyValue, string $streamName, bool $canInitialize): int
     {
         $transaction = $this->getProjectionStateStorage()->beginTransaction();
         try {
-            $projectionState = $this->loadOrInitializePartitionState($partitionKeyValue, $canInitialize);
+            $projectionState = $this->loadOrInitializePartitionState($partitionKeyValue, $streamName, $canInitialize);
             if ($projectionState === null) {
                 $transaction->commit();
                 return 0;
             }
 
             $streamSource = $this->streamSourceRegistry->getFor($this->projectionName);
-            $streamPage = $streamSource->load($this->projectionName, $projectionState->lastPosition, $this->eventLoadingBatchSize, $partitionKeyValue);
+            $streamPage = $streamSource->load($this->projectionName, $projectionState->lastPosition, $this->eventLoadingBatchSize, $partitionKeyValue, $streamName);
 
             $userState = $projectionState->userState;
             $processedEvents = 0;
@@ -99,9 +116,9 @@ class ProjectingManager
         }
     }
 
-    public function loadState(?string $partitionKey = null): ProjectionPartitionState
+    public function loadState(?string $partitionKey = null, ?string $streamName = null): ProjectionPartitionState
     {
-        return $this->getProjectionStateStorage()->loadPartition($this->projectionName, $partitionKey);
+        return $this->getProjectionStateStorage()->loadPartition($this->projectionName, $partitionKey, $streamName);
     }
 
     public function getPartitionProvider(): PartitionProvider
@@ -193,10 +210,10 @@ class ProjectingManager
         $this->prepareBackfill();
     }
 
-    private function loadOrInitializePartitionState(?string $partitionKey, bool $canInitialize): ?ProjectionPartitionState
+    private function loadOrInitializePartitionState(?string $partitionKey, string $streamName, bool $canInitialize): ?ProjectionPartitionState
     {
         $storage = $this->getProjectionStateStorage();
-        $projectionState = $storage->loadPartition($this->projectionName, $partitionKey);
+        $projectionState = $storage->loadPartition($this->projectionName, $partitionKey, $streamName);
 
         if (! $canInitialize && $projectionState?->status === ProjectionInitializationStatus::UNINITIALIZED) {
             return null;
@@ -206,11 +223,11 @@ class ProjectingManager
         }
 
         if ($canInitialize) {
-            $projectionState = $storage->initPartition($this->projectionName, $partitionKey);
+            $projectionState = $storage->initPartition($this->projectionName, $partitionKey, $streamName);
             if ($projectionState) {
                 $this->projectorExecutor->init();
             } else {
-                $projectionState = $storage->loadPartition($this->projectionName, $partitionKey);
+                $projectionState = $storage->loadPartition($this->projectionName, $partitionKey, $streamName);
             }
             return $projectionState;
         }

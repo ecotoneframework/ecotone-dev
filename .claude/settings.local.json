@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(./vendor/bin/phpunit:*)",
+      "Bash(docker exec:*)"
+    ]
+  }
+}

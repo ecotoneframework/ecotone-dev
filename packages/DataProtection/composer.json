@@ -19,10 +19,10 @@
         "ecotone",
         "Encryption",
         "OpenSSL",
-        "Data Protection",
-        "Data Obfuscation"
+        "Sensitive Data Protection",
+        "Secure Messages"
     ],
-    "description": "Extends Ecotone with Data Protection features allowing to obfuscate messages with sensitive data.",
+    "description": "Extends Ecotone with Data Protection features allowing to secure sensitive data.",
     "autoload": {
         "psr-4": {
             "Ecotone\\DataProtection\\": "src"
@@ -36,6 +36,7 @@
         }
     },
     "require": {
+        "php": "^8.2",
         "ext-openssl": "*",
         "ecotone/ecotone": "~1.299.2",
         "ecotone/jms-converter": "~1.299.2",
@@ -44,8 +45,7 @@
     "require-dev": {
         "phpunit/phpunit": "^11.0",
         "phpstan/phpstan": "^2.1",
-        "wikimedia/composer-merge-plugin": "^2.1",
-        "yoast/phpunit-polyfills": "^4.0.0"
+        "wikimedia/composer-merge-plugin": "^2.1"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

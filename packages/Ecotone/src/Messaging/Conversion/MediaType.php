@@ -30,6 +30,7 @@ final class MediaType implements DefinedObject
     public const IMAGE_GIF = 'image/gif';
     public const APPLICATION_XML = 'application/xml';
     public const APPLICATION_JSON = 'application/json';
+    public const APPLICATION_JSON_ENCRYPTED = 'application/json+encrypted';
     public const APPLICATION_FORM_URLENCODED = 'application/x-www-form-urlencoded';
     public const APPLICATION_ATOM_XML = 'application/atom+xml';
     public const APPLICATION_XHTML_XML = 'application/xhtml+xml';
@@ -84,6 +85,15 @@ final class MediaType implements DefinedObject
     public static function createApplicationJson(): self
     {
         return self::parseMediaType(self::APPLICATION_JSON);
+    }
+
+    /**
+     * @return MediaType
+     * @throws \Ecotone\Messaging\MessagingException
+     */
+    public static function createApplicationJsonEncrypted(): self
+    {
+        return self::parseMediaType(self::APPLICATION_JSON_ENCRYPTED);
     }
 
     /**

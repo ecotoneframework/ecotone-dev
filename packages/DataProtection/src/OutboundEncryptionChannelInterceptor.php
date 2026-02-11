@@ -6,7 +6,7 @@
 
 namespace Ecotone\DataProtection;
 
-use Ecotone\DataProtection\MessageEncryption\MessageEncryptor;
+use Ecotone\DataProtection\MessageEncryption\ChannelEncryptor;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Message;
@@ -17,13 +17,13 @@ use Ecotone\Messaging\Support\Assert;
 class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
 {
     /**
-     * @param array<MessageEncryptor> $messageEncryptors
+     * @param array<ChannelEncryptor> $messageEncryptors
      */
     public function __construct(
-        private readonly ?MessageEncryptor $channelEncryptor,
+        private readonly ?ChannelEncryptor $channelEncryptor,
         private readonly array             $messageEncryptors,
     ) {
-        Assert::allInstanceOfType($this->messageEncryptors, MessageEncryptor::class);
+        Assert::allInstanceOfType($this->messageEncryptors, ChannelEncryptor::class);
     }
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
@@ -43,7 +43,7 @@ class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
         return $message;
     }
 
-    private function findMessageEncryptor(Message $message): ?MessageEncryptor
+    private function findMessageEncryptor(Message $message): ?ChannelEncryptor
     {
         if (! $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
             return null;

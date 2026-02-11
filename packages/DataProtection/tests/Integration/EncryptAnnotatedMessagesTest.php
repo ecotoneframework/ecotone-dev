@@ -77,10 +77,10 @@ class EncryptAnnotatedMessagesTest extends TestCase
         self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
 
         $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messagePayload = $this->decryptChannelMessagePayload($channelMessage->getPayload(), $this->primaryKey);
         $messageHeaders = $channelMessage->getHeaders();
 
-        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
+        self::assertEquals('{"class":"{\"argument\":\"value\",\"enum\":\"first\"}","enum":"\"first\"","argument":"value"}', $messagePayload);
         self::assertEquals($metadataSent['foo'], $messageHeaders->get('foo'));
         self::assertEquals($metadataSent['bar'], $messageHeaders->get('bar'));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
@@ -126,10 +126,10 @@ class EncryptAnnotatedMessagesTest extends TestCase
         self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
 
         $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->secondaryKey);
+        $messagePayload = $this->decryptChannelMessagePayload($channelMessage->getPayload(), $this->secondaryKey);
         $messageHeaders = $channelMessage->getHeaders();
 
-        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
+        self::assertEquals('{"class":"{\"argument\":\"value\",\"enum\":\"first\"}","enum":"\"first\"","argument":"value"}', $messagePayload);
         self::assertEquals($metadataSent['foo'], $messageHeaders->get('foo'));
         self::assertEquals($metadataSent['bar'], $messageHeaders->get('bar'));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
@@ -347,5 +347,15 @@ class EncryptAnnotatedMessagesTest extends TestCase
                     )
                 )
         );
+    }
+
+    private function decryptChannelMessagePayload(string $payload, Key $primaryKey): string
+    {
+        $payload = json_decode($payload, true);
+        foreach ($payload as $key => $value) {
+            $payload[$key] = Crypto::decrypt(base64_decode($value), $primaryKey);
+        }
+
+        return json_encode($payload);
     }
 }

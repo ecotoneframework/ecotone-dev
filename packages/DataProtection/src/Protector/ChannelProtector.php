@@ -4,7 +4,7 @@
  * licence Enterprise
  */
 
-namespace Ecotone\DataProtection\MessageEncryption;
+namespace Ecotone\DataProtection\Protector;
 
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Key;
@@ -12,7 +12,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 
-readonly class MessageEncryptor
+readonly class ChannelProtector
 {
     public function __construct(
         private Key $encryptionKey,

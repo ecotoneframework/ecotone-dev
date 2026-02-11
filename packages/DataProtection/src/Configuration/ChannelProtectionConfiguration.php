@@ -5,13 +5,13 @@ namespace Ecotone\DataProtection\Configuration;
 /**
  * licence Enterprise
  */
-class ChannelProtectionConfiguration
+readonly class ChannelProtectionConfiguration
 {
     private function __construct(
-        private string $channelName,
-        private ?string $encryptionKey,
-        private bool $isPayloadSensitive,
-        private array $sensitiveHeaders,
+        public string  $channelName,
+        public ?string $encryptionKey,
+        public bool    $isPayloadSensitive,
+        public array   $sensitiveHeaders,
     ) {
     }
 
@@ -20,29 +20,18 @@ class ChannelProtectionConfiguration
         return new self($channelName, $encryptionKey, $isPayloadSensitive, $sensitiveHeaders);
     }
 
-    public function channelName(): string
+    public function withEncryptionKey(string $encryptionKey): self
     {
-        return $this->channelName;
-    }
-
-    public function messageEncryptionConfig(): MessageEncryptionConfig
-    {
-        return new MessageEncryptionConfig($this->encryptionKey, $this->isPayloadSensitive, $this->sensitiveHeaders);
+        return self::create($this->channelName, $encryptionKey, $this->isPayloadSensitive, $this->sensitiveHeaders);
     }
 
     public function withSensitivePayload(bool $isPayloadSensitive): self
     {
-        $config = clone $this;
-        $config->isPayloadSensitive = $isPayloadSensitive;
-
-        return $config;
+        return self::create($this->channelName, $this->encryptionKey, $isPayloadSensitive, $this->sensitiveHeaders);
     }
 
     public function withSensitiveHeader(string $sensitiveHeader): self
     {
-        $config = clone $this;
-        $config->sensitiveHeaders[] = $sensitiveHeader;
-
-        return $config;
+        return self::create($this->channelName, $this->encryptionKey, $this->isPayloadSensitive, array_merge($this->sensitiveHeaders, [$sensitiveHeader]));
     }
 }

@@ -130,6 +130,10 @@ final class MessagingSystemConfiguration implements Configuration
      */
     private array $converterBuilders = [];
     /**
+     * @var CompilableBuilder[]
+     */
+    private array $dataProtectorBuilders = [];
+    /**
      * @var string[]
      */
     private array $messageConverterReferenceNames = [];
@@ -834,6 +838,16 @@ final class MessagingSystemConfiguration implements Configuration
     /**
      * @inheritDoc
      */
+    public function registerDataProtector(CompilableBuilder $dataProtectorBuilder): Configuration
+    {
+        $this->dataProtectorBuilders[] = $dataProtectorBuilder;
+
+        return $this;
+    }
+
+    /**
+     * @inheritDoc
+     */
     public function registerMessageConverter(string $referenceName): Configuration
     {
         $this->messageConverterReferenceNames[] = $referenceName;
@@ -913,11 +927,14 @@ final class MessagingSystemConfiguration implements Configuration
         // TODO: some service configuration should be handled at runtime. Here they are all cached in the container
         //        $messagingBuilder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));
 
-        $converters = [];
+        $converters = $dataEncryptors = [];
         foreach ($this->converterBuilders as $converterBuilder) {
             $converters[] = $converterBuilder->compile($messagingBuilder);
         }
-        $messagingBuilder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters]));
+        foreach ($this->dataProtectorBuilders as $encryptorBuilder) {
+            $dataEncryptors[] = $encryptorBuilder->compile($messagingBuilder);
+        }
+        $messagingBuilder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters, 'dataProtectors' => $dataEncryptors]));
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         $channelInterceptorsByChannelName = [];

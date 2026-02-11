@@ -11,11 +11,13 @@ use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\DataProtection\Attribute\Sensitive;
 use Ecotone\DataProtection\Attribute\WithEncryptionKey;
-use Ecotone\DataProtection\Attribute\WithSensitiveHeader;
 use Ecotone\DataProtection\Encryption\Key;
-use Ecotone\DataProtection\MessageEncryption\MessageEncryptor;
 use Ecotone\DataProtection\OutboundDecryptionChannelBuilder;
 use Ecotone\DataProtection\OutboundEncryptionChannelBuilder;
+use Ecotone\DataProtection\Protector\ChannelProtector;
+use Ecotone\DataProtection\Protector\DataDecryptor;
+use Ecotone\DataProtection\Protector\DataEncryptor;
+use Ecotone\DataProtection\Protector\DataProtectorConfig;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\Parameter\Header;
@@ -28,6 +30,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Handler\ClassPropertyDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
@@ -43,19 +46,19 @@ final class DataProtectionModule extends NoExternalConfigurationModule
     final public const KEY_SERVICE_ID_FORMAT = 'ecotone.encryption.key.%s';
 
     /**
-     * @param array<MessageEncryptionConfig> $encryptionConfigs
+     * @param array<DataProtectorConfig> $dataProtectorConfigs
      */
-    public function __construct(private array $encryptionConfigs)
+    public function __construct(private array $dataProtectorConfigs)
     {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        $encryptionConfigs = self::resolveEncryptionConfigsFromAnnotatedClasses($annotationRegistrationService->findAnnotatedClasses(Sensitive::class), $interfaceToCallRegistry);
-        $encryptionConfigs = self::resolveEncryptionConfigsFromAnnotatedMethods($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class), $encryptionConfigs, $interfaceToCallRegistry);
-        $encryptionConfigs = self::resolveEncryptionConfigsFromAnnotatedMethods($annotationRegistrationService->findAnnotatedMethods(EventHandler::class), $encryptionConfigs, $interfaceToCallRegistry);
+        $dataProtectorConfigs = self::resolveProtectorConfigsFromAnnotatedClasses($annotationRegistrationService->findAnnotatedClasses(Sensitive::class), $interfaceToCallRegistry);
+        $dataProtectorConfigs = self::resolveProtectorConfigsFromAnnotatedMethods($annotationRegistrationService->findAnnotatedMethods(CommandHandler::class), $dataProtectorConfigs, $interfaceToCallRegistry);
+        $dataProtectorConfigs = self::resolveProtectorConfigsFromAnnotatedMethods($annotationRegistrationService->findAnnotatedMethods(EventHandler::class), $dataProtectorConfigs, $interfaceToCallRegistry);
 
-        return new self($encryptionConfigs);
+        return new self($dataProtectorConfigs);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -82,39 +85,48 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             );
         }
 
-        $channelEncryptorReferences = $messageEncryptorReferences = [];
+        $channelProtectorReferences = $messageEncryptorReferences = [];
         foreach ($channelProtectionConfigurations as $channelProtectionConfiguration) {
             Assert::isTrue($messagingConfiguration->isPollableChannel($channelProtectionConfiguration->channelName()), sprintf('`%s` channel must be pollable channel to use Data Protection.', $channelProtectionConfiguration->channelName()));
 
-            $encryptionConfig = $channelProtectionConfiguration->messageEncryptionConfig();
             $messagingConfiguration->registerServiceDefinition(
-                id: $id = sprintf(self::ENCRYPTOR_SERVICE_ID_FORMAT, $channelProtectionConfiguration->channelName()),
+                id: $id = sprintf(self::ENCRYPTOR_SERVICE_ID_FORMAT, $channelProtectionConfiguration->channelName),
                 definition: new Definition(
-                    MessageEncryptor::class,
+                    ChannelProtector::class,
                     [
-                        Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $encryptionConfig->encryptionKeyName($dataProtectionConfiguration))),
-                        $encryptionConfig->isPayloadSensitive,
-                        $encryptionConfig->sensitiveHeaders,
+                        Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $dataProtectionConfiguration->keyName($channelProtectionConfiguration->encryptionKey))),
+                        $channelProtectionConfiguration->isPayloadSensitive,
+                        $channelProtectionConfiguration->sensitiveHeaders,
                     ],
                 )
             );
 
-            $channelEncryptorReferences[$channelProtectionConfiguration->channelName()] = Reference::to($id);
+            $channelProtectorReferences[$channelProtectionConfiguration->channelName()] = Reference::to($id);
         }
 
-        foreach ($this->encryptionConfigs as $messageClass => $encryptionConfig) {
-            $messagingConfiguration->registerServiceDefinition(
-                id: $id = sprintf(self::ENCRYPTOR_SERVICE_ID_FORMAT, $messageClass),
-                definition: new Definition(
-                    MessageEncryptor::class,
+        foreach ($this->dataProtectorConfigs as $protectorConfig) {
+            $messagingConfiguration->registerDataProtector(
+                new Definition(
+                    DataEncryptor::class,
                     [
-                        Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $encryptionConfig->encryptionKeyName($dataProtectionConfiguration))),
-                        $encryptionConfig->isPayloadSensitive,
-                        $encryptionConfig->sensitiveHeaders,
+                        $protectorConfig->supportedType,
+                        Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $protectorConfig->encryptionKeyName($dataProtectionConfiguration))),
+                        $protectorConfig->sensitiveProperties,
+                        $protectorConfig->scalarProperties,
                     ],
                 )
             );
-            $messageEncryptorReferences[$messageClass] = Reference::to($id);
+            $messagingConfiguration->registerDataProtector(
+                new Definition(
+                    DataDecryptor::class,
+                    [
+                        $protectorConfig->supportedType,
+                        Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $protectorConfig->encryptionKeyName($dataProtectionConfiguration))),
+                        $protectorConfig->sensitiveProperties,
+                        $protectorConfig->scalarProperties,
+                    ],
+                )
+            );
         }
 
         foreach (ExtensionObjectResolver::resolve(MessageChannelWithSerializationBuilder::class, $extensionObjects) as $pollableMessageChannel) {
@@ -125,14 +137,14 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             $messagingConfiguration->registerChannelInterceptor(
                 new OutboundEncryptionChannelBuilder(
                     relatedChannel: $pollableMessageChannel->getMessageChannelName(),
-                    channelEncryptorReference: $channelEncryptorReferences[$pollableMessageChannel->getMessageChannelName()] ?? null,
+                    channelEncryptorReference: $channelProtectorReferences[$pollableMessageChannel->getMessageChannelName()] ?? null,
                     messageEncryptorReferences: $messageEncryptorReferences,
                 )
             );
             $messagingConfiguration->registerChannelInterceptor(
                 new OutboundDecryptionChannelBuilder(
                     relatedChannel: $pollableMessageChannel->getMessageChannelName(),
-                    channelEncryptionReference: $channelEncryptorReferences[$pollableMessageChannel->getMessageChannelName()] ?? null,
+                    channelEncryptionReference: $channelProtectorReferences[$pollableMessageChannel->getMessageChannelName()] ?? null,
                     messageEncryptionReferences: $messageEncryptorReferences,
                 )
             );
@@ -154,21 +166,27 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         return ModulePackageList::DATA_PROTECTION_PACKAGE;
     }
 
-    private static function resolveEncryptionConfigsFromAnnotatedClasses(array $sensitiveMessages, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    private static function resolveProtectorConfigsFromAnnotatedClasses(array $sensitiveMessages, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
-        $encryptionConfigs = [];
+        $dataEncryptorConfigs = [];
         foreach ($sensitiveMessages as $message) {
-            $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::create($message));
+            $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor($messageType = Type::create($message));
             $encryptionKey = $classDefinition->findSingleClassAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
-            $sensitiveHeaders = array_map(static fn (WithSensitiveHeader $annotation) => $annotation->header, $classDefinition->getClassAnnotations(Type::create(WithSensitiveHeader::class)) ?? []);
 
-            $encryptionConfigs[$message] = new MessageEncryptionConfig(encryptionKey: $encryptionKey, isPayloadSensitive: true, sensitiveHeaders: $sensitiveHeaders);
+            $sensitiveProperties = $classDefinition->getPropertiesWithAnnotation(Type::create(Sensitive::class));
+            if ($sensitiveProperties === []) {
+                $sensitiveProperties = array_map(static fn (ClassPropertyDefinition $property): string => $property->getName(), $classDefinition->getProperties());
+            }
+
+            $scalarProperties = array_values(array_filter($sensitiveProperties, static fn (string $propertyName): bool => $classDefinition->getProperty($propertyName)->getType()->isScalar()));
+
+            $dataEncryptorConfigs[$message] = new DataProtectorConfig(supportedType: $messageType, encryptionKey: $encryptionKey, sensitiveProperties: $sensitiveProperties, scalarProperties: $scalarProperties);
         }
 
-        return $encryptionConfigs;
+        return $dataEncryptorConfigs;
     }
 
-    private static function resolveEncryptionConfigsFromAnnotatedMethods(array $annotatedMethods, array $encryptionConfigs, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    private static function resolveProtectorConfigsFromAnnotatedMethods(array $annotatedMethods, array $encryptionConfigs, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
         /** @var AnnotatedMethod $method */
         foreach ($annotatedMethods as $method) {
@@ -180,24 +198,17 @@ final class DataProtectionModule extends NoExternalConfigurationModule
                 || $payload->hasAnnotation(Headers::class)
                 || $payload->hasAnnotation(Reference::class)
                 || array_key_exists($payload->getTypeHint(), $encryptionConfigs)
+                || ! $payload->hasAnnotation(Sensitive::class)
             ) {
                 continue;
             }
 
-            $isPayloadSensitive = $payload->hasAnnotation(Sensitive::class);
-            if (! $isPayloadSensitive) {
-                continue;
-            }
-
+            $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor($payload->getTypeDescriptor());
             $encryptionKey = $payload->findSingleAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
-            $sensitiveHeaders = array_map(static fn (WithSensitiveHeader $annotation) => $annotation->header, $methodDefinition->getMethodAnnotationsOf(Type::create(WithSensitiveHeader::class)) ?? []);
-            foreach ($methodDefinition->getInterfaceParameters() as $parameter) {
-                if ($parameter->hasAnnotation(Header::class) && $parameter->hasAnnotation(Sensitive::class)) {
-                    $sensitiveHeaders[] = $parameter->getName();
-                }
-            }
+            $sensitiveProperties = array_map(static fn (ClassPropertyDefinition $property): string => $property->getName(), $classDefinition->getProperties());
+            $scalarProperties = array_values(array_filter($sensitiveProperties, static fn (string $propertyName): bool => $classDefinition->getProperty($propertyName)->getType()->isScalar()));
 
-            $encryptionConfigs[$payload->getTypeHint()] = new MessageEncryptionConfig(encryptionKey: $encryptionKey, isPayloadSensitive: true, sensitiveHeaders: $sensitiveHeaders);
+            $encryptionConfigs[$payload->getTypeHint()] = new DataProtectorConfig(supportedType: $payload->getTypeDescriptor(), encryptionKey: $encryptionKey, sensitiveProperties: $sensitiveProperties, scalarProperties: $scalarProperties);
         }
 
         return $encryptionConfigs;

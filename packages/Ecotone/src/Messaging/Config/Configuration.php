@@ -129,6 +129,8 @@ interface Configuration extends CompilerPass
      */
     public function registerConverter(CompilableBuilder $converterBuilder): Configuration;
 
+    public function registerDataProtector(CompilableBuilder $dataProtectorBuilder): Configuration;
+
     /**
      * @param string $referenceName
      * @return Configuration

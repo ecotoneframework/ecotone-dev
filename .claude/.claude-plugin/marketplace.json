@@ -44,7 +44,8 @@
         "./skills/ecotone-metadata",
         "./skills/ecotone-business-interface",
         "./skills/ecotone-laravel-setup",
-        "./skills/ecotone-symfony-setup"
+        "./skills/ecotone-symfony-setup",
+        "./skills/ecotone-enterprise"
       ]
     }
   ]

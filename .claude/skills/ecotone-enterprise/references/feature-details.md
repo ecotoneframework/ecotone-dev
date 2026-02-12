@@ -1,18 +1,25 @@
 # Enterprise Feature Details
 
-Detailed descriptions, extended examples, and project-fit guidance for each Enterprise feature.
+In-depth descriptions, code examples, and guidance for each Enterprise feature -- organized by the business need they address.
 
 ---
 
-## 1. Dynamic Message Channels
+## Multi-Tenant & Routing
 
-### Problem It Solves
+### Dynamic Message Channels
 
-In multi-tenant SaaS applications, each tenant typically needs isolated message processing -- separate queues, independent scaling, failure isolation. Without Dynamic Message Channels, you'd build custom routing logic, manage per-tenant channel creation, and wire everything manually.
+#### You'll Know You Need This When
 
-### How It Works
+- You're onboarding multiple tenants and each needs isolated message processing
+- A noisy tenant's queue backlog is affecting other tenants' latency
+- You need blue/green or canary deployment strategies for message routing
+- You're building per-tenant scaling and don't want to manage routing code yourself
 
-Dynamic Message Channels let you select the target channel at runtime based on message content, headers, or custom logic:
+#### What It Replaces
+
+Without Dynamic Message Channels, multi-tenant routing means building custom queue selectors, managing per-tenant channel creation, and wiring routing logic throughout your application. This infrastructure code grows with every new tenant and becomes a maintenance burden.
+
+#### How It Works
 
 **Round-Robin Strategy** -- distribute load across channels:
 ```php
@@ -37,22 +44,40 @@ DynamicMessageChannelBuilder::createWithHeaderBasedStrategy(
 );
 ```
 
-### When to Recommend
-
-- Multi-tenant applications needing per-tenant queue isolation
-- Load distribution across multiple consumers
-- Dynamic scaling where channels are added/removed at runtime
-- Deployments requiring canary or blue/green message routing
+Declare the routing once. Ecotone manages channel selection, and new tenants are added by updating the mapping -- no handler code changes.
 
 ---
 
-## 2. Orchestrators
+### Asynchronous Message Buses
 
-### Problem It Solves
+#### You'll Know You Need This When
 
-Complex business processes often involve multiple sequential steps (validate, process, notify, etc.). With sagas, you react to events and track state. With stateless handler chaining, you wire `outputChannelName` manually. Both approaches couple the workflow definition to the step implementation. Orchestrators separate the two cleanly.
+- Your entire application should process commands in the background, not just individual handlers
+- You're building a write API that accepts commands and queues all of them for async processing
+- Adding `#[Asynchronous]` to every handler individually has become repetitive
 
-### How It Works
+#### What It Replaces
+
+Instead of annotating each handler with `#[Asynchronous]`, configure the bus itself as asynchronous. One configuration change, and every message dispatched through that bus is automatically routed through the configured async channel.
+
+---
+
+## Workflow & Orchestration
+
+### Orchestrators
+
+#### You'll Know You Need This When
+
+- You have multi-step business processes (order fulfillment, payment processing, onboarding flows) and the workflow logic is scattered across event handlers
+- Business stakeholders ask "what are the steps in this process?" and the answer requires reading multiple files
+- You need to add, remove, or reorder steps in a process and it touches code in many places
+- Different inputs should trigger different step sequences (e.g., digital vs. physical product fulfillment)
+
+#### What It Replaces
+
+With sagas, you react to events and track state -- powerful but the workflow definition is implicit. With stateless handler chaining via `outputChannelName`, you wire steps manually and the sequence is spread across handler attributes. Orchestrators give you one place that defines the entire flow.
+
+#### How It Works
 
 **Define the workflow** -- return an array of step channel names:
 ```php
@@ -97,7 +122,7 @@ class OrderFulfillmentOrchestrator
 }
 ```
 
-**Expose via business interface**:
+**Expose via business interface:**
 ```php
 interface OrderFulfillmentProcess
 {
@@ -106,7 +131,7 @@ interface OrderFulfillmentProcess
 }
 ```
 
-**Dynamic step lists** -- conditionally include/exclude steps:
+**Dynamic step lists** -- adapt the workflow based on input:
 ```php
 #[Orchestrator(inputChannelName: 'process.order', endpointId: 'dynamic-order')]
 public function process(OrderData $data): array
@@ -123,78 +148,85 @@ public function process(OrderData $data): array
 }
 ```
 
-### When to Recommend
-
-- Multi-step business processes with clearly defined sequence
-- Workflows where steps should be independently testable and reusable
-- Processes that need dynamic step selection based on input data
-- When business stakeholders need to see the process flow at a glance
+Each step is an independent `#[InternalHandler]` -- testable in isolation, reusable across orchestrators, and the workflow definition reads like a checklist.
 
 ---
 
-## 3. Distributed Bus with Service Map
+## Cross-Service Communication
 
-### Problem It Solves
+### Distributed Bus with Service Map
 
-In microservice architectures, services need to communicate via commands and events across different message brokers. Typically each inter-service connection requires custom integration code per broker type.
+#### You'll Know You Need This When
 
-### How It Works
+- You're running 3+ microservices that need to exchange commands and events
+- Different services use different message brokers (some RabbitMQ, some SQS) and you need them to communicate
+- You're migrating from one broker to another and want to do it incrementally without rewriting application code
+- Building custom inter-service messaging wiring for each service pair has become unsustainable
 
-Define a service map that declares which services exist and how to reach them. Ecotone routes messages transparently across services regardless of the underlying transport (RabbitMQ, SQS, Redis, Kafka).
+#### What It Replaces
 
-### When to Recommend
-
-- Microservice architectures with 3+ services
-- Mixed broker environments (some services use RabbitMQ, others SQS)
-- Teams wanting to send cross-service commands/events with the same API as local ones
-- Migration scenarios where broker technology is changing incrementally
+Without Service Map, every cross-service connection requires custom integration code per broker type. Adding a new service means wiring it to every other service manually. With Service Map, you declare which services exist and how to reach them -- Ecotone routes messages transparently, regardless of transport.
 
 ---
 
-## 4. Kafka Integration
+### Kafka Integration
 
-### Problem It Solves
+#### You'll Know You Need This When
 
-Event streaming with Apache Kafka requires significant boilerplate: producer/consumer configuration, serialization, offset management, error handling. Teams using Ecotone's attribute-driven model lose that simplicity when integrating Kafka directly.
+- You're handling high-throughput event streaming (100k+ events/sec)
+- Multiple services need to consume the same event stream independently
+- You have existing Kafka infrastructure and want to use it with Ecotone's attribute-driven model
+- RabbitMQ throughput has become a bottleneck for your event volume
 
-### How It Works
+#### What It Replaces
 
-Use the same `#[Asynchronous]` attribute and message channel abstractions. Kafka channels are configured as message channel builders and handlers consume from them identically to any other transport.
-
-### When to Recommend
-
-- High-throughput event streaming scenarios (100k+ events/sec)
-- Event log that multiple services consume independently
-- Integration with existing Kafka infrastructure
-- When RabbitMQ throughput is insufficient for the use case
+Direct Kafka integration requires significant boilerplate: producer/consumer configuration, serialization setup, offset management, error handling. With Ecotone's Kafka support, you use the same `#[Asynchronous]` attribute and message channel abstractions -- Kafka channels work identically to any other transport.
 
 ---
 
-## 5. Asynchronous Message Buses
+### RabbitMQ Streaming Channel
 
-### Problem It Solves
+#### You'll Know You Need This When
 
-By default, command and event buses dispatch synchronously. Making individual handlers async requires adding `#[Asynchronous]` to each one. When the entire bus should be async (e.g., all commands queued for background processing), this is repetitive.
+- You need multiple independent consumers reading the same event stream, each tracking their own position
+- You have existing RabbitMQ infrastructure and don't want the operational overhead of adding Kafka
+- You need event replay capabilities where consumers can re-read from specific positions
+- Standard RabbitMQ queues (where consumed messages disappear) don't fit your architecture
 
-### How It Works
+#### What It Replaces
 
-Configure the command or event bus itself as asynchronous. All messages dispatched through that bus are automatically routed through the configured async channel.
-
-### When to Recommend
-
-- Applications where all command processing should be queued
-- Background job systems where synchronous dispatch is never needed
-- Architectures separating the write API (accepts commands) from processing (consumes asynchronously)
+Standard RabbitMQ queues are consumed destructively -- once a message is consumed, it's gone. For event streaming with independent consumers, you'd typically add Kafka. RabbitMQ Streaming Channels give you Kafka-like semantics on your existing RabbitMQ infrastructure -- persistent streams, independent consumer positions, replay from any offset.
 
 ---
 
-## 6. Command Bus Instant Retries
+### RabbitMQ Consumer
 
-### Problem It Solves
+#### You'll Know You Need This When
 
-Transient failures (database deadlocks, temporary network blips) cause command handlers to fail unnecessarily. Manual retry logic clutters business code with try/catch loops and retry counters.
+- Your custom RabbitMQ consumer scripts need manual connection handling, reconnection logic, and shutdown management
+- Consumer processes crash on connection drops and require external restart supervision
+- You need health checks and graceful shutdown for containerized deployments
 
-### Extended Example
+#### What It Replaces
+
+Setting up production-grade RabbitMQ consumers requires boilerplate for connection lifecycle, reconnection on failure, graceful shutdown signals, and health check endpoints. A single attribute replaces all of that with built-in resiliency patterns.
+
+---
+
+## Production Hardening
+
+### Command Bus Instant Retries
+
+#### You'll Know You Need This When
+
+- Database deadlocks cause intermittent command handler failures
+- External API calls fail transiently and a simple retry would succeed
+- You have try/catch retry loops scattered across your handlers
+- High-concurrency scenarios produce optimistic locking collisions that resolve on retry
+
+#### What It Replaces
+
+Manual retry logic clutters business code with try/catch loops, retry counters, and exception filtering. One attribute replaces all of that:
 
 ```php
 use Ecotone\Messaging\Attribute\InstantRetry;
@@ -215,18 +247,22 @@ class InventoryService
 }
 ```
 
-### When to Recommend
-
-- Handlers interacting with databases prone to deadlocks
-- Integration with external APIs that have transient failures
-- High-concurrency scenarios where optimistic locking collisions are expected
-- When the team currently has manual retry logic scattered across handlers
+Specify which exceptions to retry and how many times. Handlers stay focused on business logic.
 
 ---
 
-## 7. Command Bus Error Channel
+### Command Bus Error Channel
 
-### Extended Example
+#### You'll Know You Need This When
+
+- Failed commands need specific error handling: alerting, manual review, or audit trails
+- Payment or financial operations require failure tracking for compliance
+- Different command categories need different error handling strategies
+- Scattered try/catch blocks in handlers are becoming unmanageable
+
+#### What It Replaces
+
+Instead of catching exceptions in each handler and manually routing to error handling, declare the error channel once:
 
 ```php
 #[ErrorChannel("dbal_dead_letter")]
@@ -235,81 +271,49 @@ interface ResilientCommandBus extends CommandBus
 }
 ```
 
-### When to Recommend
-
-- Handlers where failures need specific error handling (alerting, manual review)
-- Payment or financial operations requiring audit trails for failures
-- When different handler categories need different error handling strategies
-- Replacing scattered try/catch blocks with centralized error routing
+Failed messages are automatically routed to the designated channel for retry, logging, or dead-letter processing.
 
 ---
 
-## 8. Gateway-Level Deduplication
+### Gateway-Level Deduplication
 
-### Problem It Solves
+#### You'll Know You Need This When
 
-Duplicate commands can arise from user double-clicks, network retries, or message replay. Without bus-level deduplication, each handler must implement its own idempotency checks.
+- Users double-click submit buttons and create duplicate orders or payments
+- Webhook providers retry delivery and your handlers process the same event twice
+- Message replay during recovery causes duplicate processing
+- Your handlers contain manual deduplication checks against deduplication tables
 
-### When to Recommend
+#### What It Replaces
 
-- E-commerce (preventing double orders, double payments)
-- Financial systems (preventing duplicate transactions)
-- Any system receiving commands from unreliable networks (mobile, webhooks)
-- When handlers currently contain manual deduplication logic
-
----
-
-## 9. Instant Aggregate Fetch
-
-### Problem It Solves
-
-Standard aggregate handling requires injecting a repository, fetching the aggregate, calling the method, and saving. This infrastructure code obscures business logic.
-
-### When to Recommend
-
-- Projects with many aggregate command handlers that follow the fetch-modify-save pattern
-- Teams wanting to keep domain code purely about business logic
-- Codebases where repository injection adds significant boilerplate
+Without bus-level deduplication, each handler needs its own idempotency checks -- deduplication tables, unique constraint guards, manual ID tracking. Ecotone handles this at the gateway level, so every handler behind that bus is automatically protected without any per-handler code.
 
 ---
 
-## 10. Advanced Event Sourcing Handlers (with Metadata)
+## Domain Code Clarity
 
-### Problem It Solves
+### Instant Aggregate Fetch
 
-During aggregate reconstruction from events, sometimes the reconstruction logic needs access to event metadata (source system, tenant context, environment flags). Standard `#[EventSourcingHandler]` methods only receive the event payload.
+#### You'll Know You Need This When
 
-### When to Recommend
+- Every aggregate command handler follows the same pattern: inject repository, fetch aggregate, call method, save
+- Repository injection boilerplate obscures the actual business logic in your handlers
+- You want your domain code to express "what happens" without "how to load it"
 
-- Multi-tenant event-sourced systems where reconstruction varies by tenant
-- Event streams merged from multiple source systems
-- Aggregates that need context-aware state rebuilding
+#### What It Replaces
 
----
-
-## 11. RabbitMQ Streaming Channel
-
-### Problem It Solves
-
-Standard RabbitMQ queues are consumed destructively -- once a message is consumed, it's gone. For event streaming where multiple consumers need to read the same events independently (each tracking their own position), you'd typically need Kafka.
-
-### When to Recommend
-
-- Teams with existing RabbitMQ infrastructure wanting streaming semantics
-- Multiple independent consumers reading the same event stream
-- Avoiding the operational complexity of adding Kafka alongside RabbitMQ
-- Event replay scenarios where consumers need to re-read from specific positions
+Standard aggregate handling requires explicit repository injection and fetch/save calls. With Instant Aggregate Fetch, aggregates arrive in your handler automatically -- no repository boilerplate, just business logic.
 
 ---
 
-## 12. Rabbit Consumer
+### Advanced Event Sourcing Handlers (with Metadata)
 
-### Problem It Solves
+#### You'll Know You Need This When
 
-Setting up RabbitMQ consumers with proper lifecycle management (connection handling, reconnection on failure, graceful shutdown, health checks) requires significant boilerplate.
+- Your event-sourced aggregates serve multiple tenants and reconstruction logic varies by tenant context
+- Event streams are merged from multiple source systems and you need to distinguish origin during replay
+- You need to apply different state reconstruction logic based on event metadata without polluting event payloads
 
-### When to Recommend
+#### What It Replaces
 
-- Production deployments needing resilient RabbitMQ consumers
-- Replacing custom consumer process management scripts
-- When consumer processes need built-in health checks and graceful shutdown
+Standard `#[EventSourcingHandler]` methods only receive the event payload. When reconstruction needs context (tenant, source system, environment), you'd have to embed that context in the event itself -- polluting domain events with infrastructure concerns. Metadata-aware handlers receive event metadata as a separate parameter, keeping events clean and reconstruction context-aware.

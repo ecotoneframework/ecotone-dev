@@ -1,10 +1,11 @@
 ---
 name: ecotone-business-interface
 description: >-
-  Creates Ecotone business interfaces: DBAL query interfaces, repository
-  abstractions, expression language usage, and media type converters.
-  Use when creating database queries, custom repositories, data
-  converters, or business method interfaces.
+  Creates Ecotone business interfaces (gateways): DBAL query interfaces
+  with #[DbalBusinessMethod], repository abstractions, expression language
+  parameters, and media type converters. Use when creating database query
+  interfaces, custom repository gateways, data converters, or abstract
+  interface-based message sending with BusinessMethod.
 ---
 
 # Ecotone Business Interfaces

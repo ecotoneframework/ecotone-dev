@@ -2,10 +2,11 @@
 name: ecotone-asynchronous
 description: >-
   Implements asynchronous message processing in Ecotone: message channels,
-  #[Asynchronous] attribute, polling consumers, delayed messages,
-  priority, time to live, scheduling, and dynamic channels.
-  Use when working with async processing, message channels,
-  delayed delivery, scheduling, priority, TTL, or dynamic channel routing.
+  #[Asynchronous] attribute, #[Poller] configuration, delayed messages,
+  priority, time to live, scheduling, and dynamic channels. Use when
+  running handlers in background, configuring message queues, async
+  processing, delayed delivery, scheduling, priority, TTL, or dynamic
+  channel routing.
 ---
 
 # Ecotone Asynchronous Processing

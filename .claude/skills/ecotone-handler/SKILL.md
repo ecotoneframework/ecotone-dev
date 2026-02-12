@@ -1,10 +1,11 @@
 ---
 name: ecotone-handler
 description: >-
-  Creates Ecotone message handlers with PHP attributes, proper
-  endpointId configuration, and routing patterns. Covers CommandHandler,
-  EventHandler, QueryHandler, and message metadata.
-  Use when creating or modifying message handlers.
+  Creates Ecotone message handlers: #[CommandHandler], #[EventHandler],
+  #[QueryHandler] with proper endpointId, routing keys, and return types.
+  Use when creating or modifying command/event/query handlers, defining
+  handler routing, or adding #[CommandHandler]/#[EventHandler]/#[QueryHandler]
+  attributes to standalone service classes.
 ---
 
 # Ecotone Message Handlers

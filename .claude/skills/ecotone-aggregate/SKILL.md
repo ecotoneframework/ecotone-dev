@@ -1,10 +1,11 @@
 ---
 name: ecotone-aggregate
 description: >-
-  Creates DDD aggregates following Ecotone patterns: state-stored and
-  event-sourced variants with proper identifier mapping, factory patterns,
-  and command handler wiring. Use when creating aggregates, entities with
-  command handlers, or domain models.
+  Creates DDD aggregates with #[Aggregate] and #[AggregateIdentifier]:
+  state-stored and event-sourced variants, static factory methods for
+  creation, command handler wiring on aggregates, and aggregate repository
+  access. Use when creating aggregates, domain entities with command
+  handlers, or event-sourced domain models in Ecotone.
 ---
 
 # Ecotone Aggregates

@@ -1,12 +1,11 @@
 ---
 name: ecotone-metadata
 description: >-
-  Implements message metadata (headers) in Ecotone: passing metadata to handlers
-  via #[Header] and #[Headers], enriching with #[AddHeader]/#[RemoveHeader],
-  modifying via interceptors with changeHeaders, automatic propagation from
-  commands to events, and testing metadata with EcotoneLite.
-  Use when working with message headers, metadata passing, header enrichment,
-  metadata propagation, or testing metadata flows.
+  Implements message metadata (headers) in Ecotone: #[Header] and #[Headers]
+  for reading, #[AddHeader]/#[RemoveHeader] for enrichment, changeHeaders in
+  interceptors, automatic propagation from commands to events. Use when
+  passing custom headers, reading message metadata, enriching headers,
+  propagating metadata across handlers, or testing metadata with EcotoneLite.
 ---
 
 # Ecotone Message Metadata

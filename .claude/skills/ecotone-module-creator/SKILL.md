@@ -5,7 +5,6 @@ description: >-
   module registration, Configuration building, and package template
   usage. Use when creating new framework modules, extending the module
   system, or scaffolding new packages.
-disable-model-invocation: true
 argument-hint: "[module-name]"
 ---
 

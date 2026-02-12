@@ -1,11 +1,12 @@
 ---
 name: ecotone-symfony-setup
 description: >-
-  Sets up Ecotone in Symfony: composer installation, bundle registration,
-  YAML configuration, Doctrine ORM integration, SymfonyConnectionReference
-  for DBAL, Symfony Messenger channels, async consumer commands, and
-  ServiceContext configuration. Use when installing, configuring, or
-  integrating Ecotone with Symfony.
+  Sets up Ecotone in a Symfony project: composer installation, bundle
+  registration, YAML configuration, Doctrine ORM integration,
+  SymfonyConnectionReference for DBAL, Symfony Messenger channels, async
+  consumer commands, and ServiceContext. Use when installing Ecotone in
+  Symfony, configuring Symfony-specific connections, or setting up
+  Symfony async consumers.
 ---
 
 # Ecotone Symfony Setup

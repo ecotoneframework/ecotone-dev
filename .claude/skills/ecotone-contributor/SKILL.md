@@ -3,9 +3,9 @@ name: ecotone-contributor
 description: >-
   Guides Ecotone framework contributions: dev environment setup, monorepo
   navigation, running tests, PR workflow, and package split mechanics.
-  Use when setting up development, preparing PRs, validating changes,
-  or understanding the monorepo structure.
-disable-model-invocation: true
+  Use when setting up development environment, preparing PRs, validating
+  changes, running tests across packages, or understanding the monorepo
+  structure.
 argument-hint: "[package-name]"
 ---
 

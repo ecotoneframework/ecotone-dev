@@ -3,9 +3,10 @@ name: ecotone-interceptors
 description: >-
   Implements Ecotone interceptors and middleware: #[Before], #[After],
   #[Around], #[Presend] attributes with pointcut targeting, precedence
-  ordering, header modification, and MethodInvocation flow control.
-  Use when adding interceptors, middleware, cross-cutting concerns,
-  hooking into handler execution, or implementing transactions/logging/auth.
+  ordering, header modification, and MethodInvocation. Use when adding
+  interceptors, middleware, cross-cutting concerns like transactions/
+  logging/authorization, hooking into handler execution, or modifying
+  messages before/after handling.
 ---
 
 # Ecotone Interceptors

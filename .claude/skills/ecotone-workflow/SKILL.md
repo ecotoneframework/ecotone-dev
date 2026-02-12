@@ -3,9 +3,9 @@ name: ecotone-workflow
 description: >-
   Implements workflows in Ecotone: Sagas (stateful process managers),
   stateless workflows with InternalHandler and outputChannelName chaining,
-  and Orchestrators (Enterprise) with routing slip pattern.
-  Use when building Sagas, process managers, multi-step workflows,
-  InternalHandlers, Orchestrators, or channel-based handler chaining.
+  and Orchestrators (Enterprise) with routing slip pattern. Use when
+  building Sagas, process managers, multi-step workflows, long-running
+  processes, handler chaining, or Orchestrators.
 ---
 
 # Ecotone Workflows

@@ -1,11 +1,11 @@
 ---
 name: ecotone-laravel-setup
 description: >-
-  Sets up Ecotone in Laravel: composer installation, auto-discovery,
+  Sets up Ecotone in a Laravel project: composer installation, auto-discovery,
   config/ecotone.php, Eloquent ORM integration, LaravelConnectionReference
   for DBAL, Laravel Queue channels, artisan consumer commands, and
-  ServiceContext configuration. Use when installing, configuring, or
-  integrating Ecotone with Laravel.
+  ServiceContext. Use when installing Ecotone in Laravel, configuring
+  Laravel-specific connections, or setting up Laravel async consumers.
 ---
 
 # Ecotone Laravel Setup

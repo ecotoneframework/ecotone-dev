@@ -1,13 +1,12 @@
 ---
 name: ecotone-distribution
 description: >-
-  Implements distributed messaging between services in Ecotone:
-  #[Distributed] attribute for event and command handlers,
-  DistributedBus for cross-service communication,
-  DistributedServiceMap for service routing configuration,
-  and MessagePublisher for channel-based messaging.
-  Use when setting up communication between applications,
-  distributed event/command handlers, or message publishing with Service Map.
+  Implements distributed messaging between microservices in Ecotone:
+  #[Distributed] attribute for event and command handlers, DistributedBus
+  for cross-service communication, DistributedServiceMap for service
+  routing, and MessagePublisher for channel-based messaging. Use when
+  setting up communication between applications/microservices, distributed
+  event/command handlers, or message publishing with Service Map.
 ---
 
 # Ecotone Distribution

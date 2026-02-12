@@ -1,12 +1,12 @@
 ---
 name: ecotone-resiliency
 description: >-
-  Implements message resiliency in Ecotone: retry strategies with
-  RetryTemplateBuilder, error channels, ErrorHandlerConfiguration,
-  DBAL dead letter queues, outbox pattern for guaranteed delivery,
-  and FinalFailureStrategy for consumer-level failure handling.
-  Use when setting up retries, error handling, dead letter queues,
-  outbox pattern, or failure strategies.
+  Implements message resiliency in Ecotone: RetryTemplateBuilder for retry
+  strategies, error channels, ErrorHandlerConfiguration, DBAL dead letter
+  queues, outbox pattern for guaranteed delivery, and FinalFailureStrategy
+  for permanent failures. Use when handling failed messages, configuring
+  retries, setting up dead letter queues, implementing outbox pattern,
+  or managing error channels.
 ---
 
 # Ecotone Resiliency

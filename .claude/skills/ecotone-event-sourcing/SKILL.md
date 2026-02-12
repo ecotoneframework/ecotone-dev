@@ -1,10 +1,11 @@
 ---
 name: ecotone-event-sourcing
 description: >-
-  Implements event sourcing in Ecotone: ProjectionV2 with partitioning
-  and streaming, event store configuration, event versioning/upcasting,
-  and Dynamic Consistency Boundary (DCB) patterns. Use when working with
-  projections, event store, event versioning, or DCB.
+  Implements event sourcing in Ecotone: #[Projection] with partitioning
+  and streaming, EventStore configuration, event versioning/upcasting,
+  and Dynamic Consistency Boundary (DCB). Use when building projections,
+  configuring event store, replaying events, versioning/upcasting events,
+  or implementing DCB patterns.
 ---
 
 # Ecotone Event Sourcing

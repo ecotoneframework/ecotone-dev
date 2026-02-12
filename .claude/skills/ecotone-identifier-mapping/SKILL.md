@@ -2,10 +2,10 @@
 name: ecotone-identifier-mapping
 description: >-
   Implements identifier mapping for Ecotone aggregates and sagas: native ID
-  resolution from message properties, aggregate.id metadata override,
-  #[TargetIdentifier] on commands/events, identifierMapping expressions on
-  handler attributes, and #[IdentifierMethod] for method-based identifiers.
-  Use when wiring commands/events to aggregates or sagas by identifier.
+  resolution, aggregate.id metadata, #[TargetIdentifier], identifierMapping
+  expressions, and #[IdentifierMethod]. Use when wiring commands/events to
+  aggregates or sagas by identifier, resolving aggregate IDs from messages,
+  or mapping event properties to saga identifiers.
 ---
 
 # Ecotone Identifier Mapping

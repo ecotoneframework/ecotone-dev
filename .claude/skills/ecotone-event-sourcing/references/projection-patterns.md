@@ -240,6 +240,8 @@ class ProjectionV1 { }
 
 ## Testing Projections
 
+### Testing with Aggregate (command-driven)
+
 ```php
 public function test_projection(): void
 {
@@ -271,6 +273,46 @@ public function test_projection(): void
     $this->assertCount(2, $tickets);  // Rebuilt from events
 }
 ```
+
+### Testing with withEventStream (no Aggregate needed)
+
+Use `withEventStream` to append events directly to a stream, bypassing the need for an Aggregate.
+This is useful when testing projections in isolation — only the projection class and event classes are needed.
+
+```php
+use Ecotone\EventSourcing\Event;
+
+public function test_projection_with_direct_events(): void
+{
+    $projection = new TicketListProjection();
+
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
+        classesToResolve: [TicketListProjection::class],
+        containerOrAvailableServices: [$projection],
+    );
+
+    $ecotone->initializeProjection('ticket_list');
+
+    // Append events directly to the stream — no Aggregate required
+    $ecotone->withEventStream(Ticket::class, [
+        Event::create(new TicketWasRegistered('t-1', 'Bug')),
+        Event::create(new TicketWasRegistered('t-2', 'Feature')),
+        Event::create(new TicketWasClosed('t-1')),
+    ]);
+
+    $ecotone->triggerProjection('ticket_list');
+
+    $tickets = $ecotone->sendQueryWithRouting('getTickets');
+    $this->assertCount(2, $tickets);
+    $this->assertSame('closed', $ecotone->sendQueryWithRouting('getTicket', metadata: ['ticketId' => 't-1'])['status']);
+}
+```
+
+Key points:
+- Use `bootstrapFlowTesting` (no EventStore bootstrap needed) — the in-memory event store is registered automatically
+- Stream name in `withEventStream` must match the `#[FromStream]` attribute on the projection (here `Ticket::class`)
+- Wrap each event in `Event::create()` from `Ecotone\EventSourcing\Event`
+- No Aggregate class is registered in `classesToResolve`
 
 ## Validation Rules
 

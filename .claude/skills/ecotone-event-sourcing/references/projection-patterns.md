@@ -65,8 +65,8 @@ use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionState;
 
-#[ProjectionV2('ticket_details')]
 #[Partitioned]
+#[ProjectionV2('ticket_details')]
 #[FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
 class TicketDetailsProjection
 {
@@ -103,8 +103,8 @@ Partitioned projection rules:
 ```php
 use Ecotone\Projecting\Attribute\Polling;
 
-#[ProjectionV2('order_summary')]
 #[Polling('orderSummaryEndpoint')]
+#[ProjectionV2('order_summary')]
 #[FromStream(Order::class)]
 class OrderSummaryProjection
 {
@@ -128,8 +128,8 @@ $ecotone->run('orderSummaryEndpoint', ExecutionPollingMetadata::createWithTestin
 ```php
 use Ecotone\Projecting\Attribute\Streaming;
 
-#[ProjectionV2('live_dashboard')]
 #[Streaming('dashboard_channel')]
+#[ProjectionV2('live_dashboard')]
 #[FromStream(Order::class)]
 class LiveDashboardProjection
 {
@@ -226,16 +226,16 @@ class BackfillableProjection { }
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
 
 // Non-live: EventStreamEmitter events are suppressed
-#[ProjectionV2('new_proj')]
+#[ProjectionV2('projection_v2')]
 #[ProjectionDeployment(live: false)]
 #[FromStream(Ticket::class)]
-class NewProjection { }
+class ProjectionV2 { }
 
 // Manual kickoff: requires explicit initialization
-#[ProjectionV2('manual_proj')]
+#[ProjectionV2('projection_v1')]
 #[ProjectionDeployment(manualKickOff: true)]
 #[FromStream(Ticket::class)]
-class ManualProjection { }
+class ProjectionV1 { }
 ```
 
 ## Testing Projections

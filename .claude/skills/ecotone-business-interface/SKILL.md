@@ -164,6 +164,62 @@ interface CustomOrderRepository
 }
 ```
 
+## 6. Testing Business Interfaces
+
+```php
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Config\ModulePackageList;
+
+public function test_dbal_query_interface(): void
+{
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
+        containerOrAvailableServices: [
+            DbalConnectionFactory::class => $this->getConnectionFactory(),
+            PersonNameDTOConverter::class => new PersonNameDTOConverter(),
+        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ModulePackageList::DBAL_PACKAGE,
+                ModulePackageList::JMS_CONVERTER_PACKAGE,
+            ]))
+            ->withNamespaces(['App\ReadModel']),
+    );
+
+    /** @var PersonService $writeGateway */
+    $writeGateway = $ecotone->getGateway(PersonService::class);
+    $writeGateway->insert(1, 'John');
+
+    /** @var PersonQueryApi $queryGateway */
+    $queryGateway = $ecotone->getGateway(PersonQueryApi::class);
+
+    $this->assertEquals(
+        [['person_id' => 1, 'name' => 'John']],
+        $queryGateway->getNameList(1, 0)
+    );
+}
+
+public function test_business_method_gateway(): void
+{
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
+        [NotificationHandler::class],
+        [new NotificationHandler()],
+    );
+
+    /** @var NotificationGateway $gateway */
+    $gateway = $ecotone->getGateway(NotificationGateway::class);
+    $gateway->send('Hello', 'user@example.com');
+
+    // Assert on handler side effects
+}
+```
+
+Key testing patterns:
+- Use `$ecotone->getGateway(InterfaceClass::class)` to get the auto-generated implementation
+- For DBAL interfaces, provide `DbalConnectionFactory` and converters as services
+- Use `withNamespaces()` to specify where interfaces are located
+- Business method gateways are tested by calling the interface method and asserting handler side effects
+
 ## Key Rules
 
 - DBAL interfaces use method parameters as SQL bind parameters (`:paramName`)

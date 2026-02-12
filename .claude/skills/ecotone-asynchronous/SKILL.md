@@ -2,9 +2,9 @@
 name: ecotone-asynchronous
 description: >-
   Implements asynchronous message processing in Ecotone: message channels,
-  #[Asynchronous] attribute, polling consumers, Sagas, delayed messages,
+  #[Asynchronous] attribute, polling consumers, delayed messages,
   priority, time to live, scheduling, and dynamic channels.
-  Use when working with async processing, message channels, Sagas,
+  Use when working with async processing, message channels,
   delayed delivery, scheduling, priority, TTL, or dynamic channel routing.
 ---
 
@@ -87,55 +87,7 @@ Running consumers:
 bin/console ecotone:run notifications --handledMessageLimit=100
 ```
 
-## 4. Sagas (Process Managers)
-
-```php
-use Ecotone\Modelling\Attribute\Saga;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\EventHandler;
-
-#[Saga]
-class OrderFulfillmentSaga
-{
-    #[Identifier]
-    private string $orderId;
-    private bool $paymentReceived = false;
-    private bool $itemsShipped = false;
-
-    #[EventHandler]
-    public static function start(OrderWasPlaced $event): self
-    {
-        $saga = new self();
-        $saga->orderId = $event->orderId;
-        return $saga;
-    }
-
-    #[EventHandler]
-    public function onPaymentReceived(PaymentWasReceived $event): void
-    {
-        $this->paymentReceived = true;
-        $this->checkCompletion();
-    }
-
-    #[EventHandler]
-    public function onItemsShipped(ItemsWereShipped $event): void
-    {
-        $this->itemsShipped = true;
-        $this->checkCompletion();
-    }
-
-    private function checkCompletion(): void
-    {
-        if ($this->paymentReceived && $this->itemsShipped) {
-            // Saga complete — could publish event or send command
-        }
-    }
-}
-```
-
-`#[Saga]` extends the aggregate concept — sagas have `#[Identifier]` and are stored like aggregates.
-
-## 5. Delayed Messages
+## 4. Delayed Messages
 
 ```php
 use Ecotone\Messaging\Attribute\Delayed;
@@ -157,7 +109,7 @@ use Ecotone\Messaging\Scheduling\TimeSpan;
 $ecotone->run('reminders', null, TimeSpan::withSeconds(60));
 ```
 
-## 6. Priority
+## 5. Priority
 
 ```php
 use Ecotone\Messaging\Attribute\Endpoint\Priority;
@@ -181,7 +133,7 @@ class OrderService
 - Can be applied at `TARGET_CLASS` or `TARGET_METHOD` level
 - Default priority is `1`
 
-## 7. Time to Live
+## 6. Time to Live
 
 ```php
 use Ecotone\Messaging\Attribute\Endpoint\TimeToLive;
@@ -207,7 +159,7 @@ class NotificationService
 - Accepts integer (milliseconds), `TimeSpan` object, or an expression string
 - Can be applied at `TARGET_CLASS` or `TARGET_METHOD` level
 
-## 8. Scheduling
+## 7. Scheduling
 
 ```php
 use Ecotone\Messaging\Attribute\Scheduled;
@@ -234,7 +186,7 @@ Running scheduled consumers:
 bin/console ecotone:run reportScheduler
 ```
 
-## 9. Dynamic Channel
+## 8. Dynamic Channel
 
 ```php
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
@@ -273,7 +225,7 @@ $channel = DynamicMessageChannelBuilder::createRoundRobin('orders', ['ch1', 'ch2
     ->withInternalChannels([...]);
 ```
 
-## 10. Testing Async
+## 9. Testing Async
 
 ```php
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;

@@ -9,6 +9,10 @@ description: >-
 
 # Ecotone Event Sourcing
 
+## Overview
+
+Event sourcing stores state as a sequence of domain events rather than current state. Ecotone provides event-sourced aggregates, projections (read models built from event streams), an event store API, and event versioning/upcasting for schema evolution. Use this skill when implementing any event sourcing pattern.
+
 ## 1. Event-Sourced Aggregates
 
 ```php
@@ -60,10 +64,8 @@ Key rules:
 
 ## 2. ProjectionV2
 
-Source: `Ecotone\Projecting\Attribute\ProjectionV2`
-
 Every ProjectionV2 class needs:
-1. `#[ProjectionV2('projection_name')]` — class-level, unique name
+1. `#[ProjectionV2('projection_name')]` -- class-level, unique name
 2. A stream source: `#[FromStream(Ticket::class)]` or `#[FromAggregateStream(Ticket::class)]`
 3. At least one `#[EventHandler]` method
 
@@ -92,98 +94,43 @@ class TicketListProjection
 }
 ```
 
-### Stream Sources
-
-```php
-// From a named stream
-#[ProjectionV2('my_proj'), FromStream(Ticket::class)]
-
-// From an aggregate stream (auto-resolves stream name)
-#[ProjectionV2('my_proj'), FromAggregateStream(Order::class)]
-
-// Multiple streams
-#[ProjectionV2('calendar'), FromStream(Calendar::class), FromStream(Meeting::class)]
-```
-
-### Lifecycle Attributes
-
-| Attribute | When Called |
-|-----------|-----------|
-| `#[ProjectionInitialization]` | On first run / initialization |
-| `#[ProjectionDelete]` | When projection is deleted |
-| `#[ProjectionReset]` | When projection is reset |
-| `#[ProjectionFlush]` | After each batch of events |
-
-```php
-#[ProjectionInitialization]
-public function init(): void
-{
-    // Create tables, setup resources
-}
-
-#[ProjectionDelete]
-public function delete(): void
-{
-    // Drop tables, cleanup
-}
-```
-
 ### Execution Modes
 
-**Synchronous (default)** — inline with event production.
-
-**Polling** — on-demand or scheduled:
-```php
-#[ProjectionV2('my_proj'), Polling('my_proj_endpoint'), FromStream(Ticket::class)]
-```
-
-**Streaming** — consumes from a streaming channel:
-```php
-#[ProjectionV2('my_proj'), Streaming('my_channel'), FromStream(Ticket::class)]
-```
+- **Synchronous (default)** -- inline with event production
+- **Polling** -- `#[Polling('my_endpoint')]` for on-demand or scheduled
+- **Streaming** -- `#[Streaming('my_channel')]` for continuous consumption
 
 ### Partitioning
 
 ```php
 use Ecotone\Projecting\Attribute\Partitioned;
 
-#[ProjectionV2('ticket_list'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
+#[ProjectionV2('ticket_details'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
 ```
 
-- Per-aggregate-instance position tracking
-- NOT compatible with multiple `#[FromStream]` attributes
-- Default partition key: aggregate ID
+Per-aggregate-instance position tracking. NOT compatible with multiple `#[FromStream]` attributes.
 
-### Configuration Attributes
+## 3. Event Versioning
 
 ```php
-// Batch size for event loading
-#[ProjectionV2('my_proj'), ProjectionExecution(eventLoadingBatchSize: 500), FromStream(Ticket::class)]
+use Ecotone\Modelling\Attribute\Revision;
+use Ecotone\Modelling\Attribute\NamedEvent;
 
-// Backfill configuration
-#[ProjectionV2('my_proj'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 100, asyncChannelName: 'backfill'), FromStream(Ticket::class)]
-
-// Blue/green deployment
-#[ProjectionV2('my_proj'), ProjectionDeployment(live: false), FromStream(Ticket::class)]
-#[ProjectionV2('my_proj'), ProjectionDeployment(manualKickOff: true), FromStream(Ticket::class)]
-```
-
-### State Management
-
-```php
-use Ecotone\EventSourcing\Attribute\ProjectionState;
-
-#[EventHandler]
-public function onEvent(TicketWasRegistered $event, #[ProjectionState] array $state = []): array
+#[Revision(2)]
+#[NamedEvent('person.was_registered')]
+class PersonWasRegistered
 {
-    $state['count'] = ($state['count'] ?? 0) + 1;
-    return $state;  // Return to persist
+    public function __construct(
+        public readonly string $personId,
+        public readonly string $type  // added in v2
+    ) {}
 }
 ```
 
-## 3. Event Store
+- Default revision is 1 when no attribute present
+- `#[NamedEvent]` decouples class name from stored event type -- allows renaming classes safely
 
-Source: `Ecotone\EventSourcing\EventStore`
+## 4. Event Store
 
 ```php
 interface EventStore
@@ -196,102 +143,19 @@ interface EventStore
 }
 ```
 
-## 4. Event Versioning
-
-### Revision Attribute
-
-```php
-use Ecotone\Modelling\Attribute\Revision;
-
-#[Revision(2)]
-class PersonWasRegistered
-{
-    public function __construct(
-        public readonly string $personId,
-        public readonly string $type  // added in v2
-    ) {}
-}
-```
-
-- Default revision is 1 when no attribute present
-- Stored in metadata as `MessageHeaders::REVISION`
-
-### Named Events
-
-```php
-use Ecotone\Modelling\Attribute\NamedEvent;
-
-#[NamedEvent('ticket.was_registered')]
-class TicketWasRegistered { }
-```
-
-Decouples class name from stored event type — allows renaming classes safely.
-
-## 5. Testing
-
-### Basic Event-Sourced Testing
-
-```php
-$ecotone = EcotoneLite::bootstrapFlowTesting([Ticket::class]);
-
-$events = $ecotone
-    ->sendCommand(new RegisterTicket('t-1', 'Bug'))
-    ->getRecordedEvents();
-
-$this->assertEquals([new TicketWasRegistered('t-1', 'Bug')], $events);
-```
-
-### With Pre-Set Events
-
-```php
-$events = $ecotone
-    ->withEventsFor('t-1', Ticket::class, [
-        new TicketWasRegistered('t-1', 'Bug'),
-    ])
-    ->sendCommand(new CloseTicket('t-1'))
-    ->getRecordedEvents();
-```
-
-### With Event Store
-
-```php
-$ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-    classesToResolve: [Ticket::class],
-);
-```
-
-### Projection Testing
-
-```php
-$ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-    classesToResolve: [TicketListProjection::class, Ticket::class],
-    containerOrAvailableServices: [new TicketListProjection()],
-);
-
-$ecotone->initializeProjection('ticket_list');
-$ecotone->sendCommand(new RegisterTicket('t-1', 'Bug'));
-$ecotone->triggerProjection('ticket_list');
-
-$result = $ecotone->sendQueryWithRouting('getTickets');
-```
-
-### Projection Lifecycle
-
-```php
-$ecotone->initializeProjection('name');  // Setup
-$ecotone->triggerProjection('name');     // Process events
-$ecotone->resetProjection('name');       // Clear + reinit
-$ecotone->deleteProjection('name');      // Cleanup
-```
-
 ## Key Rules
 
 - Prefer `#[ProjectionV2]` over legacy `#[Projection]` for new code
 - Partitioned projections cannot use multiple streams
 - `#[FromAggregateStream]` requires an `#[EventSourcingAggregate]` class
 - Projection names must be unique
+- Always increment revision when changing event schema
+- Never modify stored events -- transform on read via upcasters
 
 ## Additional resources
 
-- [Projection patterns](references/projection-patterns.md) — Complete projection implementations including `#[ProjectionV2]` with partitioning, streaming projections, `#[FromAggregateStream]`, multi-stream projections, and projection state management. Load when implementing new projections or configuring event store.
-- [Versioning patterns](references/versioning-patterns.md) — Event versioning and upcasting examples including `#[UpcastEvent]`, revision headers, and multi-step upcasting chains. Load when adding event versioning or migrating event schemas.
+- [API reference](references/api-reference.md) -- Attribute signatures for `ProjectionV2`, `FromStream`, `FromAggregateStream`, `Partitioned`, `Polling`, `Streaming`, lifecycle attributes (`ProjectionInitialization`, `ProjectionDelete`, `ProjectionReset`, `ProjectionFlush`), configuration attributes (`ProjectionExecution`, `ProjectionBackfill`, `ProjectionDeployment`), `ProjectionState`, `Revision`, `NamedEvent`, and `EventStore` interface. Load when you need exact constructor parameters, attribute targets, or API method signatures.
+
+- [Usage examples](references/usage-examples.md) -- Complete projection implementations (partitioned, polling, streaming, multi-stream, with EventStreamEmitter), state management patterns, `FromAggregateStream` usage, blue/green deployment configuration, upcasting patterns (adding fields, renaming fields, splitting events, removing fields), DCB multi-stream consistency projections, and event schema evolution strategies. Load when you need full working class implementations or advanced patterns.
+
+- [Testing patterns](references/testing-patterns.md) -- Testing event-sourced aggregates with `withEventsFor()`, projection testing with `bootstrapFlowTestingWithEventStore()`, projection lifecycle methods (`initializeProjection`, `triggerProjection`, `resetProjection`, `deleteProjection`), testing with `withEventStream` for isolated projection tests without aggregates, and testing versioned events with upcasters. Load when writing tests for event-sourced code.

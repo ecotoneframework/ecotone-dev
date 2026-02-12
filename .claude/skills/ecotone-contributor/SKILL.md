@@ -37,24 +37,11 @@ PHP 8.2 container (for compatibility testing):
 docker exec -it ecotone_development_8_2 /bin/bash
 ```
 
-### Database DSNs (inside container)
-
-| Database   | DSN                                                              |
-|------------|------------------------------------------------------------------|
-| PostgreSQL | `pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16` |
-| MySQL      | `mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0` |
-| SQLite     | `sqlite:////tmp/ecotone_test.db`                                 |
-| RabbitMQ   | `amqp://rabbitmq:5672`                                           |
-| Redis      | `redis://redis:6379`                                             |
-| SQS        | `sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest` |
-
 ## 2. Monorepo Structure
-
-The Ecotone monorepo follows this layout (example packages shown):
 
 ```
 packages/
-├── Ecotone/           # Core package — foundation for all others
+├── Ecotone/           # Core package -- foundation for all others
 ├── Amqp/              # RabbitMQ integration
 ├── Dbal/              # Database abstraction (DBAL)
 ├── PdoEventSourcing/  # Event sourcing with PDO
@@ -87,20 +74,9 @@ vendor/bin/phpunit --filter test_method_name
 cd packages/<PackageName> && composer tests:ci
 ```
 
-This runs PHPStan + PHPUnit + Behat in sequence. Per-package scripts:
-
-```json
-{
-  "tests:phpstan": "vendor/bin/phpstan",
-  "tests:phpunit": "vendor/bin/phpunit --no-coverage",
-  "tests:behat": "vendor/bin/behat -vvv",
-  "tests:ci": ["@tests:phpstan", "@tests:phpunit", "@tests:behat"]
-}
-```
-
 ### Step 3: Verify licence headers on all new PHP files
 
-Every PHP file must have a licence comment after the class/interface docblock:
+Every PHP file must have a licence comment:
 
 ```php
 /**
@@ -115,8 +91,6 @@ Enterprise files use:
  * licence Enterprise
  */
 ```
-
-See `references/licence-format.md` for full details.
 
 ### Step 4: Fix code style
 
@@ -133,7 +107,7 @@ vendor/bin/phpstan analyse
 ### Step 6: Check conventions
 
 - `snake_case` test method names (enforced by PHP-CS-Fixer)
-- No comments in production code — use descriptive method names
+- No comments in production code -- use descriptive method names
 - PHPDoc `@param`/`@return` on public API methods
 - Single quotes, trailing commas in multiline arrays
 - `! $var` spacing (not `!$var`)
@@ -157,31 +131,11 @@ vendor/bin/phpstan analyse
 | PHPDoc on public APIs | `@param`/`@return` with types |
 | Licence headers | On every PHP file |
 
-### PHP-CS-Fixer Rules (from `.php-cs-fixer.dist.php`)
-
-- `@PSR12` + `@PSR12:risky`
-- `@PHP80Migration`
-- `php_unit_method_casing` → `snake_case`
-- `not_operator_with_successor_space` → `! $x`
-- `single_quote`, `trailing_comma_in_multiline`
-- `no_unused_imports`, `ordered_imports`
-- `fully_qualified_strict_types`, `global_namespace_import`
-
 ## 5. Package Split and Dependencies
 
 - The monorepo uses `symplify/monorepo-builder` for managing splits
 - Each package has its own `composer.json` with real dependencies
-- Test both lowest and highest dependencies:
-
-```bash
-composer update --prefer-lowest
-composer tests:ci
-
-composer update
-composer tests:ci
-```
-
-- Changes to the Core package can affect ALL downstream packages — run their tests too
+- Changes to the Core package can affect ALL downstream packages -- run their tests too
 - Cross-package changes need tests in both packages
 
 ## Key Rules
@@ -190,9 +144,9 @@ composer tests:ci
 - Never skip licence headers on new files
 - Run `php-cs-fixer fix` before committing
 - Test methods MUST use `snake_case`
-- No comments — code should be self-documenting via method names
+- No comments -- code should be self-documenting via method names
 
 ## Additional resources
 
-- [CI checklist](references/ci-checklist.md) — Full CI command reference including Docker test commands, `php-cs-fixer` usage, cross-package testing, and the complete CI pipeline checklist. Load when preparing a PR or running the full test suite.
-- [Licence format](references/licence-format.md) — Licence header template and formatting requirements for new PHP files. Load when creating new source files that need the licence header.
+- [CI checklist](references/ci-checklist.md) -- Full CI command reference including per-package Composer test scripts, Docker container commands, running individual tests by method/class/directory, PHPStan configuration, PHP-CS-Fixer rules, Behat test commands, database DSNs for all supported databases inside Docker, dependency testing (lowest/highest), and the complete pre-PR checklist with all validation steps. Load when preparing a PR, running the full test suite, or need exact test commands and database connection strings.
+- [Licence format](references/licence-format.md) -- Licence header template and formatting requirements for new PHP files, covering both Apache-2.0 (open source) and Enterprise licence formats with real codebase examples and placement rules. Load when creating new PHP source files that need the licence header.

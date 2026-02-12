@@ -1,8 +1,54 @@
-# Test Patterns Reference
+# Testing Usage Examples
 
-Real test patterns from the Ecotone codebase.
+## Event Handler Testing
 
-## Pattern 1: Handler Testing with Inline Classes
+```php
+public function test_event_handler_reacts_to_event(): void
+{
+    $handler = new class {
+        public array $receivedEvents = [];
+
+        #[EventHandler]
+        public function onOrderPlaced(OrderWasPlaced $event): void
+        {
+            $this->receivedEvents[] = $event;
+        }
+    };
+
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
+        classesToResolve: [$handler::class],
+        containerOrAvailableServices: [$handler],
+    );
+
+    $ecotone->publishEvent(new OrderWasPlaced('order-1'));
+    $this->assertCount(1, $handler->receivedEvents);
+}
+```
+
+## Query Handler Testing
+
+```php
+public function test_query_returns_result(): void
+{
+    $handler = new class {
+        #[QueryHandler]
+        public function getOrder(GetOrder $query): array
+        {
+            return ['orderId' => $query->orderId, 'status' => 'placed'];
+        }
+    };
+
+    $ecotone = EcotoneLite::bootstrapFlowTesting(
+        classesToResolve: [$handler::class],
+        containerOrAvailableServices: [$handler],
+    );
+
+    $result = $ecotone->sendQuery(new GetOrder('order-1'));
+    $this->assertEquals('placed', $result['status']);
+}
+```
+
+## Command Handler with Inline Class
 
 ```php
 public function test_command_handler_receives_command(): void
@@ -28,55 +74,7 @@ public function test_command_handler_receives_command(): void
 }
 ```
 
-## Pattern 2: Event Handler Testing
-
-```php
-public function test_event_handler_reacts_to_event(): void
-{
-    $handler = new class {
-        public array $receivedEvents = [];
-
-        #[EventHandler]
-        public function onOrderPlaced(OrderWasPlaced $event): void
-        {
-            $this->receivedEvents[] = $event;
-        }
-    };
-
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
-        containerOrAvailableServices: [$handler],
-    );
-
-    $ecotone->publishEvent(new OrderWasPlaced('order-1'));
-    $this->assertCount(1, $handler->receivedEvents);
-}
-```
-
-## Pattern 3: Query Handler Testing
-
-```php
-public function test_query_returns_result(): void
-{
-    $handler = new class {
-        #[QueryHandler]
-        public function getOrder(GetOrder $query): array
-        {
-            return ['orderId' => $query->orderId, 'status' => 'placed'];
-        }
-    };
-
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
-        containerOrAvailableServices: [$handler],
-    );
-
-    $result = $ecotone->sendQuery(new GetOrder('order-1'));
-    $this->assertEquals('placed', $result['status']);
-}
-```
-
-## Pattern 4: State-Stored Aggregate Testing
+## State-Stored Aggregate Testing
 
 ```php
 public function test_aggregate_creation_and_action(): void
@@ -94,7 +92,7 @@ public function test_aggregate_creation_and_action(): void
 }
 ```
 
-## Pattern 5: Event-Sourced Aggregate Testing
+## Event-Sourced Aggregate Testing
 
 ```php
 public function test_event_sourced_aggregate(): void
@@ -113,47 +111,91 @@ public function test_event_sourced_aggregate(): void
 }
 ```
 
-## Pattern 6: Async Testing (Synchronous)
+## Service Stubs and Dependencies
 
 ```php
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-
-public function test_async_event_processing(): void
+public function test_handler_with_dependencies(): void
 {
-    $handler = new class {
-        public int $processedCount = 0;
-
-        #[Asynchronous('notifications')]
-        #[EventHandler(endpointId: 'notificationHandler')]
-        public function handle(OrderWasPlaced $event): void
+    $notifier = new class implements Notifier {
+        public array $notifications = [];
+        public function send(string $message): void
         {
-            $this->processedCount++;
+            $this->notifications[] = $message;
+        }
+    };
+
+    $handler = new class($notifier) {
+        public function __construct(private Notifier $notifier) {}
+
+        #[CommandHandler]
+        public function handle(PlaceOrder $command): void
+        {
+            $this->notifier->send("Order {$command->orderId} placed");
         }
     };
 
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-        ],
     );
 
-    $ecotone->publishEvent(new OrderWasPlaced('order-1'));
-
-    // Not yet processed
-    $this->assertEquals(0, $handler->processedCount);
-
-    // Run the consumer
-    $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
-
-    // Now processed
-    $this->assertEquals(1, $handler->processedCount);
+    $ecotone->sendCommand(new PlaceOrder('123'));
+    $this->assertCount(1, $notifier->notifications);
 }
 ```
 
-## Pattern 7: Projection Testing
+## Recorded Messages Inspection
+
+```php
+public function test_inspect_recorded_messages(): void
+{
+    $ecotone = EcotoneLite::bootstrapFlowTesting([Order::class]);
+
+    $ecotone->sendCommand(new PlaceOrder('order-1'));
+
+    // Get recorded events (published via EventBus)
+    $events = $ecotone->getRecordedEvents();
+
+    // Get recorded commands (sent via CommandBus)
+    $commands = $ecotone->getRecordedCommands();
+
+    // Get event headers
+    $headers = $ecotone->getRecordedEventHeaders();
+
+    // Discard and start fresh
+    $ecotone->discardRecordedMessages();
+}
+```
+
+## ModulePackageList Configuration
+
+```php
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ServiceConfiguration;
+
+// Available package constants:
+// ModulePackageList::CORE_PACKAGE
+// ModulePackageList::ASYNCHRONOUS_PACKAGE
+// ModulePackageList::AMQP_PACKAGE
+// ModulePackageList::DBAL_PACKAGE
+// ModulePackageList::REDIS_PACKAGE
+// ModulePackageList::SQS_PACKAGE
+// ModulePackageList::KAFKA_PACKAGE
+// ModulePackageList::EVENT_SOURCING_PACKAGE
+// ModulePackageList::JMS_CONVERTER_PACKAGE
+// ModulePackageList::TRACING_PACKAGE
+// ModulePackageList::TEST_PACKAGE
+
+$config = ServiceConfiguration::createWithDefaults()
+    ->withSkippedModulePackageNames(
+        ModulePackageList::allPackagesExcept([
+            ModulePackageList::DBAL_PACKAGE,
+            ModulePackageList::EVENT_SOURCING_PACKAGE,
+        ])
+    );
+```
+
+## Projection Testing with Inline Class
 
 ```php
 public function test_projection_builds_read_model(): void
@@ -192,88 +234,4 @@ public function test_projection_builds_read_model(): void
     $result = $ecotone->sendQueryWithRouting('getTickets');
     $this->assertCount(1, $result);
 }
-```
-
-## Pattern 8: Service Stubs and Dependencies
-
-```php
-public function test_handler_with_dependencies(): void
-{
-    $notifier = new class implements Notifier {
-        public array $notifications = [];
-        public function send(string $message): void
-        {
-            $this->notifications[] = $message;
-        }
-    };
-
-    $handler = new class($notifier) {
-        public function __construct(private Notifier $notifier) {}
-
-        #[CommandHandler]
-        public function handle(PlaceOrder $command): void
-        {
-            $this->notifier->send("Order {$command->orderId} placed");
-        }
-    };
-
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class],
-        containerOrAvailableServices: [$handler],
-    );
-
-    $ecotone->sendCommand(new PlaceOrder('123'));
-    $this->assertCount(1, $notifier->notifications);
-}
-```
-
-## Pattern 9: Recorded Messages Inspection
-
-```php
-public function test_inspect_recorded_messages(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting([Order::class]);
-
-    $ecotone->sendCommand(new PlaceOrder('order-1'));
-
-    // Get recorded events (published via EventBus)
-    $events = $ecotone->getRecordedEvents();
-
-    // Get recorded commands (sent via CommandBus)
-    $commands = $ecotone->getRecordedCommands();
-
-    // Get event headers
-    $headers = $ecotone->getRecordedEventHeaders();
-
-    // Discard and start fresh
-    $ecotone->discardRecordedMessages();
-}
-```
-
-## Pattern 10: ModulePackageList Configuration
-
-```php
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-
-// Available package constants:
-// ModulePackageList::CORE_PACKAGE
-// ModulePackageList::ASYNCHRONOUS_PACKAGE
-// ModulePackageList::AMQP_PACKAGE
-// ModulePackageList::DBAL_PACKAGE
-// ModulePackageList::REDIS_PACKAGE
-// ModulePackageList::SQS_PACKAGE
-// ModulePackageList::KAFKA_PACKAGE
-// ModulePackageList::EVENT_SOURCING_PACKAGE
-// ModulePackageList::JMS_CONVERTER_PACKAGE
-// ModulePackageList::TRACING_PACKAGE
-// ModulePackageList::TEST_PACKAGE
-
-$config = ServiceConfiguration::createWithDefaults()
-    ->withSkippedModulePackageNames(
-        ModulePackageList::allPackagesExcept([
-            ModulePackageList::DBAL_PACKAGE,
-            ModulePackageList::EVENT_SOURCING_PACKAGE,
-        ])
-    );
 ```

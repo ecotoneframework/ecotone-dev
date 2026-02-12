@@ -10,6 +10,10 @@ description: >-
 
 # Ecotone Laravel Setup
 
+## Overview
+
+This skill covers setting up and configuring Ecotone within a Laravel application. Use it when installing Ecotone, configuring database connections, setting up async messaging with Laravel Queue, integrating Eloquent aggregates, or configuring multi-tenancy.
+
 ## 1. Installation
 
 ```bash
@@ -19,25 +23,16 @@ composer require ecotone/laravel
 Optional packages:
 
 ```bash
-# Database support (DBAL, outbox, dead letter, event sourcing)
-composer require ecotone/dbal
-
-# RabbitMQ support
-composer require ecotone/amqp
-
-# Redis support
-composer require ecotone/redis
-
-# SQS support
-composer require ecotone/sqs
-
-# Kafka support
-composer require ecotone/kafka
+composer require ecotone/dbal   # Database support (DBAL, outbox, dead letter, event sourcing)
+composer require ecotone/amqp   # RabbitMQ support
+composer require ecotone/redis  # Redis support
+composer require ecotone/sqs    # SQS support
+composer require ecotone/kafka  # Kafka support
 ```
 
 The service provider `Ecotone\Laravel\EcotoneProvider` is auto-discovered by Laravel.
 
-## 2. Publishing Configuration
+Publish configuration:
 
 ```bash
 php artisan vendor:publish --tag=ecotone-config
@@ -45,35 +40,14 @@ php artisan vendor:publish --tag=ecotone-config
 
 This creates `config/ecotone.php`.
 
-## 3. Configuration
+## 2. Eloquent Aggregate
 
-### All Configuration Options
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `serviceName` | `null` | Service identifier for distributed messaging |
-| `loadAppNamespaces` | `true` | Auto-scan `app/` for handlers |
-| `namespaces` | `[]` | Additional namespaces to scan |
-| `cacheConfiguration` | `false` | Cache messaging config (auto in prod) |
-| `defaultSerializationMediaType` | `null` | Media type for async serialization |
-| `defaultErrorChannel` | `null` | Error channel name |
-| `defaultConnectionExceptionRetry` | `null` | Retry config for connection failures |
-| `skippedModulePackageNames` | `[]` | Module packages to skip |
-| `test` | `false` | Enable test mode |
-| `licenceKey` | `null` | Enterprise licence key |
-
-## 4. Eloquent ORM Integration
-
-Ecotone automatically registers `EloquentRepository` — Eloquent models that extend `Model` are auto-detected as aggregates. No additional configuration is needed.
-
-### Eloquent Aggregate
+Ecotone automatically registers `EloquentRepository` -- Eloquent models extending `Model` are auto-detected as aggregates.
 
 ```php
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
 use Illuminate\Database\Eloquent\Model;
 
@@ -82,14 +56,13 @@ class Order extends Model
 {
     use WithEvents;
 
-    public $fillable = ['id', 'user_id', 'product_ids', 'total_price', 'is_cancelled'];
+    public $fillable = ['id', 'user_id', 'total_price', 'is_cancelled'];
 
     #[CommandHandler]
     public static function place(PlaceOrder $command): self
     {
         $order = self::create([
             'user_id' => $command->userId,
-            'product_ids' => $command->productIds,
             'total_price' => $command->totalPrice,
             'is_cancelled' => false,
         ]);
@@ -109,25 +82,17 @@ class Order extends Model
     {
         return $this->id;
     }
-
-    #[QueryHandler('order.isCancelled')]
-    public function isCancelled(): bool
-    {
-        return $this->is_cancelled;
-    }
 }
 ```
 
 Key differences from regular aggregates:
 - Extends `Illuminate\Database\Eloquent\Model`
-- Use `#[AggregateIdentifierMethod('id')]` instead of `#[Identifier]` on properties (Eloquent manages properties dynamically)
-- Call `$this->save()` in action handlers (Eloquent persistence)
-- Factory methods use `self::create([...])` (Eloquent pattern)
+- Use `#[AggregateIdentifierMethod('id')]` instead of `#[Identifier]` on properties
+- Call `$this->save()` in action handlers
+- Factory methods use `self::create([...])`
 - Use `WithEvents` trait for recording domain events
 
-## 5. Database Connection (DBAL)
-
-### Using Laravel Database Connection
+## 3. Database Connection (DBAL)
 
 ```php
 #[ServiceContext]
@@ -139,29 +104,7 @@ public function databaseConnection(): LaravelConnectionReference
 
 The connection name matches the key in `config/database.php` `connections` array.
 
-### LaravelConnectionReference API
-
-| Method | Description |
-|--------|-------------|
-| `defaultConnection(connectionName)` | Default connection using Laravel DB config |
-| `create(connectionName, referenceName)` | Named connection with custom reference |
-
-### Multiple Connections
-
-```php
-#[ServiceContext]
-public function connections(): array
-{
-    return [
-        LaravelConnectionReference::defaultConnection('mysql'),
-        LaravelConnectionReference::create('reporting', 'reporting_connection'),
-    ];
-}
-```
-
-## 7. Async Messaging with Laravel Queue
-
-Use Laravel Queue drivers as Ecotone message channels:
+## 4. Async Messaging with Laravel Queue
 
 ```php
 #[ServiceContext]
@@ -169,47 +112,19 @@ public function asyncChannel(): LaravelQueueMessageChannelBuilder
 {
     return LaravelQueueMessageChannelBuilder::create('notifications');
 }
-
-// With a specific queue connection
-#[ServiceContext]
-public function redisChannel(): LaravelQueueMessageChannelBuilder
-{
-    return LaravelQueueMessageChannelBuilder::create('orders', 'redis');
-}
 ```
 
-### Using DBAL Channels Directly
-
-```php
-#[ServiceContext]
-public function ordersChannel(): DbalBackedMessageChannelBuilder
-{
-    return DbalBackedMessageChannelBuilder::create('orders');
-}
-```
-
-## 8. Running Async Consumers
-
-Ecotone auto-registers Artisan commands:
+## 5. Running Async Consumers
 
 ```bash
-# Run a consumer
 php artisan ecotone:run <channel_name>
-
-# With message limit
 php artisan ecotone:run orders --handledMessageLimit=100
-
-# With memory limit
 php artisan ecotone:run orders --memoryLimit=256
-
-# With time limit (milliseconds)
 php artisan ecotone:run orders --executionTimeLimit=60000
-
-# List available consumers
 php artisan ecotone:list
 ```
 
-## 9. Multi-Tenant Configuration
+## 6. Multi-Tenant Configuration
 
 ```php
 #[ServiceContext]
@@ -225,6 +140,14 @@ public function multiTenant(): MultiTenantConfiguration
 }
 ```
 
+## Key Rules
+
+- `LaravelConnectionReference::defaultConnection()` takes the key from `config/database.php` `connections` array
+- `LaravelQueueMessageChannelBuilder::create()` channel name must match an Ecotone async routing, optionally takes a queue connection name as second parameter
+- Eloquent aggregates use `#[AggregateIdentifierMethod]` instead of `#[Identifier]` on properties
+- Always use `#[ServiceContext]` methods in a class registered as a service for configuration
+
 ## Additional resources
 
-- [Laravel integration patterns](references/laravel-patterns.md) — Complete code examples for Laravel integration. Load when you need: full `config/ecotone.php` file with all options, full Eloquent aggregate class with imports, full DBAL connection class, full Laravel Queue channel class, `config/queue.php` example, DBAL channel class, multi-tenant config class, or multi-tenant `config/database.php`.
+- [Configuration reference](references/configuration-reference.md) -- Full `config/ecotone.php` file with all options and comments, all configuration option descriptions with defaults, and `LaravelConnectionReference` API table. Load when you need the complete configuration file or all available config options.
+- [Integration patterns](references/integration-patterns.md) -- Complete class implementations for Laravel integration: full Eloquent aggregate with all imports, DBAL connection setup with multiple connections, Laravel Queue channel configuration with `config/queue.php`, DBAL-backed channels, and multi-tenant setup with `config/database.php`. Load when you need full working class files with imports and complete configuration examples.

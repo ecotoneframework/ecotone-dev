@@ -9,9 +9,11 @@ description: >-
 
 # Ecotone Business Interfaces
 
-## 1. DBAL Query Interfaces
+## Overview
 
-Create database query methods as interface declarations — Ecotone generates the implementation.
+Business interfaces let you declare PHP interfaces that Ecotone auto-implements at runtime. They cover database queries (DBAL), type converters, messaging gateways (`BusinessMethod`), and repository abstractions. Use this skill when you need to create any of these interface-driven patterns.
+
+## 1. DBAL Query Interface
 
 ```php
 use Ecotone\Dbal\Attribute\DbalQueryBusinessMethod;
@@ -31,43 +33,10 @@ interface OrderRepository
 
     #[DbalWriteBusinessMethod('INSERT INTO orders (order_id, product, status) VALUES (:orderId, :product, :status)')]
     public function save(string $orderId, string $product, string $status): void;
-
-    #[DbalWriteBusinessMethod('UPDATE orders SET status = :status WHERE order_id = :orderId')]
-    public function updateStatus(string $orderId, string $status): void;
 }
 ```
 
-### FetchMode Options
-
-Source: `Ecotone\Dbal\DbaBusinessMethod\FetchMode`
-
-| Mode | Returns |
-|------|---------|
-| `FetchMode::ASSOCIATIVE` | Array of associative arrays |
-| `FetchMode::FIRST_COLUMN` | Array of first column values |
-| `FetchMode::FIRST_ROW` | Single associative array (first row) |
-| `FetchMode::FIRST_COLUMN_OF_FIRST_ROW` | Single scalar value |
-| `FetchMode::COLUMN_OF_FIRST_ROW` | Named column from first row |
-
-### DbalParameter Attribute
-
-Source: `Ecotone\Dbal\Attribute\DbalParameter`
-
-For parameter transformation:
-
-```php
-use Ecotone\Dbal\Attribute\DbalParameter;
-
-interface ProductRepository
-{
-    #[DbalQueryBusinessMethod('SELECT * FROM products WHERE tags @> :tags')]
-    public function findByTags(
-        #[DbalParameter(type: 'json')] array $tags
-    ): array;
-}
-```
-
-## 2. Media Type Converters
+## 2. Media Type Converter
 
 ```php
 use Ecotone\Messaging\Attribute\Converter;
@@ -98,27 +67,9 @@ class OrderConverter
 
 The framework auto-discovers converters and uses them for type conversion in message handling.
 
-### MediaType Class
+## 3. BusinessMethod Gateway
 
-Source: `Ecotone\Messaging\Conversion\MediaType`
-
-```php
-use Ecotone\Messaging\Conversion\MediaType;
-
-MediaType::APPLICATION_JSON           // 'application/json'
-MediaType::APPLICATION_XML            // 'application/xml'
-MediaType::APPLICATION_X_PHP          // 'application/x-php'
-MediaType::APPLICATION_X_PHP_ARRAY    // 'application/x-php;type=array'
-MediaType::TEXT_PLAIN                 // 'text/plain'
-```
-
-## 3. Business Method Interfaces
-
-Source: `Ecotone\Messaging\Attribute\BusinessMethod`
-
-BusinessMethod is an interface-only attribute — Ecotone auto-generates the implementation that sends messages through the messaging system. The `requestChannel` parameter routes to the matching handler's routing key.
-
-### Basic: BusinessMethod → ServiceActivator
+`BusinessMethod` is an interface-only attribute -- Ecotone auto-generates an implementation that sends messages through the messaging system. The `requestChannel` routes to the matching handler's routing key.
 
 ```php
 use Ecotone\Messaging\Attribute\BusinessMethod;
@@ -129,7 +80,6 @@ interface NotificationGateway
     public function send(string $message, string $recipient): void;
 }
 
-// Handler
 use Ecotone\Messaging\Attribute\ServiceActivator;
 
 class NotificationHandler
@@ -142,101 +92,19 @@ class NotificationHandler
 }
 ```
 
-### BusinessMethod → CommandHandler (Aggregate)
+## 4. BusinessMethod Injection into Handlers
 
-Use BusinessMethod to call CommandHandler on aggregates directly, bypassing CommandBus:
-
-```php
-use Ecotone\Messaging\Attribute\BusinessMethod;
-
-interface ProductService
-{
-    #[BusinessMethod('product.register')]
-    public function registerProduct(RegisterProduct $command): void;
-
-    #[BusinessMethod('product.changePrice')]
-    public function changePrice(ChangePrice $command): void;
-
-    #[BusinessMethod('product.getPrice')]
-    public function getPrice(#[Identifier] string $productId): float;
-}
-
-// Aggregate with matching routing keys
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-
-#[EventSourcingAggregate]
-class Product
-{
-    #[Identifier]
-    private string $productId;
-    private float $price;
-
-    #[CommandHandler('product.register')]
-    public static function register(RegisterProduct $command): array
-    {
-        return [new ProductWasRegistered($command->productId, $command->price)];
-    }
-
-    #[CommandHandler('product.changePrice')]
-    public function changePrice(ChangePrice $command): array
-    {
-        return [new PriceWasChanged($this->productId, $command->price)];
-    }
-
-    #[QueryHandler('product.getPrice')]
-    public function getPrice(): float
-    {
-        return $this->price;
-    }
-}
-```
-
-### BusinessMethod with Headers
-
-Pass metadata as message headers using `#[Header]`:
-
-```php
-use Ecotone\Messaging\Attribute\BusinessMethod;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-
-interface CacheService
-{
-    #[BusinessMethod('cache.set')]
-    public function set(CachedItem $item, #[Header('cache.type')] CacheType $type): void;
-
-    #[BusinessMethod('cache.get')]
-    public function get(string $key, #[Header('cache.type')] CacheType $type): ?string;
-}
-```
-
-### Injecting BusinessMethod into CommandHandlers
-
-BusinessMethod interfaces can be injected as parameters into CommandHandlers for cross-aggregate communication:
+BusinessMethod interfaces can be injected as parameters into CommandHandler methods for cross-aggregate communication:
 
 ```php
 use Ecotone\Messaging\Attribute\BusinessMethod;
 use Ecotone\Modelling\Attribute\Identifier;
-use Ramsey\Uuid\UuidInterface;
 
 interface ProductService
 {
     #[BusinessMethod('product.getPrice')]
-    public function getPrice(#[Identifier] UuidInterface $productId): int;
+    public function getPrice(#[Identifier] string $productId): int;
 }
-
-interface UserService
-{
-    #[BusinessMethod('user.isVerified')]
-    public function isUserVerified(#[Identifier] UuidInterface $userId): bool;
-}
-
-// Aggregate that uses BusinessMethod interfaces as dependencies
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
 
 #[EventSourcingAggregate]
 class Basket
@@ -252,22 +120,12 @@ class Basket
             $productService->getPrice($command->productId)
         )];
     }
-
-    #[CommandHandler('order.placeOrder')]
-    public function placeOrder(#[Reference] UserService $userService): array
-    {
-        Assert::that($userService->isUserVerified($this->userId))->true(
-            'User must be verified to place order'
-        );
-
-        return [new OrderWasPlaced($this->userId, $this->productIds)];
-    }
 }
 ```
 
-**Key**: When the BusinessMethod interface is type-hinted as a parameter on a CommandHandler method, Ecotone injects the auto-generated proxy. Use `#[Reference]` when injecting via service container reference (e.g., for non-first parameters or explicit injection).
+Use `#[Reference]` for explicit service container injection when it is not the first service parameter.
 
-## 4. Expression Language
+## 5. Expression Language
 
 Ecotone attributes support expressions for dynamic behavior:
 
@@ -276,17 +134,14 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 
 class OrderService
 {
-    // Route based on payload property
     #[CommandHandler(routingKey: "payload.type")]
     public function handle(array $payload): void { }
 }
 ```
 
-Available variables in expressions:
-- `payload` — message payload
-- `headers` — message headers
+Available variables: `payload` (message payload), `headers` (message headers).
 
-## 5. Repository Pattern
+## 6. Repository Pattern
 
 Ecotone auto-generates repositories for aggregates. For custom repositories:
 
@@ -301,30 +156,18 @@ interface CustomOrderRepository
 }
 ```
 
-## 6. Testing Business Interfaces
-
-Use `$ecotone->getGateway(InterfaceClass::class)` to obtain auto-generated implementations:
-
-```php
-$ecotone = EcotoneLite::bootstrapFlowTesting(
-    [NotificationHandler::class],
-    [new NotificationHandler()],
-);
-
-/** @var NotificationGateway $gateway */
-$gateway = $ecotone->getGateway(NotificationGateway::class);
-$gateway->send('Hello', 'user@example.com');
-```
-
-For DBAL interfaces, provide `DbalConnectionFactory` and converters as services and use `withNamespaces()`.
-
 ## Key Rules
 
 - DBAL interfaces use method parameters as SQL bind parameters (`:paramName`)
-- `#[Converter]` methods are auto-discovered — no manual registration needed
+- `#[Converter]` methods are auto-discovered -- no manual registration needed
 - Converters work bidirectionally if you define both directions
 - FetchMode determines the shape of query results
+- When injecting BusinessMethod into handlers, first parameter after command is matched by type automatically; use `#[Reference]` for non-first service parameters
 
 ## Additional resources
 
-- [Interface patterns reference](references/interface-patterns.md) — Complete code examples for all business interface patterns: full DBAL query/write interface definitions, `DbalParameter` usage, `#[Converter]` implementations, `BusinessMethod` with aggregates and headers, cross-aggregate injection patterns, MediaType constants, custom connection references, and DBAL/BusinessMethod test suites. Load when you need full class definitions, complete test examples, or advanced interface patterns.
+- [API reference](references/api-reference.md) -- Attribute constructor signatures and parameter lists for `DbalQueryBusinessMethod`, `DbalWriteBusinessMethod`, `DbalParameter`, `BusinessMethod`/`MessageGateway`, `FetchMode` constants, and `MediaType` constants. Load when you need exact constructor parameters, types, or defaults.
+
+- [Usage examples](references/usage-examples.md) -- Complete, runnable code examples for all business interface patterns: advanced DBAL queries with parameter type conversion and expressions, write operations, JSON converters, BusinessMethod with headers and routing, cross-aggregate injection with `#[Reference]`, custom connection references. Load when you need full class implementations or advanced variations beyond the basic patterns above.
+
+- [Testing patterns](references/testing-patterns.md) -- How to test business interfaces with `EcotoneLite::bootstrapFlowTesting()`, including gateway retrieval via `getGateway()`, DBAL interface testing setup, and converter testing patterns. Load when writing tests for business interfaces.

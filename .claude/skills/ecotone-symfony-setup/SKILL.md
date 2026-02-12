@@ -10,6 +10,10 @@ description: >-
 
 # Ecotone Symfony Setup
 
+## Overview
+
+This skill covers setting up and configuring Ecotone within a Symfony application. Use it when installing Ecotone, registering the bundle, configuring database connections via Doctrine, setting up async messaging with Symfony Messenger, integrating Doctrine ORM aggregates, or configuring multi-tenancy.
+
 ## 1. Installation
 
 ```bash
@@ -19,20 +23,11 @@ composer require ecotone/symfony-bundle
 Optional packages:
 
 ```bash
-# Database support (DBAL, outbox, dead letter, event sourcing)
-composer require ecotone/dbal
-
-# RabbitMQ support
-composer require ecotone/amqp
-
-# Redis support
-composer require ecotone/redis
-
-# SQS support
-composer require ecotone/sqs
-
-# Kafka support
-composer require ecotone/kafka
+composer require ecotone/dbal   # Database support (DBAL, outbox, dead letter, event sourcing)
+composer require ecotone/amqp   # RabbitMQ support
+composer require ecotone/redis  # Redis support
+composer require ecotone/sqs    # SQS support
+composer require ecotone/kafka  # Kafka support
 ```
 
 ## 2. Bundle Registration
@@ -64,39 +59,7 @@ ecotone:
     defaultErrorChannel: 'errorChannel'
 ```
 
-### All Configuration Options
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `serviceName` | `null` | Service identifier for distributed messaging |
-| `failFast` | `false` | Validates config at boot (auto-enabled in dev) |
-| `loadSrcNamespaces` | `true` | Auto-scan `src/` for handlers |
-| `namespaces` | `[]` | Additional namespaces to scan |
-| `defaultSerializationMediaType` | `null` | Media type for async serialization |
-| `defaultErrorChannel` | `null` | Error channel name |
-| `defaultMemoryLimit` | `null` | Consumer memory limit (MB) |
-| `defaultConnectionExceptionRetry` | `null` | Retry config for connection failures |
-| `skippedModulePackageNames` | `[]` | Module packages to skip |
-| `licenceKey` | `null` | Enterprise licence key |
-| `test` | `false` | Enable test mode |
-
 ## 4. Database Connection (DBAL)
-
-### Using Doctrine Manager Registry (Recommended)
-
-Configure Doctrine DBAL in `config/packages/doctrine.yaml`:
-
-```yaml
-doctrine:
-    dbal:
-        default_connection: default
-        connections:
-            default:
-                url: '%env(resolve:DATABASE_DSN)%'
-                charset: UTF8
-```
-
-Register the connection for Ecotone via `#[ServiceContext]`:
 
 ```php
 #[ServiceContext]
@@ -106,35 +69,9 @@ public function databaseConnection(): SymfonyConnectionReference
 }
 ```
 
-### SymfonyConnectionReference API
-
-| Method | Description |
-|--------|-------------|
-| `defaultManagerRegistry(connectionName, managerRegistry)` | Default connection via Doctrine ManagerRegistry |
-| `createForManagerRegistry(connectionName, managerRegistry, referenceName)` | Named connection via ManagerRegistry |
-| `defaultConnection(connectionName)` | Default connection without ManagerRegistry |
-| `createForConnection(connectionName, referenceName)` | Named connection without ManagerRegistry |
-
-### Multiple Connections
-
-```php
-#[ServiceContext]
-public function connections(): array
-{
-    return [
-        SymfonyConnectionReference::defaultManagerRegistry('default'),
-        SymfonyConnectionReference::createForManagerRegistry(
-            'reporting',
-            'doctrine',
-            'reporting_connection'
-        ),
-    ];
-}
-```
-
 ## 5. Doctrine ORM Integration
 
-Enable Doctrine ORM repositories so aggregates can be stored as Doctrine entities:
+Enable Doctrine ORM repositories:
 
 ```php
 #[ServiceContext]
@@ -162,8 +99,6 @@ class Order
 
 ## 6. Async Messaging with Symfony Messenger
 
-Use Symfony Messenger transports as Ecotone message channels. Configure transports in `config/packages/messenger.yaml`, then register as channels:
-
 ```php
 #[ServiceContext]
 public function asyncChannel(): SymfonyMessengerMessageChannelBuilder
@@ -172,34 +107,13 @@ public function asyncChannel(): SymfonyMessengerMessageChannelBuilder
 }
 ```
 
-### Using DBAL Channels Directly
-
-```php
-#[ServiceContext]
-public function ordersChannel(): DbalBackedMessageChannelBuilder
-{
-    return DbalBackedMessageChannelBuilder::create('orders');
-}
-```
-
 ## 7. Running Async Consumers
 
-Ecotone auto-registers Symfony console commands:
-
 ```bash
-# Run a consumer
 bin/console ecotone:run <channel_name>
-
-# With message limit
 bin/console ecotone:run orders --handledMessageLimit=100
-
-# With memory limit
 bin/console ecotone:run orders --memoryLimit=256
-
-# With time limit (milliseconds)
 bin/console ecotone:run orders --executionTimeLimit=60000
-
-# List available consumers
 bin/console ecotone:list
 ```
 
@@ -219,6 +133,15 @@ public function multiTenant(): MultiTenantConfiguration
 }
 ```
 
+## Key Rules
+
+- `SymfonyConnectionReference::defaultManagerRegistry()` is the recommended approach (uses Doctrine ManagerRegistry)
+- `SymfonyMessengerMessageChannelBuilder::create()` channel name must match a transport defined in `config/packages/messenger.yaml`
+- Doctrine ORM aggregates need both `#[ORM\Entity]` and `#[Aggregate]` attributes
+- Enable `DbalConfiguration::createWithDefaults()->withDoctrineORMRepositories(true)` for Doctrine entity persistence
+- Always use `#[ServiceContext]` methods in a class registered as a service for configuration
+
 ## Additional resources
 
-- [Symfony integration patterns](references/symfony-patterns.md) — Complete configuration examples and full class definitions for Symfony integration. Load when you need: full `ecotone.yaml` with all options and comments, full `doctrine.yaml` with ORM entity manager mappings, complete Doctrine entity aggregate class, multiple DBAL connections setup, full Symfony Messenger YAML transport config with multiple channels, DBAL-backed message channel example, or multi-tenant `doctrine.yaml` with multiple entity managers.
+- [Configuration reference](references/configuration-reference.md) -- Full `ecotone.yaml` with all options and comments, all configuration option descriptions with defaults, `SymfonyConnectionReference` API table, and `doctrine.yaml` DBAL connection setup. Load when you need the complete YAML configuration or all available config options.
+- [Integration patterns](references/integration-patterns.md) -- Complete class implementations for Symfony integration: full Doctrine entity aggregate with all imports, DBAL connection setup with multiple connections, Symfony Messenger channel configuration with `messenger.yaml`, DBAL-backed channels, multi-tenant setup with full `doctrine.yaml` for multiple entity managers, and Doctrine ORM entity mappings. Load when you need full working class files with imports and complete configuration examples.

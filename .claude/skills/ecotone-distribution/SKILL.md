@@ -12,14 +12,17 @@ description: >-
 
 # Ecotone Distribution
 
+## Overview
+
+Ecotone's distribution module enables communication between separate services (microservices). It provides a `DistributedBus` for sending commands and publishing events across service boundaries, `#[Distributed]` to mark handlers as externally reachable, and `DistributedServiceMap` to configure routing. Use this when building multi-service architectures that need to exchange messages.
+
 ## 1. #[Distributed] Attribute
 
-Marks handlers as distributed — receivable from other services:
+Marks handlers as distributed -- receivable from other services:
 
 ```php
 use Ecotone\Modelling\Attribute\Distributed;
 use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
 
 class OrderService
 {
@@ -29,19 +32,8 @@ class OrderService
     {
         // Can be invoked from other services via DistributedBus
     }
-
-    #[Distributed]
-    #[EventHandler('order.placed')]
-    public function onOrderPlaced(OrderWasPlaced $event): void
-    {
-        // Receives events published from other services
-    }
 }
 ```
-
-- Applied alongside `#[CommandHandler]` or `#[EventHandler]`
-- Uses the handler's routing key for message matching
-- Optional constructor parameter: `distributionReference` (defaults to `DistributedBus::class`)
 
 ## 2. DistributedBus
 
@@ -56,7 +48,6 @@ class OrderSender
 
     public function placeOrderOnExternalService(): void
     {
-        // Send command to a specific service
         $this->distributedBus->convertAndSendCommand(
             targetServiceName: 'order-service',
             routingKey: 'order.place',
@@ -66,7 +57,6 @@ class OrderSender
 
     public function notifyAllServices(): void
     {
-        // Publish event to all subscribing services
         $this->distributedBus->convertAndPublishEvent(
             routingKey: 'order.placed',
             event: new OrderWasPlaced('order-1'),
@@ -75,23 +65,12 @@ class OrderSender
 }
 ```
 
-### DistributedBus Methods
-
-| Method | Description |
-|--------|-------------|
-| `sendCommand(targetServiceName, routingKey, command, sourceMediaType, metadata)` | Send raw string command to a specific service |
-| `convertAndSendCommand(targetServiceName, routingKey, command, metadata)` | Send object/array command (auto-converted) |
-| `publishEvent(routingKey, event, sourceMediaType, metadata)` | Publish raw string event to all subscribers |
-| `convertAndPublishEvent(routingKey, event, metadata)` | Publish object/array event (auto-converted) |
-| `sendMessage(targetServiceName, targetChannelName, payload, sourceMediaType, metadata)` | Send raw message to a specific channel on a service |
-
 ## 3. DistributedServiceMap Configuration
 
 Defines how commands are routed and which events are subscribed to:
 
 ```php
 use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
-use Ecotone\Messaging\Attribute\ServiceContext;
 
 class DistributionConfig
 {
@@ -100,7 +79,6 @@ class DistributionConfig
     {
         return DistributedServiceMap::initialize()
             ->withCommandMapping('order-service', 'orders_channel')
-            ->withCommandMapping('payment-service', 'payments_channel')
             ->withEventMapping(
                 channelName: 'events_channel',
                 subscriptionKeys: ['order.*', 'payment.completed'],
@@ -108,38 +86,6 @@ class DistributionConfig
             ->withAsynchronousChannel('distributed_channel');
     }
 }
-```
-
-### Command Mapping
-
-Routes commands to the correct channel for a target service:
-
-```php
-->withCommandMapping(
-    targetServiceName: 'order-service',  // Service name used in DistributedBus
-    channelName: 'orders_channel'        // Message channel to send via
-)
-```
-
-### Event Mapping
-
-Subscribes to events matching routing key patterns:
-
-```php
-->withEventMapping(
-    channelName: 'events_channel',            // Channel to send matching events to
-    subscriptionKeys: ['order.*'],            // Routing key patterns (glob matching)
-    excludePublishingServices: ['self'],      // Optional: blacklist services
-    includePublishingServices: ['partner'],   // Optional: whitelist services (mutually exclusive with exclude)
-)
-```
-
-### Async Channel
-
-Makes the distributed bus send messages asynchronously:
-
-```php
-->withAsynchronousChannel('distributed_channel')
 ```
 
 ## 4. MessagePublisher
@@ -155,97 +101,7 @@ class NotificationSender
 
     public function sendNotification(): void
     {
-        // Send object (auto-converted)
         $this->publisher->convertAndSend(new OrderNotification('order-1'));
-
-        // Send with metadata
-        $this->publisher->convertAndSendWithMetadata(
-            new OrderNotification('order-1'),
-            ['priority' => 'high']
-        );
-
-        // Send raw string
-        $this->publisher->send('{"orderId": "order-1"}', 'application/json');
-
-        // Send raw string with metadata
-        $this->publisher->sendWithMetadata(
-            '{"orderId": "order-1"}',
-            'application/json',
-            ['correlation_id' => 'abc-123']
-        );
-    }
-}
-```
-
-### MessagePublisher Methods
-
-| Method | Description |
-|--------|-------------|
-| `send(data, sourceMediaType)` | Send raw string data |
-| `sendWithMetadata(data, sourceMediaType, metadata)` | Send raw string with metadata |
-| `convertAndSend(data)` | Send object/array (auto-converted) |
-| `convertAndSendWithMetadata(data, metadata)` | Send object/array with metadata |
-
-## 5. Complete Example
-
-### Producer Service (sends commands and events)
-
-```php
-// Configuration
-class ProducerConfig
-{
-    #[ServiceContext]
-    public function serviceMap(): DistributedServiceMap
-    {
-        return DistributedServiceMap::initialize()
-            ->withCommandMapping('order-service', 'orders_channel')
-            ->withEventMapping(
-                channelName: 'events_channel',
-                subscriptionKeys: ['order.*'],
-            )
-            ->withAsynchronousChannel('distributed_channel');
-    }
-
-    #[ServiceContext]
-    public function distributedChannel(): AmqpBackedMessageChannelBuilder
-    {
-        return AmqpBackedMessageChannelBuilder::create('distributed_channel');
-    }
-}
-
-// Sender
-class OrderCreator
-{
-    public function __construct(private DistributedBus $bus) {}
-
-    public function createOrder(): void
-    {
-        $this->bus->convertAndSendCommand(
-            'order-service',
-            'order.place',
-            new PlaceOrder('order-1', 'item-A'),
-        );
-    }
-}
-```
-
-### Consumer Service (receives commands and events)
-
-```php
-class OrderHandler
-{
-    #[Distributed]
-    #[CommandHandler('order.place')]
-    public function handleOrder(PlaceOrder $command): void
-    {
-        // Process the distributed command
-    }
-
-    #[Distributed]
-    #[EventHandler('order.*')]
-    public function onOrderEvent(OrderWasPlaced $event): void
-    {
-        // React to distributed events
     }
 }
 ```
@@ -261,4 +117,6 @@ class OrderHandler
 
 ## Additional resources
 
-- [Distribution patterns reference](references/distribution-patterns.md) — Complete distributed messaging examples including `#[Distributed]` handler implementations, `DistributedBus` usage, `DistributedServiceMap` configuration with `withCommandMapping()`/`withEventMapping()`, `MessagePublisher` for channel-based messaging, and `withAsynchronousChannel()` for async distribution. Load when setting up cross-service communication or configuring service routing.
+- [API reference](references/api-reference.md) — Full interface signatures for `DistributedBus` (all 5 methods with parameter types), `MessagePublisher` (all 4 methods), `#[Distributed]` attribute constructor, and `DistributedServiceMap` method signatures including `withCommandMapping`, `withEventMapping`, and `withAsynchronousChannel`. Load when you need exact parameter names, types, or method signatures.
+- [Usage examples](references/usage-examples.md) — Complete multi-service wiring examples: producer/consumer service configuration, `DistributedServiceMap` with command and event mapping, `MessagePublisher` with metadata, `#[Distributed]` on event handlers, and a full two-service (order + inventory) integration example. Load when implementing specific distribution patterns beyond the basics.
+- [Testing patterns](references/testing-patterns.md) — How to test distributed command handlers and event handlers using `EcotoneLite::bootstrapFlowTesting`, `sendCommandWithRoutingKey`, and `publishEventWithRoutingKey`. Load when writing tests for distributed messaging.

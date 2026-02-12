@@ -1,70 +1,8 @@
-# Business Interface Patterns Reference
-
-## DbalQueryBusinessMethod Attribute
-
-Source: `Ecotone\Dbal\Attribute\DbalQueryBusinessMethod`
-
-```php
-#[Attribute(Attribute::TARGET_METHOD)]
-class DbalQueryBusinessMethod
-{
-    public function __construct(
-        public readonly string $sql = '',
-        public readonly string $fetchMode = FetchMode::ASSOCIATIVE,
-        public readonly string $connectionReferenceName = DbalConnection::class,
-    )
-}
-```
-
-## DbalWriteBusinessMethod Attribute
-
-Source: `Ecotone\Dbal\Attribute\DbalWriteBusinessMethod`
-
-```php
-#[Attribute(Attribute::TARGET_METHOD)]
-class DbalWriteBusinessMethod
-{
-    public function __construct(
-        public readonly string $sql = '',
-        public readonly string $connectionReferenceName = DbalConnection::class,
-    )
-}
-```
-
-## DbalParameter Attribute
-
-Source: `Ecotone\Dbal\Attribute\DbalParameter`
-
-```php
-#[Attribute(Attribute::TARGET_PARAMETER)]
-class DbalParameter
-{
-    public function __construct(
-        public readonly string $name = '',
-        public readonly ?string $type = null,
-        public readonly string $expression = '',
-    )
-}
-```
-
-## FetchMode Constants
-
-Source: `Ecotone\Dbal\DbaBusinessMethod\FetchMode`
-
-```php
-class FetchMode
-{
-    public const ASSOCIATIVE = 'associative';
-    public const FIRST_COLUMN = 'first_column';
-    public const FIRST_ROW = 'first_row';
-    public const FIRST_COLUMN_OF_FIRST_ROW = 'first_column_of_first_row';
-    public const COLUMN_OF_FIRST_ROW = 'column_of_first_row';
-}
-```
+# Business Interface Usage Examples
 
 ## DBAL Query Examples
 
-### Basic Queries
+### Basic Queries with Different FetchModes
 
 ```php
 use Ecotone\Dbal\Attribute\DbalQueryBusinessMethod;
@@ -159,9 +97,47 @@ interface OrderQueries
 }
 ```
 
+### Custom Connection Reference
+
+```php
+interface SecondaryDbQueries
+{
+    #[DbalQueryBusinessMethod(
+        'SELECT * FROM legacy_orders',
+        connectionReferenceName: 'secondary_connection'
+    )]
+    public function findLegacyOrders(): array;
+}
+```
+
 ## Converter Examples
 
-Source: `Ecotone\Messaging\Attribute\Converter`
+### JSON Converter
+
+```php
+use Ecotone\Messaging\Attribute\Converter;
+
+class JsonConverter
+{
+    #[Converter]
+    public function fromJson(string $json): OrderDTO
+    {
+        $data = json_decode($json, true);
+        return new OrderDTO($data['orderId'], $data['product']);
+    }
+
+    #[Converter]
+    public function toJson(OrderDTO $order): string
+    {
+        return json_encode([
+            'orderId' => $order->orderId,
+            'product' => $order->product,
+        ]);
+    }
+}
+```
+
+### DTO Converter
 
 ```php
 use Ecotone\Messaging\Attribute\Converter;
@@ -190,54 +166,9 @@ class ProductConverter
 }
 ```
 
-### JSON Converter
+## BusinessMethod Examples
 
-```php
-class JsonConverter
-{
-    #[Converter]
-    public function fromJson(string $json): OrderDTO
-    {
-        $data = json_decode($json, true);
-        return new OrderDTO($data['orderId'], $data['product']);
-    }
-
-    #[Converter]
-    public function toJson(OrderDTO $order): string
-    {
-        return json_encode([
-            'orderId' => $order->orderId,
-            'product' => $order->product,
-        ]);
-    }
-}
-```
-
-## BusinessMethod Attribute
-
-Source: `Ecotone\Messaging\Attribute\BusinessMethod`
-
-`BusinessMethod` extends `MessageGateway`. Ecotone generates an implementation that sends messages through the messaging system.
-
-```php
-#[Attribute(Attribute::TARGET_METHOD)]
-class BusinessMethod extends MessageGateway
-{
-}
-
-class MessageGateway
-{
-    public function __construct(
-        string $requestChannel,
-        string $errorChannel = '',
-        int $replyTimeoutInMilliseconds = 0,
-        array $requiredInterceptorNames = [],
-        ?string $replyContentType = null
-    )
-}
-```
-
-### Basic: BusinessMethod → ServiceActivator
+### BusinessMethod with ServiceActivator
 
 ```php
 use Ecotone\Messaging\Attribute\BusinessMethod;
@@ -271,7 +202,7 @@ class InMemoryCache
 }
 ```
 
-### BusinessMethod → CommandHandler on Aggregate
+### BusinessMethod with Aggregate
 
 ```php
 use Ecotone\Messaging\Attribute\BusinessMethod;
@@ -352,7 +283,7 @@ class CachingRouter
 }
 ```
 
-### Injecting BusinessMethod into CommandHandlers
+### Cross-Aggregate Injection
 
 BusinessMethod interfaces can be injected as parameters into handler methods. Ecotone resolves the auto-generated proxy and passes it in.
 
@@ -425,33 +356,6 @@ class Basket
 ```
 
 **Key patterns for injection:**
-- First parameter after command is matched by type — Ecotone injects the BusinessMethod proxy automatically
+- First parameter after command is matched by type -- Ecotone injects the BusinessMethod proxy automatically
 - Use `#[Reference]` for explicit service container injection (when not first service parameter)
 - Use `#[Identifier]` on BusinessMethod parameters to target specific aggregate instances
-
-## MediaType Constants
-
-Source: `Ecotone\Messaging\Conversion\MediaType`
-
-```php
-MediaType::APPLICATION_JSON             // 'application/json'
-MediaType::APPLICATION_XML              // 'application/xml'
-MediaType::APPLICATION_X_PHP            // 'application/x-php'
-MediaType::APPLICATION_X_PHP_ARRAY      // 'application/x-php;type=array'
-MediaType::APPLICATION_X_PHP_SERIALIZED // 'application/x-php-serialized'
-MediaType::TEXT_PLAIN                   // 'text/plain'
-MediaType::APPLICATION_OCTET_STREAM     // 'application/octet-stream'
-```
-
-## Custom Connection Reference
-
-```php
-interface SecondaryDbQueries
-{
-    #[DbalQueryBusinessMethod(
-        'SELECT * FROM legacy_orders',
-        connectionReferenceName: 'secondary_connection'
-    )]
-    public function findLegacyOrders(): array;
-}
-```

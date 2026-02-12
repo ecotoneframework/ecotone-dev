@@ -11,6 +11,10 @@ argument-hint: "[module-name]"
 
 # Ecotone Module Creator
 
+## Overview
+
+This skill covers creating new Ecotone modules and packages. Use it when scaffolding a new package, implementing a module class with the `AnnotationModule` pattern, registering handlers/channels/converters in the messaging system, or accepting external configuration via `#[ServiceContext]`.
+
 ## 1. Module Class Structure
 
 Every Ecotone module follows the `AnnotationModule` pattern:
@@ -56,74 +60,11 @@ final class MyModule extends NoExternalConfigurationModule implements Annotation
 ```
 
 Key pieces:
-- `#[ModuleAnnotation]` — marks class as a module
-- `AnnotationModule` interface — required contract
-- `NoExternalConfigurationModule` — extend when no external config needed
+- `#[ModuleAnnotation]` -- marks class as a module
+- `AnnotationModule` interface -- required contract
+- `NoExternalConfigurationModule` -- extend when no external config needed
 
-## 2. Required Methods
-
-### `create()` — Static Factory
-
-Called during bootstrap. Use `AnnotationFinder` to scan for attributes:
-
-```php
-public static function create(
-    AnnotationFinder $annotationRegistrationService,
-    InterfaceToCallRegistry $interfaceToCallRegistry
-): static {
-    $handlers = $annotationRegistrationService->findAnnotatedMethods(MyCustomAttribute::class);
-    return new self($handlers);
-}
-```
-
-### `prepare()` — Register Components
-
-Called to wire the module into the messaging system:
-
-```php
-public function prepare(
-    Configuration $messagingConfiguration,
-    array $extensionObjects,
-    ModuleReferenceSearchService $moduleReferenceSearchService,
-    InterfaceToCallRegistry $interfaceToCallRegistry
-): void {
-    // Register a service activator
-    $messagingConfiguration->registerMessageHandler(
-        ServiceActivatorBuilder::createWithDirectReference(
-            $this->handler, 'handle'
-        )->withInputChannelName('myChannel')
-    );
-
-    // Register a channel
-    $messagingConfiguration->registerMessageChannel(
-        SimpleMessageChannelBuilder::createQueueChannel('myQueue')
-    );
-}
-```
-
-### `canHandle()` — Extension Object Support
-
-Declares which extension objects the module accepts from user configuration:
-
-```php
-public function canHandle($extensionObject): bool
-{
-    return $extensionObject instanceof MyModuleConfiguration;
-}
-```
-
-### `getModulePackageName()` — Package Identity
-
-Returns the module identifier used in `ModulePackageList`:
-
-```php
-public function getModulePackageName(): string
-{
-    return ModulePackageList::DBAL_PACKAGE;
-}
-```
-
-## 3. Using AnnotationFinder
+## 2. Using AnnotationFinder
 
 ```php
 // Find all classes with a specific attribute
@@ -133,12 +74,12 @@ $classes = $annotationRegistrationService->findAnnotatedClasses(MyAttribute::cla
 $methods = $annotationRegistrationService->findAnnotatedMethods(MyHandler::class);
 
 // Each result provides:
-// - getClassName() — fully qualified class name
-// - getMethodName() — method name
-// - getAnnotationForMethod() — the attribute instance
+// - getClassName() -- fully qualified class name
+// - getMethodName() -- method name
+// - getAnnotationForMethod() -- the attribute instance
 ```
 
-## 4. Using ExtensionObjectResolver
+## 3. Using ExtensionObjectResolver
 
 When your module accepts external configuration:
 
@@ -173,9 +114,9 @@ class UserConfig
 }
 ```
 
-## 5. Package Scaffolding
+## 4. Package Scaffolding
 
-Start from the package template directory, which provides a minimal module skeleton:
+Start from the package template directory:
 
 ```
 <PackageTemplate>/
@@ -189,13 +130,13 @@ Start from the package template directory, which provides a minimal module skele
 
 Steps:
 1. Copy the package template to `packages/<YourPackage>/`
-2. Rename the template module class → `<YourPackage>Module`
-3. Update namespace from template namespace → `Ecotone\<YourPackage>`
+2. Rename the template module class to `<YourPackage>Module`
+3. Update namespace from template namespace to `Ecotone\<YourPackage>`
 4. Update `composer.json` (name, autoload)
 5. Register package in `ModulePackageList` (add constant + match case)
 6. Add to root `composer.json` for monorepo
 
-## 6. Testing Modules
+## 5. Testing Modules
 
 ```php
 public function test_module_registers_handlers(): void
@@ -205,7 +146,6 @@ public function test_module_registers_handlers(): void
         containerOrAvailableServices: [new TestHandler()],
     );
 
-    // Verify the module's handlers are active
     $ecotone->sendCommand(new TestCommand());
     // Assert expected behavior
 }
@@ -221,4 +161,4 @@ public function test_module_registers_handlers(): void
 
 ## Additional resources
 
-- [Module anatomy reference](references/module-anatomy.md) — Complete module implementation examples including `#[ModuleAnnotation]`, `Module` interface methods (`prepare`, `canHandle`, `getModuleExtensions`), `NoExternalConfigurationModule`, `ModulePackageList` registration, and real module class implementations from the Ecotone codebase. Load when creating a new module or need the full module lifecycle.
+- [Module anatomy reference](references/module-anatomy.md) -- Complete interface definitions and implementation examples: `AnnotationModule` interface, `NoExternalConfigurationModule` base class, `Configuration` interface methods (`registerMessageHandler`, `registerMessageChannel`, `registerConverter`, etc.), `AnnotationFinder` interface methods, `ModulePackageList` constants and registration steps, package directory structure with `composer.json` template, and a full module with external configuration class. Load when you need exact interface signatures, the package template module code, `composer.json` boilerplate, or a complete module with external configuration.

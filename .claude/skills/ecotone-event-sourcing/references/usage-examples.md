@@ -1,6 +1,8 @@
-# Projection Patterns Reference
+# Event Sourcing Usage Examples
 
-## Basic ProjectionV2
+## Projection Examples
+
+### Basic ProjectionV2 with Lifecycle
 
 ```php
 use Ecotone\Projecting\Attribute\ProjectionV2;
@@ -58,7 +60,7 @@ class TicketListProjection
 }
 ```
 
-## Partitioned Projection
+### Partitioned Projection with State
 
 ```php
 use Ecotone\Projecting\Attribute\Partitioned;
@@ -98,7 +100,7 @@ Partitioned projection rules:
 - Default partition key is `MessageHeaders::EVENT_AGGREGATE_ID`
 - Custom key: `#[Partitioned('custom_header')]`
 
-## Polling Projection
+### Polling Projection
 
 ```php
 use Ecotone\Projecting\Attribute\Polling;
@@ -123,7 +125,7 @@ $ecotone->triggerProjection('order_summary');
 $ecotone->run('orderSummaryEndpoint', ExecutionPollingMetadata::createWithTestingSetup());
 ```
 
-## Streaming Projection
+### Streaming Projection
 
 ```php
 use Ecotone\Projecting\Attribute\Streaming;
@@ -141,7 +143,7 @@ class LiveDashboardProjection
 }
 ```
 
-## Multi-Stream Projection
+### Multi-Stream Projection
 
 ```php
 #[ProjectionV2('calendar_view')]
@@ -159,7 +161,7 @@ class CalendarViewProjection
 
 Cannot be combined with `#[Partitioned]`.
 
-## FromAggregateStream
+### FromAggregateStream
 
 ```php
 use Ecotone\Projecting\Attribute\FromAggregateStream;
@@ -173,7 +175,7 @@ class OrderListProjection
 }
 ```
 
-## Projection with Event Stream Emitter
+### Projection with EventStreamEmitter
 
 ```php
 use Ecotone\EventSourcing\EventStreamEmitter;
@@ -195,131 +197,168 @@ class NotificationProjection
 }
 ```
 
-## Configuration Attributes
-
-### ProjectionExecution
+### Configuration Attributes
 
 ```php
 use Ecotone\Projecting\Attribute\ProjectionExecution;
+use Ecotone\Projecting\Attribute\ProjectionBackfill;
+use Ecotone\Projecting\Attribute\ProjectionDeployment;
 
+// Batch size for event loading
 #[ProjectionV2('big_projection')]
 #[ProjectionExecution(eventLoadingBatchSize: 500)]
 #[FromStream(Ticket::class)]
 class BigProjection { }
-```
 
-### ProjectionBackfill
-
-```php
-use Ecotone\Projecting\Attribute\ProjectionBackfill;
-
+// Backfill configuration
 #[ProjectionV2('my_proj')]
 #[Partitioned]
 #[ProjectionBackfill(backfillPartitionBatchSize: 100, asyncChannelName: 'backfill_channel')]
 #[FromStream(Ticket::class)]
 class BackfillableProjection { }
-```
 
-### ProjectionDeployment (Blue/Green)
-
-```php
-use Ecotone\Projecting\Attribute\ProjectionDeployment;
-
-// Non-live: EventStreamEmitter events are suppressed
+// Blue/green deployment: non-live suppresses EventStreamEmitter events
 #[ProjectionV2('projection_v2')]
 #[ProjectionDeployment(live: false)]
 #[FromStream(Ticket::class)]
-class ProjectionV2 { }
+class ProjectionV2Deploy { }
 
 // Manual kickoff: requires explicit initialization
 #[ProjectionV2('projection_v1')]
 #[ProjectionDeployment(manualKickOff: true)]
 #[FromStream(Ticket::class)]
-class ProjectionV1 { }
+class ProjectionV1Deploy { }
 ```
 
-## Testing Projections
+## Event Versioning Examples
 
-### Testing with Aggregate (command-driven)
+### Revision and NamedEvent
 
 ```php
-public function test_projection(): void
+use Ecotone\Modelling\Attribute\Revision;
+use Ecotone\Modelling\Attribute\NamedEvent;
+
+// Version 1 (default when no attribute)
+class PersonWasRegistered
 {
-    $projection = new TicketListProjection();
+    public function __construct(
+        public readonly string $personId,
+        public readonly string $name,
+    ) {}
+}
 
-    $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-        classesToResolve: [TicketListProjection::class, Ticket::class],
-        containerOrAvailableServices: [$projection],
-    );
+// Version 2 -- added 'type' field
+#[Revision(2)]
+class PersonWasRegistered
+{
+    public function __construct(
+        public readonly string $personId,
+        public readonly string $name,
+        public readonly string $type,  // new in v2
+    ) {}
+}
 
-    // Initialize
-    $ecotone->initializeProjection('ticket_list');
-
-    // Produce events via commands
-    $ecotone->sendCommand(new RegisterTicket('t-1', 'Bug'));
-    $ecotone->sendCommand(new RegisterTicket('t-2', 'Feature'));
-
-    // Trigger projection to process events
-    $ecotone->triggerProjection('ticket_list');
-
-    // Query read model
-    $tickets = $ecotone->sendQueryWithRouting('getTickets');
-    $this->assertCount(2, $tickets);
-
-    // Test reset
-    $ecotone->resetProjection('ticket_list');
-    $ecotone->triggerProjection('ticket_list');
-    $tickets = $ecotone->sendQueryWithRouting('getTickets');
-    $this->assertCount(2, $tickets);  // Rebuilt from events
+// Named event decouples class name from stored type
+#[NamedEvent('ticket.was_registered')]
+class TicketWasRegistered
+{
+    public function __construct(
+        public readonly string $ticketId,
+        public readonly string $type,
+    ) {}
 }
 ```
 
-### Testing with withEventStream (no Aggregate needed)
+### Upcasting Pattern
 
-Use `withEventStream` to append events directly to a stream, bypassing the need for an Aggregate.
-This is useful when testing projections in isolation — only the projection class and event classes are needed.
+Upcasters transform old event versions to the current schema:
 
 ```php
-use Ecotone\EventSourcing\Event;
+use Ecotone\Modelling\Attribute\EventRevision;
 
-public function test_projection_with_direct_events(): void
+class PersonWasRegisteredUpcaster
 {
-    $projection = new TicketListProjection();
-
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [TicketListProjection::class],
-        containerOrAvailableServices: [$projection],
-    );
-
-    $ecotone->initializeProjection('ticket_list');
-
-    // Append events directly to the stream — no Aggregate required
-    $ecotone->withEventStream(Ticket::class, [
-        Event::create(new TicketWasRegistered('t-1', 'Bug')),
-        Event::create(new TicketWasRegistered('t-2', 'Feature')),
-        Event::create(new TicketWasClosed('t-1')),
-    ]);
-
-    $ecotone->triggerProjection('ticket_list');
-
-    $tickets = $ecotone->sendQueryWithRouting('getTickets');
-    $this->assertCount(2, $tickets);
-    $this->assertSame('closed', $ecotone->sendQueryWithRouting('getTicket', metadata: ['ticketId' => 't-1'])['status']);
+    public function upcast(array $payload, int $revision): array
+    {
+        if ($revision < 2) {
+            $payload['type'] = 'default';  // Provide default for new field
+        }
+        return $payload;
+    }
 }
 ```
 
-Key points:
-- Use `bootstrapFlowTesting` (no EventStore bootstrap needed) — the in-memory event store is registered automatically
-- Stream name in `withEventStream` must match the `#[FromStream]` attribute on the projection (here `Ticket::class`)
-- Wrap each event in `Event::create()` from `Ecotone\EventSourcing\Event`
-- No Aggregate class is registered in `classesToResolve`
+### Event Schema Evolution Strategies
 
-## Validation Rules
+**Adding Fields (Backward Compatible):**
+```php
+// v1: { personId, name }
+// v2: { personId, name, type }
+// Upcaster sets type='default' for v1 events
+```
 
-1. `#[Partitioned]` + multiple `#[FromStream]` → ConfigurationException
-2. `#[FromAggregateStream]` requires `#[EventSourcingAggregate]` class
-3. `#[Polling]` + `#[Streaming]` → not allowed
-4. `#[Polling]` + `#[Partitioned]` → not allowed
-5. `#[Partitioned]` + `#[Streaming]` → not allowed
-6. Projection names must be unique
-7. Backfill batch size must be ≥ 1
+**Renaming Fields:**
+```php
+public function upcast(array $payload, int $revision): array
+{
+    if ($revision < 2) {
+        $payload['fullName'] = $payload['name'];
+        unset($payload['name']);
+    }
+    return $payload;
+}
+```
+
+**Splitting Events:**
+```php
+// v1: PersonWasRegisteredAndActivated { id, name, activatedAt }
+// v2: Split into PersonWasRegistered + PersonWasActivated
+```
+
+**Removing Fields:**
+```php
+public function upcast(array $payload, int $revision): array
+{
+    unset($payload['deprecatedField']);
+    return $payload;
+}
+```
+
+### Versioning Best Practices
+
+1. **Always increment revision** when changing event schema
+2. **Never modify stored events** -- transform on read via upcasters
+3. **Use `#[NamedEvent]`** to decouple storage from class names
+4. **Add defaults in upcasters** for new required fields
+5. **Keep events immutable** -- all properties `readonly`
+6. **Version from the start** -- use `#[Revision(1)]` explicitly
+7. **Test upcasters** -- verify old events can be loaded with new code
+
+## Dynamic Consistency Boundary (DCB)
+
+DCB allows multiple aggregates to share consistency guarantees without distributed transactions:
+
+```php
+#[ProjectionV2('inventory_consistency')]
+#[FromStream(Order::class)]
+#[FromStream(Warehouse::class)]
+class InventoryConsistencyProjection
+{
+    #[EventHandler]
+    public function onOrderPlaced(OrderWasPlaced $event): void
+    {
+        // Check inventory consistency across aggregates
+    }
+
+    #[EventHandler]
+    public function onStockUpdated(StockWasUpdated $event): void
+    {
+        // Update inventory view
+    }
+}
+```
+
+- Events from multiple aggregates can be read in a single projection
+- Projection state provides the consistency boundary
+- Use multi-stream projections (`#[FromStream]` on multiple aggregate types)
+- Decision models can load events from multiple streams to make consistent decisions

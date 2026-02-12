@@ -1,8 +1,6 @@
-# Identifier Mapping Patterns Reference
+# Identifier Mapping Usage Examples
 
 ## Declaring Identifiers on Aggregates
-
-Use `#[Identifier]` on the identity property:
 
 ```php
 use Ecotone\Modelling\Attribute\Aggregate;
@@ -30,7 +28,7 @@ class OrderProcess
 }
 ```
 
-## Multiple Identifiers
+## Multiple Identifiers (Composite Key)
 
 ```php
 #[Aggregate]
@@ -67,9 +65,7 @@ class OrderProcess
 
 The `'orderId'` parameter tells Ecotone this method provides the value for the `orderId` identifier.
 
-## Native ID Mapping (Full Example)
-
-When the command/event property name matches the aggregate's `#[Identifier]` property name, mapping is automatic:
+## Native ID Mapping (Full Aggregate Example)
 
 ```php
 class CancelOrder
@@ -93,7 +89,7 @@ class Order
 
 This works because both the command and aggregate have a property named `orderId`.
 
-## `aggregate.id` Metadata Override (Full Examples)
+## `aggregate.id` Metadata Override
 
 ### With Routing Key Commands (No Message Class)
 
@@ -125,14 +121,6 @@ $commandBus->sendWithRouting('order.cancel', metadata: ['aggregate.id' => $order
 $queryBus->sendWithRouting('order.getStatus', metadata: ['aggregate.id' => $orderId]);
 ```
 
-### In Tests
-
-```php
-$ecotone
-    ->sendCommand(new PlaceOrder('order-1'))
-    ->sendCommandWithRoutingKey('order.cancel', metadata: ['aggregate.id' => 'order-1']);
-```
-
 ### With Multiple Identifiers
 
 Pass an array to `aggregate.id`:
@@ -144,9 +132,7 @@ $commandBus->sendWithRouting(
 );
 ```
 
-## `#[TargetIdentifier]` Full Examples
-
-### Basic Usage
+## `#[TargetIdentifier]` Full Saga Example
 
 ```php
 use Ecotone\Modelling\Attribute\TargetIdentifier;
@@ -157,13 +143,7 @@ class OrderStarted
         #[TargetIdentifier('orderId')] public string $id
     ) {}
 }
-```
 
-The parameter `'orderId'` tells Ecotone that `$id` maps to the aggregate/saga's `orderId` identifier.
-
-### Full Saga Example with TargetIdentifier
-
-```php
 #[Saga]
 class OrderProcess
 {
@@ -197,9 +177,7 @@ class CancelOrder
 }
 ```
 
-## `identifierMapping` Full Examples
-
-### Mapping from Payload
+## `identifierMapping` from Payload
 
 ```php
 #[Saga]
@@ -224,7 +202,7 @@ class OrderProcess
 
 `'payload.id'` resolves to `$event->id`.
 
-### Mapping from Headers
+## `identifierMapping` from Headers
 
 ```php
 #[Saga]
@@ -247,7 +225,7 @@ Usage:
 $eventBus->publish(new OrderStarted('', 'ongoing'), metadata: ['orderId' => '123']);
 ```
 
-### On Command Handlers
+## `identifierMapping` on Command Handlers
 
 ```php
 #[Aggregate]
@@ -291,102 +269,4 @@ The `orderId` saga identifier is resolved from the `paymentId` header in metadat
 
 ```php
 $eventBus->publish(new PaymentWasDoneEvent(), metadata: ['paymentId' => $orderId]);
-```
-
-### Restriction
-
-You cannot define both `identifierMetadataMapping` and `identifierMapping` on the same handler -- use one or the other.
-
-## Testing Examples
-
-### Native Mapping
-
-```php
-public function test_aggregate_with_native_mapping(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting([Order::class]);
-
-    $ecotone->sendCommand(new PlaceOrder('order-1'));
-    $ecotone->sendCommand(new CancelOrder('order-1'));
-
-    $this->assertTrue(
-        $ecotone->getAggregate(Order::class, 'order-1')->isCancelled()
-    );
-}
-```
-
-### aggregate.id Override
-
-```php
-public function test_aggregate_with_aggregate_id_metadata(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting([Order::class]);
-
-    $ecotone
-        ->sendCommand(new PlaceOrder('order-1'))
-        ->sendCommandWithRoutingKey('order.cancel', metadata: ['aggregate.id' => 'order-1']);
-
-    $this->assertTrue(
-        $ecotone->getAggregate(Order::class, 'order-1')->isCancelled()
-    );
-}
-```
-
-### #[TargetIdentifier] with Saga
-
-```php
-public function test_saga_with_target_identifier(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting([OrderProcess::class]);
-
-    $this->assertEquals(
-        '123',
-        $ecotone
-            ->publishEvent(new OrderStarted('123'))
-            ->getSaga(OrderProcess::class, '123')
-            ->getOrderId()
-    );
-}
-```
-
-### identifierMapping from Payload
-
-```php
-public function test_identifier_mapping_from_payload(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [OrderProcessWithAttributePayloadMapping::class]
-    );
-
-    $this->assertEquals(
-        'new',
-        $ecotone
-            ->publishEvent(new OrderStarted('123', 'new'))
-            ->getSaga(OrderProcessWithAttributePayloadMapping::class, '123')
-            ->getStatus()
-    );
-}
-```
-
-### identifierMapping from Headers
-
-```php
-public function test_identifier_mapping_from_headers(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [OrderProcessWithAttributeHeadersMapping::class]
-    );
-
-    $this->assertEquals(
-        'ongoing',
-        $ecotone
-            ->sendCommandWithRoutingKey('startOrder', '123')
-            ->publishEvent(
-                new OrderStarted('', 'ongoing'),
-                metadata: ['orderId' => '123']
-            )
-            ->getSaga(OrderProcessWithAttributeHeadersMapping::class, '123')
-            ->getStatus()
-    );
-}
 ```

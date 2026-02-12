@@ -12,6 +12,10 @@ description: >-
 
 # Ecotone Testing
 
+## Overview
+
+Ecotone provides `EcotoneLite` for bootstrapping lightweight, in-process test environments. Tests use inline anonymous classes with PHP 8.1+ attributes, snake_case method names, and high-level behavioral assertions. Use this skill when writing or debugging any Ecotone test.
+
 ## 1. Bootstrap Selection
 
 | Method | Use When |
@@ -21,7 +25,6 @@ description: >-
 
 ```php
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
 
 // Standard testing
 $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -32,16 +35,15 @@ $ecotone = EcotoneLite::bootstrapFlowTesting(
 // Event sourcing testing
 $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
     classesToResolve: [MyAggregate::class],
-    containerOrAvailableServices: [],
 );
 ```
 
 ## 2. Test Structure Rules
 
 - **`snake_case`** method names (enforced by PHP-CS-Fixer)
-- **High-level tests** from end-user perspective — never test internals
-- **Inline anonymous classes** with PHP 8.1+ attributes — not separate fixture files
-- **No comments** — descriptive method names only
+- **High-level tests** from end-user perspective -- never test internals
+- **Inline anonymous classes** with PHP 8.1+ attributes -- not separate fixture files
+- **No comments** -- descriptive method names only
 - **Licence header** on every test file
 
 ```php
@@ -57,9 +59,9 @@ final class OrderTest extends TestCase
 }
 ```
 
-## 3. Testing Patterns
+## 3. Core Testing Patterns
 
-### Pattern 1: Simple Handler Testing
+### Simple Handler
 
 ```php
 public function test_handling_command(): void
@@ -83,7 +85,7 @@ public function test_handling_command(): void
 }
 ```
 
-### Pattern 2: Aggregate Testing
+### Aggregate
 
 ```php
 public function test_creating_aggregate(): void
@@ -97,7 +99,7 @@ public function test_creating_aggregate(): void
 }
 ```
 
-### Pattern 3: Event-Sourced Aggregate with `withEventsFor()`
+### Event-Sourced Aggregate with withEventsFor
 
 ```php
 public function test_closing_ticket(): void
@@ -115,7 +117,7 @@ public function test_closing_ticket(): void
 }
 ```
 
-### Pattern 4: Async-Tested-Synchronously
+### Async-Tested-Synchronously
 
 ```php
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -140,7 +142,7 @@ public function test_async_handler(): void
 }
 ```
 
-### Pattern 5: Service Stubs
+### Service Stubs
 
 ```php
 public function test_with_service_dependency(): void
@@ -160,47 +162,6 @@ public function test_with_service_dependency(): void
 }
 ```
 
-### Pattern 6: ServiceConfiguration with ModulePackageList
-
-```php
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
-
-public function test_with_dbal_module(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [MyProjection::class],
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(
-                ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                ])
-            ),
-    );
-}
-```
-
-### Pattern 7: Projection Testing
-
-```php
-public function test_projection_builds_read_model(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-        classesToResolve: [TicketListProjection::class, Ticket::class],
-        containerOrAvailableServices: [new TicketListProjection()],
-    );
-
-    $ecotone->initializeProjection('ticket_list');
-
-    $ecotone->sendCommand(new RegisterTicket('t-1', 'Bug report'));
-    $ecotone->triggerProjection('ticket_list');
-
-    $result = $ecotone->sendQueryWithRouting('getTickets');
-    $this->assertCount(1, $result);
-}
-```
-
 ## 4. Debugging Test Failures
 
 | Symptom | Cause | Fix |
@@ -215,11 +176,11 @@ public function test_projection_builds_read_model(): void
 
 ## 5. Common Mistakes
 
-- **Don't** use raw PHPUnit mocking instead of EcotoneLite — use the framework's test support
-- **Don't** create separate fixture class files for test-only handlers — use inline anonymous classes
-- **Don't** test implementation details — test behavior from the end-user perspective
-- **Don't** forget to call `->run('channel')` for async handlers — messages won't process otherwise
-- **Don't** mix `bootstrapFlowTesting` and `bootstrapFlowTestingWithEventStore` — pick the right one
+- **Don't** use raw PHPUnit mocking instead of EcotoneLite -- use the framework's test support
+- **Don't** create separate fixture class files for test-only handlers -- use inline anonymous classes
+- **Don't** test implementation details -- test behavior from the end-user perspective
+- **Don't** forget to call `->run('channel')` for async handlers -- messages won't process otherwise
+- **Don't** mix `bootstrapFlowTesting` and `bootstrapFlowTestingWithEventStore` -- pick the right one
 
 ## Key Rules
 
@@ -230,5 +191,8 @@ public function test_projection_builds_read_model(): void
 
 ## Additional resources
 
-- [Test patterns](references/test-patterns.md) — Complete test implementations for handlers, aggregates, sagas, async processing, projections, and interceptors using `EcotoneLite::bootstrapFlowTesting()`. Load when writing new tests or need copy-paste test examples.
-- [EcotoneLite API reference](references/ecotone-lite-api.md) — Full `FlowTestSupport` API including all `send*`, `publish*`, `run()`, `getAggregate()`, `getSaga()`, `getRecordedEvents()`, `getRecordedEventHeaders()`, and assertion methods. Load when you need the exact method signature or available options for EcotoneLite.
+- [API reference](references/api-reference.md) -- Full `EcotoneLite` bootstrap method signatures (`bootstrapFlowTesting`, `bootstrapFlowTestingWithEventStore`, `bootstrapForTesting`) and complete `FlowTestSupport` API including all `send*`, `publish*`, `run()`, `getAggregate()`, `getSaga()`, `getRecordedEvents()`, `getRecordedEventHeaders()`, projection methods, time control, and infrastructure methods. Load when you need exact method signatures, parameter types, or available options.
+
+- [Usage examples](references/usage-examples.md) -- Complete test implementations for all patterns: event handler testing, query handler testing, state-stored and event-sourced aggregate testing, projection testing with inline classes, service stubs with dependencies, recorded messages inspection, and `ModulePackageList` configuration with all available package constants. Load when you need full copy-paste test examples or advanced testing patterns.
+
+- [Testing patterns](references/testing-patterns.md) -- Async-tested-synchronously patterns with `SimpleMessageChannelBuilder` and `ExecutionPollingMetadata`, projection testing with `bootstrapFlowTestingWithEventStore`, and the debugging/failure diagnosis reference table. Load when testing async handlers, projections, or diagnosing test failures.

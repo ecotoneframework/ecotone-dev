@@ -10,6 +10,10 @@ description: >-
 
 # Ecotone Asynchronous Processing
 
+## Overview
+
+Ecotone's asynchronous processing routes handler execution through message channels, allowing messages to be processed in background workers. Use this when you need non-blocking event/command handling, delayed delivery, scheduled tasks, or distributed message routing across multiple channels.
+
 ## 1. #[Asynchronous] Attribute
 
 Routes handler execution through a message channel:
@@ -51,8 +55,6 @@ class ChannelConfiguration
 }
 ```
 
-### Channel Types
-
 | Type | Class | Use Case |
 |------|-------|----------|
 | In-memory queue | `SimpleMessageChannelBuilder::createQueueChannel()` | Testing, dev |
@@ -61,40 +63,13 @@ class ChannelConfiguration
 | SQS | `SqsBackedMessageChannelBuilder::create()` | AWS messaging |
 | Redis | `RedisBackedMessageChannelBuilder::create()` | Fast messaging |
 
-## 3. Polling Configuration
-
-```php
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-
-class ConsumerConfiguration
-{
-    #[ServiceContext]
-    public function ordersConsumer(): PollingMetadata
-    {
-        return PollingMetadata::create('orders')
-            ->setHandledMessageLimit(100)
-            ->setExecutionTimeLimitInMilliseconds(60000)
-            ->setMemoryLimitInMegabytes(256)
-            ->setFixedRateInMilliseconds(200)
-            ->setStopOnError(false)
-            ->setFinishWhenNoMessages(false);
-    }
-}
-```
-
-Running consumers:
-```bash
-bin/console ecotone:run notifications --handledMessageLimit=100
-```
-
-## 4. Delayed Messages
+## 3. Delayed Messages
 
 ```php
 use Ecotone\Messaging\Attribute\Delayed;
 
 class ReminderService
 {
-    // Fixed delay in milliseconds
     #[Delayed(5000)]
     #[Asynchronous('reminders')]
     #[EventHandler(endpointId: 'sendReminder')]
@@ -102,64 +77,7 @@ class ReminderService
 }
 ```
 
-Testing delayed messages:
-```php
-use Ecotone\Messaging\Scheduling\TimeSpan;
-
-$ecotone->run('reminders', null, TimeSpan::withSeconds(60));
-```
-
-## 5. Priority
-
-```php
-use Ecotone\Messaging\Attribute\Endpoint\Priority;
-
-class OrderService
-{
-    #[Priority(10)]
-    #[Asynchronous('orders')]
-    #[CommandHandler(endpointId: 'urgentOrders')]
-    public function handleUrgent(UrgentOrder $command): void { }
-
-    #[Priority(1)]
-    #[Asynchronous('orders')]
-    #[CommandHandler(endpointId: 'regularOrders')]
-    public function handleRegular(RegularOrder $command): void { }
-}
-```
-
-- Sets `MessageHeaders::PRIORITY` header on the message
-- Higher number = higher priority (processed first when multiple messages are queued)
-- Can be applied at `TARGET_CLASS` or `TARGET_METHOD` level
-- Default priority is `1`
-
-## 6. Time to Live
-
-```php
-use Ecotone\Messaging\Attribute\Endpoint\TimeToLive;
-use Ecotone\Messaging\Scheduling\TimeSpan;
-
-class NotificationService
-{
-    // TTL in milliseconds
-    #[TimeToLive(60000)]
-    #[Asynchronous('notifications')]
-    #[EventHandler(endpointId: 'sendNotification')]
-    public function send(OrderWasPlaced $event): void { }
-
-    // TTL with TimeSpan
-    #[TimeToLive(time: TimeSpan::withMinutes(5))]
-    #[Asynchronous('notifications')]
-    #[EventHandler(endpointId: 'sendUrgentNotification')]
-    public function sendUrgent(UrgentEvent $event): void { }
-}
-```
-
-- Message is discarded if not consumed within the TTL period
-- Accepts integer (milliseconds), `TimeSpan` object, or an expression string
-- Can be applied at `TARGET_CLASS` or `TARGET_METHOD` level
-
-## 7. Scheduling
+## 4. Scheduling
 
 ```php
 use Ecotone\Messaging\Attribute\Scheduled;
@@ -176,24 +94,18 @@ class ReportGenerator
 }
 ```
 
-`#[Scheduled]` triggers a method on a schedule defined by `#[Poller]`:
-- `cron` — cron expression (e.g. `'*/5 * * * *'` for every 5 minutes)
-- `fixedRateInMilliseconds` — periodic execution interval
-- `initialDelayInMilliseconds` — delay before first execution
-
 Running scheduled consumers:
 ```bash
 bin/console ecotone:run reportScheduler
 ```
 
-## 8. Dynamic Channel
+## 5. Dynamic Channel
 
 ```php
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
 
 class ChannelConfig
 {
-    // Round-robin across multiple channels
     #[ServiceContext]
     public function dynamicChannel(): DynamicMessageChannelBuilder
     {
@@ -204,58 +116,6 @@ class ChannelConfig
     }
 }
 ```
-
-### Factory Methods
-
-| Method | Description |
-|--------|-------------|
-| `createRoundRobin(name, channelNames)` | Distributes messages across channels evenly |
-| `createRoundRobinWithDifferentChannels(name, sendChannels, receiveChannels)` | Different channels for send/receive |
-| `createWithHeaderBasedStrategy(name, headerName, headerMapping, ?defaultChannel)` | Routes based on message header value |
-| `createThrottlingStrategy(name, requestChannelName, channelNames)` | Throttling-based consumption |
-| `createNoStrategy(name)` | No-op channel for custom strategy attachment |
-
-### Customization
-
-```php
-$channel = DynamicMessageChannelBuilder::createRoundRobin('orders', ['ch1', 'ch2'])
-    ->withCustomSendingStrategy('customSendChannel')
-    ->withCustomReceivingStrategy('customReceiveChannel')
-    ->withHeaderSendingStrategy('routeHeader', ['value1' => 'ch1'], 'defaultCh')
-    ->withInternalChannels([...]);
-```
-
-## 9. Testing Async
-
-```php
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-
-public function test_async_processing(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [NotificationHandler::class],
-        containerOrAvailableServices: [new NotificationHandler()],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-        ],
-    );
-
-    $ecotone->publishEvent(new OrderWasPlaced('order-1'));
-
-    // Run the consumer
-    $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
-
-    // Assert results
-    $this->assertTrue($handler->wasProcessed);
-}
-```
-
-Key testing methods:
-- `enableAsynchronousProcessing` — provide in-memory channels
-- `$ecotone->run('channelName')` — consume messages
-- `ExecutionPollingMetadata::createWithTestingSetup()` — default test polling config
-- `$ecotone->sendDirectToChannel('channel', $payload)` — inject messages directly
 
 ## Key Rules
 
@@ -269,5 +129,6 @@ Key testing methods:
 
 ## Additional resources
 
-- [Channel patterns](references/channel-patterns.md) — Complete channel configuration examples including `SimpleMessageChannelBuilder`, `DbalBackedMessageChannelBuilder`, `AmqpBackedMessageChannelBuilder`, `SqsBackedMessageChannelBuilder`, and `RedisBackedMessageChannelBuilder`. Load when configuring message channels or choosing between channel types.
-- [Scheduling patterns](references/scheduling-patterns.md) — Complete scheduling and dynamic channel examples including `#[Scheduled]` with `#[Poller]`, cron expressions, `#[DynamicChannel]`, and dynamic channel routing patterns. Load when implementing scheduled tasks or dynamic message routing.
+- [API reference](references/api-reference.md) — Constructor signatures and parameter lists for all async attributes: `#[Asynchronous]`, `#[Delayed]`, `#[Priority]`, `#[TimeToLive]`, `#[Scheduled]`, `#[Poller]`, `PollingMetadata`, `DynamicMessageChannelBuilder` factory methods, and `TimeSpan`. Load when you need exact parameter names, types, or default values.
+- [Usage examples](references/usage-examples.md) — Complete code examples for channel configuration (all 5 channel types), polling metadata, priority handling, time-to-live patterns, scheduling variations (cron, fixed-rate, initial delay), and dynamic channel strategies (round-robin, header-based, throttling, custom). Load when implementing specific async patterns beyond the basics.
+- [Testing patterns](references/testing-patterns.md) — How to test async processing with `EcotoneLite::bootstrapFlowTesting`, `enableAsynchronousProcessing`, `ExecutionPollingMetadata`, testing delayed messages with `TimeSpan`, and `sendDirectToChannel`. Load when writing tests for asynchronous handlers.

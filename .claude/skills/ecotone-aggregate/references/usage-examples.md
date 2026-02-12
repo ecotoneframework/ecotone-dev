@@ -1,56 +1,10 @@
-# Aggregate Patterns Reference
+# Aggregate Usage Examples
 
-## Attribute Definitions
+Complete, runnable code examples for Ecotone aggregates.
 
-### Aggregate
+## State-Stored Aggregate: Customer
 
-Source: `Ecotone\Modelling\Attribute\Aggregate`
-
-```php
-#[Attribute(Attribute::TARGET_CLASS)]
-class Aggregate {}
-```
-
-### EventSourcingAggregate
-
-Source: `Ecotone\Modelling\Attribute\EventSourcingAggregate`
-
-```php
-#[Attribute(Attribute::TARGET_CLASS)]
-class EventSourcingAggregate {}
-```
-
-### Identifier
-
-Source: `Ecotone\Modelling\Attribute\Identifier`
-
-```php
-#[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
-class Identifier
-{
-    public function __construct(public string $identifierPropertyName = '') {}
-}
-```
-
-### EventSourcingHandler
-
-Source: `Ecotone\Modelling\Attribute\EventSourcingHandler`
-
-```php
-#[Attribute(Attribute::TARGET_METHOD)]
-class EventSourcingHandler {}
-```
-
-### AggregateVersion
-
-Source: `Ecotone\Modelling\Attribute\AggregateVersion`
-
-```php
-#[Attribute(Attribute::TARGET_PROPERTY)]
-class AggregateVersion {}
-```
-
-## State-Stored Aggregate Example
+A full state-stored aggregate with multiple command handlers and a query handler.
 
 ```php
 use Ecotone\Modelling\Attribute\Aggregate;
@@ -102,7 +56,9 @@ class Customer
 }
 ```
 
-## Event-Sourced Aggregate Example
+## Event-Sourced Aggregate: Product
+
+A full event-sourced aggregate with multiple commands and event sourcing handlers.
 
 ```php
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
@@ -172,7 +128,9 @@ class Product
 }
 ```
 
-## Multiple Identifiers
+## Multiple Identifiers: ShelfItem
+
+An aggregate with a composite identifier.
 
 ```php
 #[Aggregate]
@@ -205,9 +163,9 @@ class AddShelfItem
 }
 ```
 
-## Aggregate with Event Publishing
+## State-Stored Aggregate with Event Publishing
 
-State-stored aggregates that also publish events:
+State-stored aggregates that also publish domain events using the `WithEvents` trait.
 
 ```php
 use Ecotone\Modelling\Attribute\Aggregate;
@@ -232,49 +190,4 @@ class Order
         return $order;
     }
 }
-```
-
-## Testing Patterns
-
-### State-Stored Testing
-
-```php
-$ecotone = EcotoneLite::bootstrapFlowTesting([Customer::class]);
-
-$ecotone->sendCommand(new RegisterCustomer('c-1', 'John', 'john@example.com'));
-$ecotone->sendCommand(new ChangeCustomerName('c-1', 'Jane'));
-
-$customer = $ecotone->getAggregate(Customer::class, 'c-1');
-// Assert state...
-```
-
-### Event-Sourced Testing with Pre-Set Events
-
-```php
-$ecotone = EcotoneLite::bootstrapFlowTesting([Product::class]);
-
-$events = $ecotone
-    ->withEventsFor('p-1', Product::class, [
-        new ProductWasRegistered('p-1', 'Widget', 100),
-    ])
-    ->sendCommand(new ChangeProductPrice('p-1', 200))
-    ->getRecordedEvents();
-
-$this->assertEquals(
-    [new ProductPriceWasChanged('p-1', 200, 100)],
-    $events
-);
-```
-
-### Testing with Multiple Identifiers
-
-```php
-$ecotone = EcotoneLite::bootstrapFlowTesting([ShelfItem::class]);
-
-$ecotone->sendCommand(new AddShelfItem('warehouse-1', 'product-1', 50));
-
-$item = $ecotone->getAggregate(ShelfItem::class, [
-    'warehouseId' => 'warehouse-1',
-    'productId' => 'product-1',
-]);
 ```

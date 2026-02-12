@@ -1,98 +1,8 @@
-# Handler Patterns Reference
+# Handler Usage Examples
 
-## CommandHandler Attribute
+Complete, runnable code examples for Ecotone message handlers.
 
-Source: `Ecotone\Modelling\Attribute\CommandHandler`
-
-```php
-#[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
-class CommandHandler extends InputOutputEndpointAnnotation
-{
-    public function __construct(
-        string $routingKey = '',
-        string $endpointId = '',
-        string $outputChannelName = '',
-        bool $dropMessageOnNotFound = false,
-        array $identifierMetadataMapping = [],
-        array $requiredInterceptorNames = [],
-        array $identifierMapping = []
-    )
-}
-```
-
-## EventHandler Attribute
-
-Source: `Ecotone\Modelling\Attribute\EventHandler`
-
-```php
-#[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
-class EventHandler extends InputOutputEndpointAnnotation
-{
-    public function __construct(
-        string $routingKey = '',
-        string $endpointId = '',
-        string $outputChannelName = '',
-        bool $dropMessageOnNotFound = false,
-        array $identifierMetadataMapping = [],
-        array $requiredInterceptorNames = [],
-        array $identifierMapping = []
-    )
-}
-```
-
-## QueryHandler Attribute
-
-Source: `Ecotone\Modelling\Attribute\QueryHandler`
-
-```php
-#[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
-class QueryHandler extends InputOutputEndpointAnnotation
-{
-    public function __construct(
-        string $routingKey = '',
-        string $endpointId = '',
-        string $outputChannelName = '',
-        array $requiredInterceptorNames = []
-    )
-}
-```
-
-## ServiceActivator Attribute
-
-Source: `Ecotone\Messaging\Attribute\ServiceActivator`
-
-```php
-#[Attribute(Attribute::TARGET_METHOD)]
-class ServiceActivator extends InputOutputEndpointAnnotation
-{
-    public function __construct(
-        string $inputChannelName = '',
-        string $endpointId = '',
-        string $outputChannelName = '',
-        array $requiredInterceptorNames = [],
-        bool $changingHeaders = false
-    )
-}
-```
-
-## Header Parameter Attribute
-
-Source: `Ecotone\Messaging\Attribute\Parameter\Header`
-
-```php
-#[Attribute(Attribute::TARGET_PARAMETER)]
-class Header
-{
-    public function __construct(
-        private string $headerName = '',
-        private string $expression = ''
-    )
-}
-```
-
-## Real Handler Examples
-
-### Command Handler (Service)
+## Command Handler (Service)
 
 ```php
 use Ecotone\Modelling\Attribute\CommandHandler;
@@ -109,13 +19,13 @@ class OrderService
     #[CommandHandler('order.cancel')]
     public function cancelOrder(array $payload): void
     {
-        // String-based routing — receives raw payload
+        // String-based routing -- receives raw payload
         $orderId = $payload['orderId'];
     }
 }
 ```
 
-### Command Handler (Aggregate)
+## Command Handler (Aggregate)
 
 ```php
 use Ecotone\Modelling\Attribute\Aggregate;
@@ -130,7 +40,7 @@ class Order
     private string $product;
     private bool $cancelled = false;
 
-    // Static factory — creates new aggregate instance
+    // Static factory -- creates new aggregate instance
     #[CommandHandler]
     public static function place(PlaceOrder $command): self
     {
@@ -140,7 +50,7 @@ class Order
         return $order;
     }
 
-    // Instance method — modifies existing aggregate
+    // Instance method -- modifies existing aggregate
     #[CommandHandler]
     public function cancel(CancelOrder $command): void
     {
@@ -149,7 +59,7 @@ class Order
 }
 ```
 
-### Event Handler
+## Event Handler (Sync and Async)
 
 ```php
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -174,7 +84,7 @@ class NotificationService
 }
 ```
 
-### Query Handler
+## Query Handler (Class-Based and String-Based)
 
 ```php
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -197,7 +107,7 @@ class ProductQueryService
 }
 ```
 
-### Handler with Header Parameters
+## Handler with Header Parameters
 
 ```php
 use Ecotone\Messaging\Attribute\Parameter\Header;
@@ -215,7 +125,7 @@ class AuditService
 }
 ```
 
-### ServiceActivator
+## ServiceActivator with Output Channel
 
 ```php
 use Ecotone\Messaging\Attribute\ServiceActivator;
@@ -230,7 +140,7 @@ class TransformationService
 }
 ```
 
-### Routing Key with CommandBus
+## Routing Key with CommandBus
 
 ```php
 // Handler with routing key

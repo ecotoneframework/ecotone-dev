@@ -10,7 +10,9 @@ description: >-
 
 # Ecotone Interceptors
 
-## 1. Interceptor Types
+## Overview
+
+Interceptors are cross-cutting middleware that hook into handler execution. Use them for transactions, authorization, logging, validation, header enrichment, and other concerns that span multiple handlers.
 
 | Attribute | When | Flow Control | changeHeaders |
 |-----------|------|-------------|---------------|
@@ -19,28 +21,24 @@ description: >-
 | `#[Around]` | Wraps handler execution | `MethodInvocation::proceed()` | No |
 | `#[After]` | After handler completes | No | Yes |
 
-Execution order: Presend → Before → Around → handler → Around end → After
+Execution order: Presend -> Before -> Around -> handler -> Around end -> After
 
-## 2. Before Interceptor
+## Before Interceptor
 
 ```php
 use Ecotone\Messaging\Attribute\Interceptor\Before;
-use Ecotone\Messaging\Precedence;
 
 class ValidationInterceptor
 {
-    #[Before(precedence: Precedence::DEFAULT_PRECEDENCE, pointcut: CommandHandler::class)]
+    #[Before(pointcut: CommandHandler::class)]
     public function validate(object $command): void
     {
-        // Validate the command before handler runs
         // Throw exception to stop execution
     }
 }
 ```
 
-Parameters: `precedence` (int), `pointcut` (string), `changeHeaders` (bool)
-
-## 3. After Interceptor
+## After Interceptor
 
 ```php
 use Ecotone\Messaging\Attribute\Interceptor\After;
@@ -55,9 +53,7 @@ class AuditInterceptor
 }
 ```
 
-Parameters: `precedence` (int), `pointcut` (string), `changeHeaders` (bool)
-
-## 4. Around Interceptor
+## Around Interceptor
 
 ```php
 use Ecotone\Messaging\Attribute\Interceptor\Around;
@@ -81,20 +77,9 @@ class TransactionInterceptor
 }
 ```
 
-Parameters: `precedence` (int), `pointcut` (string)
-
-### MethodInvocation API
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `proceed()` | `mixed` | Continue to next interceptor or handler |
-| `getArguments()` | `array` | Get handler method arguments |
-| `replaceArgument(string $name, $value)` | `void` | Replace argument before proceeding |
-| `getObjectToInvokeOn()` | `object` | Get the handler instance |
-
 **You must call `proceed()`** or the handler chain stops.
 
-## 5. Presend Interceptor
+## Presend Interceptor
 
 ```php
 use Ecotone\Messaging\Attribute\Interceptor\Presend;
@@ -111,122 +96,26 @@ class AuthorizationInterceptor
 }
 ```
 
-Parameters: `precedence` (int), `pointcut` (string), `changeHeaders` (bool)
+## Pointcut System
 
-## 6. Pointcut System
-
-Pointcuts target which handlers an interceptor applies to. They support attributes, classes, namespaces, methods, and logical operators.
-
-### Attribute Pointcut
-
-Targets all handlers annotated with a specific attribute:
+Pointcuts target which handlers an interceptor applies to:
 
 ```php
-// Targets all methods with #[CommandHandler]
+// By attribute
 #[Before(pointcut: CommandHandler::class)]
 
-// Targets all methods with #[EventHandler]
-#[Before(pointcut: EventHandler::class)]
-
-// Targets all methods with #[QueryHandler]
-#[Before(pointcut: QueryHandler::class)]
-
-// Targets asynchronous endpoints
-#[Around(pointcut: AsynchronousRunningEndpoint::class)]
-```
-
-### Class/Interface Pointcut
-
-Targets all handlers within a specific class or implementing an interface:
-
-```php
-// Targets all handlers in OrderService
+// By class
 #[Before(pointcut: OrderService::class)]
 
-// Targets all bus gateway calls (commands sent via CommandBus)
-#[Around(pointcut: CommandBus::class)]
-
-// Targets all query bus calls
-#[Around(pointcut: QueryBus::class)]
-
-// Targets all event bus calls
-#[Around(pointcut: EventBus::class)]
-
-// Targets all gateway calls
-#[Around(pointcut: Gateway::class)]
-```
-
-### Namespace Pointcut
-
-Targets classes matching a wildcard pattern (`*` matches any characters):
-
-```php
-// Targets all handlers in App\Domain namespace and sub-namespaces
-#[Before(pointcut: 'App\Domain\*')]
-
-// Targets specific sub-namespace
-#[Before(pointcut: 'App\Order\Handlers\*')]
-
-// Wildcard in the middle
-#[Before(pointcut: 'App\*\Handlers\OrderHandler')]
-```
-
-### Method Pointcut
-
-Targets a specific method in a specific class:
-
-```php
-// Targets only the placeOrder method in OrderService
+// By method
 #[Before(pointcut: OrderService::class . '::placeOrder')]
 
-// Targets a specific handler method
-#[Around(pointcut: PaymentService::class . '::processPayment')]
-```
+// By namespace
+#[Before(pointcut: 'App\Domain\*')]
 
-### Negation
-
-Excludes specific targets:
-
-```php
-// Targets all CommandHandlers EXCEPT those with #[WithoutTransaction]
-#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutTransaction::class . ')')]
-
-// Excludes a specific method
-#[Around(pointcut: CommandHandler::class . '&&not(' . ProjectingConsoleCommands::class . '::backfillProjection)')]
-
-// Excludes a namespace
-#[Before(pointcut: 'not(App\Internal\*)')]
-```
-
-### Combining with && (AND) and || (OR)
-
-```php
-// AND — both must match
-#[Before(pointcut: CommandHandler::class . '&&' . AuditableHandler::class)]
-
-// OR — either matches
+// AND / OR / NOT
 #[Before(pointcut: CommandHandler::class . '||' . EventHandler::class)]
-
-// Complex: (attribute OR bus) AND NOT excluded
-#[Around(pointcut: '(' . CommandHandler::class . '||' . CommandBus::class . ')&&not(' . WithoutTransaction::class . ')')]
-```
-
-### Real-World Example: Transaction Module
-
-```php
-// Dynamically build pointcut for database transactions
-$pointcut = '(' . DbalTransaction::class . ')';
-if ($config->isTransactionOnAsynchronousEndpoints()) {
-    $pointcut .= '||(' . AsynchronousRunningEndpoint::class . ')';
-}
-if ($config->isTransactionOnCommandBus()) {
-    $pointcut .= '||(' . CommandBus::class . ')';
-}
-if ($config->isTransactionOnConsoleCommands()) {
-    $pointcut .= '||(' . ConsoleCommand::class . ')';
-}
-// Exclude opt-outs
-$pointcut = '(' . $pointcut . ')&&not(' . WithoutDbalTransaction::class . ')';
+#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutTransaction::class . ')')]
 ```
 
 ### Auto-Inference
@@ -234,94 +123,23 @@ $pointcut = '(' . $pointcut . ')&&not(' . WithoutDbalTransaction::class . ')';
 When no explicit pointcut is set, it's inferred from the interceptor method's parameter type-hints:
 
 ```php
-// Auto-targets handlers that have #[RequiresAuth] attribute
 #[Before]
 public function check(RequiresAuth $attribute): void { }
-
-// Multiple attributes: nullable = OR, non-nullable = AND
-#[Before]
-public function check(?FeatureA $a, RequiresAuth $auth): void { }
-// Equivalent to: (FeatureA)&&RequiresAuth
+// Auto-targets handlers with #[RequiresAuth]
 ```
 
-### Pointcut Summary
-
-| Pattern | Example | Matches |
-|---------|---------|---------|
-| Attribute | `CommandHandler::class` | Methods with `#[CommandHandler]` |
-| Class | `OrderService::class` | All handlers in OrderService |
-| Bus | `CommandBus::class` | All command bus gateway calls |
-| Namespace | `'App\Domain\*'` | Classes in App\Domain\* |
-| Method | `OrderService::class . '::place'` | Specific method |
-| AND | `A::class . '&&' . B::class` | Both must match |
-| OR | `A::class . '\|\|' . B::class` | Either matches |
-| NOT | `'not(' . A::class . ')'` | Excludes matching |
-
-## 7. Precedence Constants
-
-Source: `Ecotone\Messaging\Precedence`
-
-| Constant | Value | Purpose |
-|----------|-------|---------|
-| `ENDPOINT_HEADERS_PRECEDENCE` | -3000 | Headers setup |
-| `CUSTOM_INSTANT_RETRY_PRECEDENCE` | -2003 | Custom retry |
-| `GLOBAL_INSTANT_RETRY_PRECEDENCE` | -2002 | Global retry |
-| `DATABASE_TRANSACTION_PRECEDENCE` | -2000 | Database transactions |
-| `LAZY_EVENT_PUBLICATION_PRECEDENCE` | -1900 | Event publishing |
-| `DEFAULT_PRECEDENCE` | 1 | Default for custom interceptors |
-
-Lower value = runs earlier.
-
-## 8. Header Modification
+## Header Modification
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Before;
-
-class HeaderEnricher
+#[Before(changeHeaders: true, pointcut: CommandHandler::class)]
+public function addHeaders(#[Headers] array $headers): array
 {
-    #[Before(changeHeaders: true, pointcut: CommandHandler::class)]
-    public function addHeaders(
-        object $command,
-        #[Headers] array $headers
-    ): array {
-        $headers['processedAt'] = time();
-        $headers['version'] = '2.0';
-        return $headers;
-    }
+    $headers['processedAt'] = time();
+    return $headers;
 }
 ```
 
 Only available on `#[Before]`, `#[After]`, `#[Presend]` (not `#[Around]`).
-
-## 9. Testing Interceptors
-
-```php
-public function test_interceptor_runs(): void
-{
-    $interceptor = new class {
-        public bool $called = false;
-
-        #[Before(pointcut: CommandHandler::class)]
-        public function intercept(): void
-        {
-            $this->called = true;
-        }
-    };
-
-    $handler = new class {
-        #[CommandHandler]
-        public function handle(PlaceOrder $command): void { }
-    };
-
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class, $interceptor::class],
-        containerOrAvailableServices: [$handler, $interceptor],
-    );
-
-    $ecotone->sendCommand(new PlaceOrder('123'));
-    $this->assertTrue($interceptor->called);
-}
-```
 
 ## Key Rules
 
@@ -329,8 +147,10 @@ public function test_interceptor_runs(): void
 - Use `Precedence::DEFAULT_PRECEDENCE` for custom interceptors
 - Pointcuts can target attributes, classes, or interfaces
 - Register interceptor classes in `classesToResolve` for testing
+- Lower precedence value = runs earlier
 
 ## Additional resources
 
-- [Interceptor patterns](references/interceptor-patterns.md) — Complete interceptor class implementations with full `#[Before]`, `#[After]`, `#[Around]`, and `#[Presend]` examples, including transaction management, logging, authorization, and header modification. Load when you need full class definitions or real-world interceptor examples.
-- [Pointcut expression syntax](references/pointcut-reference.md) — Full pointcut expression syntax reference including attribute targeting, class/interface targeting, method targeting, and combined expressions. Load when constructing complex pointcut expressions.
+- [API Reference](references/api-reference.md) — Constructor signatures and parameter details for `#[Before]`, `#[After]`, `#[Around]`, `#[Presend]` attributes, `MethodInvocation` interface, and `Precedence` constants table. Load when you need exact parameter names, types, defaults, or precedence values.
+- [Usage Examples](references/usage-examples.md) — Full interceptor class implementations: transaction wrappers, validation, audit logging, authorization, correlation ID enrichment, argument modification via `MethodInvocation`, and complete pointcut patterns (attribute, class, namespace, method, AND/OR/NOT, bus targeting, custom attributes, dynamic pointcut building). Load when you need complete, copy-paste-ready interceptor implementations or complex pointcut expressions.
+- [Testing Patterns](references/testing-patterns.md) — EcotoneLite test setup for interceptors: verifying interceptor execution, testing execution order (before/around/after), and registering interceptors with `classesToResolve`. Load when writing tests for interceptors.

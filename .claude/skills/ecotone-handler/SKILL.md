@@ -9,7 +9,11 @@ description: >-
 
 # Ecotone Message Handlers
 
-## 1. Handler Types
+## Overview
+
+Message handlers are the core building blocks in Ecotone. They process messages using PHP 8.1+ attributes. Use this skill when creating command handlers (write operations), event handlers (side effects), query handlers (read operations), or service activators (low-level message endpoints).
+
+## Handler Types
 
 | Attribute | Purpose | Returns |
 |-----------|---------|---------|
@@ -18,7 +22,7 @@ description: >-
 | `#[QueryHandler]` | Handles queries (read operations) | Data |
 | `#[ServiceActivator]` | Low-level message endpoint | Varies |
 
-## 2. CommandHandler
+## CommandHandler
 
 ```php
 use Ecotone\Modelling\Attribute\CommandHandler;
@@ -33,45 +37,7 @@ class OrderService
 }
 ```
 
-Constructor parameters:
-- `routingKey` (string) — for string-based routing: `#[CommandHandler('order.place')]`
-- `endpointId` (string) — unique identifier for this endpoint
-- `outputChannelName` (string) — channel to send result to
-- `dropMessageOnNotFound` (bool) — drop instead of throwing if aggregate not found
-- `identifierMetadataMapping` (array) — map metadata to aggregate identifier
-- `identifierMapping` (array) — map command properties to aggregate identifier
-
-### On Aggregates
-
-```php
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
-
-#[Aggregate]
-class Order
-{
-    #[Identifier]
-    private string $orderId;
-
-    // Static factory — creates new aggregate
-    #[CommandHandler]
-    public static function place(PlaceOrder $command): self
-    {
-        $order = new self();
-        $order->orderId = $command->orderId;
-        return $order;
-    }
-
-    // Instance method — modifies existing aggregate
-    #[CommandHandler]
-    public function cancel(CancelOrder $command): void
-    {
-        // modify state
-    }
-}
-```
-
-## 3. EventHandler
+## EventHandler
 
 ```php
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -86,17 +52,9 @@ class NotificationService
 }
 ```
 
-Constructor parameters:
-- `routingKey` (string) — for `listenTo` routing: `#[EventHandler('order.*')]`
-- `endpointId` (string) — unique identifier
-- `outputChannelName` (string) — channel for output
-- `dropMessageOnNotFound` (bool) — drop if aggregate not found
+Multiple `#[EventHandler]` methods can listen to the same event -- all will be called.
 
-### Multiple Handlers for Same Event
-
-Multiple `#[EventHandler]` methods can listen to the same event — all will be called.
-
-## 4. QueryHandler
+## QueryHandler
 
 ```php
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -111,12 +69,7 @@ class OrderQueryService
 }
 ```
 
-Constructor parameters:
-- `routingKey` (string) — for string-based routing: `#[QueryHandler('order.get')]`
-- `endpointId` (string) — unique identifier
-- `outputChannelName` (string) — channel for output
-
-## 5. ServiceActivator
+## ServiceActivator
 
 Low-level message handler that works directly with message channels:
 
@@ -133,13 +86,7 @@ class MessageProcessor
 }
 ```
 
-Constructor parameters:
-- `inputChannelName` (string, required) — channel to consume from
-- `endpointId` (string) — unique identifier
-- `outputChannelName` (string) — channel to send result to
-- `changingHeaders` (bool) — whether this changes message headers
-
-## 6. Message Metadata with Headers
+## Message Metadata with Headers
 
 Access message headers via `#[Header]` parameter attribute:
 
@@ -159,7 +106,7 @@ class AuditHandler
 }
 ```
 
-## 7. Routing Patterns
+## Routing Patterns
 
 ### Class-Based (Default)
 
@@ -190,7 +137,7 @@ $commandBus->sendWithRouting('order.place', ['orderId' => '123']);
 - **Class-based**: Type-safe, IDE-friendly, preferred for commands/queries
 - **Routing key**: Flexible, for integration scenarios, distributed systems
 
-## 8. EndpointId Rules
+## EndpointId Rules
 
 - Every handler needs a unique `endpointId` when used with async processing or polling
 - Naming convention: `'{context}.{action}'` e.g., `'order.place'`, `'notification.send'`
@@ -202,72 +149,16 @@ $commandBus->sendWithRouting('order.place', ['orderId' => '123']);
 public function placeOrder(PlaceOrder $command): void { }
 ```
 
-## 8. Testing Handlers
-
-```php
-use Ecotone\Lite\EcotoneLite;
-
-public function test_command_handler(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [OrderService::class],
-        [new OrderService()],
-    );
-
-    $ecotone->sendCommand(new PlaceOrder('order-1', 'product-1'));
-
-    $this->assertEquals(
-        new OrderDTO('order-1', 'product-1', 'placed'),
-        $ecotone->sendQuery(new GetOrder('order-1'))
-    );
-}
-
-public function test_command_handler_with_routing_key(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [OrderService::class],
-        [new OrderService()],
-    );
-
-    $ecotone->sendCommandWithRoutingKey('order.place', ['orderId' => '123']);
-
-    $this->assertEquals('123', $ecotone->sendQueryWithRouting('order.get', metadata: ['aggregate.id' => '123']));
-}
-
-public function test_event_handler_is_called(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [NotificationService::class],
-        [$handler = new NotificationService()],
-    );
-
-    $ecotone->publishEvent(new OrderWasPlaced('order-1'));
-
-    $this->assertTrue($handler->wasNotified());
-}
-
-public function test_recorded_events(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [Order::class],
-    );
-
-    $events = $ecotone
-        ->sendCommand(new PlaceOrder('order-1', 'product-1'))
-        ->getRecordedEvents();
-
-    $this->assertEquals([new OrderWasPlaced('order-1')], $events);
-}
-```
-
 ## Key Rules
 
 - First parameter is the message object (type-hinted)
 - `#[CommandHandler]` on aggregates: static = factory (creation), instance = action (modification)
 - Use `#[Header]` for metadata access, not message wrapping
 - PHPDoc `@param`/`@return` on public API methods
-- No comments — meaningful method names only
+- No comments -- meaningful method names only
 
 ## Additional resources
 
-- [Handler patterns reference](references/handler-patterns.md) — Complete handler implementations including full `#[CommandHandler]`, `#[EventHandler]`, `#[QueryHandler]` class examples, routing key patterns, aggregate command handlers (factory + action), service injection, metadata access, and testing patterns with EcotoneLite. Load when you need full class definitions or handler wiring examples.
+- [API Reference](references/api-reference.md) -- Constructor signatures and parameter details for `#[CommandHandler]`, `#[EventHandler]`, `#[QueryHandler]`, `#[ServiceActivator]`, and `#[Header]` attributes. Load when you need exact parameter names, types, or defaults.
+- [Usage Examples](references/usage-examples.md) -- Full class implementations: service command handlers with routing keys, aggregate command handlers (factory + action), async event handlers, query handlers with string routing, header parameter usage, and ServiceActivator wiring. Load when you need complete, copy-paste-ready handler implementations.
+- [Testing Patterns](references/testing-patterns.md) -- EcotoneLite test setup for handlers, command/event/query testing, recorded events assertions, and routing key test patterns. Load when writing tests for handlers.

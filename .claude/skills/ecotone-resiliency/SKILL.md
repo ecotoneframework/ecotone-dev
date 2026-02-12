@@ -154,7 +154,60 @@ public function ordersChannel(): AmqpBackedMessageChannelBuilder
 }
 ```
 
-## 6. Custom Error Processing
+## 6. #[InstantRetry] (Enterprise)
+
+Automatic retry without error channels or dead letters. Applied at class or method level:
+
+```php
+use Ecotone\Modelling\Attribute\InstantRetry;
+
+#[InstantRetry(retryTimes: 3)]
+class OrderService
+{
+    #[CommandHandler('order.place')]
+    public function placeOrder(PlaceOrder $command): void
+    {
+        // Retried up to 3 times on any exception
+    }
+}
+```
+
+### Retry on Specific Exceptions
+
+```php
+#[InstantRetry(retryTimes: 3, exceptions: [ConnectionException::class, TimeoutException::class])]
+#[CommandHandler('order.place')]
+public function placeOrder(PlaceOrder $command): void
+{
+    // Only retried for ConnectionException or TimeoutException
+}
+```
+
+> Requires Enterprise licence.
+
+## 7. #[ErrorChannel] (Enterprise)
+
+Routes messages to a specific error channel on handler failure:
+
+```php
+use Ecotone\Messaging\Attribute\ErrorChannel;
+
+#[ErrorChannel('orders_error')]
+class OrderService
+{
+    #[CommandHandler('order.place')]
+    public function placeOrder(PlaceOrder $command): void
+    {
+        // On failure, message is routed to 'orders_error' channel
+    }
+}
+```
+
+Can be applied at class or method level.
+
+> Requires Enterprise licence.
+
+## 8. Custom Error Processing
 
 ```php
 use Ecotone\Messaging\Attribute\ServiceActivator;
@@ -175,7 +228,7 @@ class ErrorProcessor
 
 Route errors to custom processing via `PollingMetadata::setErrorChannelName()` or `ErrorHandlerConfiguration`.
 
-## 7. Testing Error Handling
+## 9. Testing Error Handling
 
 ```php
 public function test_retry_on_failure(): void

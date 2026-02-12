@@ -115,26 +115,90 @@ Parameters: `precedence` (int), `pointcut` (string), `changeHeaders` (bool)
 
 ## 6. Pointcut System
 
-Pointcuts target which handlers an interceptor applies to.
+Pointcuts target which handlers an interceptor applies to. They support attributes, classes, namespaces, methods, and logical operators.
 
-### By Attribute
+### Attribute Pointcut
+
+Targets all handlers annotated with a specific attribute:
 
 ```php
 // Targets all methods with #[CommandHandler]
 #[Before(pointcut: CommandHandler::class)]
+
+// Targets all methods with #[EventHandler]
+#[Before(pointcut: EventHandler::class)]
+
+// Targets all methods with #[QueryHandler]
+#[Before(pointcut: QueryHandler::class)]
+
+// Targets asynchronous endpoints
+#[Around(pointcut: AsynchronousRunningEndpoint::class)]
 ```
 
-### By Class/Interface
+### Class/Interface Pointcut
+
+Targets all handlers within a specific class or implementing an interface:
 
 ```php
-// Targets all handlers in this class
+// Targets all handlers in OrderService
 #[Before(pointcut: OrderService::class)]
 
-// Targets all handlers in classes implementing this interface
-#[Before(pointcut: AuditableHandler::class)]
+// Targets all bus gateway calls (commands sent via CommandBus)
+#[Around(pointcut: CommandBus::class)]
+
+// Targets all query bus calls
+#[Around(pointcut: QueryBus::class)]
+
+// Targets all event bus calls
+#[Around(pointcut: EventBus::class)]
+
+// Targets all gateway calls
+#[Around(pointcut: Gateway::class)]
 ```
 
-### Logical Operators
+### Namespace Pointcut
+
+Targets classes matching a wildcard pattern (`*` matches any characters):
+
+```php
+// Targets all handlers in App\Domain namespace and sub-namespaces
+#[Before(pointcut: 'App\Domain\*')]
+
+// Targets specific sub-namespace
+#[Before(pointcut: 'App\Order\Handlers\*')]
+
+// Wildcard in the middle
+#[Before(pointcut: 'App\*\Handlers\OrderHandler')]
+```
+
+### Method Pointcut
+
+Targets a specific method in a specific class:
+
+```php
+// Targets only the placeOrder method in OrderService
+#[Before(pointcut: OrderService::class . '::placeOrder')]
+
+// Targets a specific handler method
+#[Around(pointcut: PaymentService::class . '::processPayment')]
+```
+
+### Negation
+
+Excludes specific targets:
+
+```php
+// Targets all CommandHandlers EXCEPT those with #[WithoutTransaction]
+#[Around(pointcut: CommandHandler::class . '&&not(' . WithoutTransaction::class . ')')]
+
+// Excludes a specific method
+#[Around(pointcut: CommandHandler::class . '&&not(' . ProjectingConsoleCommands::class . '::backfillProjection)')]
+
+// Excludes a namespace
+#[Before(pointcut: 'not(App\Internal\*)')]
+```
+
+### Combining with && (AND) and || (OR)
 
 ```php
 // AND — both must match
@@ -142,6 +206,27 @@ Pointcuts target which handlers an interceptor applies to.
 
 // OR — either matches
 #[Before(pointcut: CommandHandler::class . '||' . EventHandler::class)]
+
+// Complex: (attribute OR bus) AND NOT excluded
+#[Around(pointcut: '(' . CommandHandler::class . '||' . CommandBus::class . ')&&not(' . WithoutTransaction::class . ')')]
+```
+
+### Real-World Example: Transaction Module
+
+```php
+// Dynamically build pointcut for database transactions
+$pointcut = '(' . DbalTransaction::class . ')';
+if ($config->isTransactionOnAsynchronousEndpoints()) {
+    $pointcut .= '||(' . AsynchronousRunningEndpoint::class . ')';
+}
+if ($config->isTransactionOnCommandBus()) {
+    $pointcut .= '||(' . CommandBus::class . ')';
+}
+if ($config->isTransactionOnConsoleCommands()) {
+    $pointcut .= '||(' . ConsoleCommand::class . ')';
+}
+// Exclude opt-outs
+$pointcut = '(' . $pointcut . ')&&not(' . WithoutDbalTransaction::class . ')';
 ```
 
 ### Auto-Inference
@@ -152,7 +237,25 @@ When no explicit pointcut is set, it's inferred from the interceptor method's pa
 // Auto-targets handlers that have #[RequiresAuth] attribute
 #[Before]
 public function check(RequiresAuth $attribute): void { }
+
+// Multiple attributes: nullable = OR, non-nullable = AND
+#[Before]
+public function check(?FeatureA $a, RequiresAuth $auth): void { }
+// Equivalent to: (FeatureA)&&RequiresAuth
 ```
+
+### Pointcut Summary
+
+| Pattern | Example | Matches |
+|---------|---------|---------|
+| Attribute | `CommandHandler::class` | Methods with `#[CommandHandler]` |
+| Class | `OrderService::class` | All handlers in OrderService |
+| Bus | `CommandBus::class` | All command bus gateway calls |
+| Namespace | `'App\Domain\*'` | Classes in App\Domain\* |
+| Method | `OrderService::class . '::place'` | Specific method |
+| AND | `A::class . '&&' . B::class` | Both must match |
+| OR | `A::class . '\|\|' . B::class` | Either matches |
+| NOT | `'not(' . A::class . ')'` | Excludes matching |
 
 ## 7. Precedence Constants
 

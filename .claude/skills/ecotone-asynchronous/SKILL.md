@@ -3,9 +3,9 @@ name: ecotone-asynchronous
 description: >-
   Implements asynchronous message processing in Ecotone: message channels,
   #[Asynchronous] attribute, polling consumers, Sagas, delayed messages,
-  error handling with retry and dead letter queues, and the outbox pattern.
+  priority, time to live, scheduling, and dynamic channels.
   Use when working with async processing, message channels, Sagas,
-  delayed delivery, retries, or the outbox pattern.
+  delayed delivery, scheduling, priority, TTL, or dynamic channel routing.
 ---
 
 # Ecotone Asynchronous Processing
@@ -157,71 +157,123 @@ use Ecotone\Messaging\Scheduling\TimeSpan;
 $ecotone->run('reminders', null, TimeSpan::withSeconds(60));
 ```
 
-## 6. Error Handling and Retry
-
-### RetryTemplateBuilder
+## 6. Priority
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Messaging\Attribute\Endpoint\Priority;
 
-// Fixed backoff
-$retry = RetryTemplateBuilder::fixedBackOff(1000)  // 1s between retries
-    ->maxRetryAttempts(3);
+class OrderService
+{
+    #[Priority(10)]
+    #[Asynchronous('orders')]
+    #[CommandHandler(endpointId: 'urgentOrders')]
+    public function handleUrgent(UrgentOrder $command): void { }
 
-// Exponential backoff
-$retry = RetryTemplateBuilder::exponentialBackoff(1000, 10)  // start 1s, multiplier 10
-    ->maxRetryAttempts(5);
-
-// Exponential with max delay cap
-$retry = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(1000, 2, 60000);
+    #[Priority(1)]
+    #[Asynchronous('orders')]
+    #[CommandHandler(endpointId: 'regularOrders')]
+    public function handleRegular(RegularOrder $command): void { }
+}
 ```
 
-### ErrorHandlerConfiguration
+- Sets `MessageHeaders::PRIORITY` header on the message
+- Higher number = higher priority (processed first when multiple messages are queued)
+- Can be applied at `TARGET_CLASS` or `TARGET_METHOD` level
+- Default priority is `1`
+
+## 7. Time to Live
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
+use Ecotone\Messaging\Attribute\Endpoint\TimeToLive;
+use Ecotone\Messaging\Scheduling\TimeSpan;
 
-class ErrorConfig
+class NotificationService
 {
-    #[ServiceContext]
-    public function errorHandler(): ErrorHandlerConfiguration
+    // TTL in milliseconds
+    #[TimeToLive(60000)]
+    #[Asynchronous('notifications')]
+    #[EventHandler(endpointId: 'sendNotification')]
+    public function send(OrderWasPlaced $event): void { }
+
+    // TTL with TimeSpan
+    #[TimeToLive(time: TimeSpan::withMinutes(5))]
+    #[Asynchronous('notifications')]
+    #[EventHandler(endpointId: 'sendUrgentNotification')]
+    public function sendUrgent(UrgentEvent $event): void { }
+}
+```
+
+- Message is discarded if not consumed within the TTL period
+- Accepts integer (milliseconds), `TimeSpan` object, or an expression string
+- Can be applied at `TARGET_CLASS` or `TARGET_METHOD` level
+
+## 8. Scheduling
+
+```php
+use Ecotone\Messaging\Attribute\Scheduled;
+use Ecotone\Messaging\Attribute\Poller;
+
+class ReportGenerator
+{
+    #[Scheduled(requestChannelName: 'generateReport', endpointId: 'reportScheduler')]
+    #[Poller(cron: '0 8 * * *')]
+    public function schedule(): string
     {
-        return ErrorHandlerConfiguration::createWithDeadLetterChannel(
-            'errorChannel',
-            RetryTemplateBuilder::fixedBackOff(1000)->maxRetryAttempts(3),
-            'dead_letter'
+        return 'daily-report';
+    }
+}
+```
+
+`#[Scheduled]` triggers a method on a schedule defined by `#[Poller]`:
+- `cron` — cron expression (e.g. `'*/5 * * * *'` for every 5 minutes)
+- `fixedRateInMilliseconds` — periodic execution interval
+- `initialDelayInMilliseconds` — delay before first execution
+
+Running scheduled consumers:
+```bash
+bin/console ecotone:run reportScheduler
+```
+
+## 9. Dynamic Channel
+
+```php
+use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
+
+class ChannelConfig
+{
+    // Round-robin across multiple channels
+    #[ServiceContext]
+    public function dynamicChannel(): DynamicMessageChannelBuilder
+    {
+        return DynamicMessageChannelBuilder::createRoundRobin(
+            'orders',
+            ['orders_1', 'orders_2', 'orders_3']
         );
     }
 }
 ```
 
-### Per-Endpoint Error Channel
+### Factory Methods
+
+| Method | Description |
+|--------|-------------|
+| `createRoundRobin(name, channelNames)` | Distributes messages across channels evenly |
+| `createRoundRobinWithDifferentChannels(name, sendChannels, receiveChannels)` | Different channels for send/receive |
+| `createWithHeaderBasedStrategy(name, headerName, headerMapping, ?defaultChannel)` | Routes based on message header value |
+| `createThrottlingStrategy(name, requestChannelName, channelNames)` | Throttling-based consumption |
+| `createNoStrategy(name)` | No-op channel for custom strategy attachment |
+
+### Customization
 
 ```php
-PollingMetadata::create('ordersEndpoint')
-    ->setErrorChannelName('orders_error');
+$channel = DynamicMessageChannelBuilder::createRoundRobin('orders', ['ch1', 'ch2'])
+    ->withCustomSendingStrategy('customSendChannel')
+    ->withCustomReceivingStrategy('customReceiveChannel')
+    ->withHeaderSendingStrategy('routeHeader', ['value1' => 'ch1'], 'defaultCh')
+    ->withInternalChannels([...]);
 ```
 
-## 7. Outbox Pattern
-
-Use `DbalBackedMessageChannelBuilder` — events stored in DB transaction with business data:
-
-```php
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-
-class OutboxConfig
-{
-    #[ServiceContext]
-    public function outboxChannel(): DbalBackedMessageChannelBuilder
-    {
-        return DbalBackedMessageChannelBuilder::create('orders');
-    }
-}
-```
-
-Events are atomically stored with business data, then consumed by a worker process.
-
-## 8. Testing Async
+## 10. Testing Async
 
 ```php
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -257,7 +309,10 @@ Key testing methods:
 
 - Always provide `endpointId` with `#[Asynchronous]`
 - Register channels via `#[ServiceContext]` methods
-- Use `SimpleMessageChannelBuilder` for testing, DBAL for outbox pattern
+- Use `SimpleMessageChannelBuilder` for testing
 - Test async by providing channels in `enableAsynchronousProcessing` and calling `run()`
+- Use `#[Priority]` for message ordering within a channel
+- Use `#[TimeToLive]` to expire unprocessed messages
+- Use `#[Scheduled]` + `#[Poller]` for periodic tasks
 - See `references/channel-patterns.md` for channel configuration
-- See `references/error-handling.md` for retry and dead letter patterns
+- See `references/scheduling-patterns.md` for scheduling and dynamic channel details

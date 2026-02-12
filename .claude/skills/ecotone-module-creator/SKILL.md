@@ -175,22 +175,22 @@ class UserConfig
 
 ## 5. Package Scaffolding
 
-Start from `_PackageTemplate/`:
+Start from the package template directory, which provides a minimal module skeleton:
 
 ```
-_PackageTemplate/
+<PackageTemplate>/
 ├── src/
 │   └── Configuration/
-│       └── _PackageTemplateModule.php
+│       └── <PackageTemplate>Module.php
 ├── tests/
 ├── composer.json
 └── phpstan.neon
 ```
 
 Steps:
-1. Copy `_PackageTemplate/` to `packages/MyPackage/`
-2. Rename `_PackageTemplateModule` → `MyPackageModule`
-3. Update namespace from `Ecotone\_PackageTemplate` → `Ecotone\MyPackage`
+1. Copy the package template to `packages/<YourPackage>/`
+2. Rename the template module class → `<YourPackage>Module`
+3. Update namespace from template namespace → `Ecotone\<YourPackage>`
 4. Update `composer.json` (name, autoload)
 5. Register package in `ModulePackageList` (add constant + match case)
 6. Add to root `composer.json` for monorepo
@@ -217,5 +217,5 @@ public function test_module_registers_handlers(): void
 - Module classes should be `final`
 - Use `NoExternalConfigurationModule` when no user config is needed
 - Register package name in `ModulePackageList` for skip support
-- Start from `_PackageTemplate/` for new packages
+- Start from the package template directory for new packages
 - See `references/module-anatomy.md` for real module examples

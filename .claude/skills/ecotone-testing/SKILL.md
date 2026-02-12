@@ -5,7 +5,9 @@ description: >-
   inline anonymous classes, and snake_case methods. Covers handler testing,
   aggregate testing, async-tested-synchronously patterns, projections, and
   common failure diagnosis. Use when writing tests, debugging test failures,
-  or adding test coverage.
+  adding test coverage, or implementing any new feature that needs test coverage.
+  Should be triggered whenever a new handler, aggregate, saga, projection,
+  or interceptor is being implemented to ensure it is covered with tests.
 ---
 
 # Ecotone Testing

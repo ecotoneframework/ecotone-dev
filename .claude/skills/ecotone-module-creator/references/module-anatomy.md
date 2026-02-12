@@ -1,10 +1,8 @@
 # Module Anatomy Reference
 
-## _PackageTemplate Module
+## Package Template Module
 
-Source: `_PackageTemplate/src/Configuration/_PackageTemplateModule.php`
-
-The minimal module template:
+The minimal module template (from the package template directory):
 
 ```php
 namespace Ecotone\_PackageTemplate\Configuration;
@@ -163,7 +161,7 @@ interface AnnotationFinder
 ## Package Directory Structure
 
 ```
-packages/MyPackage/
+packages/<YourPackage>/
 ├── src/
 │   ├── Configuration/
 │   │   └── MyPackageModule.php        # Main module class

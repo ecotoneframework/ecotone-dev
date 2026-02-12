@@ -74,6 +74,6 @@ From `Ecotone\Projecting\PartitionProvider`:
 1. Every PHP file MUST have a licence comment
 2. The licence docblock is placed directly above the class/interface/trait declaration
 3. Use `Apache-2.0` for open-source code, `Enterprise` for commercial features
-4. Files in `packages/Ecotone/src/Projecting/` are often Enterprise-licenced
+4. Enterprise-licenced files are typically in the Projecting namespace and related enterprise features
 5. When in doubt, use `Apache-2.0` — the maintainer will request changes if needed
 6. Test files also need licence headers

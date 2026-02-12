@@ -50,6 +50,8 @@ docker exec -it ecotone_development_8_2 /bin/bash
 
 ## 2. Monorepo Structure
 
+The Ecotone monorepo follows this layout (example packages shown):
+
 ```
 packages/
 ├── Ecotone/           # Core package — foundation for all others
@@ -63,12 +65,11 @@ packages/
 ├── Kafka/             # Kafka integration
 ├── OpenTelemetry/     # Tracing / OpenTelemetry
 └── ...
-_PackageTemplate/      # Template for new packages
 ```
 
-- Each `packages/*` is a separate Composer package, split to read-only repos on release
-- Core (`packages/Ecotone`) is the dependency for all other packages
-- Changes to core propagate to all downstream packages
+- Each `packages/<PackageName>` is a separate Composer package, split to read-only repos on release
+- The Core package is the dependency for all other packages
+- Changes to Core can propagate to all downstream packages
 
 ## 3. PR Validation Workflow
 
@@ -83,7 +84,7 @@ vendor/bin/phpunit --filter test_method_name
 ### Step 2: Run full test suite for affected package
 
 ```bash
-cd packages/PackageName && composer tests:ci
+cd packages/<PackageName> && composer tests:ci
 ```
 
 This runs PHPStan + PHPUnit + Behat in sequence. Per-package scripts:
@@ -168,7 +169,7 @@ vendor/bin/phpstan analyse
 
 ## 5. Package Split and Dependencies
 
-- Monorepo uses `symplify/monorepo-builder` for managing splits
+- The monorepo uses `symplify/monorepo-builder` for managing splits
 - Each package has its own `composer.json` with real dependencies
 - Test both lowest and highest dependencies:
 
@@ -180,7 +181,7 @@ composer update
 composer tests:ci
 ```
 
-- Changes to `packages/Ecotone/` can affect ALL downstream packages — run their tests too
+- Changes to the Core package can affect ALL downstream packages — run their tests too
 - Cross-package changes need tests in both packages
 
 ## Key Rules

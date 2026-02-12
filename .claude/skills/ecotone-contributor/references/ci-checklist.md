@@ -19,13 +19,12 @@ Every package has these Composer scripts:
 # Enter container
 docker exec -it ecotone_development /bin/bash
 
-# Run full CI for a package
-cd packages/Ecotone && composer tests:ci
-cd packages/Dbal && composer tests:ci
-cd packages/Amqp && composer tests:ci
-cd packages/PdoEventSourcing && composer tests:ci
-cd packages/Laravel && composer tests:ci
-cd packages/Symfony && composer tests:ci
+# Run full CI for a package (replace <PackageName> with the actual package)
+cd packages/<PackageName> && composer tests:ci
+
+# Examples:
+# cd packages/Ecotone && composer tests:ci
+# cd packages/Dbal && composer tests:ci
 ```
 
 ### Running individual test methods
@@ -38,7 +37,7 @@ vendor/bin/phpunit --filter test_method_name
 vendor/bin/phpunit --filter ClassName
 
 # Tests in a specific directory
-vendor/bin/phpunit packages/Ecotone/tests/Modelling
+vendor/bin/phpunit packages/<PackageName>/tests/<Directory>
 ```
 
 ## PHPStan Configuration
@@ -50,7 +49,7 @@ PHPStan runs at level 1 across all packages. Config in `phpstan.neon`:
 vendor/bin/phpstan analyse
 
 # Run for specific package
-cd packages/Ecotone && vendor/bin/phpstan
+cd packages/<PackageName> && vendor/bin/phpstan
 ```
 
 ## PHP-CS-Fixer
@@ -78,8 +77,7 @@ Key rules enforced:
 Some packages have Behat integration tests:
 
 ```bash
-cd packages/Ecotone && vendor/bin/behat -vvv
-cd packages/Dbal && vendor/bin/behat -vvv
+cd packages/<PackageName> && vendor/bin/behat -vvv
 ```
 
 ## Database DSNs (Inside Docker Container)
@@ -110,7 +108,7 @@ composer tests:ci
 ## Pre-PR Checklist
 
 1. [ ] New/changed tests pass: `vendor/bin/phpunit --filter testName`
-2. [ ] Full package CI passes: `cd packages/X && composer tests:ci`
+2. [ ] Full package CI passes: `cd packages/<PackageName> && composer tests:ci`
 3. [ ] Licence headers on all new PHP files
 4. [ ] Code style fixed: `vendor/bin/php-cs-fixer fix`
 5. [ ] PHPStan passes: `vendor/bin/phpstan analyse`

@@ -4,9 +4,9 @@
 
 ### In-Memory Queue Channel
 
-Source: `Ecotone\Messaging\Channel\SimpleMessageChannelBuilder`
-
 ```php
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+
 // Queue channel (pollable, for async processing)
 SimpleMessageChannelBuilder::createQueueChannel('channel_name');
 
@@ -18,8 +18,6 @@ SimpleMessageChannelBuilder::createPublishSubscribeChannel('channel_name');
 ```
 
 ### DBAL Channel (Database-Backed)
-
-Source: `Ecotone\Dbal\DbalBackedMessageChannelBuilder`
 
 ```php
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
@@ -94,8 +92,6 @@ public function channels(): array
 
 ## PollingMetadata Configuration
 
-Source: `Ecotone\Messaging\Endpoint\PollingMetadata`
-
 ```php
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 
@@ -138,24 +134,6 @@ $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(
     maxExecutionTimeInMilliseconds: 100
 ));
 ```
-
-## Outbox Pattern (DBAL + Broker)
-
-For guaranteed delivery, combine DBAL with an external broker:
-
-```php
-class OutboxConfiguration
-{
-    // Store messages atomically with business data
-    #[ServiceContext]
-    public function ordersOutbox(): DbalBackedMessageChannelBuilder
-    {
-        return DbalBackedMessageChannelBuilder::create('orders');
-    }
-}
-```
-
-Events committed in the same transaction as business data, then consumed by a worker.
 
 ## Channel Usage with Handlers
 

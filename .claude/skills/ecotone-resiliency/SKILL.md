@@ -1,40 +1,37 @@
-# Error Handling Reference
+---
+name: ecotone-resiliency
+description: >-
+  Implements message resiliency in Ecotone: retry strategies with
+  RetryTemplateBuilder, error channels, ErrorHandlerConfiguration,
+  DBAL dead letter queues, outbox pattern for guaranteed delivery,
+  and FinalFailureStrategy for consumer-level failure handling.
+  Use when setting up retries, error handling, dead letter queues,
+  outbox pattern, or failure strategies.
+---
 
-## RetryTemplateBuilder
+# Ecotone Resiliency
 
-Source: `Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder`
-
-### Fixed Backoff
+## 1. RetryTemplateBuilder
 
 ```php
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
-// 1 second between retries, max 3 attempts
+// Fixed backoff: 1 second between retries, max 3 attempts
 $retry = RetryTemplateBuilder::fixedBackOff(1000)
     ->maxRetryAttempts(3);
-```
 
-### Exponential Backoff
-
-```php
-// Start at 1s, multiply by 10 each retry
+// Exponential backoff: start at 1s, multiply by 10 each retry
 // 1s → 10s → 100s → 1000s...
 $retry = RetryTemplateBuilder::exponentialBackoff(1000, 10)
     ->maxRetryAttempts(5);
-```
 
-### Exponential with Max Delay
-
-```php
-// Start at 1s, multiply by 2, cap at 60s
+// Exponential with max delay cap: start at 1s, multiply by 2, cap at 60s
 // 1s → 2s → 4s → 8s → 16s → 32s → 60s → 60s...
 $retry = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(1000, 2, 60000)
     ->maxRetryAttempts(10);
 ```
 
-## ErrorHandlerConfiguration
-
-Source: `Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration`
+## 2. ErrorHandlerConfiguration
 
 ### With Dead Letter Channel
 
@@ -70,7 +67,7 @@ public function errorHandler(): ErrorHandlerConfiguration
 }
 ```
 
-## Per-Endpoint Error Channel
+### Per-Endpoint Error Channel
 
 Route errors from a specific endpoint to a custom error handler:
 
@@ -85,11 +82,13 @@ public function ordersPolling(): PollingMetadata
 }
 ```
 
-## Dead Letter Queue
+## 3. Dead Letter Queue
 
 Messages that exhaust all retries go to the dead letter channel:
 
 ```php
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+
 class DeadLetterConfig
 {
     #[ServiceContext]
@@ -105,29 +104,62 @@ Consuming dead letters:
 bin/console ecotone:run dead_letter --handledMessageLimit=10
 ```
 
-## Handling Patterns
+## 4. Outbox Pattern
 
-### Global Error Handler
+Use `DbalBackedMessageChannelBuilder` — events are stored atomically in the same DB transaction as business data:
 
 ```php
-class GlobalErrorConfig
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+
+class OutboxConfig
 {
     #[ServiceContext]
-    public function errorConfig(): ErrorHandlerConfiguration
+    public function outboxChannel(): DbalBackedMessageChannelBuilder
     {
-        return ErrorHandlerConfiguration::createWithDeadLetterChannel(
-            'errorChannel',
-            RetryTemplateBuilder::exponentialBackoffWithMaxDelay(1000, 2, 30000)
-                ->maxRetryAttempts(5),
-            'dead_letter'
-        );
+        return DbalBackedMessageChannelBuilder::create('orders');
     }
 }
 ```
 
-### Custom Error Processing
+Events committed in the same transaction as business data, then consumed by a worker process:
+```bash
+bin/console ecotone:run orders
+```
+
+## 5. FinalFailureStrategy
+
+Defines behavior when all retries are exhausted and no error channel can handle the failure:
 
 ```php
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
+```
+
+| Strategy | Behavior |
+|----------|----------|
+| `FinalFailureStrategy::IGNORE` | Drops the failed message — it will not be redelivered |
+| `FinalFailureStrategy::RESEND` | Resends message to the end of the channel (loses order, unblocks processing) |
+| `FinalFailureStrategy::RELEASE` | Releases for redelivery. AMQP: rejects with `requeue=true`. Kafka: resets offset. May cause infinite loop |
+| `FinalFailureStrategy::STOP` | Stops the consumer by rethrowing the exception |
+
+Usage with channel builders:
+
+```php
+use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
+
+#[ServiceContext]
+public function ordersChannel(): AmqpBackedMessageChannelBuilder
+{
+    return AmqpBackedMessageChannelBuilder::create('orders')
+        ->withFinalFailureStrategy(FinalFailureStrategy::RESEND);
+}
+```
+
+## 6. Custom Error Processing
+
+```php
+use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Messaging\Handler\Recoverability\ErrorMessage;
+
 class ErrorProcessor
 {
     #[ServiceActivator(inputChannelName: 'custom_error')]
@@ -141,7 +173,9 @@ class ErrorProcessor
 }
 ```
 
-## Testing Error Handling
+Route errors to custom processing via `PollingMetadata::setErrorChannelName()` or `ErrorHandlerConfiguration`.
+
+## 7. Testing Error Handling
 
 ```php
 public function test_retry_on_failure(): void
@@ -182,3 +216,12 @@ public function test_retry_on_failure(): void
     $this->assertEquals(3, $handler->attempts);
 }
 ```
+
+## Key Rules
+
+- Use `RetryTemplateBuilder` to define retry strategies (fixed, exponential, exponential with cap)
+- Use `ErrorHandlerConfiguration` for global error handling with optional dead letter
+- Use `PollingMetadata::setErrorChannelName()` for per-endpoint error routing
+- Use `DbalBackedMessageChannelBuilder` for outbox pattern (atomic event storage)
+- Use `FinalFailureStrategy` to control behavior when all recovery options are exhausted
+- See `references/retry-patterns.md` for detailed API reference

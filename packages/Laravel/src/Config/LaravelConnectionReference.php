@@ -21,7 +21,7 @@ final class LaravelConnectionReference extends ConnectionReference implements De
         parent::__construct($referenceName, $this->laravelConnectionName);
     }
 
-    public static function create(string $connectionName, string $referenceName = DbalConnectionFactory::class): self
+    public static function create(string $connectionName, ?string $referenceName = null): self
     {
         return new self($connectionName, $referenceName ?? 'ecotone.laravel.connection.' . $connectionName);
     }

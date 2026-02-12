@@ -27,7 +27,7 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
     public static function createForManagerRegistry(
         string $connectionName,
         string $managerRegistryReference = 'doctrine',
-        string $referenceName = DbalConnectionFactory::class
+        ?string $referenceName = null
     ): self {
         return new self(
             $referenceName ?? $managerRegistryReference . '.' . $connectionName . '.' . Uuid::uuid4()->toString(),

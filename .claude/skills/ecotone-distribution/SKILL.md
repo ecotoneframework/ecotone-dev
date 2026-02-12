@@ -258,4 +258,7 @@ class OrderHandler
 - Use `withCommandMapping()` for command routing and `withEventMapping()` for event subscriptions
 - Use `withAsynchronousChannel()` to make distribution asynchronous
 - `excludePublishingServices` and `includePublishingServices` are mutually exclusive in event mapping
-- See `references/distribution-patterns.md` for detailed API reference
+
+## Additional resources
+
+- [Distribution patterns reference](references/distribution-patterns.md) — Complete distributed messaging examples including `#[Distributed]` handler implementations, `DistributedBus` usage, `DistributedServiceMap` configuration with `withCommandMapping()`/`withEventMapping()`, `MessagePublisher` for channel-based messaging, and `withAsynchronousChannel()` for async distribution. Load when setting up cross-service communication or configuring service routing.

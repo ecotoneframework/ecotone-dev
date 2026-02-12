@@ -191,4 +191,8 @@ composer tests:ci
 - Run `php-cs-fixer fix` before committing
 - Test methods MUST use `snake_case`
 - No comments — code should be self-documenting via method names
-- Check `references/ci-checklist.md` for the full CI command reference
+
+## Additional resources
+
+- [CI checklist](references/ci-checklist.md) — Full CI command reference including Docker test commands, `php-cs-fixer` usage, cross-package testing, and the complete CI pipeline checklist. Load when preparing a PR or running the full test suite.
+- [Licence format](references/licence-format.md) — Licence header template and formatting requirements for new PHP files. Load when creating new source files that need the licence header.

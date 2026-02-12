@@ -57,39 +57,11 @@ In `config/packages/ecotone.yaml`:
 
 ```yaml
 ecotone:
-    # Service name for distributed architecture
     serviceName: 'my_service'
-
-    # Auto-load classes from src/ directory (default: true)
     loadSrcNamespaces: true
-
-    # Additional namespaces to scan
-    namespaces:
-        - 'App\CustomNamespace'
-
-    # Fail fast in dev (validates configuration on boot)
     failFast: true
-
-    # Default serialization format for async messages
     defaultSerializationMediaType: 'application/json'
-
-    # Default error channel for async consumers
     defaultErrorChannel: 'errorChannel'
-
-    # Memory limit for consumers (MB)
-    defaultMemoryLimit: 256
-
-    # Connection retry on failure
-    defaultConnectionExceptionRetry:
-        initialDelay: 100
-        maxAttempts: 3
-        multiplier: 2
-
-    # Skip specific module packages
-    skippedModulePackageNames: []
-
-    # Enterprise licence key
-    licenceKey: '%env(ECOTONE_LICENCE_KEY)%'
 ```
 
 ### All Configuration Options
@@ -127,16 +99,10 @@ doctrine:
 Register the connection for Ecotone via `#[ServiceContext]`:
 
 ```php
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\SymfonyBundle\Config\SymfonyConnectionReference;
-
-class EcotoneConfiguration
+#[ServiceContext]
+public function databaseConnection(): SymfonyConnectionReference
 {
-    #[ServiceContext]
-    public function databaseConnection(): SymfonyConnectionReference
-    {
-        return SymfonyConnectionReference::defaultManagerRegistry('default');
-    }
+    return SymfonyConnectionReference::defaultManagerRegistry('default');
 }
 ```
 
@@ -171,51 +137,17 @@ public function connections(): array
 Enable Doctrine ORM repositories so aggregates can be stored as Doctrine entities:
 
 ```php
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-
-class EcotoneConfiguration
+#[ServiceContext]
+public function dbalConfig(): DbalConfiguration
 {
-    #[ServiceContext]
-    public function dbalConfig(): DbalConfiguration
-    {
-        return DbalConfiguration::createWithDefaults()
-            ->withDoctrineORMRepositories(true);
-    }
+    return DbalConfiguration::createWithDefaults()
+        ->withDoctrineORMRepositories(true);
 }
 ```
 
-Configure entity mappings in `config/packages/doctrine.yaml`:
-
-```yaml
-doctrine:
-    dbal:
-        default_connection: default
-        connections:
-            default:
-                url: '%env(resolve:DATABASE_DSN)%'
-                charset: UTF8
-    orm:
-        auto_generate_proxy_classes: '%kernel.debug%'
-        entity_managers:
-            default:
-                connection: default
-                mappings:
-                    App:
-                        is_bundle: false
-                        type: attribute
-                        dir: '%kernel.project_dir%/src'
-                        prefix: 'App'
-                        alias: App
-```
-
-Aggregates become Doctrine entities:
+Annotate aggregates with both `#[ORM\Entity]` and `#[Aggregate]`:
 
 ```php
-use Doctrine\ORM\Mapping as ORM;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-
 #[ORM\Entity]
 #[ORM\Table(name: 'orders')]
 #[Aggregate]
@@ -225,77 +157,28 @@ class Order
     #[ORM\Column(type: 'string')]
     #[Identifier]
     private string $orderId;
-
-    #[ORM\Column(type: 'boolean')]
-    private bool $cancelled = false;
-
-    #[CommandHandler]
-    public static function place(PlaceOrder $command): self
-    {
-        $order = new self();
-        $order->orderId = $command->orderId;
-        return $order;
-    }
-
-    #[CommandHandler]
-    public function cancel(CancelOrder $command): void
-    {
-        $this->cancelled = true;
-    }
 }
 ```
 
 ## 6. Async Messaging with Symfony Messenger
 
-Use Symfony Messenger transports as Ecotone message channels:
-
-Configure transports in `config/packages/messenger.yaml`:
-
-```yaml
-framework:
-    messenger:
-        transports:
-            async:
-                dsn: 'doctrine://default?queue_name=async'
-                options:
-                    use_notify: false
-            amqp_async:
-                dsn: '%env(RABBITMQ_DSN)%'
-```
-
-Register as Ecotone channels via `#[ServiceContext]`:
+Use Symfony Messenger transports as Ecotone message channels. Configure transports in `config/packages/messenger.yaml`, then register as channels:
 
 ```php
-use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
-
-class ChannelConfiguration
+#[ServiceContext]
+public function asyncChannel(): SymfonyMessengerMessageChannelBuilder
 {
-    #[ServiceContext]
-    public function asyncChannel(): SymfonyMessengerMessageChannelBuilder
-    {
-        return SymfonyMessengerMessageChannelBuilder::create('async');
-    }
-
-    #[ServiceContext]
-    public function amqpChannel(): SymfonyMessengerMessageChannelBuilder
-    {
-        return SymfonyMessengerMessageChannelBuilder::create('amqp_async');
-    }
+    return SymfonyMessengerMessageChannelBuilder::create('async');
 }
 ```
 
 ### Using DBAL Channels Directly
 
 ```php
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-
-class ChannelConfiguration
+#[ServiceContext]
+public function ordersChannel(): DbalBackedMessageChannelBuilder
 {
-    #[ServiceContext]
-    public function ordersChannel(): DbalBackedMessageChannelBuilder
-    {
-        return DbalBackedMessageChannelBuilder::create('orders');
-    }
+    return DbalBackedMessageChannelBuilder::create('orders');
 }
 ```
 
@@ -323,53 +206,19 @@ bin/console ecotone:list
 ## 8. Multi-Tenant Configuration
 
 ```php
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-
-class EcotoneConfiguration
+#[ServiceContext]
+public function multiTenant(): MultiTenantConfiguration
 {
-    #[ServiceContext]
-    public function multiTenant(): MultiTenantConfiguration
-    {
-        return MultiTenantConfiguration::create(
-            tenantHeaderName: 'tenant',
-            tenantToConnectionMapping: [
-                'tenant_a' => SymfonyConnectionReference::createForManagerRegistry('tenant_a_connection'),
-                'tenant_b' => SymfonyConnectionReference::createForManagerRegistry('tenant_b_connection'),
-            ],
-        );
-    }
+    return MultiTenantConfiguration::create(
+        tenantHeaderName: 'tenant',
+        tenantToConnectionMapping: [
+            'tenant_a' => SymfonyConnectionReference::createForManagerRegistry('tenant_a_connection'),
+            'tenant_b' => SymfonyConnectionReference::createForManagerRegistry('tenant_b_connection'),
+        ],
+    );
 }
 ```
 
-With Doctrine ORM multi-tenant setup in `config/packages/doctrine.yaml`:
+## Additional resources
 
-```yaml
-doctrine:
-    dbal:
-        default_connection: tenant_a_connection
-        connections:
-            tenant_a_connection:
-                url: '%env(resolve:DATABASE_DSN)%'
-                charset: UTF8
-            tenant_b_connection:
-                url: '%env(resolve:SECONDARY_DATABASE_DSN)%'
-                charset: UTF8
-    orm:
-        entity_managers:
-            tenant_a_connection:
-                connection: tenant_a_connection
-                mappings:
-                    App:
-                        is_bundle: false
-                        type: attribute
-                        dir: '%kernel.project_dir%/src'
-                        prefix: 'App'
-            tenant_b_connection:
-                connection: tenant_b_connection
-                mappings:
-                    App:
-                        is_bundle: false
-                        type: attribute
-                        dir: '%kernel.project_dir%/src'
-                        prefix: 'App'
-```
+- [Symfony integration patterns](references/symfony-patterns.md) — Complete configuration examples and full class definitions for Symfony integration. Load when you need: full `ecotone.yaml` with all options and comments, full `doctrine.yaml` with ORM entity manager mappings, complete Doctrine entity aggregate class, multiple DBAL connections setup, full Symfony Messenger YAML transport config with multiple channels, DBAL-backed message channel example, or multi-tenant `doctrine.yaml` with multiple entity managers.

@@ -303,59 +303,20 @@ interface CustomOrderRepository
 
 ## 6. Testing Business Interfaces
 
+Use `$ecotone->getGateway(InterfaceClass::class)` to obtain auto-generated implementations:
+
 ```php
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
+$ecotone = EcotoneLite::bootstrapFlowTesting(
+    [NotificationHandler::class],
+    [new NotificationHandler()],
+);
 
-public function test_dbal_query_interface(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        containerOrAvailableServices: [
-            DbalConnectionFactory::class => $this->getConnectionFactory(),
-            PersonNameDTOConverter::class => new PersonNameDTOConverter(),
-        ],
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                ModulePackageList::DBAL_PACKAGE,
-                ModulePackageList::JMS_CONVERTER_PACKAGE,
-            ]))
-            ->withNamespaces(['App\ReadModel']),
-    );
-
-    /** @var PersonService $writeGateway */
-    $writeGateway = $ecotone->getGateway(PersonService::class);
-    $writeGateway->insert(1, 'John');
-
-    /** @var PersonQueryApi $queryGateway */
-    $queryGateway = $ecotone->getGateway(PersonQueryApi::class);
-
-    $this->assertEquals(
-        [['person_id' => 1, 'name' => 'John']],
-        $queryGateway->getNameList(1, 0)
-    );
-}
-
-public function test_business_method_gateway(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [NotificationHandler::class],
-        [new NotificationHandler()],
-    );
-
-    /** @var NotificationGateway $gateway */
-    $gateway = $ecotone->getGateway(NotificationGateway::class);
-    $gateway->send('Hello', 'user@example.com');
-
-    // Assert on handler side effects
-}
+/** @var NotificationGateway $gateway */
+$gateway = $ecotone->getGateway(NotificationGateway::class);
+$gateway->send('Hello', 'user@example.com');
 ```
 
-Key testing patterns:
-- Use `$ecotone->getGateway(InterfaceClass::class)` to get the auto-generated implementation
-- For DBAL interfaces, provide `DbalConnectionFactory` and converters as services
-- Use `withNamespaces()` to specify where interfaces are located
-- Business method gateways are tested by calling the interface method and asserting handler side effects
+For DBAL interfaces, provide `DbalConnectionFactory` and converters as services and use `withNamespaces()`.
 
 ## Key Rules
 
@@ -363,4 +324,7 @@ Key testing patterns:
 - `#[Converter]` methods are auto-discovered — no manual registration needed
 - Converters work bidirectionally if you define both directions
 - FetchMode determines the shape of query results
-- See `references/interface-patterns.md` for detailed examples
+
+## Additional resources
+
+- [Interface patterns reference](references/interface-patterns.md) — Complete code examples for all business interface patterns: full DBAL query/write interface definitions, `DbalParameter` usage, `#[Converter]` implementations, `BusinessMethod` with aggregates and headers, cross-aggregate injection patterns, MediaType constants, custom connection references, and DBAL/BusinessMethod test suites. Load when you need full class definitions, complete test examples, or advanced interface patterns.

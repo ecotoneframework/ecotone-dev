@@ -227,5 +227,8 @@ public function test_projection_builds_read_model(): void
 - Use `EcotoneLite::bootstrapFlowTesting()` as the starting point
 - Pass handler instances via `containerOrAvailableServices`
 - For event sourcing, use `bootstrapFlowTestingWithEventStore()`
-- See `references/test-patterns.md` for real code examples
-- See `references/ecotone-lite-api.md` for the full FlowTestSupport API
+
+## Additional resources
+
+- [Test patterns](references/test-patterns.md) — Complete test implementations for handlers, aggregates, sagas, async processing, projections, and interceptors using `EcotoneLite::bootstrapFlowTesting()`. Load when writing new tests or need copy-paste test examples.
+- [EcotoneLite API reference](references/ecotone-lite-api.md) — Full `FlowTestSupport` API including all `send*`, `publish*`, `run()`, `getAggregate()`, `getSaga()`, `getRecordedEvents()`, `getRecordedEventHeaders()`, and assertion methods. Load when you need the exact method signature or available options for EcotoneLite.

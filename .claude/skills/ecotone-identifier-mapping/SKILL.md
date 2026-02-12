@@ -325,96 +325,15 @@ You cannot define both `identifierMetadataMapping` and `identifierMapping` on th
 
 ## 8. Testing
 
-### Native Mapping
+Basic testing pattern for identifier mapping:
 
 ```php
-public function test_aggregate_with_native_mapping(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting([Order::class]);
+$ecotone = EcotoneLite::bootstrapFlowTesting([Order::class]);
 
-    $ecotone->sendCommand(new PlaceOrder('order-1'));
-    $ecotone->sendCommand(new CancelOrder('order-1'));
+$ecotone->sendCommand(new PlaceOrder('order-1'));
+$ecotone->sendCommand(new CancelOrder('order-1'));
 
-    $this->assertTrue(
-        $ecotone->getAggregate(Order::class, 'order-1')->isCancelled()
-    );
-}
-```
-
-### aggregate.id Override
-
-```php
-public function test_aggregate_with_aggregate_id_metadata(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting([Order::class]);
-
-    $ecotone
-        ->sendCommand(new PlaceOrder('order-1'))
-        ->sendCommandWithRoutingKey('order.cancel', metadata: ['aggregate.id' => 'order-1']);
-
-    $this->assertTrue(
-        $ecotone->getAggregate(Order::class, 'order-1')->isCancelled()
-    );
-}
-```
-
-### #[TargetIdentifier] with Saga
-
-```php
-public function test_saga_with_target_identifier(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting([OrderProcess::class]);
-
-    $this->assertEquals(
-        '123',
-        $ecotone
-            ->publishEvent(new OrderStarted('123'))
-            ->getSaga(OrderProcess::class, '123')
-            ->getOrderId()
-    );
-}
-```
-
-### identifierMapping from Payload
-
-```php
-public function test_identifier_mapping_from_payload(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [OrderProcessWithAttributePayloadMapping::class]
-    );
-
-    $this->assertEquals(
-        'new',
-        $ecotone
-            ->publishEvent(new OrderStarted('123', 'new'))
-            ->getSaga(OrderProcessWithAttributePayloadMapping::class, '123')
-            ->getStatus()
-    );
-}
-```
-
-### identifierMapping from Headers
-
-```php
-public function test_identifier_mapping_from_headers(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [OrderProcessWithAttributeHeadersMapping::class]
-    );
-
-    $this->assertEquals(
-        'ongoing',
-        $ecotone
-            ->sendCommandWithRoutingKey('startOrder', '123')
-            ->publishEvent(
-                new OrderStarted('', 'ongoing'),
-                metadata: ['orderId' => '123']
-            )
-            ->getSaga(OrderProcessWithAttributeHeadersMapping::class, '123')
-            ->getStatus()
-    );
-}
+$this->assertTrue($ecotone->getAggregate(Order::class, 'order-1')->isCancelled());
 ```
 
 ## Key Rules
@@ -427,3 +346,7 @@ public function test_identifier_mapping_from_headers(): void
 - You cannot combine `identifierMetadataMapping` and `identifierMapping` on the same handler
 - Use `#[IdentifierMethod('identifierName')]` when the identifier value comes from a method rather than a property
 - Factory handlers (static) do not need identifier mapping for creation — only action handlers on existing instances do
+
+## Additional resources
+
+- [Identifier mapping patterns](references/identifier-mapping-patterns.md) — Complete code examples for every identifier resolution strategy: full aggregate and saga classes with native mapping, `aggregate.id` override, `#[TargetIdentifier]`, `identifierMapping` from payload/headers, `identifierMetadataMapping`, and complete EcotoneLite test methods for each strategy. Load when you need full class definitions or copy-paste test examples.

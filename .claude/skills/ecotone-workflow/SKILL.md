@@ -15,11 +15,6 @@ description: >-
 A Saga coordinates long-running processes by reacting to events and maintaining state. `#[Saga]` extends the aggregate concept — sagas have `#[Identifier]` and are stored like aggregates.
 
 ```php
-use Ecotone\Modelling\Attribute\Saga;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\WithEvents;
-
 #[Saga]
 class OrderFulfillmentProcess
 {
@@ -27,38 +22,15 @@ class OrderFulfillmentProcess
 
     #[Identifier]
     private string $orderId;
-    private bool $paymentReceived = false;
-    private bool $itemsShipped = false;
 
     #[EventHandler]
-    public static function start(OrderWasPlaced $event): self
-    {
-        $saga = new self();
-        $saga->orderId = $event->orderId;
-        $saga->recordThat(new OrderProcessWasStarted($event->orderId));
-        return $saga;
-    }
+    public static function start(OrderWasPlaced $event): self { /* ... */ }
 
     #[EventHandler]
-    public function onPaymentReceived(PaymentWasReceived $event): void
-    {
-        $this->paymentReceived = true;
-        $this->checkCompletion();
-    }
+    public function onPaymentReceived(PaymentWasReceived $event): void { /* ... */ }
 
     #[EventHandler]
-    public function onItemsShipped(ItemsWereShipped $event): void
-    {
-        $this->itemsShipped = true;
-        $this->checkCompletion();
-    }
-
-    private function checkCompletion(): void
-    {
-        if ($this->paymentReceived && $this->itemsShipped) {
-            $this->recordThat(new OrderWasFulfilled($this->orderId));
-        }
-    }
+    public function onItemsShipped(ItemsWereShipped $event): void { /* ... */ }
 }
 ```
 
@@ -67,10 +39,6 @@ class OrderFulfillmentProcess
 Use `outputChannelName` to trigger commands from saga event handlers:
 
 ```php
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Delayed;
-use Ecotone\Messaging\Scheduling\TimeSpan;
-
 #[Saga]
 class OrderProcess
 {
@@ -81,38 +49,16 @@ class OrderProcess
     private int $paymentAttempt = 1;
 
     #[EventHandler]
-    public static function startWhen(OrderWasPlaced $event): self
-    {
-        $saga = new self();
-        $saga->orderId = $event->orderId;
-        $saga->recordThat(new OrderProcessWasStarted($event->orderId));
-        return $saga;
-    }
+    public static function startWhen(OrderWasPlaced $event): self { /* ... */ }
 
     #[Asynchronous('async')]
     #[EventHandler(endpointId: 'takePaymentEndpoint', outputChannelName: 'takePayment')]
-    public function whenOrderProcessStarted(OrderProcessWasStarted $event, OrderService $orderService): TakePayment
-    {
-        return new TakePayment($this->orderId, $orderService->getTotalPriceFor($this->orderId));
-    }
-
-    #[EventHandler]
-    public function whenPaymentWasSuccessful(PaymentWasSuccessful $event): void
-    {
-        $this->recordThat(new OrderReadyToShip($this->orderId));
-    }
+    public function whenOrderProcessStarted(OrderProcessWasStarted $event, OrderService $orderService): TakePayment { /* ... */ }
 
     #[Delayed(new TimeSpan(hours: 1))]
     #[Asynchronous('async')]
     #[EventHandler(endpointId: 'whenPaymentFailedEndpoint', outputChannelName: 'takePayment')]
-    public function whenPaymentFailed(PaymentFailed $event, OrderService $orderService): ?TakePayment
-    {
-        if ($this->paymentAttempt >= 2) {
-            return null;
-        }
-        $this->paymentAttempt++;
-        return new TakePayment($this->orderId, $orderService->getTotalPriceFor($this->orderId));
-    }
+    public function whenPaymentFailed(PaymentFailed $event, OrderService $orderService): ?TakePayment { /* ... */ }
 }
 ```
 
@@ -449,70 +395,18 @@ public function test_async_workflow(): void
 
 ## 6. Testing Orchestrators
 
-```php
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Testing\LicenceTesting;
-
-public function test_orchestrator_executes_steps_in_order(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [AuthorizationOrchestrator::class],
-        [$orchestrator = new AuthorizationOrchestrator()],
-        ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
-            ->withLicenceKey(LicenceTesting::VALID_LICENCE),
-    );
-
-    $result = $ecotone->sendDirectToChannel('start.authorization', 'test-data');
-
-    $this->assertEquals('email sent for: processed: validated: test-data', $result);
-}
-
-public function test_orchestrator_via_business_interface(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [AuthorizationOrchestrator::class, AuthorizationProcess::class],
-        [new AuthorizationOrchestrator()],
-        ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
-            ->withLicenceKey(LicenceTesting::VALID_LICENCE),
-    );
-
-    /** @var AuthorizationProcess $gateway */
-    $gateway = $ecotone->getGateway(AuthorizationProcess::class);
-    $result = $gateway->start('test-data');
-
-    $this->assertEquals('email sent for: processed: validated: test-data', $result);
-}
-```
-
-### Testing Async Orchestrator
+Orchestrator tests require Enterprise licence. Bootstrap pattern:
 
 ```php
-public function test_async_orchestrator(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [AsyncWorkflow::class],
-        [$service = new AsyncWorkflow()],
-        ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                ModulePackageList::CORE_PACKAGE,
-                ModulePackageList::ASYNCHRONOUS_PACKAGE,
-            ]))
-            ->withLicenceKey(LicenceTesting::VALID_LICENCE),
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async'),
-        ],
-    );
+$ecotone = EcotoneLite::bootstrapFlowTesting(
+    [AuthorizationOrchestrator::class],
+    [new AuthorizationOrchestrator()],
+    ServiceConfiguration::createWithDefaults()
+        ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
+        ->withLicenceKey(LicenceTesting::VALID_LICENCE),
+);
 
-    $ecotone->sendDirectToChannel('async.workflow', []);
-    $this->assertEquals([], $service->getExecutedSteps());
-
-    $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup());
-    $this->assertEquals(['stepA', 'stepB', 'stepC'], $service->getExecutedSteps());
-}
+$result = $ecotone->sendDirectToChannel('start.authorization', 'test-data');
 ```
 
 ## Key Rules
@@ -524,4 +418,8 @@ public function test_async_orchestrator(): void
 - `#[InternalHandler]` is for internal routing — not exposed via CommandBus/EventBus
 - Orchestrators require Enterprise licence and return arrays of step channel names
 - Always provide `endpointId` when combining with `#[Asynchronous]`
-- See `references/workflow-patterns.md` for detailed API reference
+
+## Additional resources
+
+- [Workflow patterns reference](references/workflow-patterns.md) — Attribute API details for `#[Saga]`, `#[EventSourcingSaga]`, `#[InternalHandler]`, `#[Orchestrator]`, and `#[OrchestratorGateway]`, plus saga patterns (identifier mapping, command triggering, dropMessageOnNotFound), stateless workflow patterns, and orchestrator patterns with business interfaces. Load when you need attribute parameter details or advanced workflow patterns.
+- [Workflow full examples](references/workflow-full-examples.md) — Complete, runnable implementations: full `OrderFulfillmentProcess` saga with multi-event coordination, full `OrderProcess` saga with `outputChannelName`/`#[Delayed]` retry logic, and complete orchestrator test suites (sync, via gateway, async). Load when you need a full implementation reference to copy from.

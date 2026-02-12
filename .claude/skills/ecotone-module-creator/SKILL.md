@@ -218,4 +218,7 @@ public function test_module_registers_handlers(): void
 - Use `NoExternalConfigurationModule` when no user config is needed
 - Register package name in `ModulePackageList` for skip support
 - Start from the package template directory for new packages
-- See `references/module-anatomy.md` for real module examples
+
+## Additional resources
+
+- [Module anatomy reference](references/module-anatomy.md) — Complete module implementation examples including `#[ModuleAnnotation]`, `Module` interface methods (`prepare`, `canHandle`, `getModuleExtensions`), `NoExternalConfigurationModule`, `ModulePackageList` registration, and real module class implementations from the Ecotone codebase. Load when creating a new module or need the full module lifecycle.

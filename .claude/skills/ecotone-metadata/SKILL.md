@@ -130,117 +130,70 @@ Use `changeHeaders: true` on `#[Before]`, `#[After]`, or `#[Presend]` intercepto
 ### `#[Before]` — Enrich Before Handler
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Before;
-
-class MetadataEnricher
+#[Before(changeHeaders: true, pointcut: CommandHandler::class)]
+public function addProcessedAt(#[Headers] array $headers): array
 {
-    #[Before(changeHeaders: true, pointcut: CommandHandler::class)]
-    public function addProcessedAt(#[Headers] array $headers): array
-    {
-        return array_merge($headers, ['processedAt' => time()]);
-    }
+    return array_merge($headers, ['processedAt' => time()]);
 }
 ```
 
 ### `#[Before]` — Add Static Header
 
 ```php
-class SafeOrderInterceptor
+#[Before(pointcut: '*', changeHeaders: true)]
+public function addMetadata(): array
 {
-    #[Before(pointcut: '*', changeHeaders: true)]
-    public function addMetadata(): array
-    {
-        return ['safeOrder' => true];
-    }
+    return ['safeOrder' => true];
 }
 ```
 
 ### `#[After]` — Enrich After Handler
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\After;
-
-class TimestampEnricher
+#[After(pointcut: Logger::class, changeHeaders: true)]
+public function addTimestamp(array $events, array $metadata): array
 {
-    #[After(pointcut: Logger::class, changeHeaders: true)]
-    public function addTimestamp(array $events, array $metadata): array
-    {
-        return array_merge($metadata, ['notificationTimestamp' => time()]);
-    }
+    return array_merge($metadata, ['notificationTimestamp' => time()]);
 }
 ```
 
 ### `#[Presend]` — Enrich Before Channel
 
 ```php
-use Ecotone\Messaging\Attribute\Interceptor\Presend;
-
-class PaymentEnricher
+#[Presend(pointcut: 'OrderFulfilment::finishOrder', changeHeaders: true)]
+public function enrich(PaymentWasDoneEvent $event): array
 {
-    #[Presend(pointcut: 'OrderFulfilment::finishOrder', changeHeaders: true)]
-    public function enrich(PaymentWasDoneEvent $event): array
-    {
-        return ['paymentId' => $event->paymentId];
-    }
+    return ['paymentId' => $event->paymentId];
 }
 ```
 
 ### Custom Attribute-Based Enrichment
 
-Create a custom attribute and interceptor pair:
+Create a custom attribute and use it as an interceptor pointcut. The `#[Before]` interceptor receives the attribute instance:
 
 ```php
-#[Attribute]
-class AddMetadata
+#[Before(changeHeaders: true)]
+public function addMetadata(AddMetadata $addMetadata): array
 {
-    public function __construct(
-        private string $name,
-        private string $value
-    ) {}
-
-    public function getName(): string { return $this->name; }
-    public function getValue(): string { return $this->value; }
+    return [$addMetadata->getName() => $addMetadata->getValue()];
 }
-```
 
-```php
-class AddMetadataService
-{
-    #[Before(changeHeaders: true)]
-    public function addMetadata(AddMetadata $addMetadata): array
-    {
-        return [$addMetadata->getName() => $addMetadata->getValue()];
-    }
-}
-```
-
-Usage on handler:
-
-```php
+// Usage on handler:
 #[CommandHandler('basket.add')]
 #[AddMetadata('isRegistration', 'true')]
-public static function start(array $command, array $headers): self
-{
-    // $headers['isRegistration'] === 'true'
-}
+public static function start(array $command, array $headers): self { }
 ```
 
 ### `#[Around]` — Access Headers via Message
 
-Around interceptors cannot use `changeHeaders`, but can read headers:
+Around interceptors cannot use `changeHeaders`, but can read headers via `Message`:
 
 ```php
-use Ecotone\Messaging\Message;
-
-class LoggingInterceptor
+#[Around(pointcut: CommandHandler::class)]
+public function log(MethodInvocation $invocation, Message $message): mixed
 {
-    #[Around(pointcut: CommandHandler::class)]
-    public function log(MethodInvocation $invocation, Message $message): mixed
-    {
-        $headers = $message->getHeaders()->headers();
-        $userId = $headers['userId'] ?? 'anonymous';
-        return $invocation->proceed();
-    }
+    $headers = $message->getHeaders()->headers();
+    return $invocation->proceed();
 }
 ```
 
@@ -367,118 +320,6 @@ $commandHeaders = $ecotone->getRecordedCommandHeaders();
 $firstHeaders = $commandHeaders[0];
 ```
 
-### Complete Test: Metadata Propagation
-
-```php
-public function test_metadata_propagates_from_command_to_event(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [OrderService::class],
-        containerOrAvailableServices: [new OrderService()]
-    );
-
-    $ecotone->sendCommandWithRoutingKey(
-        'placeOrder',
-        metadata: ['userId' => '123']
-    );
-
-    $notifications = $ecotone->sendQueryWithRouting('getAllNotificationHeaders');
-    $this->assertCount(2, $notifications);
-    $this->assertEquals('123', $notifications[0]['userId']);
-    $this->assertEquals('123', $notifications[1]['userId']);
-}
-```
-
-### Complete Test: Correlation and Parent IDs
-
-```php
-public function test_correlation_id_propagates_to_events(): void
-{
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        [OrderService::class],
-        [new OrderService()],
-    );
-
-    $messageId = Uuid::uuid4()->toString();
-    $correlationId = Uuid::uuid4()->toString();
-
-    $headers = $ecotone
-        ->sendCommandWithRoutingKey(
-            'placeOrder',
-            metadata: [
-                MessageHeaders::MESSAGE_ID => $messageId,
-                MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
-            ]
-        )
-        ->getRecordedEventHeaders()[0];
-
-    $this->assertNotSame($messageId, $headers->getMessageId());
-    $this->assertSame($correlationId, $headers->getCorrelationId());
-    $this->assertSame($messageId, $headers->getParentId());
-}
-```
-
-### Complete Test: Interceptor Header Modification
-
-```php
-public function test_before_interceptor_adds_headers(): void
-{
-    $interceptor = new class {
-        #[Before(changeHeaders: true, pointcut: CommandHandler::class)]
-        public function enrich(): array
-        {
-            return ['enrichedBy' => 'interceptor'];
-        }
-    };
-
-    $handler = new class {
-        public array $receivedHeaders = [];
-
-        #[CommandHandler('process')]
-        public function handle(#[Headers] array $headers): void
-        {
-            $this->receivedHeaders = $headers;
-        }
-    };
-
-    $ecotone = EcotoneLite::bootstrapFlowTesting(
-        classesToResolve: [$handler::class, $interceptor::class],
-        containerOrAvailableServices: [$handler, $interceptor],
-    );
-
-    $ecotone->sendCommandWithRoutingKey('process');
-
-    $this->assertEquals('interceptor', $handler->receivedHeaders['enrichedBy']);
-}
-```
-
-### Complete Test: AddHeader/RemoveHeader
-
-```php
-public function test_add_and_remove_headers(): void
-{
-    $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-        [AddingMultipleHeaders::class],
-        [AddingMultipleHeaders::class => new AddingMultipleHeaders()],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async'),
-        ],
-        testConfiguration: TestConfiguration::createWithDefaults()
-            ->withSpyOnChannel('async')
-    );
-
-    $headers = $ecotoneLite
-        ->sendCommandWithRoutingKey('addHeaders', metadata: ['user' => '1233'])
-        ->getRecordedEcotoneMessagesFrom('async')[0]
-        ->getHeaders()->headers();
-
-    $this->assertEquals(123, $headers['token']);             // AddHeader worked
-    $this->assertArrayNotHasKey('user', $headers);           // RemoveHeader worked
-    $this->assertEquals(1000, $headers[MessageHeaders::DELIVERY_DELAY]);
-    $this->assertEquals(1001, $headers[MessageHeaders::TIME_TO_LIVE]);
-}
-```
-
 ## Key Rules
 
 - Use `#[Header('name')]` for single header access, `#[Headers]` for all headers
@@ -488,4 +329,7 @@ public function test_add_and_remove_headers(): void
 - Userland headers propagate automatically from commands to events
 - Framework headers do NOT propagate
 - Use `getRecordedEventHeaders()` / `getRecordedCommandHeaders()` to verify metadata in tests
-- See `references/metadata-patterns.md` for complete patterns and examples
+
+## Additional resources
+
+- [Metadata patterns reference](references/metadata-patterns.md) — Complete code examples for all metadata patterns including: full interceptor class implementations (Before/After/Presend with `changeHeaders`), custom attribute class definitions, metadata propagation test suites, correlation/parent ID verification tests, interceptor header modification tests, and AddHeader/RemoveHeader tests with async channels. Load when you need full class definitions, complete test examples, or the custom `AddMetadata` attribute implementation.

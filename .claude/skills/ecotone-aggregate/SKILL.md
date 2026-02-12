@@ -259,4 +259,7 @@ public function test_with_event_store(): void
 - `#[EventSourcingHandler]` methods have NO side effects — only state assignment
 - Use `WithAggregateVersioning` for event-sourced aggregates
 - Command properties matching `#[Identifier]` field names are auto-resolved
-- See `references/aggregate-patterns.md` for more examples
+
+## Additional resources
+
+- [Aggregate patterns reference](references/aggregate-patterns.md) — Complete aggregate implementations including full state-stored and event-sourced classes, `WithEvents` trait usage, `#[EventSourcingHandler]` apply methods, `WithAggregateVersioning` for optimistic locking, Doctrine ORM integration, and EcotoneLite testing patterns. Load when implementing a new aggregate or need full class definitions with imports.

@@ -267,4 +267,7 @@ public function test_recorded_events(): void
 - Use `#[Header]` for metadata access, not message wrapping
 - PHPDoc `@param`/`@return` on public API methods
 - No comments — meaningful method names only
-- See `references/handler-patterns.md` for full examples
+
+## Additional resources
+
+- [Handler patterns reference](references/handler-patterns.md) — Complete handler implementations including full `#[CommandHandler]`, `#[EventHandler]`, `#[QueryHandler]` class examples, routing key patterns, aggregate command handlers (factory + action), service injection, metadata access, and testing patterns with EcotoneLite. Load when you need full class definitions or handler wiring examples.

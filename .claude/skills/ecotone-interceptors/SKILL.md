@@ -329,5 +329,8 @@ public function test_interceptor_runs(): void
 - Use `Precedence::DEFAULT_PRECEDENCE` for custom interceptors
 - Pointcuts can target attributes, classes, or interfaces
 - Register interceptor classes in `classesToResolve` for testing
-- See `references/interceptor-patterns.md` for real examples
-- See `references/pointcut-reference.md` for expression syntax
+
+## Additional resources
+
+- [Interceptor patterns](references/interceptor-patterns.md) — Complete interceptor class implementations with full `#[Before]`, `#[After]`, `#[Around]`, and `#[Presend]` examples, including transaction management, logging, authorization, and header modification. Load when you need full class definitions or real-world interceptor examples.
+- [Pointcut expression syntax](references/pointcut-reference.md) — Full pointcut expression syntax reference including attribute targeting, class/interface targeting, method targeting, and combined expressions. Load when constructing complex pointcut expressions.

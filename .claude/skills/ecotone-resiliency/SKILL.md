@@ -277,4 +277,7 @@ public function test_retry_on_failure(): void
 - Use `PollingMetadata::setErrorChannelName()` for per-endpoint error routing
 - Use `DbalBackedMessageChannelBuilder` for outbox pattern (atomic event storage)
 - Use `FinalFailureStrategy` to control behavior when all recovery options are exhausted
-- See `references/retry-patterns.md` for detailed API reference
+
+## Additional resources
+
+- [Retry patterns reference](references/retry-patterns.md) — Complete API reference for `RetryTemplateBuilder` (fixed, exponential, capped), `ErrorHandlerConfiguration`, `DbalDeadLetterModule`, outbox pattern with `DbalBackedMessageChannelBuilder`, `FinalFailureStrategy`, and per-endpoint error routing with `PollingMetadata`. Load when configuring retry strategies, dead letter queues, or error handling pipelines.

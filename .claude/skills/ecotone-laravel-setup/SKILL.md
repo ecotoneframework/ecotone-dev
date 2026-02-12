@@ -47,42 +47,6 @@ This creates `config/ecotone.php`.
 
 ## 3. Configuration
 
-In `config/ecotone.php`:
-
-```php
-return [
-    // Service name for distributed architecture
-    'serviceName' => env('ECOTONE_SERVICE_NAME'),
-
-    // Auto-load classes from app/ directory (default: true)
-    'loadAppNamespaces' => true,
-
-    // Additional namespaces to scan
-    'namespaces' => [],
-
-    // Cache configuration (auto-enabled in prod/production)
-    'cacheConfiguration' => env('ECOTONE_CACHE', false),
-
-    // Default serialization format for async messages
-    'defaultSerializationMediaType' => env('ECOTONE_DEFAULT_SERIALIZATION_TYPE'),
-
-    // Default error channel for async consumers
-    'defaultErrorChannel' => env('ECOTONE_DEFAULT_ERROR_CHANNEL'),
-
-    // Connection retry on failure
-    'defaultConnectionExceptionRetry' => null,
-
-    // Skip specific module packages
-    'skippedModulePackageNames' => [],
-
-    // Enable test mode
-    'test' => false,
-
-    // Enterprise licence key
-    'licenceKey' => null,
-];
-```
-
 ### All Configuration Options
 
 | Option | Default | Description |
@@ -166,16 +130,10 @@ Key differences from regular aggregates:
 ### Using Laravel Database Connection
 
 ```php
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Laravel\Config\LaravelConnectionReference;
-
-class EcotoneConfiguration
+#[ServiceContext]
+public function databaseConnection(): LaravelConnectionReference
 {
-    #[ServiceContext]
-    public function databaseConnection(): LaravelConnectionReference
-    {
-        return LaravelConnectionReference::defaultConnection('mysql');
-    }
+    return LaravelConnectionReference::defaultConnection('mysql');
 }
 ```
 
@@ -206,58 +164,27 @@ public function connections(): array
 Use Laravel Queue drivers as Ecotone message channels:
 
 ```php
-use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
-
-class ChannelConfiguration
+#[ServiceContext]
+public function asyncChannel(): LaravelQueueMessageChannelBuilder
 {
-    #[ServiceContext]
-    public function asyncChannel(): LaravelQueueMessageChannelBuilder
-    {
-        return LaravelQueueMessageChannelBuilder::create('notifications');
-    }
-
-    // Use a specific queue connection
-    #[ServiceContext]
-    public function redisChannel(): LaravelQueueMessageChannelBuilder
-    {
-        return LaravelQueueMessageChannelBuilder::create('orders', 'redis');
-    }
+    return LaravelQueueMessageChannelBuilder::create('notifications');
 }
-```
 
-Configure queue connections in `config/queue.php`:
-
-```php
-return [
-    'default' => env('QUEUE_CONNECTION', 'database'),
-    'connections' => [
-        'database' => [
-            'driver' => 'database',
-            'table' => 'jobs',
-            'queue' => 'default',
-            'retry_after' => 90,
-        ],
-        'redis' => [
-            'driver' => 'redis',
-            'connection' => 'default',
-            'queue' => env('REDIS_QUEUE', 'default'),
-        ],
-    ],
-];
+// With a specific queue connection
+#[ServiceContext]
+public function redisChannel(): LaravelQueueMessageChannelBuilder
+{
+    return LaravelQueueMessageChannelBuilder::create('orders', 'redis');
+}
 ```
 
 ### Using DBAL Channels Directly
 
 ```php
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-
-class ChannelConfiguration
+#[ServiceContext]
+public function ordersChannel(): DbalBackedMessageChannelBuilder
 {
-    #[ServiceContext]
-    public function ordersChannel(): DbalBackedMessageChannelBuilder
-    {
-        return DbalBackedMessageChannelBuilder::create('orders');
-    }
+    return DbalBackedMessageChannelBuilder::create('orders');
 }
 ```
 
@@ -285,35 +212,19 @@ php artisan ecotone:list
 ## 9. Multi-Tenant Configuration
 
 ```php
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-
-class EcotoneConfiguration
+#[ServiceContext]
+public function multiTenant(): MultiTenantConfiguration
 {
-    #[ServiceContext]
-    public function multiTenant(): MultiTenantConfiguration
-    {
-        return MultiTenantConfiguration::create(
-            tenantHeaderName: 'tenant',
-            tenantToConnectionMapping: [
-                'tenant_a' => LaravelConnectionReference::create('tenant_a_connection'),
-                'tenant_b' => LaravelConnectionReference::create('tenant_b_connection'),
-            ],
-        );
-    }
+    return MultiTenantConfiguration::create(
+        tenantHeaderName: 'tenant',
+        tenantToConnectionMapping: [
+            'tenant_a' => LaravelConnectionReference::create('tenant_a_connection'),
+            'tenant_b' => LaravelConnectionReference::create('tenant_b_connection'),
+        ],
+    );
 }
 ```
 
-Configure connections in `config/database.php`:
+## Additional resources
 
-```php
-'connections' => [
-    'tenant_a_connection' => [
-        'driver' => 'pgsql',
-        'url' => env('TENANT_A_DATABASE_URL'),
-    ],
-    'tenant_b_connection' => [
-        'driver' => 'pgsql',
-        'url' => env('TENANT_B_DATABASE_URL'),
-    ],
-],
-```
+- [Laravel integration patterns](references/laravel-patterns.md) — Complete code examples for Laravel integration. Load when you need: full `config/ecotone.php` file with all options, full Eloquent aggregate class with imports, full DBAL connection class, full Laravel Queue channel class, `config/queue.php` example, DBAL channel class, multi-tenant config class, or multi-tenant `config/database.php`.

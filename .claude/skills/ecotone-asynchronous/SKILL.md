@@ -266,5 +266,8 @@ Key testing methods:
 - Use `#[Priority]` for message ordering within a channel
 - Use `#[TimeToLive]` to expire unprocessed messages
 - Use `#[Scheduled]` + `#[Poller]` for periodic tasks
-- See `references/channel-patterns.md` for channel configuration
-- See `references/scheduling-patterns.md` for scheduling and dynamic channel details
+
+## Additional resources
+
+- [Channel patterns](references/channel-patterns.md) — Complete channel configuration examples including `SimpleMessageChannelBuilder`, `DbalBackedMessageChannelBuilder`, `AmqpBackedMessageChannelBuilder`, `SqsBackedMessageChannelBuilder`, and `RedisBackedMessageChannelBuilder`. Load when configuring message channels or choosing between channel types.
+- [Scheduling patterns](references/scheduling-patterns.md) — Complete scheduling and dynamic channel examples including `#[Scheduled]` with `#[Poller]`, cron expressions, `#[DynamicChannel]`, and dynamic channel routing patterns. Load when implementing scheduled tasks or dynamic message routing.

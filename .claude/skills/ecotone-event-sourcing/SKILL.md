@@ -290,5 +290,8 @@ $ecotone->deleteProjection('name');      // Cleanup
 - Partitioned projections cannot use multiple streams
 - `#[FromAggregateStream]` requires an `#[EventSourcingAggregate]` class
 - Projection names must be unique
-- See `references/projection-patterns.md` for detailed examples
-- See `references/versioning-patterns.md` for upcasting patterns
+
+## Additional resources
+
+- [Projection patterns](references/projection-patterns.md) — Complete projection implementations including `#[ProjectionV2]` with partitioning, streaming projections, `#[FromAggregateStream]`, multi-stream projections, and projection state management. Load when implementing new projections or configuring event store.
+- [Versioning patterns](references/versioning-patterns.md) — Event versioning and upcasting examples including `#[UpcastEvent]`, revision headers, and multi-step upcasting chains. Load when adding event versioning or migrating event schemas.

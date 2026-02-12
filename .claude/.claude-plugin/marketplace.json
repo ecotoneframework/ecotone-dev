@@ -18,26 +18,26 @@
         "name": "Ecotone Framework"
       },
       "homepage": "https://ecotone.tech",
-      "repository": "https://github.com/ecotoneframework/ecotone-dev",
+      "repository": "https://github.com/ecotoneframework/skills",
       "license": "Apache-2.0",
       "keywords": ["php", "ddd", "cqrs", "event-sourcing", "message-driven", "ecotone"],
       "category": "development",
       "strict": false,
       "skills": [
-        "./.claude/skills/ecotone-handler",
-        "./.claude/skills/ecotone-aggregate",
-        "./.claude/skills/ecotone-event-sourcing",
-        "./.claude/skills/ecotone-workflow",
-        "./.claude/skills/ecotone-interceptors",
-        "./.claude/skills/ecotone-asynchronous",
-        "./.claude/skills/ecotone-resiliency",
-        "./.claude/skills/ecotone-distribution",
-        "./.claude/skills/ecotone-testing",
-        "./.claude/skills/ecotone-identifier-mapping",
-        "./.claude/skills/ecotone-metadata",
-        "./.claude/skills/ecotone-business-interface",
-        "./.claude/skills/ecotone-laravel-setup",
-        "./.claude/skills/ecotone-symfony-setup"
+        "./skills/ecotone-handler",
+        "./skills/ecotone-aggregate",
+        "./skills/ecotone-event-sourcing",
+        "./skills/ecotone-workflow",
+        "./skills/ecotone-interceptors",
+        "./skills/ecotone-asynchronous",
+        "./skills/ecotone-resiliency",
+        "./skills/ecotone-distribution",
+        "./skills/ecotone-testing",
+        "./skills/ecotone-identifier-mapping",
+        "./skills/ecotone-metadata",
+        "./skills/ecotone-business-interface",
+        "./skills/ecotone-laravel-setup",
+        "./skills/ecotone-symfony-setup"
       ]
     }
   ]

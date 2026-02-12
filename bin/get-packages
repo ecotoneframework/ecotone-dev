@@ -68,6 +68,15 @@ function getPackages(): array {
             'publish-version' => true
     ];
 
+    $packages[] = [
+            'directory'  => realpath(__DIR__ . "/../.claude"),
+            'name' => "skills",
+            'package' => 'ecotone/skills',
+            'organisation' => 'ecotoneframework',
+            'repository' => "skills",
+            'publish-version' => false
+    ];
+
     return $packages;
 }
 

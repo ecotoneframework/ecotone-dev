@@ -116,7 +116,9 @@ MediaType::TEXT_PLAIN                 // 'text/plain'
 
 Source: `Ecotone\Messaging\Attribute\BusinessMethod`
 
-Generic interface proxying through the message bus:
+BusinessMethod is an interface-only attribute — Ecotone auto-generates the implementation that sends messages through the messaging system. The `requestChannel` parameter routes to the matching handler's routing key.
+
+### Basic: BusinessMethod → ServiceActivator
 
 ```php
 use Ecotone\Messaging\Attribute\BusinessMethod;
@@ -126,9 +128,144 @@ interface NotificationGateway
     #[BusinessMethod('notification.send')]
     public function send(string $message, string $recipient): void;
 }
+
+// Handler
+use Ecotone\Messaging\Attribute\ServiceActivator;
+
+class NotificationHandler
+{
+    #[ServiceActivator('notification.send')]
+    public function handle(string $message): void
+    {
+        // Process notification
+    }
+}
 ```
 
-Ecotone generates an implementation that sends through the messaging system.
+### BusinessMethod → CommandHandler (Aggregate)
+
+Use BusinessMethod to call CommandHandler on aggregates directly, bypassing CommandBus:
+
+```php
+use Ecotone\Messaging\Attribute\BusinessMethod;
+
+interface ProductService
+{
+    #[BusinessMethod('product.register')]
+    public function registerProduct(RegisterProduct $command): void;
+
+    #[BusinessMethod('product.changePrice')]
+    public function changePrice(ChangePrice $command): void;
+
+    #[BusinessMethod('product.getPrice')]
+    public function getPrice(#[Identifier] string $productId): float;
+}
+
+// Aggregate with matching routing keys
+use Ecotone\Modelling\Attribute\EventSourcingAggregate;
+use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\Attribute\Identifier;
+
+#[EventSourcingAggregate]
+class Product
+{
+    #[Identifier]
+    private string $productId;
+    private float $price;
+
+    #[CommandHandler('product.register')]
+    public static function register(RegisterProduct $command): array
+    {
+        return [new ProductWasRegistered($command->productId, $command->price)];
+    }
+
+    #[CommandHandler('product.changePrice')]
+    public function changePrice(ChangePrice $command): array
+    {
+        return [new PriceWasChanged($this->productId, $command->price)];
+    }
+
+    #[QueryHandler('product.getPrice')]
+    public function getPrice(): float
+    {
+        return $this->price;
+    }
+}
+```
+
+### BusinessMethod with Headers
+
+Pass metadata as message headers using `#[Header]`:
+
+```php
+use Ecotone\Messaging\Attribute\BusinessMethod;
+use Ecotone\Messaging\Attribute\Parameter\Header;
+
+interface CacheService
+{
+    #[BusinessMethod('cache.set')]
+    public function set(CachedItem $item, #[Header('cache.type')] CacheType $type): void;
+
+    #[BusinessMethod('cache.get')]
+    public function get(string $key, #[Header('cache.type')] CacheType $type): ?string;
+}
+```
+
+### Injecting BusinessMethod into CommandHandlers
+
+BusinessMethod interfaces can be injected as parameters into CommandHandlers for cross-aggregate communication:
+
+```php
+use Ecotone\Messaging\Attribute\BusinessMethod;
+use Ecotone\Modelling\Attribute\Identifier;
+use Ramsey\Uuid\UuidInterface;
+
+interface ProductService
+{
+    #[BusinessMethod('product.getPrice')]
+    public function getPrice(#[Identifier] UuidInterface $productId): int;
+}
+
+interface UserService
+{
+    #[BusinessMethod('user.isVerified')]
+    public function isUserVerified(#[Identifier] UuidInterface $userId): bool;
+}
+
+// Aggregate that uses BusinessMethod interfaces as dependencies
+use Ecotone\Modelling\Attribute\EventSourcingAggregate;
+use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
+
+#[EventSourcingAggregate]
+class Basket
+{
+    #[CommandHandler]
+    public static function addToNewBasket(
+        AddProductToBasket $command,
+        ProductService $productService
+    ): array {
+        return [new ProductWasAddedToBasket(
+            $command->userId,
+            $command->productId,
+            $productService->getPrice($command->productId)
+        )];
+    }
+
+    #[CommandHandler('order.placeOrder')]
+    public function placeOrder(#[Reference] UserService $userService): array
+    {
+        Assert::that($userService->isUserVerified($this->userId))->true(
+            'User must be verified to place order'
+        );
+
+        return [new OrderWasPlaced($this->userId, $this->productIds)];
+    }
+}
+```
+
+**Key**: When the BusinessMethod interface is type-hinted as a parameter on a CommandHandler method, Ecotone injects the auto-generated proxy. Use `#[Reference]` when injecting via service container reference (e.g., for non-first parameters or explicit injection).
 
 ## 4. Expression Language
 

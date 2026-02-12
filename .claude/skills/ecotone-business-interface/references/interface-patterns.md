@@ -213,29 +213,221 @@ class JsonConverter
 }
 ```
 
-## BusinessMethod Examples
+## BusinessMethod Attribute
 
 Source: `Ecotone\Messaging\Attribute\BusinessMethod`
+
+`BusinessMethod` extends `MessageGateway`. Ecotone generates an implementation that sends messages through the messaging system.
+
+```php
+#[Attribute(Attribute::TARGET_METHOD)]
+class BusinessMethod extends MessageGateway
+{
+}
+
+class MessageGateway
+{
+    public function __construct(
+        string $requestChannel,
+        string $errorChannel = '',
+        int $replyTimeoutInMilliseconds = 0,
+        array $requiredInterceptorNames = [],
+        ?string $replyContentType = null
+    )
+}
+```
+
+### Basic: BusinessMethod → ServiceActivator
 
 ```php
 use Ecotone\Messaging\Attribute\BusinessMethod;
 
-interface NotificationGateway
+interface CacheService
 {
-    #[BusinessMethod('notification.send')]
-    public function send(string $message, string $recipient): void;
+    #[BusinessMethod('cache.set')]
+    public function set(CachedItem $item): void;
+
+    #[BusinessMethod('cache.get')]
+    public function get(string $key): ?string;
 }
 
-// Handler that processes the business method call
-class NotificationHandler
+use Ecotone\Messaging\Attribute\ServiceActivator;
+
+class InMemoryCache
 {
-    #[ServiceActivator(inputChannelName: 'notification.send')]
-    public function handle(string $message): void
+    private array $items;
+
+    #[ServiceActivator('cache.set')]
+    public function set(CachedItem $item): void
     {
-        // Process notification
+        $this->items[$item->key] = $item->value;
+    }
+
+    #[ServiceActivator('cache.get')]
+    public function get(string $key): ?string
+    {
+        return $this->items[$key] ?? null;
     }
 }
 ```
+
+### BusinessMethod → CommandHandler on Aggregate
+
+```php
+use Ecotone\Messaging\Attribute\BusinessMethod;
+use Ecotone\Modelling\Attribute\Identifier;
+
+interface ProductService
+{
+    #[BusinessMethod('product.register')]
+    public function registerProduct(RegisterProduct $command): void;
+
+    #[BusinessMethod('product.changePrice')]
+    public function changePrice(ChangePrice $command): void;
+
+    #[BusinessMethod('product.getPrice')]
+    public function getPrice(#[Identifier] string $productId): float;
+}
+
+use Ecotone\Modelling\Attribute\EventSourcingAggregate;
+use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\Attribute\Identifier;
+
+#[EventSourcingAggregate]
+class Product
+{
+    #[Identifier]
+    private string $productId;
+    private float $price;
+
+    #[CommandHandler('product.register')]
+    public static function register(RegisterProduct $command): array
+    {
+        return [new ProductWasRegistered($command->productId, $command->price)];
+    }
+
+    #[CommandHandler('product.changePrice')]
+    public function changePrice(ChangePrice $command): array
+    {
+        return [new PriceWasChanged($this->productId, $command->price)];
+    }
+
+    #[QueryHandler('product.getPrice')]
+    public function getPrice(): float
+    {
+        return $this->price;
+    }
+}
+```
+
+### BusinessMethod with Headers and Routing
+
+```php
+use Ecotone\Messaging\Attribute\BusinessMethod;
+use Ecotone\Messaging\Attribute\Parameter\Header;
+
+interface CacheService
+{
+    #[BusinessMethod('cache.set')]
+    public function set(CachedItem $item, #[Header('cache.type')] CacheType $type): void;
+
+    #[BusinessMethod('cache.get')]
+    public function get(string $key, #[Header('cache.type')] CacheType $type): ?string;
+}
+
+use Ecotone\Messaging\Attribute\Router;
+use Ecotone\Messaging\Attribute\Parameter\Header;
+
+class CachingRouter
+{
+    #[Router('cache.set')]
+    public function routeSet(#[Header('cache.type')] CacheType $type): string
+    {
+        return match ($type) {
+            CacheType::FILE_SYSTEM => 'cache.set.file_system',
+            CacheType::IN_MEMORY => 'cache.set.in_memory',
+        };
+    }
+}
+```
+
+### Injecting BusinessMethod into CommandHandlers
+
+BusinessMethod interfaces can be injected as parameters into handler methods. Ecotone resolves the auto-generated proxy and passes it in.
+
+```php
+use Ecotone\Messaging\Attribute\BusinessMethod;
+use Ecotone\Modelling\Attribute\Identifier;
+use Ramsey\Uuid\UuidInterface;
+
+interface ProductService
+{
+    #[BusinessMethod('product.getPrice')]
+    public function getPrice(#[Identifier] UuidInterface $productId): int;
+}
+
+interface UserService
+{
+    #[BusinessMethod('user.isVerified')]
+    public function isUserVerified(#[Identifier] UuidInterface $userId): bool;
+}
+
+use Ecotone\Modelling\Attribute\EventSourcingAggregate;
+use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
+
+#[EventSourcingAggregate]
+class Basket
+{
+    #[Identifier]
+    private UuidInterface $userId;
+    private array $productIds;
+
+    #[CommandHandler]
+    public static function addToNewBasket(
+        AddProductToBasket $command,
+        ProductService $productService
+    ): array {
+        return [new ProductWasAddedToBasket(
+            $command->userId,
+            $command->productId,
+            $productService->getPrice($command->productId)
+        )];
+    }
+
+    #[CommandHandler]
+    public function add(
+        AddProductToBasket $command,
+        ProductService $productService
+    ): array {
+        if (in_array($command->productId, $this->productIds)) {
+            return [];
+        }
+
+        return [new ProductWasAddedToBasket(
+            $command->userId,
+            $command->productId,
+            $productService->getPrice($command->productId)
+        )];
+    }
+
+    #[CommandHandler('order.placeOrder')]
+    public function placeOrder(#[Reference] UserService $userService): array
+    {
+        Assert::that($userService->isUserVerified($this->userId))->true(
+            'User must be verified to place order'
+        );
+
+        return [new OrderWasPlaced($this->userId, $this->productIds)];
+    }
+}
+```
+
+**Key patterns for injection:**
+- First parameter after command is matched by type — Ecotone injects the BusinessMethod proxy automatically
+- Use `#[Reference]` for explicit service container injection (when not first service parameter)
+- Use `#[Identifier]` on BusinessMethod parameters to target specific aggregate instances
 
 ## MediaType Constants
 

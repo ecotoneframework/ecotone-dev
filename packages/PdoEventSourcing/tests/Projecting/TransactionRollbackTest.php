@@ -313,7 +313,12 @@ final class TransactionRollbackTest extends ProjectingTestCase
             #[ProjectionInitialization]
             public function initialization(): void
             {
-                $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_rollback_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+                $platform = $this->connection->getDatabasePlatform()->getName();
+                if ($platform === 'mysql') {
+                    $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_rollback_events (id INT AUTO_INCREMENT PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+                } else {
+                    $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_rollback_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+                }
             }
 
             #[ProjectionDelete]
@@ -387,7 +392,12 @@ final class TransactionRollbackTest extends ProjectingTestCase
             #[ProjectionInitialization]
             public function initialization(): void
             {
-                $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_fail_second_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+                $platform = $this->connection->getDatabasePlatform()->getName();
+                if ($platform === 'mysql') {
+                    $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_fail_second_events (id INT AUTO_INCREMENT PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+                } else {
+                    $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_fail_second_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+                }
             }
 
             #[ProjectionDelete]

@@ -263,7 +263,12 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
             #[EventHandler]
             public function addTicket(TicketWasRegistered $event): void
             {
-                $this->connection->executeStatement('INSERT INTO idempotent_projection_tickets VALUES (?,?) ON CONFLICT (ticket_id) DO NOTHING', [$event->getTicketId(), $event->getTicketType()]);
+                $platform = $this->connection->getDatabasePlatform()->getName();
+                if ($platform === 'mysql') {
+                    $this->connection->executeStatement('INSERT IGNORE INTO idempotent_projection_tickets VALUES (?,?)', [$event->getTicketId(), $event->getTicketType()]);
+                } else {
+                    $this->connection->executeStatement('INSERT INTO idempotent_projection_tickets VALUES (?,?) ON CONFLICT (ticket_id) DO NOTHING', [$event->getTicketId(), $event->getTicketType()]);
+                }
             }
 
             #[ProjectionInitialization]
@@ -410,7 +415,12 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
             #[ProjectionInitialization]
             public function initialization(): void
             {
-                $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_edge_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+                $platform = $this->connection->getDatabasePlatform()->getName();
+                if ($platform === 'mysql') {
+                    $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_edge_events (id INT AUTO_INCREMENT PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+                } else {
+                    $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_edge_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+                }
             }
 
             #[ProjectionDelete]

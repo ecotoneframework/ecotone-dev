@@ -49,28 +49,19 @@ class EventStoreAggregateStreamSource implements StreamSource
         Assert::isTrue(count($streamFilters) > 0, "No stream filter found for projection: {$projectionName}");
 
         $parts = explode(':', $partitionKey, 3);
-        if (count($parts) === 3) {
-            [$streamName, $aggregateType, $aggregateId] = $parts;
-            $streamFilter = null;
-            foreach ($streamFilters as $filter) {
-                if ($filter->streamName === $streamName && $filter->aggregateType === $aggregateType) {
-                    $streamFilter = $filter;
-                    break;
-                }
-            }
-            Assert::notNull($streamFilter, "No matching stream filter for: {$streamName}:{$aggregateType}");
-            return $this->loadFromStreamFilter($streamFilter, $aggregateId, $lastPosition, $count);
-        }
+        Assert::isTrue(count($parts) === 3, "Partition key must be in format 'streamName:aggregateType:aggregateId', got: {$partitionKey}");
 
-        $aggregateId = $partitionKey;
-        foreach ($streamFilters as $streamFilter) {
-            $result = $this->loadFromStreamFilter($streamFilter, $aggregateId, $lastPosition, $count);
-            if ($result->events !== []) {
-                return $result;
+        [$streamName, $aggregateType, $aggregateId] = $parts;
+        $streamFilter = null;
+        foreach ($streamFilters as $filter) {
+            if ($filter->streamName === $streamName && $filter->aggregateType === $aggregateType) {
+                $streamFilter = $filter;
+                break;
             }
         }
+        Assert::notNull($streamFilter, "No matching stream filter for: {$streamName}:{$aggregateType}");
 
-        return new StreamPage([], $lastPosition ?? '');
+        return $this->loadFromStreamFilter($streamFilter, $aggregateId, $lastPosition, $count);
     }
 
     private function loadFromStreamFilter(StreamFilter $streamFilter, string $aggregateId, ?string $lastPosition, int $count): StreamPage

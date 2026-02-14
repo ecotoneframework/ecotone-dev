@@ -338,9 +338,11 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
             public function partitions(StreamFilter $filter, ?int $limit = null, int $offset = 0): iterable
             {
-                $partitions = ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7'];
-                $partitions = array_slice($partitions, $offset, $limit);
-                yield from $partitions;
+                $aggregateIds = ['u1', 'u2', 'u3', 'u4', 'u5', 'u6', 'u7'];
+                $aggregateIds = array_slice($aggregateIds, $offset, $limit);
+                foreach ($aggregateIds as $aggregateId) {
+                    yield "{$filter->streamName}:{$filter->aggregateType}:{$aggregateId}";
+                }
             }
         };
 

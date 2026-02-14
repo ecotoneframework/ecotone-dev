@@ -105,7 +105,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
             }
 
             while ($aggregateId = $query->fetchOne()) {
-                yield $aggregateId;
+                yield "{$filter->streamName}:{$filter->aggregateType}:{$aggregateId}";
             }
         } catch (TableNotFoundException) {
             return;

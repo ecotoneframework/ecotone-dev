@@ -65,7 +65,11 @@ Run these steps **in order** before submitting a PR:
 ### Step 1: Run changed tests first (fastest feedback)
 
 ```bash
-vendor/bin/phpunit --filter test_method_name
+docker compose up -d
+```
+
+```bash
+docker exec -t ecotone_development vendor/bin/phpunit --filter test_method_name
 ```
 
 ### Step 2: Run full test suite for affected package

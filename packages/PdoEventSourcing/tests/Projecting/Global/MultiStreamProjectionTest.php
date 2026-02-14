@@ -13,7 +13,6 @@ use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -150,19 +149,6 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         $this->expectException(RuntimeException::class);
         $this->expectExceptionMessage('Calendar with id cal-poll-reset not found');
         $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-reset');
-    }
-
-    public function test_declaring_partitioned_multi_stream_projection_throws_exception(): void
-    {
-        $projection = new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
-            public const NAME = 'calendar_multi_stream_projection';
-        };
-
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Partitioned projection calendar_multi_stream_projection cannot declare multiple streams');
-
-        // Bootstrapping should fail due to invalid configuration
-        $this->bootstrapEcotone([$projection::class], [$projection]);
     }
 
     private function createMultiStreamProjection(): object

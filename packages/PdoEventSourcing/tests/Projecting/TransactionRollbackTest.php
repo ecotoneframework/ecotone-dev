@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
@@ -49,6 +50,8 @@ final class TransactionRollbackTest extends ProjectingTestCase
 
         $ecotone = $this->bootstrapEcotoneForTickets([$projection::class], [$projection], $projection::CHANNEL);
 
+        $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS global_rollback_tickets (ticket_id VARCHAR(36) PRIMARY KEY, ticket_type VARCHAR(25))');
+
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
 
@@ -77,6 +80,8 @@ final class TransactionRollbackTest extends ProjectingTestCase
         $projection = $this->createFailOncePartitionedProjection();
 
         $ecotone = $this->bootstrapEcotoneForTickets([$projection::class], [$projection], $projection::CHANNEL);
+
+        $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS partitioned_rollback_tickets (ticket_id VARCHAR(36) PRIMARY KEY, ticket_type VARCHAR(25))');
 
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
@@ -107,6 +112,12 @@ final class TransactionRollbackTest extends ProjectingTestCase
 
         $ecotone = $this->bootstrapEcotoneForCalendar([$projection::class], [$projection], $projection::CHANNEL);
 
+        if ($this->getConnection()->getDatabasePlatform() instanceof MySQLPlatform) {
+            $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_rollback_events (id INT AUTO_INCREMENT PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+        } else {
+            $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_rollback_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+        }
+
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
 
@@ -135,6 +146,12 @@ final class TransactionRollbackTest extends ProjectingTestCase
         $projection = $this->createFailOnSecondEventMultiStreamProjection();
 
         $ecotone = $this->bootstrapEcotoneForCalendar([$projection::class], [$projection], $projection::CHANNEL);
+
+        if ($this->getConnection()->getDatabasePlatform() instanceof MySQLPlatform) {
+            $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_fail_second_events (id INT AUTO_INCREMENT PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+        } else {
+            $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_fail_second_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
+        }
 
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
@@ -199,13 +216,12 @@ final class TransactionRollbackTest extends ProjectingTestCase
             #[ProjectionInitialization]
             public function initialization(): void
             {
-                $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS global_rollback_tickets (ticket_id VARCHAR(36) PRIMARY KEY, ticket_type VARCHAR(25))');
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
-                $this->connection->executeStatement('DROP TABLE IF EXISTS global_rollback_tickets');
+                $this->connection->executeStatement('DELETE FROM global_rollback_tickets');
             }
 
             #[ProjectionReset]
@@ -250,13 +266,12 @@ final class TransactionRollbackTest extends ProjectingTestCase
             #[ProjectionInitialization]
             public function initialization(): void
             {
-                $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS partitioned_rollback_tickets (ticket_id VARCHAR(36) PRIMARY KEY, ticket_type VARCHAR(25))');
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
-                $this->connection->executeStatement('DROP TABLE IF EXISTS partitioned_rollback_tickets');
+                $this->connection->executeStatement('DELETE FROM partitioned_rollback_tickets');
             }
 
             #[ProjectionReset]
@@ -313,18 +328,12 @@ final class TransactionRollbackTest extends ProjectingTestCase
             #[ProjectionInitialization]
             public function initialization(): void
             {
-                $platform = $this->connection->getDatabasePlatform()->getName();
-                if ($platform === 'mysql') {
-                    $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_rollback_events (id INT AUTO_INCREMENT PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
-                } else {
-                    $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_rollback_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
-                }
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
-                $this->connection->executeStatement('DROP TABLE IF EXISTS multi_stream_rollback_events');
+                $this->connection->executeStatement('DELETE FROM multi_stream_rollback_events');
             }
 
             #[ProjectionReset]
@@ -392,18 +401,12 @@ final class TransactionRollbackTest extends ProjectingTestCase
             #[ProjectionInitialization]
             public function initialization(): void
             {
-                $platform = $this->connection->getDatabasePlatform()->getName();
-                if ($platform === 'mysql') {
-                    $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_fail_second_events (id INT AUTO_INCREMENT PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
-                } else {
-                    $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_fail_second_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
-                }
             }
 
             #[ProjectionDelete]
             public function delete(): void
             {
-                $this->connection->executeStatement('DROP TABLE IF EXISTS multi_stream_fail_second_events');
+                $this->connection->executeStatement('DELETE FROM multi_stream_fail_second_events');
             }
 
             #[ProjectionReset]

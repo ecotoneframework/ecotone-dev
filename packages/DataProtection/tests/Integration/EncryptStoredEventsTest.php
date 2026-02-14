@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Integration;
 
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\SyntaxErrorException;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Key;
@@ -26,12 +29,29 @@ use Test\Ecotone\DataProtection\Fixture\TestEnum;
  */
 class EncryptStoredEventsTest extends TestCase
 {
+    private DbalConnectionFactory $connectionFactory;
+    private Connection $connection;
+    private string $streamName;
+
+    protected function setUp(): void
+    {
+        $this->connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@127.0.0.1:5432/ecotone');
+        $this->connection = $this->connectionFactory->establishConnection();
+
+        self::clearDataTables($this->connection);
+    }
+
+    protected function tearDown(): void
+    {
+        $this->connection->close();
+    }
+
     public function test_sensitive_events_will_be_stored_encrypted(): void
     {
         $encryptionKey = Key::createNewRandomKey();
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
-                DbalConnectionFactory::class => $connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@127.0.0.1:5432/ecotone'),
+                DbalConnectionFactory::class => $this->connectionFactory,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
@@ -48,9 +68,6 @@ class EncryptStoredEventsTest extends TestCase
                 ),
             addInMemoryEventSourcedRepository: false,
         );
-
-        $ecotone->deleteEventStream(SomeAggregate::class);
-
         $ecotone->withEventsFor(
             '123',
             SomeAggregate::class,
@@ -61,11 +78,9 @@ class EncryptStoredEventsTest extends TestCase
             ]
         );
 
-        $connection = $connectionFactory->establishConnection();
+        $this->streamName = $this->connection->fetchOne('select stream_name from event_streams where real_stream_name = ?', [SomeAggregate::class]);
 
-        $streamName = $connection->fetchOne('select stream_name from event_streams where real_stream_name = ?', [SomeAggregate::class]);
-
-        $storedPayloads = $connection->fetchFirstColumn(sprintf('select payload from %s', $streamName));
+        $storedPayloads = $this->connection->fetchFirstColumn(sprintf('select payload from %s', $this->streamName));
         foreach ($storedPayloads as $payload) {
             $payload = json_decode($payload, true);
 
@@ -76,5 +91,20 @@ class EncryptStoredEventsTest extends TestCase
         }
 
         self::assertEquals($storedEvents, array_map(static fn (Event $storedEvent) => $storedEvent->getPayload(), $ecotone->getEventStreamEvents(SomeAggregate::class)));
+    }
+
+    private static function clearDataTables(Connection $connection): void
+    {
+        foreach (self::getSchemaManager($connection)->listTableNames() as $tableName) {
+            $sql = 'DROP TABLE ' . $tableName;
+
+            $connection->executeQuery($sql);
+        }
+    }
+
+    protected static function getSchemaManager(Connection $connection): AbstractSchemaManager
+    {
+        // Handle both DBAL 3.x (getSchemaManager) and 4.x (createSchemaManager)
+        return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
     }
 }

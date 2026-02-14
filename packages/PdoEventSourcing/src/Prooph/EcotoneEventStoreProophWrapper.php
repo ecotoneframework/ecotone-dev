@@ -72,15 +72,10 @@ class EcotoneEventStoreProophWrapper implements EventStore
                 $eventToConvert = Event::create($payload);
             }
 
-            if (! is_array($payload)) {
-                $json = $this->conversionService->convert($payload, Type::createFromVariable($payload), MediaType::createApplicationXPHP(), Type::string(), MediaType::createApplicationJson());
-                $payload = json_decode($json, true);
-            }
-
             $proophEvents[] = new ProophMessage(
                 array_key_exists(MessageHeaders::MESSAGE_ID, $metadata) ? Uuid::fromString($metadata[MessageHeaders::MESSAGE_ID]) : Uuid::uuid4(),
                 array_key_exists(MessageHeaders::TIMESTAMP, $metadata) ? new DateTimeImmutable('@' . $metadata[MessageHeaders::TIMESTAMP], new DateTimeZone('UTC')) : new DateTimeImmutable('now', new DateTimeZone('UTC')),
-                $payload,
+                is_array($payload) ? $payload : $this->conversionService->convert($payload, Type::createFromVariable($payload), MediaType::createApplicationXPHP(), Type::array(), MediaType::createApplicationXPHP()),
                 $metadata,
                 $this->eventMapper->mapEventToName($eventToConvert)
             );
@@ -153,14 +148,9 @@ class EcotoneEventStoreProophWrapper implements EventStore
                 $eventName = $proophEvent->messageName();
             }
 
-            $event = $proophEvent->payload();
-            if ($deserialize) {
-                $event = $this->conversionService->convert(json_encode($event), Type::string(), MediaType::createApplicationJson(), $eventName, MediaType::createApplicationXPHP());
-            }
-
             $events[] = Event::createWithType(
                 eventType: $eventName,
-                event: $event,
+                event: $deserialize ? $this->conversionService->convert($proophEvent->payload(), Type::array(), MediaType::createApplicationXPHP(), $eventName, MediaType::createApplicationXPHP()) : $proophEvent->payload(),
                 metadata: array_merge(
                     [
                         MessageHeaders::REVISION => 1,

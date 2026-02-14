@@ -2,7 +2,6 @@
 
 namespace Test\Ecotone\DataProtection\Integration;
 
-use Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Exception\CryptoException;
@@ -19,7 +18,6 @@ use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
-use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveHeaders;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveProperties;
 use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestCommandHandler;
 use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestEventHandler;
@@ -263,7 +261,7 @@ class EncryptAnnotatedMessagesTest extends TestCase
     {
         $payload = json_decode($payload, true);
         foreach ($payload as $key => $value) {
-            try{
+            try {
                 $payload[$key] = Crypto::decrypt(base64_decode($value), $primaryKey);
             } catch (CryptoException) { // in some cases property is not encrypted
                 $payload[$key] = $value;

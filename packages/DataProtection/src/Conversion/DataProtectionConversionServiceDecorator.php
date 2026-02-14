@@ -33,14 +33,14 @@ class DataProtectionConversionServiceDecorator implements ConversionService
 
     public function convert($source, Type $sourcePHPType, MediaType $sourceMediaType, Type $targetPHPType, MediaType $targetMediaType)
     {
-        if ($this->expectProtectedData($targetPHPType, $sourceMediaType)) {
-            $source = $this->getDataProtector($targetPHPType)->decrypt($source);
+        if ($this->expectProtectedData($targetPHPType)) {
+            $source = $this->decrypt($source, $this->getDataProtector($targetPHPType), $sourcePHPType->isCompatibleWith(Type::array()));
         }
 
         $source = $this->innerConversionService->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
 
-        if ($this->expectProtectedData($sourcePHPType, $targetMediaType)) {
-            $source = $this->getDataProtector($sourcePHPType)->encrypt($source);
+        if ($this->expectProtectedData($sourcePHPType)) {
+            $source = $this->encrypt($source, $this->getDataProtector($sourcePHPType), $targetPHPType->isCompatibleWith(Type::array()));
         }
 
         return $source;
@@ -51,13 +51,35 @@ class DataProtectionConversionServiceDecorator implements ConversionService
         return $this->innerConversionService->canConvert($sourceType, $sourceMediaType, $targetType, $targetMediaType);
     }
 
-    private function expectProtectedData(Type $type, MediaType $mediaType): bool
+    private function expectProtectedData(Type $type): bool
     {
-        return array_key_exists($type->toString(), $this->dataProtectors) && $mediaType->isCompatibleWith(MediaType::createApplicationJson());
+        return array_key_exists($type->toString(), $this->dataProtectors);
     }
 
     private function getDataProtector(Type $targetPHPType): DataProtector
     {
         return $this->dataProtectors[$targetPHPType->toString()];
+    }
+
+    private function decrypt($source, DataProtector $dataProtector, bool $handleArray)
+    {
+        if ($handleArray) {
+            $source = json_encode($source);
+        }
+
+        $source = $dataProtector->decrypt($source);
+
+        return $handleArray ? json_decode($source, true) : $source;
+    }
+
+    private function encrypt($source, DataProtector $dataProtector, bool $handleArray)
+    {
+        if ($handleArray) {
+            $source = json_encode($source);
+        }
+
+        $source = $dataProtector->encrypt($source);
+
+        return $handleArray ? json_decode($source, true) : $source;
     }
 }

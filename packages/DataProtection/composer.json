@@ -43,6 +43,7 @@
         "paragonie/random_compat": "^2.0"
     },
     "require-dev": {
+        "ecotone/pdo-event-sourcing": "~1.300.2",
         "phpunit/phpunit": "^11.0",
         "phpstan/phpstan": "^2.1",
         "wikimedia/composer-merge-plugin": "^2.1"

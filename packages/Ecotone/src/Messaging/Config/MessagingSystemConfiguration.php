@@ -925,9 +925,6 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->converterBuilders as $converterBuilder) {
             $converters[] = $converterBuilder->compile($messagingBuilder);
         }
-        foreach ($this->dataProtectorBuilders as $encryptorBuilder) {
-            $dataEncryptors[] = $encryptorBuilder->compile($messagingBuilder);
-        }
 
         $messagingBuilder->register(ConversionService::REFERENCE_NAME, $conversionService = new Definition(AutoCollectionConversionService::class, ['converters' => $converters]));
         if ($this->conversionServiceDecoratorBuilder !== null) {

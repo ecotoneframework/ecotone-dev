@@ -6,21 +6,17 @@ namespace Ecotone\DataProtection\Protector;
 
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Key;
-use Ecotone\Messaging\Conversion\Converter;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\Type;
 
-class DataEncryptor implements Converter
+readonly class DataProtector
 {
     public function __construct(
-        private Type $supportedType,
         private Key $encryptionKey,
         private array $sensitiveProperties,
         private array $scalarProperties,
     ) {
     }
 
-    public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
+    public function encrypt(string $source): string
     {
         $source = json_decode($source, true);
 
@@ -39,8 +35,22 @@ class DataEncryptor implements Converter
         return json_encode($source);
     }
 
-    public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
+    public function decrypt(string $source): string
     {
-        return $sourceType->isCompatibleWith($this->supportedType) && $targetMediaType->isCompatibleWith(MediaType::createApplicationJsonEncrypted());
+        $source = json_decode($source, true);
+
+        foreach ($this->sensitiveProperties as $property) {
+            if (! array_key_exists($property, $source)) {
+                continue;
+            }
+
+            $source[$property] = Crypto::decrypt(base64_decode($source[$property]), $this->encryptionKey);
+
+            if (! in_array($property, $this->scalarProperties, true)) {
+                $source[$property] = json_decode($source[$property], true);
+            }
+        }
+
+        return json_encode($source);
     }
 }

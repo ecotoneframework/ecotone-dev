@@ -6,6 +6,7 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
 use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 
@@ -13,7 +14,7 @@ use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 class TestEventHandler
 {
     #[EventHandler(endpointId: 'test.EncryptMessagesWithChannelConfiguration.eventHandler.withPayload')]
-    public function handleFullyObfuscatedMessage(
+    public function withPayload(
         SomeMessage $message,
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,
@@ -22,10 +23,19 @@ class TestEventHandler
     }
 
     #[EventHandler(listenTo: 'event', endpointId: 'test.EncryptMessagesWithChannelConfiguration.eventHandler.withoutPayload')]
-    public function handleRoutingKey(
+    public function withoutPayload(
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,
     ): void {
         $messageReceiver->withReceived(null, $headers);
+    }
+
+    #[EventHandler(endpointId: 'test.EncryptMessagesWithChannelConfiguration.eventHandler.handleAnnotatedMessage')]
+    public function handleAnnotatedMessage(
+        AnnotatedMessage $message,
+        #[Headers] array $headers,
+        #[Reference] MessageReceiver $messageReceiver,
+    ): void {
+        $messageReceiver->withReceived($message, $headers);
     }
 }

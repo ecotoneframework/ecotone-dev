@@ -4,9 +4,8 @@
  * licence Enterprise
  */
 
-namespace Ecotone\DataProtection\Protector;
+namespace Ecotone\DataProtection\Configuration;
 
-use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
 

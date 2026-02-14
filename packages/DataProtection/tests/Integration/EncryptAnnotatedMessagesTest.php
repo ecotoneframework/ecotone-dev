@@ -5,6 +5,7 @@ namespace Test\Ecotone\DataProtection\Integration;
 use Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\DataProtection\Encryption\Crypto;
+use Ecotone\DataProtection\Encryption\Exception\CryptoException;
 use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -19,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveHeaders;
+use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveProperties;
 use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestCommandHandler;
 use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestEventHandler;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
@@ -57,33 +59,19 @@ class EncryptAnnotatedMessagesTest extends TestCase
         $ecotone
             ->sendCommand(
                 $messageSent = new AnnotatedMessage(
-                    class: new TestClass('value', TestEnum::FIRST),
-                    enum: TestEnum::FIRST,
-                    argument: 'value',
+                    sensitiveObject: new TestClass('value', TestEnum::FIRST),
+                    sensitiveEnum: TestEnum::FIRST,
+                    sensitiveProperty: 'value',
                 ),
-                metadata: $metadataSent = [
-                    'foo' => 'secret-value',
-                    'bar' => 'even-more-secret-value',
-                    'baz' => 'non-sensitive-value',
-                ]
             )
             ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
         ;
 
-        $receivedHeaders = $messageReceiver->receivedHeaders();
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
-        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
-        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
-        self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
-
-        $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = $this->decryptChannelMessagePayload($channelMessage->getPayload(), $this->primaryKey);
-        $messageHeaders = $channelMessage->getHeaders();
-
-        self::assertEquals('{"class":"{\"argument\":\"value\",\"enum\":\"first\"}","enum":"\"first\"","argument":"value"}', $messagePayload);
-        self::assertEquals($metadataSent['foo'], $messageHeaders->get('foo'));
-        self::assertEquals($metadataSent['bar'], $messageHeaders->get('bar'));
-        self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
+        self::assertEquals(
+            '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","sensitiveProperty":"value"}',
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->primaryKey)
+        );
     }
 
     public function test_protect_commands_using_non_default_key(): void
@@ -98,89 +86,57 @@ class EncryptAnnotatedMessagesTest extends TestCase
                 $messageReceiver = new MessageReceiver(),
             ],
             messageChannel: $channel = TestQueueChannel::create('test'),
-            extensionObjects: [
-                ChannelProtectionConfiguration::create('test', encryptionKey: 'primary'),
-            ]
         );
 
         $ecotone
             ->sendCommand(
                 $messageSent = new AnnotatedMessageWithSecondaryEncryptionKey(
-                    class: new TestClass('value', TestEnum::FIRST),
-                    enum: TestEnum::FIRST,
-                    argument: 'value',
-                ),
-                metadata: $metadataSent = [
-                    'foo' => 'secret-value',
-                    'bar' => 'even-more-secret-value',
-                    'baz' => 'non-sensitive-value',
-                ]
+                    sensitiveObject: new TestClass('value', TestEnum::FIRST),
+                    sensitiveEnum: TestEnum::FIRST,
+                    sensitiveProperty: 'value',
+                )
             )
             ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
         ;
 
-        $receivedHeaders = $messageReceiver->receivedHeaders();
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
-        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
-        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
-        self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
-
-        $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = $this->decryptChannelMessagePayload($channelMessage->getPayload(), $this->secondaryKey);
-        $messageHeaders = $channelMessage->getHeaders();
-
-        self::assertEquals('{"class":"{\"argument\":\"value\",\"enum\":\"first\"}","enum":"\"first\"","argument":"value"}', $messagePayload);
-        self::assertEquals($metadataSent['foo'], $messageHeaders->get('foo'));
-        self::assertEquals($metadataSent['bar'], $messageHeaders->get('bar'));
-        self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
+        self::assertEquals(
+            '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","sensitiveProperty":"value"}',
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->secondaryKey),
+        );
     }
 
-    public function test_protect_commands_with_sensitive_headers(): void
+    public function test_protect_commands_using_property_annotation(): void
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
-                AnnotatedMessageWithSensitiveHeaders::class,
+                AnnotatedMessageWithSensitiveProperties::class,
                 TestCommandHandler::class,
             ],
             container: [
                 new TestCommandHandler(),
                 $messageReceiver = new MessageReceiver(),
             ],
-            messageChannel: $channel = TestQueueChannel::create('test')
+            messageChannel: $channel = TestQueueChannel::create('test'),
         );
 
         $ecotone
             ->sendCommand(
-                $messageSent = new AnnotatedMessageWithSensitiveHeaders(
-                    class: new TestClass('value', TestEnum::FIRST),
-                    enum: TestEnum::FIRST,
-                    argument: 'value',
+                $messageSent = new AnnotatedMessageWithSensitiveProperties(
+                    sensitiveObject: new TestClass('value', TestEnum::FIRST),
+                    sensitiveEnum: TestEnum::FIRST,
+                    property: 'value',
+                    sensitiveProperty: 'sensitive value',
                 ),
-                metadata: $metadataSent = [
-                    'foo' => 'secret-value',
-                    'bar' => 'even-more-secret-value',
-                    'baz' => 'non-sensitive-value',
-                ]
             )
             ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
         ;
 
-        $receivedHeaders = $messageReceiver->receivedHeaders();
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
-        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
-        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
-        self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
-        self::assertArrayNotHasKey('fos', $receivedHeaders);
-
-        $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
-        $messageHeaders = $channelMessage->getHeaders();
-
-        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
-        self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
-        self::assertFalse($messageHeaders->containsKey('fos'));
+        self::assertEquals(
+            '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","property":"value","sensitiveProperty":"sensitive value"}',
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->primaryKey)
+        );
     }
 
     public function test_protect_events_using_message_annotations(): void
@@ -200,33 +156,52 @@ class EncryptAnnotatedMessagesTest extends TestCase
         $ecotone
             ->publishEvent(
                 $messageSent = new AnnotatedMessage(
-                    class: new TestClass('value', TestEnum::FIRST),
-                    enum: TestEnum::FIRST,
-                    argument: 'value',
+                    sensitiveObject: new TestClass('value', TestEnum::FIRST),
+                    sensitiveEnum: TestEnum::FIRST,
+                    sensitiveProperty: 'value',
                 ),
-                metadata: $metadataSent = [
-                    'foo' => 'secret-value',
-                    'bar' => 'even-more-secret-value',
-                    'baz' => 'non-sensitive-value',
-                ]
             )
             ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
         ;
 
-        $receivedHeaders = $messageReceiver->receivedHeaders();
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
-        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
-        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
-        self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
+        self::assertEquals(
+            '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","sensitiveProperty":"value"}',
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->primaryKey)
+        );
+    }
 
-        $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
-        $messageHeaders = $channelMessage->getHeaders();
+    public function test_protect_events_using_property_annotation(): void
+    {
+        $ecotone = $this->bootstrapEcotone(
+            classesToResolve: [
+                AnnotatedMessageWithSensitiveProperties::class,
+                TestEventHandler::class,
+            ],
+            container: [
+                new TestEventHandler(),
+                $messageReceiver = new MessageReceiver(),
+            ],
+            messageChannel: $channel = TestQueueChannel::create('test'),
+        );
 
-        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
-        self::assertEquals($metadataSent['foo'], $messageHeaders->get('foo'));
-        self::assertEquals($metadataSent['bar'], $messageHeaders->get('bar'));
-        self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
+        $ecotone
+            ->publishEvent(
+                $messageSent = new AnnotatedMessageWithSensitiveProperties(
+                    sensitiveObject: new TestClass('value', TestEnum::FIRST),
+                    sensitiveEnum: TestEnum::FIRST,
+                    property: 'value',
+                    sensitiveProperty: 'sensitive value',
+                ),
+            )
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals(
+            '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","property":"value","sensitiveProperty":"sensitive value"}',
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->primaryKey)
+        );
     }
 
     public function test_protect_events_using_non_default_key(): void
@@ -241,89 +216,24 @@ class EncryptAnnotatedMessagesTest extends TestCase
                 $messageReceiver = new MessageReceiver(),
             ],
             messageChannel: $channel = TestQueueChannel::create('test'),
-            extensionObjects: [
-                ChannelProtectionConfiguration::create('test', encryptionKey: 'primary'),
-            ]
         );
 
         $ecotone
             ->publishEvent(
                 $messageSent = new AnnotatedMessageWithSecondaryEncryptionKey(
-                    class: new TestClass('value', TestEnum::FIRST),
-                    enum: TestEnum::FIRST,
-                    argument: 'value',
+                    sensitiveObject: new TestClass('value', TestEnum::FIRST),
+                    sensitiveEnum: TestEnum::FIRST,
+                    sensitiveProperty: 'value',
                 ),
-                metadata: $metadataSent = [
-                    'foo' => 'secret-value',
-                    'bar' => 'even-more-secret-value',
-                    'baz' => 'non-sensitive-value',
-                ]
             )
             ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
         ;
 
-        $receivedHeaders = $messageReceiver->receivedHeaders();
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
-        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
-        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
-        self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
-
-        $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->secondaryKey);
-        $messageHeaders = $channelMessage->getHeaders();
-
-        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
-        self::assertEquals($metadataSent['foo'], $messageHeaders->get('foo'));
-        self::assertEquals($metadataSent['bar'], $messageHeaders->get('bar'));
-        self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
-    }
-
-    public function test_protect_events_with_sensitive_headers(): void
-    {
-        $ecotone = $this->bootstrapEcotone(
-            classesToResolve: [
-                AnnotatedMessageWithSensitiveHeaders::class,
-                TestEventHandler::class,
-            ],
-            container: [
-                new TestEventHandler(),
-                $messageReceiver = new MessageReceiver(),
-            ],
-            messageChannel: $channel = TestQueueChannel::create('test')
+        self::assertEquals(
+            '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","sensitiveProperty":"value"}',
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->secondaryKey)
         );
-
-        $ecotone
-            ->publishEvent(
-                $messageSent = new AnnotatedMessageWithSensitiveHeaders(
-                    class: new TestClass('value', TestEnum::FIRST),
-                    enum: TestEnum::FIRST,
-                    argument: 'value',
-                ),
-                metadata: $metadataSent = [
-                    'foo' => 'secret-value',
-                    'bar' => 'even-more-secret-value',
-                    'baz' => 'non-sensitive-value',
-                ]
-            )
-            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
-        ;
-
-        $receivedHeaders = $messageReceiver->receivedHeaders();
-        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
-        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
-        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
-        self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
-        self::assertArrayNotHasKey('fos', $receivedHeaders);
-
-        $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
-        $messageHeaders = $channelMessage->getHeaders();
-
-        self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
-        self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
-        self::assertFalse($messageHeaders->containsKey('fos'));
     }
 
     private function bootstrapEcotone(array $classesToResolve, array $container, MessageChannel $messageChannel, array $extensionObjects = []): FlowTestSupport
@@ -353,7 +263,11 @@ class EncryptAnnotatedMessagesTest extends TestCase
     {
         $payload = json_decode($payload, true);
         foreach ($payload as $key => $value) {
-            $payload[$key] = Crypto::decrypt(base64_decode($value), $primaryKey);
+            try{
+                $payload[$key] = Crypto::decrypt(base64_decode($value), $primaryKey);
+            } catch (CryptoException) { // in some cases property is not encrypted
+                $payload[$key] = $value;
+            }
         }
 
         return json_encode($payload);

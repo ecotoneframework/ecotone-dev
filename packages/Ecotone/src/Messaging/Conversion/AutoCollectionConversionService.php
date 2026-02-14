@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Conversion;
 
-use Ecotone\DataProtection\Protector\DataEncryptor;
 use Ecotone\Messaging\Handler\Type;
 
 use function is_iterable;
@@ -16,11 +15,9 @@ class AutoCollectionConversionService implements ConversionService
 {
     /**
      * @param Converter[] $converters
-     * @param DataEncryptor[] $dataProtectors
      * @param array<string, int|false> $convertersCache value is index of converter in $this->converters or false if not found
-     * @param array<string, int|false> $protectorsCache value is index of data protector in $this->dataProtectors or false if not found
      */
-    public function __construct(private array $converters, private array $dataProtectors, private array $convertersCache = [], private array $protectorsCache = [])
+    public function __construct(private array $converters, private array $convertersCache = [])
     {
     }
 
@@ -28,9 +25,9 @@ class AutoCollectionConversionService implements ConversionService
      * @param Converter[] $converters
      * @return AutoCollectionConversionService
      */
-    public static function createWith(array $converters, array $dataProtectors = []): self
+    public static function createWith(array $converters): self
     {
-        return new self($converters, $dataProtectors);
+        return new self($converters);
     }
 
     /**
@@ -38,7 +35,7 @@ class AutoCollectionConversionService implements ConversionService
      */
     public static function createEmpty(): self
     {
-        return new self([], []);
+        return new self([]);
     }
 
     public function convert($source, Type $sourcePHPType, MediaType $sourceMediaType, Type $targetPHPType, MediaType $targetMediaType)
@@ -47,21 +44,8 @@ class AutoCollectionConversionService implements ConversionService
             return $source;
         }
 
-        // check if a source can be decrypted
-        if ($sourceMediaType->isCompatibleWith(MediaType::createApplicationJson()) && $dataDecryptor = $this->getDataProtector($sourcePHPType, MediaType::createApplicationJsonEncrypted(), $targetPHPType, $targetMediaType)) {
-            $source = $dataDecryptor->convert($source, $sourcePHPType, MediaType::createApplicationJsonEncrypted(), $targetPHPType, $targetMediaType);
-        }
-
-        // run actual conversion
         if ($converter = $this->getConverter($sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType)) {
-            $convertedValue = $converter->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType, $this);
-
-            // check if a source can be encrypted
-            if ($targetMediaType->isCompatibleWith(MediaType::createApplicationJson()) && $dataEncryptor = $this->getDataProtector($sourcePHPType, $sourceMediaType, $targetPHPType, MediaType::createApplicationJsonEncrypted())) {
-                return $dataEncryptor->convert($convertedValue, $sourcePHPType, $sourceMediaType, $targetPHPType, MediaType::createApplicationJsonEncrypted());
-            }
-
-            return $convertedValue;
+            return $converter->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType, $this);
         }
 
         if (is_iterable($source) && $targetPHPType->isIterable() && $targetPHPType instanceof Type\GenericType) {
@@ -126,28 +110,6 @@ class AutoCollectionConversionService implements ConversionService
         }
 
         $this->convertersCache[$cacheKey] = false;
-
-        return null;
-    }
-
-    private function getDataProtector(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): ?Converter
-    {
-        $cacheKey = $sourceType->toString() . '|' . $sourceMediaType->toString() . '->' . $targetType->toString() . '|' . $targetMediaType->toString();
-        if (isset($this->protectorsCache[$cacheKey])) {
-            if ($this->protectorsCache[$cacheKey] === false) {
-                return null;
-            }
-            return $this->dataProtectors[$this->protectorsCache[$cacheKey]];
-        }
-
-        foreach ($this->dataProtectors as $index => $protector) {
-            if ($protector->matches($sourceType, $sourceMediaType, $targetType, $targetMediaType)) {
-                $this->protectorsCache[$cacheKey] = $index;
-                return $protector;
-            }
-        }
-
-        $this->protectorsCache[$cacheKey] = false;
 
         return null;
     }

@@ -129,10 +129,7 @@ final class MessagingSystemConfiguration implements Configuration
      * @var CompilableBuilder[]
      */
     private array $converterBuilders = [];
-    /**
-     * @var CompilableBuilder[]
-     */
-    private array $dataProtectorBuilders = [];
+    private ?Definition $conversionServiceDecoratorBuilder = null;
     /**
      * @var string[]
      */
@@ -835,12 +832,9 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    /**
-     * @inheritDoc
-     */
-    public function registerDataProtector(CompilableBuilder $dataProtectorBuilder): Configuration
+    public function registerConversionServiceDecorator(Definition $conversionServiceDecoratorBuilder): Configuration
     {
-        $this->dataProtectorBuilders[] = $dataProtectorBuilder;
+        $this->conversionServiceDecoratorBuilder = $conversionServiceDecoratorBuilder;
 
         return $this;
     }
@@ -934,7 +928,14 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->dataProtectorBuilders as $encryptorBuilder) {
             $dataEncryptors[] = $encryptorBuilder->compile($messagingBuilder);
         }
-        $messagingBuilder->register(ConversionService::REFERENCE_NAME, new Definition(AutoCollectionConversionService::class, ['converters' => $converters, 'dataProtectors' => $dataEncryptors]));
+
+        $messagingBuilder->register(ConversionService::REFERENCE_NAME, $conversionService = new Definition(AutoCollectionConversionService::class, ['converters' => $converters]));
+        if ($this->conversionServiceDecoratorBuilder !== null) {
+            $this->conversionServiceDecoratorBuilder->addMethodCall('decorate', [$conversionService]);
+
+            $messagingBuilder->replace(ConversionService::REFERENCE_NAME, $this->conversionServiceDecoratorBuilder);
+        }
+
 
         $channelInterceptorsByImportance = $this->channelInterceptorBuilders;
         $channelInterceptorsByChannelName = [];

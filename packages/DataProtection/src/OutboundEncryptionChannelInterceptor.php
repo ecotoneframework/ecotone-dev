@@ -6,51 +6,24 @@
 
 namespace Ecotone\DataProtection;
 
-use Ecotone\DataProtection\MessageEncryption\ChannelEncryptor;
+use Ecotone\DataProtection\Protector\ChannelProtector;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\Assert;
 
 class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
 {
-    /**
-     * @param array<ChannelEncryptor> $messageEncryptors
-     */
-    public function __construct(
-        private readonly ?ChannelEncryptor $channelEncryptor,
-        private readonly array             $messageEncryptors,
-    ) {
-        Assert::allInstanceOfType($this->messageEncryptors, ChannelEncryptor::class);
+    public function __construct(private readonly ?ChannelProtector $channelProtector)
+    {
     }
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
-        if (! $message->getHeaders()->getContentType()?->isCompatibleWith(MediaType::createApplicationJson())) {
-            return $message;
-        }
-
-        if ($messageEncryptor = $this->findMessageEncryptor($message)) {
-            return $messageEncryptor->encrypt($message);
-        }
-
-        if ($this->channelEncryptor) {
-            return $this->channelEncryptor->encrypt($message);
+        if ($message->getHeaders()->getContentType()?->isCompatibleWith(MediaType::createApplicationJson())) {
+            return $this->channelProtector->encrypt($message);
         }
 
         return $message;
-    }
-
-    private function findMessageEncryptor(Message $message): ?ChannelEncryptor
-    {
-        if (! $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID)) {
-            return null;
-        }
-
-        $type = $message->getHeaders()->get(MessageHeaders::TYPE_ID);
-
-        return $this->messageEncryptors[$type] ?? null;
     }
 }

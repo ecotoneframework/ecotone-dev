@@ -18,6 +18,7 @@ use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration\TestCommandHandler;
 use Test\Ecotone\DataProtection\Fixture\EncryptMessagesWithChannelConfiguration\TestEventHandler;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
@@ -246,6 +247,62 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
+    public function test_protect_annotated_commands_using_channel_configuration_with_default_encryption_key_and_routing_key_with_no_sensitive_payload(): void
+    {
+        $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
+            ->withEncryptionKey('secondary')
+            ->withSensitiveHeader('foo')
+            ->withSensitiveHeader('bar')
+            ->withSensitiveHeader('fos')
+        ;
+
+        $ecotone = $this->bootstrapEcotone(
+            channelProtectionConfiguration: $channelProtectionConfiguration,
+            messageChannel: $channel = TestQueueChannel::create('test'),
+            receivedMessage: $messageReceiver = new MessageReceiver(),
+            classesToResolve: [AnnotatedMessage::class],
+        );
+
+        $ecotone
+            ->sendCommand(
+                command: $messageSent = new AnnotatedMessage(
+                    sensitiveObject: new TestClass('value', TestEnum::FIRST),
+                    sensitiveEnum: TestEnum::FIRST,
+                    sensitiveProperty: 'value',
+                ),
+                metadata: $metadataSent = [
+                    'foo' => 'secret-value',
+                    'bar' => 'even-more-secret-value',
+                    'baz' => 'non-sensitive-value',
+                ]
+            )
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        // assert channel message
+        $channelMessage = $channel->getLastSentMessage();
+        $channelMessagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->secondaryKey);
+        $channelMessagePayload = json_decode($channelMessagePayload, true);
+
+        self::assertEquals('{"argument":"value","enum":"first"}', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveObject']), $this->primaryKey));
+        self::assertEquals('"first"', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveEnum']), $this->primaryKey));
+        self::assertEquals('value', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveProperty']), $this->primaryKey));
+        $messageHeaders = $channelMessage->getHeaders();
+
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->secondaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->secondaryKey));
+        self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
+        self::assertFalse($messageHeaders->containsKey('fos'), 'encryption should not add additional headers');
+
+
+        // assert received message
+        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        $receivedHeaders = $messageReceiver->receivedHeaders();
+        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
+        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
+        self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
+    }
+
     public function test_protect_events_using_channel_configuration_with_default_encryption_key(): void
     {
         $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
@@ -391,9 +448,70 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
         ;
     }
 
-    private function bootstrapEcotone(ChannelProtectionConfiguration $channelProtectionConfiguration, MessageChannel $messageChannel, MessageReceiver $receivedMessage): FlowTestSupport
+    public function test_protect_annotated_events_using_channel_configuration_with_default_encryption_key_and_routing_key_with_no_sensitive_payload(): void
     {
+        $channelProtectionConfiguration = ChannelProtectionConfiguration::create('test')
+            ->withEncryptionKey('secondary')
+            ->withSensitiveHeader('foo')
+            ->withSensitiveHeader('bar')
+            ->withSensitiveHeader('fos')
+        ;
+
+        $ecotone = $this->bootstrapEcotone(
+            channelProtectionConfiguration: $channelProtectionConfiguration,
+            messageChannel: $channel = TestQueueChannel::create('test'),
+            receivedMessage: $messageReceiver = new MessageReceiver(),
+            classesToResolve: [AnnotatedMessage::class],
+        );
+
+        $ecotone
+            ->publishEvent(
+                event: $messageSent = new AnnotatedMessage(
+                    sensitiveObject: new TestClass('value', TestEnum::FIRST),
+                    sensitiveEnum: TestEnum::FIRST,
+                    sensitiveProperty: 'value',
+                ),
+                metadata: $metadataSent = [
+                    'foo' => 'secret-value',
+                    'bar' => 'even-more-secret-value',
+                    'baz' => 'non-sensitive-value',
+                ]
+            )
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        // assert channel message
+        $channelMessage = $channel->getLastSentMessage();
+        $channelMessagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->secondaryKey);
+        $channelMessagePayload = json_decode($channelMessagePayload, true);
+
+        self::assertEquals('{"argument":"value","enum":"first"}', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveObject']), $this->primaryKey));
+        self::assertEquals('"first"', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveEnum']), $this->primaryKey));
+        self::assertEquals('value', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveProperty']), $this->primaryKey));
+        $messageHeaders = $channelMessage->getHeaders();
+
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->secondaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->secondaryKey));
+        self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
+        self::assertFalse($messageHeaders->containsKey('fos'), 'encryption should not add additional headers');
+
+
+        // assert received message
+        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        $receivedHeaders = $messageReceiver->receivedHeaders();
+        self::assertEquals($metadataSent['foo'], $receivedHeaders['foo']);
+        self::assertEquals($metadataSent['bar'], $receivedHeaders['bar']);
+        self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
+    }
+
+    private function bootstrapEcotone(
+        ChannelProtectionConfiguration $channelProtectionConfiguration,
+        MessageChannel $messageChannel,
+        MessageReceiver $receivedMessage,
+        array $classesToResolve = [],
+    ): FlowTestSupport {
         return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: $classesToResolve,
             containerOrAvailableServices: [
                 $receivedMessage,
                 new TestCommandHandler(),

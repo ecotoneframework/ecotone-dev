@@ -26,11 +26,8 @@ final class AggregateClassDefinition implements DefinedObject
         private array   $aggregateIdentifierMapping,
         private array   $aggregateIdentifierGetMethods,
         private string  $aggregateClassType,
-        private string  $aggregateStreamName = '',
+        private string  $aggregateStreamName,
     ) {
-        if ($this->aggregateStreamName === '') {
-            $this->aggregateStreamName = $this->className;
-        }
     }
 
     public function getClassName(): string

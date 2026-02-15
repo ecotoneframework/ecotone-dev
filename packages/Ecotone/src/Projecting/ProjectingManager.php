@@ -57,20 +57,13 @@ class ProjectingManager
 
     public function executeFromEvent(string $aggregateId, string $aggregateType, bool $manualInitialization = false): void
     {
-        $partitionKey = $this->buildPartitionKey($aggregateId, $aggregateType);
-        $this->execute($partitionKey, $manualInitialization);
-    }
-
-    private function buildPartitionKey(string $aggregateId, string $aggregateType): string
-    {
         $streamFilters = $this->streamFilterRegistry->provide($this->projectionName);
         foreach ($streamFilters as $filter) {
             if ($filter->aggregateType === $aggregateType) {
-                return "{$filter->streamName}:{$aggregateType}:{$aggregateId}";
+                $partitionKey = "{$filter->streamName}:{$aggregateType}:{$aggregateId}";
+                $this->execute($partitionKey, $manualInitialization);
             }
         }
-
-        throw new \RuntimeException("No matching stream filter found for projection '{$this->projectionName}' with aggregate type '{$aggregateType}'");
     }
 
     /**

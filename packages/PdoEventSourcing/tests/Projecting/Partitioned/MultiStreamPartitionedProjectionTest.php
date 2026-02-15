@@ -38,6 +38,13 @@ use Test\Ecotone\EventSourcing\Fixture\SharedStream\ProductCreated;
 use Test\Ecotone\EventSourcing\Fixture\SharedStream\SharedStreamCategory;
 use Test\Ecotone\EventSourcing\Fixture\SharedStream\SharedStreamEventsConverter;
 use Test\Ecotone\EventSourcing\Fixture\SharedStream\SharedStreamProduct;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\CreateProductA;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\CreateProductB;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\DifferentStreamEventsConverter;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\DifferentStreamProductA;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\DifferentStreamProductB;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\ProductACreated;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\ProductBCreated;
 use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
 /**
@@ -463,6 +470,138 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
                     SQL);
             }
         };
+    }
+
+    public function test_partition_isolation_different_streams_same_aggregate_type(): void
+    {
+        $projection = $this->createDifferentStreamSameTypeProjection();
+
+        $ecotone = $this->bootstrapEcotoneForDifferentStreams([$projection::class], [$projection]);
+
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+
+        $streamA = DifferentStreamProductA::STREAM;
+        $streamB = DifferentStreamProductB::STREAM;
+        $aggregateType = DifferentStreamProductA::AGGREGATE_TYPE;
+
+        $ecotone->sendCommand(new CreateProductA('prodA-1'));
+        $ecotone->sendCommand(new CreateProductB('prodB-1'));
+
+        $resultsBeforeReset = $ecotone->sendQueryWithRouting('getDifferentStreamSameTypeEvents');
+        self::assertCount(2, $resultsBeforeReset, 'Should have 2 events before reset');
+        self::assertEquals("{$streamA}:{$aggregateType}:prodA-1", $resultsBeforeReset[0]['partition_key']);
+        self::assertEquals("{$streamB}:{$aggregateType}:prodB-1", $resultsBeforeReset[1]['partition_key']);
+
+        $ecotone->resetProjection($projection::NAME);
+        self::assertCount(0, $ecotone->sendQueryWithRouting('getDifferentStreamSameTypeEvents'), 'Should have 0 events after reset');
+
+        $ecotone->sendCommand(new CreateProductA('prodA-2'));
+
+        $resultsAfterNewCommand = $ecotone->sendQueryWithRouting('getDifferentStreamSameTypeEvents');
+
+        $expectedStreamAPartition = "{$streamA}:{$aggregateType}:prodA-2";
+        $notExpectedProdA1Partition = "{$streamA}:{$aggregateType}:prodA-1";
+        $notExpectedProdB1Partition = "{$streamB}:{$aggregateType}:prodB-1";
+
+        $streamAEvents = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $expectedStreamAPartition);
+        $prodA1Events = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $notExpectedProdA1Partition);
+        $prodB1Events = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $notExpectedProdB1Partition);
+
+        self::assertCount(1, $streamAEvents, "Partition {$expectedStreamAPartition} should have 1 event (ProductACreated)");
+        self::assertCount(0, $prodA1Events, "Partition {$notExpectedProdA1Partition} should NOT be executed - partition isolation");
+        self::assertCount(0, $prodB1Events, "Partition {$notExpectedProdB1Partition} should NOT be executed - partition isolation");
+
+        self::assertCount(1, $resultsAfterNewCommand, 'Only affected partition should be executed');
+    }
+
+    private function createDifferentStreamSameTypeProjection(): object
+    {
+        $connection = $this->getConnection();
+
+        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: DifferentStreamProductA::STREAM, aggregateType: DifferentStreamProductA::AGGREGATE_TYPE), FromStream(stream: DifferentStreamProductB::STREAM, aggregateType: DifferentStreamProductB::AGGREGATE_TYPE)] class ($connection) {
+            public const NAME = 'different_stream_same_type_tracking';
+
+            public function __construct(private Connection $connection)
+            {
+            }
+
+            #[QueryHandler('getDifferentStreamSameTypeEvents')]
+            public function getEvents(): array
+            {
+                return $this->connection->executeQuery(<<<SQL
+                        SELECT * FROM different_stream_same_type_tracking ORDER BY id ASC
+                    SQL)->fetchAllAssociative();
+            }
+
+            #[EventHandler]
+            public function whenProductACreated(ProductACreated $event, #[Header(MessageHeaders::EVENT_AGGREGATE_ID)] string $aggregateId, #[Header(MessageHeaders::EVENT_AGGREGATE_TYPE)] string $aggregateType): void
+            {
+                $streamName = DifferentStreamProductA::STREAM;
+                $partitionKey = "{$streamName}:{$aggregateType}:{$aggregateId}";
+                $this->connection->executeStatement(<<<SQL
+                        INSERT INTO different_stream_same_type_tracking (event_type, partition_key) VALUES (?, ?)
+                    SQL, ['ProductACreated', $partitionKey]);
+            }
+
+            #[EventHandler]
+            public function whenProductBCreated(ProductBCreated $event, #[Header(MessageHeaders::EVENT_AGGREGATE_ID)] string $aggregateId, #[Header(MessageHeaders::EVENT_AGGREGATE_TYPE)] string $aggregateType): void
+            {
+                $streamName = DifferentStreamProductB::STREAM;
+                $partitionKey = "{$streamName}:{$aggregateType}:{$aggregateId}";
+                $this->connection->executeStatement(<<<SQL
+                        INSERT INTO different_stream_same_type_tracking (event_type, partition_key) VALUES (?, ?)
+                    SQL, ['ProductBCreated', $partitionKey]);
+            }
+
+            #[ProjectionInitialization]
+            public function initialization(): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        CREATE TABLE IF NOT EXISTS different_stream_same_type_tracking (
+                            id SERIAL PRIMARY KEY,
+                            event_type VARCHAR(100),
+                            partition_key VARCHAR(500)
+                        )
+                    SQL);
+            }
+
+            #[ProjectionDelete]
+            public function delete(): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        DROP TABLE IF EXISTS different_stream_same_type_tracking
+                    SQL);
+            }
+
+            #[ProjectionReset]
+            public function reset(): void
+            {
+                $this->connection->executeStatement(<<<SQL
+                        DELETE FROM different_stream_same_type_tracking
+                    SQL);
+            }
+        };
+    }
+
+    private function bootstrapEcotoneForDifferentStreams(array $classesToResolve, array $services): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: array_merge($classesToResolve, [
+                DifferentStreamProductA::class,
+                DifferentStreamProductB::class,
+                DifferentStreamEventsConverter::class,
+            ]),
+            containerOrAvailableServices: array_merge($services, [new DifferentStreamEventsConverter(), self::getConnectionFactory()]),
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                ])),
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport

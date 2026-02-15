@@ -25,7 +25,6 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Projecting\BackfillExecutorHandler;
@@ -96,42 +95,23 @@ class ProjectingModule implements AnnotationModule
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);
 
-            if ($projectionBuilder->partitionHeader() === MessageHeaders::EVENT_AGGREGATE_ID) {
-                $messagingConfiguration->registerMessageHandler(
-                    MessageProcessorActivatorBuilder::create()
-                        ->chainInterceptedProcessor(
-                            MethodInvokerBuilder::create(
-                                $projectingManagerReference,
-                                InterfaceToCallReference::create(ProjectingManager::class, 'executeFromEvent'),
-                                [
-                                    HeaderBuilder::create('aggregateId', MessageHeaders::EVENT_AGGREGATE_ID),
-                                    HeaderBuilder::create('aggregateType', MessageHeaders::EVENT_AGGREGATE_TYPE),
-                                    HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
-                                ],
-                            )
+            $messagingConfiguration->registerMessageHandler(
+                MessageProcessorActivatorBuilder::create()
+                    ->chainInterceptedProcessor(
+                        MethodInvokerBuilder::create(
+                            $projectingManagerReference,
+                            InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
+                            [
+                                $projectionBuilder->partitionHeader()
+                                    ? HeaderBuilder::create('partitionKeyValue', $projectionBuilder->partitionHeader())
+                                    : ValueBuilder::create('partitionKeyValue', null),
+                                HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
+                            ],
                         )
-                        ->withEndpointId(self::endpointIdForProjection($projectionName))
-                        ->withInputChannelName(self::inputChannelForProjectingManager($projectionName))
-                );
-            } else {
-                $messagingConfiguration->registerMessageHandler(
-                    MessageProcessorActivatorBuilder::create()
-                        ->chainInterceptedProcessor(
-                            MethodInvokerBuilder::create(
-                                $projectingManagerReference,
-                                InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
-                                [
-                                    $projectionBuilder->partitionHeader()
-                                        ? HeaderBuilder::create('partitionKeyValue', $projectionBuilder->partitionHeader())
-                                        : ValueBuilder::create('partitionKeyValue', null),
-                                    HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
-                                ],
-                            )
-                        )
-                        ->withEndpointId(self::endpointIdForProjection($projectionName))
-                        ->withInputChannelName(self::inputChannelForProjectingManager($projectionName))
-                );
-            }
+                    )
+                    ->withEndpointId(self::endpointIdForProjection($projectionName))
+                    ->withInputChannelName(self::inputChannelForProjectingManager($projectionName))
+            );
 
             // Should the projection be triggered asynchronously?
             if (

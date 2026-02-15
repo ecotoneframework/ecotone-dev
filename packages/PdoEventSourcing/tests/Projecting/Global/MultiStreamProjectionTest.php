@@ -204,7 +204,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
     private function createPartitionedMultiStreamProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class {
+        return new #[ProjectionV2(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class {
             public const NAME = 'calendar_multi_stream_projection_partitioned';
 
             private array $calendars = [];

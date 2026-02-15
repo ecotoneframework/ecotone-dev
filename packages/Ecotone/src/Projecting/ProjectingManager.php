@@ -55,17 +55,6 @@ class ProjectingManager
         } while ($processedEvents > 0 && $this->terminationListener->shouldTerminate() !== true);
     }
 
-    public function executeFromEvent(string $aggregateId, string $aggregateType, bool $manualInitialization = false): void
-    {
-        $streamFilters = $this->streamFilterRegistry->provide($this->projectionName);
-        foreach ($streamFilters as $filter) {
-            if ($filter->aggregateType === $aggregateType) {
-                $partitionKey = "{$filter->streamName}:{$aggregateType}:{$aggregateId}";
-                $this->execute($partitionKey, $manualInitialization);
-            }
-        }
-    }
-
     /**
      * @return int Number of processed events
      */

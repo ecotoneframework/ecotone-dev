@@ -319,7 +319,7 @@ class ProophIntegrationTest extends ProjectingTestCase
     public function test_partitioned_projection_with_auto_mode(): void
     {
         $connectionFactory = self::getConnectionFactory();
-        $projection = new #[ProjectionV2('partitioned_auto_projection'), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(Ticket::STREAM_NAME, Ticket::class)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2('partitioned_auto_projection'), Partitioned, FromStream(Ticket::STREAM_NAME, Ticket::class)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'partitioned_auto_projection';
             public int $initCallCount = 0;
 
@@ -486,7 +486,7 @@ class ProophIntegrationTest extends ProjectingTestCase
         $connection = $dbalConnectionFactory->createContext()->getDbalConnection();
         $alreadyConnectedFactory = DbalConnection::create($connection);
 
-        $projection = new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(Ticket::STREAM_NAME, Ticket::class)] class ($connection) extends DbalTicketProjection {
+        $projection = new #[ProjectionV2(self::NAME), Partitioned, FromStream(Ticket::STREAM_NAME, Ticket::class)] class ($connection) extends DbalTicketProjection {
             public const NAME = 'already_connected_partitioned_projection';
             public int $initCallCount = 0;
 

@@ -233,7 +233,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: SharedStreamProduct::STREAM, aggregateType: SharedStreamProduct::AGGREGATE_TYPE), FromStream(stream: SharedStreamCategory::STREAM, aggregateType: SharedStreamCategory::AGGREGATE_TYPE)] class ($connection) {
+        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: SharedStreamProduct::STREAM, aggregateType: SharedStreamProduct::AGGREGATE_TYPE), FromStream(stream: SharedStreamCategory::STREAM, aggregateType: SharedStreamCategory::AGGREGATE_TYPE)] class ($connection) {
             public const NAME = 'shared_stream_partition_tracking';
 
             public function __construct(private Connection $connection)
@@ -322,7 +322,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
+        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
             public const NAME = 'partition_tracking_projection';
 
             public function __construct(private Connection $connection)
@@ -401,7 +401,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
+        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
             public const NAME = 'multi_stream_partitioned_events';
 
             public function __construct(private Connection $connection)
@@ -519,7 +519,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: DifferentStreamProductA::STREAM, aggregateType: DifferentStreamProductA::AGGREGATE_TYPE), FromStream(stream: DifferentStreamProductB::STREAM, aggregateType: DifferentStreamProductB::AGGREGATE_TYPE)] class ($connection) {
+        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: DifferentStreamProductA::STREAM, aggregateType: DifferentStreamProductA::AGGREGATE_TYPE), FromStream(stream: DifferentStreamProductB::STREAM, aggregateType: DifferentStreamProductB::AGGREGATE_TYPE)] class ($connection) {
             public const NAME = 'different_stream_same_type_tracking';
 
             public function __construct(private Connection $connection)

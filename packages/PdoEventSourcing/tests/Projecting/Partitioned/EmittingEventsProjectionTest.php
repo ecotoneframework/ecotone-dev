@@ -201,7 +201,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjection(): object
     {
-        return new #[ProjectionV2('partitioned_emitting_projection'), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class () {
+        return new #[ProjectionV2('partitioned_emitting_projection'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class () {
             private const STREAM_NAME = 'notifications_stream';
             private array $tickets = [];
 
@@ -257,7 +257,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjectionWithLinkToProjectionStream(): object
     {
-        return new #[ProjectionV2('partitioned_emitting_linked_projection'), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class () {
+        return new #[ProjectionV2('partitioned_emitting_linked_projection'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class () {
             private const STREAM_NAME = 'projection-partitioned_emitting_linked_projection';
             private array $tickets = [];
 
@@ -310,7 +310,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createNonLiveEmittingProjection(): object
     {
-        return new #[ProjectionV2('partitioned_non_live_projection'), ProjectionDeployment(live: false), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class () {
+        return new #[ProjectionV2('partitioned_non_live_projection'), ProjectionDeployment(live: false), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class () {
             private const STREAM_NAME = 'notifications_stream_non_live';
             private array $tickets = [];
 

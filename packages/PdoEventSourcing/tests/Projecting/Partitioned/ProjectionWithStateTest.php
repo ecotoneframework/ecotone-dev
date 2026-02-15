@@ -125,7 +125,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
 
     private function createCounterProjection(Connection $connection): object
     {
-        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
+        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
             public const NAME = 'ticket_counter_partitioned';
 
             public function __construct(private Connection $connection)

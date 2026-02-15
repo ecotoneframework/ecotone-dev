@@ -84,7 +84,7 @@ final class BackfillProjectionTest extends ProjectingTestCase
         $this->expectExceptionMessage('Backfill partition batch size must be at least 1');
 
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('batch0_projection'), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), ProjectionBackfill(backfillPartitionBatchSize: 0), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
+        $projection = new #[ ProjectionV2('batch0_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 0), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
             protected function tableName(): string
             {
                 return 'batch0_tickets';
@@ -97,7 +97,7 @@ final class BackfillProjectionTest extends ProjectingTestCase
     public function test_partitioned_projection_async_backfill_with_batch_of_2_processes_5_partitions_in_3_runs(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('batch2_async_projection'), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel'), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
+        $projection = new #[ ProjectionV2('batch2_async_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_channel'), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
             #[QueryHandler('getBackfillTickets')]
             public function query(): array
             {
@@ -138,7 +138,7 @@ final class BackfillProjectionTest extends ProjectingTestCase
     public function test_partitioned_projection_async_backfill_with_batch_of_5_completes_in_single_run(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('batch5_async_projection'), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), ProjectionBackfill(backfillPartitionBatchSize: 5, asyncChannelName: 'backfill_channel'), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
+        $projection = new #[ ProjectionV2('batch5_async_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 5, asyncChannelName: 'backfill_channel'), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
             #[QueryHandler('getBackfillTickets5')]
             public function query(): array
             {
@@ -175,7 +175,7 @@ final class BackfillProjectionTest extends ProjectingTestCase
     public function test_partitioned_projection_sync_backfill_processes_all_partitions_immediately(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('sync_partitioned_projection'), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), ProjectionBackfill(backfillPartitionBatchSize: 2), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
+        $projection = new #[ ProjectionV2('sync_partitioned_projection'), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 2), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractTicketProjection {
             #[QueryHandler('getSyncBackfillTickets')]
             public function query(): array
             {

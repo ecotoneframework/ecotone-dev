@@ -18,7 +18,7 @@ use Ecotone\Messaging\MessageHeaders;
 class Partitioned
 {
     public function __construct(
-        public readonly string $partitionHeaderName = MessageHeaders::EVENT_AGGREGATE_ID,
+        public readonly string $partitionHeaderName = MessageHeaders::EVENT_STREAM_PARTITION,
     ) {
     }
 }

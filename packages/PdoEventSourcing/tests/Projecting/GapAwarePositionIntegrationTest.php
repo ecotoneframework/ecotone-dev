@@ -131,7 +131,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $tracking = new GapAwarePosition(10, [2, 5, 7, 9]);
 
         // Execute
-        $result = $streamSource->load($projectionName, (string) $tracking, 100);
+        $result = $streamSource->load($projectionName, self::encodeStreamPosition(Ticket::STREAM_NAME, $tracking), 100);
 
         // Verify: Only gaps within 3 positions should remain (7, 9)
         $newTracking = self::extractStreamPosition($result->lastPosition, Ticket::STREAM_NAME);
@@ -215,7 +215,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $tracking = new GapAwarePosition(10, []);
 
         // Execute
-        $result = $streamSource->load($projectionName, (string) $tracking, 100);
+        $result = $streamSource->load($projectionName, self::encodeStreamPosition(Ticket::STREAM_NAME, $tracking), 100);
 
         // Verify: No gaps should remain
         $newTracking = self::extractStreamPosition($result->lastPosition, Ticket::STREAM_NAME);
@@ -243,11 +243,16 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $tracking = new GapAwarePosition(10, [2, 5, 7]);
 
         // Execute
-        $result = $streamSource->load($projectionName, (string) $tracking, 100);
+        $result = $streamSource->load($projectionName, self::encodeStreamPosition(Ticket::STREAM_NAME, $tracking), 100);
 
         // Verify: All gaps should remain (no timeout cleaning)
         $newTracking = self::extractStreamPosition($result->lastPosition, Ticket::STREAM_NAME);
         self::assertSame([2, 5, 7], $newTracking->getGaps());
+    }
+
+    private static function encodeStreamPosition(string $streamName, GapAwarePosition $position): string
+    {
+        return "{$streamName}={$position};";
     }
 
     private static function extractStreamPosition(string $multiStreamPosition, string $streamName): GapAwarePosition

@@ -186,7 +186,6 @@ class SaveAggregateServiceTemplate
                 MessageHeaders::EVENT_AGGREGATE_TYPE => $aggregateType,
                 MessageHeaders::EVENT_AGGREGATE_VERSION => ++$incrementedVersion,
                 MessageHeaders::EVENT_STREAM_NAME => $streamName,
-                MessageHeaders::EVENT_STREAM_PARTITION => "{$streamName}:{$aggregateType}:{$aggregateId}",
             ]);
         }, $events);
     }

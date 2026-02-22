@@ -123,8 +123,6 @@ final class MessageHeaders
 
     public const EVENT_STREAM_NAME = '_stream_name';
 
-    public const EVENT_STREAM_PARTITION = '_stream_partition';
-
     private array $headers;
 
     /**

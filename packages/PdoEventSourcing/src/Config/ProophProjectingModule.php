@@ -7,8 +7,6 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Config;
 
-use function count;
-
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
@@ -106,12 +104,6 @@ class ProophProjectingModule implements AnnotationModule
 
             $partitionedAttribute = $annotationRegistrationService->findAttributeForClass($projectionClass, Partitioned::class);
             $isPartitioned = $partitionedAttribute !== null;
-
-            if ($isPartitioned && count($streamFilters) > 1) {
-                throw ConfigurationException::create(
-                    "Partitioned projection {$projectionName} cannot declare multiple streams. Use a single aggregate stream or remove #[Partitioned]."
-                );
-            }
 
             foreach ($streamFilters as $streamFilter) {
                 if ($isPartitioned && ! $streamFilter->aggregateType) {

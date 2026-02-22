@@ -13,7 +13,6 @@ use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -152,19 +151,6 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
         $ecotone->sendQueryWithRouting('getCalendar', 'cal-poll-reset');
     }
 
-    public function test_declaring_partitioned_multi_stream_projection_throws_exception(): void
-    {
-        $projection = new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
-            public const NAME = 'calendar_multi_stream_projection';
-        };
-
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Partitioned projection calendar_multi_stream_projection cannot declare multiple streams');
-
-        // Bootstrapping should fail due to invalid configuration
-        $this->bootstrapEcotone([$projection::class], [$projection]);
-    }
-
     private function createMultiStreamProjection(): object
     {
         return new #[ProjectionV2(self::NAME), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
@@ -218,7 +204,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
     private function createPartitionedMultiStreamProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID), FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class {
+        return new #[ProjectionV2(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class {
             public const NAME = 'calendar_multi_stream_projection_partitioned';
 
             private array $calendars = [];

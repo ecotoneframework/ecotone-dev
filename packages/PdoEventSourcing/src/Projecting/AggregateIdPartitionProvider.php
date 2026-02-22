@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\TableNotFoundException;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
@@ -44,29 +45,29 @@ class AggregateIdPartitionProvider implements PartitionProvider
         $connection = $this->getConnection();
         $platform = $connection->getDatabasePlatform();
 
-        // Resolve table name at runtime using the provider
         $streamTable = $this->tableNameProvider->generateTableNameForStream($filter->streamName);
 
-        // Build platform-specific count query
-        if ($platform instanceof PostgreSQLPlatform) {
-            // PostgreSQL: Use JSONB operators
-            $result = $connection->executeQuery(<<<SQL
-                SELECT COUNT(DISTINCT metadata->>'_aggregate_id')
-                FROM {$streamTable}
-                WHERE metadata->>'_aggregate_type' = ?
-                SQL, [$filter->aggregateType]);
-        } elseif ($platform instanceof MySQLPlatform || $platform instanceof MariaDBPlatform) {
-            // MySQL/MariaDB: Use generated indexed columns for better performance
-            $result = $connection->executeQuery(<<<SQL
-                SELECT COUNT(DISTINCT aggregate_id)
-                FROM {$streamTable}
-                WHERE aggregate_type = ?
-                SQL, [$filter->aggregateType]);
-        } else {
-            throw new RuntimeException('Unsupported database platform: ' . get_class($platform));
-        }
+        try {
+            if ($platform instanceof PostgreSQLPlatform) {
+                $result = $connection->executeQuery(<<<SQL
+                    SELECT COUNT(DISTINCT metadata->>'_aggregate_id')
+                    FROM {$streamTable}
+                    WHERE metadata->>'_aggregate_type' = ?
+                    SQL, [$filter->aggregateType]);
+            } elseif ($platform instanceof MySQLPlatform || $platform instanceof MariaDBPlatform) {
+                $result = $connection->executeQuery(<<<SQL
+                    SELECT COUNT(DISTINCT aggregate_id)
+                    FROM {$streamTable}
+                    WHERE aggregate_type = ?
+                    SQL, [$filter->aggregateType]);
+            } else {
+                throw new RuntimeException('Unsupported database platform: ' . get_class($platform));
+            }
 
-        return (int) $result->fetchOne();
+            return (int) $result->fetchOne();
+        } catch (TableNotFoundException) {
+            return 0;
+        }
     }
 
     public function partitions(StreamFilter $filter, ?int $limit = null, int $offset = 0): iterable
@@ -74,41 +75,40 @@ class AggregateIdPartitionProvider implements PartitionProvider
         $connection = $this->getConnection();
         $platform = $connection->getDatabasePlatform();
 
-        // Resolve table name at runtime using the provider
         $streamTable = $this->tableNameProvider->generateTableNameForStream($filter->streamName);
 
-        // Build pagination clause
         $limitClause = '';
         if ($limit !== null) {
             $limitClause = " LIMIT {$limit}";
         }
         $offsetClause = $offset > 0 ? " OFFSET {$offset}" : '';
 
-        // Build platform-specific query
-        if ($platform instanceof PostgreSQLPlatform) {
-            // PostgreSQL: Use JSONB operators
-            $query = $connection->executeQuery(<<<SQL
-                SELECT DISTINCT metadata->>'_aggregate_id' AS aggregate_id
-                FROM {$streamTable}
-                WHERE metadata->>'_aggregate_type' = ?
-                ORDER BY aggregate_id
-                {$limitClause}{$offsetClause}
-                SQL, [$filter->aggregateType]);
-        } elseif ($platform instanceof MySQLPlatform || $platform instanceof MariaDBPlatform) {
-            // MySQL/MariaDB: Use generated indexed columns for better performance
-            $query = $connection->executeQuery(<<<SQL
-                SELECT DISTINCT aggregate_id
-                FROM {$streamTable}
-                WHERE aggregate_type = ?
-                ORDER BY aggregate_id
-                {$limitClause}{$offsetClause}
-                SQL, [$filter->aggregateType]);
-        } else {
-            throw new RuntimeException('Unsupported database platform: ' . get_class($platform));
-        }
+        try {
+            if ($platform instanceof PostgreSQLPlatform) {
+                $query = $connection->executeQuery(<<<SQL
+                    SELECT DISTINCT metadata->>'_aggregate_id' AS aggregate_id
+                    FROM {$streamTable}
+                    WHERE metadata->>'_aggregate_type' = ?
+                    ORDER BY aggregate_id
+                    {$limitClause}{$offsetClause}
+                    SQL, [$filter->aggregateType]);
+            } elseif ($platform instanceof MySQLPlatform || $platform instanceof MariaDBPlatform) {
+                $query = $connection->executeQuery(<<<SQL
+                    SELECT DISTINCT aggregate_id
+                    FROM {$streamTable}
+                    WHERE aggregate_type = ?
+                    ORDER BY aggregate_id
+                    {$limitClause}{$offsetClause}
+                    SQL, [$filter->aggregateType]);
+            } else {
+                throw new RuntimeException('Unsupported database platform: ' . get_class($platform));
+            }
 
-        while ($aggregateId = $query->fetchOne()) {
-            yield $aggregateId;
+            while ($aggregateId = $query->fetchOne()) {
+                yield "{$filter->streamName}:{$filter->aggregateType}:{$aggregateId}";
+            }
+        } catch (TableNotFoundException) {
+            return;
         }
     }
 

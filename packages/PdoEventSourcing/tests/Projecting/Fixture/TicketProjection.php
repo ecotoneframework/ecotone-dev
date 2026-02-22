@@ -16,7 +16,7 @@ use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketUnassigned;
 
-#[ProjectionV2(self::NAME), Partitioned(MessageHeaders::EVENT_AGGREGATE_ID)]
+#[ProjectionV2(self::NAME), Partitioned]
 class TicketProjection
 {
     public const NAME = 'ticket_projection';

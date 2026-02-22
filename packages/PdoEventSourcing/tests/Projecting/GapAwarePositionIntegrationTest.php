@@ -104,7 +104,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         self::$ecotone->triggerProjection(DbalTicketProjection::NAME);
 
         self::assertSame(6, self::$projection->getTicketsCount());
-        $position = GapAwarePosition::fromString(self::$projectionManager->loadState()->lastPosition);
+        $position = self::extractStreamPosition(self::$projectionManager->loadState()->lastPosition, Ticket::STREAM_NAME);
         self::assertSame(12, $position->getPosition());
         self::assertSame([1, 3, 5, 7, 9, 11], $position->getGaps());
     }
@@ -134,7 +134,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $result = $streamSource->load($projectionName, (string) $tracking, 100);
 
         // Verify: Only gaps within 3 positions should remain (7, 9)
-        $newTracking = GapAwarePosition::fromString($result->lastPosition);
+        $newTracking = self::extractStreamPosition($result->lastPosition, Ticket::STREAM_NAME);
         self::assertSame([7, 9], $newTracking->getGaps());
     }
 
@@ -174,7 +174,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $result = $streamSource->load($projectionName, null, 100);
 
         // All gaps should be present initially
-        $tracking = GapAwarePosition::fromString($result->lastPosition);
+        $tracking = self::extractStreamPosition($result->lastPosition, Ticket::STREAM_NAME);
         self::assertSame([2, 4, 6], $tracking->getGaps());
 
         // Delay 2 more seconds to exceed timeout for first gaps (6 seconds since insertion)
@@ -184,13 +184,13 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $result = $streamSource->load($projectionName, null, 100);
 
         // Verify: Gaps 2, 4 should be removed (old timestamps), gap 6 should remain (recent timestamps)
-        $newTracking = GapAwarePosition::fromString($result->lastPosition);
+        $newTracking = self::extractStreamPosition($result->lastPosition, Ticket::STREAM_NAME);
         self::assertSame([6], $newTracking->getGaps());
 
         // Delay 4 more second to exceed timeout for all gaps (6 seconds since insertion of the last event)
         self::$clock->sleep(Duration::seconds(4));
         $result = $streamSource->load($projectionName, $result->lastPosition, 100);
-        $newTracking = GapAwarePosition::fromString($result->lastPosition);
+        $newTracking = self::extractStreamPosition($result->lastPosition, Ticket::STREAM_NAME);
         self::assertSame([], $newTracking->getGaps());
     }
 
@@ -218,7 +218,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $result = $streamSource->load($projectionName, (string) $tracking, 100);
 
         // Verify: No gaps should remain
-        $newTracking = GapAwarePosition::fromString($result->lastPosition);
+        $newTracking = self::extractStreamPosition($result->lastPosition, Ticket::STREAM_NAME);
         self::assertSame([], $newTracking->getGaps());
     }
 
@@ -246,8 +246,23 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $result = $streamSource->load($projectionName, (string) $tracking, 100);
 
         // Verify: All gaps should remain (no timeout cleaning)
-        $newTracking = GapAwarePosition::fromString($result->lastPosition);
+        $newTracking = self::extractStreamPosition($result->lastPosition, Ticket::STREAM_NAME);
         self::assertSame([2, 5, 7], $newTracking->getGaps());
+    }
+
+    private static function extractStreamPosition(string $multiStreamPosition, string $streamName): GapAwarePosition
+    {
+        $pairs = explode(';', $multiStreamPosition);
+        foreach ($pairs as $pair) {
+            if ($pair === '') {
+                continue;
+            }
+            [$stream, $pos] = explode('=', $pair, 2);
+            if ($stream === $streamName) {
+                return GapAwarePosition::fromString($pos);
+            }
+        }
+        self::fail("Stream {$streamName} not found in position: {$multiStreamPosition}");
     }
 
     private function insertGaps(string $stream, int $count = 1): void

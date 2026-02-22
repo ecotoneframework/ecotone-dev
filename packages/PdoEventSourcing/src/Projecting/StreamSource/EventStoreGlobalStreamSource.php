@@ -67,10 +67,6 @@ class EventStoreGlobalStreamSource implements StreamSource
         $streamFilters = $this->streamFilterRegistry->provide($projectionName);
         Assert::isTrue(count($streamFilters) > 0, "No stream filter found for projection: {$projectionName}");
 
-        if (count($streamFilters) === 1) {
-            return $this->loadFromSingleStream($streamFilters[0], $lastPosition, $count);
-        }
-
         return $this->loadFromMultipleStreams($streamFilters, $lastPosition, $count);
     }
 
@@ -140,7 +136,8 @@ class EventStoreGlobalStreamSource implements StreamSource
             $orderIndex[$streamName] = $i++;
 
             $streamPosition = $positions[$streamName] ?? null;
-            $limit = (int) ceil($count / max(1, count($streamFilters))) + 5;
+            $streamFilterCount = count($streamFilters);
+            $limit = $streamFilterCount === 1 ? $count : (int) ceil($count / $streamFilterCount) + 5;
 
             $streamPage = $this->loadFromSingleStream($streamFilter, $streamPosition, $limit);
             $newPositions[$streamName] = $streamPage->lastPosition;
@@ -187,7 +184,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         }
         $pairs = explode(';', $position);
         foreach ($pairs as $pair) {
-            if ($pair === '') {
+            if ($pair === '' || ! str_contains($pair, '=')) {
                 continue;
             }
             [$stream, $pos] = explode('=', $pair, 2);

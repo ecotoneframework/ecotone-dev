@@ -27,13 +27,13 @@ readonly class ChannelProtector
         $payload = $message->getPayload();
 
         if ($this->isPayloadSensitive) {
-            $payload = base64_encode(Crypto::encrypt($payload, $this->encryptionKey));
+            $payload = Crypto::encrypt($payload, $this->encryptionKey);
         }
 
         $headers = $message->getHeaders()->headers();
         foreach ($this->sensitiveHeaders as $sensitiveHeader) {
             if (array_key_exists($sensitiveHeader, $headers)) {
-                $headers[$sensitiveHeader] = base64_encode(Crypto::encrypt($headers[$sensitiveHeader], $this->encryptionKey));
+                $headers[$sensitiveHeader] = Crypto::encrypt($headers[$sensitiveHeader], $this->encryptionKey);
             }
         }
 
@@ -47,13 +47,13 @@ readonly class ChannelProtector
     {
         $payload = $message->getPayload();
         if ($this->isPayloadSensitive) {
-            $payload = Crypto::decrypt(base64_decode($payload), $this->encryptionKey);
+            $payload = Crypto::decrypt($payload, $this->encryptionKey);
         }
 
         $headers = $message->getHeaders()->headers();
         foreach ($this->sensitiveHeaders as $sensitiveHeader) {
             if (array_key_exists($sensitiveHeader, $headers)) {
-                $headers[$sensitiveHeader] = Crypto::decrypt(base64_decode($headers[$sensitiveHeader]), $this->encryptionKey);
+                $headers[$sensitiveHeader] = Crypto::decrypt($headers[$sensitiveHeader], $this->encryptionKey);
             }
         }
 

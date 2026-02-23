@@ -262,7 +262,7 @@ class EncryptAnnotatedMessagesTest extends TestCase
         $payload = json_decode($payload, true);
         foreach ($payload as $key => $value) {
             try {
-                $payload[$key] = Crypto::decrypt(base64_decode($value), $primaryKey);
+                $payload[$key] = Crypto::decrypt($value, $primaryKey);
             } catch (CryptoException) { // in some cases property is not encrypted
                 $payload[$key] = $value;
             }

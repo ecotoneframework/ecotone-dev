@@ -12,7 +12,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
 
-class DataProtectionConversionServiceDecorator implements ConversionService
+class DataProtectionConversionServiceDecorator implements ConversionServiceDecorator
 {
     private ?ConversionService $innerConversionService = null;
 

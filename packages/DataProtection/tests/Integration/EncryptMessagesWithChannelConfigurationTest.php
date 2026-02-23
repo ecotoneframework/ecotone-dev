@@ -76,12 +76,12 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
         self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
 
         $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->primaryKey);
         $messageHeaders = $channelMessage->getHeaders();
 
         self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
@@ -124,8 +124,8 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
         $messageHeaders = $channelMessage->getHeaders();
 
         self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $channelMessage->getPayload());
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
@@ -164,12 +164,12 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
         self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
 
         $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->secondaryKey);
+        $messagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->secondaryKey);
         $messageHeaders = $channelMessage->getHeaders();
 
         self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->secondaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->secondaryKey));
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->secondaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->secondaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
@@ -201,12 +201,12 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
         self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
 
         $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->primaryKey);
         $messageHeaders = $channelMessage->getHeaders();
 
         self::assertEquals('[]', $messagePayload);
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
@@ -242,8 +242,8 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
         $messageHeaders = $channelMessage->getHeaders();
 
         self::assertEquals('[]', $channelMessage->getPayload());
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
@@ -281,16 +281,16 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
 
         // assert channel message
         $channelMessage = $channel->getLastSentMessage();
-        $channelMessagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->secondaryKey);
+        $channelMessagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->secondaryKey);
         $channelMessagePayload = json_decode($channelMessagePayload, true);
 
-        self::assertEquals('{"argument":"value","enum":"first"}', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveObject']), $this->primaryKey));
-        self::assertEquals('"first"', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveEnum']), $this->primaryKey));
-        self::assertEquals('value', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveProperty']), $this->primaryKey));
+        self::assertEquals('{"argument":"value","enum":"first"}', Crypto::decrypt($channelMessagePayload['sensitiveObject'], $this->primaryKey));
+        self::assertEquals('"first"', Crypto::decrypt($channelMessagePayload['sensitiveEnum'], $this->primaryKey));
+        self::assertEquals('value', Crypto::decrypt($channelMessagePayload['sensitiveProperty'], $this->primaryKey));
         $messageHeaders = $channelMessage->getHeaders();
 
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->secondaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->secondaryKey));
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->secondaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->secondaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
         self::assertFalse($messageHeaders->containsKey('fos'), 'encryption should not add additional headers');
 
@@ -336,12 +336,12 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
         self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
 
         $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->primaryKey);
         $messageHeaders = $channelMessage->getHeaders();
 
         self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
@@ -378,12 +378,12 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
         self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
 
         $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->secondaryKey);
+        $messagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->secondaryKey);
         $messageHeaders = $channelMessage->getHeaders();
 
         self::assertEquals('{"class":{"argument":"value","enum":"first"},"enum":"first","argument":"value"}', $messagePayload);
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->secondaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->secondaryKey));
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->secondaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->secondaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
@@ -415,12 +415,12 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
         self::assertEquals($metadataSent['baz'], $receivedHeaders['baz']);
 
         $channelMessage = $channel->getLastSentMessage();
-        $messagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->primaryKey);
+        $messagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->primaryKey);
         $messageHeaders = $channelMessage->getHeaders();
 
         self::assertEquals('[]', $messagePayload);
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->primaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->primaryKey));
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
     }
 
@@ -482,16 +482,16 @@ class EncryptMessagesWithChannelConfigurationTest extends TestCase
 
         // assert channel message
         $channelMessage = $channel->getLastSentMessage();
-        $channelMessagePayload = Crypto::decrypt(base64_decode($channelMessage->getPayload()), $this->secondaryKey);
+        $channelMessagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->secondaryKey);
         $channelMessagePayload = json_decode($channelMessagePayload, true);
 
-        self::assertEquals('{"argument":"value","enum":"first"}', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveObject']), $this->primaryKey));
-        self::assertEquals('"first"', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveEnum']), $this->primaryKey));
-        self::assertEquals('value', Crypto::decrypt(base64_decode($channelMessagePayload['sensitiveProperty']), $this->primaryKey));
+        self::assertEquals('{"argument":"value","enum":"first"}', Crypto::decrypt($channelMessagePayload['sensitiveObject'], $this->primaryKey));
+        self::assertEquals('"first"', Crypto::decrypt($channelMessagePayload['sensitiveEnum'], $this->primaryKey));
+        self::assertEquals('value', Crypto::decrypt($channelMessagePayload['sensitiveProperty'], $this->primaryKey));
         $messageHeaders = $channelMessage->getHeaders();
 
-        self::assertEquals($metadataSent['foo'], Crypto::decrypt(base64_decode($messageHeaders->get('foo')), $this->secondaryKey));
-        self::assertEquals($metadataSent['bar'], Crypto::decrypt(base64_decode($messageHeaders->get('bar')), $this->secondaryKey));
+        self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->secondaryKey));
+        self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->secondaryKey));
         self::assertEquals($metadataSent['baz'], $messageHeaders->get('baz'));
         self::assertFalse($messageHeaders->containsKey('fos'), 'encryption should not add additional headers');
 

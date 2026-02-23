@@ -19,41 +19,41 @@ readonly class DataProtector
     ) {
     }
 
-    public function encrypt(string $source): string
+    public function encrypt(string $data): string
     {
-        $source = json_decode($source, true);
+        $data = json_decode($data, true);
 
         foreach ($this->sensitiveProperties as $property) {
-            if (! array_key_exists($property, $source)) {
+            if (! array_key_exists($property, $data)) {
                 continue;
             }
 
             if (! in_array($property, $this->scalarProperties, true)) {
-                $source[$property] = json_encode($source[$property]);
+                $data[$property] = json_encode($data[$property]);
             }
 
-            $source[$property] = base64_encode(Crypto::encrypt($source[$property], $this->encryptionKey));
+            $data[$property] = Crypto::encrypt($data[$property], $this->encryptionKey);
         }
 
-        return json_encode($source);
+        return json_encode($data);
     }
 
-    public function decrypt(string $source): string
+    public function decrypt(string $data): string
     {
-        $source = json_decode($source, true);
+        $data = json_decode($data, true);
 
         foreach ($this->sensitiveProperties as $property) {
-            if (! array_key_exists($property, $source)) {
+            if (! array_key_exists($property, $data)) {
                 continue;
             }
 
-            $source[$property] = Crypto::decrypt(base64_decode($source[$property]), $this->encryptionKey);
+            $data[$property] = Crypto::decrypt($data[$property], $this->encryptionKey);
 
             if (! in_array($property, $this->scalarProperties, true)) {
-                $source[$property] = json_decode($source[$property], true);
+                $data[$property] = json_decode($data[$property], true);
             }
         }
 
-        return json_encode($source);
+        return json_encode($data);
     }
 }

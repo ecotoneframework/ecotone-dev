@@ -85,9 +85,9 @@ class EncryptStoredEventsTest extends TestCase
             $payload = json_decode($payload, true);
 
             // decryption should not throw any exception
-            Crypto::decrypt(base64_decode($payload['sensitiveValue']), $encryptionKey);
-            Crypto::decrypt(base64_decode($payload['sensitiveEnum']), $encryptionKey);
-            Crypto::decrypt(base64_decode($payload['sensitiveObject']), $encryptionKey);
+            Crypto::decrypt($payload['sensitiveValue'], $encryptionKey);
+            Crypto::decrypt($payload['sensitiveEnum'], $encryptionKey);
+            Crypto::decrypt($payload['sensitiveObject'], $encryptionKey);
         }
 
         self::assertEquals($storedEvents, array_map(static fn (Event $storedEvent) => $storedEvent->getPayload(), $ecotone->getEventStreamEvents(SomeAggregate::class)));

@@ -11,11 +11,17 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\DataProtection\Attribute\Sensitive;
 use Ecotone\DataProtection\Attribute\WithEncryptionKey;
 use Ecotone\DataProtection\Conversion\DataProtectionConversionServiceDecorator;
+use Ecotone\DataProtection\Conversion\JsonDecryptionConverter;
+use Ecotone\DataProtection\Conversion\JsonEncryptionConverter;
+use Ecotone\DataProtection\Conversion\XMLDecryptionConverter;
+use Ecotone\DataProtection\Conversion\XMLEncryptionConverter;
+use Ecotone\DataProtection\Conversion\XPhpDecryptionConverter;
+use Ecotone\DataProtection\Conversion\XPhpEncryptionConverter;
 use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\DataProtection\OutboundDecryptionChannelBuilder;
 use Ecotone\DataProtection\OutboundEncryptionChannelBuilder;
 use Ecotone\DataProtection\Protector\ChannelProtector;
-use Ecotone\DataProtection\Protector\DataProtector;
+use Ecotone\JMSConverter\JMSConverter;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
@@ -26,6 +32,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Handler\ClassPropertyDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
@@ -77,61 +84,61 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             );
         }
 
-        $channelProtectorReferences = [];
+        $channelEncryption = $channelDecryption = [];
         foreach ($channelProtectionConfigurations as $channelProtectionConfiguration) {
-            Assert::isTrue($messagingConfiguration->isPollableChannel($channelProtectionConfiguration->channelName), sprintf('`%s` channel must be pollable channel to use Data Protection.', $channelProtectionConfiguration->channelName));
+            $channelName = $channelProtectionConfiguration->channelName;
 
-            $messagingConfiguration->registerServiceDefinition(
-                id: $id = sprintf(self::ENCRYPTOR_SERVICE_ID_FORMAT, $channelProtectionConfiguration->channelName),
-                definition: new Definition(
-                    ChannelProtector::class,
-                    [
-                        Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $dataProtectionConfiguration->keyName($channelProtectionConfiguration->encryptionKey))),
-                        $channelProtectionConfiguration->isPayloadSensitive,
-                        $channelProtectionConfiguration->sensitiveHeaders,
-                    ],
-                )
+            Assert::isTrue($messagingConfiguration->isPollableChannel($channelName), sprintf('`%s` channel must be pollable channel to use Data Protection.', $channelProtectionConfiguration->channelName));
+
+            $encryptionKey = Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $dataProtectionConfiguration->keyName($channelProtectionConfiguration->encryptionKey)));
+
+            $channelEncryption[$channelName] = new OutboundEncryptionChannelBuilder(
+                relatedChannel: $channelName,
+                encryptionKey: $encryptionKey,
+                isPayloadSensitive: $channelProtectionConfiguration->isPayloadSensitive,
+                sensitiveHeaders: $channelProtectionConfiguration->sensitiveHeaders,
             );
 
-            $channelProtectorReferences[$channelProtectionConfiguration->channelName] = Reference::to($id);
+            $channelDecryption[$channelName] = new OutboundDecryptionChannelBuilder(
+                relatedChannel: $channelName,
+                encryptionKey: $encryptionKey,
+                isPayloadSensitive: $channelProtectionConfiguration->isPayloadSensitive,
+                sensitiveHeaders: $channelProtectionConfiguration->sensitiveHeaders,
+            );
         }
 
-        $conversionServiceDecorator = new Definition(DataProtectionConversionServiceDecorator::class);
+        $converters = [];
+        $encryptionConverters = [JsonEncryptionConverter::class, JsonDecryptionConverter::class, XPhpEncryptionConverter::class, XPhpDecryptionConverter::class];
         foreach ($this->dataProtectorConfigs as $protectorConfig) {
-            $conversionServiceDecorator->addMethodCall(
-                'withDataProtector',
-                [
-                    $protectorConfig->supportedType,
-                    new Definition(
-                        DataProtector::class,
-                        [
-                            Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $protectorConfig->encryptionKeyName($dataProtectionConfiguration))),
-                            $protectorConfig->sensitiveProperties,
-                            $protectorConfig->scalarProperties,
-                        ],
-                    ),
-                ]
-            );
+            foreach ($encryptionConverters as $converterClass) {
+                $converters[] = new Definition(
+                    $converterClass,
+                    [
+                        $protectorConfig->supportedType,
+                        Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $protectorConfig->encryptionKeyName($dataProtectionConfiguration))),
+                        $protectorConfig->sensitiveProperties,
+                        $protectorConfig->scalarProperties,
+                    ]
+                );
+            }
         }
+
+        $messagingConfiguration->registerServiceDefinition('data-protection.conversion-service', new Definition(AutoCollectionConversionService::class, ['converters' => $converters]));
+        $conversionServiceDecorator = new Definition(DataProtectionConversionServiceDecorator::class, [Reference::to('data-protection.conversion-service')]);
         $messagingConfiguration->registerConversionServiceDecorator($conversionServiceDecorator);
 
         foreach (ExtensionObjectResolver::resolve(MessageChannelWithSerializationBuilder::class, $extensionObjects) as $pollableMessageChannel) {
-            if (! $pollableMessageChannel->isPollable() || ! array_key_exists($pollableMessageChannel->getMessageChannelName(), $channelProtectorReferences)) {
+            if (! $pollableMessageChannel->isPollable()) {
                 continue;
             }
 
-            $messagingConfiguration->registerChannelInterceptor(
-                new OutboundEncryptionChannelBuilder(
-                    relatedChannel: $pollableMessageChannel->getMessageChannelName(),
-                    channelProtectorReference: $channelProtectorReferences[$pollableMessageChannel->getMessageChannelName()],
-                )
-            );
-            $messagingConfiguration->registerChannelInterceptor(
-                new OutboundDecryptionChannelBuilder(
-                    relatedChannel: $pollableMessageChannel->getMessageChannelName(),
-                    channelProtectorReference: $channelProtectorReferences[$pollableMessageChannel->getMessageChannelName()],
-                )
-            );
+            if (array_key_exists($pollableMessageChannel->getMessageChannelName(), $channelEncryption)) {
+                $messagingConfiguration->registerChannelInterceptor($channelEncryption[$pollableMessageChannel->getMessageChannelName()]);
+            }
+
+            if (array_key_exists($pollableMessageChannel->getMessageChannelName(), $channelDecryption)) {
+                $messagingConfiguration->registerChannelInterceptor($channelDecryption[$pollableMessageChannel->getMessageChannelName()]);
+            }
         }
     }
 

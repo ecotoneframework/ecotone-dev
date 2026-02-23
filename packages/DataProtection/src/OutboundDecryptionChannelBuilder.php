@@ -14,8 +14,12 @@ use Ecotone\Messaging\PrecedenceChannelInterceptor;
 
 readonly class OutboundDecryptionChannelBuilder implements ChannelInterceptorBuilder
 {
-    public function __construct(private string $relatedChannel, private Reference $channelProtectorReference)
-    {
+    public function __construct(
+        private string $relatedChannel,
+        private Reference $encryptionKey,
+        private bool $isPayloadSensitive,
+        private array $sensitiveHeaders,
+    ) {
     }
 
     public function relatedChannelName(): string
@@ -33,7 +37,9 @@ readonly class OutboundDecryptionChannelBuilder implements ChannelInterceptorBui
         return new Definition(
             OutboundDecryptionChannelInterceptor::class,
             [
-                $this->channelProtectorReference,
+                $this->encryptionKey,
+                $this->isPayloadSensitive,
+                $this->sensitiveHeaders,
             ]
         );
     }

@@ -921,7 +921,7 @@ final class MessagingSystemConfiguration implements Configuration
         // TODO: some service configuration should be handled at runtime. Here they are all cached in the container
         //        $messagingBuilder->register('config.defaultSerializationMediaType', MediaType::parseMediaType($this->applicationConfiguration->getDefaultSerializationMediaType()));
 
-        $converters = $dataEncryptors = [];
+        $converters = [];
         foreach ($this->converterBuilders as $converterBuilder) {
             $converters[] = $converterBuilder->compile($messagingBuilder);
         }

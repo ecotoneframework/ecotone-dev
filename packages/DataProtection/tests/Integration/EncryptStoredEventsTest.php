@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Integration;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception\SyntaxErrorException;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\DataProtection\Encryption\Crypto;
@@ -15,7 +14,6 @@ use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Event;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;

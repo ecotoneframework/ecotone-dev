@@ -4,7 +4,7 @@
  * licence Enterprise
  */
 
-namespace Ecotone\DataProtection;
+namespace Ecotone\DataProtection\Channel;
 
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Key;
@@ -14,7 +14,7 @@ use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 
-class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
+class OutboundDecryptionChannelInterceptor extends AbstractChannelInterceptor
 {
     public function __construct(
         private Key $encryptionKey,
@@ -24,18 +24,17 @@ class OutboundEncryptionChannelInterceptor extends AbstractChannelInterceptor
         Assert::allStrings($this->sensitiveHeaders, 'Sensitive headers should be array of strings');
     }
 
-    public function preSend(Message $message, MessageChannel $messageChannel): ?Message
+    public function postReceive(Message $message, MessageChannel $messageChannel): ?Message
     {
         $payload = $message->getPayload();
-
         if ($this->isPayloadSensitive) {
-            $payload = Crypto::encrypt($payload, $this->encryptionKey);
+            $payload = Crypto::decrypt($payload, $this->encryptionKey);
         }
 
         $headers = $message->getHeaders()->headers();
         foreach ($this->sensitiveHeaders as $sensitiveHeader) {
             if (array_key_exists($sensitiveHeader, $headers)) {
-                $headers[$sensitiveHeader] = Crypto::encrypt($headers[$sensitiveHeader], $this->encryptionKey);
+                $headers[$sensitiveHeader] = Crypto::decrypt($headers[$sensitiveHeader], $this->encryptionKey);
             }
         }
 

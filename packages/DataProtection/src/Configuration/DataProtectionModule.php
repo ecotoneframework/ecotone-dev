@@ -13,15 +13,11 @@ use Ecotone\DataProtection\Attribute\WithEncryptionKey;
 use Ecotone\DataProtection\Conversion\DataProtectionConversionServiceDecorator;
 use Ecotone\DataProtection\Conversion\JsonDecryptionConverter;
 use Ecotone\DataProtection\Conversion\JsonEncryptionConverter;
-use Ecotone\DataProtection\Conversion\XMLDecryptionConverter;
-use Ecotone\DataProtection\Conversion\XMLEncryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpDecryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpEncryptionConverter;
 use Ecotone\DataProtection\Encryption\Key;
-use Ecotone\DataProtection\OutboundDecryptionChannelBuilder;
-use Ecotone\DataProtection\OutboundEncryptionChannelBuilder;
-use Ecotone\DataProtection\Protector\ChannelProtector;
-use Ecotone\JMSConverter\JMSConverter;
+use Ecotone\DataProtection\Channel\OutboundDecryptionChannelBuilder;
+use Ecotone\DataProtection\Channel\OutboundEncryptionChannelBuilder;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
@@ -43,7 +39,6 @@ use stdClass;
 #[ModuleAnnotation]
 final class DataProtectionModule extends NoExternalConfigurationModule
 {
-    final public const ENCRYPTOR_SERVICE_ID_FORMAT = 'ecotone.data-protection.encryptor.%s';
     final public const KEY_SERVICE_ID_FORMAT = 'ecotone.encryption.key.%s';
 
     /**

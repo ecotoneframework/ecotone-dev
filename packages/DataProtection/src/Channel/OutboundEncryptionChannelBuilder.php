@@ -4,7 +4,7 @@
  * licence Enterprise
  */
 
-namespace Ecotone\DataProtection;
+namespace Ecotone\DataProtection\Channel;
 
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Config\Container\Definition;

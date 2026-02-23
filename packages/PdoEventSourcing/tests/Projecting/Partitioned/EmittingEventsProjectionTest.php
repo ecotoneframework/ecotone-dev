@@ -17,7 +17,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\Partitioned;

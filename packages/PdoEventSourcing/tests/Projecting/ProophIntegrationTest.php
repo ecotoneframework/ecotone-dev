@@ -15,7 +15,6 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;

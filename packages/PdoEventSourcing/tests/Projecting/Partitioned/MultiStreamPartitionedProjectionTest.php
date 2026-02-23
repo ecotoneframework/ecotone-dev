@@ -14,8 +14,8 @@ use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -30,6 +30,13 @@ use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingCreated;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingScheduled;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingWithEventSourcing;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\ScheduleMeetingWithEventSourcing;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\CreateProductA;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\CreateProductB;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\DifferentStreamEventsConverter;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\DifferentStreamProductA;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\DifferentStreamProductB;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\ProductACreated;
+use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\ProductBCreated;
 use Test\Ecotone\EventSourcing\Fixture\EventSourcingCalendarWithInternalRecorder\CalendarWithInternalRecorder;
 use Test\Ecotone\EventSourcing\Fixture\SharedStream\CategoryCreated;
 use Test\Ecotone\EventSourcing\Fixture\SharedStream\CreateCategory;
@@ -38,13 +45,6 @@ use Test\Ecotone\EventSourcing\Fixture\SharedStream\ProductCreated;
 use Test\Ecotone\EventSourcing\Fixture\SharedStream\SharedStreamCategory;
 use Test\Ecotone\EventSourcing\Fixture\SharedStream\SharedStreamEventsConverter;
 use Test\Ecotone\EventSourcing\Fixture\SharedStream\SharedStreamProduct;
-use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\CreateProductA;
-use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\CreateProductB;
-use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\DifferentStreamEventsConverter;
-use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\DifferentStreamProductA;
-use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\DifferentStreamProductB;
-use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\ProductACreated;
-use Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType\ProductBCreated;
 use Test\Ecotone\EventSourcing\Projecting\ProjectingTestCase;
 
 /**
@@ -105,8 +105,8 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
         $results = $ecotone->sendQueryWithRouting('getMultiStreamPartitionedEvents');
         self::assertCount(6, $results);
 
-        $calendarEvents = array_filter($results, fn($r) => $r['stream_name'] === CalendarWithInternalRecorder::class);
-        $meetingEvents = array_filter($results, fn($r) => $r['stream_name'] === MeetingWithEventSourcing::class);
+        $calendarEvents = array_filter($results, fn ($r) => $r['stream_name'] === CalendarWithInternalRecorder::class);
+        $meetingEvents = array_filter($results, fn ($r) => $r['stream_name'] === MeetingWithEventSourcing::class);
 
         self::assertCount(4, $calendarEvents);
         self::assertCount(2, $meetingEvents);
@@ -169,9 +169,9 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
         $expectedMeeting1Partition = "{$meetingStream}:{$meetingStream}:meeting-1";
         $notExpectedCalendarBPartition = "{$calendarStream}:{$calendarStream}:cal-B";
 
-        $calendarAEvents = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $expectedCalendarAPartition);
-        $meeting1Events = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $expectedMeeting1Partition);
-        $calendarBEvents = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $notExpectedCalendarBPartition);
+        $calendarAEvents = array_filter($resultsAfterNewCommand, fn ($r) => $r['partition_key'] === $expectedCalendarAPartition);
+        $meeting1Events = array_filter($resultsAfterNewCommand, fn ($r) => $r['partition_key'] === $expectedMeeting1Partition);
+        $calendarBEvents = array_filter($resultsAfterNewCommand, fn ($r) => $r['partition_key'] === $notExpectedCalendarBPartition);
 
         self::assertCount(2, $calendarAEvents, "Partition {$expectedCalendarAPartition} should have 2 events (CalendarCreated + MeetingScheduled)");
         self::assertCount(1, $meeting1Events, "Partition {$expectedMeeting1Partition} should have 1 event (MeetingCreated)");
@@ -216,10 +216,10 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
         $notExpectedProd2Partition = "{$sharedStream}:{$productType}:prod-2";
         $notExpectedCat1Partition = "{$sharedStream}:{$categoryType}:cat-1";
 
-        $prod3Events = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $expectedProd3Partition);
-        $prod1Events = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $notExpectedProd1Partition);
-        $prod2Events = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $notExpectedProd2Partition);
-        $cat1Events = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $notExpectedCat1Partition);
+        $prod3Events = array_filter($resultsAfterNewCommand, fn ($r) => $r['partition_key'] === $expectedProd3Partition);
+        $prod1Events = array_filter($resultsAfterNewCommand, fn ($r) => $r['partition_key'] === $notExpectedProd1Partition);
+        $prod2Events = array_filter($resultsAfterNewCommand, fn ($r) => $r['partition_key'] === $notExpectedProd2Partition);
+        $cat1Events = array_filter($resultsAfterNewCommand, fn ($r) => $r['partition_key'] === $notExpectedCat1Partition);
 
         self::assertCount(1, $prod3Events, "Partition {$expectedProd3Partition} should have 1 event (ProductCreated)");
         self::assertCount(0, $prod1Events, "Partition {$notExpectedProd1Partition} should NOT be executed - partition isolation");
@@ -504,9 +504,9 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
         $notExpectedProdA1Partition = "{$streamA}:{$aggregateType}:prodA-1";
         $notExpectedProdB1Partition = "{$streamB}:{$aggregateType}:prodB-1";
 
-        $streamAEvents = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $expectedStreamAPartition);
-        $prodA1Events = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $notExpectedProdA1Partition);
-        $prodB1Events = array_filter($resultsAfterNewCommand, fn($r) => $r['partition_key'] === $notExpectedProdB1Partition);
+        $streamAEvents = array_filter($resultsAfterNewCommand, fn ($r) => $r['partition_key'] === $expectedStreamAPartition);
+        $prodA1Events = array_filter($resultsAfterNewCommand, fn ($r) => $r['partition_key'] === $notExpectedProdA1Partition);
+        $prodB1Events = array_filter($resultsAfterNewCommand, fn ($r) => $r['partition_key'] === $notExpectedProdB1Partition);
 
         self::assertCount(1, $streamAEvents, "Partition {$expectedStreamAPartition} should have 1 event (ProductACreated)");
         self::assertCount(0, $prodA1Events, "Partition {$notExpectedProdA1Partition} should NOT be executed - partition isolation");

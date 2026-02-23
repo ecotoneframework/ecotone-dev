@@ -17,7 +17,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\Partitioned;
@@ -28,7 +27,6 @@ use Test\Ecotone\EventSourcing\Fixture\Calendar\CreateCalendar;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\EventsConverter;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingCreated;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingWithEventSourcing;
-use Test\Ecotone\EventSourcing\Fixture\Calendar\ScheduleMeetingWithEventSourcing;
 use Test\Ecotone\EventSourcing\Fixture\EventSourcingCalendarWithInternalRecorder\CalendarWithInternalRecorder;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
@@ -134,8 +132,8 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
         $results = $ecotone->sendQueryWithRouting('getMultiStreamEvents');
         self::assertCount(2, $results);
 
-        $calendarEvents = array_filter($results, fn($r) => $r['stream_name'] === CalendarWithInternalRecorder::class);
-        $meetingEvents = array_filter($results, fn($r) => $r['stream_name'] === MeetingWithEventSourcing::class);
+        $calendarEvents = array_filter($results, fn ($r) => $r['stream_name'] === CalendarWithInternalRecorder::class);
+        $meetingEvents = array_filter($results, fn ($r) => $r['stream_name'] === MeetingWithEventSourcing::class);
 
         self::assertCount(2, $calendarEvents, 'Calendar stream should have 2 events');
         self::assertCount(0, $meetingEvents, 'Meeting stream should be empty');

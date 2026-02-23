@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Fixture;
 
 use Ecotone\EventSourcing\Attribute\ProjectionState;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionV2;

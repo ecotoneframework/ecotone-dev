@@ -140,7 +140,7 @@ interface Configuration extends CompilerPass
 
     public function buildMessagingSystemFromConfiguration(?ContainerInterface $externalReferenceSearchService = null): ConfiguredMessagingSystem;
 
-    public function registerServiceDefinition(string|Reference $id, Container\Definition|Reference $definition): Configuration;
+    public function registerServiceDefinition(string|Reference $id, Definition|Reference $definition): Configuration;
 
     public function isRunningForEnterpriseLicence(): bool;
 

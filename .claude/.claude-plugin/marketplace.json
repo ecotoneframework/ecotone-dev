@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Skills for building message-driven applications with Ecotone Framework (DDD, CQRS, Event Sourcing)",
-    "version": "1.301.0"
+    "version": "1.302.0"
   },
   "plugins": [
     {
       "name": "ecotone-skills",
       "source": "./",
       "description": "Complete set of Ecotone Framework skills for message-driven architecture: handlers, aggregates, event sourcing, async processing, testing, and more",
-      "version": "1.301.0",
+      "version": "1.302.0",
       "author": {
         "name": "Ecotone Framework"
       },

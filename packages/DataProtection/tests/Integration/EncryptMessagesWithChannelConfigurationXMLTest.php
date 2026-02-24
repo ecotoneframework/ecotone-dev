@@ -81,17 +81,17 @@ class EncryptMessagesWithChannelConfigurationXMLTest extends TestCase
         $messageHeaders = $channelMessage->getHeaders();
 
         $expectedPayload = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<result>
-  <class>
-    <argument><![CDATA[value]]></argument>
-    <enum><![CDATA[first]]></enum>
-  </class>
-  <enum><![CDATA[first]]></enum>
-  <argument><![CDATA[value]]></argument>
-</result>
+            <?xml version="1.0" encoding="UTF-8"?>
+            <result>
+              <class>
+                <argument><![CDATA[value]]></argument>
+                <enum><![CDATA[first]]></enum>
+              </class>
+              <enum><![CDATA[first]]></enum>
+              <argument><![CDATA[value]]></argument>
+            </result>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $messagePayload);
         self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
         self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
@@ -137,17 +137,17 @@ XML;
         $messageHeaders = $channelMessage->getHeaders();
 
         $expectedPayload = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<result>
-  <class>
-    <argument><![CDATA[value]]></argument>
-    <enum><![CDATA[first]]></enum>
-  </class>
-  <enum><![CDATA[first]]></enum>
-  <argument><![CDATA[value]]></argument>
-</result>
+            <?xml version="1.0" encoding="UTF-8"?>
+            <result>
+              <class>
+                <argument><![CDATA[value]]></argument>
+                <enum><![CDATA[first]]></enum>
+              </class>
+              <enum><![CDATA[first]]></enum>
+              <argument><![CDATA[value]]></argument>
+            </result>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $channelMessage->getPayload());
         self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
         self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
@@ -193,17 +193,17 @@ XML;
         $messageHeaders = $channelMessage->getHeaders();
 
         $expectedPayload = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<result>
-  <class>
-    <argument><![CDATA[value]]></argument>
-    <enum><![CDATA[first]]></enum>
-  </class>
-  <enum><![CDATA[first]]></enum>
-  <argument><![CDATA[value]]></argument>
-</result>
+            <?xml version="1.0" encoding="UTF-8"?>
+            <result>
+              <class>
+                <argument><![CDATA[value]]></argument>
+                <enum><![CDATA[first]]></enum>
+              </class>
+              <enum><![CDATA[first]]></enum>
+              <argument><![CDATA[value]]></argument>
+            </result>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $messagePayload);
         self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->secondaryKey));
         self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->secondaryKey));
@@ -242,10 +242,10 @@ XML;
         $messageHeaders = $channelMessage->getHeaders();
 
         $expectedPayload = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<result/>
+            <?xml version="1.0" encoding="UTF-8"?>
+            <result/>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $messagePayload);
         self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
         self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
@@ -284,10 +284,10 @@ XML;
         $messageHeaders = $channelMessage->getHeaders();
 
         $expectedPayload = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<result/>
+            <?xml version="1.0" encoding="UTF-8"?>
+            <result/>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $channelMessage->getPayload());
         self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
         self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
@@ -331,17 +331,17 @@ XML;
         $channelMessagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->secondaryKey);
 
         $expectedPayload = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<result>
-  <sensitiveObject>
-    <argument><![CDATA[value]]></argument>
-    <enum><![CDATA[first]]></enum>
-  </sensitiveObject>
-  <sensitiveEnum><![CDATA[first]]></sensitiveEnum>
-  <sensitiveProperty><![CDATA[value]]></sensitiveProperty>
-</result>
+            <?xml version="1.0" encoding="UTF-8"?>
+            <result>
+              <sensitiveObject>
+                <argument><![CDATA[value]]></argument>
+                <enum><![CDATA[first]]></enum>
+              </sensitiveObject>
+              <sensitiveEnum><![CDATA[first]]></sensitiveEnum>
+              <sensitiveProperty><![CDATA[value]]></sensitiveProperty>
+            </result>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $channelMessagePayload);
         $messageHeaders = $channelMessage->getHeaders();
 
@@ -396,17 +396,17 @@ XML;
         $messageHeaders = $channelMessage->getHeaders();
 
         $expectedPayload = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<result>
-  <class>
-    <argument><![CDATA[value]]></argument>
-    <enum><![CDATA[first]]></enum>
-  </class>
-  <enum><![CDATA[first]]></enum>
-  <argument><![CDATA[value]]></argument>
-</result>
+            <?xml version="1.0" encoding="UTF-8"?>
+            <result>
+              <class>
+                <argument><![CDATA[value]]></argument>
+                <enum><![CDATA[first]]></enum>
+              </class>
+              <enum><![CDATA[first]]></enum>
+              <argument><![CDATA[value]]></argument>
+            </result>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $messagePayload);
         self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
         self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
@@ -450,17 +450,17 @@ XML;
         $messageHeaders = $channelMessage->getHeaders();
 
         $expectedPayload = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<result>
-  <class>
-    <argument><![CDATA[value]]></argument>
-    <enum><![CDATA[first]]></enum>
-  </class>
-  <enum><![CDATA[first]]></enum>
-  <argument><![CDATA[value]]></argument>
-</result>
+            <?xml version="1.0" encoding="UTF-8"?>
+            <result>
+              <class>
+                <argument><![CDATA[value]]></argument>
+                <enum><![CDATA[first]]></enum>
+              </class>
+              <enum><![CDATA[first]]></enum>
+              <argument><![CDATA[value]]></argument>
+            </result>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $messagePayload);
         self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->secondaryKey));
         self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->secondaryKey));
@@ -499,10 +499,10 @@ XML;
         $messageHeaders = $channelMessage->getHeaders();
 
         $expectedPayload = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<result/>
+            <?xml version="1.0" encoding="UTF-8"?>
+            <result/>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $messagePayload);
         self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->primaryKey));
         self::assertEquals($metadataSent['bar'], Crypto::decrypt($messageHeaders->get('bar'), $this->primaryKey));
@@ -570,17 +570,17 @@ XML;
         $channelMessagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->secondaryKey);
 
         $expectedPayload = <<<XML
-<?xml version="1.0" encoding="UTF-8"?>
-<result>
-  <sensitiveObject>
-    <argument><![CDATA[value]]></argument>
-    <enum><![CDATA[first]]></enum>
-  </sensitiveObject>
-  <sensitiveEnum><![CDATA[first]]></sensitiveEnum>
-  <sensitiveProperty><![CDATA[value]]></sensitiveProperty>
-</result>
+            <?xml version="1.0" encoding="UTF-8"?>
+            <result>
+              <sensitiveObject>
+                <argument><![CDATA[value]]></argument>
+                <enum><![CDATA[first]]></enum>
+              </sensitiveObject>
+              <sensitiveEnum><![CDATA[first]]></sensitiveEnum>
+              <sensitiveProperty><![CDATA[value]]></sensitiveProperty>
+            </result>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $channelMessagePayload);
         $messageHeaders = $channelMessage->getHeaders();
 

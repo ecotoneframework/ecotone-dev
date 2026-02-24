@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.302.0] - 2026-02-24
+
+## What's Changed
+* ReflectionProperty::setAccessible() has no effect by @unixslayer in https://github.com/ecotoneframework/ecotone-dev/pull/635
+* include data protection in conversion service by @unixslayer in https://github.com/ecotoneframework/ecotone-dev/pull/628
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.301.0...1.302.0
+
 ## [1.301.0] - 2026-02-23
 
 ## What's Changed

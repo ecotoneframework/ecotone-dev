@@ -139,24 +139,23 @@ class EcotoneEventStoreProophWrapper implements EventStore
     private function convertToEcotoneEvents(Iterator $streamEvents, bool $deserialize): array
     {
         $events = [];
-        $sourcePHPType = Type::array();
-        $PHPMediaType = MediaType::createApplicationXPHP();
-        /** @var ProophMessage $event */
-        while ($event = $streamEvents->current()) {
+        /** @var ProophMessage $proophEvent */
+        while ($proophEvent = $streamEvents->current()) {
             try {
-                $eventName = Type::create($this->eventMapper->mapNameToEventType($event->messageName()));
+                $eventName = Type::create($this->eventMapper->mapNameToEventType($proophEvent->messageName()));
             } catch (TypeDefinitionException $e) {
                 // Fallback to using the message name as is if we find an unknown event type (deleted class etc.)
-                $eventName = $event->messageName();
+                $eventName = $proophEvent->messageName();
             }
+
             $events[] = Event::createWithType(
-                $eventName,
-                $deserialize ? $this->conversionService->convert($event->payload(), $sourcePHPType, $PHPMediaType, $eventName, $PHPMediaType) : $event->payload(),
-                array_merge(
+                eventType: $eventName,
+                event: $deserialize ? $this->conversionService->convert($proophEvent->payload(), Type::array(), MediaType::createApplicationXPHP(), $eventName, MediaType::createApplicationXPHP()) : $proophEvent->payload(),
+                metadata: array_merge(
                     [
                         MessageHeaders::REVISION => 1,
                     ],
-                    $event->metadata()
+                    $proophEvent->metadata()
                 )
             );
 

@@ -9,7 +9,7 @@ use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
-use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveHeaders;
+use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveProperties;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
 
 #[Asynchronous('test')]
@@ -33,9 +33,9 @@ class TestCommandHandler
         $messageReceiver->withReceived($message, $headers);
     }
 
-    #[CommandHandler(endpointId: 'test.EncryptAnnotatedMessages.commandHandler.AnnotatedMessageWithSensitiveHeaders')]
-    public function handleAnnotatedMessageWithSensitiveHeaders(
-        #[Payload] AnnotatedMessageWithSensitiveHeaders $message,
+    #[CommandHandler(endpointId: 'test.EncryptAnnotatedMessages.commandHandler.AnnotatedMessageWithSensitiveProperties')]
+    public function handleAnnotatedMessageWithSensitiveProperties(
+        #[Payload] AnnotatedMessageWithSensitiveProperties $message,
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,
     ): void {

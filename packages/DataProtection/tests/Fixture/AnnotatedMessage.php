@@ -8,9 +8,9 @@ use Ecotone\DataProtection\Attribute\Sensitive;
 class AnnotatedMessage
 {
     public function __construct(
-        public TestClass $class,
-        public TestEnum $enum,
-        public string $argument
+        public TestClass $sensitiveObject,
+        public TestEnum $sensitiveEnum,
+        public string $sensitiveProperty
     ) {
     }
 }

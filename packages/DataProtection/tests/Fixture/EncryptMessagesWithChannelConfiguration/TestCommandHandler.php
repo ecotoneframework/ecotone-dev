@@ -6,6 +6,7 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
 use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 
@@ -27,5 +28,14 @@ class TestCommandHandler
         #[Reference] MessageReceiver $messageReceiver,
     ): void {
         $messageReceiver->withReceived(null, $headers);
+    }
+
+    #[CommandHandler(endpointId: 'test.EncryptMessagesWithChannelConfiguration.commandHandler.handleAnnotatedMessage')]
+    public function handleAnnotatedMessage(
+        AnnotatedMessage $message,
+        #[Headers] array $headers,
+        #[Reference] MessageReceiver $messageReceiver,
+    ): void {
+        $messageReceiver->withReceived($message, $headers);
     }
 }

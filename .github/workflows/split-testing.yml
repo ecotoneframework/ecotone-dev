@@ -209,8 +209,8 @@ jobs:
                 overall_exit_code=1
               fi
 
-              # Run SQLite pass (skip for PdoEventSourcing - SQLite event store not supported)
-              if [[ "$dir" != *"PdoEventSourcing"* ]]; then
+              # Run SQLite pass (skip for PdoEventSourcing and DataProtection - SQLite event store not supported)
+              if [[ ! "$dir" =~ (PdoEventSourcing|DataProtection) ]]; then
                 local sqlite_db="/tmp/ecotone_${slug}_test.db"
                 local sqlite_db_secondary="/tmp/ecotone_${slug}_test_b.db"
                 # Use 4 slashes for absolute paths: sqlite:// + / + /path = sqlite:////path

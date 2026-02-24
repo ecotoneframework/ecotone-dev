@@ -66,11 +66,9 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
         $connection = $this->getConnection();
 
         $reflectionMethod = new ReflectionMethod($connection, 'close');
-        $reflectionMethod->setAccessible(true);
         $reflectionMethod->invoke($connection);
 
         $reflectionMethod = new ReflectionMethod($connection, 'connect');
-        $reflectionMethod->setAccessible(true);
         $reflectionMethod->invoke($connection);
     }
 

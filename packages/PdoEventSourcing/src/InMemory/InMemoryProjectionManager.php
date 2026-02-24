@@ -132,16 +132,13 @@ final class InMemoryProjectionManager implements ProjectionManager
         $projector = $this->projectors[$name];
 
         $status = new ReflectionProperty(get_class($projector), 'status');
-        $status->setAccessible(true);
         /** @phpstan-ignore-next-line */
         $status->setValue($projector, ProjectionStatus::RESETTING());
 
         $streamPositions = new ReflectionProperty(get_class($projector), 'streamPositions');
-        $streamPositions->setAccessible(true);
         $streamPositions->setValue($projector, []);
 
         $state = new ReflectionProperty(get_class($projector), 'state');
-        $state->setAccessible(true);
         $state->setValue($projector, []);
     }
 
@@ -216,7 +213,6 @@ final class InMemoryProjectionManager implements ProjectionManager
         $projector = $this->projectors[$name];
 
         $ref = new ReflectionProperty(get_class($projector), 'status');
-        $ref->setAccessible(true);
 
         return $ref->getValue($projector);
     }
@@ -230,7 +226,6 @@ final class InMemoryProjectionManager implements ProjectionManager
         $projector = $this->projectors[$name];
 
         $ref = new ReflectionProperty(get_class($projector), 'streamPositions');
-        $ref->setAccessible(true);
         $value = $ref->getValue($projector);
 
         return (null === $value) ? [] : $value;

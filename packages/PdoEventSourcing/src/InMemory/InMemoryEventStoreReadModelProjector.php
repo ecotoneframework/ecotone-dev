@@ -443,7 +443,6 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
     private function prepareStreamPositions(): void
     {
         $reflectionProperty = new ReflectionProperty(get_class($this->eventStore->getEcotoneEventStore()), 'streams');
-        $reflectionProperty->setAccessible(true);
 
         $streamPositions = [];
         $streams = array_keys($reflectionProperty->getValue($this->eventStore->getEcotoneEventStore()));

@@ -150,12 +150,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
     private function getConnectionProperty(): ReflectionProperty
     {
-        $reflectionClass = new ReflectionClass($this->connectionFactory);
-
-        $connectionProperty = $reflectionClass->getProperty('connection');
-        $connectionProperty->setAccessible(true);
-
-        return $connectionProperty;
+        return (new ReflectionClass($this->connectionFactory))->getProperty('connection');
     }
 
     public function getSubscriptionConsumer(string $queueName, callable $subscriptionCallback): SubscriptionConsumer

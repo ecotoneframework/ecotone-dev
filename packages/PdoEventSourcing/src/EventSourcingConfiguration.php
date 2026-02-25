@@ -204,7 +204,7 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 
     public function getPersistenceStrategyFor(?StreamName $streamName = null): string
     {
-        return $this->persistenceStrategies[$streamName?->toString()] ?? $this->persistenceStrategy;
+        return $this->persistenceStrategies[$streamName?->toString() ?? ''] ?? $this->persistenceStrategy;
     }
 
     public function getCustomPersistenceStrategy(): PersistenceStrategy

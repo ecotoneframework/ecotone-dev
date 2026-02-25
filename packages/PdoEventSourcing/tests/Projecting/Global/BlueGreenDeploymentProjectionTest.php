@@ -109,6 +109,50 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
         self::assertCount(1, $this->fetchAllFrom($connection, 'tickets_v2'));
     }
 
+    public function test_inherited_projection_with_overridden_version_tracks_separately(): void
+    {
+        $connection = $this->getConnection();
+
+        $v1 = new BlueGreenV1GlobalProjection($connection);
+        $v2 = new BlueGreenV2GlobalProjection($connection);
+
+        $ecotone = $this->bootstrapEcotone([$v1::class, $v2::class], [$v1, $v2]);
+
+        $ecotone->deleteProjection('tickets_v1')
+            ->initializeProjection('tickets_v1')
+            ->deleteProjection('tickets_v2')
+            ->initializeProjection('tickets_v2');
+
+        self::assertTrue(self::tableExists($connection, 'tickets_v1'));
+        self::assertTrue(self::tableExists($connection, 'tickets_v2'));
+
+        $ecotone->sendCommand(new CreateTicketCommand('ticket-1'));
+
+        self::assertEquals([
+            ['ticketId' => 'ticket-1', 'status' => 'created'],
+        ], $this->fetchAllFrom($connection, 'tickets_v1'));
+        self::assertEquals([
+            ['ticketId' => 'ticket-1', 'status' => 'created'],
+        ], $this->fetchAllFrom($connection, 'tickets_v2'));
+
+        $ecotone->sendCommand(new CreateTicketCommand('ticket-2'));
+
+        self::assertCount(2, $this->fetchAllFrom($connection, 'tickets_v1'));
+        self::assertCount(2, $this->fetchAllFrom($connection, 'tickets_v2'));
+
+        $ecotone->resetProjection('tickets_v1')
+            ->triggerProjection('tickets_v1');
+
+        self::assertCount(2, $this->fetchAllFrom($connection, 'tickets_v1'));
+        self::assertCount(2, $this->fetchAllFrom($connection, 'tickets_v2'));
+
+        $ecotone->deleteProjection('tickets_v1');
+
+        self::assertFalse(self::tableExists($connection, 'tickets_v1'));
+        self::assertTrue(self::tableExists($connection, 'tickets_v2'));
+        self::assertCount(2, $this->fetchAllFrom($connection, 'tickets_v2'));
+    }
+
     private function fetchAllFrom(Connection $connection, string $tableName): array
     {
         return $connection->executeQuery("SELECT * FROM {$tableName} ORDER BY ticketId ASC")->fetchAllAssociative();
@@ -129,4 +173,14 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
+}
+
+#[ProjectionV2('tickets_v1'), FromStream(Ticket::STREAM_NAME)]
+class BlueGreenV1GlobalProjection extends DbalBlueGreenTicketProjection
+{
+}
+
+#[ProjectionV2('tickets_v2')]
+class BlueGreenV2GlobalProjection extends BlueGreenV1GlobalProjection
+{
 }

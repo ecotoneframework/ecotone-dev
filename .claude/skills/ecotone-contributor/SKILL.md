@@ -11,11 +11,7 @@ argument-hint: "[package-name]"
 
 # Ecotone Contributor Guide
 
-## Current State
-
-- Branch: !`git branch --show-current`
-- Modified files: !`git diff --name-only`
-- Staged: !`git diff --cached --name-only`
+Tests use inline anonymous classes with PHP 8.1+ attributes, snake_case method names, and high-level behavioral assertions. Use this skill when writing or debugging any Ecotone test.
 
 ## 1. Dev Environment Setup
 
@@ -149,8 +145,31 @@ vendor/bin/phpstan analyse
 - Run `php-cs-fixer fix` before committing
 - Test methods MUST use `snake_case`
 - No comments -- code should be self-documenting via method names
+- Use inline anonymous classes, and snake_case methods. Covers handler testing,
 
 ## Additional resources
 
 - [CI checklist](references/ci-checklist.md) -- Full CI command reference including per-package Composer test scripts, Docker container commands, running individual tests by method/class/directory, PHPStan configuration, PHP-CS-Fixer rules, Behat test commands, database DSNs for all supported databases inside Docker, dependency testing (lowest/highest), and the complete pre-PR checklist with all validation steps. Load when preparing a PR, running the full test suite, or need exact test commands and database connection strings.
 - [Licence format](references/licence-format.md) -- Licence header template and formatting requirements for new PHP files, covering both Apache-2.0 (open source) and Enterprise licence formats with real codebase examples and placement rules. Load when creating new PHP source files that need the licence header.
+
+
+## Test Structure Rules
+
+- **`snake_case`** method names (enforced by PHP-CS-Fixer)
+- **High-level tests** from end-user perspective -- never test internals
+- **Inline anonymous classes** with PHP 8.1+ attributes -- not separate fixture files
+- **No comments** -- descriptive method names only
+- **Licence header** on every test file
+
+```php
+/**
+ * licence Apache-2.0
+ */
+final class OrderTest extends TestCase
+{
+    public function test_placing_order_records_event(): void
+    {
+        // test body
+    }
+}
+```

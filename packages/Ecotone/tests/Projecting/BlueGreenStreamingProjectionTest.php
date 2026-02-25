@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Projecting\BlueGreen;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -20,8 +19,8 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Projecting\Attribute\ProjectionName;
 use Ecotone\Projecting\Attribute\Streaming;
-use Ecotone\Projecting\ProjectingHeaders;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -40,7 +39,7 @@ final class BlueGreenStreamingProjectionTest extends TestCase
             public ?string $receivedProjectionName = null;
 
             #[EventHandler]
-            public function onUserCreated(BlueGreenUserCreated $event, #[Header(ProjectingHeaders::PROJECTION_NAME)] string $projectionName): void
+            public function onUserCreated(BlueGreenUserCreated $event, #[ProjectionName] string $projectionName): void
             {
                 $this->users[$event->id] = $event->name;
                 $this->receivedProjectionName = $projectionName;
@@ -52,7 +51,7 @@ final class BlueGreenStreamingProjectionTest extends TestCase
             public ?string $receivedProjectionName = null;
 
             #[EventHandler]
-            public function onUserCreated(BlueGreenUserCreated $event, #[Header(ProjectingHeaders::PROJECTION_NAME)] string $projectionName): void
+            public function onUserCreated(BlueGreenUserCreated $event, #[ProjectionName] string $projectionName): void
             {
                 $this->users[$event->id] = $event->name;
                 $this->receivedProjectionName = $projectionName;

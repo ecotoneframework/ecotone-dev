@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.302.1] - 2026-02-25
+
+## What's Changed
+* remove PHP8.1 deprecation by @unixslayer in https://github.com/ecotoneframework/ecotone-dev/pull/636
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.302.0...1.302.1
+
 ## [1.302.0] - 2026-02-24
 
 ## What's Changed

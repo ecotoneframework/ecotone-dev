@@ -48,10 +48,10 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new CreateTicketCommand('ticket-1'));
 
         self::assertEquals([
-            ['ticketId' => 'ticket-1', 'status' => 'created'],
+            ['ticket_id' => 'ticket-1', 'status' => 'created'],
         ], $this->fetchAllFrom($connection, 'tickets_v1'));
         self::assertEquals([
-            ['ticketId' => 'ticket-1', 'status' => 'created'],
+            ['ticket_id' => 'ticket-1', 'status' => 'created'],
         ], $this->fetchAllFrom($connection, 'tickets_v2'));
 
         $ecotone->sendCommand(new CreateTicketCommand('ticket-2'));
@@ -112,7 +112,7 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
 
     private function fetchAllFrom(Connection $connection, string $tableName): array
     {
-        return $connection->executeQuery("SELECT * FROM {$tableName} ORDER BY ticketId ASC")->fetchAllAssociative();
+        return $connection->executeQuery("SELECT * FROM {$tableName} ORDER BY ticket_id ASC")->fetchAllAssociative();
     }
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport

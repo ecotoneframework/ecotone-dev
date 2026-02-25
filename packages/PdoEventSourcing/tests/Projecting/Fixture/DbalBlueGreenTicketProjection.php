@@ -25,7 +25,7 @@ abstract class DbalBlueGreenTicketProjection
     {
         $this->connection->executeStatement(<<<SQL
             CREATE TABLE IF NOT EXISTS {$projectionName} (
-                ticketId VARCHAR(255) PRIMARY KEY,
+                ticket_id VARCHAR(255) PRIMARY KEY,
                 status VARCHAR(255) NOT NULL
             )
             SQL);
@@ -43,7 +43,7 @@ abstract class DbalBlueGreenTicketProjection
     public function whenTicketCreated(TicketCreated $event, #[ProjectionName] string $projectionName): void
     {
         $this->connection->insert($projectionName, [
-            'ticketId' => $event->ticketId,
+            'ticket_id' => $event->ticketId,
             'status' => 'created',
         ]);
     }

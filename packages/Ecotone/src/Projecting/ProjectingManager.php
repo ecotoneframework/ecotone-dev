@@ -78,7 +78,7 @@ class ProjectingManager
                 $processedEvents++;
             }
             if ($processedEvents > 0) {
-                $this->projectorExecutor->flush();
+                $this->projectorExecutor->flush($userState);
             }
 
             $projectionState = $projectionState

@@ -10,6 +10,7 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
+use Ecotone\EventSourcing\Attribute\ProjectionState;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -31,6 +32,7 @@ use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
 
 /**
@@ -392,6 +394,49 @@ class ProophIntegrationTest extends ProjectingTestCase
 
         self::assertSame(5, $ticketsCount, 'Batch projection should process all events in batches');
         self::assertSame(4, $projection->flushCallCount, 'Flush should be called 4 times (10 events / batch size 3) = 4 rounded up');
+    }
+
+    public function test_flush_receives_projection_state(): void
+    {
+        $connectionFactory = self::getConnectionFactory();
+        $projection = new #[ProjectionV2(self::NAME), ProjectionDeployment(manualKickOff: true), FromStream(Ticket::STREAM_NAME), ProjectionExecution(eventLoadingBatchSize: 3)] class {
+            public const NAME = 'flush_state_projection';
+            public array $flushStateSnapshots = [];
+
+            #[EventHandler]
+            public function whenTicketCreated(TicketCreated $event, #[ProjectionState] array $state = []): array
+            {
+                $state['ticketCount'] = ($state['ticketCount'] ?? 0) + 1;
+                return $state;
+            }
+
+            #[ProjectionFlush]
+            public function flush(#[ProjectionState] array $state = []): void
+            {
+                $this->flushStateSnapshots[] = $state;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+            [$connectionFactory, $projection, new TicketEventConverter()],
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+            ->deleteProjection($projection::NAME);
+
+        for ($i = 1; $i <= 5; $i++) {
+            $ecotone->sendCommand(new CreateTicketCommand(Uuid::uuid4()->toString()));
+        }
+
+        $ecotone->triggerProjection($projection::NAME);
+
+        // 5 TicketCreated events with batch size 3: batch 1 = 3 events, batch 2 = 2 events
+        self::assertCount(2, $projection->flushStateSnapshots);
+        self::assertSame(['ticketCount' => 3], $projection->flushStateSnapshots[0]);
+        self::assertSame(['ticketCount' => 5], $projection->flushStateSnapshots[1]);
     }
 
     public function test_it_handles_custom_name_stream_source(): void

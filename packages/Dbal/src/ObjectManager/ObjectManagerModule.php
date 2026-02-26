@@ -17,6 +17,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
+use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Enqueue\Dbal\DbalConnectionFactory;
 
 #[ModuleAnnotation]
@@ -50,6 +51,9 @@ class ObjectManagerModule implements AnnotationModule
         }
         if ($dbalConfiguration->isClearAndFlushObjectManagerOnCommandBus()) {
             $pointcut[] = CommandBus::class;
+        }
+        if ($dbalConfiguration->isClearAndFlushObjectManagerOnProjectionBatch()) {
+            $pointcut[] = ProjectionFlush::class;
         }
 
         if ($pointcut !== []) {

@@ -25,6 +25,7 @@ class DbalConfiguration
     private bool $transactionOnConsoleCommands = self::DEFAULT_TRANSACTION_ON_CONSOLE_COMMANDS;
     private bool $clearObjectManagerOnAsynchronousEndpoints = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
     private bool $clearAndFlushObjectManagerOnCommandBus = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
+    private bool $clearAndFlushObjectManagerOnProjectionBatch = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
     private bool $flushDuringPersisting = true;
     private array $defaultConnectionReferenceNames = [DbalConnectionFactory::class];
 
@@ -72,6 +73,7 @@ class DbalConfiguration
             ->withDeadLetter(false)
             ->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)
             ->withClearAndFlushObjectManagerOnCommandBus(false)
+            ->withClearAndFlushObjectManagerOnProjectionBatch(false)
             ->withDocumentStore(true, true);
     }
 
@@ -183,6 +185,14 @@ class DbalConfiguration
     {
         $self                                     = clone $this;
         $self->clearAndFlushObjectManagerOnCommandBus = $isEnabled;
+
+        return $self;
+    }
+
+    public function withClearAndFlushObjectManagerOnProjectionBatch(bool $isEnabled): self
+    {
+        $self = clone $this;
+        $self->clearAndFlushObjectManagerOnProjectionBatch = $isEnabled;
 
         return $self;
     }
@@ -303,6 +313,11 @@ class DbalConfiguration
     public function isClearAndFlushObjectManagerOnCommandBus(): bool
     {
         return $this->clearAndFlushObjectManagerOnCommandBus;
+    }
+
+    public function isClearAndFlushObjectManagerOnProjectionBatch(): bool
+    {
+        return $this->clearAndFlushObjectManagerOnProjectionBatch;
     }
 
     public function isFlushingDuringPersisting(): bool

@@ -2,7 +2,6 @@
 name: ecotone-testing
 description: >-
   Writes and debugs tests for Ecotone using EcotoneLite::bootstrapFlowTesting,
-  inline anonymous classes, and snake_case methods. Covers handler testing,
   aggregate testing, async-tested-synchronously patterns, projections, and
   common failure diagnosis. Use when writing tests, debugging test failures,
   adding test coverage, or implementing any new feature that needs tests.
@@ -14,7 +13,7 @@ description: >-
 
 ## Overview
 
-Ecotone provides `EcotoneLite` for bootstrapping lightweight, in-process test environments. Tests use inline anonymous classes with PHP 8.1+ attributes, snake_case method names, and high-level behavioral assertions. Use this skill when writing or debugging any Ecotone test.
+Ecotone provides `EcotoneLite` for bootstrapping lightweight, in-process test environments.
 
 ## 1. Bootstrap Selection
 
@@ -36,27 +35,6 @@ $ecotone = EcotoneLite::bootstrapFlowTesting(
 $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
     classesToResolve: [MyAggregate::class],
 );
-```
-
-## 2. Test Structure Rules
-
-- **`snake_case`** method names (enforced by PHP-CS-Fixer)
-- **High-level tests** from end-user perspective -- never test internals
-- **Inline anonymous classes** with PHP 8.1+ attributes -- not separate fixture files
-- **No comments** -- descriptive method names only
-- **Licence header** on every test file
-
-```php
-/**
- * licence Apache-2.0
- */
-final class OrderTest extends TestCase
-{
-    public function test_placing_order_records_event(): void
-    {
-        // test body
-    }
-}
 ```
 
 ## 3. Core Testing Patterns
@@ -174,17 +152,8 @@ public function test_with_service_dependency(): void
 | Database errors | Missing DSN env vars | Run inside Docker container with env vars set |
 | Lowest dependency failures | API differences between versions | Test both `--prefer-lowest` and latest |
 
-## 5. Common Mistakes
-
-- **Don't** use raw PHPUnit mocking instead of EcotoneLite -- use the framework's test support
-- **Don't** create separate fixture class files for test-only handlers -- use inline anonymous classes
-- **Don't** test implementation details -- test behavior from the end-user perspective
-- **Don't** forget to call `->run('channel')` for async handlers -- messages won't process otherwise
-- **Don't** mix `bootstrapFlowTesting` and `bootstrapFlowTestingWithEventStore` -- pick the right one
-
 ## Key Rules
 
-- Every test method name MUST be `snake_case`
 - Use `EcotoneLite::bootstrapFlowTesting()` as the starting point
 - Pass handler instances via `containerOrAvailableServices`
 - For event sourcing, use `bootstrapFlowTestingWithEventStore()`

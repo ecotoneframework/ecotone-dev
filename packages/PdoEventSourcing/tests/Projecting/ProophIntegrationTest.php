@@ -7,9 +7,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalConnection;
+use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
+use Ecotone\EventSourcing\Attribute\ProjectionState;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -22,15 +26,18 @@ use Ecotone\Projecting\Attribute\ProjectionExecution;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
+use Enqueue\Dbal\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\DbalTicketProjection;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\ProjectedTicketEntity;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\CreateTicketCommand;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
+use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
 
 /**
@@ -394,6 +401,49 @@ class ProophIntegrationTest extends ProjectingTestCase
         self::assertSame(4, $projection->flushCallCount, 'Flush should be called 4 times (10 events / batch size 3) = 4 rounded up');
     }
 
+    public function test_flush_receives_projection_state(): void
+    {
+        $connectionFactory = self::getConnectionFactory();
+        $projection = new #[ProjectionV2(self::NAME), ProjectionDeployment(manualKickOff: true), FromStream(Ticket::STREAM_NAME), ProjectionExecution(eventLoadingBatchSize: 3)] class {
+            public const NAME = 'flush_state_projection';
+            public array $flushStateSnapshots = [];
+
+            #[EventHandler]
+            public function whenTicketCreated(TicketCreated $event, #[ProjectionState] array $state = []): array
+            {
+                $state['ticketCount'] = ($state['ticketCount'] ?? 0) + 1;
+                return $state;
+            }
+
+            #[ProjectionFlush]
+            public function flush(#[ProjectionState] array $state = []): void
+            {
+                $this->flushStateSnapshots[] = $state;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+            [$connectionFactory, $projection, new TicketEventConverter()],
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+            ->deleteProjection($projection::NAME);
+
+        for ($i = 1; $i <= 5; $i++) {
+            $ecotone->sendCommand(new CreateTicketCommand(Uuid::uuid4()->toString()));
+        }
+
+        $ecotone->triggerProjection($projection::NAME);
+
+        // 5 TicketCreated events with batch size 3: batch 1 = 3 events, batch 2 = 2 events
+        self::assertCount(2, $projection->flushStateSnapshots);
+        self::assertSame(['ticketCount' => 3], $projection->flushStateSnapshots[0]);
+        self::assertSame(['ticketCount' => 5], $projection->flushStateSnapshots[1]);
+    }
+
     public function test_it_handles_custom_name_stream_source(): void
     {
         $basketProjection = new #[ProjectionV2(self::NAME), FromStream(Basket::BASKET_STREAM)] class {
@@ -518,5 +568,74 @@ class ProophIntegrationTest extends ProjectingTestCase
 
         self::assertSame(2, $ticketsCount);
         self::assertSame(2, $projection->initCallCount);
+    }
+
+    public function test_object_manager_interceptor_flushes_and_clears_on_each_batch(): void
+    {
+        $connection = self::getConnection();
+        $connection->executeStatement('DROP TABLE IF EXISTS projected_tickets');
+        $connection->executeStatement(<<<SQL
+            CREATE TABLE projected_tickets (
+                ticket_id VARCHAR(255) PRIMARY KEY,
+                status VARCHAR(255) NOT NULL
+            )
+        SQL);
+
+        $ormConnectionFactory = ManagerRegistryEmulator::create(
+            $connection,
+            [__DIR__ . '/Fixture']
+        );
+
+        $projection = new #[ProjectionV2(self::NAME), ProjectionDeployment(manualKickOff: true), FromStream(Ticket::STREAM_NAME), ProjectionExecution(eventLoadingBatchSize: 2)] class {
+            public const NAME = 'orm_batch_projection';
+            private ?EntityManagerInterface $entityManager = null;
+
+            public function setEntityManager(EntityManagerInterface $entityManager): void
+            {
+                $this->entityManager = $entityManager;
+            }
+
+            #[EventHandler]
+            public function whenTicketCreated(TicketCreated $event): void
+            {
+                $this->entityManager->persist(new ProjectedTicketEntity($event->ticketId, 'created'));
+            }
+        };
+
+        $registry = $ormConnectionFactory->getRegistry();
+        $entityManager = $registry->getManager();
+        $projection->setEntityManager($entityManager);
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+            [DbalConnectionFactory::class => $ormConnectionFactory, $projection, new TicketEventConverter()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    DbalConfiguration::createForTesting()
+                        ->withClearAndFlushObjectManagerOnProjectionBatch(true),
+                ]),
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+            ->deleteProjection($projection::NAME);
+
+        for ($i = 1; $i <= 5; $i++) {
+            $ecotone->sendCommand(new CreateTicketCommand(Uuid::uuid4()->toString()));
+        }
+
+        $ecotone->triggerProjection($projection::NAME);
+
+        $ticketCount = (int) $connection->fetchOne('SELECT COUNT(*) FROM projected_tickets');
+        self::assertSame(5, $ticketCount, 'ObjectManagerInterceptor should flush all entities to database on each batch');
+
+        $identityMap = $entityManager->getUnitOfWork()->getIdentityMap();
+        self::assertEmpty(
+            $identityMap[ProjectedTicketEntity::class] ?? [],
+            'ObjectManagerInterceptor should clear entity manager identity map after each batch'
+        );
+
+        $connection->executeStatement('DROP TABLE IF EXISTS projected_tickets');
     }
 }

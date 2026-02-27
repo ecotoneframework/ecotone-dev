@@ -79,11 +79,12 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         }
     }
 
-    public function flush(): void
+    public function flush(mixed $userState = null): void
     {
         if ($this->flushChannel) {
             $this->messagingEntrypoint->sendWithHeaders([], [
                 ProjectingHeaders::PROJECTION_NAME => $this->projectionName,
+                ProjectingHeaders::PROJECTION_STATE => $userState,
             ], $this->flushChannel);
         }
     }

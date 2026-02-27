@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.303.0] - 2026-02-27
+
+## What's Changed
+* feat: blue-green deployments of projection v2 by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/637
+* Feat: advanced projection flushing by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/638
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.302.1...1.303.0
+
 ## [1.302.1] - 2026-02-25
 
 ## What's Changed

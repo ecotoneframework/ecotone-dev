@@ -38,12 +38,12 @@
     "require": {
         "php": "^8.2",
         "ext-openssl": "*",
-        "ecotone/ecotone": "~1.302.1",
-        "ecotone/jms-converter": "~1.302.1",
+        "ecotone/ecotone": "~1.303.0",
+        "ecotone/jms-converter": "~1.303.0",
         "paragonie/random_compat": "^2.0"
     },
     "require-dev": {
-        "ecotone/pdo-event-sourcing": "~1.302.1",
+        "ecotone/pdo-event-sourcing": "~1.303.0",
         "phpunit/phpunit": "^11.0",
         "phpstan/phpstan": "^2.1",
         "wikimedia/composer-merge-plugin": "^2.1"
@@ -61,7 +61,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.302.1-dev"
+            "dev-main": "1.303.0-dev"
         },
         "ecotone": {
             "repository": "data-protection"
@@ -82,7 +82,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-02-25 18:02:40"
+        "release-time": "2026-02-27 20:08:51"
     },
     "config": {
         "allow-plugins": {

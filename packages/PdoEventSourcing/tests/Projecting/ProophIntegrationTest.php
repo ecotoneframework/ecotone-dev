@@ -514,7 +514,7 @@ class ProophIntegrationTest extends ProjectingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
-            [\Enqueue\Dbal\DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
+            [DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -549,7 +549,7 @@ class ProophIntegrationTest extends ProjectingTestCase
 
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
-            [\Enqueue\Dbal\DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
+            [DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -575,11 +575,11 @@ class ProophIntegrationTest extends ProjectingTestCase
         $connection = self::getConnection();
         $connection->executeStatement('DROP TABLE IF EXISTS projected_tickets');
         $connection->executeStatement(<<<SQL
-            CREATE TABLE projected_tickets (
-                ticket_id VARCHAR(255) PRIMARY KEY,
-                status VARCHAR(255) NOT NULL
-            )
-        SQL);
+                CREATE TABLE projected_tickets (
+                    ticket_id VARCHAR(255) PRIMARY KEY,
+                    status VARCHAR(255) NOT NULL
+                )
+            SQL);
 
         $ormConnectionFactory = ManagerRegistryEmulator::create(
             $connection,

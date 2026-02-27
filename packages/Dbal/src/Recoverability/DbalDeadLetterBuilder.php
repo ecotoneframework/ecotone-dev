@@ -10,7 +10,7 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -109,7 +109,7 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
             $connectionReferenceName,
             self::getChannelName($referenceName, self::REPLAY_ALL_CHANNEL),
             [
-                ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypoint::class),
+                ReferenceBuilder::create('messagingEntrypoint', MessagingEntrypointService::class),
             ]
         );
     }

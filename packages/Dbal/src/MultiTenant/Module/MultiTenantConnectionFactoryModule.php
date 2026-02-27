@@ -22,7 +22,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -65,7 +65,7 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                     [
                         $multiTenantConfig->getTenantHeaderName(),
                         $multiTenantConfig->getTenantToConnectionMapping(),
-                        Reference::to(MessagingEntrypoint::class),
+                        Reference::to(MessagingEntrypointService::class),
                         Reference::to(ContainerInterface::class),
                         Reference::to(LoggingGateway::class),
                         new Definition(

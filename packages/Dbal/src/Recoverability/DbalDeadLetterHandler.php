@@ -11,7 +11,7 @@ use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -118,7 +118,7 @@ class DbalDeadLetterHandler
             ->fetchOne();
     }
 
-    public function reply(string|array $messageId, MessagingEntrypoint $messagingEntrypoint): void
+    public function reply(string|array $messageId, MessagingEntrypointService $messagingEntrypoint): void
     {
         $this->initialize();
 
@@ -133,7 +133,7 @@ class DbalDeadLetterHandler
         }
     }
 
-    public function replyAll(MessagingEntrypoint $messagingEntrypoint): void
+    public function replyAll(MessagingEntrypointService $messagingEntrypoint): void
     {
         $this->initialize();
         while ($errorContexts = $this->list(100, 0)) {
@@ -242,7 +242,7 @@ class DbalDeadLetterHandler
         }
     }
 
-    private function replyWithoutInitialization(string $messageId, MessagingEntrypoint $messagingEntrypoint): void
+    private function replyWithoutInitialization(string $messageId, MessagingEntrypointService $messagingEntrypoint): void
     {
         $message = $this->show($messageId);
         if (! $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) && ! $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)) {
@@ -265,7 +265,7 @@ class DbalDeadLetterHandler
             ->removeHeaders(ErrorContext::WHOLE_ERROR_CONTEXT)
             ->setHeader(ErrorContext::DLQ_MESSAGE_REPLIED, '1')
             ->setHeader(
-                MessagingEntrypoint::ENTRYPOINT,
+                MessagingEntrypointService::ENTRYPOINT,
                 $entrypoint
             )
             ->build();

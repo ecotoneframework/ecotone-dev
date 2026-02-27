@@ -10,7 +10,7 @@ use Doctrine\Persistence\ObjectManager;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Messaging\Channel\DynamicChannel\ReceivingStrategy\RoundRobinReceivingStrategy;
 use Ecotone\Messaging\Config\ConnectionReference;
-use Ecotone\Messaging\Gateway\MessagingEntrypoint;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
@@ -38,7 +38,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
     public function __construct(
         private string              $tenantHeaderName,
         private array               $connectionReferenceMapping,
-        private MessagingEntrypoint $messagingEntrypoint,
+        private MessagingEntrypointService $messagingEntrypoint,
         private ContainerInterface  $container,
         private LoggingGateway $loggingGateway,
         private RoundRobinReceivingStrategy $roundRobinReceivingStrategy,

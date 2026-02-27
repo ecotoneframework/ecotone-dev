@@ -11,7 +11,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Redis\Configuration\RedisMessageConsumerConfiguration;
 use Ecotone\Redis\Configuration\RedisMessagePublisherConfiguration;
 use Enqueue\Redis\RedisConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisConsumerExample;
 
@@ -27,7 +27,7 @@ final class ConsumerAndPublisherTest extends ConnectionTestCase
     public function testing_sending_message_using_publisher_and_receiving_using_consumer(): void
     {
         $endpointId = 'redis_consumer';
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [RedisConsumerExample::class],
             [
@@ -42,7 +42,7 @@ final class ConsumerAndPublisherTest extends ConnectionTestCase
                 ])
         );
 
-        $payload = Uuid::uuid4()->toString();
+        $payload = Uuid::v7()->toRfc4122();
         $messagePublisher = $ecotoneLite->getMessagePublisher();
         $messagePublisher->send($payload);
 

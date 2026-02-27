@@ -9,7 +9,7 @@ use Doctrine\DBAL\Exception\RetryableException;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use LogicException;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * licence MIT
@@ -34,7 +34,7 @@ trait DbalConsumerHelperTrait
         }
 
         $now = $this->now();
-        $deliveryId = Uuid::uuid4();
+        $deliveryId = Uuid::v7()->toRfc4122();
         $redeliveryDelayDuration = Duration::seconds($redeliveryDelay);
 
         $endAt = $now->add(Duration::milliseconds(200));

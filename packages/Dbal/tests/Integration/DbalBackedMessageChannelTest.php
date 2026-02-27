@@ -21,7 +21,7 @@ use Ecotone\Test\StubLogger;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Psr\Clock\ClockInterface;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousHandler\OrderService;
 
@@ -36,7 +36,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 {
     public function test_sending_and_receiving_via_channel()
     {
-        $channelName = Uuid::uuid4()->toString();
+        $channelName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
@@ -68,7 +68,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
     public function test_sending_and_receiving_via_channel_manager_registry()
     {
-        $channelName = Uuid::uuid4()->toString();
+        $channelName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
@@ -102,7 +102,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
     public function test_sending_and_receiving_using_already_defined_connection()
     {
-        $channelName = Uuid::uuid4()->toString();
+        $channelName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
@@ -136,7 +136,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     public function test_reconnecting_on_disconnected_channel()
     {
         $connectionFactory = $this->getConnectionFactory();
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
@@ -166,7 +166,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     public function test_reconnecting_on_disconnected_channel_with_manager_registry()
     {
         $connectionFactory = $this->getConnectionFactory(true);
-        $channelName = Uuid::uuid4()->toString();
+        $channelName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
@@ -195,7 +195,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
     public function test_delaying_the_message_with_custom_clock()
     {
-        $channelName = Uuid::uuid4()->toString();
+        $channelName = Uuid::v7()->toRfc4122();
         $clock = new StubUTCClock();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
@@ -229,7 +229,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
     public function test_delaying_the_message_with_native_clock()
     {
-        $channelName = Uuid::uuid4()->toString();
+        $channelName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
@@ -263,7 +263,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
     public function test_delaying_the_message_with_native_clock_using_date_time()
     {
-        $channelName = Uuid::uuid4()->toString();
+        $channelName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
@@ -299,7 +299,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
     public function test_sending_message()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $messagePayload = 'some';
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
@@ -328,7 +328,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
 
     public function test_failing_to_receive_message_when_not_declared_and_auto_declare_off()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [

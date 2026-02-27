@@ -26,7 +26,7 @@ use function getenv;
 
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
 use Test\Ecotone\Kafka\Fixture\Calendar\Calendar;
 use Test\Ecotone\Kafka\Fixture\Calendar\CreateCalendar;
@@ -64,10 +64,10 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_sending_and_receiving_message_from_channel()
     {
         $channelName = 'async';
-        $messageId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
         $messagePayload = new ExampleCommand($messageId);
 
-        $messaging = $this->prepareAsyncCommandHandler($channelName, $topicName = Uuid::uuid4()->toString());
+        $messaging = $this->prepareAsyncCommandHandler($channelName, $topicName = Uuid::v7()->toRfc4122());
         $metadata = [
             MessageHeaders::MESSAGE_ID => $messageId,
             MessageHeaders::TIMESTAMP => 123333,
@@ -97,14 +97,14 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_executing_aggregate_instance_by_command_identifier_from_correct_partition()
     {
         $channelName = 'async';
-        $calendarId = Uuid::uuid4()->toString();
+        $calendarId = Uuid::v7()->toRfc4122();
 
         $messaging = $this
-            ->prepareAsyncCommandHandler($channelName, Uuid::uuid4()->toString())
+            ->prepareAsyncCommandHandler($channelName, Uuid::v7()->toRfc4122())
             ->sendCommand(new CreateCalendar($calendarId));
 
         $messaging
-            ->sendCommand(new ScheduleMeeting($calendarId, Uuid::uuid4()->toString()));
+            ->sendCommand(new ScheduleMeeting($calendarId, Uuid::v7()->toRfc4122()));
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
         $meetings = $messaging->sendQueryWithRouting('calendar.getMeetings', metadata: ['aggregate.id' => $calendarId]);
@@ -119,15 +119,15 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_forcing_partition_key()
     {
         $channelName = 'async';
-        $calendarId = Uuid::uuid4()->toString();
+        $calendarId = Uuid::v7()->toRfc4122();
 
         $messaging = $this
-            ->prepareAsyncCommandHandler($channelName, Uuid::uuid4()->toString())
+            ->prepareAsyncCommandHandler($channelName, Uuid::v7()->toRfc4122())
             ->sendCommand(new CreateCalendar($calendarId));
 
         $messaging
             ->sendCommand(
-                new ScheduleMeeting($calendarId, Uuid::uuid4()->toString()),
+                new ScheduleMeeting($calendarId, Uuid::v7()->toRfc4122()),
                 metadata: [
                     KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME => '123',
                 ]
@@ -158,7 +158,7 @@ final class KafkaMessageChannelTest extends TestCase
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
-                        topicName: $uniqueId = Uuid::uuid4()->toString(),
+                        topicName: $uniqueId = Uuid::v7()->toRfc4122(),
                         messageGroupId: $uniqueId
                     ),
                 ]),
@@ -175,7 +175,7 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_acking_messages()
     {
         $channelName = 'async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
@@ -192,7 +192,7 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_requeing_message_when_fails()
     {
         $channelName = 'async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
@@ -260,7 +260,7 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_adding_type_id_header()
     {
         $channelName = 'async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
@@ -276,7 +276,7 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_sending_and_receiving_events()
     {
         $channelName = 'async';
-        $messagePayload = new ExampleEvent(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleEvent(Uuid::v7()->toRfc4122());
 
         $messaging = $this->prepareAsyncEventHandler($channelName);
 
@@ -315,7 +315,7 @@ final class KafkaMessageChannelTest extends TestCase
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
-                        topicName: ($topicName = $topicName ?: Uuid::uuid4()->toString()),
+                        topicName: ($topicName = $topicName ?: Uuid::v7()->toRfc4122()),
                         messageGroupId: $topicName
                     ),
                 ]),
@@ -336,7 +336,7 @@ final class KafkaMessageChannelTest extends TestCase
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
-                        topicName: $uniqueId = Uuid::uuid4()->toString(),
+                        topicName: $uniqueId = Uuid::v7()->toRfc4122(),
                         messageGroupId: $uniqueId
                     ),
                 ]),
@@ -347,7 +347,7 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_two_consumers_track_positions_independently(): void
     {
         $channelName = 'kafka_channel';
-        $topicName = 'test_topic_two_consumers_' . Uuid::uuid4()->toString();
+        $topicName = 'test_topic_two_consumers_' . Uuid::v7()->toRfc4122();
 
         $handler1 = new class () {
             private array $consumed = [];
@@ -448,7 +448,7 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_default_message_group_id(): void
     {
         $channelName = 'kafka_channel';
-        $topicName = 'test_topic_two_consumers_' . Uuid::uuid4()->toString();
+        $topicName = 'test_topic_two_consumers_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [],
@@ -485,7 +485,7 @@ final class KafkaMessageChannelTest extends TestCase
     public function test_predefined_message_group_id(): void
     {
         $channelName = 'kafka_channel';
-        $topicName = 'test_topic_two_consumers_' . Uuid::uuid4()->toString();
+        $topicName = 'test_topic_two_consumers_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [],
@@ -527,7 +527,7 @@ final class KafkaMessageChannelTest extends TestCase
      */
     public function test_streaming_channel_with_distributed_bus_using_service_map(): void
     {
-        $topicName = 'distributed_events_' . Uuid::uuid4()->toString();
+        $topicName = 'distributed_events_' . Uuid::v7()->toRfc4122();
 
         // Publisher service
         $publisher = new class () {

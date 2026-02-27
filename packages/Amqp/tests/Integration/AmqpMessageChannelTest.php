@@ -21,7 +21,7 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use PhpAmqpLib\Exception\AMQPIOException;
 use PhpAmqpLib\Exception\AMQPProtocolChannelException;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DeadLetter\ErrorConfigurationContext;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
@@ -38,7 +38,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 {
     public function test_sending_and_receiving_message_from_amqp_message_channel()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $messagePayload = 'some';
 
         $ecotoneLite = $this->bootstrapForTesting(
@@ -67,7 +67,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 
     public function test_sending_and_receiving_without_delivery_guarantee()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $messagePayload = 'some';
 
         $ecotoneLite = $this->bootstrapForTesting(
@@ -215,7 +215,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
 
     public function test_failing_to_receive_message_when_not_declared()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $messagePayload = 'some';
 
         $ecotoneLite = $this->bootstrapForTesting(

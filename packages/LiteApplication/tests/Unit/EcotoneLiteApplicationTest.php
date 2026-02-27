@@ -9,7 +9,7 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Lite\Fixture\AddMoney;
 
 /**
@@ -45,7 +45,7 @@ class EcotoneLiteApplicationTest extends TestCase
 
     public function test_running_ecotone_lite_application_with_cache()
     {
-        $cacheDirectoryPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::uuid4()->toString();
+        $cacheDirectoryPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::v7()->toRfc4122();
         $this->getCachedConfiguration($cacheDirectoryPath);
         $ecotoneLite = $this->getCachedConfiguration($cacheDirectoryPath);
 

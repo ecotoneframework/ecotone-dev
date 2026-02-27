@@ -12,7 +12,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
 /**
@@ -44,9 +44,9 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
             }
         };
 
-        $sharedGroupId = 'shared-group-' . Uuid::uuid4()->toString();
-        $queue1 = 'queue1-' . Uuid::uuid4()->toString();
-        $queue2 = 'queue2-' . Uuid::uuid4()->toString();
+        $sharedGroupId = 'shared-group-' . Uuid::v7()->toRfc4122();
+        $queue1 = 'queue1-' . Uuid::v7()->toRfc4122();
+        $queue2 = 'queue2-' . Uuid::v7()->toRfc4122();
 
         $this->bootstrapForTesting(
             [$handler::class],
@@ -92,10 +92,10 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
             }
         };
 
-        $groupId1 = 'group1-' . Uuid::uuid4()->toString();
-        $groupId2 = 'group2-' . Uuid::uuid4()->toString();
-        $queue1 = 'queue1-' . Uuid::uuid4()->toString();
-        $queue2 = 'queue2-' . Uuid::uuid4()->toString();
+        $groupId1 = 'group1-' . Uuid::v7()->toRfc4122();
+        $groupId2 = 'group2-' . Uuid::v7()->toRfc4122();
+        $queue1 = 'queue1-' . Uuid::v7()->toRfc4122();
+        $queue2 = 'queue2-' . Uuid::v7()->toRfc4122();
 
         // This should work fine - different group IDs
         $ecotoneLite = $this->bootstrapForTesting(

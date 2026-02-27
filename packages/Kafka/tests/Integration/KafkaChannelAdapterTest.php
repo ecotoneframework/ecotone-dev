@@ -27,7 +27,7 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
 use Test\Ecotone\Kafka\Fixture\ChannelAdapter\ExampleKafkaConsumer;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithDelayedRetryExample;
@@ -91,10 +91,10 @@ final class KafkaChannelAdapterTest extends TestCase
 
     public static function providePartitionKeySet(): iterable
     {
-        $messageId = Uuid::uuid4()->toString();
-        $aggregateId = Uuid::uuid4()->toString();
-        $eventAggregateId = Uuid::uuid4()->toString();
-        $customKey = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
+        $aggregateId = Uuid::v7()->toRfc4122();
+        $eventAggregateId = Uuid::v7()->toRfc4122();
+        $customKey = Uuid::v7()->toRfc4122();
         $intKey = 2;
 
         yield 'with no partition key, message id is used' => [
@@ -129,7 +129,7 @@ final class KafkaChannelAdapterTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults(Uuid::uuid4()->toString()),
+                    KafkaPublisherConfiguration::createWithDefaults(Uuid::v7()->toRfc4122()),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -152,7 +152,7 @@ final class KafkaChannelAdapterTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([
-                    KafkaPublisherConfiguration::createWithDefaults($topicName = Uuid::uuid4()->toString()),
+                    KafkaPublisherConfiguration::createWithDefaults($topicName = Uuid::v7()->toRfc4122()),
                     TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -162,7 +162,7 @@ final class KafkaChannelAdapterTest extends TestCase
     public function test_defining_custom_failure_strategy(): void
     {
         $endpointId = 'kafka_consumer_attribute';
-        $topicName = 'test_topic_failure_' . Uuid::uuid4()->toString();
+        $topicName = 'test_topic_failure_' . Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [KafkaConsumerWithFailStrategyExample::class],
             [
@@ -180,7 +180,7 @@ final class KafkaChannelAdapterTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $payload = Uuid::uuid4()->toString();
+        $payload = Uuid::v7()->toRfc4122();
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
@@ -195,7 +195,7 @@ final class KafkaChannelAdapterTest extends TestCase
     public function test_defining_instant_retries(): void
     {
         $endpointId = 'kafka_consumer_attribute';
-        $topicName = 'test_topic_retry_' . Uuid::uuid4()->toString();
+        $topicName = 'test_topic_retry_' . Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [KafkaConsumerWithInstantRetryExample::class],
             [
@@ -213,7 +213,7 @@ final class KafkaChannelAdapterTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $payload = Uuid::uuid4()->toString();
+        $payload = Uuid::v7()->toRfc4122();
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
@@ -232,7 +232,7 @@ final class KafkaChannelAdapterTest extends TestCase
     public function test_defining_error_channel(): void
     {
         $endpointId = 'kafka_consumer_attribute';
-        $topicName = 'test_topic_error_' . Uuid::uuid4()->toString();
+        $topicName = 'test_topic_error_' . Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [KafkaConsumerWithInstantRetryAndErrorChannelExample::class],
             [
@@ -251,7 +251,7 @@ final class KafkaChannelAdapterTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $payload = Uuid::uuid4()->toString();
+        $payload = Uuid::v7()->toRfc4122();
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
@@ -272,7 +272,7 @@ final class KafkaChannelAdapterTest extends TestCase
     public function test_kafka_consumer_with_delayed_retry(): void
     {
         $endpointId = 'kafka_consumer_delayed_retry';
-        $topicName = 'test_topic_delayed_retry_' . Uuid::uuid4()->toString();
+        $topicName = 'test_topic_delayed_retry_' . Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [KafkaConsumerWithDelayedRetryExample::class],
             [
@@ -300,7 +300,7 @@ final class KafkaChannelAdapterTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $payload = Uuid::uuid4()->toString();
+        $payload = Uuid::v7()->toRfc4122();
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
@@ -331,7 +331,7 @@ final class KafkaChannelAdapterTest extends TestCase
 
     public function test_sending_and_receiving_with_kafka_consumer_configuration(): void
     {
-        $topicName = Uuid::uuid4()->toString();
+        $topicName = Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleKafkaConsumer::class],
             [
@@ -365,7 +365,7 @@ final class KafkaChannelAdapterTest extends TestCase
 
     public function test_sending_and_receiving_without_kafka_consumer_configuration(): void
     {
-        $topicName = Uuid::uuid4()->toString();
+        $topicName = Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleKafkaConsumer::class],
             [
@@ -398,7 +398,7 @@ final class KafkaChannelAdapterTest extends TestCase
 
     public function test_kafka_consumer_works_without_explicit_configuration(): void
     {
-        $topicName = 'test_topic_no_config_' . Uuid::uuid4()->toString();
+        $topicName = 'test_topic_no_config_' . Uuid::v7()->toRfc4122();
 
         $consumer = new class () {
             private array $messages = [];
@@ -439,7 +439,7 @@ final class KafkaChannelAdapterTest extends TestCase
 
     public function test_kafka_publisher_works_without_explicit_configuration(): void
     {
-        $topicName = 'test_topic_publisher_' . Uuid::uuid4()->toString();
+        $topicName = 'test_topic_publisher_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [],

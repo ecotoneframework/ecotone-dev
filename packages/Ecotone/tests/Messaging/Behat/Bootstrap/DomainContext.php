@@ -24,7 +24,7 @@ use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\MessagingException;
 use Exception;
 use PHPUnit\Framework\Assert;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Messaging\Fixture\Behat\Booking\BookingService;
 use Test\Ecotone\Messaging\Fixture\Behat\Ordering\Order;
 use Test\Ecotone\Messaging\Fixture\Behat\Ordering\OrderConfirmation;
@@ -90,7 +90,7 @@ class DomainContext implements Context
     public function iActivateServiceWithNameForWithMethodToListenOnChannel(string $className, string $methodName, string $channelName)
     {
         $this->getMessagingSystemConfiguration()
-            ->registerMessageHandler($this->createServiceActivatorBuilder(Uuid::uuid4()->toString(), $className, $methodName, $channelName));
+            ->registerMessageHandler($this->createServiceActivatorBuilder(Uuid::v7()->toRfc4122(), $className, $methodName, $channelName));
     }
 
     /**

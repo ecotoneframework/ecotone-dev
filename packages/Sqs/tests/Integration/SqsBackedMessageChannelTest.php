@@ -17,7 +17,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Test\StubLogger;
 use Enqueue\Sqs\SqsConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 use Test\Ecotone\Sqs\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsAsyncConsumerExample;
@@ -33,7 +33,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
 {
     public function test_sending_and_receiving_message()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $messagePayload = 'some';
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
@@ -63,7 +63,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
     public function test_sending_and_receiving_message_from_using_asynchronous_command_handler(): void
     {
         $queueName = 'sqs';
-        $messagePayload = Uuid::uuid4()->toString();
+        $messagePayload = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             classesToResolve: [SqsAsyncConsumerExample::class],

@@ -8,7 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\Order;
 use Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate\OrderWasPlacedConverter;
@@ -29,13 +29,13 @@ final class HeaderPropagationTest extends TestCase
             [new OrderWasPlacedConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()]
         );
 
-        $messageId = Uuid::uuid4()->toString();
-        $correlationId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
+        $correlationId = Uuid::v7()->toRfc4122();
 
         $flowTestSupport = $ecotoneTestSupport
             ->sendCommandWithRoutingKey(
                 'placeOrder',
-                Uuid::uuid4()->toString(),
+                Uuid::v7()->toRfc4122(),
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
                     MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
@@ -62,13 +62,13 @@ final class HeaderPropagationTest extends TestCase
             [new OrderWasPlacedConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()]
         );
 
-        $messageId = Uuid::uuid4()->toString();
-        $correlationId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
+        $correlationId = Uuid::v7()->toRfc4122();
 
         $flowTestSupport = $ecotoneTestSupport
             ->sendCommandWithRoutingKey(
                 'placeOrderAndPropagateMetadata',
-                Uuid::uuid4()->toString(),
+                Uuid::v7()->toRfc4122(),
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
                     MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,

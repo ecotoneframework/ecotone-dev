@@ -80,7 +80,7 @@ use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Modelling\Config\Routing\BusRouteSelector;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 #[ModuleAnnotation]
 /**
@@ -179,7 +179,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     $attributeType = Type::createFromVariable($attribute);
                     $interfaceToCall = $interfaceToCallRegistry->getFor($classDefinition->getClassType()->toString(), $publicMethodName);
                     if ($attributeType->equals($projectionInitialization)) {
-                        $requestChannel = Uuid::uuid4()->toString();
+                        $requestChannel = Uuid::v7()->toRfc4122();
                         $projectionLifeCycle = $projectionLifeCycle->withInitializationRequestChannel($requestChannel);
                         $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
                             $referenceName,
@@ -191,7 +191,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                             );
                     }
                     if ($attributeType->equals($projectionDelete)) {
-                        $requestChannel = Uuid::uuid4()->toString();
+                        $requestChannel = Uuid::v7()->toRfc4122();
                         $projectionLifeCycle = $projectionLifeCycle->withDeleteRequestChannel($requestChannel);
                         $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
                             $referenceName,
@@ -203,7 +203,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                             );
                     }
                     if ($attributeType->equals($projectionReset)) {
-                        $requestChannel = Uuid::uuid4()->toString();
+                        $requestChannel = Uuid::v7()->toRfc4122();
                         $projectionLifeCycle = $projectionLifeCycle->withResetRequestChannel($requestChannel);
                         $projectionLifeCyclesServiceActivators[] = ServiceActivatorBuilder::create(
                             $referenceName,
@@ -540,11 +540,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
         ]));
 
         $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration, $eventStoreReference)
-            ->withInputChannelName(Uuid::uuid4()->toString())
+            ->withInputChannelName(Uuid::v7()->toRfc4122())
         ;
         $configuration->registerMessageHandler($eventStoreHandler);
 
-        $eventBusChannelName = Uuid::uuid4()->toString();
+        $eventBusChannelName = Uuid::v7()->toRfc4122();
         $configuration->registerMessageHandler(
             SplitterBuilder::createMessagePayloadSplitter()
                 ->withInputChannelName($eventBusChannelName)
@@ -553,7 +553,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         $linkingRouterHandler =
             MessageProcessorActivatorBuilder::create()
-                ->withInputChannelName(Uuid::uuid4()->toString())
+                ->withInputChannelName(Uuid::v7()->toRfc4122())
                 ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectionEventHandler::PROJECTION_LIVE, false))
                 ->chain(RouterProcessorBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),
@@ -570,7 +570,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         $emittingRouterHandler =
             MessageProcessorActivatorBuilder::create()
-                ->withInputChannelName(Uuid::uuid4()->toString())
+                ->withInputChannelName(Uuid::v7()->toRfc4122())
                 ->chain(new Definition(StreamNameMapper::class))
                 ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectionEventHandler::PROJECTION_LIVE))
                 ->chain(RouterProcessorBuilder::createRecipientListRouter([

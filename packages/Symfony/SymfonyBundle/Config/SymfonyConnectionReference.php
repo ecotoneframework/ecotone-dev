@@ -9,7 +9,7 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\Assert;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * licence Apache-2.0
@@ -30,7 +30,7 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
         ?string $referenceName = null
     ): self {
         return new self(
-            $referenceName ?? $managerRegistryReference . '.' . $connectionName . '.' . Uuid::uuid4()->toString(),
+            $referenceName ?? $managerRegistryReference . '.' . $connectionName . '.' . Uuid::v7()->toRfc4122(),
             $managerRegistryReference,
             $connectionName,
         );
@@ -39,7 +39,7 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
     public static function createForConnection(string $connectionName, ?string $referenceName = null): self
     {
         return new self(
-            $referenceName ?? $connectionName . '.' . Uuid::uuid4()->toString(),
+            $referenceName ?? $connectionName . '.' . Uuid::v7()->toRfc4122(),
             null,
             $connectionName,
         );

@@ -38,7 +38,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\ComponentTestBuilder;
 use Exception;
 use Interop\Amqp\AmqpConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use RuntimeException;
 use stdClass;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
@@ -69,7 +69,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_sending_to_default_exchange_with_routing_by_queue_name()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [
             AmqpQueue::createWith($queueName),
         ];
@@ -105,7 +105,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
 
     public function test_throwing_exception_and_requeuing_when_stop_on_error_is_defined()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [
             AmqpQueue::createWith($queueName),
         ];
@@ -153,7 +153,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
 
     public function test_throwing_exception_and_rejecting_when_stop_on_error_is_defined_with_error_channel()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [
             AmqpQueue::createWith($queueName),
         ];
@@ -308,7 +308,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_throwing_exception_if_sending_non_string_payload_without_media_type_information()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [AmqpQueue::createWith($queueName)];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -335,7 +335,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_converting_payload_to_string_if_converter_exists_and_media_type_passed()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [AmqpQueue::createWith($queueName)];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -375,7 +375,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_not_receiving_a_message_when_queue_is_empty()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [
             AmqpQueue::createWith($queueName),
         ];
@@ -401,9 +401,9 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_sending_and_receiving_with_routing_key_to_custom_exchange()
     {
-        $exchangeName = Uuid::uuid4()->toString();
-        $whiteQueueName = Uuid::uuid4()->toString();
-        $blackQueueName = Uuid::uuid4()->toString();
+        $exchangeName = Uuid::v7()->toRfc4122();
+        $whiteQueueName = Uuid::v7()->toRfc4122();
+        $blackQueueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [
             AmqpQueue::createWith($blackQueueName),
             AmqpQueue::createWith($whiteQueueName),
@@ -452,7 +452,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_sending_and_receiving_with_routing_key_in_message()
     {
-        $blackQueueName = Uuid::uuid4()->toString();
+        $blackQueueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [
             AmqpQueue::createWith($blackQueueName),
         ];
@@ -486,8 +486,8 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_sending_and_receiving_with_exchange_in_message()
     {
-        $exchangeName = Uuid::uuid4()->toString();
-        $blackQueueName = Uuid::uuid4()->toString();
+        $exchangeName = Uuid::v7()->toRfc4122();
+        $blackQueueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [
             AmqpQueue::createWith($blackQueueName),
         ];
@@ -527,9 +527,9 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_sending_and_receiving_from_topic_exchange()
     {
-        $exchangeName = Uuid::uuid4()->toString();
-        $whiteQueueName = Uuid::uuid4()->toString();
-        $blackQueueName = Uuid::uuid4()->toString();
+        $exchangeName = Uuid::v7()->toRfc4122();
+        $whiteQueueName = Uuid::v7()->toRfc4122();
+        $blackQueueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [
             AmqpQueue::createWith($blackQueueName),
             AmqpQueue::createWith($whiteQueueName),
@@ -576,7 +576,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_sending_and_receiving_with_header_mapping()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [
             AmqpQueue::createWith($queueName),
         ];
@@ -622,7 +622,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_sending_message_with_auto_acking()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [AmqpQueue::createWith($queueName)];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -668,7 +668,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
 
     public function test_sending_with_time_to_live()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [AmqpQueue::createWith($queueName)];
         $amqpExchanges = [];
         $amqpBindings = [];
@@ -706,7 +706,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
 
     public function test_delaying_the_message()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $ecotoneLite = $this->bootstrapForTesting(
             [],
             [
@@ -736,8 +736,8 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     {
         $normalQueueEndpointId = 'normal_queue';
         $deadLetterQueueEndpointId = 'asynchronous_endpoint';
-        $queueName = Uuid::uuid4()->toString();
-        $deadLetterQueueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
+        $deadLetterQueueName = Uuid::v7()->toRfc4122();
         $deadLetterQueue = AmqpQueue::createWith($deadLetterQueueName);
         $ecotoneLite = $this->bootstrapForTesting(
             [ExceptionalMessageHandler::class, AmqpConsumerExample::class],
@@ -775,7 +775,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_receiving_message_second_time_when_requeued()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
 
         $amqpBackedMessageChannel = $this->createDirectAmqpBackendMessageChannel($queueName);
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
@@ -792,7 +792,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
 
     public function test_receiving_message_second_time_with_different_timeouts_when_requeued()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
 
         $amqpBackedMessageChannel = $this->createDirectAmqpBackendMessageChannel($queueName);
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
@@ -813,7 +813,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_not_receiving_message_second_time_when_acked()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
 
         $amqpBackedMessageChannel = $this->createDirectAmqpBackendMessageChannel($queueName);
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
@@ -830,7 +830,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_not_receiving_message_second_time_when_rejected()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
 
         $amqpBackedMessageChannel = $this->createDirectAmqpBackendMessageChannel($queueName);
         $amqpBackedMessageChannel->send(MessageBuilder::withPayload('some')->build());
@@ -850,9 +850,9 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
      */
     public function test_sending_and_receiving_from_fanout_exchange()
     {
-        $exchangeName = Uuid::uuid4()->toString();
-        $whiteQueueName = Uuid::uuid4()->toString();
-        $blackQueueName = Uuid::uuid4()->toString();
+        $exchangeName = Uuid::v7()->toRfc4122();
+        $whiteQueueName = Uuid::v7()->toRfc4122();
+        $blackQueueName = Uuid::v7()->toRfc4122();
         $amqpQueues = [
             AmqpQueue::createWith($blackQueueName),
             AmqpQueue::createWith($whiteQueueName),
@@ -897,7 +897,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
 
     public function test_using_custom_delay_strategy_from_channel_builder()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $customDelayStrategy = new SpyDelayStrategy();
 
         $ecotoneLite = $this->bootstrapForTesting(

@@ -43,10 +43,11 @@
         "psr/clock": "^1.0",
         "psr/container": "^1.1.1|^2.0.1",
         "psr/log": "^2.0|^3.0",
-        "ramsey/uuid": "^4.0"
+        "symfony/uid": "^6.4|^7.0|^8.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0",
+        "ramsey/uuid": "^4.0",
         "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
         "symfony/expression-language": "^6.4|^7.0|^8.0"

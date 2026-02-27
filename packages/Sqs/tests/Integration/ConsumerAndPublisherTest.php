@@ -11,7 +11,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Sqs\Configuration\SqsMessageConsumerConfiguration;
 use Ecotone\Sqs\Configuration\SqsMessagePublisherConfiguration;
 use Enqueue\Sqs\SqsConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsConsumerExample;
 
@@ -27,7 +27,7 @@ final class ConsumerAndPublisherTest extends ConnectionTestCase
     public function testing_sending_message_using_publisher_and_receiving_using_consumer()
     {
         $endpointId = 'sqs_consumer';
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [SqsConsumerExample::class],
             [

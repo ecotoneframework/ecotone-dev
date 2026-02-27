@@ -17,7 +17,7 @@ use Fixture\MessengerConsumer\ExampleCommand;
 use Fixture\MessengerConsumer\ExampleEvent;
 use Fixture\MessengerConsumer\MessengerAsyncCommandHandler;
 use Fixture\MessengerConsumer\MessengerAsyncEventHandler;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 
 /**
@@ -67,7 +67,7 @@ final class MessengerIntegrationTest extends WebTestCase
     public function test_sending_and_receiving_message_from_channel()
     {
         $channelName = 'messenger_async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
@@ -78,7 +78,7 @@ final class MessengerIntegrationTest extends WebTestCase
                 ])
         );
         $metadata = [
-            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
+            MessageHeaders::MESSAGE_ID => Uuid::v7()->toRfc4122(),
             MessageHeaders::TIMESTAMP => 123333,
         ];
 
@@ -102,7 +102,7 @@ final class MessengerIntegrationTest extends WebTestCase
     public function test_acking_messages()
     {
         $channelName = 'messenger_async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
@@ -125,7 +125,7 @@ final class MessengerIntegrationTest extends WebTestCase
     public function test_requeing_message_when_fails()
     {
         $channelName = 'messenger_async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
@@ -147,7 +147,7 @@ final class MessengerIntegrationTest extends WebTestCase
     public function test_using_custom_failure_strategy()
     {
         $channelName = 'messenger_async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
@@ -239,7 +239,7 @@ final class MessengerIntegrationTest extends WebTestCase
     public function test_adding_type_id_header()
     {
         $channelName = 'messenger_async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
@@ -262,7 +262,7 @@ final class MessengerIntegrationTest extends WebTestCase
     public function test_sending_and_receiving_events()
     {
         $channelName = 'messenger_async';
-        $messagePayload = new ExampleEvent(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleEvent(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncEventHandler::class],
@@ -296,7 +296,7 @@ final class MessengerIntegrationTest extends WebTestCase
     public function test_sending_with_delay()
     {
         $channelName = 'messenger_async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],
@@ -318,7 +318,7 @@ final class MessengerIntegrationTest extends WebTestCase
     public function test_sending_with_delay_using_datetime()
     {
         $channelName = 'messenger_async';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [MessengerAsyncCommandHandler::class],

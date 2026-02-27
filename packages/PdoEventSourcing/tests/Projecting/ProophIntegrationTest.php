@@ -27,7 +27,7 @@ use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\CreateBasket;
@@ -60,7 +60,7 @@ class ProophIntegrationTest extends ProjectingTestCase
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
             ->deleteProjection($projection::NAME)
-            ->sendCommand(new CreateTicketCommand($ticketId = Uuid::uuid4()->toString()))
+            ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
             ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
 
@@ -100,7 +100,7 @@ class ProophIntegrationTest extends ProjectingTestCase
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
             ->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME)
-            ->sendCommand(new CreateTicketCommand($ticketId = Uuid::uuid4()->toString()))
+            ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
             ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
 
@@ -140,7 +140,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->deleteProjection($projection::NAME);
 
         // Send events - should auto-initialize and process
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
         $ticketsCount = $ecotone->sendCommand(new CreateTicketCommand($ticketId))
             ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
@@ -177,7 +177,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->deleteProjection($projection::NAME);
 
         // Send events - should skip processing
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
         $ecotone->sendCommand(new CreateTicketCommand($ticketId))
             ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
 
@@ -211,7 +211,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->deleteProjection($projection::NAME);
 
         // Send events first (should be skipped)
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
         $ecotone->sendCommand(new CreateTicketCommand($ticketId))
             ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
 
@@ -251,9 +251,9 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->deleteProjection($projection::NAME);
 
         // Send multiple events concurrently - should only initialize once
-        $ticketId1 = Uuid::uuid4()->toString();
-        $ticketId2 = Uuid::uuid4()->toString();
-        $ticketId3 = Uuid::uuid4()->toString();
+        $ticketId1 = Uuid::v7()->toRfc4122();
+        $ticketId2 = Uuid::v7()->toRfc4122();
+        $ticketId3 = Uuid::v7()->toRfc4122();
 
         $ticketsCount = $ecotone->sendCommand(new CreateTicketCommand($ticketId1))
             ->sendCommand(new CreateTicketCommand($ticketId2))
@@ -293,7 +293,7 @@ class ProophIntegrationTest extends ProjectingTestCase
         $ecotone1->deleteEventStream(Ticket::STREAM_NAME)
             ->deleteProjection($projection::NAME);
 
-        $ticketId1 = Uuid::uuid4()->toString();
+        $ticketId1 = Uuid::v7()->toRfc4122();
         $ticketsCount1 = $ecotone1->sendCommand(new CreateTicketCommand($ticketId1))
             ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1])
             ->sendQueryWithRouting('getTicketsCount');
@@ -312,7 +312,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ticketId2 = Uuid::uuid4()->toString();
+        $ticketId2 = Uuid::v7()->toRfc4122();
         $ticketsCount2 = $ecotone2->sendCommand(new CreateTicketCommand($ticketId2))
             ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2])
             ->sendQueryWithRouting('getTicketsCount');
@@ -349,8 +349,8 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->deleteProjection($projection::NAME);
 
         // Send events for different partitions
-        $ticketId1 = Uuid::uuid4()->toString();
-        $ticketId2 = Uuid::uuid4()->toString();
+        $ticketId1 = Uuid::v7()->toRfc4122();
+        $ticketId2 = Uuid::v7()->toRfc4122();
 
         $ticketsCount = $ecotone->sendCommand(new CreateTicketCommand($ticketId1), ['tenantId' => 'tenant-1'])
             ->sendCommand(new CreateTicketCommand($ticketId2), ['tenantId' => 'tenant-2'])
@@ -388,7 +388,7 @@ class ProophIntegrationTest extends ProjectingTestCase
 
         // Send multiple events
         for ($i = 1; $i <= 5; $i++) {
-            $ticketId = Uuid::uuid4()->toString();
+            $ticketId = Uuid::v7()->toRfc4122();
             $ecotone->sendCommand(new CreateTicketCommand($ticketId))
                 ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
         }
@@ -433,7 +433,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->deleteProjection($projection::NAME);
 
         for ($i = 1; $i <= 5; $i++) {
-            $ecotone->sendCommand(new CreateTicketCommand(Uuid::uuid4()->toString()));
+            $ecotone->sendCommand(new CreateTicketCommand(Uuid::v7()->toRfc4122()));
         }
 
         $ecotone->triggerProjection($projection::NAME);
@@ -466,8 +466,8 @@ class ProophIntegrationTest extends ProjectingTestCase
         )
             ->deleteEventStream(Basket::BASKET_STREAM)
             ->deleteProjection($basketProjection::NAME)
-            ->sendCommand(new CreateBasket(Uuid::uuid4()->toString()))
-            ->sendCommand(new CreateBasket(Uuid::uuid4()->toString()));
+            ->sendCommand(new CreateBasket(Uuid::v7()->toRfc4122()))
+            ->sendCommand(new CreateBasket(Uuid::v7()->toRfc4122()));
 
         self::assertSame(2, $basketProjection->basketCount);
     }
@@ -521,7 +521,7 @@ class ProophIntegrationTest extends ProjectingTestCase
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
             ->deleteProjection($projection::NAME)
-            ->sendCommand(new CreateTicketCommand($ticketId = Uuid::uuid4()->toString()))
+            ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
             ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
 
@@ -557,8 +557,8 @@ class ProophIntegrationTest extends ProjectingTestCase
         $ecotone->deleteEventStream(Ticket::STREAM_NAME)
             ->deleteProjection($projection::NAME);
 
-        $ticketId1 = Uuid::uuid4()->toString();
-        $ticketId2 = Uuid::uuid4()->toString();
+        $ticketId1 = Uuid::v7()->toRfc4122();
+        $ticketId2 = Uuid::v7()->toRfc4122();
 
         $ticketsCount = $ecotone->sendCommand(new CreateTicketCommand($ticketId1))
             ->sendCommand(new CreateTicketCommand($ticketId2))
@@ -622,7 +622,7 @@ class ProophIntegrationTest extends ProjectingTestCase
             ->deleteProjection($projection::NAME);
 
         for ($i = 1; $i <= 5; $i++) {
-            $ecotone->sendCommand(new CreateTicketCommand(Uuid::uuid4()->toString()));
+            $ecotone->sendCommand(new CreateTicketCommand(Uuid::v7()->toRfc4122()));
         }
 
         $ecotone->triggerProjection($projection::NAME);

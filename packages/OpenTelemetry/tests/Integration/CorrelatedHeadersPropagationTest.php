@@ -16,7 +16,7 @@ use OpenTelemetry\API\Trace\StatusCode;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\ImmutableSpan;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\CreateMerchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\Merchant;
 use Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow\MerchantCreated;
@@ -37,8 +37,8 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
     {
         $exporter = new InMemoryExporter(new ArrayObject());
 
-        $messageId = Uuid::uuid4()->toString();
-        $correlationId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
+        $correlationId = Uuid::v7()->toRfc4122();
         $timestamp = 1680436648;
 
         EcotoneLite::bootstrapFlowTesting(
@@ -66,8 +66,8 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
     {
         $exporter = new InMemoryExporter(new ArrayObject());
 
-        $messageId = Uuid::uuid4()->toString();
-        $correlationId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
+        $correlationId = Uuid::v7()->toRfc4122();
         $timestamp = 1680436648;
 
         EcotoneLite::bootstrapFlowTesting(
@@ -98,8 +98,8 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
     {
         $exporter = new InMemoryExporter(new ArrayObject());
 
-        $messageId = Uuid::uuid4()->toString();
-        $correlationId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
+        $correlationId = Uuid::v7()->toRfc4122();
         $timestamp = 1680436648;
 
         EcotoneLite::bootstrapFlowTesting(
@@ -133,8 +133,8 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
     {
         $exporter = new InMemoryExporter(new ArrayObject());
 
-        $messageId = Uuid::uuid4()->toString();
-        $correlationId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
+        $correlationId = Uuid::v7()->toRfc4122();
         $timestamp = 1680436648;
 
         EcotoneLite::bootstrapFlowTesting(
@@ -188,8 +188,8 @@ final class CorrelatedHeadersPropagationTest extends TracingTestCase
     {
         $exporter = new InMemoryExporter(new ArrayObject());
 
-        $messageId = Uuid::uuid4()->toString();
-        $correlationId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
+        $correlationId = Uuid::v7()->toRfc4122();
         $timestamp = 1680436648;
 
         try {

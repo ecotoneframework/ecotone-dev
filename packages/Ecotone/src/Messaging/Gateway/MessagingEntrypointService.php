@@ -11,7 +11,7 @@ use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * licence Apache-2.0
@@ -133,11 +133,7 @@ class MessagingEntrypointService
 
     private function createMessageBuilder(mixed $payload, array $headers, string $targetChannel): MessageBuilder
     {
-        $messageId = Uuid::uuid4()->toString();
-
         return MessageBuilder::withPayload($payload)
-            ->setHeader(MessageHeaders::MESSAGE_ID, $messageId)
-            ->setHeader(MessageHeaders::MESSAGE_CORRELATION_ID, $messageId)
             ->setContentTypeIfAbsent(MediaType::createApplicationXPHPWithTypeParameter(Type::createFromVariable($payload)->getTypeHint()))
             ->setMultipleHeaders($headers)
             ->setHeader(self::ENTRYPOINT, $targetChannel);

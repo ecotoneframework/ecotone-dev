@@ -19,7 +19,7 @@ use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\QueryBus;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use ReflectionException;
 use Test\Ecotone\Messaging\Fixture\Behat\Calculating\Calculator;
 use Test\Ecotone\Messaging\Fixture\Behat\Calculating\CalculatorInterceptor;
@@ -356,7 +356,7 @@ class AnnotationBasedMessagingContext extends TestCase implements Context
                 }
         }
 
-        $cacheDirectoryPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::uuid4()->toString() . 'ecotone_testing_behat_cache';
+        $cacheDirectoryPath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . Uuid::v7()->toRfc4122() . 'ecotone_testing_behat_cache';
 
         $applicationConfiguration = ServiceConfiguration::createWithAsynchronicityOnly()
             ->withEnvironment('prod')

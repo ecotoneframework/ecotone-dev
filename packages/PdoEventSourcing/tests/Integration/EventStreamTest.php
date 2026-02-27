@@ -13,7 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Modelling\Event;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
@@ -48,7 +48,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
-        $streamName = Uuid::uuid4()->toString();
+        $streamName = Uuid::v7()->toRfc4122();
         $eventStore->appendTo(
             $streamName,
             [
@@ -90,7 +90,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
-        $streamName = Uuid::uuid4()->toString();
+        $streamName = Uuid::v7()->toRfc4122();
         $eventStore->create($streamName, streamMetadata: [
             LazyProophEventStore::PERSISTENCE_STRATEGY_METADATA => 'simple',
         ]);
@@ -133,7 +133,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
-        $streamName = Uuid::uuid4()->toString();
+        $streamName = Uuid::v7()->toRfc4122();
         $eventStore->create($streamName, streamMetadata: [
             LazyProophEventStore::PERSISTENCE_STRATEGY_METADATA => 'simple',
         ]);
@@ -186,7 +186,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
-        $streamName = Uuid::uuid4()->toString();
+        $streamName = Uuid::v7()->toRfc4122();
         $eventStore->create($streamName, streamMetadata: [
             LazyProophEventStore::PERSISTENCE_STRATEGY_METADATA => 'partition',
         ]);
@@ -238,7 +238,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
-        $streamName = Uuid::uuid4()->toString();
+        $streamName = Uuid::v7()->toRfc4122();
         $eventStore->appendTo(
             $streamName,
             [
@@ -287,7 +287,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         /** @var EventStore $eventStore */
         $eventStore = $ecotone->getGateway(EventStore::class);
 
-        $streamName = Uuid::uuid4()->toString();
+        $streamName = Uuid::v7()->toRfc4122();
         $eventStore->create($streamName, streamMetadata: [
             LazyProophEventStore::PERSISTENCE_STRATEGY_METADATA => 'simple',
         ]);

@@ -17,7 +17,7 @@ use Ecotone\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Test\StubLogger;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisDestination;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;
 use Test\Ecotone\Redis\Fixture\AsynchronousHandler\OrderService;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisAsyncConsumerExample;
@@ -33,8 +33,8 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
 {
     public function test_sending_and_receiving_message(): void
     {
-        $queueName = Uuid::uuid4()->toString();
-        $messagePayload = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
+        $messagePayload = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             containerOrAvailableServices: [
@@ -63,7 +63,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
     public function test_sending_and_receiving_message_from_using_asynchronous_command_handler(): void
     {
         $queueName = 'redis';
-        $messagePayload = Uuid::uuid4()->toString();
+        $messagePayload = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             classesToResolve: [RedisAsyncConsumerExample::class],

@@ -10,7 +10,7 @@ use Ecotone\EventSourcing\ProjectionStreamSource;
 use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -45,7 +45,7 @@ class LazyProophProjectionManager implements ProjectionManager
     public function __construct(
         private EventSourcingConfiguration $eventSourcingConfiguration,
         private array                      $projectionSetupConfigurations,
-        private MessagingEntrypointWithHeadersPropagation        $messagingEntrypoint,
+        private MessagingEntrypointService        $messagingEntrypoint,
         private ConversionService          $conversionService,
         private LazyProophEventStore       $lazyProophEventStore,
     ) {
@@ -227,7 +227,7 @@ class LazyProophProjectionManager implements ProjectionManager
         $conversionService = $this->conversionService;
         $projection = $projection->whenAny(function ($state, Message $event) use ($projectionName, $status, $messagingEntrypoint, $routerChannel, $conversionService): mixed {
             $isLive = $status != \Ecotone\EventSourcing\ProjectionStatus::REBUILDING();
-            $state = $messagingEntrypoint->sendWithHeaders(
+            $state = $messagingEntrypoint->sendWithHeadersPropagation(
                 $event->payload(),
                 array_merge(
                     $event->metadata(),

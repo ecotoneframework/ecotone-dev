@@ -23,7 +23,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
@@ -116,7 +115,6 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                     EventBus::class . '||' .
                     AsynchronousRunningEndpoint::class  . '||' .
                     PropagateHeaders::class  . '||' .
-                    MessagingEntrypointWithHeadersPropagation::class . '||' .
                     MessageGateway::class
                 )
             );

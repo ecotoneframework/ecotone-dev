@@ -34,12 +34,11 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -112,52 +111,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
 
         $messagingConfiguration->registerGatewayBuilder(
             GatewayProxyBuilder::create(
-                MessagingEntrypointWithHeadersPropagation::class,
-                MessagingEntrypointWithHeadersPropagation::class,
-                'send',
-                MessagingEntrypointService::ENTRYPOINT
-            )->withParameterConverters([
-                GatewayPayloadBuilder::create('payload'),
-                GatewayHeaderBuilder::create('targetChannel', MessagingEntrypointService::ENTRYPOINT),
-            ])
-        );
-        $messagingConfiguration->registerGatewayBuilder(
-            GatewayProxyBuilder::create(
-                MessagingEntrypointWithHeadersPropagation::class,
-                MessagingEntrypointWithHeadersPropagation::class,
-                'sendWithHeaders',
-                MessagingEntrypointService::ENTRYPOINT
-            )->withParameterConverters([
-                GatewayPayloadBuilder::create('payload'),
-                GatewayHeadersBuilder::create('headers'),
-                GatewayHeaderBuilder::create('targetChannel', MessagingEntrypointService::ENTRYPOINT),
-                GatewayHeaderBuilder::create('routingSlip', MessageHeaders::ROUTING_SLIP),
-            ])
-        );
-        $messagingConfiguration->registerGatewayBuilder(
-            GatewayProxyBuilder::create(
-                MessagingEntrypointWithHeadersPropagation::class,
-                MessagingEntrypointWithHeadersPropagation::class,
-                'sendWithHeadersWithMessageReply',
-                MessagingEntrypointService::ENTRYPOINT
-            )->withParameterConverters([
-                GatewayPayloadBuilder::create('payload'),
-                GatewayHeadersBuilder::create('headers'),
-                GatewayHeaderBuilder::create('targetChannel', MessagingEntrypointService::ENTRYPOINT),
-                GatewayHeaderBuilder::create('routingSlip', MessageHeaders::ROUTING_SLIP),
-            ])
-        );
-        $messagingConfiguration->registerGatewayBuilder(
-            GatewayProxyBuilder::create(
-                MessagingEntrypointWithHeadersPropagation::class,
-                MessagingEntrypointWithHeadersPropagation::class,
-                'sendMessage',
-                MessagingEntrypointService::ENTRYPOINT
-            )
-        );
-
-        $messagingConfiguration->registerGatewayBuilder(
-            GatewayProxyBuilder::create(
                 ConsoleCommandRunner::class,
                 ConsoleCommandRunner::class,
                 'execute',
@@ -194,6 +147,7 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
             MessagingEntrypointService::class,
             new Definition(MessagingEntrypointService::class, [
                 new Reference(ChannelResolver::class),
+                Reference::to(MessageHeadersPropagatorInterceptor::class),
             ])
         );
     }

@@ -54,7 +54,7 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;
-use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Filter\MessageFilterBuilder;
@@ -297,7 +297,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             new Definition(LazyProophProjectionManager::class, [
                 Reference::to(EventSourcingConfiguration::class),
                 $this->projectionSetupConfigurations,
-                Reference::to(MessagingEntrypointWithHeadersPropagation::class),
+                Reference::to(MessagingEntrypointService::class),
                 Reference::to(ConversionService::class),
                 Reference::to(LazyProophEventStore::class),
             ]),

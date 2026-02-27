@@ -10,6 +10,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ramsey\Uuid\Uuid;
 
 /**
@@ -22,6 +23,7 @@ class MessagingEntrypointService
 
     public function __construct(
         private ChannelResolver $channelResolver,
+        private MessageHeadersPropagatorInterceptor $messageHeadersPropagator,
     ) {
     }
 
@@ -60,6 +62,56 @@ class MessagingEntrypointService
         $this->getEntrypointChannel()->send($messageBuilder->build());
 
         return $replyChannel->receive();
+    }
+
+    public function sendWithHeadersPropagation(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): mixed
+    {
+        $headers = $this->messageHeadersPropagator->propagateHeaders($headers);
+
+        $replyChannel = QueueChannel::create('messaging-entrypoint-reply');
+
+        $messageBuilder = $this->createMessageBuilder($payload, $headers, $targetChannel)
+            ->setReplyChannel($replyChannel);
+
+        if ($routingSlip !== null) {
+            $messageBuilder->setHeader(MessageHeaders::ROUTING_SLIP, $routingSlip);
+        }
+
+        $message = $messageBuilder->build();
+
+        return $this->messageHeadersPropagator->storeHeaders(
+            function () use ($message, $replyChannel) {
+                $this->getEntrypointChannel()->send($message);
+
+                return $replyChannel->receive()?->getPayload();
+            },
+            $message
+        );
+    }
+
+    public function sendWithHeadersPropagationAndMessageReply(mixed $payload, array $headers, string $targetChannel, ?string $routingSlip = null): ?Message
+    {
+        $headers = $this->messageHeadersPropagator->propagateHeaders($headers);
+
+        $replyChannel = QueueChannel::create('messaging-entrypoint-reply');
+
+        $messageBuilder = $this->createMessageBuilder($payload, $headers, $targetChannel)
+            ->setReplyChannel($replyChannel);
+
+        if ($routingSlip !== null) {
+            $messageBuilder->setHeader(MessageHeaders::ROUTING_SLIP, $routingSlip);
+        }
+
+        $message = $messageBuilder->build();
+
+        return $this->messageHeadersPropagator->storeHeaders(
+            function () use ($message, $replyChannel) {
+                $this->getEntrypointChannel()->send($message);
+
+                return $replyChannel->receive();
+            },
+            $message
+        );
     }
 
     public function sendMessage(Message $message): mixed

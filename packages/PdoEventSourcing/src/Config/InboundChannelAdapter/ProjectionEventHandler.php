@@ -5,7 +5,7 @@ namespace Ecotone\EventSourcing\Config\InboundChannelAdapter;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\ProjectionStatus;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
-use Ecotone\Messaging\Gateway\MessagingEntrypointWithHeadersPropagation;
+use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Projecting\ProjectingHeaders;
 use Prooph\EventStore\StreamName;
 
@@ -25,7 +25,7 @@ class ProjectionEventHandler
     ) {
     }
 
-    public function execute(MessagingEntrypointWithHeadersPropagation $messagingEntrypoint): void
+    public function execute(MessagingEntrypointService $messagingEntrypoint): void
     {
         $status = ProjectionStatus::RUNNING();
         $projectHasRelatedStream = $this->lazyProophProjectionManager->hasInitializedProjectionWithName($this->projectionSetupConfiguration->getProjectionName());

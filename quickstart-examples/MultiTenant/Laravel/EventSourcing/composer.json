@@ -15,7 +15,8 @@
     "require": {
         "ecotone/laravel-starter": "^1.1.0",
         "ecotone/lite-event-sourcing-starter": "^1.0",
-        "laravel/laravel": "^10.0"
+        "laravel/laravel": "^10.0",
+        "ramsey/uuid": "^4.0"
     },
     "require-dev": {
         "doctrine/orm": "^2.11|^3.0",

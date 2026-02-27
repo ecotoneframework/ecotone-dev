@@ -21,7 +21,8 @@
         "ecotone/lite-dbal-starter": "^1.0.1",
         "intervention/image": "^3.5.1",
         "moneyphp/money": "^4.1.0",
-        "webmozart/assert": "^1.11"
+        "webmozart/assert": "^1.11",
+        "ramsey/uuid": "^4.0"
     },
     "require-dev": {
         "doctrine/orm": "^2.11|^3.0",

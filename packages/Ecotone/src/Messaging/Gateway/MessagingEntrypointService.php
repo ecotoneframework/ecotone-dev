@@ -11,7 +11,6 @@ use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
-use Symfony\Component\Uid\Uuid;
 
 /**
  * licence Apache-2.0

@@ -17,7 +17,7 @@ use Ecotone\Test\LicenceTesting;
 use Exception;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Nonstandard\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
 
 /**
@@ -32,7 +32,7 @@ final class FinalFailureStrategyTest extends TestCase
 {
     public function test_single_message_redelivered_and_processed_correctly()
     {
-        $topicName = 'test_single_redelivery_' . Uuid::uuid4()->toString();
+        $topicName = 'test_single_redelivery_' . Uuid::v7()->toRfc4122();
         $handler = new SingleMessageHandler();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
@@ -76,7 +76,7 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_three_messages_second_fails_and_is_released()
     {
-        $topicName = 'test_three_messages_' . Uuid::uuid4()->toString();
+        $topicName = 'test_three_messages_' . Uuid::v7()->toRfc4122();
         $handler = new ThreeMessageHandler();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
@@ -115,7 +115,7 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_three_messages_second_fails_and_is_resend()
     {
-        $topicName = 'test_three_messages_' . Uuid::uuid4()->toString();
+        $topicName = 'test_three_messages_' . Uuid::v7()->toRfc4122();
         $handler = new ThreeMessageHandler();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
@@ -154,7 +154,7 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_when_new_consumer_starts_it_can_reprocess_released_message()
     {
-        $topicName = 'test_two_applications_' . Uuid::uuid4()->toString();
+        $topicName = 'test_two_applications_' . Uuid::v7()->toRfc4122();
         $handler1 = new TwoApplicationHandler();
 
         // First application - fails with execution limit 1
@@ -199,8 +199,8 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_when_new_consumer_starts_it_skips_ignored_message()
     {
-        $topicName = 'test_ignore_shared_' . Uuid::uuid4()->toString();
-        $sharedGroupId = 'shared_consumer_group_' . Uuid::uuid4()->toString();
+        $topicName = 'test_ignore_shared_' . Uuid::v7()->toRfc4122();
+        $sharedGroupId = 'shared_consumer_group_' . Uuid::v7()->toRfc4122();
         $handler = new IgnoreTestHandler();
 
         // Single application that will process multiple messages
@@ -254,7 +254,7 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_different_message_groups_will_handle_ignored_message_twice()
     {
-        $topicName = 'test_ignore_shared_' . Uuid::uuid4()->toString();
+        $topicName = 'test_ignore_shared_' . Uuid::v7()->toRfc4122();
         $handler1 = new IgnoreTestHandler();
         $handler2 = new IgnoreTestHandler();
 
@@ -268,7 +268,7 @@ final class FinalFailureStrategyTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',
                         topicName: $topicName,
-                        messageGroupId: Uuid::uuid4()->toString()
+                        messageGroupId: Uuid::v7()->toRfc4122()
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(10000),
@@ -305,7 +305,7 @@ final class FinalFailureStrategyTest extends TestCase
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',
                         topicName: $topicName,
-                        messageGroupId: Uuid::uuid4()->toString()
+                        messageGroupId: Uuid::v7()->toRfc4122()
                     )
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(10000),

@@ -28,7 +28,7 @@ use Interop\Queue\Exception\Exception;
 use function json_decode;
 use function json_encode;
 
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * licence Apache-2.0
@@ -191,7 +191,7 @@ class DbalDeadLetterHandler
             $rowsAffected = $this->storeInDatabase($headers[MessageHeaders::MESSAGE_ID], $headers, $payload);
         } catch (UniqueConstraintViolationException) {
             /** If same Message for different Event Handlers failed */
-            $rowsAffected = $this->storeInDatabase(Uuid::uuid4()->toString(), $headers, $payload);
+            $rowsAffected = $this->storeInDatabase(Uuid::v7()->toRfc4122(), $headers, $payload);
         }
 
         if (1 !== $rowsAffected) {

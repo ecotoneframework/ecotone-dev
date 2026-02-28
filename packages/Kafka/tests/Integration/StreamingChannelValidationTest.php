@@ -14,7 +14,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * licence Enterprise
@@ -42,9 +42,9 @@ final class StreamingChannelValidationTest extends TestCase
             }
         };
 
-        $sharedGroupId = 'shared-group-' . Uuid::uuid4()->toString();
-        $topic1 = 'topic1-' . Uuid::uuid4()->toString();
-        $topic2 = 'topic2-' . Uuid::uuid4()->toString();
+        $sharedGroupId = 'shared-group-' . Uuid::v7()->toRfc4122();
+        $topic1 = 'topic1-' . Uuid::v7()->toRfc4122();
+        $topic2 = 'topic2-' . Uuid::v7()->toRfc4122();
 
         EcotoneLite::bootstrapFlowTesting(
             [$handler::class],
@@ -84,10 +84,10 @@ final class StreamingChannelValidationTest extends TestCase
             }
         };
 
-        $groupId1 = 'group1-' . Uuid::uuid4()->toString();
-        $groupId2 = 'group2-' . Uuid::uuid4()->toString();
-        $topic1 = 'topic1-' . Uuid::uuid4()->toString();
-        $topic2 = 'topic2-' . Uuid::uuid4()->toString();
+        $groupId1 = 'group1-' . Uuid::v7()->toRfc4122();
+        $groupId2 = 'group2-' . Uuid::v7()->toRfc4122();
+        $topic1 = 'topic1-' . Uuid::v7()->toRfc4122();
+        $topic2 = 'topic2-' . Uuid::v7()->toRfc4122();
 
         // This should work fine - different group IDs
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(

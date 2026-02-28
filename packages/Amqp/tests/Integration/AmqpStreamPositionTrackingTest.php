@@ -14,7 +14,7 @@ use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
 
@@ -37,7 +37,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
     public function test_resuming_from_last_committed_position_after_restart()
     {
         $channelName = 'orders';
-        $queueName = 'stream_position_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_position_' . Uuid::v7()->toRfc4122();
 
         // Shared position tracker between both instances
         $sharedPositionTracker = new InMemoryConsumerPositionTracker();

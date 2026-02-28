@@ -12,7 +12,7 @@ use Interop\Queue\Exception\InvalidMessageException;
 use Interop\Queue\Message;
 use Interop\Queue\Producer;
 use LogicException;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * licence MIT
@@ -70,7 +70,7 @@ class DbalProducer implements Producer
             ?? (int) ($this->context->getClock()->now()->unixTime()->toFloat() * 10_000); // x 10_000 ?!?!!??
 
         $dbalMessage = [
-            'id' => Uuid::uuid4(),
+            'id' => Uuid::v7()->toRfc4122(),
             'published_at' => $publishedAt,
             'body' => $body,
             'headers' => JSON::encode($message->getHeaders()),

@@ -16,7 +16,7 @@ use Ecotone\Messaging\InMemoryConfigurationVariableService;
 
 use function file_put_contents;
 
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * licence Apache-2.0
@@ -63,7 +63,7 @@ class EcotoneLiteApplication
                 $serviceConfiguration,
             );
 
-            $containerClass = 'CompiledContainer_'.self::hash(Uuid::uuid4()->toString());
+            $containerClass = 'CompiledContainer_'.self::hash(Uuid::v7()->toRfc4122());
             $builder = new PhpDiContainerBuilder();
             $builder->useAttributes(false);
             $builder->useAutowiring(true);

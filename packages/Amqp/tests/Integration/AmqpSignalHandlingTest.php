@@ -16,7 +16,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
 /**
@@ -28,7 +28,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
     public function test_consumer_stops_after_current_message_when_signal_sent_during_processing(): void
     {
         $endpointId = 'signal_test_endpoint';
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $signalHandler = new AmqpSignalSendingMessageHandler();
 
         $ecotoneLite = $this->bootstrapForTesting(
@@ -77,7 +77,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(
                         'async_commands_unique',
-                        queueName: Uuid::uuid4()->toString()
+                        queueName: Uuid::v7()->toRfc4122()
                     ),
                 ])
         );
@@ -112,7 +112,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(
                         'async_commands_unique',
-                        queueName: Uuid::uuid4()->toString()
+                        queueName: Uuid::v7()->toRfc4122()
                     ),
                 ])
         );
@@ -145,7 +145,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
     //            ServiceConfiguration::createWithDefaults()
     //                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
     //                ->withExtensionObjects([
-    //                    AmqpBackedMessageChannelBuilder::create('async_commands_unique_empty', queueName: Uuid::uuid4()->toString()),
+    //                    AmqpBackedMessageChannelBuilder::create('async_commands_unique_empty', queueName: Uuid::v7()->toRfc4122()),
     //                ])
     //        );
     //

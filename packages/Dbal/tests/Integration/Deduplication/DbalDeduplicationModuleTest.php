@@ -12,7 +12,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\ExpressionDeduplicationCommandHandler;
@@ -40,7 +40,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
         );
 
-        $messageId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
         $this->assertEquals(
             1,
             $ecotoneLite
@@ -65,7 +65,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 ])
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString()]);
+        $ecotoneLite->sendCommandWithRoutingKey('email_event_handler.handle', metadata: [MessageHeaders::MESSAGE_ID => Uuid::v7()->toRfc4122()]);
 
         $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()
             ->withHandledMessageLimit(1)
@@ -99,7 +99,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 ])
         );
 
-        $messageId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
         $this->assertEquals(
             2,
             $ecotoneLite
@@ -127,7 +127,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 ])
         );
 
-        $messageId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
         $this->assertEquals(
             2,
             $ecotoneLite
@@ -158,7 +158,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 ])
         );
 
-        $messageId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
         $this->assertEquals(
             4,
             $ecotoneLite
@@ -189,7 +189,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
                 ])
         );
 
-        $messageId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
         $this->assertEquals(
             2,
             $ecotoneLite
@@ -202,7 +202,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_custom_deduplication_header()
     {
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [EmailCommandHandler::class],

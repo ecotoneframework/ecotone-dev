@@ -10,7 +10,7 @@ use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
 
@@ -26,7 +26,7 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTestCase
     public function testing_sending_message_using_publisher_and_receiving_using_consumer()
     {
         $endpointId = 'asynchronous_endpoint';
-        $queueName = Uuid::uuid4()->toString();
+        $queueName = Uuid::v7()->toRfc4122();
         $ecotoneLite = $this->bootstrapForTesting(
             [AmqpConsumerExample::class],
             [

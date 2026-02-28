@@ -7,7 +7,7 @@ namespace Test\Ecotone\EventSourcing\InMemory;
 use Ecotone\Lite\EcotoneLite;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -33,7 +33,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             [Ticket::class]
         );
 
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
         $this->assertEquals(
             [new TicketWasRegistered($ticketId, 'johny', 'alert')],
             $ecotoneTestSupport
@@ -48,7 +48,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             [Ticket::class],
         );
 
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
         $this->assertEquals(
             [new TicketWasRegistered($ticketId, 'johny', 'alert'), new TicketWasClosed($ticketId)],
             $ecotoneTestSupport
@@ -64,7 +64,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             [Ticket::class]
         );
 
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
 
         $this->assertEquals(
             [new TicketWasClosed($ticketId)],
@@ -82,7 +82,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             [Ticket::class]
         );
 
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
 
         $ticket = new Ticket();
         $ticket->applyTicketWasRegistered(new TicketWasRegistered($ticketId, 'johny', 'alert'));
@@ -100,7 +100,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Ticket::class]);
 
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
 
         /** Setting up event sourced aggregate initial events */
         $this->assertEquals(
@@ -120,7 +120,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Ticket::class]);
 
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
 
         $this->assertEquals(
             [],
@@ -137,7 +137,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
     {
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Ticket::class]);
 
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
 
         $this->assertEquals(
             [],
@@ -160,7 +160,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             runForProductionEventStore: true,
         );
 
-        $ticketId = Uuid::uuid4()->toString();
+        $ticketId = Uuid::v7()->toRfc4122();
 
         /** Setting up event sourced aggregate initial events */
         $this->assertEquals(

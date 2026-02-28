@@ -142,7 +142,8 @@
         "php-di/php-di": "^7.0.5",
         "open-telemetry/sdk": "^1.0.0",
         "psr/container": "^1.1.1|^2.0.1",
-        "psr/clock": "^1.0"
+        "psr/clock": "^1.0",
+        "symfony/uid": "^7.4"
     },
     "require-dev": {
         "behat/behat": "^3.10",

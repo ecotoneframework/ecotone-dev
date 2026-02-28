@@ -15,7 +15,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * Class InboundEnqueueGatewayBuilder
@@ -37,7 +37,7 @@ class AmqpInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName),
-                Uuid::uuid4()->toString(),
+                Uuid::v7()->toRfc4122(),
             ]),
         ], 'createFor');
         $inboundMessageConverter = new Definition(InboundMessageConverter::class, [

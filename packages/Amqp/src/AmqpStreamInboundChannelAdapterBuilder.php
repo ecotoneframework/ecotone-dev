@@ -17,7 +17,7 @@ use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Enqueue\AmqpLib\AmqpConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * AMQP Stream Inbound Channel Adapter Builder
@@ -61,7 +61,7 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName),
-                Uuid::uuid4()->toString(),
+                Uuid::v7()->toRfc4122(),
             ]),
         ], 'createFor');
 
@@ -69,7 +69,7 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
         $publisherConnectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(AmqpReconnectableConnectionFactory::class, [
                 new Reference($this->connectionReferenceName),
-                Uuid::uuid4()->toString(),
+                Uuid::v7()->toRfc4122(),
                 true, // Enable publisher confirms
             ]),
         ], 'createFor');

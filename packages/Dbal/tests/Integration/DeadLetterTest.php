@@ -14,7 +14,7 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler\DoubleEventHandler;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler\ExampleEvent;
@@ -185,7 +185,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         ], [$doubleEventHandler]);
         $deadLetter = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $messageId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
         $ecotone->publishEvent(new ExampleEvent('test'), metadata: [MessageHeaders::MESSAGE_ID => $messageId]);
 
         $ecotone->run('async');

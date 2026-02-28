@@ -12,7 +12,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandBus\CustomHeaderDeduplicatedCommandBus;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandBus\DeduplicatedCommandBus;
@@ -47,7 +47,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
         );
 
         $commandBus = $ecotoneLite->getGateway(DeduplicatedCommandBus::class);
-        $messageId = Uuid::uuid4()->toString();
+        $messageId = Uuid::v7()->toRfc4122();
 
         // Send same command twice with same MESSAGE_ID
         $commandBus->sendWithRouting('order.place', 'coffee', metadata: [MessageHeaders::MESSAGE_ID => $messageId]);

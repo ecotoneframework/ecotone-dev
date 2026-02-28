@@ -18,7 +18,7 @@ use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\CoversClass;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use stdClass;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerAttributeExample;
@@ -82,7 +82,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $payload = Uuid::uuid4()->toString();
+        $payload = Uuid::v7()->toRfc4122();
         $messagePublisher = $ecotoneLitePublisher->getGateway(MessagePublisher::class);
         $messagePublisher->send($payload);
 
@@ -116,7 +116,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $payload = Uuid::uuid4()->toString();
+        $payload = Uuid::v7()->toRfc4122();
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->send($payload);
 
@@ -151,7 +151,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $payload = Uuid::uuid4()->toString();
+        $payload = Uuid::v7()->toRfc4122();
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
@@ -186,7 +186,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $payload = Uuid::uuid4()->toString();
+        $payload = Uuid::v7()->toRfc4122();
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
@@ -222,7 +222,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $payload = Uuid::uuid4()->toString();
+        $payload = Uuid::v7()->toRfc4122();
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 

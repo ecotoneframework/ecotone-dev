@@ -17,7 +17,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
 use Test\Ecotone\Amqp\Fixture\OrderStream\OrderServiceWithFailures;
@@ -62,7 +62,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_stream_messages_from_first_position()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_first_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_first_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -106,7 +106,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_stream_messages_from_last_position()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_last_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_last_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -153,7 +153,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_stream_messages_from_specific_offset()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_offset_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_offset_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -200,7 +200,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_from_empty_stream_with_next_offset()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_empty_next_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_empty_next_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -247,7 +247,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_from_empty_stream_with_first_offset()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_empty_first_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_empty_first_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -285,7 +285,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_large_batch_of_messages()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_large_batch_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_large_batch_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -330,7 +330,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_with_next_offset_ignores_existing_messages()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_next_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_next_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -372,7 +372,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_single_message_from_stream()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_single_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_single_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -406,7 +406,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_messages_with_offset_beyond_stream_end()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_offset_beyond_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_offset_beyond_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -449,7 +449,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_messages_in_order()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_order_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_order_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -489,7 +489,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_from_offset_zero()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_offset_zero_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_offset_zero_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -527,7 +527,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_messages_multiple_times_from_first()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_replay_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_replay_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -570,7 +570,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_with_very_short_timeout()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_short_timeout_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_short_timeout_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -613,7 +613,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_release_retries_same_message()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_release_retry_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_release_retry_' . Uuid::v7()->toRfc4122();
 
         $orderService = new OrderServiceWithFailures();
         $ecotoneLite = $this->bootstrapForTesting(
@@ -654,7 +654,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_release_with_multiple_messages()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_release_multiple_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_release_multiple_' . Uuid::v7()->toRfc4122();
 
         $orderService = new OrderServiceWithFailures();
         $ecotoneLite = $this->bootstrapForTesting(
@@ -699,7 +699,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_release_maintains_offset_position()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_release_offset_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_release_offset_' . Uuid::v7()->toRfc4122();
 
         $orderService = new OrderServiceWithFailures();
         $ecotoneLite = $this->bootstrapForTesting(
@@ -749,7 +749,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_resend_moves_failed_message_to_end()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_resend_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_resend_' . Uuid::v7()->toRfc4122();
 
         $orderService = new OrderServiceWithFailures();
         $ecotoneLite = $this->bootstrapForTesting(
@@ -796,7 +796,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_consuming_with_prefetch_limit_across_multiple_batches()
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_prefetch_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_prefetch_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -865,7 +865,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_commit_interval_with_prefetch_count(): void
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_commit_interval_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_commit_interval_' . Uuid::v7()->toRfc4122();
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
@@ -886,7 +886,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         startPosition: 'first',
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
-                        messageGroupId: $messageGroupId = Uuid::uuid4()->toString(),
+                        messageGroupId: $messageGroupId = Uuid::v7()->toRfc4122(),
                     )
                         ->withPrefetchCount(2)
                         ->withCommitInterval(2), // Commit every 2 messages,
@@ -918,7 +918,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_commit_interval_with_prefetch_count_lower_than_commit_interval(): void
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_commit_interval_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_commit_interval_' . Uuid::v7()->toRfc4122();
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
@@ -970,7 +970,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $this->markTestSkipped('Requires passing PollingMetadata to Inbound Adapters');
 
         $channelName = 'orders';
-        $queueName = 'stream_queue_single_poll_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_single_poll_' . Uuid::v7()->toRfc4122();
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
@@ -1039,7 +1039,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_commit_interval_working_correctly_with_execution_time_limit(): void
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_commit_interval_execution_time_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_commit_interval_execution_time_' . Uuid::v7()->toRfc4122();
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
@@ -1089,7 +1089,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_commit_interval_working_correctly_with_message_limit(): void
     {
         $channelName = 'orders';
-        $queueName = 'stream_queue_commit_interval_message_limit_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_commit_interval_message_limit_' . Uuid::v7()->toRfc4122();
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
@@ -1139,7 +1139,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_two_consumers_track_positions_independently(): void
     {
         $channelName = 'stream_channel';
-        $queueName = 'stream_queue_two_consumers_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_queue_two_consumers_' . Uuid::v7()->toRfc4122();
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
@@ -1236,7 +1236,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
      */
     public function test_streaming_channel_with_distributed_bus_using_service_map(): void
     {
-        $queueName = 'distributed_events_' . Uuid::uuid4()->toString();
+        $queueName = 'distributed_events_' . Uuid::v7()->toRfc4122();
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
         // Publisher service
@@ -1373,7 +1373,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_stream_queue_retention_config_is_applied_using_amqp_queue(): void
     {
         $channelName = 'orders';
-        $queueName = 'stream_retention_amqp_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_retention_amqp_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],
@@ -1425,7 +1425,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     public function test_stream_queue_retention_config_is_applied_using_queue_argument(): void
     {
         $channelName = 'orders';
-        $queueName = 'stream_retention_arg_' . Uuid::uuid4()->toString();
+        $queueName = 'stream_retention_arg_' . Uuid::v7()->toRfc4122();
 
         $ecotoneLite = $this->bootstrapForTesting(
             [OrderService::class],

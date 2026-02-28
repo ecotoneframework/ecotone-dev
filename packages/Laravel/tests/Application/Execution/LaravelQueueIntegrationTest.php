@@ -16,7 +16,7 @@ use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\AsyncCommandHandler;
 use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\AsyncEventHandler;
 use Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler\ExampleCommand;
@@ -74,7 +74,7 @@ final class LaravelQueueIntegrationTest extends TestCase
     public function test_sending_and_receiving_message_from_channel()
     {
         $channelName = 'async_channel';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
@@ -85,7 +85,7 @@ final class LaravelQueueIntegrationTest extends TestCase
                 ])
         );
         $metadata = [
-            MessageHeaders::MESSAGE_ID => Uuid::uuid4()->toString(),
+            MessageHeaders::MESSAGE_ID => Uuid::v7()->toRfc4122(),
             MessageHeaders::TIMESTAMP => 123333,
         ];
 
@@ -147,7 +147,7 @@ final class LaravelQueueIntegrationTest extends TestCase
     public function test_acking_messages()
     {
         $channelName = 'async_channel';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
@@ -170,7 +170,7 @@ final class LaravelQueueIntegrationTest extends TestCase
     public function test_requeing_message_when_fails()
     {
         $channelName = 'async_channel';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
@@ -192,7 +192,7 @@ final class LaravelQueueIntegrationTest extends TestCase
     public function test_using_custom_failure_strategy()
     {
         $channelName = 'async_channel';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
@@ -284,7 +284,7 @@ final class LaravelQueueIntegrationTest extends TestCase
     public function test_adding_type_id_header()
     {
         $channelName = 'async_channel';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
@@ -307,7 +307,7 @@ final class LaravelQueueIntegrationTest extends TestCase
     public function test_sending_and_receiving_events()
     {
         $channelName = 'async_channel';
-        $messagePayload = new ExampleEvent(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleEvent(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncEventHandler::class],
@@ -341,7 +341,7 @@ final class LaravelQueueIntegrationTest extends TestCase
     public function test_sending_with_delay()
     {
         $channelName = 'async_channel';
-        $messagePayload = new ExampleCommand(Uuid::uuid4()->toString());
+        $messagePayload = new ExampleCommand(Uuid::v7()->toRfc4122());
 
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],

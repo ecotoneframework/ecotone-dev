@@ -16,7 +16,7 @@ use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
-use Ramsey\Uuid\Uuid;
+use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
 use Test\Ecotone\Kafka\Fixture\CommitInterval\KafkaConsumerWithCommitInterval;
 use Test\Ecotone\Kafka\Fixture\CommitInterval\KafkaConsumerWithCommitIntervalAndFailure;
@@ -31,7 +31,7 @@ final class CommitIntervalTest extends TestCase
 {
     public function test_default_commit_interval_commits_every_message(): void
     {
-        $topicName = Uuid::uuid4()->toString();
+        $topicName = Uuid::v7()->toRfc4122();
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [KafkaConsumerWithCommitInterval::class],
@@ -72,7 +72,7 @@ final class CommitIntervalTest extends TestCase
 
     public function test_commit_interval_of_3_commits_at_boundaries(): void
     {
-        $topicName = 'interval_' . Uuid::uuid4()->toString();
+        $topicName = 'interval_' . Uuid::v7()->toRfc4122();
         $ecotoneLite = $this->bootstrapEcotoneLite($topicName, KafkaConsumerWithInterval3::class);
 
         /** @var MessagePublisher $kafkaPublisher */
@@ -89,7 +89,7 @@ final class CommitIntervalTest extends TestCase
 
     public function test_commit_interval_with_failure_commits_last_successful(): void
     {
-        $topicName = 'failure_' . Uuid::uuid4()->toString();
+        $topicName = 'failure_' . Uuid::v7()->toRfc4122();
         $ecotoneLite = $this->bootstrapEcotoneLite($topicName, KafkaConsumerWithCommitIntervalAndFailure::class, $consumerInstance = new KafkaConsumerWithCommitIntervalAndFailure());
 
         /** @var MessagePublisher $kafkaPublisher */

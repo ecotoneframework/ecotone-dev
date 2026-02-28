@@ -22,6 +22,7 @@ use Interop\Amqp\Impl\AmqpQueue;
 use PhpAmqpLib\Exception\AMQPIOException;
 use PhpAmqpLib\Exception\AMQPProtocolChannelException;
 use Symfony\Component\Uid\Uuid;
+use PHPUnit\Framework\Attributes\Depends;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DeadLetter\ErrorConfigurationContext;
 use Test\Ecotone\Amqp\Fixture\Order\OrderService;
@@ -174,12 +175,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         $this->getRabbitConnectionFactory()->createContext()->purgeQueue(new AmqpQueue($queueName));
     }
 
-    /**
-     * Ensure we can switch between consumption processes within same process.
-     * This will fails for using "consume" with amqp lib, as it only works correctly using single consumer per queue
-     *
-     * @depends test_using_amqp_channel_with_custom_queue_name
-     */
+    #[Depends('test_using_amqp_channel_with_custom_queue_name')]
     public function test_using_amqp_channel_with_duplicated_queue_name()
     {
         $channelName = 'orders';

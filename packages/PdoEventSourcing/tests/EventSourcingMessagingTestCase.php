@@ -8,6 +8,7 @@ use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -128,10 +129,6 @@ abstract class EventSourcingMessagingTestCase extends TestCase
         }
     }
 
-    /**
-     * @dataProvider enterpriseMode
-     * @return iterable<string, array>
-     */
     public static function enterpriseMode(): iterable
     {
         yield 'Open Core' => [false];

@@ -26,6 +26,7 @@ use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
@@ -67,9 +68,7 @@ final class KafkaChannelAdapterTest extends TestCase
         self::assertCount(1, $messages);
     }
 
-    /**
-     * @dataProvider providePartitionKeySet
-     */
+    #[DataProvider('providePartitionKeySet')]
     public function test_sending_with_partition_keys(array $metadata, string $expectedKey)
     {
         $ecotoneLite = $this->bootstrapFlowTesting();

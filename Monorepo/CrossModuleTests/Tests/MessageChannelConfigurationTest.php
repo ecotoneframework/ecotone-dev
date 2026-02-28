@@ -27,6 +27,7 @@ use Enqueue\Sqs\SqsConnectionFactory;
 use Interop\Amqp\AmqpConnectionFactory;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use Monorepo\ExampleApp\Symfony\Kernel;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Monorepo\CrossModuleTests\Fixture\FailureHandler\ExampleFailureCommandHandler;
 use Ramsey\Uuid\Uuid;
@@ -41,9 +42,7 @@ final class MessageChannelConfigurationTest extends TestCase
     const CHANNEL_NAME = "async";
     const ERROR_CHANNEL = 'customErrorChannel';
 
-    /**
-     * @dataProvider channelProvider
-     */
+    #[DataProvider('channelProvider')]
     public function test_using_requeuing_on_failure(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
@@ -72,9 +71,7 @@ final class MessageChannelConfigurationTest extends TestCase
         $this->assertTrue($ecotoneLite->sendQueryWithRouting('handler.isSuccessful'));
     }
 
-    /**
-     * @dataProvider channelProvider
-     */
+    #[DataProvider('channelProvider')]
     public function test_using_default_error_channel(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
@@ -103,9 +100,7 @@ final class MessageChannelConfigurationTest extends TestCase
         $this->assertNull($ecotoneLite->getMessageChannel(self::CHANNEL_NAME)->receive());
     }
 
-    /**
-     * @dataProvider channelProvider
-     */
+    #[DataProvider('channelProvider')]
     public function test_custom_serialization(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
@@ -135,9 +130,7 @@ final class MessageChannelConfigurationTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider channelProvider
-     */
+    #[DataProvider('channelProvider')]
     public function test_serialization_on_the_channel(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
@@ -169,9 +162,7 @@ final class MessageChannelConfigurationTest extends TestCase
         );
     }
 
-    /**
-     * @dataProvider channelProvider
-     */
+    #[DataProvider('channelProvider')]
     public function test_it_passes_all_application_headers_by_default(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,
@@ -202,9 +193,7 @@ final class MessageChannelConfigurationTest extends TestCase
         $this->assertEquals('321',$message->getHeaders()->get('userId'));
     }
 
-    /**
-     * @dataProvider channelProvider
-     */
+    #[DataProvider('channelProvider')]
     public function test_it_passes_filtered_application_headers(
         MessageChannelWithSerializationBuilder $messageChannelBuilder,
         array                                  $services,

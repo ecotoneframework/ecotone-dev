@@ -39,7 +39,7 @@ class DataProtectionConfiguration
 
     public function keyName(?string $name): string
     {
-        return array_key_exists($name, $this->keys) ? $name : $this->defaultKey;
+        return $name !== null && array_key_exists($name, $this->keys) ? $name : $this->defaultKey;
     }
 
     public function keys(): array

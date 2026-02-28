@@ -184,12 +184,8 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
     {
         $currentTenant = $tenant ?? $this->getCurrentTenantOrNull();
 
-        if (isset($this->connectionReferenceMapping[$currentTenant])) {
+        if ($currentTenant !== null && isset($this->connectionReferenceMapping[$currentTenant])) {
             return $this->connectionReferenceMapping[$currentTenant];
-        }
-
-        if ($this->defaultConnectionName === null) {
-            return null;
         }
 
         return $this->defaultConnectionName;

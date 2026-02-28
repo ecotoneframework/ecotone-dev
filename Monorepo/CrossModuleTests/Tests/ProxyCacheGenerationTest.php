@@ -4,6 +4,8 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\Benchmark\FullAppBenchmarkCase;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\HttpKernel\Kernel as SymfonyKernel;
 
@@ -11,10 +13,8 @@ class ProxyCacheGenerationTest extends FullAppBenchmarkCase
 {
     use ExampleAppCaseTrait;
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_symfony_prod()
     {
         $this->markTestSkipped('grpc warning to be solved: https://github.com/google-ai-edge/mediapipe/issues/5371#issuecomment-2219871932');
@@ -23,10 +23,8 @@ class ProxyCacheGenerationTest extends FullAppBenchmarkCase
         $this->bench_symfony_prod();
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_laravel_prod(): void
     {
         $this->markTestSkipped('grpc warning to be solved: https://github.com/google-ai-edge/mediapipe/issues/5371#issuecomment-2219871932');
@@ -35,10 +33,8 @@ class ProxyCacheGenerationTest extends FullAppBenchmarkCase
         $this->bench_laravel_prod();
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_lite_application_prod()
     {
         $this->markTestSkipped('grpc warning to be solved: https://github.com/google-ai-edge/mediapipe/issues/5371#issuecomment-2219871932');
@@ -47,10 +43,8 @@ class ProxyCacheGenerationTest extends FullAppBenchmarkCase
         $this->bench_lite_application_prod();
     }
 
-    /**
-     * @runInSeparateProcess
-     * @preserveGlobalState disabled
-     */
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
     public function test_lite_prod()
     {
         $this->markTestSkipped('grpc warning to be solved: https://github.com/google-ai-edge/mediapipe/issues/5371#issuecomment-2219871932');

@@ -19,6 +19,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Modelling\CommandBus;
 use Enqueue\Dbal\DbalConnectionFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ORM\FailureMode\MultipleInternalCommandsService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
@@ -129,9 +130,7 @@ final class ORMTest extends DbalMessagingTestCase
         ];
     }
 
-    /**
-     * @dataProvider multiTenantConnectionConfiguration
-     */
+    #[DataProvider('multiTenantConnectionConfiguration')]
     public function test_flushing_object_manager_on_command_bus_with_tenant(array $services, array $namespaces, bool $enableDoctrineORMAggregates, MultiTenantConfiguration $multiTenantConfiguration): void
     {
         /** @var EcotoneManagerRegistryConnectionFactory $tenantAConnection */
@@ -209,9 +208,7 @@ final class ORMTest extends DbalMessagingTestCase
         self::assertContains(101, $ids);
     }
 
-    /**
-     * @dataProvider configuration
-     */
+    #[DataProvider('configuration')]
     public function test_flushing_object_manager_on_command_bus_without_multi_tenancy(array $services, array $namespaces, bool $enableDoctrineORMAggregates): void
     {
         /** @var EcotoneManagerRegistryConnectionFactory $connectionFactory */
@@ -255,9 +252,7 @@ final class ORMTest extends DbalMessagingTestCase
         );
     }
 
-    /**
-     * @dataProvider configuration
-     */
+    #[DataProvider('configuration')]
     public function test_disabling_flushing_object_manager_on_command_bus(array $services, array $namespaces, bool $enableDoctrineORMAggregates)
     {
         /** @var EcotoneManagerRegistryConnectionFactory $connectionFactory */
@@ -288,9 +283,7 @@ final class ORMTest extends DbalMessagingTestCase
         $ecotone->sendQueryWithRouting('person.byById', 100, metadata: ['aggregate.id' => 100]);
     }
 
-    /**
-     * @dataProvider configuration
-     */
+    #[DataProvider('configuration')]
     public function test_object_manager_reconnects_on_command_bus(array $services, array $namespaces, bool $enableDoctrineORMAggregates)
     {
         /** @var EcotoneManagerRegistryConnectionFactory $connectionFactory */

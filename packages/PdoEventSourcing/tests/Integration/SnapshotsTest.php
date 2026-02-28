@@ -11,6 +11,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
@@ -34,9 +35,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
  */
 final class SnapshotsTest extends EventSourcingMessagingTestCase
 {
-    /**
-     * @dataProvider enterpriseMode
-     */
+    #[DataProvider('enterpriseMode')]
     public function test_snapshotting_aggregates_called_in_turn(bool $enableEnterpriseMode): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(

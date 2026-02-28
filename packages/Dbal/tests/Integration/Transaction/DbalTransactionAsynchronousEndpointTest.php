@@ -17,6 +17,7 @@ use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Exception;
+use PHPUnit\Framework\Attributes\Group;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ConnectionBreakingConfiguration;
 use Test\Ecotone\Dbal\Fixture\ConnectionBreakingModule;
@@ -130,9 +131,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         }
     }
 
-    /**
-     * @group test_reconnecting_on_lost_connection_during_dead_letter_storage
-     */
+    #[Group('test_reconnecting_on_lost_connection_during_dead_letter_storage')]
     public function test_reconnecting_on_lost_connection_during_dead_letter_storage()
     {
         if ($this->isUsingSqlite()) {

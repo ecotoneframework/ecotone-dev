@@ -92,7 +92,7 @@ jobs:
       uses: shivammathur/setup-php@v2
       with:
         php-version: ${{ matrix.php-versions }}
-        extensions: amqp, grpc, rdkafka
+        extensions: amqp, rdkafka
         coverage: none
 
     - name: Install OpenSSH (For Kafka)
@@ -116,6 +116,10 @@ jobs:
 
     - name: Validate composer.json and composer.lock
       run: composer validate --strict
+
+    - name: Remove grpc dependent packages (ext-grpc not available on PHP 8.5)
+      if: matrix.php-versions == '8.5'
+      run: composer remove --dev --no-update open-telemetry/transport-grpc
 
     - name: Install dependencies
       run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction

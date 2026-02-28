@@ -104,7 +104,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: amqp, grpc, rdkafka
+          extensions: amqp, rdkafka
           coverage: none
 
       - name: Install OpenSSH (For Kafka)
@@ -129,6 +129,10 @@ jobs:
 
       - name: Enable merge-plugin
         run: composer global config --no-interaction allow-plugins.wikimedia/composer-merge-plugin true && composer global require wikimedia/composer-merge-plugin
+
+      - name: Remove grpc dependent packages (ext-grpc not available on PHP 8.5)
+        if: matrix.php-version == '8.5'
+        run: cd packages/OpenTelemetry && composer remove --dev --no-update open-telemetry/transport-grpc
 
       - name: Run tests
         run: |

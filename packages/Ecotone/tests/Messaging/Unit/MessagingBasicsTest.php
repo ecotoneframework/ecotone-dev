@@ -16,14 +16,13 @@ use Ecotone\Messaging\Endpoint\EventDriven\EventDrivenConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow\PollOrThrowMessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
-use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Transformer\TransformerBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Exception;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Messaging\Fixture\Behat\Booking\Booking;
 use Test\Ecotone\Messaging\Fixture\Behat\Booking\BookingService;
 use Test\Ecotone\Messaging\Fixture\Behat\Calculating\Calculator;
@@ -125,7 +124,7 @@ final class MessagingBasicsTest extends TestCase
         $exceptionThrown = false;
         try {
             $gateway->processOrder(Order::create('3', 'INCORRECT'));
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $exceptionThrown = true;
         }
         $this->assertTrue($exceptionThrown, 'Expected exception was not thrown');
@@ -141,7 +140,7 @@ final class MessagingBasicsTest extends TestCase
         $exceptionThrown = false;
         try {
             $messagingSystem->run('orderProcessor');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $exceptionThrown = true;
         }
         $this->assertTrue($exceptionThrown, 'Expected exception was not thrown');

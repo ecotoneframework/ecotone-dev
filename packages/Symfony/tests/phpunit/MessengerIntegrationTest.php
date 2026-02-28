@@ -17,8 +17,8 @@ use Fixture\MessengerConsumer\ExampleCommand;
 use Fixture\MessengerConsumer\ExampleEvent;
 use Fixture\MessengerConsumer\MessengerAsyncCommandHandler;
 use Fixture\MessengerConsumer\MessengerAsyncEventHandler;
-use Symfony\Component\Uid\Uuid;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
+use Symfony\Component\Uid\Uuid;
 
 /**
  * @internal

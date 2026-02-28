@@ -14,6 +14,8 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributionEntrypoint;
 use Ecotone\Modelling\QueryBus;
+use Exception;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\ChangeShippingAddressCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
@@ -290,7 +292,7 @@ final class ModellingBehatMigrationTest extends TestCase
         $exceptionThrown = false;
         try {
             $commandBus->sendWithRouting('log', ['loggerId' => 1, 'data' => 'Another User logged in']);
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             $exceptionThrown = true;
         }
         $this->assertTrue($exceptionThrown, 'User was allowed to store logs on someones else stream');
@@ -362,7 +364,7 @@ final class ModellingBehatMigrationTest extends TestCase
         $exceptionThrown = false;
         try {
             $eventBus->publishWithRouting('order.was_created', ['loggerId' => 1, 'data' => 'Ham was bought']);
-        } catch (\InvalidArgumentException $e) {
+        } catch (InvalidArgumentException $e) {
             $exceptionThrown = true;
         }
         $this->assertTrue($exceptionThrown, 'User was allowed to store logs on someones else stream');
@@ -439,7 +441,7 @@ final class ModellingBehatMigrationTest extends TestCase
 
         try {
             $commandBus->sendWithRouting('failAction', [], MediaType::APPLICATION_X_PHP_ARRAY, ['token' => 1111]);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
         }
 
         $commandBus->sendWithRouting('placeOrder', [], MediaType::APPLICATION_X_PHP_ARRAY);

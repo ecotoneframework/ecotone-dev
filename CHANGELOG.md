@@ -3,6 +3,16 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.305.0] - 2026-02-28
+
+## What's Changed
+* feat: symfony uuid 7 as message ids by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/640
+* feat: php 8.5 ci by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/641
+* Feat/tests and deprecations by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/642
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.304.0...1.305.0
+
 ## [1.304.0] - 2026-02-27
 
 ## What's Changed

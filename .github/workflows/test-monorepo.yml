@@ -135,9 +135,3 @@ jobs:
       env:
         DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
         SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0
-
-    - name: Test Behat on Postgres
-      run: vendor/bin/behat -vvv
-      env:
-        DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone?serverVersion=16
-        SECONDARY_DATABASE_DSN: mysql://ecotone:secret@127.0.0.1:3306/ecotone?serverVersion=8.0

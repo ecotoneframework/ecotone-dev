@@ -39,7 +39,6 @@
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0",
-        "behat/behat": "^3.10",
         "phpstan/phpstan": "^1.8",
         "wikimedia/composer-merge-plugin": "^2.1",
         "enqueue/null": "^0.10.18"

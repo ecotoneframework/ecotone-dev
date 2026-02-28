@@ -146,7 +146,6 @@
         "symfony/uid": "^7.4"
     },
     "require-dev": {
-        "behat/behat": "^3.10",
         "doctrine/annotations": "^1.13|^2.0",
         "doctrine/cache": "^1.0.0|^2.0",
         "doctrine/orm": "^2.11|^3.0",
@@ -220,17 +219,14 @@
             "(cd packages/DataProtection && tests/before-tests.sh)",
             "vendor/bin/phpunit --no-coverage"
         ],
-        "tests:behat": "vendor/bin/behat -vvv",
         "tests:ci": [
             "@tests:phpstan",
             "@tests:phpunit",
-            "@tests:behat",
             "(cd quickstart-examples && composer tests:ci)"
         ],
         "tests:local": [
             "@tests:phpstan",
-            "@tests:phpunit",
-            "@tests:behat"
+            "@tests:phpunit"
         ],
         "tests:phpbench": [
             "(cd packages/Ecotone && composer update --prefer-stable --prefer-dist --no-interaction && composer tests:phpbench)",

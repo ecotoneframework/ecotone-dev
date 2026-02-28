@@ -19,7 +19,7 @@ jobs:
           - name: 'Quickstart'
             package: 'ecotone/quickstart-examples'
             directory: 'quickstart-examples'
-        php-versions: [ '8.4' ]
+        php-versions: [ '8.5' ]
         stability: [prefer-stable]
 
     services:
@@ -100,7 +100,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: grpc, rdkafka
+          extensions: amqp, rdkafka
           coverage: none
 
       - name: Install OpenSSH (For Kafka)

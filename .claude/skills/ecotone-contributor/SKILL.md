@@ -18,7 +18,7 @@ Tests use inline anonymous classes with PHP 8.1+ attributes, snake_case method n
 Start the Docker Compose stack:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Enter the main container:

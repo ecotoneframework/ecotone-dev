@@ -18,7 +18,7 @@ Ecotone is organized as a monorepo containing multiple packages:
 The project uses Docker for development:
 
 - A `docker-compose.yml` file in the root directory sets up all required containers
-- To start the environment: `docker-compose up -d`
+- To start the environment: `docker compose up -d`
 - After starting, all packages are available to run and use
 - To enter the development container: `docker compose exec app /bin/bash`
 - From inside the container, you can run tests that require access to other services

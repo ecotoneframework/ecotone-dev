@@ -124,7 +124,7 @@ class Order
 
 ```bash
 # Start all containers
-docker-compose up -d
+docker compose up -d
 
 # Enter dev container (use root for full access)
 docker compose exec -u root app /bin/bash

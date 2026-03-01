@@ -1,9 +1,9 @@
 # Ecotone Quickstart Examples
 
-Start docker-compose and connect to the container with the following command:
+Start docker compose and connect to the container with the following command:
 
 ```bash
-docker-compose up -d && docker exec -it ecotone-quickstart /bin/bash
+docker compose up -d && docker exec -it ecotone-quickstart /bin/bash
 ```
 
 Run chosen example from the specific catalog.

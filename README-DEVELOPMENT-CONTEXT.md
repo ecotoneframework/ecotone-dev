@@ -18,9 +18,9 @@ Ecotone is organized as a monorepo containing multiple packages:
 The project uses Docker for development:
 
 - A `docker-compose.yml` file in the root directory sets up all required containers
-- To start the environment: `docker-compose up -d`
+- To start the environment: `docker compose up -d`
 - After starting, all packages are available to run and use
-- To enter the development container: `docker exec -it ecotone_development /bin/bash`
+- To enter the development container: `docker compose exec app /bin/bash`
 - From inside the container, you can run tests that require access to other services
 
 ## Running Tests
@@ -31,7 +31,7 @@ There are two main approaches to running tests:
 
 ```bash
 # Enter the container
-docker exec -it ecotone_development /bin/bash
+docker compose exec app /bin/bash
 
 # Run tests from inside the container
 vendor/bin/phpunit
@@ -41,7 +41,7 @@ vendor/bin/phpunit
 
 ```bash
 # Run tests directly without entering the container
-docker exec -it ecotone_development vendor/bin/phpunit
+docker compose exec app vendor/bin/phpunit
 ```
 
 This method is faster and preferred for most testing scenarios.

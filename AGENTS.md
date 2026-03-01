@@ -41,7 +41,7 @@ Works with Symfony, Laravel, or standalone (Ecotone Lite).
 ### Running Tests
 ```bash
 # Enter development container
-docker exec -it -u root ecotone_development /bin/bash
+docker compose exec -u root app /bin/bash
 
 # Run package tests
 cd packages/PackageName
@@ -124,10 +124,10 @@ class Order
 
 ```bash
 # Start all containers
-docker-compose up -d
+docker compose up -d
 
 # Enter dev container (use root for full access)
-docker exec -it -u root ecotone_development /bin/bash
+docker compose exec -u root app /bin/bash
 
 # Verify lowest/highest dependencies
 composer update --prefer-lowest && vendor/bin/phpunit

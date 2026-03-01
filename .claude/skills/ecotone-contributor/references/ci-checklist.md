@@ -17,7 +17,7 @@ Every package has these Composer scripts:
 
 ```bash
 # Enter container
-docker exec -it ecotone_development /bin/bash
+docker compose exec app /bin/bash
 
 # Run full CI for a package (replace <PackageName> with the actual package)
 cd packages/<PackageName> && composer tests:ci

@@ -18,19 +18,19 @@ Tests use inline anonymous classes with PHP 8.1+ attributes, snake_case method n
 Start the Docker Compose stack:
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 Enter the main container:
 
 ```bash
-docker exec -it ecotone_development /bin/bash
+docker compose exec app /bin/bash
 ```
 
 PHP 8.2 container (for compatibility testing):
 
 ```bash
-docker exec -it ecotone_development_8_2 /bin/bash
+docker compose exec app8_2 /bin/bash
 ```
 
 ## 2. Monorepo Structure
@@ -65,7 +65,7 @@ docker compose up -d
 ```
 
 ```bash
-docker exec -t ecotone_development vendor/bin/phpunit --filter test_method_name
+docker compose exec -T app vendor/bin/phpunit --filter test_method_name
 ```
 
 ### Step 2: Run full test suite for affected package
@@ -112,11 +112,36 @@ vendor/bin/phpstan analyse
 - Single quotes, trailing commas in multiline arrays
 - `! $var` spacing (not `!$var`)
 
-### Step 7: PR description
+### Step 7: Create Pull Request
 
-- **Why**: What problem does this solve?
-- **What**: What changes were made?
-- CLA checkbox signed
+Use the repository's PR template at `.github/PULL_REQUEST_TEMPLATE.md`.
+
+**Before creating the PR**, generate a suggested description based on the changes made, focusing on **why** the change is needed and **what benefits it provides to end users**. Present this suggestion to the user and let them agree or modify it. Do not use the description without user confirmation.
+
+**Branch and PR title naming**: Use conventional commit prefixes:
+- `feat:` for new features (e.g. `feat: add support for delayed message publishing`)
+- `fix:` for bug fixes (e.g. `fix: resolve race condition in saga handler`)
+- `refactor:` for refactoring (e.g. `refactor: simplify interceptor resolution`)
+- `docs:` for documentation changes
+- `test:` for test-only changes
+
+**PR body must include**:
+1. **Why is this change proposed?** — Use the user's description of the problem
+2. **Description of Changes** — Summarize what was changed
+3. **Usage examples** — If the PR adds or changes a feature, include PHP code examples showing how to use it (command/event/query handler registration, configuration, etc.)
+4. **Mermaid flow diagrams** — For changes involving message flows, handler chains, async processing, sagas, or interceptor pipelines, include a Mermaid diagram illustrating the flow:
+   ````markdown
+   ```mermaid
+   sequenceDiagram
+       participant User
+       participant CommandBus
+       participant Handler
+       User->>CommandBus: PlaceOrder
+       CommandBus->>Handler: #[CommandHandler]
+       Handler-->>User: OrderPlaced event
+   ```
+   ````
+5. **Pull Request Contribution Terms** — CLA checkbox signed
 
 ## 4. Code Conventions
 

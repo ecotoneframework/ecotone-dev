@@ -19,7 +19,7 @@ For comprehensive guidelines, read AGENTS.md in the project root.
 
 Run tests inside Docker container:
 ```bash
-docker exec -it -u root ecotone_development /bin/bash
+docker compose exec -u root app /bin/bash
 cd packages/PackageName
 composer tests:ci
 ```

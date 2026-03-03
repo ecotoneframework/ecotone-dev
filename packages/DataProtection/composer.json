@@ -37,7 +37,9 @@
     },
     "require": {
         "php": "^8.2",
+        "ext-libxml": "*",
         "ext-openssl": "*",
+        "ext-simplexml": "*",
         "ecotone/ecotone": "~1.305.0",
         "ecotone/jms-converter": "~1.305.0",
         "paragonie/random_compat": "^2.0"

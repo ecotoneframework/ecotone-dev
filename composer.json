@@ -118,7 +118,9 @@
     "require": {
         "php": "^8.2",
         "ext-amqp": "*",
+        "ext-libxml": "*",
         "ext-openssl": "*",
+        "ext-simplexml": "*",
         "doctrine/dbal": "^3.9|^4.0",
         "doctrine/persistence": "^2.5|^3.4",
         "defuse/php-encryption": "^2.4",

@@ -15,6 +15,8 @@ use Ecotone\DataProtection\Channel\OutboundEncryptionChannelBuilder;
 use Ecotone\DataProtection\Conversion\DataProtectionConversionServiceDecorator;
 use Ecotone\DataProtection\Conversion\JsonDecryptionConverter;
 use Ecotone\DataProtection\Conversion\JsonEncryptionConverter;
+use Ecotone\DataProtection\Conversion\XMLDecryptionConverter;
+use Ecotone\DataProtection\Conversion\XMLEncryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpDecryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpEncryptionConverter;
 use Ecotone\DataProtection\Encryption\Key;
@@ -103,7 +105,7 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         }
 
         $converters = [];
-        $encryptionConverters = [JsonEncryptionConverter::class, JsonDecryptionConverter::class, XPhpEncryptionConverter::class, XPhpDecryptionConverter::class];
+        $encryptionConverters = [JsonEncryptionConverter::class, JsonDecryptionConverter::class, XPhpEncryptionConverter::class, XPhpDecryptionConverter::class, XMLEncryptionConverter::class, XMLDecryptionConverter::class];
         foreach ($this->dataProtectorConfigs as $protectorConfig) {
             foreach ($encryptionConverters as $converterClass) {
                 $converters[] = new Definition(

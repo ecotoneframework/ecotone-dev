@@ -4,7 +4,9 @@ namespace Test\Ecotone\DataProtection\Integration;
 
 use Ecotone\DataProtection\Configuration\ChannelProtectionConfiguration;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
+use Ecotone\DataProtection\Conversion\XmlHelper;
 use Ecotone\DataProtection\Encryption\Crypto;
+use Ecotone\DataProtection\Encryption\Exception\CryptoException;
 use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -27,6 +29,7 @@ use Test\Ecotone\DataProtection\Fixture\SomeMessage;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
 use Test\Ecotone\DataProtection\TestQueueChannel;
+use Throwable;
 
 /**
  * @internal
@@ -331,18 +334,11 @@ class EncryptMessagesWithChannelConfigurationXMLTest extends TestCase
         $channelMessagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->secondaryKey);
 
         $expectedPayload = <<<XML
-            <?xml version="1.0" encoding="UTF-8"?>
-            <result>
-              <sensitiveObject>
-                <argument><![CDATA[value]]></argument>
-                <enum><![CDATA[first]]></enum>
-              </sensitiveObject>
-              <sensitiveEnum><![CDATA[first]]></sensitiveEnum>
-              <sensitiveProperty><![CDATA[value]]></sensitiveProperty>
-            </result>
+<?xml version="1.0"?>
+<result><sensitiveObject><argument>value</argument><enum>first</enum></sensitiveObject><sensitiveEnum>first</sensitiveEnum><sensitiveProperty>value</sensitiveProperty></result>
 
-            XML;
-        self::assertEquals($expectedPayload, $channelMessagePayload);
+XML;
+        self::assertEquals($expectedPayload, $this->decryptChannelMessagePayload($channelMessagePayload, $this->primaryKey));
         $messageHeaders = $channelMessage->getHeaders();
 
         self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->secondaryKey));
@@ -570,18 +566,11 @@ class EncryptMessagesWithChannelConfigurationXMLTest extends TestCase
         $channelMessagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->secondaryKey);
 
         $expectedPayload = <<<XML
-            <?xml version="1.0" encoding="UTF-8"?>
-            <result>
-              <sensitiveObject>
-                <argument><![CDATA[value]]></argument>
-                <enum><![CDATA[first]]></enum>
-              </sensitiveObject>
-              <sensitiveEnum><![CDATA[first]]></sensitiveEnum>
-              <sensitiveProperty><![CDATA[value]]></sensitiveProperty>
-            </result>
+<?xml version="1.0"?>
+<result><sensitiveObject><argument>value</argument><enum>first</enum></sensitiveObject><sensitiveEnum>first</sensitiveEnum><sensitiveProperty>value</sensitiveProperty></result>
 
-            XML;
-        self::assertEquals($expectedPayload, $channelMessagePayload);
+XML;
+        self::assertEquals($expectedPayload, $this->decryptChannelMessagePayload($channelMessagePayload, $this->primaryKey));
         $messageHeaders = $channelMessage->getHeaders();
 
         self::assertEquals($metadataSent['foo'], Crypto::decrypt($messageHeaders->get('foo'), $this->secondaryKey));
@@ -624,5 +613,23 @@ class EncryptMessagesWithChannelConfigurationXMLTest extends TestCase
                     JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(true),
                 ])
         );
+    }
+
+    private function decryptChannelMessagePayload(string $payload, Key $encryptionKey): string
+    {
+        $payload = XmlHelper::xmlToArray($payload);
+        foreach ($payload as $key => $value) {
+            try {
+                $payload[$key] = Crypto::decrypt($value, $encryptionKey);
+            } catch (CryptoException) { // in some cases property is not encrypted
+                $payload[$key] = $value;
+            }
+            try {
+                $payload[$key] = json_decode($payload[$key], true, 512, JSON_THROW_ON_ERROR);
+            } catch (Throwable) { // in some cases property is not json encoded
+            }
+        }
+
+        return XmlHelper::arrayToXml($payload);
     }
 }

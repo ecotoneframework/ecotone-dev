@@ -27,13 +27,13 @@ class DataProtectionConversionServiceDecorator implements ConversionServiceDecor
     public function convert($source, Type $sourcePHPType, MediaType $sourceMediaType, Type $targetPHPType, MediaType $targetMediaType)
     {
         if ($this->dataProtectionConversionService->canConvert($sourcePHPType, $encryptedSourceMediaType = $sourceMediaType->addParameter('encrypted', 'true'), $targetPHPType, $targetMediaType)) {
-            $source = $this->dataProtectionConversionService->convert($source, $sourcePHPType, $encryptedSourceMediaType, $targetPHPType, $targetMediaType);
+            $source = $this->dataProtectionConversionService->convert($source, $sourcePHPType, $encryptedSourceMediaType, $targetPHPType, $targetMediaType, $this->innerConversionService);
         }
 
-        $source = $this->innerConversionService->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType);
+        $source = $this->innerConversionService->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $targetMediaType, $this->innerConversionService);
 
         if ($this->dataProtectionConversionService->canConvert($sourcePHPType, $sourceMediaType, $targetPHPType, $encryptedTargetMediaType = $targetMediaType->addParameter('encrypted', 'true'))) {
-            $source = $this->dataProtectionConversionService->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $encryptedTargetMediaType);
+            $source = $this->dataProtectionConversionService->convert($source, $sourcePHPType, $sourceMediaType, $targetPHPType, $encryptedTargetMediaType, $this->innerConversionService);
         }
 
         return $source;

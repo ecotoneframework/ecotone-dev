@@ -12,17 +12,16 @@ use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Projecting\Attribute\PartitionAggregateId;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionRebuild;
 use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\ProjectingHeaders;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -106,7 +105,7 @@ abstract class AbstractRebuildPartitionedProjection
 
     #[ProjectionReset]
     public function reset(
-        #[Header(ProjectingHeaders::REBUILD_AGGREGATE_ID)] ?string $aggregateId = null,
+        #[PartitionAggregateId] ?string $aggregateId = null,
     ): void {
         if ($aggregateId !== null) {
             $this->connection->executeStatement("DELETE FROM {$this->tableName()} WHERE ticket_id = ?", [$aggregateId]);

@@ -21,7 +21,4 @@ class ProjectingHeaders
     public const PROJECTION_PARTITION_KEY = 'projection.partitionKey';
     public const PROJECTION_CAN_INITIALIZE = 'projection.canInitialize';
     public const REBUILD_PARTITION_KEY = 'projection.rebuild.partitionKey';
-    public const REBUILD_AGGREGATE_ID = 'projection.rebuild.aggregateId';
-    public const REBUILD_AGGREGATE_TYPE = 'projection.rebuild.aggregateType';
-    public const REBUILD_STREAM = 'projection.rebuild.stream';
 }

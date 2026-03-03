@@ -30,6 +30,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\BackfillExecutorHandler;
+use Ecotone\Projecting\RebuildExecutorHandler;
 use Ecotone\Projecting\InMemory\InMemoryProjectionRegistry;
 use Ecotone\Projecting\PartitionProviderRegistry;
 use Ecotone\Projecting\ProjectingHeaders;
@@ -93,6 +94,8 @@ class ProjectingModule implements AnnotationModule
                     $projectionBuilder->automaticInitialization(),
                     $projectionBuilder->backfillPartitionBatchSize(),
                     $projectionBuilder->backfillAsyncChannelName(),
+                    $projectionBuilder->rebuildPartitionBatchSize(),
+                    $projectionBuilder->rebuildAsyncChannelName(),
                 ])
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);
@@ -126,6 +129,7 @@ class ProjectingModule implements AnnotationModule
                             [
                                 HeaderBuilder::createOptional('partitionKeyValue', ProjectingHeaders::PROJECTION_PARTITION_KEY),
                                 HeaderBuilder::create('canInitialize', ProjectingHeaders::PROJECTION_CAN_INITIALIZE),
+                                HeaderBuilder::createOptional('shouldReset', 'projection.shouldReset'),
                             ],
                         )
                     )
@@ -178,6 +182,35 @@ class ProjectingModule implements AnnotationModule
                 )
                 ->withEndpointId('backfill_executor_handler')
                 ->withInputChannelName(BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL)
+        );
+
+        // Register RebuildExecutorHandler and its message handler
+        $messagingConfiguration->registerServiceDefinition(
+            RebuildExecutorHandler::class,
+            new Definition(RebuildExecutorHandler::class, [
+                new Reference(ProjectionRegistry::class),
+                new Reference(TerminationListener::class),
+            ])
+        );
+
+        $messagingConfiguration->registerMessageHandler(
+            MessageProcessorActivatorBuilder::create()
+                ->chainInterceptedProcessor(
+                    MethodInvokerBuilder::create(
+                        RebuildExecutorHandler::class,
+                        InterfaceToCallReference::create(RebuildExecutorHandler::class, 'executeRebuildBatch'),
+                        [
+                            PayloadBuilder::create('projectionName'),
+                            HeaderBuilder::createOptional('limit', 'rebuild.limit'),
+                            HeaderBuilder::createOptional('offset', 'rebuild.offset'),
+                            HeaderBuilder::createOptional('streamName', 'rebuild.streamName'),
+                            HeaderBuilder::createOptional('aggregateType', 'rebuild.aggregateType'),
+                            HeaderBuilder::createOptional('eventStoreReferenceName', 'rebuild.eventStoreReferenceName'),
+                        ],
+                    )
+                )
+                ->withEndpointId('rebuild_executor_handler')
+                ->withInputChannelName(RebuildExecutorHandler::REBUILD_EXECUTOR_CHANNEL)
         );
 
         // Register console commands

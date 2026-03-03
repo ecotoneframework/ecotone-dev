@@ -28,6 +28,7 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         private ?string $deleteChannel = null,
         private ?string $flushChannel = null,
         private bool $isLive = true,
+        private ?string $resetChannel = null,
     ) {
     }
 
@@ -86,6 +87,28 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
                 ProjectingHeaders::PROJECTION_NAME => $this->projectionName,
                 ProjectingHeaders::PROJECTION_STATE => $userState,
             ], $this->flushChannel);
+        }
+    }
+
+    public function reset(?string $partitionKey = null): void
+    {
+        if ($this->resetChannel) {
+            $headers = [
+                ProjectingHeaders::PROJECTION_NAME => $this->projectionName,
+            ];
+
+            if ($partitionKey !== null) {
+                $headers[ProjectingHeaders::REBUILD_PARTITION_KEY] = $partitionKey;
+
+                $parts = explode(':', $partitionKey, 3);
+                if (count($parts) === 3) {
+                    $headers[ProjectingHeaders::REBUILD_STREAM] = $parts[0];
+                    $headers[ProjectingHeaders::REBUILD_AGGREGATE_TYPE] = $parts[1];
+                    $headers[ProjectingHeaders::REBUILD_AGGREGATE_ID] = $parts[2];
+                }
+            }
+
+            $this->messagingEntrypoint->sendWithHeaders([], $headers, $this->resetChannel);
         }
     }
 }

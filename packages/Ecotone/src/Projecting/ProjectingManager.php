@@ -15,6 +15,7 @@ use Throwable;
 class ProjectingManager
 {
     private const DEFAULT_BACKFILL_PARTITION_BATCH_SIZE = 100;
+    private const DEFAULT_REBUILD_PARTITION_BATCH_SIZE = 100;
 
     private ?ProjectionStateStorage $projectionStateStorage = null;
 
@@ -31,12 +32,17 @@ class ProjectingManager
         private bool                           $automaticInitialization = true,
         private int                            $backfillPartitionBatchSize = self::DEFAULT_BACKFILL_PARTITION_BATCH_SIZE,
         private ?string                        $backfillAsyncChannelName = null,
+        private int                            $rebuildPartitionBatchSize = self::DEFAULT_REBUILD_PARTITION_BATCH_SIZE,
+        private ?string                        $rebuildAsyncChannelName = null,
     ) {
         if ($eventLoadingBatchSize < 1) {
             throw new InvalidArgumentException('Event loading batch size must be at least 1');
         }
         if ($backfillPartitionBatchSize < 1) {
             throw new InvalidArgumentException('Backfill partition batch size must be at least 1');
+        }
+        if ($rebuildPartitionBatchSize < 1) {
+            throw new InvalidArgumentException('Rebuild partition batch size must be at least 1');
         }
     }
 
@@ -62,7 +68,7 @@ class ProjectingManager
         } while ($processedEvents > 0 && $this->terminationListener->shouldTerminate() !== true);
     }
 
-    public function executeSingleBatch(?string $partitionKeyValue = null, bool $canInitialize = false): int
+    public function executeSingleBatch(?string $partitionKeyValue = null, bool $canInitialize = false, bool $shouldReset = false): int
     {
         $transaction = $this->getProjectionStateStorage()->beginTransaction();
         try {
@@ -70,6 +76,17 @@ class ProjectingManager
             if ($projectionState === null) {
                 $transaction->commit();
                 return 0;
+            }
+
+            if ($shouldReset) {
+                $this->projectorExecutor->reset($partitionKeyValue);
+                $projectionState = new ProjectionPartitionState(
+                    $projectionState->projectionName,
+                    $projectionState->partitionKey,
+                    null,
+                    null,
+                    $projectionState->status,
+                );
             }
 
             $streamSource = $this->streamSourceRegistry->getFor($this->projectionName);
@@ -200,6 +217,75 @@ class ProjectingManager
     public function backfill(): void
     {
         $this->prepareBackfill();
+    }
+
+    public function executeWithReset(?string $partitionKeyValue = null): void
+    {
+        $first = true;
+        do {
+            $processedEvents = $this->messagingEntrypoint->sendWithHeaders(
+                [],
+                [
+                    ProjectingHeaders::PROJECTION_PARTITION_KEY => $partitionKeyValue,
+                    ProjectingHeaders::PROJECTION_CAN_INITIALIZE => true,
+                    'projection.shouldReset' => $first,
+                ],
+                self::batchChannelFor($this->projectionName)
+            );
+            $first = false;
+        } while ($processedEvents > 0 && $this->terminationListener->shouldTerminate() !== true);
+    }
+
+    public function prepareRebuild(): void
+    {
+        $streamFilters = $this->streamFilterRegistry->provide($this->projectionName);
+
+        foreach ($streamFilters as $streamFilter) {
+            $this->prepareRebuildForFilter($streamFilter);
+        }
+    }
+
+    private function prepareRebuildForFilter(StreamFilter $streamFilter): void
+    {
+        $totalPartitions = $this->getPartitionProvider()->count($streamFilter);
+
+        if ($totalPartitions === 0) {
+            return;
+        }
+
+        $numberOfBatches = (int) ceil($totalPartitions / $this->rebuildPartitionBatchSize);
+
+        for ($batch = 0; $batch < $numberOfBatches; $batch++) {
+            $offset = $batch * $this->rebuildPartitionBatchSize;
+
+            $headers = [
+                'rebuild.limit' => $this->rebuildPartitionBatchSize,
+                'rebuild.offset' => $offset,
+                'rebuild.streamName' => $streamFilter->streamName,
+                'rebuild.aggregateType' => $streamFilter->aggregateType,
+                'rebuild.eventStoreReferenceName' => $streamFilter->eventStoreReferenceName,
+            ];
+
+            $this->sendRebuildMessage($headers);
+        }
+    }
+
+    private function sendRebuildMessage(array $headers): void
+    {
+        if ($this->rebuildAsyncChannelName !== null) {
+            $this->messagingEntrypoint->sendWithHeaders(
+                $this->projectionName,
+                $headers,
+                $this->rebuildAsyncChannelName,
+                RebuildExecutorHandler::REBUILD_EXECUTOR_CHANNEL
+            );
+        } else {
+            $this->messagingEntrypoint->sendWithHeaders(
+                $this->projectionName,
+                $headers,
+                RebuildExecutorHandler::REBUILD_EXECUTOR_CHANNEL
+            );
+        }
     }
 
     private function loadOrInitializePartitionState(?string $partitionKey, bool $canInitialize): ?ProjectionPartitionState

@@ -11,6 +11,7 @@ use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveProperties;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
+use Test\Ecotone\DataProtection\Fixture\MessageWithSensitiveProperty;
 
 #[Asynchronous('test')]
 class TestEventHandler
@@ -36,6 +37,15 @@ class TestEventHandler
     #[EventHandler(endpointId: 'test.EncryptAnnotatedMessages.eventHandler.AnnotatedMessageWithSensitiveProperties')]
     public function handleAnnotatedMessageWithSensitiveProperties(
         #[Payload] AnnotatedMessageWithSensitiveProperties $message,
+        #[Headers] array $headers,
+        #[Reference] MessageReceiver $messageReceiver,
+    ): void {
+        $messageReceiver->withReceived($message, $headers);
+    }
+
+    #[EventHandler(endpointId: 'test.EncryptAnnotatedMessages.eventHandler.MessageWithSensitiveProperty')]
+    public function handleMessageWithSensitiveProperty(
+        #[Payload] MessageWithSensitiveProperty $message,
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,
     ): void {

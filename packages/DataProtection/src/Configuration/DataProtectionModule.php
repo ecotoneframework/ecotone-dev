@@ -52,8 +52,11 @@ final class DataProtectionModule extends NoExternalConfigurationModule
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
+        $dataProtectorConfigs = self::resolveProtectorConfigsFromAnnotatedClasses([], $annotationRegistrationService->findAnnotatedClasses(Sensitive::class), $interfaceToCallRegistry);
+        $dataProtectorConfigs = self::resolveProtectorConfigsFromAnnotatedClasses($dataProtectorConfigs, $annotationRegistrationService->findClassesWithAnnotatedProperties(Sensitive::class), $interfaceToCallRegistry);
+
         return new self(
-            dataProtectorConfigs: self::resolveProtectorConfigsFromAnnotatedClasses($annotationRegistrationService->findAnnotatedClasses(Sensitive::class), $interfaceToCallRegistry)
+            dataProtectorConfigs: $dataProtectorConfigs
         );
     }
 
@@ -154,10 +157,13 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         return ModulePackageList::DATA_PROTECTION_PACKAGE;
     }
 
-    private static function resolveProtectorConfigsFromAnnotatedClasses(array $sensitiveMessages, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    private static function resolveProtectorConfigsFromAnnotatedClasses(array $dataProtectorConfigs, array $sensitiveMessages, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
-        $dataEncryptorConfigs = [];
         foreach ($sensitiveMessages as $message) {
+            if (array_key_exists($message, $dataProtectorConfigs)) {
+                continue;
+            }
+
             $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor($messageType = Type::create($message));
             $encryptionKey = $classDefinition->findSingleClassAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
 
@@ -173,10 +179,10 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             $sensitiveProperties = array_map($mapper, $sensitiveProperties);
             $scalarProperties = array_map($mapper, $scalarProperties);
 
-            $dataEncryptorConfigs[$message] = new DataProtectorConfig(supportedType: $messageType, encryptionKey: $encryptionKey, sensitiveProperties: $sensitiveProperties, scalarProperties: $scalarProperties);
+            $dataProtectorConfigs[$message] = new DataProtectorConfig(supportedType: $messageType, encryptionKey: $encryptionKey, sensitiveProperties: $sensitiveProperties, scalarProperties: $scalarProperties);
         }
 
-        return $dataEncryptorConfigs;
+        return $dataProtectorConfigs;
     }
 
     private function verifyLicense(Configuration $messagingConfiguration): void

@@ -22,6 +22,7 @@ use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveProperties;
 use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestCommandHandler;
 use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestEventHandler;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
+use Test\Ecotone\DataProtection\Fixture\MessageWithSensitiveProperty;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
 use Test\Ecotone\DataProtection\TestQueueChannel;
@@ -68,7 +69,7 @@ class EncryptAnnotatedMessagesTest extends TestCase
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
         self::assertEquals(
             '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","sensitiveProperty":"value"}',
-            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->primaryKey)
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['sensitiveObject', 'sensitiveEnum', 'sensitiveProperty'], $this->primaryKey)
         );
     }
 
@@ -100,7 +101,7 @@ class EncryptAnnotatedMessagesTest extends TestCase
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
         self::assertEquals(
             '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","sensitiveProperty":"value"}',
-            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->secondaryKey),
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['sensitiveObject', 'sensitiveEnum', 'sensitiveProperty'], $this->secondaryKey),
         );
     }
 
@@ -133,8 +134,31 @@ class EncryptAnnotatedMessagesTest extends TestCase
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
         self::assertEquals(
             '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","property":"value","sensitiveProperty":"sensitive value"}',
-            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->primaryKey)
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['sensitiveObject', 'sensitiveEnum', 'sensitiveProperty'], $this->primaryKey)
         );
+    }
+
+    public function test_protect_commands_using_attribute_on_property(): void
+    {
+        $ecotone = $this->bootstrapEcotone(
+            classesToResolve: [
+                MessageWithSensitiveProperty::class,
+                TestCommandHandler::class,
+            ],
+            container: [
+                new TestCommandHandler(),
+                $messageReceiver = new MessageReceiver(),
+            ],
+            messageChannel: $channel = TestQueueChannel::create('test'),
+        );
+
+        $ecotone
+            ->sendCommand($messageSent = new MessageWithSensitiveProperty(sensitiveProperty: 'sensitive-value', nonSensitiveProperty: 'non-sensitive-value'))
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals('{"sensitiveProperty":"sensitive-value","nonSensitiveProperty":"non-sensitive-value"}', $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['sensitiveProperty'], $this->primaryKey));
     }
 
     public function test_protect_events_using_message_annotations(): void
@@ -165,7 +189,7 @@ class EncryptAnnotatedMessagesTest extends TestCase
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
         self::assertEquals(
             '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","sensitiveProperty":"value"}',
-            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->primaryKey)
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['sensitiveObject', 'sensitiveEnum', 'sensitiveProperty'], $this->primaryKey)
         );
     }
 
@@ -198,7 +222,7 @@ class EncryptAnnotatedMessagesTest extends TestCase
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
         self::assertEquals(
             '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","property":"value","sensitiveProperty":"sensitive value"}',
-            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->primaryKey)
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['sensitiveObject', 'sensitiveEnum', 'sensitiveProperty'], $this->primaryKey)
         );
     }
 
@@ -230,8 +254,31 @@ class EncryptAnnotatedMessagesTest extends TestCase
         self::assertEquals($messageSent, $messageReceiver->receivedMessage());
         self::assertEquals(
             '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","sensitiveProperty":"value"}',
-            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), $this->secondaryKey)
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['sensitiveObject', 'sensitiveEnum', 'sensitiveProperty'], $this->secondaryKey)
         );
+    }
+
+    public function test_protect_events_using_attribute_on_property(): void
+    {
+        $ecotone = $this->bootstrapEcotone(
+            classesToResolve: [
+                MessageWithSensitiveProperty::class,
+                TestEventHandler::class,
+            ],
+            container: [
+                new TestEventHandler(),
+                $messageReceiver = new MessageReceiver(),
+            ],
+            messageChannel: $channel = TestQueueChannel::create('test'),
+        );
+
+        $ecotone
+            ->publishEvent($messageSent = new MessageWithSensitiveProperty(sensitiveProperty: 'sensitive-value', nonSensitiveProperty: 'non-sensitive-value'))
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals('{"sensitiveProperty":"sensitive-value","nonSensitiveProperty":"non-sensitive-value"}', $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['sensitiveProperty'], $this->primaryKey));
     }
 
     private function bootstrapEcotone(array $classesToResolve, array $container, MessageChannel $messageChannel, array $extensionObjects = []): FlowTestSupport
@@ -257,15 +304,11 @@ class EncryptAnnotatedMessagesTest extends TestCase
         );
     }
 
-    private function decryptChannelMessagePayload(string $payload, Key $primaryKey): string
+    private function decryptChannelMessagePayload(string $payload, array $encryptedProperties, Key $primaryKey): string
     {
         $payload = json_decode($payload, true);
-        foreach ($payload as $key => $value) {
-            try {
-                $payload[$key] = Crypto::decrypt($value, $primaryKey);
-            } catch (CryptoException) { // in some cases property is not encrypted
-                $payload[$key] = $value;
-            }
+        foreach ($encryptedProperties as $key) {
+            $payload[$key] = Crypto::decrypt($payload[$key], $primaryKey);
         }
 
         return json_encode($payload);

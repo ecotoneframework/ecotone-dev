@@ -216,6 +216,25 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         return $classesWithAnnotations;
     }
 
+    public function findClassesWithAnnotatedProperties(string $annotationClassName): array
+    {
+        $classesWithAnnotatedProperties = [];
+        foreach ($this->registeredClasses as $class) {
+            $reflection = new ReflectionClass($class);
+            foreach ($reflection->getProperties() as $property) {
+                $propertyAnnotations = $this->annotationResolver->getAnnotationsForProperty($class, $property->getName());
+
+                foreach ($propertyAnnotations as $propertyAnnotation) {
+                    if ($propertyAnnotation instanceof $annotationClassName) {
+                        $classesWithAnnotatedProperties[] = $class;
+                    }
+                }
+            }
+        }
+
+        return $classesWithAnnotatedProperties;
+    }
+
     private function hasAnnotation(string $className, string $annotationClassNameToFind): bool
     {
         $annotationsForClass = $this->getAnnotationsForClass($className);

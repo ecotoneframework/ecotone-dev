@@ -71,7 +71,11 @@ Keep the title under 70 characters, concise and descriptive.
    Use sequence diagrams for flows, flowcharts for decision logic, or class diagrams for structural changes.
 
 **"Pull Request Contribution Terms"** section:
-- Always include: `- [x] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md)`
+- Ask the user using AskUserQuestion: "Do you agree to the contribution terms outlined in CONTRIBUTING.md?" with options:
+  - "Yes, I agree" — Mark the checkbox with `[X]`
+  - "No" — Leave the checkbox empty `[ ]`
+- If agreed: `- [X] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md)`
+- If not agreed: `- [ ] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md)`
 
 ### Step 4: Review with User
 
@@ -93,7 +97,7 @@ gh pr create --title "feat: description here" --body "$(cat <<'EOF'
 
 ## Pull Request Contribution Terms
 
-- [x] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md).
+- [X] I have read and agree to the contribution terms outlined in [CONTRIBUTING](https://github.com/ecotoneframework/ecotone-dev/blob/main/CONTRIBUTING.md).
 EOF
 )"
 ```

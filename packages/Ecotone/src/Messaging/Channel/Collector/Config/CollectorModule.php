@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Channel\Collector\Config;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Channel\Collector\CollectorPauseInterceptor;
 use Ecotone\Messaging\Channel\Collector\CollectorSenderInterceptor;
 use Ecotone\Messaging\Channel\Collector\CollectorStorage;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
@@ -26,6 +27,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
+use Ecotone\Projecting\Attribute\ProjectionFlush;
 
 #[ModuleAnnotation]
 /**
@@ -51,6 +53,7 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
         }
 
 
+        $hasCollectorEnabled = false;
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
             $channelConfiguration = $globalPollableChannelConfiguration;
 
@@ -64,6 +67,7 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
                 continue;
             }
 
+            $hasCollectorEnabled = true;
             $collectorReference = Reference::to('polling.'.$pollableMessageChannel->getMessageChannelName().'.collector_storage');
             $messagingConfiguration->registerServiceDefinition($collectorReference, new Definition(CollectorStorage::class));
             $messagingConfiguration->registerChannelInterceptor(
@@ -88,6 +92,21 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
                     $collectorSenderInterceptorInterfaceToCall,
                     Precedence::COLLECTOR_SENDER_PRECEDENCE,
                     CommandBus::class . '||' . AsynchronousRunningEndpoint::class
+                )
+            );
+        }
+
+        if ($hasCollectorEnabled) {
+            $messagingConfiguration->registerServiceDefinition(
+                CollectorPauseInterceptor::class,
+                new Definition(CollectorPauseInterceptor::class)
+            );
+            $messagingConfiguration->registerAroundMethodInterceptor(
+                AroundInterceptorBuilder::create(
+                    CollectorPauseInterceptor::class,
+                    $interfaceToCallRegistry->getFor(CollectorPauseInterceptor::class, 'pauseCollecting'),
+                    Precedence::COLLECTOR_SENDER_PRECEDENCE,
+                    ProjectionFlush::class
                 )
             );
         }

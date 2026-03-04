@@ -115,6 +115,7 @@ class ProjectingModule implements AnnotationModule
                     )
                     ->withEndpointId(self::endpointIdForProjection($projectionName))
                     ->withInputChannelName(self::inputChannelForProjectingManager($projectionName))
+                    ->withEndpointAnnotations([new AttributeDefinition('Ecotone\Dbal\DbalTransaction\WithoutDbalTransaction')])
             );
 
             $messagingConfiguration->registerMessageHandler(
@@ -178,6 +179,7 @@ class ProjectingModule implements AnnotationModule
                 )
                 ->withEndpointId('backfill_executor_handler')
                 ->withInputChannelName(BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL)
+                ->withEndpointAnnotations([new AttributeDefinition('Ecotone\Dbal\DbalTransaction\WithoutDbalTransaction')])
         );
 
         // Register console commands

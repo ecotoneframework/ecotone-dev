@@ -23,7 +23,7 @@ final class MessageCollectorChannelInterceptor extends AbstractChannelIntercepto
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
-        if ($this->collectorStorage->isEnabled()) {
+        if ($this->collectorStorage->isEnabled() && ! CollectorStorage::isPaused()) {
             $this->collectorStorage->collect($message, $this->logger);
 
             $message = null;

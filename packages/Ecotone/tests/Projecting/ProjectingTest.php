@@ -13,6 +13,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Endpoint\Priority;
 use Ecotone\Messaging\Attribute\Interceptor\Around;
+use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -23,6 +24,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
+use Ecotone\Modelling\EventBus;
 use Ecotone\Projecting\Attribute;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
@@ -42,6 +44,7 @@ use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
+use stdClass;
 
 /**
  * @internal
@@ -1011,5 +1014,66 @@ class ProjectingTest extends TestCase
         $ecotone->initializeProjection('userland_storage_projection');
 
         self::assertTrue($userlandStorage->wasUsed, 'Userland state storage should be prioritized and used');
+    }
+
+    public function test_collector_is_paused_during_projection_flush(): void
+    {
+        $projection = new #[ProjectionV2('collector_projection'), FromStream('test_stream')] class () {
+            public array $processedEvents = [];
+            public int $flushCount = 0;
+            public ?EventBus $eventBus = null;
+
+            #[EventHandler('*')]
+            public function handle(array $event, #[\Ecotone\Messaging\Attribute\Parameter\Reference] EventBus $eventBus): void
+            {
+                $this->eventBus = $eventBus;
+                $this->processedEvents[] = $event;
+            }
+
+            #[ProjectionFlush]
+            public function flush(): void
+            {
+                $this->flushCount++;
+                if ($this->eventBus && count($this->processedEvents) > 0) {
+                    $this->eventBus->publish(new stdClass());
+                }
+            }
+        };
+
+        $notificationHandler = new class () {
+            public int $receivedCount = 0;
+
+            #[Asynchronous('notifications')]
+            #[EventHandler(endpointId: 'notification_handler')]
+            public function handle(stdClass $event): void
+            {
+                $this->receivedCount++;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class, $notificationHandler::class],
+            [$projection, $notificationHandler],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withExtensionObjects([
+                    PollableChannelConfiguration::neverRetry('notifications')->withCollector(true),
+                ]),
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
+            ],
+        );
+
+        $ecotone->withEvents([
+            Event::createWithType('test-event', ['name' => 'Test']),
+        ]);
+
+        $ecotone->triggerProjection('collector_projection');
+
+        self::assertCount(1, $projection->processedEvents);
+        self::assertGreaterThanOrEqual(1, $projection->flushCount);
+        $message = $ecotone->getMessageChannel('notifications')->receive();
+        self::assertNotNull($message, 'Message sent during flush should bypass collector and go directly to channel');
     }
 }

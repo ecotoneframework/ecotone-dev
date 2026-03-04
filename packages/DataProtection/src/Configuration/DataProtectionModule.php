@@ -118,6 +118,7 @@ final class DataProtectionModule extends NoExternalConfigurationModule
                         Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $protectorConfig->encryptionKeyName($dataProtectionConfiguration))),
                         $protectorConfig->sensitiveProperties,
                         $protectorConfig->scalarProperties,
+                        $protectorConfig->sensitivePropertyNames,
                     ]
                 );
             }
@@ -167,19 +168,25 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor($messageType = Type::create($message));
             $encryptionKey = $classDefinition->findSingleClassAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
 
-            $sensitiveProperties = $classDefinition->getPropertiesWithAnnotation(Type::create(Sensitive::class));
-            if ($sensitiveProperties === []) {
-                $sensitiveProperties = $classDefinition->getProperties();
+            $propertiesToProtect = $classDefinition->getPropertiesWithAnnotation(Type::create(Sensitive::class));
+            if ($propertiesToProtect === []) {
+                $propertiesToProtect = $classDefinition->getProperties();
             }
 
-            $scalarProperties = array_values(array_filter($sensitiveProperties, static fn (ClassPropertyDefinition $property): bool => $property->getType()->isScalar()));
+            $scalarProperties = array_values(array_filter($propertiesToProtect, static fn (ClassPropertyDefinition $property): bool => $property->getType()->isScalar()));
 
-            $mapper = static fn (ClassPropertyDefinition $property): string => $property->getName();
+            $nameMapper = static fn (ClassPropertyDefinition $property): string => $property->getName();
+            $sensitiveNameMapper = static function (ClassPropertyDefinition $property): string {
+                $name = $property->findAnnotation(Type::create(Sensitive::class))?->sensitiveName ?? '';
 
-            $sensitiveProperties = array_map($mapper, $sensitiveProperties);
-            $scalarProperties = array_map($mapper, $scalarProperties);
+                return $name ?: $property->getName();
+            };
 
-            $dataProtectorConfigs[$message] = new DataProtectorConfig(supportedType: $messageType, encryptionKey: $encryptionKey, sensitiveProperties: $sensitiveProperties, scalarProperties: $scalarProperties);
+            $sensitiveProperties = array_map($nameMapper, $propertiesToProtect);
+            $scalarProperties = array_map($nameMapper, $scalarProperties);
+            $sensitivePropertyNames = array_combine($sensitiveProperties, array_map($sensitiveNameMapper, $propertiesToProtect));
+
+            $dataProtectorConfigs[$message] = new DataProtectorConfig(supportedType: $messageType, encryptionKey: $encryptionKey, sensitiveProperties: $sensitiveProperties, scalarProperties: $scalarProperties, sensitivePropertyNames: $sensitivePropertyNames);
         }
 
         return $dataProtectorConfigs;

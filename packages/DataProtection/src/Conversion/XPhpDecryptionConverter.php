@@ -13,31 +13,11 @@ use Ecotone\Messaging\Handler\Type;
 /**
  * licence Enterprise
  */
-class XPhpDecryptionConverter implements Converter
+class XPhpDecryptionConverter extends AbstractDecryptionConverter
 {
-    public function __construct(
-        private Type $supportedType,
-        private Key $encryptionKey,
-        private array $sensitiveProperties,
-        private array $scalarProperties,
-    ) {
-    }
-
     public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
-        foreach ($this->sensitiveProperties as $property) {
-            if (! array_key_exists($property, $source)) {
-                continue;
-            }
-
-            $source[$property] = Crypto::decrypt($source[$property], $this->encryptionKey);
-
-            if (! in_array($property, $this->scalarProperties, true)) {
-                $source[$property] = json_decode($source[$property], true);
-            }
-        }
-
-        return $source;
+        return $this->decrypt($source);
     }
 
     public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool

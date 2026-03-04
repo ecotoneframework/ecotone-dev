@@ -14,31 +14,12 @@ use Ecotone\Messaging\Handler\Type;
 /**
  * licence Enterprise
  */
-readonly class XMLEncryptionConverter implements Converter
+class XMLEncryptionConverter extends AbstractEncryptionConverter
 {
-    public function __construct(
-        private Type $supportedType,
-        private Key $encryptionKey,
-        private array $sensitiveProperties,
-        private array $scalarProperties,
-    ) {
-    }
-
     public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
         $data = XmlHelper::xmlToArray($source);
-
-        foreach ($this->sensitiveProperties as $property) {
-            if (! array_key_exists($property, $data)) {
-                continue;
-            }
-
-            if (! in_array($property, $this->scalarProperties, true)) {
-                $data[$property] = json_encode($data[$property]);
-            }
-
-            $data[$property] = Crypto::encrypt($data[$property], $this->encryptionKey);
-        }
+        $data = $this->encrypt($data);
 
         return XmlHelper::arrayToXml($data);
     }

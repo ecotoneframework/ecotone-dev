@@ -19,9 +19,11 @@ use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveProperties;
+use Test\Ecotone\DataProtection\Fixture\CustomConverter;
 use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestCommandHandler;
 use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestEventHandler;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
+use Test\Ecotone\DataProtection\Fixture\MessageWithCustomConverter;
 use Test\Ecotone\DataProtection\Fixture\MessageWithSensitiveProperty;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
@@ -161,6 +163,39 @@ class EncryptAnnotatedMessagesTest extends TestCase
         self::assertEquals('{"sensitiveProperty":"sensitive-value","nonSensitiveProperty":"non-sensitive-value"}', $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['sensitiveProperty'], $this->primaryKey));
     }
 
+    public function test_protect_commands_with_custom_converters(): void
+    {
+        $ecotone = $this->bootstrapEcotone(
+            classesToResolve: [
+                MessageWithCustomConverter::class,
+                CustomConverter::class,
+                TestCommandHandler::class,
+            ],
+            container: [
+                new CustomConverter(),
+                new TestCommandHandler(),
+                $messageReceiver = new MessageReceiver(),
+            ],
+            messageChannel: $channel = TestQueueChannel::create('test'),
+        );
+
+        $ecotone
+            ->sendCommand(
+                $messageSent = new MessageWithCustomConverter(
+                    sensitiveProperty: 'sensitive value',
+                    nonSensitiveProperty: 'non-sensitive value',
+                ),
+            )
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals(
+            '{"foo":"\"sensitive value\"","bar":"non-sensitive value"}',
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['foo'], $this->primaryKey)
+        );
+    }
+
     public function test_protect_events_using_message_annotations(): void
     {
         $ecotone = $this->bootstrapEcotone(
@@ -223,6 +258,39 @@ class EncryptAnnotatedMessagesTest extends TestCase
         self::assertEquals(
             '{"sensitiveObject":"{\"argument\":\"value\",\"enum\":\"first\"}","sensitiveEnum":"\"first\"","property":"value","sensitiveProperty":"sensitive value"}',
             $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['sensitiveObject', 'sensitiveEnum', 'sensitiveProperty'], $this->primaryKey)
+        );
+    }
+
+    public function test_protect_events_with_custom_converters(): void
+    {
+        $ecotone = $this->bootstrapEcotone(
+            classesToResolve: [
+                MessageWithCustomConverter::class,
+                CustomConverter::class,
+                TestEventHandler::class,
+            ],
+            container: [
+                new CustomConverter(),
+                new TestEventHandler(),
+                $messageReceiver = new MessageReceiver(),
+            ],
+            messageChannel: $channel = TestQueueChannel::create('test'),
+        );
+
+        $ecotone
+            ->publishEvent(
+                $messageSent = new MessageWithCustomConverter(
+                    sensitiveProperty: 'sensitive value',
+                    nonSensitiveProperty: 'non-sensitive value',
+                ),
+            )
+            ->run('test', ExecutionPollingMetadata::createWithTestingSetup())
+        ;
+
+        self::assertEquals($messageSent, $messageReceiver->receivedMessage());
+        self::assertEquals(
+            '{"foo":"\"sensitive value\"","bar":"non-sensitive value"}',
+            $this->decryptChannelMessagePayload($channel->getLastSentMessage()->getPayload(), ['foo'], $this->primaryKey)
         );
     }
 

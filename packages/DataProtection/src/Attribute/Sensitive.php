@@ -9,6 +9,9 @@ namespace Ecotone\DataProtection\Attribute;
 use Attribute;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_PROPERTY)]
-class Sensitive
+readonly class Sensitive
 {
+    public function __construct(public string $sensitiveName = '')
+    {
+    }
 }

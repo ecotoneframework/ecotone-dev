@@ -17,6 +17,8 @@ use Ecotone\Messaging\Message;
  */
 final class CollectorStorage
 {
+    private static int $pauseDepth = 0;
+
     /**
      * @param CollectedMessage[] $collectedMessages
      */
@@ -24,6 +26,21 @@ final class CollectorStorage
         private bool $enabled = false,
         private array $collectedMessages = []
     ) {
+    }
+
+    public static function pause(): void
+    {
+        self::$pauseDepth++;
+    }
+
+    public static function resume(): void
+    {
+        self::$pauseDepth--;
+    }
+
+    public static function isPaused(): bool
+    {
+        return self::$pauseDepth > 0;
     }
 
     public function enable(): void

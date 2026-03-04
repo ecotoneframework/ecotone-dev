@@ -58,6 +58,8 @@ class ProjectingModule implements AnnotationModule
         return new self();
     }
 
+    private const WITHOUT_DBAL_TRANSACTION_CLASS = 'Ecotone\Dbal\DbalTransaction\WithoutDbalTransaction';
+
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
@@ -97,26 +99,27 @@ class ProjectingModule implements AnnotationModule
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);
 
-            $messagingConfiguration->registerMessageHandler(
-                MessageProcessorActivatorBuilder::create()
-                    ->chainInterceptedProcessor(
-                        MethodInvokerBuilder::create(
-                            $projectingManagerReference,
-                            InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
-                            [
-                                $projectionBuilder->partitionHeader()
-                                    ? HeaderBuilder::create('partitionKeyValue', $projectionBuilder->partitionHeader())
-                                    : ($projectionBuilder->isPartitioned()
-                                        ? new PartitionHeaderBuilder('partitionKeyValue')
-                                        : ValueBuilder::create('partitionKeyValue', null)),
-                                HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
-                            ],
-                        )
+            $executeHandlerBuilder = MessageProcessorActivatorBuilder::create()
+                ->chainInterceptedProcessor(
+                    MethodInvokerBuilder::create(
+                        $projectingManagerReference,
+                        InterfaceToCallReference::create(ProjectingManager::class, 'execute'),
+                        [
+                            $projectionBuilder->partitionHeader()
+                                ? HeaderBuilder::create('partitionKeyValue', $projectionBuilder->partitionHeader())
+                                : ($projectionBuilder->isPartitioned()
+                                    ? new PartitionHeaderBuilder('partitionKeyValue')
+                                    : ValueBuilder::create('partitionKeyValue', null)),
+                            HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
+                        ],
                     )
-                    ->withEndpointId(self::endpointIdForProjection($projectionName))
-                    ->withInputChannelName(self::inputChannelForProjectingManager($projectionName))
-                    ->withEndpointAnnotations([new AttributeDefinition('Ecotone\Dbal\DbalTransaction\WithoutDbalTransaction')])
-            );
+                )
+                ->withEndpointId(self::endpointIdForProjection($projectionName))
+                ->withInputChannelName(self::inputChannelForProjectingManager($projectionName));
+            if (class_exists(self::WITHOUT_DBAL_TRANSACTION_CLASS)) {
+                $executeHandlerBuilder = $executeHandlerBuilder->withEndpointAnnotations([new AttributeDefinition(self::WITHOUT_DBAL_TRANSACTION_CLASS)]);
+            }
+            $messagingConfiguration->registerMessageHandler($executeHandlerBuilder);
 
             $messagingConfiguration->registerMessageHandler(
                 MessageProcessorActivatorBuilder::create()
@@ -161,26 +164,27 @@ class ProjectingModule implements AnnotationModule
             ])
         );
 
-        $messagingConfiguration->registerMessageHandler(
-            MessageProcessorActivatorBuilder::create()
-                ->chainInterceptedProcessor(
-                    MethodInvokerBuilder::create(
-                        BackfillExecutorHandler::class,
-                        InterfaceToCallReference::create(BackfillExecutorHandler::class, 'executeBackfillBatch'),
-                        [
-                            PayloadBuilder::create('projectionName'),
-                            HeaderBuilder::createOptional('limit', 'backfill.limit'),
-                            HeaderBuilder::createOptional('offset', 'backfill.offset'),
-                            HeaderBuilder::createOptional('streamName', 'backfill.streamName'),
-                            HeaderBuilder::createOptional('aggregateType', 'backfill.aggregateType'),
-                            HeaderBuilder::createOptional('eventStoreReferenceName', 'backfill.eventStoreReferenceName'),
-                        ],
-                    )
+        $backfillHandlerBuilder = MessageProcessorActivatorBuilder::create()
+            ->chainInterceptedProcessor(
+                MethodInvokerBuilder::create(
+                    BackfillExecutorHandler::class,
+                    InterfaceToCallReference::create(BackfillExecutorHandler::class, 'executeBackfillBatch'),
+                    [
+                        PayloadBuilder::create('projectionName'),
+                        HeaderBuilder::createOptional('limit', 'backfill.limit'),
+                        HeaderBuilder::createOptional('offset', 'backfill.offset'),
+                        HeaderBuilder::createOptional('streamName', 'backfill.streamName'),
+                        HeaderBuilder::createOptional('aggregateType', 'backfill.aggregateType'),
+                        HeaderBuilder::createOptional('eventStoreReferenceName', 'backfill.eventStoreReferenceName'),
+                    ],
                 )
-                ->withEndpointId('backfill_executor_handler')
-                ->withInputChannelName(BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL)
-                ->withEndpointAnnotations([new AttributeDefinition('Ecotone\Dbal\DbalTransaction\WithoutDbalTransaction')])
-        );
+            )
+            ->withEndpointId('backfill_executor_handler')
+            ->withInputChannelName(BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL);
+        if (class_exists(self::WITHOUT_DBAL_TRANSACTION_CLASS)) {
+            $backfillHandlerBuilder = $backfillHandlerBuilder->withEndpointAnnotations([new AttributeDefinition(self::WITHOUT_DBAL_TRANSACTION_CLASS)]);
+        }
+        $messagingConfiguration->registerMessageHandler($backfillHandlerBuilder);
 
         // Register console commands
         $messagingConfiguration->registerServiceDefinition(ProjectingConsoleCommands::class, new Definition(ProjectingConsoleCommands::class, [new Reference(ProjectionRegistry::class)]));

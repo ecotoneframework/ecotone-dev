@@ -100,10 +100,10 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
             if ($partitionKey !== null) {
                 $headers[ProjectingHeaders::REBUILD_PARTITION_KEY] = $partitionKey;
 
-                $parts = explode(':', $partitionKey, 3);
-                if (count($parts) === 3) {
-                    $headers[MessageHeaders::EVENT_AGGREGATE_TYPE] = $parts[1];
-                    $headers[MessageHeaders::EVENT_AGGREGATE_ID] = $parts[2];
+                $decomposed = AggregatePartitionKey::decompose($partitionKey);
+                if ($decomposed !== null) {
+                    $headers[MessageHeaders::EVENT_AGGREGATE_TYPE] = $decomposed['aggregateType'];
+                    $headers[MessageHeaders::EVENT_AGGREGATE_ID] = $decomposed['aggregateId'];
                 }
             }
 

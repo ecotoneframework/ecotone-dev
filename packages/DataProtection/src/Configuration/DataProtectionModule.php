@@ -26,6 +26,7 @@ use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -166,9 +167,14 @@ final class DataProtectionModule extends NoExternalConfigurationModule
             }
 
             $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor($messageType = Type::create($message));
+            $isClassSensitive = $classDefinition->findSingleClassAnnotation(Type::create(Sensitive::class)) !== null;
             $encryptionKey = $classDefinition->findSingleClassAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
 
             $propertiesToProtect = $classDefinition->getPropertiesWithAnnotation(Type::create(Sensitive::class));
+            if ($propertiesToProtect !== [] && $isClassSensitive) {
+                throw ConfigurationException::create('#[Sensitive] attribute can be used only on class level, not on property level.');
+            }
+
             if ($propertiesToProtect === []) {
                 $propertiesToProtect = $classDefinition->getProperties();
             }

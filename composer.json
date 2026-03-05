@@ -118,9 +118,7 @@
     "require": {
         "php": "^8.2",
         "ext-amqp": "*",
-        "ext-libxml": "*",
         "ext-openssl": "*",
-        "ext-simplexml": "*",
         "doctrine/dbal": "^3.9|^4.0",
         "doctrine/persistence": "^2.5|^3.4",
         "defuse/php-encryption": "^2.4",
@@ -178,6 +176,9 @@
         "symfony/var-exporter": "^6.4|^7.0|^8.0",
         "enqueue/dsn": "^0.10.27",
         "yoast/phpunit-polyfills": "^4.0.0"
+    },
+    "suggest": {
+        "ext-simplexml": "Required if application/xml is used as serialization media type"
     },
     "conflict": {
         "symfony/doctrine-messenger": ">7.0.5 < 7.1.0",

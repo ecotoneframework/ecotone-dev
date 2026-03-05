@@ -9,7 +9,7 @@ use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
-use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveProperties;
+use Test\Ecotone\DataProtection\Fixture\MessageWithSensitiveProperties;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
 use Test\Ecotone\DataProtection\Fixture\MessageWithCustomConverter;
 use Test\Ecotone\DataProtection\Fixture\MessageWithSensitiveProperty;
@@ -37,7 +37,7 @@ class TestCommandHandler
 
     #[CommandHandler(endpointId: 'test.EncryptAnnotatedMessages.commandHandler.AnnotatedMessageWithSensitiveProperties')]
     public function handleAnnotatedMessageWithSensitiveProperties(
-        #[Payload] AnnotatedMessageWithSensitiveProperties $message,
+        #[Payload] MessageWithSensitiveProperties $message,
         #[Headers] array $headers,
         #[Reference] MessageReceiver $messageReceiver,
     ): void {

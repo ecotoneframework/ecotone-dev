@@ -6,8 +6,7 @@ namespace Test\Ecotone\DataProtection\Fixture;
 
 use Ecotone\DataProtection\Attribute\Sensitive;
 
-#[Sensitive]
-class AnnotatedMessageWithSensitiveProperties
+class MessageWithSensitiveProperties
 {
     public function __construct(
         #[Sensitive] public TestClass $sensitiveObject,

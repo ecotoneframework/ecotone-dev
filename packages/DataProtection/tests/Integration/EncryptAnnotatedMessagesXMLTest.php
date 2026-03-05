@@ -20,7 +20,7 @@ use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
-use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSensitiveProperties;
+use Test\Ecotone\DataProtection\Fixture\MessageWithSensitiveProperties;
 use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestCommandHandler;
 use Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages\TestEventHandler;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
@@ -110,7 +110,7 @@ class EncryptAnnotatedMessagesXMLTest extends TestCase
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
-                AnnotatedMessageWithSensitiveProperties::class,
+                MessageWithSensitiveProperties::class,
                 TestCommandHandler::class,
             ],
             container: [
@@ -122,7 +122,7 @@ class EncryptAnnotatedMessagesXMLTest extends TestCase
 
         $ecotone
             ->sendCommand(
-                $messageSent = new AnnotatedMessageWithSensitiveProperties(
+                $messageSent = new MessageWithSensitiveProperties(
                     sensitiveObject: new TestClass('value', TestEnum::FIRST),
                     sensitiveEnum: TestEnum::FIRST,
                     property: 'value',
@@ -175,7 +175,7 @@ class EncryptAnnotatedMessagesXMLTest extends TestCase
     {
         $ecotone = $this->bootstrapEcotone(
             classesToResolve: [
-                AnnotatedMessageWithSensitiveProperties::class,
+                MessageWithSensitiveProperties::class,
                 TestEventHandler::class,
             ],
             container: [
@@ -187,7 +187,7 @@ class EncryptAnnotatedMessagesXMLTest extends TestCase
 
         $ecotone
             ->publishEvent(
-                $messageSent = new AnnotatedMessageWithSensitiveProperties(
+                $messageSent = new MessageWithSensitiveProperties(
                     sensitiveObject: new TestClass('value', TestEnum::FIRST),
                     sensitiveEnum: TestEnum::FIRST,
                     property: 'value',

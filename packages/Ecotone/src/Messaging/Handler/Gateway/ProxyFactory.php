@@ -65,6 +65,10 @@ class ProxyFactory
     {
         if (! self::isLoaded($proxyReference)) {
             $file = $this->generateCachedProxyFileFor($proxyReference, ! $this->serviceCacheConfiguration->shouldUseCache());
+            if (! file_exists($file)) {
+                clearstatcache(true, $file);
+                $file = $this->generateCachedProxyFileFor($proxyReference, true);
+            }
             require $file;
         }
 
@@ -116,8 +120,13 @@ class ProxyFactory
 
         $tmpFileName = $fileName . '.' . bin2hex(random_bytes(12));
 
-        file_put_contents($tmpFileName, $code);
+        if (file_put_contents($tmpFileName, $code) === false) {
+            throw ConfigurationException::create("Failed to write proxy cache file {$tmpFileName}");
+        }
         @chmod($tmpFileName, 0664);
-        rename($tmpFileName, $fileName);
+        if (rename($tmpFileName, $fileName) === false) {
+            @unlink($tmpFileName);
+            throw ConfigurationException::create("Failed to rename proxy cache file from {$tmpFileName} to {$fileName}");
+        }
     }
 }

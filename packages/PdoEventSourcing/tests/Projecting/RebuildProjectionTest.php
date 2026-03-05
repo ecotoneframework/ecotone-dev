@@ -20,11 +20,17 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\PartitionAggregateId;
 use Ecotone\Projecting\Attribute\Partitioned;
+use Ecotone\Projecting\Attribute\ProjectionExecution;
 use Ecotone\Projecting\Attribute\ProjectionRebuild;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
+use RuntimeException;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\ChangeAssignedPerson;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\AssignedPersonWasChanged;
+use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
@@ -105,18 +111,88 @@ abstract class AbstractRebuildPartitionedProjection
 
     #[ProjectionReset]
     public function reset(
-        #[PartitionAggregateId] ?string $aggregateId = null,
+        #[PartitionAggregateId] string $aggregateId,
     ): void {
-        if ($aggregateId !== null) {
-            $this->connection->executeStatement("DELETE FROM {$this->tableName()} WHERE ticket_id = ?", [$aggregateId]);
-        } else {
-            $this->connection->executeStatement("DELETE FROM {$this->tableName()}");
-        }
+        $this->connection->executeStatement("DELETE FROM {$this->tableName()} WHERE ticket_id = ?", [$aggregateId]);
     }
 
     public function getTickets(): array
     {
         return $this->connection->executeQuery("SELECT * FROM {$this->tableName()} ORDER BY ticket_id ASC")->fetchAllAssociative();
+    }
+}
+
+#[ProjectionV2('rebuild_rollback')]
+#[Partitioned]
+#[ProjectionRebuild]
+#[ProjectionExecution(eventLoadingBatchSize: 3)]
+#[FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
+class RebuildRollbackProjection
+{
+    public bool $shouldFailOnProjection = false;
+    public int $projectedEventsCount = 0;
+
+    public function __construct(private Connection $connection)
+    {
+    }
+
+    #[EventHandler]
+    public function onTicketRegistered(TicketWasRegistered $event): void
+    {
+        $this->handleEvent($event->getTicketId());
+        $this->connection->executeStatement(
+            'INSERT INTO rebuild_rollback_tickets VALUES (?,?) ON CONFLICT(ticket_id) DO NOTHING',
+            [$event->getTicketId(), $event->getTicketType()]
+        );
+    }
+
+    #[EventHandler]
+    public function onAssignedPersonChanged(AssignedPersonWasChanged $event): void
+    {
+        $this->handleEvent($event->getTicketId());
+    }
+
+    #[EventHandler]
+    public function onTicketClosed(TicketWasClosed $event): void
+    {
+        $this->handleEvent($event->getTicketId());
+    }
+
+    private function handleEvent(string $ticketId): void
+    {
+        if ($this->shouldFailOnProjection) {
+            $this->projectedEventsCount++;
+            if ($this->projectedEventsCount >= 4) {
+                throw new RuntimeException('Projection failed on 4th event during rebuild');
+            }
+        }
+    }
+
+    #[ProjectionInitialization]
+    public function initialization(): void
+    {
+        $this->connection->executeStatement(
+            'CREATE TABLE IF NOT EXISTS rebuild_rollback_tickets (ticket_id VARCHAR(36) PRIMARY KEY, ticket_type VARCHAR(25))'
+        );
+    }
+
+    #[ProjectionDelete]
+    public function delete(): void
+    {
+        $this->connection->executeStatement('DROP TABLE IF EXISTS rebuild_rollback_tickets');
+    }
+
+    #[ProjectionReset]
+    public function reset(
+        #[PartitionAggregateId] string $aggregateId,
+    ): void {
+        $this->connection->executeStatement('DELETE FROM rebuild_rollback_tickets WHERE ticket_id = ?', [$aggregateId]);
+    }
+
+    #[QueryHandler('getRebuildRollbackTickets')]
+    public function query(): array
+    {
+        return $this->connection->executeQuery('SELECT * FROM rebuild_rollback_tickets ORDER BY ticket_id ASC')->fetchAllAssociative();
     }
 }
 
@@ -243,7 +319,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
     public function test_global_projection_sync_rebuild(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_global_sync'), ProjectionRebuild(), FromStream(Ticket::class) ] class ($connection) extends AbstractRebuildGlobalProjection {
+        $projection = new #[ ProjectionV2('rebuild_global_sync'), ProjectionRebuild, FromStream(Ticket::class) ] class ($connection) extends AbstractRebuildGlobalProjection {
             #[QueryHandler('getRebuildGlobalSyncTickets')]
             public function query(): array
             {
@@ -268,7 +344,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
     public function test_rebuild_resets_existing_data(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_resets_data'), Partitioned, ProjectionRebuild(), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
+        $projection = new #[ ProjectionV2('rebuild_resets_data'), Partitioned, ProjectionRebuild, FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
             #[QueryHandler('getRebuildResetsDataTickets')]
             public function query(): array
             {
@@ -294,6 +370,36 @@ final class RebuildProjectionTest extends ProjectingTestCase
         self::assertCount(2, $tickets);
         self::assertSame('1', $tickets[0]['ticket_id']);
         self::assertSame('2', $tickets[1]['ticket_id']);
+    }
+
+    public function test_rebuild_rolls_back_on_exception_during_reprojection(): void
+    {
+        $connection = $this->getConnection();
+        $projection = new RebuildRollbackProjection($connection);
+
+        $ecotone = $this->bootstrapEcotone([$projection::class], [$projection], true);
+
+        $ecotone->sendCommand(new RegisterTicket('1', 'User1', 'alert'));
+        $ecotone->sendCommand(new ChangeAssignedPerson('1', 'User2'));
+        $ecotone->sendCommand(new ChangeAssignedPerson('1', 'User3'));
+        $ecotone->sendCommand(new ChangeAssignedPerson('1', 'User4'));
+        $ecotone->sendCommand(new CloseTicket('1'));
+
+        self::assertCount(1, $ecotone->sendQueryWithRouting('getRebuildRollbackTickets'));
+        self::assertTrue($ecotone->sendQueryWithRouting('ticket.isClosed', metadata: ['aggregate.id' => '1']));
+
+        $projection->shouldFailOnProjection = true;
+
+        $thrownException = false;
+        try {
+            $ecotone->runConsoleCommand('ecotone:projection:rebuild', ['name' => 'rebuild_rollback']);
+        } catch (RuntimeException $e) {
+            $thrownException = true;
+        }
+
+        self::assertTrue($thrownException, 'Expected RuntimeException to be thrown during rebuild');
+        self::assertCount(1, $ecotone->sendQueryWithRouting('getRebuildRollbackTickets'));
+        self::assertTrue($ecotone->sendQueryWithRouting('ticket.isClosed', metadata: ['aggregate.id' => '1']));
     }
 
     private function createPartitions(FlowTestSupport $ecotone, int $count): void

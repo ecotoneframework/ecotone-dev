@@ -68,7 +68,7 @@ class ProjectingManager
         } while ($processedEvents > 0 && $this->terminationListener->shouldTerminate() !== true);
     }
 
-    public function executeSingleBatch(?string $partitionKeyValue = null, bool $canInitialize = false, bool $shouldReset = false): int
+    public function executePartitionBatch(?string $partitionKeyValue = null, bool $canInitialize = false, bool $shouldReset = false): int
     {
         $transaction = $this->getProjectionStateStorage()->beginTransaction();
         try {
@@ -90,30 +90,34 @@ class ProjectingManager
             }
 
             $streamSource = $this->streamSourceRegistry->getFor($this->projectionName);
-            $streamPage = $streamSource->load($this->projectionName, $projectionState->lastPosition, $this->eventLoadingBatchSize, $partitionKeyValue);
-
+            $totalProcessedEvents = 0;
             $userState = $projectionState->userState;
-            $processedEvents = 0;
-            foreach ($streamPage->events as $event) {
-                $userState = $this->projectorExecutor->project($event, $userState);
-                $processedEvents++;
-            }
-            if ($processedEvents > 0) {
-                $this->projectorExecutor->flush($userState);
-            }
 
-            $projectionState = $projectionState
-                ->withLastPosition($streamPage->lastPosition)
-                ->withUserState($userState);
+            do {
+                $streamPage = $streamSource->load($this->projectionName, $projectionState->lastPosition, $this->eventLoadingBatchSize, $partitionKeyValue);
 
-            if ($processedEvents === 0 && $canInitialize) {
-                // If we are forcing execution and there are no new events, we still want to enable the projection if it was uninitialized
+                $batchProcessedEvents = 0;
+                foreach ($streamPage->events as $event) {
+                    $userState = $this->projectorExecutor->project($event, $userState);
+                    $batchProcessedEvents++;
+                }
+                if ($batchProcessedEvents > 0) {
+                    $this->projectorExecutor->flush($userState);
+                }
+
+                $totalProcessedEvents += $batchProcessedEvents;
+                $projectionState = $projectionState
+                    ->withLastPosition($streamPage->lastPosition)
+                    ->withUserState($userState);
+            } while ($shouldReset && $batchProcessedEvents >= $this->eventLoadingBatchSize);
+
+            if ($totalProcessedEvents === 0 && $canInitialize) {
                 $projectionState = $projectionState->withStatus(ProjectionInitializationStatus::INITIALIZED);
             }
 
             $this->getProjectionStateStorage()->savePartition($projectionState);
             $transaction->commit();
-            return $processedEvents;
+            return $totalProcessedEvents;
         } catch (Throwable $e) {
             $transaction->rollBack();
             throw $e;
@@ -221,19 +225,15 @@ class ProjectingManager
 
     public function executeWithReset(?string $partitionKeyValue = null): void
     {
-        $first = true;
-        do {
-            $processedEvents = $this->messagingEntrypoint->sendWithHeaders(
-                [],
-                [
-                    ProjectingHeaders::PROJECTION_PARTITION_KEY => $partitionKeyValue,
-                    ProjectingHeaders::PROJECTION_CAN_INITIALIZE => true,
-                    'projection.shouldReset' => $first,
-                ],
-                self::batchChannelFor($this->projectionName)
-            );
-            $first = false;
-        } while ($processedEvents > 0 && $this->terminationListener->shouldTerminate() !== true);
+        $this->messagingEntrypoint->sendWithHeaders(
+            [],
+            [
+                ProjectingHeaders::PROJECTION_PARTITION_KEY => $partitionKeyValue,
+                ProjectingHeaders::PROJECTION_CAN_INITIALIZE => true,
+                'projection.shouldReset' => true,
+            ],
+            self::batchChannelFor($this->projectionName)
+        );
     }
 
     public function prepareRebuild(): void

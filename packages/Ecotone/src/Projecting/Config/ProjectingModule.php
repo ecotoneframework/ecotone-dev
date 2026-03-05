@@ -125,7 +125,7 @@ class ProjectingModule implements AnnotationModule
                     ->chainInterceptedProcessor(
                         MethodInvokerBuilder::create(
                             $projectingManagerReference,
-                            InterfaceToCallReference::create(ProjectingManager::class, 'executeSingleBatch'),
+                            InterfaceToCallReference::create(ProjectingManager::class, 'executePartitionBatch'),
                             [
                                 HeaderBuilder::createOptional('partitionKeyValue', ProjectingHeaders::PROJECTION_PARTITION_KEY),
                                 HeaderBuilder::create('canInitialize', ProjectingHeaders::PROJECTION_CAN_INITIALIZE),

@@ -66,7 +66,6 @@ class ProxyFactory
         if (! self::isLoaded($proxyReference)) {
             $file = $this->generateCachedProxyFileFor($proxyReference, ! $this->serviceCacheConfiguration->shouldUseCache());
             if (! file_exists($file)) {
-                clearstatcache(true, $file);
                 $file = $this->generateCachedProxyFileFor($proxyReference, true);
             }
             require $file;

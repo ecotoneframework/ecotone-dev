@@ -158,61 +158,9 @@ class ProjectingManager
         $this->projectorExecutor->delete();
     }
 
-    /**
-     * Prepares backfill by calculating batches and sending messages to BackfillExecutorHandler.
-     * Each batch message contains a limit and offset for processing a subset of partitions.
-     * This enables the backfill to be executed synchronously or asynchronously depending on configuration.
-     */
     public function prepareBackfill(): void
     {
-        $streamFilters = $this->streamFilterRegistry->provide($this->projectionName);
-
-        foreach ($streamFilters as $streamFilter) {
-            $this->prepareBackfillForFilter($streamFilter);
-        }
-    }
-
-    private function prepareBackfillForFilter(StreamFilter $streamFilter): void
-    {
-        $totalPartitions = $this->getPartitionProvider()->count($streamFilter);
-
-        if ($totalPartitions === 0) {
-            return;
-        }
-
-        $numberOfBatches = (int) ceil($totalPartitions / $this->backfillPartitionBatchSize);
-
-        for ($batch = 0; $batch < $numberOfBatches; $batch++) {
-            $offset = $batch * $this->backfillPartitionBatchSize;
-
-            $headers = [
-                'backfill.limit' => $this->backfillPartitionBatchSize,
-                'backfill.offset' => $offset,
-                'backfill.streamName' => $streamFilter->streamName,
-                'backfill.aggregateType' => $streamFilter->aggregateType,
-                'backfill.eventStoreReferenceName' => $streamFilter->eventStoreReferenceName,
-            ];
-
-            $this->sendBackfillMessage($headers);
-        }
-    }
-
-    private function sendBackfillMessage(array $headers): void
-    {
-        if ($this->backfillAsyncChannelName !== null) {
-            $this->messagingEntrypoint->sendWithHeaders(
-                $this->projectionName,
-                $headers,
-                $this->backfillAsyncChannelName,
-                BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL
-            );
-        } else {
-            $this->messagingEntrypoint->sendWithHeaders(
-                $this->projectionName,
-                $headers,
-                BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL
-            );
-        }
+        $this->preparePartitionBatches($this->backfillPartitionBatchSize, $this->backfillAsyncChannelName, false);
     }
 
     /**
@@ -238,52 +186,53 @@ class ProjectingManager
 
     public function prepareRebuild(): void
     {
+        $this->preparePartitionBatches($this->rebuildPartitionBatchSize, $this->rebuildAsyncChannelName, true);
+    }
+
+    private function preparePartitionBatches(int $partitionBatchSize, ?string $asyncChannelName, bool $shouldReset): void
+    {
         $streamFilters = $this->streamFilterRegistry->provide($this->projectionName);
 
         foreach ($streamFilters as $streamFilter) {
-            $this->prepareRebuildForFilter($streamFilter);
+            $totalPartitions = $this->getPartitionProvider()->count($streamFilter);
+
+            if ($totalPartitions === 0) {
+                continue;
+            }
+
+            $numberOfBatches = (int) ceil($totalPartitions / $partitionBatchSize);
+
+            for ($batch = 0; $batch < $numberOfBatches; $batch++) {
+                $offset = $batch * $partitionBatchSize;
+
+                $headers = [
+                    'partitionBatch.limit' => $partitionBatchSize,
+                    'partitionBatch.offset' => $offset,
+                    'partitionBatch.streamName' => $streamFilter->streamName,
+                    'partitionBatch.aggregateType' => $streamFilter->aggregateType,
+                    'partitionBatch.eventStoreReferenceName' => $streamFilter->eventStoreReferenceName,
+                    'partitionBatch.shouldReset' => $shouldReset,
+                ];
+
+                $this->sendPartitionBatchMessage($headers, $asyncChannelName);
+            }
         }
     }
 
-    private function prepareRebuildForFilter(StreamFilter $streamFilter): void
+    private function sendPartitionBatchMessage(array $headers, ?string $asyncChannelName): void
     {
-        $totalPartitions = $this->getPartitionProvider()->count($streamFilter);
-
-        if ($totalPartitions === 0) {
-            return;
-        }
-
-        $numberOfBatches = (int) ceil($totalPartitions / $this->rebuildPartitionBatchSize);
-
-        for ($batch = 0; $batch < $numberOfBatches; $batch++) {
-            $offset = $batch * $this->rebuildPartitionBatchSize;
-
-            $headers = [
-                'rebuild.limit' => $this->rebuildPartitionBatchSize,
-                'rebuild.offset' => $offset,
-                'rebuild.streamName' => $streamFilter->streamName,
-                'rebuild.aggregateType' => $streamFilter->aggregateType,
-                'rebuild.eventStoreReferenceName' => $streamFilter->eventStoreReferenceName,
-            ];
-
-            $this->sendRebuildMessage($headers);
-        }
-    }
-
-    private function sendRebuildMessage(array $headers): void
-    {
-        if ($this->rebuildAsyncChannelName !== null) {
+        if ($asyncChannelName !== null) {
             $this->messagingEntrypoint->sendWithHeaders(
                 $this->projectionName,
                 $headers,
-                $this->rebuildAsyncChannelName,
-                RebuildExecutorHandler::REBUILD_EXECUTOR_CHANNEL
+                $asyncChannelName,
+                PartitionBatchExecutorHandler::PARTITION_BATCH_EXECUTOR_CHANNEL
             );
         } else {
             $this->messagingEntrypoint->sendWithHeaders(
                 $this->projectionName,
                 $headers,
-                RebuildExecutorHandler::REBUILD_EXECUTOR_CHANNEL
+                PartitionBatchExecutorHandler::PARTITION_BATCH_EXECUTOR_CHANNEL
             );
         }
     }

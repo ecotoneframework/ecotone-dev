@@ -29,8 +29,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
-use Ecotone\Projecting\BackfillExecutorHandler;
-use Ecotone\Projecting\RebuildExecutorHandler;
+use Ecotone\Projecting\PartitionBatchExecutorHandler;
 use Ecotone\Projecting\InMemory\InMemoryProjectionRegistry;
 use Ecotone\Projecting\PartitionProviderRegistry;
 use Ecotone\Projecting\ProjectingHeaders;
@@ -155,10 +154,10 @@ class ProjectingModule implements AnnotationModule
             new Definition(InMemoryProjectionRegistry::class, [$projectionRegistryMap])
         );
 
-        // Register BackfillExecutorHandler and its message handler
+        // Register PartitionBatchExecutorHandler and its message handler
         $messagingConfiguration->registerServiceDefinition(
-            BackfillExecutorHandler::class,
-            new Definition(BackfillExecutorHandler::class, [
+            PartitionBatchExecutorHandler::class,
+            new Definition(PartitionBatchExecutorHandler::class, [
                 new Reference(ProjectionRegistry::class),
                 new Reference(TerminationListener::class),
             ])
@@ -168,49 +167,21 @@ class ProjectingModule implements AnnotationModule
             MessageProcessorActivatorBuilder::create()
                 ->chainInterceptedProcessor(
                     MethodInvokerBuilder::create(
-                        BackfillExecutorHandler::class,
-                        InterfaceToCallReference::create(BackfillExecutorHandler::class, 'executeBackfillBatch'),
+                        PartitionBatchExecutorHandler::class,
+                        InterfaceToCallReference::create(PartitionBatchExecutorHandler::class, 'executeBatch'),
                         [
                             PayloadBuilder::create('projectionName'),
-                            HeaderBuilder::createOptional('limit', 'backfill.limit'),
-                            HeaderBuilder::createOptional('offset', 'backfill.offset'),
-                            HeaderBuilder::createOptional('streamName', 'backfill.streamName'),
-                            HeaderBuilder::createOptional('aggregateType', 'backfill.aggregateType'),
-                            HeaderBuilder::createOptional('eventStoreReferenceName', 'backfill.eventStoreReferenceName'),
+                            HeaderBuilder::createOptional('limit', 'partitionBatch.limit'),
+                            HeaderBuilder::createOptional('offset', 'partitionBatch.offset'),
+                            HeaderBuilder::createOptional('streamName', 'partitionBatch.streamName'),
+                            HeaderBuilder::createOptional('aggregateType', 'partitionBatch.aggregateType'),
+                            HeaderBuilder::createOptional('eventStoreReferenceName', 'partitionBatch.eventStoreReferenceName'),
+                            HeaderBuilder::createOptional('shouldReset', 'partitionBatch.shouldReset'),
                         ],
                     )
                 )
-                ->withEndpointId('backfill_executor_handler')
-                ->withInputChannelName(BackfillExecutorHandler::BACKFILL_EXECUTOR_CHANNEL)
-        );
-
-        // Register RebuildExecutorHandler and its message handler
-        $messagingConfiguration->registerServiceDefinition(
-            RebuildExecutorHandler::class,
-            new Definition(RebuildExecutorHandler::class, [
-                new Reference(ProjectionRegistry::class),
-                new Reference(TerminationListener::class),
-            ])
-        );
-
-        $messagingConfiguration->registerMessageHandler(
-            MessageProcessorActivatorBuilder::create()
-                ->chainInterceptedProcessor(
-                    MethodInvokerBuilder::create(
-                        RebuildExecutorHandler::class,
-                        InterfaceToCallReference::create(RebuildExecutorHandler::class, 'executeRebuildBatch'),
-                        [
-                            PayloadBuilder::create('projectionName'),
-                            HeaderBuilder::createOptional('limit', 'rebuild.limit'),
-                            HeaderBuilder::createOptional('offset', 'rebuild.offset'),
-                            HeaderBuilder::createOptional('streamName', 'rebuild.streamName'),
-                            HeaderBuilder::createOptional('aggregateType', 'rebuild.aggregateType'),
-                            HeaderBuilder::createOptional('eventStoreReferenceName', 'rebuild.eventStoreReferenceName'),
-                        ],
-                    )
-                )
-                ->withEndpointId('rebuild_executor_handler')
-                ->withInputChannelName(RebuildExecutorHandler::REBUILD_EXECUTOR_CHANNEL)
+                ->withEndpointId('partition_batch_executor_handler')
+                ->withInputChannelName(PartitionBatchExecutorHandler::PARTITION_BATCH_EXECUTOR_CHANNEL)
         );
 
         // Register console commands

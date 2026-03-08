@@ -334,10 +334,10 @@ class EncryptMessagesWithChannelConfigurationXMLTest extends TestCase
         $channelMessagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->secondaryKey);
 
         $expectedPayload = <<<XML
-<?xml version="1.0"?>
-<result><sensitiveObject><argument>value</argument><enum>first</enum></sensitiveObject><sensitiveEnum>first</sensitiveEnum><sensitiveProperty>value</sensitiveProperty></result>
+            <?xml version="1.0"?>
+            <result><sensitiveObject><argument>value</argument><enum>first</enum></sensitiveObject><sensitiveEnum>first</sensitiveEnum><sensitiveProperty>value</sensitiveProperty></result>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $this->decryptChannelMessagePayload($channelMessagePayload, $this->primaryKey));
         $messageHeaders = $channelMessage->getHeaders();
 
@@ -566,10 +566,10 @@ XML;
         $channelMessagePayload = Crypto::decrypt($channelMessage->getPayload(), $this->secondaryKey);
 
         $expectedPayload = <<<XML
-<?xml version="1.0"?>
-<result><sensitiveObject><argument>value</argument><enum>first</enum></sensitiveObject><sensitiveEnum>first</sensitiveEnum><sensitiveProperty>value</sensitiveProperty></result>
+            <?xml version="1.0"?>
+            <result><sensitiveObject><argument>value</argument><enum>first</enum></sensitiveObject><sensitiveEnum>first</sensitiveEnum><sensitiveProperty>value</sensitiveProperty></result>
 
-XML;
+            XML;
         self::assertEquals($expectedPayload, $this->decryptChannelMessagePayload($channelMessagePayload, $this->primaryKey));
         $messageHeaders = $channelMessage->getHeaders();
 

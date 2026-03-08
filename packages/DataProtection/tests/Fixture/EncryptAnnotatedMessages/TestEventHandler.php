@@ -9,9 +9,9 @@ use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
-use Test\Ecotone\DataProtection\Fixture\MessageWithSensitiveProperties;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;
 use Test\Ecotone\DataProtection\Fixture\MessageWithCustomConverter;
+use Test\Ecotone\DataProtection\Fixture\MessageWithSensitiveProperties;
 use Test\Ecotone\DataProtection\Fixture\MessageWithSensitiveProperty;
 
 #[Asynchronous('test')]

@@ -3,6 +3,18 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.306.0] - 2026-03-08
+
+## What's Changed
+* Feat: development isolation by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/643
+* feat: create pr claude command by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/644
+* fix: prevent intermittent proxy file missing errors in EcotoneLite tests by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/648
+* feat: add projection rebuild command for ProjectionV2 by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/646
+* data protection improvements by @unixslayer in https://github.com/ecotoneframework/ecotone-dev/pull/645
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.305.0...1.306.0
+
 ## [1.305.0] - 2026-02-28
 
 ## What's Changed

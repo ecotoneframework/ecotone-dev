@@ -6,6 +6,7 @@ namespace Ecotone\DataProtection\Conversion;
 
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Key;
+use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
@@ -13,18 +14,18 @@ use Ecotone\Messaging\Handler\Type;
 /**
  * licence Enterprise
  */
-class JsonDecryptionConverter extends AbstractDecryptionConverter
+class XMLEncryptionConverter extends AbstractEncryptionConverter
 {
     public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
-        $data = json_decode($source, true);
-        $data = $this->decrypt($data);
+        $data = XmlHelper::xmlToArray($source);
+        $data = $this->encrypt($data);
 
-        return json_encode($data);
+        return XmlHelper::arrayToXml($data);
     }
 
     public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
     {
-        return $targetType->acceptType($this->supportedType) && $sourceType->isString() && $sourceMediaType->isCompatibleWith(MediaType::createApplicationJson()) && $sourceMediaType->hasParameter('encrypted');
+        return $sourceType->acceptType($this->supportedType) && $targetType->isString() && $targetMediaType->isCompatibleWith(MediaType::createApplicationXml()) && $targetMediaType->hasParameter('encrypted');
     }
 }

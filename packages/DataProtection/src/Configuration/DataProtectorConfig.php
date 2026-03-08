@@ -19,9 +19,11 @@ final readonly class DataProtectorConfig
         public ?string $encryptionKey,
         public array $sensitiveProperties,
         public array $scalarProperties,
+        public array $sensitivePropertyNames,
     ) {
         Assert::allStrings($this->sensitiveProperties, 'Sensitive Properties should be array of strings');
         Assert::allStrings($this->scalarProperties, 'Scalar Properties should be array of strings');
+        Assert::allStrings($this->sensitivePropertyNames, 'Sensitive Properties custom names should be array of strings');
     }
 
     public function encryptionKeyName(DataProtectionConfiguration $dataProtectionConfiguration): string

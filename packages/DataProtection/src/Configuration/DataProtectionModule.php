@@ -15,6 +15,8 @@ use Ecotone\DataProtection\Channel\OutboundEncryptionChannelBuilder;
 use Ecotone\DataProtection\Conversion\DataProtectionConversionServiceDecorator;
 use Ecotone\DataProtection\Conversion\JsonDecryptionConverter;
 use Ecotone\DataProtection\Conversion\JsonEncryptionConverter;
+use Ecotone\DataProtection\Conversion\XMLDecryptionConverter;
+use Ecotone\DataProtection\Conversion\XMLEncryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpDecryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpEncryptionConverter;
 use Ecotone\DataProtection\Encryption\Key;
@@ -24,6 +26,7 @@ use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -50,8 +53,11 @@ final class DataProtectionModule extends NoExternalConfigurationModule
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
+        $dataProtectorConfigs = self::resolveProtectorConfigsFromAnnotatedClasses([], $annotationRegistrationService->findAnnotatedClasses(Sensitive::class), $interfaceToCallRegistry);
+        $dataProtectorConfigs = self::resolveProtectorConfigsFromAnnotatedClasses($dataProtectorConfigs, $annotationRegistrationService->findClassesWithAnnotatedProperties(Sensitive::class), $interfaceToCallRegistry);
+
         return new self(
-            dataProtectorConfigs: self::resolveProtectorConfigsFromAnnotatedClasses($annotationRegistrationService->findAnnotatedClasses(Sensitive::class), $interfaceToCallRegistry)
+            dataProtectorConfigs: $dataProtectorConfigs
         );
     }
 
@@ -103,7 +109,7 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         }
 
         $converters = [];
-        $encryptionConverters = [JsonEncryptionConverter::class, JsonDecryptionConverter::class, XPhpEncryptionConverter::class, XPhpDecryptionConverter::class];
+        $encryptionConverters = [JsonEncryptionConverter::class, JsonDecryptionConverter::class, XPhpEncryptionConverter::class, XPhpDecryptionConverter::class, XMLEncryptionConverter::class, XMLDecryptionConverter::class];
         foreach ($this->dataProtectorConfigs as $protectorConfig) {
             foreach ($encryptionConverters as $converterClass) {
                 $converters[] = new Definition(
@@ -113,6 +119,7 @@ final class DataProtectionModule extends NoExternalConfigurationModule
                         Reference::to(sprintf(self::KEY_SERVICE_ID_FORMAT, $protectorConfig->encryptionKeyName($dataProtectionConfiguration))),
                         $protectorConfig->sensitiveProperties,
                         $protectorConfig->scalarProperties,
+                        $protectorConfig->sensitivePropertyNames,
                     ]
                 );
             }
@@ -152,29 +159,43 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         return ModulePackageList::DATA_PROTECTION_PACKAGE;
     }
 
-    private static function resolveProtectorConfigsFromAnnotatedClasses(array $sensitiveMessages, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    private static function resolveProtectorConfigsFromAnnotatedClasses(array $dataProtectorConfigs, array $sensitiveMessages, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
-        $dataEncryptorConfigs = [];
         foreach ($sensitiveMessages as $message) {
-            $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor($messageType = Type::create($message));
-            $encryptionKey = $classDefinition->findSingleClassAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
-
-            $sensitiveProperties = $classDefinition->getPropertiesWithAnnotation(Type::create(Sensitive::class));
-            if ($sensitiveProperties === []) {
-                $sensitiveProperties = $classDefinition->getProperties();
+            if (array_key_exists($message, $dataProtectorConfigs)) {
+                continue;
             }
 
-            $scalarProperties = array_values(array_filter($sensitiveProperties, static fn (ClassPropertyDefinition $property): bool => $property->getType()->isScalar()));
+            $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor($messageType = Type::create($message));
+            $isClassSensitive = $classDefinition->findSingleClassAnnotation(Type::create(Sensitive::class)) !== null;
+            $encryptionKey = $classDefinition->findSingleClassAnnotation(Type::create(WithEncryptionKey::class))?->encryptionKey();
 
-            $mapper = static fn (ClassPropertyDefinition $property): string => $property->getName();
+            $propertiesToProtect = $classDefinition->getPropertiesWithAnnotation(Type::create(Sensitive::class));
+            if ($propertiesToProtect !== [] && $isClassSensitive) {
+                throw ConfigurationException::create('#[Sensitive] attribute can be used only on class level, not on property level.');
+            }
 
-            $sensitiveProperties = array_map($mapper, $sensitiveProperties);
-            $scalarProperties = array_map($mapper, $scalarProperties);
+            if ($propertiesToProtect === []) {
+                $propertiesToProtect = $classDefinition->getProperties();
+            }
 
-            $dataEncryptorConfigs[$message] = new DataProtectorConfig(supportedType: $messageType, encryptionKey: $encryptionKey, sensitiveProperties: $sensitiveProperties, scalarProperties: $scalarProperties);
+            $scalarProperties = array_values(array_filter($propertiesToProtect, static fn (ClassPropertyDefinition $property): bool => $property->getType()->isScalar()));
+
+            $nameMapper = static fn (ClassPropertyDefinition $property): string => $property->getName();
+            $sensitiveNameMapper = static function (ClassPropertyDefinition $property): string {
+                $name = $property->findAnnotation(Type::create(Sensitive::class))?->sensitiveName ?? '';
+
+                return $name ?: $property->getName();
+            };
+
+            $sensitiveProperties = array_map($nameMapper, $propertiesToProtect);
+            $scalarProperties = array_map($nameMapper, $scalarProperties);
+            $sensitivePropertyNames = array_combine($sensitiveProperties, array_map($sensitiveNameMapper, $propertiesToProtect));
+
+            $dataProtectorConfigs[$message] = new DataProtectorConfig(supportedType: $messageType, encryptionKey: $encryptionKey, sensitiveProperties: $sensitiveProperties, scalarProperties: $scalarProperties, sensitivePropertyNames: $sensitivePropertyNames);
         }
 
-        return $dataEncryptorConfigs;
+        return $dataProtectorConfigs;
     }
 
     private function verifyLicense(Configuration $messagingConfiguration): void

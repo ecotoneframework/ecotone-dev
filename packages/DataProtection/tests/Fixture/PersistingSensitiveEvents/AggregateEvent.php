@@ -8,7 +8,6 @@ use Ecotone\DataProtection\Attribute\Sensitive;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
 
-#[Sensitive]
 final readonly class AggregateEvent
 {
     public function __construct(

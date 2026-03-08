@@ -13,18 +13,18 @@ use Ecotone\Messaging\Handler\Type;
 /**
  * licence Enterprise
  */
-class JsonDecryptionConverter extends AbstractDecryptionConverter
+class XMLDecryptionConverter extends AbstractDecryptionConverter
 {
     public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
-        $data = json_decode($source, true);
+        $data = XmlHelper::xmlToArray($source);
         $data = $this->decrypt($data);
 
-        return json_encode($data);
+        return XmlHelper::arrayToXml($data);
     }
 
     public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
     {
-        return $targetType->acceptType($this->supportedType) && $sourceType->isString() && $sourceMediaType->isCompatibleWith(MediaType::createApplicationJson()) && $sourceMediaType->hasParameter('encrypted');
+        return $targetType->acceptType($this->supportedType) && $sourceType->isString() && $sourceMediaType->isCompatibleWith(MediaType::createApplicationXml()) && $sourceMediaType->hasParameter('encrypted');
     }
 }

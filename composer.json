@@ -177,6 +177,9 @@
         "enqueue/dsn": "^0.10.27",
         "yoast/phpunit-polyfills": "^4.0.0"
     },
+    "suggest": {
+        "ext-simplexml": "Required if application/xml is used as serialization media type"
+    },
     "conflict": {
         "symfony/doctrine-messenger": ">7.0.5 < 7.1.0",
         "enqueue/dbal": "*"

@@ -4,40 +4,18 @@ declare(strict_types=1);
 
 namespace Ecotone\DataProtection\Conversion;
 
-use Ecotone\DataProtection\Encryption\Crypto;
-use Ecotone\DataProtection\Encryption\Key;
-use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
 
 /**
  * licence Enterprise
  */
-readonly class JsonEncryptionConverter implements Converter
+class JsonEncryptionConverter extends AbstractEncryptionConverter
 {
-    public function __construct(
-        private Type $supportedType,
-        private Key $encryptionKey,
-        private array $sensitiveProperties,
-        private array $scalarProperties,
-    ) {
-    }
-
     public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
     {
         $data = json_decode($source, true);
-
-        foreach ($this->sensitiveProperties as $property) {
-            if (! array_key_exists($property, $data)) {
-                continue;
-            }
-
-            if (! in_array($property, $this->scalarProperties, true)) {
-                $data[$property] = json_encode($data[$property]);
-            }
-
-            $data[$property] = Crypto::encrypt($data[$property], $this->encryptionKey);
-        }
+        $data = $this->encrypt($data);
 
         return json_encode($data);
     }

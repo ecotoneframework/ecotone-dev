@@ -48,6 +48,9 @@
         "phpstan/phpstan": "^2.1",
         "wikimedia/composer-merge-plugin": "^2.1"
     },
+    "suggest": {
+        "ext-simplexml": "Required if application/xml is used as serialization media type"
+    },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
         "tests:phpunit": [

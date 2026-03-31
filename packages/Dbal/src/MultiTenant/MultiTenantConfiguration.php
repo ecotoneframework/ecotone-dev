@@ -25,7 +25,7 @@ final class MultiTenantConfiguration
     }
 
     /**
-     * @param array<string, string> $tenantToConnectionMapping
+     * @param array<string, string|ConnectionReference> $tenantToConnectionMapping
      */
     public static function create(string $tenantHeaderName, array $tenantToConnectionMapping, string $referenceName = DbalConnectionFactory::class): self
     {
@@ -33,7 +33,7 @@ final class MultiTenantConfiguration
     }
 
     /**
-     * @param array<string, string> $tenantToConnectionMapping
+     * @param array<string, string|ConnectionReference> $tenantToConnectionMapping
      */
     public static function createWithDefaultConnection(string $tenantHeaderName, array $tenantToConnectionMapping, string|ConnectionReference $defaultConnectionName, string $referenceName = DbalConnectionFactory::class): self
     {

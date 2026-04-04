@@ -9,14 +9,21 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Attribute\WithoutMessageCollector;
 use Ecotone\Messaging\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Attribute\Interceptor\Before;
+use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\EventBus;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
+use stdClass;
 
 #[Attribute]
 class CustomAsyncAttribute implements AsynchronousEndpointAttribute
@@ -232,5 +239,94 @@ final class AsyncEndpointAnnotationTest extends TestCase
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
             ],
         );
+    }
+
+    public function test_collector_holds_events_published_during_async_handler_and_discards_on_failure(): void
+    {
+        $handler = new class () {
+            #[Asynchronous('async')]
+            #[CommandHandler('doWork', endpointId: 'doWork.endpoint')]
+            public function handle(string $payload, EventBus $eventBus): void
+            {
+                $eventBus->publish(new stdClass());
+                throw new RuntimeException('Handler failure after publishing event');
+            }
+        };
+
+        $eventHandler = new class () {
+            #[Asynchronous('events')]
+            #[EventHandler(endpointId: 'event.endpoint')]
+            public function handle(stdClass $event): void
+            {
+            }
+        };
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class, $eventHandler::class],
+            [$handler, $eventHandler],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    PollableChannelConfiguration::neverRetry('events')->withCollector(true),
+                ]),
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+                SimpleMessageChannelBuilder::createQueueChannel('events'),
+            ],
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('doWork', 'test');
+
+        try {
+            $ecotoneLite->run('async');
+        } catch (RuntimeException) {
+        }
+
+        $message = $ecotoneLite->getMessageChannel('events')->receive();
+        self::assertNull($message, 'Collector should discard events when handler fails');
+    }
+
+    public function test_without_message_collector_events_are_sent_directly_and_survive_handler_failure(): void
+    {
+        $handler = new class () {
+            #[Asynchronous('async', endpointAnnotations: [new WithoutMessageCollector()])]
+            #[CommandHandler('doWork', endpointId: 'doWork.endpoint')]
+            public function handle(string $payload, EventBus $eventBus): void
+            {
+                $eventBus->publish(new stdClass());
+                throw new RuntimeException('Handler failure after publishing event');
+            }
+        };
+
+        $eventHandler = new class () {
+            #[Asynchronous('events')]
+            #[EventHandler(endpointId: 'event.endpoint')]
+            public function handle(stdClass $event): void
+            {
+            }
+        };
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [$handler::class, $eventHandler::class],
+            [$handler, $eventHandler],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    PollableChannelConfiguration::neverRetry('events')->withCollector(true),
+                ]),
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+                SimpleMessageChannelBuilder::createQueueChannel('events'),
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('doWork', 'test');
+
+        try {
+            $ecotoneLite->run('async');
+        } catch (RuntimeException) {
+        }
+
+        $message = $ecotoneLite->getMessageChannel('events')->receive();
+        self::assertNotNull($message, 'Without collector, events should be sent directly and survive handler failure');
     }
 }

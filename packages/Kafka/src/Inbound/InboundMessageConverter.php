@@ -35,7 +35,7 @@ final class InboundMessageConverter
         ConversionService $conversionService,
         BatchCommitCoordinator $batchCommitCoordinator,
     ): MessageBuilder {
-        $kafkaConsumerConfiguration = $this->kafkaAdmin->getRdKafkaConfiguration($endpointId, $channelName);
+        $kafkaConsumerConfiguration = $this->kafkaAdmin->getRdKafkaConfiguration($channelName);
         $headerMapper = $kafkaConsumerConfiguration->getHeaderMapper();
         $acknowledgeMode = $kafkaConsumerConfiguration->getAcknowledgeMode();
 
@@ -49,6 +49,7 @@ final class InboundMessageConverter
             $this->loggingGateway,
             $this->kafkaAdmin,
             $endpointId,
+            $channelName,
             $this->finalFailureStrategy,
             $acknowledgeMode === KafkaAcknowledgementCallback::AUTO_ACK,
             $batchCommitCoordinator,

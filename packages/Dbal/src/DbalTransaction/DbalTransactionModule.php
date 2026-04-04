@@ -59,7 +59,6 @@ class DbalTransactionModule implements AnnotationModule
         if ($dbalConfiguration->isTransactionOnConsoleCommands()) {
             $pointcut .= '||(' . ConsoleCommand::class . ')';
         }
-        $pointcut = '(' . $pointcut . ')&&not(' . WithoutDbalTransaction::class . ')';
         $pointcut .= '&&not('. ProjectingConsoleCommands::class . '::backfillProjection)';
         $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionFactory::class];
 

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\DbalTransaction\WithoutDbalTransaction;
+use Ecotone\Messaging\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -127,7 +127,7 @@ final class TransactionTest extends DbalMessagingTestCase
         $consoleCommands = new class () {
             public bool $prepared = false;
             #[CommandHandler('command.prepare')]
-            #[WithoutDbalTransaction]
+            #[WithoutDatabaseTransaction]
             public function prepare(#[Reference] DbalConnectionFactory $dbalConnectionFactory): void
             {
                 $dbalConnectionFactory->createContext()->getDbalConnection()->executeStatement(<<<SQL
@@ -140,7 +140,7 @@ final class TransactionTest extends DbalMessagingTestCase
             }
 
             #[ConsoleCommand('console.register.nontransactional')]
-            #[WithoutDbalTransaction]
+            #[WithoutDatabaseTransaction]
             public function nontransactional(string $orderId, #[Reference] DbalConnectionFactory $dbalConnectionFactory): void
             {
                 $dbalConnectionFactory->createContext()->getDbalConnection()->executeStatement(<<<SQL

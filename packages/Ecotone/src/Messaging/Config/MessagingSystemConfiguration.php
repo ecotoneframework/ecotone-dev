@@ -65,6 +65,7 @@ use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Config\MessageBusChannel;
 use Exception;
 
@@ -425,9 +426,14 @@ final class MessagingSystemConfiguration implements Configuration
                     $handlerInterface = $messageHandlerBuilder->getInterceptedInterface($interfaceToCallRegistry);
                     /** @var Asynchronous|null $asyncAttribute */
                     $asyncAttribute = $handlerInterface->findSingleAnnotation(Type::object(Asynchronous::class));
-                    $asyncHandlerAnnotations[$handlerExecutionChannel] = $asyncAttribute
-                        ? array_map(fn ($a) => AttributeDefinition::fromObject($a), $asyncAttribute->getEndpointAnnotations())
-                        : [];
+                    $endpointAnnotations = $asyncAttribute ? $asyncAttribute->getEndpointAnnotations() : [];
+                    if ($endpointAnnotations && ! $this->isRunningForEnterpriseLicence) {
+                        throw LicensingException::create("Endpoint annotations on #[Asynchronous] attribute for endpoint `{$targetEndpointId}` require Ecotone Enterprise licence.");
+                    }
+                    $asyncHandlerAnnotations[$handlerExecutionChannel] = array_map(
+                        fn ($a) => AttributeDefinition::fromObject($a),
+                        $endpointAnnotations
+                    );
 
                     $consequentialChannels = $asynchronousMessageChannels;
                     $consequentialChannels[] = $handlerExecutionChannel;

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 class AsyncHandlerAnnotationRegistry
 {

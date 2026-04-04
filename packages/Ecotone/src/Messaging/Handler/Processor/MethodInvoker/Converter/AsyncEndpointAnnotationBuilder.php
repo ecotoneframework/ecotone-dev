@@ -12,7 +12,7 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 class AsyncEndpointAnnotationBuilder implements ParameterConverterBuilder
 {

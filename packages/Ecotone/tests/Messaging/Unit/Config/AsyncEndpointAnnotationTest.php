@@ -13,7 +13,9 @@ use Ecotone\Messaging\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Attribute\Interceptor\Before;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 #[Attribute]
@@ -61,7 +63,8 @@ final class AsyncEndpointAnnotationTest extends TestCase
             [$handler, $interceptor],
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendCommandWithRoutingKey('doWork', 'test');
@@ -104,7 +107,8 @@ final class AsyncEndpointAnnotationTest extends TestCase
             [$handler, $interceptor],
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendCommandWithRoutingKey('doWork', 'test');
@@ -153,7 +157,8 @@ final class AsyncEndpointAnnotationTest extends TestCase
             [$handler, $interceptor],
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]
+            ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendCommandWithRoutingKey('doWorkOne', 'test');
@@ -206,5 +211,26 @@ final class AsyncEndpointAnnotationTest extends TestCase
         $ecotoneLite->run('async');
 
         $this->assertNull($collector->receivedAttribute);
+    }
+
+    public function test_endpoint_annotations_require_enterprise_licence(): void
+    {
+        $this->expectException(LicensingException::class);
+
+        $handler = new class () {
+            #[Asynchronous('async', endpointAnnotations: [new CustomAsyncAttribute('test')])]
+            #[CommandHandler('doWork', endpointId: 'doWork.endpoint')]
+            public function handle(string $payload): void
+            {
+            }
+        };
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$handler::class],
+            [$handler],
+            enableAsynchronousProcessing: [
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ],
+        );
     }
 }

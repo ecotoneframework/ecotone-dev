@@ -3,7 +3,9 @@ name: ecotone-contributor
 description: >-
   Guides Ecotone framework contributions: dev environment setup, monorepo
   navigation, running tests, PR workflow, and package split mechanics.
-  Use when setting up development environment, preparing PRs, validating
+  TRIGGER whenever any code change is made to the Ecotone codebase —
+  new features, bug fixes, refactors, or any modification to source files.
+  Also use when setting up development environment, preparing PRs, validating
   changes, running tests across packages, or understanding the monorepo
   structure.
 argument-hint: "[package-name]"
@@ -12,6 +14,54 @@ argument-hint: "[package-name]"
 # Ecotone Contributor Guide
 
 Tests use inline anonymous classes with PHP 8.1+ attributes, snake_case method names, and high-level behavioral assertions. Use this skill when writing or debugging any Ecotone test.
+
+## 0. Test-First Rule (MANDATORY)
+
+Every new feature or bug fix **MUST** start with a test written using **Ecotone Lite** (`EcotoneLite::bootstrapFlowTesting()` or `EcotoneLite::bootstrapForTesting()`). This is a blocking requirement — do not write production code before the test exists.
+
+**Tests must follow the userland perspective.** Each test should read like an example of how an Ecotone end-user would use the feature in their application. The test sets up real handler classes (inline anonymous classes with attributes), sends commands/events/queries through the bus, and asserts on the outcome — exactly as a user would interact with the framework. Never test framework internals directly; instead, demonstrate the feature through its public API as seen by the user.
+
+**Workflow:**
+1. **Write the test first** using Ecotone Lite — model it as a real-world usage example from the user's perspective
+2. Run the test — confirm it fails (red)
+3. Write the minimal production code to make it pass (green)
+4. Refactor if needed
+
+**Example test-first skeleton (userland perspective with inline classes):**
+
+```php
+public function test_placing_order_publishes_event(): void
+{
+    $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        [new class {
+            private array $products = [];
+
+            #[CommandHandler]
+            public function placeOrder(#[Header('orderId')] string $orderId, #[Header('product')] string $product): void
+            {
+                $this->products[$orderId] = $product;
+            }
+
+            #[QueryHandler('order.getProduct')]
+            public function getProduct(string $orderId): string
+            {
+                return $this->products[$orderId];
+            }
+        }],
+    );
+
+    $ecotoneLite->sendCommandWithRoutingKey('placeOrder', metadata: ['orderId' => '123', 'product' => 'Book']);
+
+    $this->assertSame(
+        'Book',
+        $ecotoneLite->sendQueryWithRouting('order.getProduct', '123'),
+    );
+}
+```
+
+Tests use **inline anonymous classes** defined directly inside the test method — never create separate fixture files. This keeps each test self-contained and readable as a complete usage example. **Never use static properties or static methods** in test classes — use instance properties and instance methods only. The test demonstrates **how a user would use the feature** — registering handlers, sending commands, and querying results. It does not test internal message routing, channel resolution, or framework wiring directly.
+
+This applies to **all** code changes that add or modify behavior — features, bug fixes, refactors that change behavior. Pure refactors with no behavior change may skip this if existing tests already cover the behavior.
 
 ## 1. Dev Environment Setup
 

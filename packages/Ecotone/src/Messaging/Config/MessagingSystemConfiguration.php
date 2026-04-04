@@ -426,6 +426,14 @@ final class MessagingSystemConfiguration implements Configuration
                     $handlerInterface = $messageHandlerBuilder->getInterceptedInterface($interfaceToCallRegistry);
                     /** @var Asynchronous|null $asyncAttribute */
                     $asyncAttribute = $handlerInterface->findSingleAnnotation(Type::object(Asynchronous::class));
+                    if ($asyncAttribute === null) {
+                        foreach ($messageHandlerBuilder->getEndpointAnnotations() as $annotation) {
+                            if ($annotation->getClassName() === Asynchronous::class) {
+                                $asyncAttribute = $annotation->instance();
+                                break;
+                            }
+                        }
+                    }
                     $endpointAnnotations = $asyncAttribute ? $asyncAttribute->getEndpointAnnotations() : [];
                     if ($endpointAnnotations && ! $this->isRunningForEnterpriseLicence) {
                         throw LicensingException::create("Endpoint annotations on #[Asynchronous] attribute for endpoint `{$targetEndpointId}` require Ecotone Enterprise licence.");

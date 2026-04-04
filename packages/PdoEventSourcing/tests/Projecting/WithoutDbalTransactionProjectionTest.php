@@ -9,7 +9,6 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\DbalTransaction\WithoutDbalTransaction;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -48,7 +47,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
 
         $projection = new
             #[ProjectionV2('batch_transaction_test')]
-            #[Asynchronous('async_projection', endpointAnnotations: [new WithoutDbalTransaction()])]
+            #[Asynchronous('async_projection')]
             #[ProjectionExecution(eventLoadingBatchSize: 1)]
             #[FromStream(Ticket::class)]
             class ($connection, $collector) {
@@ -128,7 +127,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
         $projection = new
             #[ProjectionV2('partitioned_batch_transaction_test')]
             #[Partitioned]
-            #[Asynchronous('async_partitioned_projection', endpointAnnotations: [new WithoutDbalTransaction()])]
+            #[Asynchronous('async_partitioned_projection')]
             #[ProjectionExecution(eventLoadingBatchSize: 1)]
             #[FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
             class ($connection, $collector) {

@@ -17,10 +17,7 @@ Create a GitHub Pull Request for the current branch using the repository's PR te
 
 ### Step 1: Gather Context
 
-1. Run `git log main...HEAD --oneline` to see all commits on this branch
-2. Run `git diff main...HEAD --stat` to see which files changed
-3. Run `git diff main...HEAD` to read the actual code changes
-4. Read the PR template at `.github/PULL_REQUEST_TEMPLATE.md`
+1.Read the PR template at `.github/PULL_REQUEST_TEMPLATE.md`
 
 ### Step 2: Understand the "Why"
 

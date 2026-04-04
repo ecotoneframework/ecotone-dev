@@ -8,8 +8,9 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\DbalTransaction;
 
 use Attribute;
+use Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute;
 
 #[Attribute]
-class WithoutDbalTransaction
+class WithoutDbalTransaction implements AsynchronousEndpointAttribute
 {
 }

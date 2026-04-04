@@ -9,6 +9,7 @@ use function array_map;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Lite\Test\TestConfiguration;
+use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
@@ -39,6 +40,8 @@ use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
+use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncEndpointAnnotationContext;
+use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
@@ -54,6 +57,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
 use Ecotone\Messaging\Handler\Transformer\RoutingSlipPrepender;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
@@ -274,6 +278,11 @@ final class MessagingSystemConfiguration implements Configuration
         $this->aroundMethodInterceptors = $this->orderMethodInterceptors($this->aroundMethodInterceptors);
         $this->afterCallMethodInterceptors = $this->orderMethodInterceptors($this->afterCallMethodInterceptors);
 
+        $this->registerServiceDefinition(
+            AsyncEndpointAnnotationContext::class,
+            new Definition(AsyncEndpointAnnotationContext::class)
+        );
+
         foreach ($this->channelAdapters as $channelAdapter) {
             $channelAdapter->withEndpointAnnotations(array_merge($channelAdapter->getEndpointAnnotations(), [new AttributeDefinition(AsynchronousRunningEndpoint::class, [$channelAdapter->getEndpointId()])]));
         }
@@ -305,7 +314,7 @@ final class MessagingSystemConfiguration implements Configuration
         krsort($this->channelInterceptorBuilders);
 
         $this->configureDefaultMessageChannels();
-        $this->configureAsynchronousEndpoints();
+        $this->configureAsynchronousEndpoints($interfaceToCallRegistry);
 
         foreach ($this->requiredConsumerEndpointIds as $requiredConsumerEndpointId) {
             if (! array_key_exists($requiredConsumerEndpointId, $this->messageHandlerBuilders) && ! array_key_exists($requiredConsumerEndpointId, $this->channelAdapters)) {
@@ -394,11 +403,11 @@ final class MessagingSystemConfiguration implements Configuration
         return $this;
     }
 
-    /**
-     * @return void
-     */
-    private function configureAsynchronousEndpoints(): void
+    private function configureAsynchronousEndpoints(InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        /** @var array<string, AttributeDefinition[]> $asyncHandlerAnnotations */
+        $asyncHandlerAnnotations = [];
+
         foreach ($this->asynchronousEndpoints as $targetEndpointId => $asynchronousMessageChannels) {
             $asynchronousMessageChannel = array_shift($asynchronousMessageChannels);
             if (! isset($this->channelBuilders[$asynchronousMessageChannel]) && ! isset($this->defaultChannelBuilders[$asynchronousMessageChannel])) {
@@ -412,6 +421,13 @@ final class MessagingSystemConfiguration implements Configuration
                     $handlerExecutionChannel        = AsynchronousModule::getHandlerExecutionChannel($busRoutingChannel);
                     $this->messageHandlerBuilders[$key] = $messageHandlerBuilder->withInputChannelName($handlerExecutionChannel);
                     $this->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel($handlerExecutionChannel));
+
+                    $handlerInterface = $messageHandlerBuilder->getInterceptedInterface($interfaceToCallRegistry);
+                    /** @var Asynchronous|null $asyncAttribute */
+                    $asyncAttribute = $handlerInterface->findSingleAnnotation(Type::object(Asynchronous::class));
+                    $asyncHandlerAnnotations[$handlerExecutionChannel] = $asyncAttribute
+                        ? array_map(fn ($a) => AttributeDefinition::fromObject($a), $asyncAttribute->getEndpointAnnotations())
+                        : [];
 
                     $consequentialChannels = $asynchronousMessageChannels;
                     $consequentialChannels[] = $handlerExecutionChannel;
@@ -451,6 +467,11 @@ final class MessagingSystemConfiguration implements Configuration
                 throw ConfigurationException::create("Registered asynchronous endpoint for not existing id {$targetEndpointId}");
             }
         }
+
+        $this->registerServiceDefinition(
+            AsyncHandlerAnnotationRegistry::class,
+            new Definition(AsyncHandlerAnnotationRegistry::class, [$asyncHandlerAnnotations])
+        );
 
         $asynchronousChannels = array_map(
             fn (MessageChannelBuilder $channel) => $channel->getMessageChannelName(),

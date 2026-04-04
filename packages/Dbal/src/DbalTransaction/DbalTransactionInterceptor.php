@@ -37,8 +37,12 @@ class DbalTransactionInterceptor
     {
     }
 
-    public function transactional(MethodInvocation $methodInvocation, Message $message, ?DbalTransaction $DbalTransaction, ?PollingMetadata $pollingMetadata)
+    public function transactional(MethodInvocation $methodInvocation, Message $message, ?DbalTransaction $DbalTransaction, ?PollingMetadata $pollingMetadata, ?WithoutDbalTransaction $withoutDbalTransaction = null)
     {
+        if ($withoutDbalTransaction !== null) {
+            return $methodInvocation->proceed();
+        }
+
         $endpointId = $pollingMetadata?->getEndpointId();
 
         $connections = [];

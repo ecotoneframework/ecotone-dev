@@ -34,7 +34,8 @@ final class KafkaInboundChannelAdapter implements MessagePoller
     public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
     {
         $endpointId = $pollingMetadata->getEndpointId();
-        $consumer = $this->kafkaAdmin->getConsumer($endpointId, $this->channelName);
+        $channelName = $pollingMetadata->getPolledChannelName() ?? $this->channelName;
+        $consumer = $this->kafkaAdmin->getConsumer($endpointId, $channelName);
 
         if ($this->batchCommitCoordinator === null || $this->batchCommitCoordinator->consumer !== $consumer) {
             $this->batchCommitCoordinator = new BatchCommitCoordinator(
@@ -60,7 +61,7 @@ final class KafkaInboundChannelAdapter implements MessagePoller
         if ($message->err === RD_KAFKA_RESP_ERR_NO_ERROR) {
             return $this->inboundMessageConverter->toMessage(
                 $endpointId,
-                $this->channelName,
+                $channelName,
                 $consumer,
                 $message,
                 $this->conversionService,

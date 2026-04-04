@@ -29,6 +29,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
         private LoggingGateway       $loggingGateway,
         private KafkaAdmin           $kafkaAdmin,
         private string               $endpointId,
+        private string               $channelName,
         private BatchCommitCoordinator $batchCommitCoordinator,
     ) {
     }
@@ -39,6 +40,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
         LoggingGateway $loggingGateway,
         KafkaAdmin $kafkaAdmin,
         string $endpointId,
+        string $channelName,
         FinalFailureStrategy $finalFailureStrategy,
         bool $isAutoAcked,
         BatchCommitCoordinator $batchCommitCoordinator,
@@ -51,6 +53,7 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
             $loggingGateway,
             $kafkaAdmin,
             $endpointId,
+            $channelName,
             $batchCommitCoordinator,
         );
     }
@@ -105,8 +108,8 @@ class KafkaAcknowledgementCallback implements AcknowledgementCallback
     public function resend(): void
     {
         try {
-            $this->kafkaAdmin->getProducer($this->endpointId);
-            $topic = $this->kafkaAdmin->getTopicForProducer($this->endpointId);
+            $this->kafkaAdmin->getProducer($this->channelName);
+            $topic = $this->kafkaAdmin->getTopicForProducer($this->channelName);
             $topic->producev(
                 $this->message->partition,
                 0,

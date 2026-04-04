@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.306.1] - 2026-04-04
+
+## What's Changed
+* fix: resolve RESEND failure strategy crash for dynamic channels wrapping Kafka sub-channels by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/652
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.306.0...1.306.1
+
 ## [1.306.0] - 2026-03-08
 
 ## What's Changed

@@ -1,8 +1,8 @@
 {
     "extra": {
         "branch-alias": {
-            "dev-main": "1.306.0-dev"
+            "dev-main": "1.306.1-dev"
         },
-        "release-time": "2026-03-08 09:38:39"
+        "release-time": "2026-04-04 19:18:49"
     }
 }

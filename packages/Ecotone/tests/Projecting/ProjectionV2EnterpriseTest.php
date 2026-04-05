@@ -441,8 +441,11 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
         $ecotone->withEvents([Event::createWithType('test-event', ['name' => 'Test'], [MessageHeaders::EVENT_AGGREGATE_ID => '1'])]);
 
-        $this->expectException(MethodInvocationException::class);
-
-        $ecotone->publishEventWithRoutingKey('trigger', []);
+        try {
+            $ecotone->publishEventWithRoutingKey('trigger', []);
+            self::fail('Should have thrown exception');
+        } catch (MethodInvocationException $e) {
+            self::assertStringContainsString('projection.name', $e->getMessage(), 'Exception should mention missing projection.name header. Got: ' . $e->getMessage());
+        }
     }
 }

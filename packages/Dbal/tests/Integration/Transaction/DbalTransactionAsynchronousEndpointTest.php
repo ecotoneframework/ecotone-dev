@@ -19,8 +19,10 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Exception;
 use PHPUnit\Framework\Attributes\Group;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Test\Ecotone\Dbal\Fixture\ConnectionBreakingConfiguration;
 use Test\Ecotone\Dbal\Fixture\ConnectionBreakingModule;
+use Test\Ecotone\Dbal\Fixture\InstantRetryTransaction\CommandDispatchingAsyncHandler;
 use Test\Ecotone\Dbal\Fixture\ORM\FailureMode\MultipleInternalCommandsService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 
@@ -436,5 +438,100 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             $aggregateCommitted = false;
         }
         $this->assertFalse($aggregateCommitted);
+    }
+
+    public function test_command_bus_instant_retry_inside_async_transaction_retries_on_fresh_state(): void
+    {
+        if ($this->isUsingSqlite()) {
+            $this->markTestSkipped('SQLite does not enforce transaction abort on SQL errors like PostgreSQL');
+        }
+
+        $connectionFactory = $this->getConnectionFactory();
+        $handler = new CommandDispatchingAsyncHandler($connectionFactory);
+
+        $connection = $connectionFactory->createContext()->getDbalConnection();
+        $connection->executeStatement("INSERT INTO persons (person_id, name) VALUES (1, 'pre-existing')");
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [CommandDispatchingAsyncHandler::class],
+            [
+                $handler,
+                DbalConnectionFactory::class => $connectionFactory,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()
+                        ->withTransactionOnAsynchronousEndpoints(true)
+                        ->withTransactionOnCommandBus(false),
+                    DbalBackedMessageChannelBuilder::create('async'),
+                    InstantRetryConfiguration::createWithDefaults()
+                        ->withCommandBusRetry(isEnabled: true, retryTimes: 3),
+                ])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                    ModulePackageList::DBAL_PACKAGE,
+                ])),
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('dispatch.sql.command', 'test');
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+
+        $this->assertSame(
+            1,
+            $handler->getCommandHandlerCallCount(),
+            'CommandBus InstantRetry should be skipped when running inside an already active async endpoint transaction. '
+            . 'Expected command handler to be called once (no retries inside broken transaction), but it was called ' . $handler->getCommandHandlerCallCount() . ' times.',
+        );
+    }
+
+    public function test_instant_retry_on_async_endpoint_retries_after_transaction_rollback_on_fresh_state(): void
+    {
+        if ($this->isUsingSqlite()) {
+            $this->markTestSkipped('SQLite does not enforce transaction abort on SQL errors like PostgreSQL');
+        }
+
+        $connectionFactory = $this->getConnectionFactory();
+        $handler = new CommandDispatchingAsyncHandler($connectionFactory);
+
+        $connection = $connectionFactory->createContext()->getDbalConnection();
+        $connection->executeStatement("INSERT INTO persons (person_id, name) VALUES (1, 'pre-existing')");
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [CommandDispatchingAsyncHandler::class],
+            [
+                $handler,
+                DbalConnectionFactory::class => $connectionFactory,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()
+                        ->withTransactionOnAsynchronousEndpoints(true)
+                        ->withTransactionOnCommandBus(false),
+                    DbalBackedMessageChannelBuilder::create('async'),
+                    InstantRetryConfiguration::createWithDefaults()
+                        ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3),
+                ])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
+                    ModulePackageList::DBAL_PACKAGE,
+                ])),
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('dispatch.sql.command', 'test');
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+
+        $this->assertSame(
+            2,
+            $handler->getCommandHandlerCallCount(),
+            'Expected retry to happen after transaction rollback. '
+            . 'Handler was called ' . $handler->getCommandHandlerCallCount() . ' times.',
+        );
+
+        $result = $connection->executeQuery('SELECT name FROM persons WHERE person_id = 102')->fetchOne();
+        $this->assertSame(
+            'attempt-2',
+            $result,
+            'Retry should have succeeded on fresh transaction state, inserting person_id=102.',
+        );
     }
 }

@@ -51,6 +51,8 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         private ?string $resetChannel = null,
         private ?int    $rebuildPartitionBatchSize = null,
         private ?string $rebuildAsyncChannelName = null,
+        private bool    $hasRebuild = false,
+        private bool    $hasDeployment = false,
     ) {
         if ($this->partitionHeader && ! $this->automaticInitialization) {
             throw new ConfigurationException("Cannot set partition header for projection {$this->projectionName} with automatic initialization disabled");
@@ -148,6 +150,14 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
     public function rebuildAsyncChannelName(): ?string
     {
         return $this->rebuildAsyncChannelName;
+    }
+
+    public function isOpenSourceEligible(): bool
+    {
+        return ! $this->isPartitioned()
+            && $this->backfillAsyncChannelName === null
+            && ! $this->hasRebuild
+            && ! $this->hasDeployment;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition|Reference

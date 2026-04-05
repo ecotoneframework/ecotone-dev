@@ -21,6 +21,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\Attribute\StateStorage as StateStorageAttribute;
 use Ecotone\Projecting\InMemory\InMemoryProjectionStateStorage;
@@ -58,6 +59,10 @@ class ProjectionStateStorageRegistryModule extends NoExternalConfigurationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        if (! empty($this->userlandStateStorageReferences) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw LicensingException::create('Custom #[StateStorage] implementations require Ecotone Enterprise licence.');
+        }
+
         $stateStorageReferences = ExtensionObjectResolver::resolve(
             ProjectionStateStorageReference::class,
             $extensionObjects

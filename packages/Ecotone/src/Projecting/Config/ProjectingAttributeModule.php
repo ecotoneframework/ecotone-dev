@@ -31,6 +31,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\MessageProcessorActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Projecting\Attribute\Partitioned;
@@ -105,6 +106,8 @@ class ProjectingAttributeModule implements AnnotationModule
                 partitioned: $partitionAttribute !== null,
                 rebuildPartitionBatchSize: $rebuildAttribute?->partitionBatchSize,
                 rebuildAsyncChannelName: $rebuildAttribute?->asyncChannelName,
+                hasRebuild: $rebuildAttribute !== null,
+                hasDeployment: $projectionDeployment !== null,
             );
 
             $asyncAttribute = self::getProjectionAsynchronousAttribute($annotationRegistrationService, $projectionClassName);
@@ -180,6 +183,15 @@ class ProjectingAttributeModule implements AnnotationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            if (! empty($this->pollingProjections)) {
+                throw LicensingException::create('#[Polling] projections require Ecotone Enterprise licence.');
+            }
+            if (! empty($this->eventStreamingProjections)) {
+                throw LicensingException::create('#[Streaming] projections require Ecotone Enterprise licence.');
+            }
+        }
+
         foreach ($this->lifecycleHandlers as $lifecycleHandler) {
             $messagingConfiguration->registerMessageHandler($lifecycleHandler);
         }

@@ -13,6 +13,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Message;
+use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\DbalContext;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
@@ -34,7 +35,7 @@ class DbalTransactionInterceptor
      * @param array<string, DbalConnectionFactory|ManagerRegistryConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
      */
-    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger)
+    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker)
     {
     }
 
@@ -88,6 +89,12 @@ class DbalTransactionInterceptor
             }, $retryStrategy, $message, ConnectionException::class, 'Starting Database transaction has failed due to network work, retrying in order to self heal.');
             $this->logger->info('Database Transaction started', $message);
         }
+
+        $transactionStarted = $connections !== [];
+        if ($transactionStarted) {
+            $this->transactionStatusTracker->markAsInsideTransaction();
+        }
+
         try {
             $result = $methodInvocation->proceed();
 
@@ -134,6 +141,10 @@ class DbalTransactionInterceptor
             }
 
             throw $exception;
+        } finally {
+            if ($transactionStarted) {
+                $this->transactionStatusTracker->markAsOutsideTransaction();
+            }
         }
 
         return $result;

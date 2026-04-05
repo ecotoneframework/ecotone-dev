@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Router\RouterProcessor;
@@ -168,6 +169,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
             new Reference(MessageHeadersPropagatorInterceptor::class),
             $this->projectionName,
             $routerProcessor,
+            Reference::to(LicenceDecider::class),
             $this->initChannel,
             $this->deleteChannel,
             $this->flushChannel,

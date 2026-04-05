@@ -18,6 +18,7 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\Polling;
+use Ecotone\Projecting\Attribute\ProjectionName;
 use Ecotone\Projecting\Attribute\ProjectionBackfill;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionExecution;
@@ -34,6 +35,8 @@ use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 use Ecotone\Projecting\Transaction;
+use Ecotone\Messaging\Handler\MethodInvocationException;
+use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -415,5 +418,31 @@ final class ProjectionV2EnterpriseTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackages())
         );
+    }
+
+    public function test_projection_name_header_is_not_available_without_licence(): void
+    {
+        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
+            public array $handledEvents = [];
+
+            #[EventHandler('*')]
+            public function handle(array $event, #[ProjectionName] string $projectionName): void
+            {
+                $this->handledEvents[] = ['event' => $event, 'projectionName' => $projectionName];
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+        );
+
+        $ecotone->withEvents([Event::createWithType('test-event', ['name' => 'Test'], [MessageHeaders::EVENT_AGGREGATE_ID => '1'])]);
+
+        $this->expectException(MethodInvocationException::class);
+
+        $ecotone->publishEventWithRoutingKey('trigger', []);
     }
 }

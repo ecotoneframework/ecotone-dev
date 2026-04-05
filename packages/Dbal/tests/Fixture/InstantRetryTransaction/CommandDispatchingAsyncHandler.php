@@ -41,7 +41,7 @@ final class CommandDispatchingAsyncHandler
         }
 
         $connection->executeStatement(
-            "INSERT INTO persons (person_id, name) VALUES (?, ?)",
+            'INSERT INTO persons (person_id, name) VALUES (?, ?)',
             [$this->commandHandlerCallCount + 100, 'attempt-' . $this->commandHandlerCallCount],
         );
     }

@@ -3,6 +3,17 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.307.0] - 2026-04-05
+
+## What's Changed
+* Improve type hints of MultiTenantConfiguration tenantToConnectionMapping by @tandev in https://github.com/ecotoneframework/ecotone-dev/pull/651
+* feat: enhance ecotone-contributor skill with test-first rules and broader trigger by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/653
+* feat: async endpoint annotations for per-handler interceptor configuration by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/654
+* fix: skip InstantRetry when running inside an already active database transaction by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/655
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.306.1...1.307.0
+
 ## [1.306.1] - 2026-04-04
 
 ## What's Changed

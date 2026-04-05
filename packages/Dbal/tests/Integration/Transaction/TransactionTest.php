@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Messaging\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\ConsoleCommand;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Messaging\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\CommandHandler;

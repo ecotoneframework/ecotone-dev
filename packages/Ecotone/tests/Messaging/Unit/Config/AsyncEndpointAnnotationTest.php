@@ -9,9 +9,9 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\WithoutMessageCollector;
 use Ecotone\Messaging\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Attribute\Interceptor\Before;
+use Ecotone\Messaging\Attribute\WithoutMessageCollector;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -35,12 +35,13 @@ class CustomAsyncAttribute implements AsynchronousEndpointAttribute
 
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class AsyncEndpointAnnotationTest extends TestCase
 {
     public function test_around_interceptor_receives_handler_attribute_on_async_endpoint(): void
     {
-        $collector = new \stdClass();
+        $collector = new stdClass();
         $collector->receivedAttribute = null;
 
         $handler = new class () {
@@ -52,7 +53,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         $interceptor = new class ($collector) {
-            public function __construct(private \stdClass $collector)
+            public function __construct(private stdClass $collector)
             {
             }
 
@@ -84,7 +85,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
 
     public function test_before_interceptor_receives_handler_attribute_on_async_endpoint(): void
     {
-        $collector = new \stdClass();
+        $collector = new stdClass();
         $collector->receivedAttribute = null;
 
         $handler = new class () {
@@ -96,7 +97,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         $interceptor = new class ($collector) {
-            public function __construct(private \stdClass $collector)
+            public function __construct(private stdClass $collector)
             {
             }
 
@@ -128,7 +129,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
 
     public function test_multiple_handlers_on_same_channel_resolve_correct_attribute(): void
     {
-        $collector = new \stdClass();
+        $collector = new stdClass();
         $collector->receivedAttributes = [];
 
         $handler = new class () {
@@ -146,7 +147,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         $interceptor = new class ($collector) {
-            public function __construct(private \stdClass $collector)
+            public function __construct(private stdClass $collector)
             {
             }
 
@@ -181,7 +182,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
 
     public function test_handler_without_custom_attribute_returns_null(): void
     {
-        $collector = new \stdClass();
+        $collector = new stdClass();
         $collector->receivedAttribute = 'not-set';
 
         $handler = new class () {
@@ -193,7 +194,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
         };
 
         $interceptor = new class ($collector) {
-            public function __construct(private \stdClass $collector)
+            public function __construct(private stdClass $collector)
             {
             }
 

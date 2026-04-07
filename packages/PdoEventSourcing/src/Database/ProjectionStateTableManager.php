@@ -15,7 +15,7 @@ use function is_array;
 /**
  * Table manager for the ProjectionV2 state table.
  *
- * licence Enterprise
+ * licence Apache-2.0
  */
 final class ProjectionStateTableManager implements DbalTableManager
 {

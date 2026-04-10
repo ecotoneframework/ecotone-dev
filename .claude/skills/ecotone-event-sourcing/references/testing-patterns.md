@@ -112,10 +112,25 @@ Key points:
 
 ```php
 $ecotone->initializeProjection('name');  // Setup
-$ecotone->triggerProjection('name');     // Process events
+$ecotone->triggerProjection('name');     // Process events (backfill -- emits events)
 $ecotone->resetProjection('name');       // Clear + reinit
 $ecotone->deleteProjection('name');      // Cleanup
 ```
+
+### Rebuild vs Backfill
+
+`triggerProjection()` calls `prepareBackfill()` for V2 projections (`shouldReset: false`) -- events ARE emitted via `EventStreamEmitter` during replay. This matches the `ecotone:projection:backfill` console command.
+
+To test rebuild behavior (emissions suppressed), access `ProjectionRegistry` directly:
+
+```php
+use Ecotone\Projecting\ProjectionRegistry;
+
+// Rebuild: replays events but suppresses EventStreamEmitter emissions
+$ecotone->getGateway(ProjectionRegistry::class)->get('projection_name')->prepareRebuild();
+```
+
+This matches the `ecotone:projection:rebuild` console command behavior.
 
 ## Testing Versioned Events with Upcasters
 

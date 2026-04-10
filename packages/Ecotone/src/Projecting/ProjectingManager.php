@@ -98,7 +98,7 @@ class ProjectingManager
 
                 $batchProcessedEvents = 0;
                 foreach ($streamPage->events as $event) {
-                    $userState = $this->projectorExecutor->project($event, $userState);
+                    $userState = $this->projectorExecutor->project($event, $userState, $shouldReset);
                     $batchProcessedEvents++;
                 }
                 if ($batchProcessedEvents > 0) {

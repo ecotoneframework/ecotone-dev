@@ -34,7 +34,7 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
     ) {
     }
 
-    public function project(Event $event, mixed $userState = null): mixed
+    public function project(Event $event, mixed $userState = null, bool $isRebuilding = false): mixed
     {
         $metadata = $event->getMetadata();
         $metadata[ProjectingHeaders::PROJECTION_STATE] = $userState ?? null;
@@ -42,7 +42,7 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         if ($this->licenceDecider->hasEnterpriseLicence()) {
             $metadata[ProjectingHeaders::PROJECTION_NAME] = $this->projectionName;
         }
-        $metadata[ProjectingHeaders::PROJECTION_LIVE] = $this->isLive;
+        $metadata[ProjectingHeaders::PROJECTION_LIVE] = $this->isLive && !$isRebuilding;
         $metadata[MessageHeaders::STREAM_BASED_SOURCED] = true; // this one is required for correct header propagation in EventStreamEmitter...
         $metadata[MessageHeaders::REPLY_CHANNEL] = $responseQueue = new QueueChannel('response_channel');
 

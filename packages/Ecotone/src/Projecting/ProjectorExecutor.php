@@ -15,7 +15,7 @@ interface ProjectorExecutor
      * @param mixed|null $userState
      * @return mixed the new user state
      */
-    public function project(Event $event, mixed $userState = null): mixed;
+    public function project(Event $event, mixed $userState = null, bool $isRebuilding = false): mixed;
     public function init(): void;
     public function delete(): void;
     public function flush(mixed $userState = null): void;

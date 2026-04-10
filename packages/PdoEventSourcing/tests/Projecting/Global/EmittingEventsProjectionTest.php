@@ -21,6 +21,7 @@ use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 
@@ -197,6 +198,85 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
             $eventStore->hasStream('notifications_stream_non_live'),
             'No events should have been emitted to the stream because projection is not live'
         );
+    }
+
+    public function test_rebuild_should_not_emit_events(): void
+    {
+        $projection = $this->createEmittingProjection();
+        $notificationService = new NotificationService();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
+            containerOrAvailableServices: [
+                $projection,
+                $notificationService,
+                new TicketEventConverter(),
+                new TicketListUpdatedConverter(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        self::assertCount(1, $eventStore->load('notifications_stream'), 'One event should have been emitted during live run');
+
+        $ecotone->resetProjection('emitting_projection');
+        self::assertEmpty($projection->getTickets(), 'Tickets should be empty before rebuild');
+        $notificationsCountBeforeRebuild = $eventStore->hasStream('notifications_stream') ? count($eventStore->load('notifications_stream')) : 0;
+
+        $ecotone->getGateway(ProjectionRegistry::class)->get('emitting_projection')->prepareRebuild();
+
+        self::assertNotEmpty($projection->getTickets(), 'Projection should have replayed events and rebuilt its state');
+        $notificationsCountAfterRebuild = $eventStore->hasStream('notifications_stream') ? count($eventStore->load('notifications_stream')) : 0;
+        self::assertSame($notificationsCountBeforeRebuild, $notificationsCountAfterRebuild, 'Rebuild should not have re-emitted events');
+    }
+
+    public function test_backfill_should_emit_events(): void
+    {
+        $projection = $this->createEmittingProjection();
+        $notificationService = new NotificationService();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [get_class($projection), NotificationService::class, TicketListUpdatedConverter::class, TicketListUpdated::class],
+            containerOrAvailableServices: [
+                $projection,
+                $notificationService,
+                new TicketEventConverter(),
+                new TicketListUpdatedConverter(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        self::assertCount(1, $eventStore->load('notifications_stream'), 'One event should have been emitted during live run');
+
+        $ecotone->resetProjection('emitting_projection');
+        self::assertEmpty($projection->getTickets(), 'Tickets should be empty before backfill');
+        self::assertFalse($eventStore->hasStream('notifications_stream'), 'Notifications stream should not exist after reset');
+
+        $ecotone->triggerProjection('emitting_projection');
+
+        self::assertNotEmpty($projection->getTickets(), 'Projection should have replayed events');
+        self::assertCount(1, $eventStore->load('notifications_stream'), 'Backfill should re-emit events to the stream');
     }
 
     private function createEmittingProjection(): object

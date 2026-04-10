@@ -147,7 +147,7 @@ class StreamFilterRegistryModule implements AnnotationModule
         return $projectionEventNames;
     }
 
-    private static function resolveFromAggregateStream(
+    public static function resolveFromAggregateStream(
         AnnotationFinder $annotationFinder,
         FromAggregateStream $attribute,
         string $projectionName,

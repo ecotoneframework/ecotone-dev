@@ -80,6 +80,7 @@ use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Modelling\Config\Routing\BusRouteSelector;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
+use Ecotone\Projecting\Attribute\ProjectionV2;
 use Symfony\Component\Uid\Uuid;
 
 #[ModuleAnnotation]
@@ -123,10 +124,19 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $aggregateTypeMapping[$aggregateWithCustomType] = $attribute->getName();
         }
 
+        $v2ProjectionNames = [];
+        foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $className) {
+            $v2ProjectionNames[] = $annotationRegistrationService->getAttributeForClass($className, ProjectionV2::class)->name;
+        }
+
         $projectionStateGateways = [];
         foreach ($annotationRegistrationService->findAnnotatedMethods(ProjectionStateGateway::class) as $projectionStateGatewayConfiguration) {
             /** @var ProjectionStateGateway $attribute */
             $attribute = $projectionStateGatewayConfiguration->getAnnotationForMethod();
+
+            if (in_array($attribute->getProjectionName(), $v2ProjectionNames, true)) {
+                continue;
+            }
 
             $projectionStateGateways[] = GatewayProxyBuilder::create(
                 $projectionStateGatewayConfiguration->getClassName(),

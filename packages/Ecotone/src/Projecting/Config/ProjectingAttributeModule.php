@@ -15,6 +15,7 @@ use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -35,6 +36,7 @@ use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Projecting\Attribute\Partitioned;
+use Ecotone\Projecting\ProjectingHeaders;
 use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionBackfill;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
@@ -46,6 +48,7 @@ use Ecotone\Projecting\Attribute\Streaming;
 use Ecotone\Projecting\EventStoreAdapter\PollingProjectionChannelAdapter;
 use Ecotone\Projecting\EventStoreAdapter\StreamingProjectionMessageHandler;
 use LogicException;
+use ReflectionMethod;
 
 /**
  * This module register projection based on attributes
@@ -63,7 +66,8 @@ class ProjectingAttributeModule implements AnnotationModule
         private array $projectionBuilders = [],
         private array $lifecycleHandlers = [],
         private array $pollingProjections = [],
-        private array $eventStreamingProjections = []
+        private array $eventStreamingProjections = [],
+        private bool $hasFlushWithProjectionState = false,
     ) {
     }
 
@@ -151,6 +155,7 @@ class ProjectingAttributeModule implements AnnotationModule
             $annotationRegistrationService->findCombined(ProjectionV2::class, ProjectionFlush::class),
             $annotationRegistrationService->findCombined(ProjectionV2::class, ProjectionReset::class),
         );
+        $hasFlushWithProjectionState = false;
         foreach ($lifecycleAnnotations as $lifecycleAnnotation) {
             /** @var ProjectionV2 $projectionAttribute */
             $projectionAttribute = $lifecycleAnnotation->getAnnotationForClass();
@@ -163,6 +168,9 @@ class ProjectingAttributeModule implements AnnotationModule
                 $projectionBuilder->setDeleteChannel($inputChannel);
             } elseif ($lifecycleAnnotation->getAnnotationForMethod() instanceof ProjectionFlush) {
                 $projectionBuilder->setFlushChannel($inputChannel);
+                if (self::flushMethodUsesProjectionState($lifecycleAnnotation->getClassName(), $lifecycleAnnotation->getMethodName())) {
+                    $hasFlushWithProjectionState = true;
+                }
             } elseif ($lifecycleAnnotation->getAnnotationForMethod() instanceof ProjectionReset) {
                 $projectionBuilder->setResetChannel($inputChannel);
             }
@@ -178,7 +186,7 @@ class ProjectingAttributeModule implements AnnotationModule
                 ->withInputChannelName($inputChannel);
         }
 
-        return new self(array_values($projectionBuilders), $lifecycleHandlers, $pollingProjections, $eventStreamingProjections);
+        return new self(array_values($projectionBuilders), $lifecycleHandlers, $pollingProjections, $eventStreamingProjections, $hasFlushWithProjectionState);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -189,6 +197,9 @@ class ProjectingAttributeModule implements AnnotationModule
             }
             if (! empty($this->eventStreamingProjections)) {
                 throw LicensingException::create('#[Streaming] projections require Ecotone Enterprise licence.');
+            }
+            if ($this->hasFlushWithProjectionState) {
+                throw LicensingException::create('Using #[ProjectionState] in #[ProjectionFlush] methods requires Ecotone Enterprise licence.');
             }
         }
 
@@ -308,6 +319,19 @@ class ProjectingAttributeModule implements AnnotationModule
                 'Partitioned projections cannot use streaming.'
             );
         }
+    }
+
+    private static function flushMethodUsesProjectionState(string $className, string $methodName): bool
+    {
+        $reflectionMethod = new ReflectionMethod($className, $methodName);
+        foreach ($reflectionMethod->getParameters() as $parameter) {
+            foreach ($parameter->getAttributes(Header::class, \ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
+                if ($attribute->newInstance()->getHeaderName() === ProjectingHeaders::PROJECTION_STATE) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private static function resolveAutomaticInitialization(

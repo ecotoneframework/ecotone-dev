@@ -3,8 +3,8 @@
 namespace Ecotone\EventSourcing\Attribute;
 
 use Attribute;
-use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
 use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Projecting\ProjectingHeaders;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 /**
@@ -14,6 +14,6 @@ final class ProjectionState extends Header
 {
     public function __construct()
     {
-        parent::__construct(ProjectionEventHandler::PROJECTION_STATE);
+        parent::__construct(ProjectingHeaders::PROJECTION_STATE);
     }
 }

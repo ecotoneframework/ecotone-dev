@@ -22,6 +22,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\Polling;
@@ -239,6 +240,38 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
         // Polling projection without tenant context should throw exception
         $ecotone->triggerProjection('polling_multi_tenant_projection');
+    }
+
+    public function test_multi_tenant_connection_with_projection_requires_licence(): void
+    {
+        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
+            #[EventHandler('*')]
+            public function handle(array $event): void
+            {
+            }
+        };
+
+        $this->expectException(LicensingException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                    ModulePackageList::DBAL_PACKAGE,
+                ]))
+                ->withExtensionObjects([
+                    EventSourcingConfiguration::createInMemory(),
+                    MultiTenantConfiguration::create(
+                        'tenant',
+                        [
+                            'tenant_a' => 'tenant_a_connection',
+                            'tenant_b' => 'tenant_b_connection',
+                        ]
+                    ),
+                ])
+        );
     }
 
     private function createMultiTenantProjection(): object

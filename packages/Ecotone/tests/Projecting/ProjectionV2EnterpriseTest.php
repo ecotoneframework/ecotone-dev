@@ -4,13 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Projecting;
 
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
 use Ecotone\EventSourcing\Attribute\ProjectionState;
-use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -477,35 +475,4 @@ final class ProjectionV2EnterpriseTest extends TestCase
         );
     }
 
-    public function test_multi_tenant_connection_with_projection_requires_licence(): void
-    {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
-            #[EventHandler('*')]
-            public function handle(array $event): void
-            {
-            }
-        };
-
-        $this->expectException(LicensingException::class);
-
-        EcotoneLite::bootstrapFlowTesting(
-            [$projection::class],
-            [$projection],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ]))
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createInMemory(),
-                    MultiTenantConfiguration::create(
-                        'tenant',
-                        [
-                            'tenant_a' => 'tenant_a_connection',
-                            'tenant_b' => 'tenant_b_connection',
-                        ]
-                    ),
-                ])
-        );
-    }
 }

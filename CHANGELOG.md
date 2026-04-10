@@ -3,6 +3,17 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.308.0] - 2026-04-10
+
+## What's Changed
+* feat: open-source global ProjectionV2 with sync/async event-driven execution by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/656
+
+## Documentation on ProjectionV2
+
+Read new documentation about [ProjectionV2](https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections)
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.307.0...1.308.0
+
 ## [1.307.0] - 2026-04-05
 
 ## What's Changed

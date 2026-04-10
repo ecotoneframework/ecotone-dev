@@ -61,7 +61,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
             public function onTicketRegistered(TicketWasRegistered $event, #[ProjectionState] array $state = []): array
             {
                 $state['ticketCount'] = ($state['ticketCount'] ?? 0) + 1;
-                $state['closedTicketCount'] = $state['closedTicketCount'] ?? 0;
+                $state['closedTicketCount'] ??= 0;
                 return $state;
             }
 

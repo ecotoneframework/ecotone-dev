@@ -65,12 +65,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
 
     public function test_multiple_streams_without_from_aggregate_stream_on_gateway_throws_exception(): void
     {
-        $projection = new #[
-            ProjectionV2('ticket_counter_partitioned'),
-            Partitioned,
-            FromStream(stream: Ticket::class, aggregateType: Ticket::class),
-            FromStream(stream: Basket::class, aggregateType: Basket::class),
-        ] class () {
+        $projection = new #[ ProjectionV2('ticket_counter_partitioned'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class), FromStream(stream: Basket::class, aggregateType: Basket::class), ] class () {
             public const NAME = 'ticket_counter_partitioned';
 
             #[EventHandler]
@@ -91,19 +86,14 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
 
     public function test_from_aggregate_stream_on_gateway_method_disambiguates_multiple_streams(): void
     {
-        $projection = new #[
-            ProjectionV2('ticket_counter_multi_stream'),
-            Partitioned,
-            FromAggregateStream(Ticket::class),
-            FromAggregateStream(Basket::class),
-        ] class () {
+        $projection = new #[ ProjectionV2('ticket_counter_multi_stream'), Partitioned, FromAggregateStream(Ticket::class), FromAggregateStream(Basket::class), ] class () {
             public const NAME = 'ticket_counter_multi_stream';
 
             #[EventHandler]
             public function onTicketRegistered(TicketWasRegistered $event, #[ProjectionState] array $state = []): array
             {
                 $state['ticketCount'] = ($state['ticketCount'] ?? 0) + 1;
-                $state['closedTicketCount'] = $state['closedTicketCount'] ?? 0;
+                $state['closedTicketCount'] ??= 0;
                 return $state;
             }
 
@@ -143,7 +133,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
             public function onTicketRegistered(TicketWasRegistered $event, #[ProjectionState] array $state = []): array
             {
                 $state['ticketCount'] = ($state['ticketCount'] ?? 0) + 1;
-                $state['closedTicketCount'] = $state['closedTicketCount'] ?? 0;
+                $state['closedTicketCount'] ??= 0;
                 return $state;
             }
 

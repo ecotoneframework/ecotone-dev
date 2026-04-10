@@ -14,20 +14,22 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Handler\MethodInvocationException;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Event;
+use Ecotone\Projecting\Attribute;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\Polling;
-use Ecotone\Projecting\Attribute\ProjectionName;
 use Ecotone\Projecting\Attribute\ProjectionBackfill;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
 use Ecotone\Projecting\Attribute\ProjectionExecution;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
+use Ecotone\Projecting\Attribute\ProjectionName;
 use Ecotone\Projecting\Attribute\ProjectionRebuild;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\Attribute\Streaming;
-use Ecotone\Projecting\Attribute;
 use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\ProjectionPartitionState;
@@ -36,8 +38,6 @@ use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
 use Ecotone\Projecting\Transaction;
-use Ecotone\Messaging\Handler\MethodInvocationException;
-use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -310,7 +310,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             }
         };
 
-        $customStreamSource = new #[Attribute\StreamSource] class implements StreamSource {
+        $customStreamSource = new #[Attribute\StreamSource] class () implements StreamSource {
             public function canHandle(string $projectionName): bool
             {
                 return true;
@@ -341,7 +341,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             }
         };
 
-        $customStateStorage = new #[Attribute\StateStorage] class implements ProjectionStateStorage {
+        $customStateStorage = new #[Attribute\StateStorage] class () implements ProjectionStateStorage {
             public function canHandle(string $projectionName): bool
             {
                 return true;
@@ -394,7 +394,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             }
         };
 
-        $customPartitionProvider = new #[Attribute\PartitionProvider] class implements PartitionProvider {
+        $customPartitionProvider = new #[Attribute\PartitionProvider] class () implements PartitionProvider {
             public function canHandle(string $projectionName): bool
             {
                 return true;

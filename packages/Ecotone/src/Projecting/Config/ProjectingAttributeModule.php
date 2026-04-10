@@ -36,7 +36,6 @@ use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\NamedEvent;
 use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\ProjectingHeaders;
 use Ecotone\Projecting\Attribute\Polling;
 use Ecotone\Projecting\Attribute\ProjectionBackfill;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
@@ -47,7 +46,9 @@ use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\Attribute\Streaming;
 use Ecotone\Projecting\EventStoreAdapter\PollingProjectionChannelAdapter;
 use Ecotone\Projecting\EventStoreAdapter\StreamingProjectionMessageHandler;
+use Ecotone\Projecting\ProjectingHeaders;
 use LogicException;
+use ReflectionAttribute;
 use ReflectionMethod;
 
 /**
@@ -325,7 +326,7 @@ class ProjectingAttributeModule implements AnnotationModule
     {
         $reflectionMethod = new ReflectionMethod($className, $methodName);
         foreach ($reflectionMethod->getParameters() as $parameter) {
-            foreach ($parameter->getAttributes(Header::class, \ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
+            foreach ($parameter->getAttributes(Header::class, ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
                 if ($attribute->newInstance()->getHeaderName() === ProjectingHeaders::PROJECTION_STATE) {
                     return true;
                 }

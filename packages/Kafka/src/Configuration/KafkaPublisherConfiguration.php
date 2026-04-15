@@ -33,7 +33,7 @@ final class KafkaPublisherConfiguration implements DefinedObject
     ) {
     }
 
-    public static function createWithDefaults(string $topicName = '', string $referenceName = MessagePublisher::class, string $brokerConfigurationReference = KafkaBrokerConfiguration::class): self
+    public static function createWithDefaults(string $topicName = '', string $referenceName = MessagePublisher::class, string $brokerConfigurationReference = KafkaBrokerConfiguration::class, ?string $outputDefaultConversionMediaType = null): self
     {
         return new self(
             $topicName,
@@ -60,7 +60,8 @@ final class KafkaPublisherConfiguration implements DefinedObject
                 'retry.backoff.ms' => '300',
             ],
             $brokerConfigurationReference,
-            DefaultHeaderMapper::createAllHeadersMapping()
+            DefaultHeaderMapper::createAllHeadersMapping(),
+            $outputDefaultConversionMediaType
         );
     }
 

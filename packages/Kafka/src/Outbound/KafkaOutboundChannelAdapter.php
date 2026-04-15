@@ -20,16 +20,12 @@ use Ecotone\Modelling\AggregateMessage;
  */
 final class KafkaOutboundChannelAdapter implements MessageHandler
 {
-    private OutboundMessageConverter $outboundMessageConverter;
-
     public function __construct(
         private string $referenceName,
         private KafkaAdmin                  $kafkaAdmin,
-        private ConversionService           $conversionService
+        private ConversionService           $conversionService,
+        private OutboundMessageConverter $outboundMessageConverter
     ) {
-        $headerMapper = $kafkaAdmin->getConfigurationForPublisher($referenceName)->getHeaderMapper();
-
-        $this->outboundMessageConverter = new OutboundMessageConverter($headerMapper);
     }
 
     /**

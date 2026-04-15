@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.309.0] - 2026-04-15
+
+## What's Changed
+* feat: kafka publisher default content type conversion media type by @tandev in https://github.com/ecotoneframework/ecotone-dev/pull/657
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.308.0...1.309.0
+
 ## [1.308.0] - 2026-04-10
 
 ## What's Changed

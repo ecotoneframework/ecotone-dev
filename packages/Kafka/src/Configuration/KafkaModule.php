@@ -183,6 +183,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
 
     private function registerMessagePublisher(Configuration $messagingConfiguration, KafkaPublisherConfiguration $extensionObject, ServiceConfiguration $applicationConfiguration): void
     {
+        $mediaType = $extensionObject->getOutputDefaultConversionMediaType() ?? $applicationConfiguration->getDefaultSerializationMediaType();
+
         $messagingConfiguration
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create($extensionObject->getReferenceName(), MessagePublisher::class, 'send', $extensionObject->getReferenceName())
@@ -219,6 +221,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                     $this->getPublisherEndpointId($extensionObject->getReferenceName())
                 )
                     ->withInputChannelName($extensionObject->getReferenceName())
+                    ->withHeaderMapper($extensionObject->getHeaderMapper())
+                    ->withDefaultConversionMediaType($mediaType)
             );
     }
 

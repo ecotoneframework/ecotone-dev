@@ -24,9 +24,6 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     private KafkaInboundChannelAdapterBuilder $inboundChannelAdapterBuilder;
     private KafkaOutboundChannelAdapterBuilder $outboundChannelAdapterBuilder;
     private string $headerMapper;
-    /**
-     * This is not passed to outboundChannelAdapter, as it's used in Kafka Module to declare Producer
-     */
     private ?MediaType $conversionMediaType = null;
 
     private function __construct(
@@ -50,6 +47,8 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
                 $this->inboundChannelAdapterBuilder
                     ->compile($builder),
                 $this->outboundChannelAdapterBuilder
+                    ->withHeaderMapper($this->getHeaderMapper())
+                    ->withDefaultConversionMediaType($this->conversionMediaType?->toString())
                     ->compile($builder),
             ]
         );

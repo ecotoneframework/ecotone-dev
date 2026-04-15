@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MessageHandlerBuilder;
+use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 
 /**
@@ -27,7 +28,7 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
         private string $endpointId,
         private string $inputChannelName = ''
     ) {
-
+        $this->headerMapper = DefaultHeaderMapper::createAllHeadersMapping();
     }
 
     public static function create(string $endpointId): self
@@ -61,7 +62,10 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
 
     public function withDefaultConversionMediaType(?string $mediaType): self
     {
-        $this->defaultConversionMediaType = MediaType::parseMediaType($mediaType);
+        $this->defaultConversionMediaType = $mediaType
+            ? MediaType::parseMediaType($mediaType)
+            : null
+        ;
 
         return $this;
     }

@@ -19,7 +19,7 @@
         "dbal",
         "ecotone"
     ],
-    "description": "PDO-backed Event Store for Ecotone — event-sourced aggregates, projections, upcasting, and Dynamic Consistency Boundary.",
+    "description": "PDO-backed Event Store for Ecotone \u2014 event-sourced aggregates, projections, upcasting, and Dynamic Consistency Boundary.",
     "autoload": {
         "psr-4": {
             "Ecotone\\EventSourcing\\": "src"
@@ -33,7 +33,7 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~1.309.0",
+        "ecotone/dbal": "~1.309.1",
         "prooph/pdo-event-store": "^1.16.3"
     },
     "require-dev": {
@@ -56,7 +56,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.309.0-dev"
+            "dev-main": "1.309.1-dev"
         },
         "ecotone": {
             "repository": "pdo-event-sourcing"
@@ -77,7 +77,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-04-15 17:27:48"
+        "release-time": "2026-04-19 09:46:17"
     },
     "config": {
         "allow-plugins": {

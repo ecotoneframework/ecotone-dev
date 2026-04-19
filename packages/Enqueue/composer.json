@@ -19,7 +19,7 @@
         "enqueue",
         "ecotone"
     ],
-    "description": "Enqueue adapter layer for Ecotone — shared base for AMQP, Redis, and SQS transports.",
+    "description": "Enqueue adapter layer for Ecotone \u2014 shared base for AMQP, Redis, and SQS transports.",
     "autoload": {
         "psr-4": {
             "Ecotone\\Enqueue\\": "src"
@@ -33,7 +33,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.309.0",
+        "ecotone/ecotone": "~1.309.1",
         "queue-interop/queue-interop": "^0.8",
         "enqueue/dsn": "^0.10.4"
     },
@@ -55,7 +55,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.309.0-dev"
+            "dev-main": "1.309.1-dev"
         },
         "ecotone": {
             "repository": "enqueue"
@@ -76,7 +76,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-04-15 17:27:48"
+        "release-time": "2026-04-19 09:46:17"
     },
     "config": {
         "allow-plugins": {

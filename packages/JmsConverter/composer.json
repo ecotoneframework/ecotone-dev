@@ -24,7 +24,7 @@
         "xml",
         "converter"
     ],
-    "description": "Provides serialization using JMS Serializer",
+    "description": "JMS Serializer media type converter for Ecotone — serialize commands, events, and queries with JMS annotations.",
     "autoload": {
         "psr-4": {
             "Ecotone\\JMSConverter\\": "src"

@@ -19,7 +19,7 @@
         "dbal",
         "ecotone"
     ],
-    "description": "Extends Ecotone with Event Sourcing using Prooph PDO Event Store",
+    "description": "PDO-backed Event Store for Ecotone — event-sourced aggregates, projections, upcasting, and Dynamic Consistency Boundary.",
     "autoload": {
         "psr-4": {
             "Ecotone\\EventSourcing\\": "src"

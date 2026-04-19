@@ -24,7 +24,7 @@
         "ecotone",
         "ddd and cqrs on top of eip"
     ],
-    "description": "Laravel integration for Ecotone",
+    "description": "Ecotone for Laravel — CQRS, Event Sourcing, Sagas, and Workflows on top of Laravel Queue, via PHP attributes.",
     "autoload": {
         "psr-4": {
             "Ecotone\\Laravel\\": "src"

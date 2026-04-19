@@ -25,7 +25,7 @@
         "event",
         "event-driven"
     ],
-    "description": "Supporting you in building DDD, CQRS, Event Sourcing applications with ease.",
+    "description": "Enterprise architecture layer for Laravel and Symfony — CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging via PHP attributes.",
     "autoload": {
         "psr-4": {
             "Ecotone\\": "src"

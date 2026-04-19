@@ -19,7 +19,7 @@
         "ecotone",
         "service-bus"
     ],
-    "description": "Ecotone is Service Bus Implementation, which enables message driven architecture with DDD, CQRS, Event Sourcing in PHP",
+    "description": "Enterprise architecture layer for Laravel and Symfony — CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging via PHP attributes.",
     "autoload": {
         "psr-4": {
             "Ecotone\\": [

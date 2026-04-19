@@ -19,7 +19,7 @@
         "dbal",
         "ecotone"
     ],
-    "description": "Extends Ecotone with Dbal integration",
+    "description": "Doctrine DBAL integration for Ecotone — database-backed message channel, outbox pattern, dead letter queue, and document store.",
     "autoload": {
         "psr-4": {
             "Ecotone\\Dbal\\": "src",

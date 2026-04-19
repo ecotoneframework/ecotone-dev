@@ -27,7 +27,7 @@
         "distributed architecture",
         "domain driven design"
     ],
-    "description": "Extends Ecotone with AMQP integration",
+    "description": "AMQP / RabbitMQ transport for Ecotone asynchronous messaging, outbox, and dead letter.",
     "autoload": {
         "psr-4": {
             "Ecotone\\Amqp\\": "src"

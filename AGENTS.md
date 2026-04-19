@@ -4,8 +4,9 @@
 
 ## Project Overview
 
-Ecotone is a PHP framework for message-driven architecture with DDD, CQRS, and Event Sourcing.
-Works with Symfony, Laravel, or standalone (Ecotone Lite).
+Ecotone is the enterprise architecture layer for Laravel and Symfony.
+One Composer package adds CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging via declarative PHP 8 attributes.
+Works with Symfony, Laravel, or standalone via Ecotone Lite (any PSR-11 container).
 
 ## Monorepo Structure
 
@@ -34,7 +35,7 @@ Works with Symfony, Laravel, or standalone (Ecotone Lite).
 
 ### General Approach
 - Write high-level tests from end-user perspective
-- Tests use **EcotoneLite** to bootstrap isolated Ecotone instances
+- Tests use **`EcotoneLite::bootstrapFlowTesting`** to bootstrap isolated Ecotone instances
 - Prefer **inline anonymous classes** in tests over separate fixture files
 - Run tests for the specific package you modified
 

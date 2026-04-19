@@ -19,7 +19,7 @@
         "enqueue",
         "ecotone"
     ],
-    "description": "Integration with enqueue",
+    "description": "Enqueue adapter layer for Ecotone — shared base for AMQP, Redis, and SQS transports.",
     "autoload": {
         "psr-4": {
             "Ecotone\\Enqueue\\": "src"

@@ -22,7 +22,7 @@
         "Sensitive Data Protection",
         "Secure Messages"
     ],
-    "description": "Extends Ecotone with Data Protection features allowing to secure sensitive data.",
+    "description": "Field-level encryption and PII masking for Ecotone messages — GDPR-friendly data protection with crypto-shredding.",
     "autoload": {
         "psr-4": {
             "Ecotone\\DataProtection\\": "src"

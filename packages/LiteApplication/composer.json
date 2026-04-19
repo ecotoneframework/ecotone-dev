@@ -24,7 +24,7 @@
         "ecotone",
         "ddd and cqrs on top of eip"
     ],
-    "description": "Quickstart Ecotone Lite Application",
+    "description": "Ecotone Lite — framework-agnostic bootstrap for PSR-11 applications with CQRS, Event Sourcing, Sagas, and Workflows.",
     "autoload": {
         "psr-4": {
             "Ecotone\\Lite\\": "src"

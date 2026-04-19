@@ -18,7 +18,7 @@
         "ecotone",
         "Kafka"
     ],
-    "description": "Extends Ecotone with Kafka integration",
+    "description": "Apache Kafka transport for Ecotone asynchronous messaging and Distributed Bus.",
     "autoload": {
         "psr-4": {
             "Ecotone\\Kafka\\": "src"

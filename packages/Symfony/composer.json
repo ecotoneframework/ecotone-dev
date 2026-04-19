@@ -25,7 +25,7 @@
         "eip",
         "distributed architecture"
     ],
-    "description": "Extends Ecotone with Symfony integration",
+    "description": "Ecotone for Symfony — CQRS, Event Sourcing, Sagas, and Workflows on top of Symfony Messenger, via PHP attributes.",
     "require": {
         "ecotone/ecotone": "~1.309.0",
         "symfony/console": "^6.4|^7.0|^8.0",

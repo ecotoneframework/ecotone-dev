@@ -11,40 +11,24 @@ To contribute make use of [Ecotone-Dev repository](https://github.com/ecotonefra
 [![Total Downloads](https://img.shields.io/packagist/dt/ecotone/ecotone)](https://packagist.org/packages/ecotone/ecotone)
 [![PHP Version Require](https://img.shields.io/packagist/dependency-v/ecotone/ecotone/php.svg)](https://packagist.org/packages/ecotone/ecotone)
 
-The roots of Object Oriented Programming (OOP) were mainly about communication using Messages and logic encapsulation.   
-`Ecotone` aims to return to the origins of OOP, by providing tools which allows us to fully move the focus from Objects to Flows, from Data storage to Application Design, from Technicalities to Business logic.  
-Ecotone does that by making Messages first class-citizen in our Applications.
+**Ecotone is the enterprise architecture layer for Laravel and Symfony.**
 
-Thanks to being Message-Driven at the foundation level, Ecotone provides architecture which is resilient and scalable by default, making it possible for Developers to focus on business problems instead of technical concerns.      
-Together with declarative configuration and higher level building blocks, it makes the system design explicit, easy to follow and change no matter of Developers experience.
+One Composer package adds CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging to your existing application — all via declarative PHP 8 attributes on the classes you already have.
 
-Visit main page [ecotone.tech](https://ecotone.tech) to learn more.
+## AMQP / RabbitMQ transport
 
-> Ecotone can be used with [Symfony](https://docs.ecotone.tech/modules/symfony-ddd-cqrs-event-sourcing) and [Laravel](https://docs.ecotone.tech/modules/laravel-ddd-cqrs-event-sourcing) frameworks, or any other framework using [Ecotone Lite](https://docs.ecotone.tech/install-php-service-bus#install-ecotone-lite-no-framework).
+Route `#[Asynchronous]` handlers to RabbitMQ. Exchanges, queues, and bindings are declared from your PHP configuration, and every message flows through Ecotone's standard retry, outbox, and dead letter pipeline — so switching to AMQP in production never changes how your handlers or tests are written.
 
-## Getting started
+Supports both implementations:
 
-The quickstart [page](https://docs.ecotone.tech/quick-start) of the
-[reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.
-Read more on the [Ecotone's Blog](https://blog.ecotone.tech).
-
-## AI-Friendly Documentation
-
-Ecotone provides AI-optimized documentation for use with AI assistants and code editors:
-
-- **MCP Server**: `https://docs.ecotone.tech/~gitbook/mcp` - [Install in VSCode](vscode:mcp/install?%7B%22name%22%3A%22Ecotone%22%2C%22url%22%3A%22https%3A%2F%2Fdocs.ecotone.tech%2F~gitbook%2Fmcp%22%7D)
-- **LLMs.txt**: [ecotone.tech/llms.txt](https://ecotone.tech/llms.txt)
-- **Context7**: Available via [@upstash/context7-mcp](https://github.com/upstash/context7)
-
-Learn more: [AI Integration Guide](https://docs.ecotone.tech/other/ai-integration)
-
-## AMQP Package
-
-This package provides AMQP integration for Ecotone, supporting both:
-- **AMQP Extension** (`enqueue/amqp-ext` + `ext-amqp`) - Default, recommended for production
-- **AMQP Lib** (`enqueue/amqp-lib`) - Pure PHP, required for RabbitMQ Streams
+- **AMQP Extension** (`enqueue/amqp-ext` + `ext-amqp`) — default, recommended for production
+- **AMQP Lib** (`enqueue/amqp-lib`) — pure PHP, required for RabbitMQ Streams
 
 See [AMQP_IMPLEMENTATION_SUPPORT.md](AMQP_IMPLEMENTATION_SUPPORT.md) for detailed information about using both implementations.
+
+Visit [ecotone.tech](https://ecotone.tech) to learn more.
+
+> Works with [Symfony](https://docs.ecotone.tech/modules/symfony-ddd-cqrs-event-sourcing), [Laravel](https://docs.ecotone.tech/modules/laravel-ddd-cqrs-event-sourcing), or any PSR-11 framework via [Ecotone Lite](https://docs.ecotone.tech/install-php-service-bus#install-ecotone-lite-no-framework).
 
 ### Testing
 
@@ -57,9 +41,17 @@ composer tests:ci
 
 See [TESTING_BOTH_IMPLEMENTATIONS.md](TESTING_BOTH_IMPLEMENTATIONS.md) for more details.
 
+## Getting started
+
+See the [quickstart guide](https://docs.ecotone.tech/quick-start) and [reference documentation](https://docs.ecotone.tech). Read more on the [Ecotone Blog](https://blog.ecotone.tech).
+
+## AI-Ready documentation
+
+Ecotone ships with MCP server, Agentic Skills, and LLMs.txt for any coding agent. See the [AI Integration Guide](https://docs.ecotone.tech/other/ai-integration).
+
 ## Feature requests and issue reporting
 
-Use [issue tracking system](https://github.com/ecotoneframework/ecotone-dev/issues) for new feature request and bugs. 
+Use [issue tracking system](https://github.com/ecotoneframework/ecotone-dev/issues) for new feature request and bugs.
 Please verify that it's not already reported by someone else.
 
 ## Contact
@@ -79,4 +71,4 @@ If you want to help building and improving Ecotone consider becoming a sponsor:
 
 ## Tags
 
-PHP, DDD, CQRS, Event Sourcing, Symfony, Laravel, Service Bus, Event Driven Architecture, SOA, Events, Commands
+PHP, AMQP, RabbitMQ, Ecotone, Message Broker, Asynchronous Messaging, Event Driven Architecture

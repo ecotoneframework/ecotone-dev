@@ -19,7 +19,7 @@
         "ecotone",
         "Sqs"
     ],
-    "description": "Extends Ecotone with Amazon Sqs integration",
+    "description": "AWS SQS transport for Ecotone asynchronous messaging.",
     "autoload": {
         "psr-4": {
             "Ecotone\\Sqs\\": "src"

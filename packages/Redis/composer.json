@@ -24,7 +24,7 @@
         "ecotone",
         "redis"
     ],
-    "description": "Extends Ecotone with redis integration",
+    "description": "Redis transport for Ecotone asynchronous messaging.",
     "autoload": {
         "psr-4": {
             "Ecotone\\Redis\\": "src"

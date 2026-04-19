@@ -8,28 +8,48 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/ecotone/ecotone)](https://packagist.org/packages/ecotone/ecotone)
 [![PHP Version Require](https://img.shields.io/packagist/dependency-v/ecotone/ecotone/php.svg)](https://packagist.org/packages/ecotone/ecotone)
 
-The roots of Object Oriented Programming (OOP) were mainly about communication using Messages and logic encapsulation.   
-`Ecotone` aims to return to the origins of OOP, by providing tools which allows us to fully move the focus from Objects to Flows, from Data storage to Application Design, from Technicalities to Business logic.  
-Ecotone does that by making Messages first class-citizen in our Applications.
+**Ecotone is the enterprise architecture layer for Laravel and Symfony.**
 
-Thanks to being Message-Driven at the foundation level, Ecotone provides architecture which is resilient and scalable by default, making it possible for Developers to focus on business problems instead of technical concerns.      
-Together with declarative configuration and higher level building blocks, it makes the system design explicit, easy to follow and change no matter of Developers experience.     
+One Composer package adds CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging to your existing application — all via declarative PHP 8 attributes on the classes you already have. No base classes, no bus wiring, no retry config. The same patterns proven in Java's Spring/Axon and .NET's NServiceBus/MassTransit, brought to PHP without giving up the development speed PHP is known for.
 
-Visit main page [ecotone.tech](https://ecotone.tech) to learn more.
+```php
+class OrderService
+{
+    #[CommandHandler]
+    public function placeOrder(PlaceOrder $command, EventBus $eventBus): void
+    {
+        $eventBus->publish(new OrderWasPlaced($command->orderId));
+    }
+}
 
-> Ecotone can be used with [Symfony](https://docs.ecotone.tech/modules/symfony-ddd-cqrs-event-sourcing) and [Laravel](https://docs.ecotone.tech/modules/laravel-ddd-cqrs-event-sourcing) frameworks, or any other framework using [Ecotone Lite](https://docs.ecotone.tech/install-php-service-bus#install-ecotone-lite-no-framework).
+class NotificationService
+{
+    #[Asynchronous('notifications')]
+    #[EventHandler]
+    public function whenOrderPlaced(OrderWasPlaced $event, NotificationSender $sender): void
+    {
+        $sender->sendOrderConfirmation($event->orderId);
+    }
+}
+```
+
+Every flow — sync, async, sagas, projections — runs through the same messaging pipeline in production and in tests. Swap the in-memory channel for RabbitMQ, Kafka, SQS, Redis, or DBAL in production; the test shape never changes.
+
+Visit [ecotone.tech](https://ecotone.tech) to learn more.
+
+> Works with [Symfony](https://docs.ecotone.tech/modules/symfony-ddd-cqrs-event-sourcing), [Laravel](https://docs.ecotone.tech/modules/laravel-ddd-cqrs-event-sourcing), or any PSR-11 framework via [Ecotone Lite](https://docs.ecotone.tech/install-php-service-bus#install-ecotone-lite-no-framework).
 
 ## Getting started
 
-The quickstart [page](https://docs.ecotone.tech/quick-start) of the
-[reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.
-Read more on the [Ecotone's Blog](https://blog.ecotone.tech).
+The [quickstart guide](https://docs.ecotone.tech/quick-start) in the [reference documentation](https://docs.ecotone.tech) is the fastest path to your first handler.
+Read more on the [Ecotone Blog](https://blog.ecotone.tech).
 
-## AI-Friendly Documentation
+## AI-Ready by design
 
-Ecotone provides AI-optimized documentation for use with AI assistants and code editors:
+Declarative attributes mean less infrastructure code for your coding agent to read and less boilerplate for it to generate — smaller context, faster iteration, more accurate results.
 
-- **MCP Server**: `https://docs.ecotone.tech/~gitbook/mcp` - [Install in VSCode](vscode:mcp/install?%7B%22name%22%3A%22Ecotone%22%2C%22url%22%3A%22https%3A%2F%2Fdocs.ecotone.tech%2F~gitbook%2Fmcp%22%7D)
+- **MCP Server**: `https://docs.ecotone.tech/~gitbook/mcp` — [Install in VSCode](vscode:mcp/install?%7B%22name%22%3A%22Ecotone%22%2C%22url%22%3A%22https%3A%2F%2Fdocs.ecotone.tech%2F~gitbook%2Fmcp%22%7D)
+- **Agentic Skills**: Ready-to-use skills that teach any coding agent to correctly write handlers, aggregates, sagas, projections, and tests
 - **LLMs.txt**: [ecotone.tech/llms.txt](https://ecotone.tech/llms.txt)
 - **Context7**: Available via [@upstash/context7-mcp](https://github.com/upstash/context7)
 
@@ -42,7 +62,7 @@ Visit [Ecotone's Documentation](https://docs.ecotone.tech/messaging/contributing
 
 ## Feature requests and issue reporting
 
-Use [issue tracking system](https://github.com/ecotoneframework/ecotone/issues) for new feature request and bugs. 
+Use [issue tracking system](https://github.com/ecotoneframework/ecotone/issues) for new feature request and bugs.
 Please verify that it's not already reported by someone else.
 
 ## Contact
@@ -62,4 +82,4 @@ If you want to help building and improving Ecotone consider becoming a sponsor:
 
 ## Tags
 
-PHP, DDD, CQRS, Event Sourcing, Symfony, Laravel, Service Bus, Event Driven Architecture, SOA, Events, Commands
+PHP, DDD, CQRS, Event Sourcing, Sagas, Projections, Workflows, Outbox, Symfony, Laravel, Service Bus, Event Driven Architecture

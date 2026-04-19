@@ -1,20 +1,36 @@
 # Ecotone Quickstart Examples
 
-Start docker compose and connect to the container with the following command:
+Runnable examples covering the full Ecotone feature set — handlers, aggregates, sagas, event sourcing, projections, workflows, multi-tenancy, outbox, and more. Each example is self-contained and runs end-to-end in seconds.
 
 ```bash
 docker compose up -d && docker exec -it ecotone-quickstart /bin/bash
 ```
 
-Run chosen example from the specific catalog.
+Then pick any example directory and run it:
 
 ```bash
 composer install
 php run_example.php
 ```
 
-# This is Read Only Repository
-To contribute make use of [Ecotone-Dev repository](https://github.com/ecotoneframework/ecotone-dev).
+## What's inside
+
+- **Asynchronous** — `#[Asynchronous]` handlers with in-memory and DBAL channels
+- **BuildingBlocks** — the core handler/aggregate/saga vocabulary in one place
+- **BusinessInterface** — declarative DBAL queries via `#[DbalBusinessMethod]`
+- **ErrorHandling** — retry strategies, error channels, and dead letter replay
+- **EventProjecting / PartitionedProjection** — catch-up and partitioned projections on an event-sourced stream
+- **EmittingEventsFromProjection** — projections that publish derived events
+- **Microservices / MicroservicesAdvanced** — Distributed Bus with cross-service events and commands
+- **MultiTenant** — per-tenant connections, event stores, and async channels (Laravel + Symfony variants)
+- **OutboxPattern** — guaranteed message delivery via the outbox pattern
+- **RefactorToReactiveSystem** — staged refactor from a procedural service to a message-driven one
+- **StatefulProjection** — projections with internal state
+- **Testing** — `EcotoneLite::bootstrapFlowTesting` patterns for sync and async flows
+- **Workflows** — stateless workflows, saga-based workflows, and async stateless variants
+- **CustomEventStoreProjecting** — custom event store implementations
+
+---
 
 <p align="left"><a href="https://ecotone.tech" target="_blank">
     <img src="https://github.com/ecotoneframework/ecotone-dev/blob/main/ecotone_small.png?raw=true">
@@ -26,15 +42,17 @@ To contribute make use of [Ecotone-Dev repository](https://github.com/ecotonefra
 [![Total Downloads](http://poser.pugx.org/ecotone/ecotone/downloads)](https://packagist.org/packages/ecotone/ecotone)
 [![PHP Version Require](http://poser.pugx.org/ecotone/ecotone/require/php)](https://packagist.org/packages/ecotone/ecotone)
 
-`Ecotone` is `Service Bus` Implementation, which enables `message driven architecture` with `DDD`, `CQRS`, `Event Sourcing` in `PHP`
+**Ecotone is the enterprise architecture layer for Laravel and Symfony.**
 
-Ecotone provides PHP with `Command Bus`, `Query Bus`, `Event Bus`, `Interceptors`, `Aggregates`, `Sagas`, `Event Sourcing` built on solutions that are message driven at the fundamental levels, and using integration with well known and stable solutions like `Enqueue for asynchronous communication` and `Prooph for Event Sourcing`.
+One Composer package adds CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging to your existing application — all via declarative PHP 8 attributes on the classes you already have.
+
+Visit [ecotone.tech](https://ecotone.tech) to learn more.
+
+> Works with [Symfony](https://docs.ecotone.tech/modules/symfony-ddd-cqrs-event-sourcing), [Laravel](https://docs.ecotone.tech/modules/laravel-ddd-cqrs-event-sourcing), or any PSR-11 framework via [Ecotone Lite](https://docs.ecotone.tech/install-php-service-bus#install-ecotone-lite-no-framework).
 
 ## Getting started
 
-The quickstart [page](https://docs.ecotone.tech/quick-start) of the
-[reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.  
-Read more on the [Blog](https://blog.ecotone.tech).
+See the [quickstart guide](https://docs.ecotone.tech/quick-start) and [reference documentation](https://docs.ecotone.tech). Read more on the [Ecotone Blog](https://blog.ecotone.tech).
 
 ## Feature requests and issue reporting
 
@@ -47,7 +65,7 @@ If you want to talk or ask questions about Ecotone
 
 - [**Twitter**](https://twitter.com/EcotonePHP)
 - **support@simplycodedsoftware.com**
-- [**Community Channel**](https://discord.gg/CctGMcrYnV)
+- [**Community Channel**](https://discord.gg/GwM2BSuXeg)
 
 ## Support Ecotone
 
@@ -58,4 +76,4 @@ If you want to help building and improving Ecotone consider becoming a sponsor:
 
 ## Tags
 
-PHP DDD CQRS Event Sourcing Symfony Laravel Service Bus
+PHP, DDD, CQRS, Event Sourcing, Sagas, Projections, Workflows, Outbox, Symfony, Laravel, Service Bus

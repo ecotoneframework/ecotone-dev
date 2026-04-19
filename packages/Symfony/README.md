@@ -11,36 +11,40 @@ To contribute make use of [Ecotone-Dev repository](https://github.com/ecotonefra
 [![Total Downloads](https://img.shields.io/packagist/dt/ecotone/ecotone)](https://packagist.org/packages/ecotone/ecotone)
 [![PHP Version Require](https://img.shields.io/packagist/dependency-v/ecotone/ecotone/php.svg)](https://packagist.org/packages/ecotone/ecotone)
 
-The roots of Object Oriented Programming (OOP) were mainly about communication using Messages and logic encapsulation.   
-`Ecotone` aims to return to the origins of OOP, by providing tools which allows us to fully move the focus from Objects to Flows, from Data storage to Application Design, from Technicalities to Business logic.  
-Ecotone does that by making Messages first class-citizen in our Applications.
+**Ecotone is the enterprise architecture layer for Laravel and Symfony.**
 
-Thanks to being Message-Driven at the foundation level, Ecotone provides architecture which is resilient and scalable by default, making it possible for Developers to focus on business problems instead of technical concerns.      
-Together with declarative configuration and higher level building blocks, it makes the system design explicit, easy to follow and change no matter of Developers experience.
+One Composer package adds CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging to your existing application — all via declarative PHP 8 attributes on the classes you already have.
 
-Visit main page [ecotone.tech](https://ecotone.tech) to learn more.
+## Ecotone for Symfony
 
-> Ecotone can be used with [Symfony](https://docs.ecotone.tech/modules/symfony-ddd-cqrs-event-sourcing) and [Laravel](https://docs.ecotone.tech/modules/laravel-ddd-cqrs-event-sourcing) frameworks, or any other framework using [Ecotone Lite](https://docs.ecotone.tech/install-php-service-bus#install-ecotone-lite-no-framework).
+Symfony Messenger gives you a bus. Ecotone gives you the full architecture on top — Event Sourcing, Sagas, Workflows, Outbox, and per-handler failure isolation, so one failing listener never blocks another.
+
+- **Symfony Messenger compatible** — your existing transports keep working
+- **Bundle auto-configuration** — zero config to start
+- **Doctrine ORM integration** — aggregates and projections via DBAL
+- **Pure POPOs** — no base classes, no interfaces to implement
+
+```bash
+composer require ecotone/symfony-bundle
+```
+
+See the [Symfony integration guide](https://docs.ecotone.tech/modules/symfony-ddd-cqrs-event-sourcing) for setup and configuration details.
+
+Visit [ecotone.tech](https://ecotone.tech) to learn more.
+
+> Ecotone also works with [Laravel](https://docs.ecotone.tech/modules/laravel-ddd-cqrs-event-sourcing) and any PSR-11 framework via [Ecotone Lite](https://docs.ecotone.tech/install-php-service-bus#install-ecotone-lite-no-framework).
 
 ## Getting started
 
-The quickstart [page](https://docs.ecotone.tech/quick-start) of the
-[reference guide](https://docs.ecotone.tech) provides a starting point for using Ecotone.
-Read more on the [Ecotone's Blog](https://blog.ecotone.tech).
+See the [quickstart guide](https://docs.ecotone.tech/quick-start) and [reference documentation](https://docs.ecotone.tech). Read more on the [Ecotone Blog](https://blog.ecotone.tech).
 
-## AI-Friendly Documentation
+## AI-Ready documentation
 
-Ecotone provides AI-optimized documentation for use with AI assistants and code editors:
-
-- **MCP Server**: `https://docs.ecotone.tech/~gitbook/mcp` - [Install in VSCode](vscode:mcp/install?%7B%22name%22%3A%22Ecotone%22%2C%22url%22%3A%22https%3A%2F%2Fdocs.ecotone.tech%2F~gitbook%2Fmcp%22%7D)
-- **LLMs.txt**: [ecotone.tech/llms.txt](https://ecotone.tech/llms.txt)
-- **Context7**: Available via [@upstash/context7-mcp](https://github.com/upstash/context7)
-
-Learn more: [AI Integration Guide](https://docs.ecotone.tech/other/ai-integration)
+Ecotone ships with MCP server, Agentic Skills, and LLMs.txt for any coding agent. See the [AI Integration Guide](https://docs.ecotone.tech/other/ai-integration).
 
 ## Feature requests and issue reporting
 
-Use [issue tracking system](https://github.com/ecotoneframework/ecotone-dev/issues) for new feature request and bugs. 
+Use [issue tracking system](https://github.com/ecotoneframework/ecotone-dev/issues) for new feature request and bugs.
 Please verify that it's not already reported by someone else.
 
 ## Contact
@@ -60,4 +64,4 @@ If you want to help building and improving Ecotone consider becoming a sponsor:
 
 ## Tags
 
-PHP, DDD, CQRS, Event Sourcing, Symfony, Laravel, Service Bus, Event Driven Architecture, SOA, Events, Commands
+PHP, Symfony, Symfony Bundle, DDD, CQRS, Event Sourcing, Sagas, Projections, Workflows, Outbox, Service Bus, Messenger

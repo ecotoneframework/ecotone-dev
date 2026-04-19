@@ -20,7 +20,7 @@
         "Open telemetry",
         "tracing"
     ],
-    "description": "Extends Ecotone with tracing using Open Telemetry",
+    "description": "OpenTelemetry distributed tracing for Ecotone — automatic spans and trace context propagation across sync and async flows.",
     "autoload": {
         "psr-4": {
             "Ecotone\\OpenTelemetry\\": "src"

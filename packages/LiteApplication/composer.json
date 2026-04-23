@@ -36,8 +36,8 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.309.1",
-        "ecotone/jms-converter": "~1.309.1",
+        "ecotone/ecotone": "~1.309.2",
+        "ecotone/jms-converter": "~1.309.2",
         "php-di/php-di": "^7.0.5"
     },
     "require-dev": {
@@ -49,7 +49,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.309.1-dev"
+            "dev-main": "1.309.2-dev"
         },
         "ecotone": {
             "repository": "lite-application"
@@ -70,7 +70,7 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-04-19 09:46:17"
+        "release-time": "2026-04-23 15:19:11"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

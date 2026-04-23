@@ -19,7 +19,7 @@
         "dbal",
         "ecotone"
     ],
-    "description": "PDO-backed Event Store for Ecotone \u2014 event-sourced aggregates, projections, upcasting, and Dynamic Consistency Boundary.",
+    "description": "PDO-backed Event Store for Ecotone \u2014 event-sourced aggregates, projections, upcasting, and streaming projections (Kafka, RabbitMQ).",
     "autoload": {
         "psr-4": {
             "Ecotone\\EventSourcing\\": "src"

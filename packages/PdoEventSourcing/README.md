@@ -22,7 +22,7 @@ Full Event Sourcing support for Ecotone, backed by your relational database via 
 - **Event-sourced aggregates** via `#[EventSourcingAggregate]` — one attribute flips state-stored to event-sourced
 - **Projections** via `#[Projection]` — catch-up, reset, partition, and streaming variants
 - **Event versioning and upcasting** — evolve your event schema without rewriting history
-- **Dynamic Consistency Boundary (DCB)** — model invariants across aggregates without distributed transactions
+- **Streaming Projections** — process events in real-time with Message Broker transport
 - **PostgreSQL and MySQL** supported out of the box
 
 Same testing story as the rest of Ecotone: spin up the event store in memory with `EcotoneLite::bootstrapFlowTesting`, replay events into your projections, and assert on results — no external infrastructure required.

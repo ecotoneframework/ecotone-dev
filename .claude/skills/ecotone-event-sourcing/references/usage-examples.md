@@ -339,32 +339,3 @@ public function upcast(array $payload, int $revision): array
 5. **Keep events immutable** -- all properties `readonly`
 6. **Version from the start** -- use `#[Revision(1)]` explicitly
 7. **Test upcasters** -- verify old events can be loaded with new code
-
-## Dynamic Consistency Boundary (DCB)
-
-DCB allows multiple aggregates to share consistency guarantees without distributed transactions:
-
-```php
-#[ProjectionV2('inventory_consistency')]
-#[FromStream(Order::class)]
-#[FromStream(Warehouse::class)]
-class InventoryConsistencyProjection
-{
-    #[EventHandler]
-    public function onOrderPlaced(OrderWasPlaced $event): void
-    {
-        // Check inventory consistency across aggregates
-    }
-
-    #[EventHandler]
-    public function onStockUpdated(StockWasUpdated $event): void
-    {
-        // Update inventory view
-    }
-}
-```
-
-- Events from multiple aggregates can be read in a single projection
-- Projection state provides the consistency boundary
-- Use multi-stream projections (`#[FromStream]` on multiple aggregate types)
-- Decision models can load events from multiple streams to make consistent decisions

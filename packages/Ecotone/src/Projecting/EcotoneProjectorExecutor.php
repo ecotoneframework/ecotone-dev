@@ -80,7 +80,7 @@ class EcotoneProjectorExecutor implements ProjectorExecutor
         }
     }
 
-    public function flush(mixed $userState = null, bool $isRebuilding = false): void
+    public function flush(mixed $userState, bool $isRebuilding): void
     {
         if (! $this->flushChannel) {
             return;

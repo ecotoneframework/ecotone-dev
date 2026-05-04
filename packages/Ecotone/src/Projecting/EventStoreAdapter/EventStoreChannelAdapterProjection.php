@@ -73,7 +73,7 @@ class EventStoreChannelAdapterProjection implements ProjectorExecutor
         // No deletion needed
     }
 
-    public function flush(mixed $userState = null): void
+    public function flush(mixed $userState = null, bool $isRebuilding = false): void
     {
         // No flushing needed
     }

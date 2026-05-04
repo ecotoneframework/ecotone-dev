@@ -443,7 +443,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     public function test_global_flush_with_projection_state_requires_enterprise_licence(): void
     {
-        $projection = new #[ProjectionV2('global_flush_state_projection'), \Ecotone\EventSourcing\Attribute\FromStream(Ticket::class)] class () {
+        $projection = new #[ProjectionV2('global_flush_state_projection'), FromStream(Ticket::class)] class () {
             #[EventHandler(endpointId: 'globalFlushStateProjection.addTicket')]
             public function addTicket(TicketWasRegistered $event, #[ProjectionState] array $ticket = []): array
             {

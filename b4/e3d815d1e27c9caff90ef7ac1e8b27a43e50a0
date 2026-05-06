@@ -1,0 +1,31 @@
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ScheduledModule.php
+  ai_agent 44-45
+packages/Ecotone/tests/Messaging/Fixture/Scheduled/ScheduledServiceWithMarker.php
+  ai_agent 1-20
+packages/Dbal/src/Attribute/WithTenantResolver.php
+  ai_agent 1-23
+packages/Dbal/tests/Fixture/MultiTenant/Scheduled/ExternalEventPollerWithoutResolver.php
+  ai_agent 1-36
+packages/Dbal/tests/Fixture/MultiTenant/Scheduled/ExternalEventReceiver.php
+  ai_agent 1-35
+packages/Dbal/tests/Integration/MultiTenant/ScheduledTenantResolverTest.php
+  ai_agent 1-170
+packages/Dbal/tests/Fixture/MultiTenant/Scheduled/ExternalEventPoller.php
+  ai_agent 1-43
+packages/Dbal/tests/Fixture/MultiTenant/Scheduled/ExternalEventPollerNonScalarExpression.php
+  ai_agent 1-35
+packages/Dbal/tests/Fixture/MultiTenant/Scheduled/ExternalEventPollerNullExpression.php
+  ai_agent 1-36
+packages/Dbal/src/MultiTenant/MultiTenantHeaderResolver.php
+  ai_agent 1-56
+packages/Ecotone/tests/Messaging/Fixture/Scheduled/ScheduledMarkerAttribute.php
+  ai_agent 1-18
+packages/Ecotone/tests/Messaging/Unit/Config/Annotation/ModuleConfiguration/ScheduledModuleTest.php
+  ai_agent 1-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "b4e3d815d1e27c9caff90ef7ac1e8b27a43e50a0",
+  "prompts": {}
+}

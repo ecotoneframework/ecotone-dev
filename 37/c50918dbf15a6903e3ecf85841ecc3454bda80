@@ -1,0 +1,117 @@
+quickstart-examples/MultiTenant/Symfony/MessageBus/composer.json
+  ai_agent 10-18,33,36
+quickstart-examples/MultiTenant/Symfony/Events/composer.json
+  ai_agent 10-18,33,36
+quickstart-examples/StatefulProjection/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/BusinessInterface/Asynchronous/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/Testing/composer.json
+  ai_agent 10-18,35,38
+packages/OpenTelemetry/composer.json
+  ai_agent 24-32,95
+quickstart-examples/MultiTenant/Symfony/EventSourcing/composer.json
+  ai_agent 10-18,35,38
+quickstart-examples/EmittingEventsFromProjection/composer.json
+  ai_agent 10-18,29,32
+composer.json
+  ai_agent 23-31
+quickstart-examples/AuthoritativeClassmap/composer.json
+  ai_agent 10-18,31,41
+quickstart-examples/BusinessInterface/ServiceActivator/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/ErrorHandling/composer.json
+  ai_agent 4-12,29,32
+quickstart-examples/Microservices/composer.json
+  ai_agent 10-18,28,31
+packages/Ecotone/composer.json
+  ai_agent 29-37,94,96
+packages/Kafka/composer.json
+  ai_agent 22-30,81
+quickstart-examples/RefactorToReactiveSystem/composer.json
+  ai_agent 10-18,31,34
+quickstart-examples/MicroservicesAdvanced/composer.json
+  ai_agent 10-18,31,34
+packages/Sqs/composer.json
+  ai_agent 23-31,51,85,87
+quickstart-examples/Workflows/SynchronousStateless/composer.json
+  ai_agent 10-18,35,38
+quickstart-examples/BuildingBlocks/composer.json
+  ai_agent 10-18,37,40
+quickstart-examples/MessageBroker/composer.json
+  ai_agent 10-18,24,27
+packages/LiteApplication/composer.json
+  ai_agent 28-36,56,88
+packages/Dbal/composer.json
+  ai_agent 23-31,91
+quickstart-examples/Schedule/composer.json
+  ai_agent 10-18,28,31
+packages/Laravel/composer.json
+  ai_agent 28-36,99
+packages/Enqueue/composer.json
+  ai_agent 23-31,84
+quickstart-examples/MultiTenant/Laravel/Events/composer.json
+  ai_agent 10-18,30,33
+packages/Redis/composer.json
+  ai_agent 28-36,56,86
+quickstart-examples/MultiTenant/Laravel/EventSourcing/composer.json
+  ai_agent 10-18,32,35
+quickstart-examples/MultiTenant/Symfony/Aggregate/composer.json
+  ai_agent 10-18,33,36
+quickstart-examples/Workflows/AsynchronousStateless/composer.json
+  ai_agent 10-18,35,38
+packages/JmsConverter/composer.json
+  ai_agent 28-36,56,89,91
+_PackageTemplate/composer.json
+  ai_agent 18-21,23-31,50
+packages/Amqp/composer.json
+  ai_agent 31-39,113
+packages/Symfony/composer.json
+  ai_agent 29-37,58,64,113
+packages/DataProtection/composer.json
+  ai_agent 26-34,57,93
+quickstart-examples/BusinessInterface/Routing/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/CQRS/composer.json
+  ai_agent 10-18,28,31
+quickstart-examples/EventHandling/composer.json
+  ai_agent 10-18,28,31
+quickstart-examples/ConsoleCommand/Laravel/composer.json
+  ai_agent 10-18,31,34
+quickstart-examples/MultiTenant/Laravel/MessageBus/composer.json
+  ai_agent 10-18,30,33
+quickstart-examples/OutboxPattern/composer.json
+  ai_agent 10-18,28,31
+quickstart-examples/EventSourcing/composer.json
+  ai_agent 10-18,28,31
+quickstart-examples/MultiTenant/Symfony/AsynchronousEvents/composer.json
+  ai_agent 10-18,34,37
+quickstart-examples/ConsoleCommand/Symfony/composer.json
+  ai_agent 10-18,31,34
+quickstart-examples/Asynchronous/composer.json
+  ai_agent 10-18,28,31
+quickstart-examples/Conversion/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/MultiTenant/General/HookIntoTenantSwitch/composer.json
+  ai_agent 10-18,30,33
+quickstart-examples/MultiTenant/Laravel/Aggregate/composer.json
+  ai_agent 10-18,30,33
+quickstart-examples/Workflows/Saga/composer.json
+  ai_agent 10-18,38,41
+quickstart-examples/MultiTenant/General/MessageBusForMultipleTenants/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/WorkingWithAggregateDirectly/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/MultiTenant/Laravel/AsynchronousEvents/composer.json
+  ai_agent 10-18,31,34
+packages/PdoEventSourcing/composer.json
+  ai_agent 23-31,85
+quickstart-examples/EventProjecting/PartitionedProjection/composer.json
+  ai_agent 10-18,30,33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "37c50918dbf15a6903e3ecf85841ecc3454bda80",
+  "prompts": {}
+}

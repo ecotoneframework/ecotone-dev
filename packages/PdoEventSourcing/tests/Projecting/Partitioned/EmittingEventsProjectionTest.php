@@ -7,21 +7,26 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
+use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
 use Ecotone\EventSourcing\Attribute\ProjectionReset;
+use Ecotone\EventSourcing\Attribute\ProjectionState;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionDeployment;
+use Ecotone\Projecting\Attribute\ProjectionFlush;
 use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 
@@ -355,6 +360,206 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 $this->tickets = [];
                 if ($eventStore->hasStream(self::STREAM_NAME)) {
                     $eventStore->delete(self::STREAM_NAME);
+                }
+            }
+        };
+    }
+
+    public function test_partitioned_projection_flush_emits_events_using_event_stream_emitter(): void
+    {
+        $projection = $this->createFlushEmittingProjection();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
+            containerOrAvailableServices: [
+                $projection,
+                new TicketEventConverter(),
+                new TicketListUpdatedConverter(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone
+            ->sendCommand(new RegisterTicket('1', 'Johnny', 'alert'))
+            ->sendCommand(new RegisterTicket('2', 'Jane', 'info'));
+
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        $emittedEvents = $eventStore->load('projection_flush_emitting_projection');
+
+        self::assertCount(2, $emittedEvents);
+    }
+
+    public function test_rebuild_should_not_emit_events_from_flush_method(): void
+    {
+        $projection = $this->createFlushEmittingProjection();
+
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
+            containerOrAvailableServices: [
+                $projection,
+                new TicketEventConverter(),
+                new TicketListUpdatedConverter(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone
+            ->sendCommand(new RegisterTicket('1', 'Johnny', 'alert'))
+            ->sendCommand(new RegisterTicket('2', 'Jane', 'info'));
+
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        self::assertCount(2, $eventStore->load('projection_flush_emitting_projection'));
+
+        $ecotone->resetProjection('flush_emitting_projection');
+        self::assertEmpty($projection->getTickets());
+        $emittedCountBeforeRebuild = $eventStore->hasStream('projection_flush_emitting_projection')
+            ? count($eventStore->load('projection_flush_emitting_projection'))
+            : 0;
+
+        $ecotone->getGateway(ProjectionRegistry::class)->get('flush_emitting_projection')->prepareRebuild();
+
+        self::assertNotEmpty($projection->getTickets());
+        $emittedCountAfterRebuild = $eventStore->hasStream('projection_flush_emitting_projection')
+            ? count($eventStore->load('projection_flush_emitting_projection'))
+            : 0;
+        self::assertSame($emittedCountBeforeRebuild, $emittedCountAfterRebuild);
+    }
+
+    public function test_global_flush_with_projection_state_requires_enterprise_licence(): void
+    {
+        $projection = new #[ProjectionV2('global_flush_state_projection'), FromStream(Ticket::class)] class () {
+            #[EventHandler(endpointId: 'globalFlushStateProjection.addTicket')]
+            public function addTicket(TicketWasRegistered $event, #[ProjectionState] array $ticket = []): array
+            {
+                $ticket['ticketId'] = $event->getTicketId();
+                return $ticket;
+            }
+
+            #[ProjectionFlush]
+            public function flush(#[ProjectionState] array $ticket, EventStreamEmitter $emitter): void
+            {
+                if (! isset($ticket['ticketId'])) {
+                    return;
+                }
+                $emitter->emit([new TicketListUpdated($ticket['ticketId'])]);
+            }
+        };
+
+        $this->expectException(LicensingException::class);
+        $this->expectExceptionMessage('Using #[ProjectionState] in #[ProjectionFlush] methods requires Ecotone Enterprise licence.');
+
+        EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
+            containerOrAvailableServices: [
+                $projection,
+                new TicketEventConverter(),
+                new TicketListUpdatedConverter(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true,
+        );
+    }
+
+    public function test_partitioned_flush_emitter_pattern_requires_enterprise_licence(): void
+    {
+        $projection = $this->createFlushEmittingProjection();
+
+        $this->expectException(LicensingException::class);
+        $this->expectExceptionMessageMatches('/Enterprise licence/');
+
+        EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [get_class($projection), TicketListUpdatedConverter::class, TicketListUpdated::class],
+            containerOrAvailableServices: [
+                $projection,
+                new TicketEventConverter(),
+                new TicketListUpdatedConverter(),
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withNamespaces([
+                    'Test\Ecotone\EventSourcing\Fixture\Ticket',
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true,
+        );
+    }
+
+    private function createFlushEmittingProjection(): object
+    {
+        return new #[ProjectionV2('flush_emitting_projection'), Partitioned, FromAggregateStream(Ticket::class)] class () {
+            public array $tickets = [];
+
+            #[EventHandler(endpointId: 'flushEmittingProjection.addTicket')]
+            public function addTicket(TicketWasRegistered $event, #[ProjectionState] array $ticket = []): array
+            {
+                $ticket['ticketId'] = $event->getTicketId();
+                $ticket['status'] = 'open';
+                $this->tickets[$event->getTicketId()] = $ticket;
+                return $ticket;
+            }
+
+            #[EventHandler(endpointId: 'flushEmittingProjection.closeTicket')]
+            public function closeTicket(TicketWasClosed $event, #[ProjectionState] array $ticket): array
+            {
+                $ticket['status'] = 'closed';
+                $this->tickets[$event->getTicketId()] = $ticket;
+                return $ticket;
+            }
+
+            #[ProjectionFlush]
+            public function flush(#[ProjectionState] array $ticket, EventStreamEmitter $emitter): void
+            {
+                if (! isset($ticket['ticketId'])) {
+                    return;
+                }
+
+                $emitter->emit([new TicketListUpdated($ticket['ticketId'])]);
+            }
+
+            #[QueryHandler('getFlushEmittingProjectionTickets')]
+            public function getTickets(): array
+            {
+                return $this->tickets;
+            }
+
+            #[ProjectionReset]
+            public function reset(#[Reference] EventStore $eventStore): void
+            {
+                $this->tickets = [];
+                if ($eventStore->hasStream('projection_flush_emitting_projection')) {
+                    $eventStore->delete('projection_flush_emitting_projection');
+                }
+            }
+
+            #[ProjectionDelete]
+            public function delete(#[Reference] EventStore $eventStore): void
+            {
+                $this->tickets = [];
+                if ($eventStore->hasStream('projection_flush_emitting_projection')) {
+                    $eventStore->delete('projection_flush_emitting_projection');
                 }
             }
         };

@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.310.0] - 2026-05-04
+
+## What's Changed
+* fix: support EventStreamEmitter inside #[ProjectionFlush] by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/662
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.309.3...1.310.0
+
 ## [1.309.3] - 2026-04-23
 
 Description clean ups

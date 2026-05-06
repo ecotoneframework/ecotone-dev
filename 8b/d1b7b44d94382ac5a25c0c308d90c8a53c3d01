@@ -1,0 +1,51 @@
+.claude/.claude-plugin/marketplace.json
+  s_706d38625fd112::t_15a552c120cc32 9,16
+packages/Ecotone/src/Projecting/InMemory/InMemoryProjector.php
+  s_706d38625fd112::t_15a552c120cc32 43
+CHANGELOG.md
+  s_706d38625fd112::t_15a552c120cc32 6-13
+packages/Laravel/composer.json
+  s_706d38625fd112::t_15a552c120cc32 50,61,71,87
+packages/LiteApplication/composer.json
+  s_706d38625fd112::t_15a552c120cc32 48-49,60,76
+packages/Sqs/composer.json
+  s_706d38625fd112::t_15a552c120cc32 45,66,82
+packages/Ecotone/composer.json
+  s_706d38625fd112::t_15a552c120cc32 75,91
+.claude/composer.json
+  s_706d38625fd112::t_15a552c120cc32 4,6
+packages/Symfony/composer.json
+  s_706d38625fd112::t_15a552c120cc32 39,47,95,111
+packages/Ecotone/src/Projecting/ProjectingManager.php
+  s_706d38625fd112::t_15a552c120cc32 105
+packages/Ecotone/src/Projecting/EcotoneProjectorExecutor.php
+  s_706d38625fd112::t_15a552c120cc32 83,85-86,88-105
+packages/JmsConverter/composer.json
+  s_706d38625fd112::t_15a552c120cc32 50,70,86
+packages/PdoEventSourcing/tests/Projecting/Partitioned/EmittingEventsProjectionTest.php
+  s_706d38625fd112::t_15a552c120cc32 10,15,22,27,29,367-562
+packages/Ecotone/src/Projecting/EventStoreAdapter/EventStoreChannelAdapterProjection.php
+  s_706d38625fd112::t_15a552c120cc32 76
+packages/OpenTelemetry/composer.json
+  s_706d38625fd112::t_15a552c120cc32 46,72,88
+packages/Ecotone/src/Projecting/ProjectorExecutor.php
+  s_706d38625fd112::t_15a552c120cc32 21
+quickstart-examples/composer.json
+  s_706d38625fd112::t_15a552c120cc32 72,77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "8bd1b7b44d94382ac5a25c0c308d90c8a53c3d01",
+  "prompts": {},
+  "sessions": {
+    "s_706d38625fd112": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d7967561-03cf-4717-aca1-0bd759eaeadf",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

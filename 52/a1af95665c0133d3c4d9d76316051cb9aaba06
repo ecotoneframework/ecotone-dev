@@ -1,0 +1,22 @@
+.github/workflows/release.yml
+  s_706d38625fd112::t_2feb946c98da4f 174,176
+  s_706d38625fd112::t_856cde9f0c87fc 175
+bin/strip-monorepo-repositories.php
+  s_706d38625fd112::t_2dd7ba1c4ea001 1-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "52a1af95665c0133d3c4d9d76316051cb9aaba06",
+  "prompts": {},
+  "sessions": {
+    "s_706d38625fd112": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d7967561-03cf-4717-aca1-0bd759eaeadf",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

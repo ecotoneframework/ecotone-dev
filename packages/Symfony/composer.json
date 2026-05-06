@@ -26,6 +26,15 @@
         "distributed architecture"
     ],
     "description": "Ecotone for Symfony \u2014 CQRS, Event Sourcing, Sagas, and Workflows on top of Symfony Messenger, via PHP attributes.",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "require": {
         "ecotone/ecotone": "~1.309.3",
         "symfony/console": "^6.4|^7.0|^8.0",
@@ -46,17 +55,13 @@
         "symfony/monolog-bundle": "^3.10",
         "symfony/translation": "^6.4|^7.0|^8.0",
         "symfony/var-exporter": "^6.4|^7.0|^8.0",
-        "symfony/yaml": "^6.4|^7.0|^8.0",
-        "wikimedia/composer-merge-plugin": "^2.1"
+        "symfony/yaml": "^6.4|^7.0|^8.0"
     },
     "conflict": {
         "symfony/proxy-manager-bridge": "<5.4.0"
     },
     "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "wikimedia/composer-merge-plugin": true
-        }
+        "sort-packages": true
     },
     "autoload": {
         "psr-4": {
@@ -91,11 +96,6 @@
         },
         "ecotone": {
             "repository": "symfony"
-        },
-        "merge-plugin": {
-            "include": [
-                "../local_packages.json"
-            ]
         },
         "license-info": {
             "Apache-2.0": {

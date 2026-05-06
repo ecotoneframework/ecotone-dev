@@ -23,6 +23,15 @@
         "Secure Messages"
     ],
     "description": "Field-level encryption and PII masking for Ecotone messages \u2014 GDPR-friendly data protection with crypto-shredding.",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Ecotone\\DataProtection\\": "src"
@@ -45,8 +54,7 @@
     "require-dev": {
         "ecotone/pdo-event-sourcing": "~1.309.3",
         "phpunit/phpunit": "^11.0",
-        "phpstan/phpstan": "^2.1",
-        "wikimedia/composer-merge-plugin": "^2.1"
+        "phpstan/phpstan": "^2.1"
     },
     "suggest": {
         "ext-simplexml": "Required if application/xml is used as serialization media type"
@@ -69,11 +77,6 @@
         "ecotone": {
             "repository": "data-protection"
         },
-        "merge-plugin": {
-            "include": [
-                "../local_packages.json"
-            ]
-        },
         "license-info": {
             "Apache-2.0": {
                 "name": "Apache License 2.0",
@@ -86,10 +89,5 @@
             }
         },
         "release-time": "2026-04-23 17:37:39"
-    },
-    "config": {
-        "allow-plugins": {
-            "wikimedia/composer-merge-plugin": true
-        }
     }
 }

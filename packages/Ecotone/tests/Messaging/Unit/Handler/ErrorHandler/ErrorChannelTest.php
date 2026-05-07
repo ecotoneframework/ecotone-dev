@@ -10,13 +10,14 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Test\LicenceTesting;
+use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel\OrderService;
 
 /**
@@ -596,7 +597,7 @@ final class FailingScheduledExample
     #[\Ecotone\Messaging\Attribute\ServiceActivator(self::REQUEST_CHANNEL)]
     public function handle(string $payload): void
     {
-        throw new \InvalidArgumentException('boom');
+        throw new InvalidArgumentException('boom');
     }
 }
 
@@ -620,14 +621,14 @@ final class AsyncFailingHandler
     #[\Ecotone\Modelling\Attribute\CommandHandler(self::ROUTING_KEY_A, 'asyncHandlerA')]
     public function handleA(string $payload): void
     {
-        throw new \RuntimeException('handler-a-failure');
+        throw new RuntimeException('handler-a-failure');
     }
 
     #[\Ecotone\Messaging\Attribute\Asynchronous(self::SHARED_ASYNC_CHANNEL, asynchronousExecution: [new \Ecotone\Messaging\Attribute\ErrorChannel(self::ERROR_CHANNEL_B)])]
     #[\Ecotone\Modelling\Attribute\CommandHandler(self::ROUTING_KEY_B, 'asyncHandlerB')]
     public function handleB(string $payload): void
     {
-        throw new \RuntimeException('handler-b-failure');
+        throw new RuntimeException('handler-b-failure');
     }
 }
 
@@ -657,7 +658,7 @@ final class DelayedRetryHandler
     {
         $this->attemptsRecovers++;
         if ($this->attemptsRecovers < 2) {
-            throw new \RuntimeException('transient');
+            throw new RuntimeException('transient');
         }
         $this->finallyHandled = true;
     }
@@ -674,7 +675,7 @@ final class DelayedRetryHandler
     public function alwaysFails(string $payload): void
     {
         $this->attemptsDeadLetter++;
-        throw new \RuntimeException('permanent');
+        throw new RuntimeException('permanent');
     }
 
     #[\Ecotone\Messaging\Attribute\Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
@@ -689,7 +690,7 @@ final class DelayedRetryHandler
     public function alwaysFailsOverridingDefault(string $payload): void
     {
         $this->attemptsOverride++;
-        throw new \RuntimeException('permanent');
+        throw new RuntimeException('permanent');
     }
 
     #[\Ecotone\Modelling\Attribute\QueryHandler('retryHandler.attemptsRecovers')]
@@ -753,7 +754,7 @@ final class InboundChannelAdapterWithInstantRetryAndErrorChannel
     {
         $this->invocations++;
         if ($this->invocations <= $this->maxFailures) {
-            throw new \RuntimeException('simulated');
+            throw new RuntimeException('simulated');
         }
     }
 }

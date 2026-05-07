@@ -56,7 +56,7 @@ final class ErrorChannelExceptionMessages
 
     public static function instantRetryNotOnInboundChannelAdapter(string $className, string $methodName): string
     {
-        return "InstantRetry attribute can only be used on Inbound Channel Adapter methods (annotated with MessageConsumer e.g. #[KafkaConsumer], #[RabbitConsumer], #[Scheduled]). "
+        return 'InstantRetry attribute can only be used on Inbound Channel Adapter methods (annotated with MessageConsumer e.g. #[KafkaConsumer], #[RabbitConsumer], #[Scheduled]). '
             . "'{$className}::{$methodName}' has none.";
     }
 

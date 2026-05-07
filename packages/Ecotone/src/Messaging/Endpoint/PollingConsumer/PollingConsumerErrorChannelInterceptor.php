@@ -3,8 +3,8 @@
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\ErrorChannel;
 use Ecotone\Messaging\Attribute\DelayedRetry;
+use Ecotone\Messaging\Attribute\ErrorChannel;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;

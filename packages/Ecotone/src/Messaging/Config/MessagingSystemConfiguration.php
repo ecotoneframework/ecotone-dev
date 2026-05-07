@@ -436,7 +436,7 @@ final class MessagingSystemConfiguration implements Configuration
                     }
                     $endpointAnnotations = $asyncAttribute ? $asyncAttribute->getAsynchronousExecution() : [];
                     if ($endpointAnnotations && ! $this->isRunningForEnterpriseLicence) {
-                        throw LicensingException::create(\Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::asynchronousExecutionRequiresEnterprise($targetEndpointId));
+                        throw LicensingException::create(Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::asynchronousExecutionRequiresEnterprise($targetEndpointId));
                     }
 
                     $hasErrorChannel = false;
@@ -450,19 +450,19 @@ final class MessagingSystemConfiguration implements Configuration
                     }
                     if ($hasErrorChannel && $hasDelayedRetry) {
                         throw ConfigurationException::create(
-                            \Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::errorChannelAndDelayedRetryMutuallyExclusiveOnHandler($targetEndpointId)
+                            Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::errorChannelAndDelayedRetryMutuallyExclusiveOnHandler($targetEndpointId)
                         );
                     }
 
                     foreach ($handlerInterface->getMethodAnnotations() as $methodAnnotation) {
                         if ($methodAnnotation instanceof \Ecotone\Messaging\Attribute\ErrorChannel) {
                             throw ConfigurationException::create(
-                                \Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::errorChannelDirectlyOnAsyncHandlerMethod($targetEndpointId)
+                                Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::errorChannelDirectlyOnAsyncHandlerMethod($targetEndpointId)
                             );
                         }
                         if ($methodAnnotation instanceof \Ecotone\Messaging\Attribute\DelayedRetry) {
                             throw ConfigurationException::create(
-                                \Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::delayedRetryDirectlyOnAsyncHandlerMethod($targetEndpointId)
+                                Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::delayedRetryDirectlyOnAsyncHandlerMethod($targetEndpointId)
                             );
                         }
                     }

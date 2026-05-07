@@ -12,7 +12,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModu
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
@@ -130,7 +129,7 @@ final class ErrorChannelCommandBusTest extends TestCase
             public bool $sideEffectExecuted = false;
 
             #[\Ecotone\Modelling\Attribute\CommandHandler('handler.level.error.channel.test')]
-            #[\Ecotone\Messaging\Attribute\ErrorChannel('handlerLevelErrorChannel')]
+            #[ErrorChannel('handlerLevelErrorChannel')]
             public function handle(mixed $payload): void
             {
                 $this->sideEffectExecuted = true;

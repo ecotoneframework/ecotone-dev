@@ -15,6 +15,7 @@ use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalConnectionFactory;
+use RuntimeException;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler\DoubleEventHandler;
@@ -233,7 +234,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
             {
                 $this->invocations++;
                 if ($this->shouldFail) {
-                    throw new \RuntimeException('simulated');
+                    throw new RuntimeException('simulated');
                 }
                 $this->processedPayloads[] = $payload;
             }

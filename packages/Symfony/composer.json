@@ -36,7 +36,7 @@
         }
     ],
     "require": {
-        "ecotone/ecotone": "~1.312.0",
+        "ecotone/ecotone": "~1.313.0",
         "symfony/console": "^6.4|^7.0|^8.0",
         "symfony/dependency-injection": "^6.4|^7.0|^8.0",
         "symfony/framework-bundle": "^6.4|^7.0|^8.0"
@@ -44,7 +44,7 @@
     "require-dev": {
         "doctrine/doctrine-bundle": "^2.7.2",
         "doctrine/orm": "^2.11|^3.0",
-        "ecotone/dbal": "~1.312.0",
+        "ecotone/dbal": "~1.313.0",
         "monolog/monolog": "^2.9|^3.3.1",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^10.5|^11.0",
@@ -92,7 +92,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.312.0-dev"
+            "dev-main": "1.313.0-dev"
         },
         "ecotone": {
             "repository": "symfony"
@@ -108,6 +108,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-05-07 17:21:47"
+        "release-time": "2026-05-07 19:43:12"
     }
 }

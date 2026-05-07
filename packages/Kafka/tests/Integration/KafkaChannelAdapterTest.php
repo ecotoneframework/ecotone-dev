@@ -34,6 +34,7 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 use stdClass;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
@@ -329,7 +330,7 @@ final class KafkaChannelAdapterTest extends TestCase
             {
                 if ($this->failureCount < 1) {
                     $this->failureCount++;
-                    throw new \RuntimeException('Simulated failure');
+                    throw new RuntimeException('Simulated failure');
                 }
                 $this->processedMessages[] = $payload;
             }
@@ -410,7 +411,7 @@ final class KafkaChannelAdapterTest extends TestCase
             {
                 $this->invocations++;
                 if ($this->shouldFail) {
-                    throw new \RuntimeException('simulated');
+                    throw new RuntimeException('simulated');
                 }
                 $this->processedPayloads[] = $payload;
             }

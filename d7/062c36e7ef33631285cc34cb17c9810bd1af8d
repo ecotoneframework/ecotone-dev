@@ -1,0 +1,30 @@
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ErrorChannelExceptionMessages.php
+  s_fa7f41ccbd0ebc::t_e0174488f1fb23 44-81
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_fa7f41ccbd0ebc::t_bee1b3a5393fc4 439
+packages/Ecotone/src/Modelling/Config/InstantRetry/InstantRetryAttributeModule.php
+  s_fa7f41ccbd0ebc::t_cdb4f87133c59a 72-74
+  s_fa7f41ccbd0ebc::t_67f660a1101ebb 96
+packages/Dbal/src/Recoverability/DbalDeadLetterHandler.php
+  s_fa7f41ccbd0ebc::t_c127fd0c0812eb 253
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/MessagingGatewayModule.php
+  s_fa7f41ccbd0ebc::t_9846f1c2047760 137,141
+packages/Ecotone/src/Messaging/Handler/Recoverability/DelayedRetryErrorHandler.php
+  s_fa7f41ccbd0ebc::t_8d6ca8b39d0aed 46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "d7062c36e7ef33631285cc34cb17c9810bd1af8d",
+  "prompts": {},
+  "sessions": {
+    "s_fa7f41ccbd0ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b372edd-4776-46cc-802d-d0e75adf8469",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

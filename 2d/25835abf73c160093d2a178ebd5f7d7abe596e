@@ -1,0 +1,27 @@
+packages/Dbal/tests/Integration/MultiTenant/WithTenantResolverPlacementValidationTest.php
+  s_4ba416755315fc::t_d9b202393ba0fa 7,11-13,17-20,24,38-45,47,51,56-63,65,67,72-80,82,85,90-99,108
+packages/Dbal/tests/Integration/MultiTenant/WithTenantResolverLicensingTest.php
+  s_4ba416755315fc::t_aab0d55b3ec9e6 7,11,15,17,34-35,38,41,46,51,53-60,63,66-82
+packages/Dbal/tests/Integration/MultiTenant/ScheduledTenantResolverTest.php
+  s_4ba416755315fc::t_d035475b9bef4f 7,12-15,21,23-25,42,45-64,83-108,120-133,145-159,171-199,202,217-231,239-260
+packages/Kafka/tests/Integration/MultiTenant/KafkaTenantResolverTest.php
+  s_4ba416755315fc::t_aab63d5ba08baf 7,10,14,18,21-23,46-72,75,79-80
+packages/Ecotone/tests/Messaging/Unit/Config/Annotation/ModuleConfiguration/ScheduledModuleTest.php
+  s_4ba416755315fc::t_9d49b1b239c458 7,9-10,14-15,17-24,37-60,63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "2d25835abf73c160093d2a178ebd5f7d7abe596e",
+  "prompts": {},
+  "sessions": {
+    "s_4ba416755315fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a2f9f4c-b445-4141-bf4d-b881b2fe75d2",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

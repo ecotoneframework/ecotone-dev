@@ -47,12 +47,12 @@
     "require": {
         "php": "^8.2",
         "ext-openssl": "*",
-        "ecotone/ecotone": "~1.311.0",
-        "ecotone/jms-converter": "~1.311.0",
+        "ecotone/ecotone": "~1.312.0",
+        "ecotone/jms-converter": "~1.312.0",
         "paragonie/random_compat": "^2.0"
     },
     "require-dev": {
-        "ecotone/pdo-event-sourcing": "~1.311.0",
+        "ecotone/pdo-event-sourcing": "~1.312.0",
         "phpunit/phpunit": "^11.0",
         "phpstan/phpstan": "^2.1"
     },
@@ -72,7 +72,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.311.0-dev"
+            "dev-main": "1.312.0-dev"
         },
         "ecotone": {
             "repository": "data-protection"
@@ -88,6 +88,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-05-07 06:06:38"
+        "release-time": "2026-05-07 17:21:47"
     }
 }

@@ -84,7 +84,7 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
     {
         if ($this->invalidTenantResolverPlacements !== []) {
             throw ConfigurationException::create(sprintf(
-                "WithTenantResolver attribute on %s is invalid. WithTenantResolver may only be applied to inbound channel adapter methods (e.g. #[KafkaConsumer], #[AmqpConsumer], #[Scheduled]) where messages may arrive from outside the application without a tenant header. Internal Message Channels — including those used by synchronous and asynchronous CommandHandler / EventHandler / QueryHandler / ServiceActivator handlers — already carry the tenant context propagated from the originating bus call, so there is no header to derive there. If an asynchronous handler is processing externally-arrived messages, attach #[WithTenantResolver] to the inbound channel adapter that produces those messages, not to the handler.",
+                'WithTenantResolver attribute on %s is invalid. WithTenantResolver may only be applied to inbound channel adapter methods (e.g. #[KafkaConsumer], #[AmqpConsumer], #[Scheduled]) where messages may arrive from outside the application without a tenant header. Internal Message Channels — including those used by synchronous and asynchronous CommandHandler / EventHandler / QueryHandler / ServiceActivator handlers — already carry the tenant context propagated from the originating bus call, so there is no header to derive there. If an asynchronous handler is processing externally-arrived messages, attach #[WithTenantResolver] to the inbound channel adapter that produces those messages, not to the handler.',
                 implode(', ', $this->invalidTenantResolverPlacements)
             ));
         }

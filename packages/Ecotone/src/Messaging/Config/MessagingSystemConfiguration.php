@@ -436,7 +436,7 @@ final class MessagingSystemConfiguration implements Configuration
                     }
                     $endpointAnnotations = $asyncAttribute ? $asyncAttribute->getAsynchronousExecution() : [];
                     if ($endpointAnnotations && ! $this->isRunningForEnterpriseLicence) {
-                        throw LicensingException::create("Endpoint annotations on #[Asynchronous] attribute for endpoint `{$targetEndpointId}` require Ecotone Enterprise licence.");
+                        throw LicensingException::create(\Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::asynchronousExecutionRequiresEnterprise($targetEndpointId));
                     }
 
                     $hasErrorChannel = false;

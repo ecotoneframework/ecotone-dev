@@ -250,7 +250,7 @@ class DbalDeadLetterHandler
         $hasRoutingSlip = $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP);
 
         if (! $hasPolledChannel && ! $hasInboundRequestChannel && ! $hasRoutingSlip) {
-            throw InvalidArgumentException::create("Can not reply to message {$messageId}, as it does not contain `polledChannelName`, `inboundRequestChannel` or `routingSlip` header. Please add one of them, so Message can be routed back to the original channel.");
+            throw InvalidArgumentException::create(\Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::cannotReplyToDeadLetterMessage($messageId));
         }
 
         if ($hasPolledChannel) {

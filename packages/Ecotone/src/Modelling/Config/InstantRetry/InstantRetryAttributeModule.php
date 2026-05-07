@@ -69,9 +69,9 @@ final class InstantRetryAttributeModule implements AnnotationModule
         $annotatedMethods = $annotationRegistrationService->findAnnotatedMethods(InstantRetry::class);
         foreach ($annotatedMethods as $annotatedMethod) {
             if (! $annotatedMethod->hasMethodAnnotation(MessageConsumer::class)) {
-                throw new ConfigurationException(sprintf(
-                    "InstantRetry attribute can only be used on Inbound Channel Adapter methods (annotated with MessageConsumer e.g. #[KafkaConsumer], #[RabbitConsumer], #[Scheduled]). '%s' has none.",
-                    $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName()
+                throw new ConfigurationException(\Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::instantRetryNotOnInboundChannelAdapter(
+                    $annotatedMethod->getClassName(),
+                    $annotatedMethod->getMethodName(),
                 ));
             }
 
@@ -93,7 +93,7 @@ final class InstantRetryAttributeModule implements AnnotationModule
         }
 
         if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('Instant retry attribute is available only for Ecotone Enterprise.');
+            throw LicensingException::create(\Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::instantRetryRequiresEnterprise());
         }
 
         // Register interceptors for interfaces with InstantRetry attribute

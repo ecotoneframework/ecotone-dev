@@ -1,0 +1,19 @@
+packages/Kafka/tests/Integration/KafkaChannelAdapterTest.php
+  s_fa7f41ccbd0ebc::t_ae6134580e4699 446-447
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "5559e59f8886ef096e0d2bc8ad350518cb21660d",
+  "prompts": {},
+  "sessions": {
+    "s_fa7f41ccbd0ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b372edd-4776-46cc-802d-d0e75adf8469",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

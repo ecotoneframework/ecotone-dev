@@ -1,0 +1,20 @@
+packages/OpenTelemetry/tests/Integration/TracingTreeTest.php
+  s_fa7f41ccbd0ebc::t_637ba272c0929c 122,126
+  s_fa7f41ccbd0ebc::t_116f99812b1016 149,158
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "42dfe0026c3dd4f71a4cad24f6a815e748dfb59a",
+  "prompts": {},
+  "sessions": {
+    "s_fa7f41ccbd0ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b372edd-4776-46cc-802d-d0e75adf8469",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.311.0] - 2026-05-07
+
+## What's Changed
+* fix: ensure first composer install symlinks local packages by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/663
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.310.0...1.311.0
+
 ## [1.310.0] - 2026-05-04
 
 ## What's Changed

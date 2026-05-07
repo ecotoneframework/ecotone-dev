@@ -9,6 +9,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\MessagingException;
 
@@ -66,7 +67,9 @@ final class KafkaInboundChannelAdapter implements MessagePoller
                 $message,
                 $this->conversionService,
                 $this->batchCommitCoordinator
-            )->build();
+            )
+                ->setHeader(MessageHeaders::INBOUND_REQUEST_CHANNEL, $channelName)
+                ->build();
         }
 
         if (in_array($message->err, [RD_KAFKA_MSG_PARTITIONER_RANDOM, RD_KAFKA_MSG_PARTITIONER_CONSISTENT, RD_KAFKA_MSG_PARTITIONER_CONSISTENT_RANDOM, RD_KAFKA_MSG_PARTITIONER_MURMUR2, RD_KAFKA_MSG_PARTITIONER_MURMUR2_RANDOM])) {

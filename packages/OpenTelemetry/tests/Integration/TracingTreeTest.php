@@ -119,11 +119,11 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Endpoint: scheduled_handler produced Message'],
+                    'details' => ['name' => 'Receiving from inbound channel adapter: nullChannel'],
                     'children' => [],
                 ],
                 [
-                    'details' => ['name' => 'Endpoint: scheduled_handler produced Message'],
+                    'details' => ['name' => 'Receiving from inbound channel adapter: nullChannel'],
                     'children' => [],
                 ],
             ],
@@ -146,7 +146,7 @@ final class TracingTreeTest extends TracingTestCase
         self::compareTreesByDetails(
             [
                 [
-                    'details' => ['name' => 'Endpoint: scheduled_handler produced Message'],
+                    'details' => ['name' => 'Receiving from inbound channel adapter: add'],
                     'children' => [
                         [
                             'details' => ['name' => 'Message Handler: ' . WorkflowScheduledHandler::class . '::add'],
@@ -155,7 +155,7 @@ final class TracingTreeTest extends TracingTestCase
                     ],
                 ],
                 [
-                    'details' => ['name' => 'Endpoint: scheduled_handler produced Message'],
+                    'details' => ['name' => 'Receiving from inbound channel adapter: add'],
                     'children' => [
                         [
                             'details' => ['name' => 'Message Handler: ' . WorkflowScheduledHandler::class . '::add'],

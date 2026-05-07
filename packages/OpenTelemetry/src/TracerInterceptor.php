@@ -43,7 +43,9 @@ final class TracerInterceptor
             $trace = $this->trace(
                 $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)
                     ? 'Receiving from channel: ' . $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME)
-                    : 'Endpoint: ' . $message->getHeaders()->get(MessageHeaders::CONSUMER_POLLING_METADATA)->getEndpointId() . ' produced Message',
+                    : ($message->getHeaders()->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL)
+                        ? 'Receiving from inbound channel adapter: ' . $message->getHeaders()->get(MessageHeaders::INBOUND_REQUEST_CHANNEL)
+                        : 'Endpoint: ' . $message->getHeaders()->get(MessageHeaders::CONSUMER_POLLING_METADATA)->getEndpointId() . ' produced Message'),
                 $methodInvocation,
                 $message,
                 spanKind: SpanKind::KIND_CONSUMER,

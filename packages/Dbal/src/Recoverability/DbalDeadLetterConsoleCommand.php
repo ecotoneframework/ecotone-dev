@@ -53,7 +53,11 @@ class DbalDeadLetterConsoleCommand
             [
                 ['Message Id', $message->getHeaders()->getMessageId()],
                 ['Failed At', $this->convertTimestampToReadableFormat($message->getHeaders()->getTimestamp())],
-                ['Channel Name', $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME)],
+                ['Channel Name', $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)
+                    ? $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME)
+                    : ($message->getHeaders()->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL)
+                        ? $message->getHeaders()->get(MessageHeaders::INBOUND_REQUEST_CHANNEL)
+                        : 'Unknown')],
                 ['Type', $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID) ? $message->getHeaders()->get(MessageHeaders::TYPE_ID) : 'Unknown'],
                 ['Stacktrace', $this->getReadableStacktrace($message->getHeaders()->get(ErrorContext::EXCEPTION_STACKTRACE), $fullDetails)],
             ]

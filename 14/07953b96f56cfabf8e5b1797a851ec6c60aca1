@@ -1,0 +1,373 @@
+quickstart-examples/MultiTenant/General/MessageBusForMultipleTenants/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/ConsoleCommand/Laravel/composer.json
+  ai_agent 10-18,31,34
+quickstart-examples/MultiTenant/Symfony/EventSourcing/composer.json
+  ai_agent 10-18,35,38
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapterBuilder.php
+  ai_agent 8,13,15-16,23-26,31,63-89,92-96,101
+quickstart-examples/MultiTenant/Symfony/Events/composer.json
+  ai_agent 10-18,33,36
+packages/Ecotone/src/Projecting/Config/ProjectingModule.php
+  ai_agent 4,11,13-14,33,70-74,109-121,123-141
+bin/strip-monorepo-repositories.php
+  ai_agent 1-42
+packages/Kafka/tests/Integration/KafkaChannelAdapterTest.php
+  ai_agent 19,32,40,274-308
+packages/Ecotone/src/Projecting/Config/ProjectingConsoleCommands.php
+  ai_agent 4
+packages/Enqueue/composer.json
+  ai_agent 22-31,45,66,82
+packages/PdoEventSourcing/src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
+  ai_agent 4
+packages/Symfony/composer.json
+  ai_agent 28-37,39,47,58,64,95,111
+quickstart-examples/ErrorHandling/composer.json
+  ai_agent 4-12,29,32
+packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/InterceptedConsumerRunner.php
+  ai_agent 34-35,56
+packages/PdoEventSourcing/composer.json
+  ai_agent 22-31,45,67,83
+packages/Ecotone/src/Messaging/Attribute/WithoutDatabaseTransaction.php
+  ai_agent 5,9-11,13
+packages/PdoEventSourcing/tests/Projecting/Global/ProjectionStateGatewayTest.php
+  ai_agent 1-98
+quickstart-examples/ConsoleCommand/Symfony/composer.json
+  ai_agent 10-18,31,34
+packages/PdoEventSourcing/tests/Projecting/Global/MultiTenantProjectionTest.php
+  ai_agent 25,245-274
+_PackageTemplate/README.md
+  ai_agent 14,16,18,20-24,26,28-30,32,34,36,40,60
+packages/Ecotone/src/Projecting/StreamSourceRegistry.php
+  ai_agent 4
+packages/Ecotone/src/Messaging/Attribute/WithoutMessageCollector.php
+  ai_agent 1-15
+quickstart-examples/EmittingEventsFromProjection/composer.json
+  ai_agent 10-18,29,32
+packages/Ecotone/src/Projecting/SinglePartitionProvider.php
+  ai_agent 4
+packages/Ecotone/src/Projecting/InMemory/InMemoryStreamSource.php
+  ai_agent 4
+packages/Dbal/src/DbalTransaction/DbalTransactionInterceptor.php
+  ai_agent 9,16,38,42,44-47,92-97,144-147
+packages/Redis/README.md
+  ai_agent 14,16,18,20,22-24,26,28,30,32,34,38,58
+packages/Ecotone/src/Projecting/StreamFilter.php
+  ai_agent 4
+packages/Symfony/README.md
+  ai_agent 14,16,18,20,22-31,33,35-37,39,41,43,47,67
+packages/Ecotone/src/Projecting/Config/ProjectionExecutorBuilder.php
+  ai_agent 4
+packages/Amqp/README.md
+  ai_agent 14,16,18,20,22,24-25,27,29,31,44-51,54,74
+.claude/skills/ecotone-contributor/SKILL.md
+  ai_agent 6-8,18-64
+packages/Ecotone/src/Modelling/Config/InstantRetry/InstantRetryModule.php
+  ai_agent 20,48,88
+packages/Ecotone/src/Projecting/PartitionProvider.php
+  ai_agent 4
+packages/JmsConverter/composer.json
+  ai_agent 27-36,50,56,70,86,89
+packages/PdoEventSourcing/src/Database/ProjectionStateTableManager.php
+  ai_agent 18
+packages/Ecotone/src/Projecting/Config/ProjectingModuleRoutingExtension.php
+  ai_agent 4
+packages/Ecotone/src/EventSourcing/Attribute/FromAggregateStream.php
+  ai_agent 24
+quickstart-examples/BusinessInterface/ServiceActivator/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/Conversion/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/MultiTenant/General/HookIntoTenantSwitch/composer.json
+  ai_agent 10-18,30,33
+quickstart-examples/Testing/composer.json
+  ai_agent 10-18,35,38
+quickstart-examples/Workflows/Saga/composer.json
+  ai_agent 10-18,38,41
+packages/PdoEventSourcing/tests/Fixture/TicketProjectionState/PartitionedCounterStateWithStreamGateway.php
+  ai_agent 1-14
+README.md
+  ai_agent 11,13,15,17-42,46-47,49,51,53-54,67,87
+packages/Ecotone/src/Messaging/Attribute/AsynchronousEndpointAttribute.php
+  ai_agent 3,5,10
+packages/Ecotone/src/Projecting/ProjectionRegistry.php
+  ai_agent 4
+packages/Ecotone/src/Projecting/Config/StreamFilterRegistryModule.php
+  ai_agent 4,150
+packages/Ecotone/tests/Messaging/Unit/Config/AsyncEndpointAnnotationTest.php
+  ai_agent 1-333
+packages/PdoEventSourcing/tests/Projecting/WithoutDbalTransactionProjectionTest.php
+  ai_agent 1-336
+packages/PdoEventSourcing/tests/Fixture/TicketProjectionState/CounterStateV2Gateway.php
+  ai_agent 1-11
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/MethodArgumentsFactory.php
+  ai_agent 5-6,97,136-146,150-161
+packages/Ecotone/src/Projecting/Config/ProjectingAttributeModule.php
+  ai_agent 4,18,35,49,51-52,70-71,114-115,118-119,125-126,159,172-174,190,195-206,275,282,325-335
+packages/Ecotone/src/Messaging/Attribute/Asynchronous.php
+  ai_agent 17-18,20-23,26,28,35-41
+packages/PdoEventSourcing/src/Projecting/StreamEvent.php
+  ai_agent 4
+packages/Ecotone/src/Projecting/Config/EcotoneProjectionExecutorBuilder.php
+  ai_agent 4,11,16,55-56,108-109,115-125,156-163,172
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/Converter/AsyncEndpointAnnotationBuilder.php
+  ai_agent 1-37
+packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/AsyncEndpointAnnotationContext.php
+  ai_agent 1-35
+packages/Ecotone/README.md
+  ai_agent 14,16,18,20,22-90,92-94,96-97,99,101-148,154-161,164,184
+packages/Dbal/src/MultiTenant/MultiTenantConfiguration.php
+  ai_agent 28,36
+packages/Ecotone/src/Projecting/EventStoreAdapter/EventStoreChannelAdapterProjection.php
+  ai_agent 32,76
+.github/workflows/release.yml
+  ai_agent 174-176
+packages/Ecotone/src/Projecting/InMemory/InMemoryProjectionStateStorage.php
+  ai_agent 4
+.claude/composer.json
+  ai_agent 4,6
+.claude/skills/ecotone-event-sourcing/references/testing-patterns.md
+  ai_agent 115,120-133
+packages/Ecotone/src/Projecting/PartitionProviderReference.php
+  ai_agent 4
+packages/Ecotone/src/Projecting/ProjectionV2StateHandler.php
+  ai_agent 1-31
+CLAUDE.md
+  ai_agent 7-9
+packages/Ecotone/src/Projecting/ProjectionPartitionState.php
+  ai_agent 4
+packages/Ecotone/tests/Projecting/ProjectingTest.php
+  ai_agent 24,541
+packages/Enqueue/README.md
+  ai_agent 14,16,18,20,22-24,26,28,30,32,34,38,58
+packages/Ecotone/src/Projecting/Transaction.php
+  ai_agent 4
+packages/LiteApplication/README.md
+  ai_agent 14,16,18,20,22-27,29,31-33,35,37,39,43,63
+packages/OpenTelemetry/composer.json
+  ai_agent 23-32,46,72,88
+packages/Ecotone/src/Projecting/ProjectingHeaders.php
+  ai_agent 4
+packages/PdoEventSourcing/src/Projecting/StreamSource/GapAwarePosition.php
+  ai_agent 4
+packages/Dbal/tests/Integration/Transaction/TransactionTest.php
+  ai_agent 13,130,143
+packages/Sqs/composer.json
+  ai_agent 22-31,45,51,66,82,85
+quickstart-examples/Microservices/composer.json
+  ai_agent 10-18,28,31
+packages/PdoEventSourcing/src/Projecting/PartitionState/DbalProjectionStateStorage.php
+  ai_agent 4
+quickstart-examples/MultiTenant/Laravel/Aggregate/composer.json
+  ai_agent 10-18,30,33
+quickstart-examples/MultiTenant/Symfony/AsynchronousEvents/composer.json
+  ai_agent 10-18,34,37
+quickstart-examples/OutboxPattern/composer.json
+  ai_agent 10-18,28,31
+quickstart-examples/RefactorToReactiveSystem/composer.json
+  ai_agent 10-18,31,34
+quickstart-examples/WorkingWithAggregateDirectly/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/MultiTenant/Symfony/MessageBus/composer.json
+  ai_agent 10-18,33,36
+.github/copilot-instructions.md
+  ai_agent 7-9
+packages/Dbal/src/DbalTransaction/DbalTransactionModule.php
+  ai_agent 23,71
+packages/Laravel/README.md
+  ai_agent 14,16,18,20,22-31,33,35-37,39,41,43,47,67
+packages/PdoEventSourcing/tests/Projecting/Global/EmittingEventsProjectionTest.php
+  ai_agent 24,203-279
+composer.json
+  ai_agent 22-31
+AGENTS.md
+  ai_agent 7-9,38
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapter.php
+  ai_agent 26-27
+packages/Laravel/composer.json
+  ai_agent 27-36,50,61,71,87
+packages/Sqs/README.md
+  ai_agent 14,16,18,20,22-27,29,31,33,35,37,41,61
+packages/PdoEventSourcing/src/Config/EventSourcingModule.php
+  ai_agent 83,127-131,137-139
+quickstart-examples/Workflows/AsynchronousStateless/composer.json
+  ai_agent 10-18,35,38
+packages/Ecotone/src/Projecting/ProjectingManager.php
+  ai_agent 4,101,105
+packages/Ecotone/src/Projecting/PartitionProviderRegistry.php
+  ai_agent 4
+packages/Dbal/tests/Integration/Transaction/DbalTransactionAsynchronousEndpointTest.php
+  ai_agent 18,25,442-535
+.claude/commands/create-pr.md
+  ai_agent 20
+packages/Ecotone/composer.json
+  ai_agent 28-37,75,91,94
+packages/Ecotone/src/Modelling/Config/DatabaseTransaction/TransactionStatusTracker.php
+  ai_agent 1-31
+packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/AsyncHandlerAnnotationRegistry.php
+  ai_agent 1-26
+packages/Ecotone/src/Projecting/EcotoneProjectorExecutor.php
+  ai_agent 4,11,26,28,37,42-45,72,79,83,85-86,88-105,111,126-132
+packages/Ecotone/src/Projecting/ProjectionStateStorage.php
+  ai_agent 4
+packages/Kafka/README.md
+  ai_agent 14,16,18,20,22-27,29,31-33,35,37,39,43,63
+packages/LiteApplication/composer.json
+  ai_agent 27-36,48-49,56,60,76
+quickstart-examples/MultiTenant/Laravel/MessageBus/composer.json
+  ai_agent 10-18,30,33
+packages/Ecotone/src/Modelling/Config/InstantRetry/InstantRetryAttributeModule.php
+  ai_agent 24,156
+packages/Ecotone/tests/Projecting/ProjectionV2EnterpriseTest.php
+  ai_agent 1-478
+quickstart-examples/composer.json
+  ai_agent 72,77
+packages/Kafka/composer.json
+  ai_agent 21-30,45,63,79
+quickstart-examples/MultiTenant/Laravel/Events/composer.json
+  ai_agent 10-18,30,33
+quickstart-examples/Workflows/SynchronousStateless/composer.json
+  ai_agent 10-18,35,38
+quickstart-examples/README.md
+  ai_agent 3,9,16-33,45,47-51,55,68,79
+packages/PdoEventSourcing/tests/Projecting/Partitioned/EmittingEventsProjectionTest.php
+  ai_agent 10,15,22,27,29,367-562
+packages/Ecotone/src/Projecting/Attribute/ProjectionBackfill.php
+  ai_agent 4
+packages/Ecotone/src/Projecting/Attribute/ProjectionExecution.php
+  ai_agent 4
+quickstart-examples/Asynchronous/composer.json
+  ai_agent 10-18,28,31
+quickstart-examples/AuthoritativeClassmap/composer.json
+  ai_agent 10-18,31,41
+quickstart-examples/MultiTenant/Laravel/EventSourcing/composer.json
+  ai_agent 10-18,32,35
+quickstart-examples/BuildingBlocks/composer.json
+  ai_agent 10-18,37,40
+packages/Kafka/src/Configuration/KafkaModule.php
+  ai_agent 186-187,224-225
+quickstart-examples/MultiTenant/Laravel/AsynchronousEvents/composer.json
+  ai_agent 10-18,31,34
+quickstart-examples/MultiTenant/Symfony/Aggregate/composer.json
+  ai_agent 10-18,33,36
+.claude/skills/ecotone-event-sourcing/references/usage-examples.md
+  ai_agent 200-205
+packages/Ecotone/src/Messaging/Handler/TypeResolver.php
+  ai_agent 13,220
+packages/Ecotone/src/Projecting/Config/PartitionProviderRegistryModule.php
+  ai_agent 4,22,60-63
+packages/Ecotone/src/Projecting/StreamSourceReference.php
+  ai_agent 4
+packages/Kafka/src/Channel/KafkaMessageChannelBuilder.php
+  ai_agent 50-51
+packages/Ecotone/src/Projecting/StreamSource.php
+  ai_agent 4
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/Converter/AsyncEndpointAnnotationConverter.php
+  ai_agent 1-32
+quickstart-examples/StatefulProjection/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/CQRS/composer.json
+  ai_agent 10-18,28,31
+packages/DataProtection/composer.json
+  ai_agent 25-34,50-51,55,57,75,91
+.claude/.claude-plugin/marketplace.json
+  ai_agent 9,16
+packages/Dbal/composer.json
+  ai_agent 22-31,46,57,70,86
+packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/InterceptedPollingConsumerBuilder.php
+  ai_agent 116-117
+packages/Ecotone/src/Projecting/InMemory/InMemoryProjectionRegistry.php
+  ai_agent 4
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  ai_agent 12,43-44,62,68,282-286,318,407,409-411,426-445,485-488
+packages/Ecotone/src/Modelling/Config/InstantRetry/InstantRetryInterceptor.php
+  ai_agent 10,19-23,37-39
+packages/Ecotone/src/Projecting/PartitionBatchExecutorHandler.php
+  ai_agent 4
+packages/Kafka/tests/Fixture/MediaTypeConverter/JsonEncodingConverter.php
+  ai_agent 1-27
+packages/Ecotone/src/Projecting/ProjectorExecutor.php
+  ai_agent 4,18,21
+packages/Ecotone/src/Messaging/Endpoint/InterceptedChannelAdapterBuilder.php
+  ai_agent 15-16,76-77
+packages/PdoEventSourcing/README.md
+  ai_agent 14,16,18,20,22-28,30,32-34,36,38,40,44,64
+packages/Amqp/composer.json
+  ai_agent 30-39,54,95,111
+packages/Ecotone/src/Messaging/Channel/Collector/CollectorSenderInterceptor.php
+  ai_agent 8,28-29,31-33
+packages/Ecotone/src/Projecting/Attribute/ProjectionFlush.php
+  ai_agent 4
+.claude/skills/ecotone-event-sourcing/SKILL.md
+  ai_agent 6
+packages/Dbal/README.md
+  ai_agent 14,16,18,20,22-29,31,33-35,37,39,41,45,65
+packages/Ecotone/src/Projecting/ProjectionStateStorageReference.php
+  ai_agent 4
+CHANGELOG.md
+  ai_agent 6-81
+packages/Dbal/tests/Fixture/InstantRetryTransaction/CommandDispatchingAsyncHandler.php
+  ai_agent 1-65
+packages/Ecotone/src/Projecting/ProjectionStateStorageRegistry.php
+  ai_agent 4
+packages/PdoEventSourcing/src/Projecting/PartitionState/DbalTransaction.php
+  ai_agent 4
+packages/Ecotone/src/Projecting/StreamFilterRegistry.php
+  ai_agent 4
+packages/Kafka/src/Configuration/KafkaPublisherConfiguration.php
+  ai_agent 36,63-64
+packages/JmsConverter/README.md
+  ai_agent 14,16,18,20,22-26,28,30-32,34,36,38,42,62
+packages/Ecotone/src/Projecting/InMemory/InMemoryProjector.php
+  ai_agent 4,18,43
+packages/OpenTelemetry/README.md
+  ai_agent 14,16,18,20,22-27,29,31-33,35,37,39,43,63
+quickstart-examples/EventProjecting/PartitionedProjection/composer.json
+  ai_agent 10-18,30,33
+packages/Ecotone/src/Projecting/NoOpTransaction.php
+  ai_agent 4
+packages/PdoEventSourcing/tests/Projecting/Partitioned/ProjectionStateGatewayTest.php
+  ai_agent 1-164
+packages/Redis/composer.json
+  ai_agent 27-36,50,56,68,84
+packages/Ecotone/src/Projecting/StreamPage.php
+  ai_agent 4
+quickstart-examples/BusinessInterface/Routing/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/Schedule/composer.json
+  ai_agent 10-18,28,31
+_PackageTemplate/composer.json
+  ai_agent 18-21,23-31,50
+packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/PollToGatewayTaskExecutor.php
+  ai_agent 8,23-25,40-54,58-70
+packages/Ecotone/src/Projecting/ProjectionInitializationStatus.php
+  ai_agent 4
+packages/Ecotone/src/Projecting/Attribute/ProjectionV2.php
+  ai_agent 4
+quickstart-examples/BusinessInterface/Asynchronous/composer.json
+  ai_agent 10-18,29,32
+quickstart-examples/MicroservicesAdvanced/composer.json
+  ai_agent 10-18,31,34
+quickstart-examples/EventHandling/composer.json
+  ai_agent 10-18,28,31
+packages/Ecotone/src/Projecting/Config/ProjectionStateStorageRegistryModule.php
+  ai_agent 4,24,62-65
+packages/PdoEventSourcing/src/Config/ProophProjectingModule.php
+  ai_agent 4,13-15,29,34-36,38-39,42,48,50,65,71,87-128,133,137-173,225-229,263-264,319-381,386-387
+packages/PdoEventSourcing/tests/Fixture/TicketProjectionState/PartitionedCounterStateGateway.php
+  ai_agent 1-11
+packages/DataProtection/README.md
+  ai_agent 14,16,18,20-25,27,29-31,33,35,37,41,61
+quickstart-examples/EventSourcing/composer.json
+  ai_agent 10-18,28,31
+quickstart-examples/MessageBroker/composer.json
+  ai_agent 10-18,24,27
+packages/Ecotone/src/Projecting/Config/StreamSourceRegistryModule.php
+  ai_agent 4,23,52-55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "1407953b96f56cfabf8e5b1797a851ec6c60aca1",
+  "prompts": {}
+}

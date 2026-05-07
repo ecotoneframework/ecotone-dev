@@ -442,14 +442,9 @@ final class KafkaChannelAdapterTest extends TestCase
 
         $handler->shouldFail = false;
         $deadLetter->replyAll();
+
         $this->assertEquals(0, $deadLetter->count());
-
-        $ecotoneLite->run(ReplayableKafkaConsumerExample::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000,
-            failAtError: false,
-        ));
-
-        $this->assertSame(2, $handler->invocations, 'Replayed Message must re-invoke the handler exactly once');
+        $this->assertSame(2, $handler->invocations, 'replyAll() must synchronously re-invoke the handler via MessagingEntrypoint — no second run() needed');
         $this->assertSame([$payload], $handler->processedPayloads, 'Replayed Message must carry the original payload back to the handler');
     }
 

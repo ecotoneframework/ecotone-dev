@@ -1,0 +1,26 @@
+packages/Ecotone/tests/Messaging/Fixture/Handler/ErrorChannelAsyncMisplaced/AsyncHandlerWithDelayedRetryDirectlyOnMethod.php
+  s_fa7f41ccbd0ebc::t_d2aea0aa2d3858 1-28
+packages/Ecotone/tests/Messaging/Fixture/Handler/ErrorChannelAsyncMisplaced/AsyncHandlerWithErrorChannelDirectlyOnMethod.php
+  s_fa7f41ccbd0ebc::t_1c806c6c112361 1-28
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_fa7f41ccbd0ebc::t_68f0a03ec86734 458-472
+packages/Ecotone/tests/Messaging/Unit/Handler/ErrorHandler/ErrorChannelTest.php
+  s_fa7f41ccbd0ebc::t_933b27264f7ba7 24-25
+  s_fa7f41ccbd0ebc::t_cebc4dc6e31446 429-465
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "1e69c4e53542f126a29a8457efea98716cc9e881",
+  "prompts": {},
+  "sessions": {
+    "s_fa7f41ccbd0ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b372edd-4776-46cc-802d-d0e75adf8469",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -1,0 +1,20 @@
+packages/PdoEventSourcing/tests/Integration/MultiTenantTest.php
+  s_fa7f41ccbd0ebc::t_884415945db8df 12,14
+  s_fa7f41ccbd0ebc::t_468ed6c567cc14 66-69,89-92
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "7f67bb9156b7ca5891ce82cdeb067acef1688ec0",
+  "prompts": {},
+  "sessions": {
+    "s_fa7f41ccbd0ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b372edd-4776-46cc-802d-d0e75adf8469",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

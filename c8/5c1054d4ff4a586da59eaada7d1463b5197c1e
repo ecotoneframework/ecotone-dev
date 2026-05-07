@@ -1,0 +1,22 @@
+packages/Dbal/tests/Integration/MultiTenant/ScheduledTenantResolverTest.php
+  s_4ba416755315fc::t_c4fb3414f65960 25
+  s_4ba416755315fc::t_4dddd5b9101576 112-133
+packages/Dbal/tests/Fixture/MultiTenant/Scheduled/TenantResolverInvocationCounter.php
+  s_4ba416755315fc::t_19e15d1acce5c8 1-29
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "c85c1054d4ff4a586da59eaada7d1463b5197c1e",
+  "prompts": {},
+  "sessions": {
+    "s_4ba416755315fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a2f9f4c-b445-4141-bf4d-b881b2fe75d2",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

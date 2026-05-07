@@ -1,0 +1,48 @@
+packages/Ecotone/src/Messaging/MessageHeaders.php
+  s_fa7f41ccbd0ebc::t_42f87a8a4637dd 96,99-104
+  s_fa7f41ccbd0ebc::t_386180bb42c70f 261
+  s_fa7f41ccbd0ebc::t_1fa3ca9e8865e9 185
+packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/PollingConsumerErrorChannelInterceptor.php
+  s_fa7f41ccbd0ebc::t_55d523cbd28394 62,83-91
+  s_fa7f41ccbd0ebc::t_572d9e25dd8801 56-61,63-72,80-82
+packages/Dbal/tests/Fixture/DeadLetter/InboundChannelAdapter/ReplayableInboundChannelAdapterExample.php
+  s_fa7f41ccbd0ebc::t_1b9349b9d43661 1-17,19-47
+  s_fa7f41ccbd0ebc::t_47d9aa0b900139 18
+packages/Dbal/src/Recoverability/DbalDeadLetterConsoleCommand.php
+  s_fa7f41ccbd0ebc::t_1c663b35e859f7 56-60
+packages/Ecotone/tests/Messaging/Unit/Handler/ErrorHandler/ErrorChannelTest.php
+  s_fa7f41ccbd0ebc::t_100d3f3256e630 170,196,200,205
+  s_fa7f41ccbd0ebc::t_2f55a6498bdd7e 202
+packages/Ecotone/src/Messaging/Endpoint/InboundChannelAdapter/InboundChannelAdapterBuilder.php
+  s_fa7f41ccbd0ebc::t_059e07e778abac 145
+packages/Dbal/tests/Integration/DeadLetterTest.php
+  s_fa7f41ccbd0ebc::t_404635e5b3ab79 13,25
+  s_fa7f41ccbd0ebc::t_ba8293fd069e4d 208-243
+packages/OpenTelemetry/src/TracerInterceptor.php
+  s_fa7f41ccbd0ebc::t_d83b475f0ead85 46-48
+packages/Kafka/src/Inbound/KafkaInboundChannelAdapter.php
+  s_fa7f41ccbd0ebc::t_a7e094af31897a 12
+  s_fa7f41ccbd0ebc::t_9f45c615302dcc 70-72
+packages/Dbal/src/Recoverability/DbalDeadLetterHandler.php
+  s_fa7f41ccbd0ebc::t_a6d924310b6623 248-253,256,258-259
+packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/MessagePoller/InvocationPollerAdapter.php
+  s_fa7f41ccbd0ebc::t_5b963a1b7ec5bf 7,16-20,29-37
+packages/Ecotone/src/Messaging/Endpoint/AcknowledgeConfirmationInterceptor.php
+  s_fa7f41ccbd0ebc::t_761e6e0b3c2ff7 39-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "cee1c068b8fcfa215126ea69ecefac86c9bbd3e6",
+  "prompts": {},
+  "sessions": {
+    "s_fa7f41ccbd0ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b372edd-4776-46cc-802d-d0e75adf8469",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

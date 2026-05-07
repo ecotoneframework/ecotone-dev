@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
@@ -178,6 +179,7 @@ final class ScheduledTenantResolverTest extends TestCase
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel('external_processing'),
             ],
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

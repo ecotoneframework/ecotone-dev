@@ -10,7 +10,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 final class MultiTenantHeaderResolver
 {

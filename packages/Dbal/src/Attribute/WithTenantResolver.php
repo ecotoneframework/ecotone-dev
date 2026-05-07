@@ -7,7 +7,7 @@ namespace Ecotone\Dbal\Attribute;
 use Attribute;
 
 /**
- * licence Apache-2.0
+ * licence Enterprise
  */
 #[Attribute(Attribute::TARGET_METHOD)]
 final class WithTenantResolver

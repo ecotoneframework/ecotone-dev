@@ -34,6 +34,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
@@ -47,16 +48,23 @@ use Psr\Container\ContainerInterface;
 final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     /**
+     * @param array<int, string> $tenantResolverPlacements
      * @param array<int, string> $invalidTenantResolverPlacements
      */
-    private function __construct(private array $invalidTenantResolverPlacements)
-    {
+    private function __construct(
+        private array $tenantResolverPlacements,
+        private array $invalidTenantResolverPlacements,
+    ) {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
+        $allPlacements = [];
         $invalid = [];
         foreach ($annotationRegistrationService->findAnnotatedMethods(WithTenantResolver::class) as $annotatedMethod) {
+            $location = $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName();
+            $allPlacements[] = $location;
+
             $isOnInboundAdapter = false;
             foreach ($annotatedMethod->getMethodAnnotations() as $annotation) {
                 if ($annotation instanceof ChannelAdapter || $annotation instanceof MessageConsumer) {
@@ -65,11 +73,11 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                 }
             }
             if (! $isOnInboundAdapter) {
-                $invalid[] = $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName();
+                $invalid[] = $location;
             }
         }
 
-        return new self($invalid);
+        return new self($allPlacements, $invalid);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -78,6 +86,13 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
             throw ConfigurationException::create(sprintf(
                 "WithTenantResolver attribute on %s is invalid. WithTenantResolver may only be applied to inbound channel adapter methods (e.g. #[KafkaConsumer], #[AmqpConsumer], #[Scheduled]) where messages may arrive from outside the application without a tenant header. Internal Message Channels — including those used by synchronous and asynchronous CommandHandler / EventHandler / QueryHandler / ServiceActivator handlers — already carry the tenant context propagated from the originating bus call, so there is no header to derive there. If an asynchronous handler is processing externally-arrived messages, attach #[WithTenantResolver] to the inbound channel adapter that produces those messages, not to the handler.",
                 implode(', ', $this->invalidTenantResolverPlacements)
+            ));
+        }
+
+        if ($this->tenantResolverPlacements !== [] && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw LicensingException::create(sprintf(
+                'WithTenantResolver attribute on %s requires Ecotone Enterprise licence.',
+                implode(', ', $this->tenantResolverPlacements)
             ));
         }
 

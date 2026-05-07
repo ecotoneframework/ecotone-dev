@@ -10,6 +10,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
@@ -89,6 +90,7 @@ final class WithTenantResolverPlacementValidationTest extends TestCase
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
                         ->withDeduplication(false),
                 ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 }

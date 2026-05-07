@@ -171,6 +171,9 @@ jobs:
         run: |
           echo "${{ secrets.ECOTONE_ENTERPRISE_PUBLIC_KEY }}" > ${{ matrix.package.directory }}/src/Messaging/Config/Licence/key.pem
 
+      - name: Strip monorepo-only path repositories from composer.json
+        run: php bin/strip-monorepo-repositories.php "${{ matrix.package.directory }}"
+
       -
         uses: "danharrin/monorepo-split-github-action@v2.4.0"
         if: "startsWith(github.ref, 'refs/tags/')"

@@ -25,6 +25,15 @@
         "redis"
     ],
     "description": "Redis transport for Ecotone asynchronous messaging.",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Ecotone\\Redis\\": "src"
@@ -44,8 +53,7 @@
     "require-dev": {
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^10.5|^11.0",
-        "predis/predis": "^1.1.10",
-        "wikimedia/composer-merge-plugin": "^2.1"
+        "predis/predis": "^1.1.10"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
@@ -62,11 +70,6 @@
         "ecotone": {
             "repository": "redis"
         },
-        "merge-plugin": {
-            "include": [
-                "../local_packages.json"
-            ]
-        },
         "license-info": {
             "Apache-2.0": {
                 "name": "Apache License 2.0",
@@ -79,10 +82,5 @@
             }
         },
         "release-time": "2026-05-04 16:26:55"
-    },
-    "config": {
-        "allow-plugins": {
-            "wikimedia/composer-merge-plugin": true
-        }
     }
 }

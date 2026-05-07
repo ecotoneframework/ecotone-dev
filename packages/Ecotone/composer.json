@@ -26,6 +26,15 @@
         "event-driven"
     ],
     "description": "Enterprise architecture layer for Laravel and Symfony \u2014 CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging via PHP attributes.",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Ecotone\\": "src"
@@ -68,11 +77,6 @@
         "ecotone": {
             "repository": "ecotone"
         },
-        "merge-plugin": {
-            "include": [
-                "../local_packages.json"
-            ]
-        },
         "license-info": {
             "Apache-2.0": {
                 "name": "Apache License 2.0",
@@ -87,9 +91,6 @@
         "release-time": "2026-05-04 16:26:55"
     },
     "config": {
-        "sort-packages": true,
-        "allow-plugins": {
-            "wikimedia/composer-merge-plugin": true
-        }
+        "sort-packages": true
     }
 }

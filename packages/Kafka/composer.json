@@ -19,6 +19,15 @@
         "Kafka"
     ],
     "description": "Apache Kafka transport for Ecotone asynchronous messaging and Distributed Bus.",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Ecotone\\Kafka\\": "src"
@@ -39,7 +48,6 @@
         "phpunit/phpunit": "^10.5|^11.0",
         "phpstan/phpstan": "^1.8",
         "psr/container": "^1.1.1|^2.0.1",
-        "wikimedia/composer-merge-plugin": "^2.1",
         "kwn/php-rdkafka-stubs": "^2.2"
     },
     "scripts": {
@@ -57,11 +65,6 @@
         "ecotone": {
             "repository": "kafka"
         },
-        "merge-plugin": {
-            "include": [
-                "../local_packages.json"
-            ]
-        },
         "license-info": {
             "Apache-2.0": {
                 "name": "Apache License 2.0",
@@ -74,10 +77,5 @@
             }
         },
         "release-time": "2026-05-04 16:26:55"
-    },
-    "config": {
-        "allow-plugins": {
-            "wikimedia/composer-merge-plugin": true
-        }
     }
 }

@@ -10,6 +10,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;
@@ -21,6 +22,7 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler\ExampleEvent;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\ErrorConfigurationContext;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderGateway;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderService;
+use Test\Ecotone\Dbal\Fixture\DeadLetter\InboundChannelAdapter\ReplayableInboundChannelAdapterExample;
 
 /**
  * @internal
@@ -201,6 +203,42 @@ final class DeadLetterTest extends DbalMessagingTestCase
         self::assertNotEquals($messageId, $messages[0]->getMessageId());
         $deadLetter->delete($messages[0]->getMessageId());
         $this->assertErrorMessageCount($ecotone, 0);
+    }
+
+    public function test_inbound_channel_adapter_failure_lands_in_dead_letter_and_replays_back_to_handler(): void
+    {
+        $handler = new ReplayableInboundChannelAdapterExample();
+        $connectionFactory = $this->getConnectionFactory();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            containerOrAvailableServices: [
+                $handler,
+                DbalConnectionFactory::class => $connectionFactory,
+                'managerRegistry' => $connectionFactory,
+            ],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
+            classesToResolve: [ReplayableInboundChannelAdapterExample::class],
+            pathToRootCatalog: __DIR__ . '/../../',
+        );
+
+        $ecotone->run(ReplayableInboundChannelAdapterExample::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
+            amountOfMessagesToHandle: 1,
+            failAtError: false,
+        ));
+
+        $this->assertErrorMessageCount($ecotone, 1);
+        $this->assertSame(1, $handler->invocations, 'Handler must have been invoked once before the failure was captured');
+        $this->assertSame([], $handler->processedPayloads);
+
+        $handler->shouldFail = false;
+        $this->replyAllErrorMessages($ecotone);
+
+        $this->assertErrorMessageCount($ecotone, 0);
+        $this->assertSame(2, $handler->invocations, 'Replay must re-invoke the handler synchronously via the routing slip stored on the failed Message');
+        $this->assertSame(['first-payload'], $handler->processedPayloads, 'Replayed Message must carry the original payload back to the handler');
     }
 
     private function assertErrorMessageCount(FlowTestSupport $ecotone, int $amount, string $deadLetterReference = DeadLetterGateway::class): void

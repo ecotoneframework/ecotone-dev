@@ -53,22 +53,42 @@ class PollingConsumerErrorChannelInterceptor
                 return false;
             }
 
-            $polledChannelName = $requestMessage->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)
-                ? $requestMessage->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME)
-                : null;
-
-            $this->errorChannelService->handle(
-                $requestMessage,
-                $exception,
-                $this->channelResolver->resolve($errorChannelName),
-                $polledChannelName,
-                $polledChannelName === null ? $pollingMetadata->getEndpointId() : null,
-            );
+            if ($this->isInboundChannelAdapter($requestMessage)) {
+                $this->errorChannelService->handle(
+                    $requestMessage,
+                    $exception,
+                    $this->channelResolver->resolve($errorChannelName),
+                    null,
+                    $this->resolveInboundRequestChannelName($requestMessage, $pollingMetadata),
+                );
+            } else {
+                $this->errorChannelService->handle(
+                    $requestMessage,
+                    $exception,
+                    $this->channelResolver->resolve($errorChannelName),
+                    $requestMessage->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME),
+                    null,
+                );
+            }
 
             return true;
         }
 
         return false;
+    }
+
+    private function isInboundChannelAdapter(Message $requestMessage): bool
+    {
+        return ! $requestMessage->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME);
+    }
+
+    private function resolveInboundRequestChannelName(Message $requestMessage, PollingMetadata $pollingMetadata): string
+    {
+        if ($requestMessage->getHeaders()->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL)) {
+            return $requestMessage->getHeaders()->get(MessageHeaders::INBOUND_REQUEST_CHANNEL);
+        }
+
+        return $pollingMetadata->getEndpointId();
     }
 
     private function resolveHandlerScopedErrorChannelName(): ?string

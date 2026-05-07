@@ -167,7 +167,7 @@ final class ErrorChannelTest extends TestCase
         $this->assertSame(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
 
-    public function test_channel_adapter_sends_failed_message_to_default_error_channel_using_routing_slip(): void
+    public function test_inbound_channel_adapter_sends_failed_message_to_default_error_channel_using_routing_slip(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [FailingScheduledExample::class],
@@ -193,16 +193,16 @@ final class ErrorChannelTest extends TestCase
         $headers = $errorMessage->getHeaders();
         $this->assertFalse(
             $headers->containsKey(MessageHeaders::POLLED_CHANNEL_NAME),
-            'Channel adapter has no source pollable channel; POLLED_CHANNEL_NAME must not be set'
+            'Inbound Channel Adapter has no source pollable Message Channel; POLLED_CHANNEL_NAME must not be set'
         );
         $this->assertTrue(
             $headers->containsKey(MessageHeaders::ROUTING_SLIP),
-            'Routing slip is required for replay back to a channel adapter consumer'
+            'Routing slip is required for replay back to an Inbound Channel Adapter consumer (Kafka, AMQP inbound, #[Scheduled], etc.)'
         );
-        $this->assertSame(FailingScheduledExample::ENDPOINT_ID, $headers->get(MessageHeaders::ROUTING_SLIP));
+        $this->assertSame(FailingScheduledExample::REQUEST_CHANNEL, $headers->get(MessageHeaders::ROUTING_SLIP));
     }
 
-    public function test_channel_adapter_with_delayed_retry_template_throws_clear_error_about_missing_polled_channel(): void
+    public function test_inbound_channel_adapter_with_delayed_retry_template_throws_clear_error_about_missing_polled_channel(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [FailingScheduledExample::class],

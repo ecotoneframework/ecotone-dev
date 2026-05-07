@@ -245,12 +245,18 @@ class DbalDeadLetterHandler
     private function replyWithoutInitialization(string $messageId, MessagingEntrypointService $messagingEntrypoint): void
     {
         $message = $this->show($messageId);
-        if (! $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME) && ! $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)) {
-            throw InvalidArgumentException::create("Can not reply to message {$messageId}, as it does not contain either `polledChannelName` or `routingSlip` header. Please add one of them, so Message can be routed back to the original channel.");
+        $hasPolledChannel = $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME);
+        $hasInboundRequestChannel = $message->getHeaders()->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL);
+        $hasRoutingSlip = $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP);
+
+        if (! $hasPolledChannel && ! $hasInboundRequestChannel && ! $hasRoutingSlip) {
+            throw InvalidArgumentException::create("Can not reply to message {$messageId}, as it does not contain `polledChannelName`, `inboundRequestChannel` or `routingSlip` header. Please add one of them, so Message can be routed back to the original channel.");
         }
 
-        if ($message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)) {
+        if ($hasPolledChannel) {
             $entrypoint = $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME);
+        } elseif ($hasInboundRequestChannel) {
+            $entrypoint = $message->getHeaders()->get(MessageHeaders::INBOUND_REQUEST_CHANNEL);
         } else {
             // This allows to replay Error Message stored for synchronous calls (non asynchronous)
             $routingSlip = $message->getHeaders()->resolveRoutingSlip();

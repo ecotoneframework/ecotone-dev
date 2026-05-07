@@ -1,0 +1,32 @@
+packages/Dbal/tests/Integration/MultiTenant/ScheduledTenantResolverTest.php
+  s_4ba416755315fc::t_94c6740d213a43 182
+  s_4ba416755315fc::t_bd579125aa0cc9 17
+packages/Dbal/src/MultiTenant/Module/MultiTenantConnectionFactoryModule.php
+  s_4ba416755315fc::t_e1f995d060c828 37
+  s_4ba416755315fc::t_03012659104ea2 51,54-57,62,65-67,76,80,89-95
+packages/Dbal/src/MultiTenant/MultiTenantHeaderResolver.php
+  s_4ba416755315fc::t_7948104f4c2c92 13
+packages/Dbal/tests/Integration/MultiTenant/WithTenantResolverLicensingTest.php
+  s_4ba416755315fc::t_2f824a1967a23d 1-90
+packages/Dbal/src/Attribute/WithTenantResolver.php
+  s_4ba416755315fc::t_8ccf29dc434913 10
+packages/Dbal/tests/Integration/MultiTenant/WithTenantResolverPlacementValidationTest.php
+  s_4ba416755315fc::t_df1b130c5527ba 13
+  s_4ba416755315fc::t_833862bde0e73e 93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "bb2774119399b23c074c7ef4d43f2896623328d6",
+  "prompts": {},
+  "sessions": {
+    "s_4ba416755315fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a2f9f4c-b445-4141-bf4d-b881b2fe75d2",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

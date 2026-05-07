@@ -434,13 +434,34 @@ final class MessagingSystemConfiguration implements Configuration
                             }
                         }
                     }
-                    $endpointAnnotations = $asyncAttribute ? $asyncAttribute->getEndpointAnnotations() : [];
+                    $endpointAnnotations = $asyncAttribute ? $asyncAttribute->getAsynchronousExecution() : [];
                     if ($endpointAnnotations && ! $this->isRunningForEnterpriseLicence) {
                         throw LicensingException::create("Endpoint annotations on #[Asynchronous] attribute for endpoint `{$targetEndpointId}` require Ecotone Enterprise licence.");
                     }
+
+                    $hasErrorChannel = false;
+                    $hasDelayedRetry = false;
+                    foreach ($endpointAnnotations as $endpointAnnotation) {
+                        if ($endpointAnnotation instanceof \Ecotone\Messaging\Attribute\ErrorChannel) {
+                            $hasErrorChannel = true;
+                        } elseif ($endpointAnnotation instanceof \Ecotone\Messaging\Attribute\DelayedRetry) {
+                            $hasDelayedRetry = true;
+                        }
+                    }
+                    if ($hasErrorChannel && $hasDelayedRetry) {
+                        throw ConfigurationException::create(
+                            "Handler `{$targetEndpointId}` declares both #[ErrorChannel] and #[DelayedRetry] in #[Asynchronous] asynchronousExecution — these are mutually exclusive. " .
+                            "Use #[ErrorChannel] to send failures to a channel you control, OR #[DelayedRetry] to have Ecotone manage the retry+dead-letter flow with a generated channel."
+                        );
+                    }
+
+                    $contextAnnotations = $endpointAnnotations;
+                    if ($hasDelayedRetry) {
+                        $contextAnnotations[] = new AsynchronousRunningEndpoint($targetEndpointId);
+                    }
                     $asyncHandlerAnnotations[$handlerExecutionChannel] = array_map(
                         fn ($a) => AttributeDefinition::fromObject($a),
-                        $endpointAnnotations
+                        $contextAnnotations
                     );
 
                     $consequentialChannels = $asynchronousMessageChannels;

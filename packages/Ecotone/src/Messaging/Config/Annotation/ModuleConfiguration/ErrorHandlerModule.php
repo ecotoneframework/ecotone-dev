@@ -5,10 +5,15 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\ErrorChannel;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Attribute\DelayedRetry;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -19,6 +24,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder
 use Ecotone\Messaging\Handler\Recoverability\DelayedRetryErrorHandler;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\Router\HeaderRouter;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
@@ -31,7 +37,10 @@ use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
  */
 class ErrorHandlerModule extends NoExternalConfigurationModule implements AnnotationModule
 {
-    private function __construct()
+    /**
+     * @param ErrorHandlerConfiguration[] $perHandlerRetryConfigurations
+     */
+    private function __construct(private array $perHandlerRetryConfigurations)
     {
     }
 
@@ -40,7 +49,89 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        $perHandlerRetryConfigurations = [];
+
+        $endpointMethods = $annotationRegistrationService->findAnnotatedMethods(\Ecotone\Messaging\Attribute\EndpointAnnotation::class);
+        $asynchronousMethods = $annotationRegistrationService->findAnnotatedMethods(Asynchronous::class);
+
+        foreach ($asynchronousMethods as $asynchronousMethod) {
+            /** @var Asynchronous $asyncAnnotation */
+            $asyncAnnotation = $asynchronousMethod->getAnnotationForMethod();
+
+            $delayedRetry = null;
+            $hasErrorChannel = false;
+            foreach ($asyncAnnotation->getAsynchronousExecution() as $endpointAnnotation) {
+                if ($endpointAnnotation instanceof DelayedRetry) {
+                    $delayedRetry = $endpointAnnotation;
+                } elseif ($endpointAnnotation instanceof ErrorChannel) {
+                    $hasErrorChannel = true;
+                }
+            }
+            if ($delayedRetry === null) {
+                continue;
+            }
+
+            foreach ($endpointMethods as $endpoint) {
+                if ($endpoint->getClassName() !== $asynchronousMethod->getClassName()
+                    || $endpoint->getMethodName() !== $asynchronousMethod->getMethodName()) {
+                    continue;
+                }
+
+                /** @var \Ecotone\Messaging\Attribute\EndpointAnnotation $endpointAttribute */
+                $endpointAttribute = $endpoint->getAnnotationForMethod();
+                $handlerEndpointId = $endpointAttribute->getEndpointId();
+
+                if ($hasErrorChannel) {
+                    throw ConfigurationException::create(
+                        "Handler `{$handlerEndpointId}` declares both #[ErrorChannel] and #[DelayedRetry] in #[Asynchronous] asynchronousExecution — these are mutually exclusive. " .
+                        'Use #[ErrorChannel] to send failures to a channel you control, OR #[DelayedRetry] to have Ecotone manage the retry+dead-letter flow with a generated channel.'
+                    );
+                }
+
+                $generatedErrorChannelName = DelayedRetry::generateChannelName($handlerEndpointId);
+                $retryTemplateBuilder = new RetryTemplateBuilder(
+                    $delayedRetry->initialDelayMs,
+                    $delayedRetry->multiplier,
+                    $delayedRetry->maxDelayMs,
+                    $delayedRetry->maxAttempts,
+                );
+
+                $perHandlerRetryConfigurations[] = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
+                break;
+            }
+        }
+
+        $gatewayInterfacesWithDelayedRetry = $annotationRegistrationService->findAnnotatedClasses(DelayedRetry::class);
+        foreach ($gatewayInterfacesWithDelayedRetry as $gatewayInterfaceFqn) {
+            /** @var DelayedRetry $delayedRetry */
+            $delayedRetry = AnnotatedDefinitionReference::getSingleAnnotationForClass($annotationRegistrationService, $gatewayInterfaceFqn, DelayedRetry::class);
+
+            $errorChannelOnGateway = $annotationRegistrationService->findAnnotatedClasses(ErrorChannel::class);
+            if (in_array($gatewayInterfaceFqn, $errorChannelOnGateway, true)) {
+                throw ConfigurationException::create(
+                    "Gateway `{$gatewayInterfaceFqn}` declares both #[ErrorChannel] and #[DelayedRetry] — these are mutually exclusive. " .
+                    'Use #[ErrorChannel] to send failures to a channel you control, OR #[DelayedRetry] to have Ecotone manage the retry+dead-letter flow with a generated channel.'
+                );
+            }
+
+            $generatedErrorChannelName = DelayedRetry::generateGatewayChannelName($gatewayInterfaceFqn);
+            $retryTemplateBuilder = new RetryTemplateBuilder(
+                $delayedRetry->initialDelayMs,
+                $delayedRetry->multiplier,
+                $delayedRetry->maxDelayMs,
+                $delayedRetry->maxAttempts,
+            );
+            $perHandlerRetryConfigurations[] = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
+        }
+
+        return new self($perHandlerRetryConfigurations);
+    }
+
+    private static function buildErrorHandlerConfig(string $errorChannelName, RetryTemplateBuilder $retryTemplateBuilder, ?string $deadLetterChannel): ErrorHandlerConfiguration
+    {
+        return $deadLetterChannel !== null
+            ? ErrorHandlerConfiguration::createWithDeadLetterChannel($errorChannelName, $retryTemplateBuilder, $deadLetterChannel)
+            : ErrorHandlerConfiguration::create($errorChannelName, $retryTemplateBuilder);
     }
 
     /**
@@ -51,13 +142,18 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
         if (! $this->hasErrorConfiguration($extensionObjects)) {
             $extensionObjects = [ErrorHandlerConfiguration::createDefault()];
         }
+        $extensionObjects = array_merge($extensionObjects, $this->perHandlerRetryConfigurations);
+
         $messagingConfiguration->registerServiceDefinition(RetryRunner::class, [new Reference(EcotoneClockInterface::class), new Reference(LoggingGateway::class)]);
+
+        $hasAnyErrorHandlerConfiguration = false;
 
         /** @var ErrorHandlerConfiguration $extensionObject */
         foreach ($extensionObjects as $index => $extensionObject) {
             if (! ($extensionObject instanceof ErrorHandlerConfiguration)) {
                 continue;
             }
+            $hasAnyErrorHandlerConfiguration = true;
 
             $errorHandler = ServiceActivatorBuilder::createWithDefinition(
                 new Definition(DelayedRetryErrorHandler::class, [
@@ -80,15 +176,18 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
 
             $messagingConfiguration
                 ->registerMessageHandler($errorHandler)
-                ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getErrorChannelName()))
-                ->registerMessageHandler(
-                    RouterBuilder::create(
-                        new Definition(HeaderRouter::class, [MessageHeaders::POLLED_CHANNEL_NAME]),
-                        $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route')
-                    )
-                    ->withEndpointId('error_handler.' . $extensionObject->getErrorChannelName() . '.router')
-                    ->withInputChannelName('ecotone.recoverability.reply')
-                );
+                ->registerDefaultChannelFor(SimpleMessageChannelBuilder::createPublishSubscribeChannel($extensionObject->getErrorChannelName()));
+        }
+
+        if ($hasAnyErrorHandlerConfiguration) {
+            $messagingConfiguration->registerMessageHandler(
+                RouterBuilder::create(
+                    new Definition(HeaderRouter::class, [MessageHeaders::POLLED_CHANNEL_NAME]),
+                    $interfaceToCallRegistry->getFor(HeaderRouter::class, 'route')
+                )
+                ->withEndpointId('error_handler.recoverability.reply.router')
+                ->withInputChannelName('ecotone.recoverability.reply')
+            );
         }
     }
 

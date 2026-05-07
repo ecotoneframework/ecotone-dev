@@ -1,0 +1,23 @@
+packages/Dbal/tests/Integration/MultiTenant/ScheduledTenantResolverDatabaseRoutingTest.php
+  s_4ba416755315fc::t_308698396cff9e 1-11,13-20,22-24,26-46,49-61,64-71,77-78,80-151
+  s_4ba416755315fc::t_ac1d482cca97f8 21,25
+  s_4ba416755315fc::t_99c70d4b862bd3 72-76
+  s_4ba416755315fc::t_412102ea1ea753 12
+  s_4ba416755315fc::t_6dcaf5dbed3a01 47-48,62-63,79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "a4aca60945112c2a6d6555fa438282a6225ecfb7",
+  "prompts": {},
+  "sessions": {
+    "s_4ba416755315fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a2f9f4c-b445-4141-bf4d-b881b2fe75d2",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

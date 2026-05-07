@@ -42,7 +42,7 @@
         }
     },
     "require": {
-        "ecotone/ecotone": "~1.311.0",
+        "ecotone/ecotone": "~1.312.0",
         "queue-interop/queue-interop": "^0.8",
         "enqueue/dsn": "^0.10.4"
     },
@@ -63,7 +63,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.311.0-dev"
+            "dev-main": "1.312.0-dev"
         },
         "ecotone": {
             "repository": "enqueue"
@@ -79,6 +79,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-05-07 06:06:38"
+        "release-time": "2026-05-07 17:21:47"
     }
 }

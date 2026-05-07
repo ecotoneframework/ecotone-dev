@@ -22,6 +22,7 @@ use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\ExternalEventPollerNonScalar
 use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\ExternalEventPollerNullExpression;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\ExternalEventPollerWithoutResolver;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\ExternalEventReceiver;
+use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\TenantResolverInvocationCounter;
 
 /**
  * @internal
@@ -106,6 +107,28 @@ final class ScheduledTenantResolverTest extends TestCase
         $captured = $ecotone->sendQueryWithRouting('lastCapturedHeaders');
         $this->assertNotNull($captured);
         $this->assertArrayNotHasKey('tenant', $captured, 'Null expression result must not inject any tenant header.');
+    }
+
+    public function test_resolver_interceptor_fires_exactly_once_per_inbound_message(): void
+    {
+        $poller = new ExternalEventPoller([
+            ['source' => 'tenant_a', 'payload' => 'first'],
+        ]);
+        $receiver = new ExternalEventReceiver();
+        $counter = new TenantResolverInvocationCounter();
+        $ecotone = $this->bootstrap(
+            [$poller, $receiver, $counter],
+            [ExternalEventPoller::class, ExternalEventReceiver::class, TenantResolverInvocationCounter::class],
+        );
+
+        $this->pollOnce($ecotone);
+        $this->drainProcessing($ecotone);
+
+        $this->assertSame(
+            1,
+            $ecotone->sendQueryWithRouting('counter.invocations'),
+            'Inbound channel adapter must trigger the WithTenantResolver Before interceptor exactly once per message; double-firing would mean propagating handler annotations into endpoint annotations is causing the same pointcut to match twice.'
+        );
     }
 
     public function test_throws_when_resolver_expression_returns_non_scalar(): void

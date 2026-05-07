@@ -1,0 +1,89 @@
+packages/Ecotone/tests/Messaging/Fixture/Handler/ErrorChannel/FailingScheduledExample.php
+  s_fa7f41ccbd0ebc::t_c9d0b2a47b7e99 1-31
+packages/Ecotone/tests/Messaging/Unit/Handler/ErrorHandler/ErrorChannelTest.php
+  s_fa7f41ccbd0ebc::t_41b991007e643d 18
+  s_fa7f41ccbd0ebc::t_58ac49fabc2e76 22,330,332,337,342,344,351,361,363,368-369,374,377,386,393,395,401-402,408,411,420,424-425
+  s_fa7f41ccbd0ebc::t_d4361f9d08858f 16-17,20
+  s_fa7f41ccbd0ebc::t_9634610912430c 169-183,185-224,227-228
+  s_fa7f41ccbd0ebc::t_e2dd696e54da5f 229-326
+  s_fa7f41ccbd0ebc::t_0cec011ef6d282 21
+  s_fa7f41ccbd0ebc::t_fcf402e0553853 327-329,331,333-336,338-341,343,345-350,352-360,362,364-367,370-373,375-376,378-385,387-392,394,396-400,403-407,409-410,412-419,421-423,426
+  s_fa7f41ccbd0ebc::t_8c48c784eab65c 13
+  s_fa7f41ccbd0ebc::t_e0f74eecfd0278 184,225
+  s_fa7f41ccbd0ebc::t_ea51b2531eb7fb 226
+packages/Ecotone/src/Projecting/Config/ProjectingModule.php
+  s_fa7f41ccbd0ebc::t_3b8a6521ed2c57 129
+packages/Ecotone/tests/Messaging/Unit/Config/AsyncEndpointAnnotationTest.php
+  s_fa7f41ccbd0ebc::t_2cf64194b04166 48,92,136,142,229,292
+packages/Ecotone/src/Messaging/Attribute/ErrorChannel.php
+  s_fa7f41ccbd0ebc::t_82787bc1c75527 14
+packages/Ecotone/tests/Messaging/Fixture/Service/Gateway/ErrorChannelCommandBus.php
+  s_fa7f41ccbd0ebc::t_834ecdd57793f8 10-20
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_fa7f41ccbd0ebc::t_5d0835b18e47c0 441-442,444-446,449-450,452,455-458,460-461,464
+  s_fa7f41ccbd0ebc::t_58ac49fabc2e76 443,447-448,451,453-454,459
+  s_fa7f41ccbd0ebc::t_9cf7ab4ff543a3 437
+packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/PollingConsumerErrorChannelInterceptor.php
+  s_fa7f41ccbd0ebc::t_1dd7532ff745f8 5
+  s_fa7f41ccbd0ebc::t_f51f4f656d65a2 76,78,85-89
+  s_fa7f41ccbd0ebc::t_787be1b0260210 56-59,64-65
+  s_fa7f41ccbd0ebc::t_0b0a0a698ea4a3 6,24,44-50,73-75,79-82,92-94
+  s_fa7f41ccbd0ebc::t_58ac49fabc2e76 7,77,83-84,90-91
+packages/Ecotone/tests/Messaging/Fixture/Handler/ErrorChannelAsync/AsyncFailingHandler.php
+  s_fa7f41ccbd0ebc::t_2ce543aa2da785 28-35
+  s_fa7f41ccbd0ebc::t_96a06a4cdc55e8 5
+  s_fa7f41ccbd0ebc::t_1fae96312abb06 16
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ErrorHandlerModule.php
+  s_fa7f41ccbd0ebc::t_f7ad88e56f01fa 107,109-110
+  s_fa7f41ccbd0ebc::t_58ac49fabc2e76 11,61,64-65,70,86-87,91,93-96
+  s_fa7f41ccbd0ebc::t_1e17fa393af94f 8-9,16,27,40-43,52-60,62-63,66-69,71-85,88-90,92,97-98,100-103,127,145-146
+  s_fa7f41ccbd0ebc::t_d0b425cc8b82e5 99,104-106,108,111-126,128-134
+  s_fa7f41ccbd0ebc::t_d228773e237295 13
+  s_fa7f41ccbd0ebc::t_3fd03d13f75687 149-150,156,179-190
+packages/Ecotone/src/Messaging/Handler/Gateway/EnterpriseGatewayErrorChannelResolver.php
+  s_fa7f41ccbd0ebc::t_7fa2942c50565a 7,9,24-25,30-32,37-45,47,52,55-56,61-64,70-93
+packages/Ecotone/tests/Messaging/Fixture/Service/Gateway/DelayedRetryCommandBus.php
+  s_fa7f41ccbd0ebc::t_27b29ba421e00f 1-25
+packages/Ecotone/tests/Messaging/Unit/Handler/Gateway/ErrorChannelCommandBusTest.php
+  s_fa7f41ccbd0ebc::t_c658444d8a4c0f 182,205-209,211-216
+  s_fa7f41ccbd0ebc::t_64fc483c48b0f6 8,15,18,26
+  s_fa7f41ccbd0ebc::t_9a28d40723b4ed 12-13,25,29
+  s_fa7f41ccbd0ebc::t_cb515ad2ff4907 126-164
+  s_fa7f41ccbd0ebc::t_3ce09f86c12e4d 165,183-204,210,217
+  s_fa7f41ccbd0ebc::t_85874ee5ec1ea7 166-181
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/MessagingGatewayModule.php
+  s_fa7f41ccbd0ebc::t_c268efcf1ff96e 139-142
+packages/Ecotone/tests/Messaging/Fixture/Handler/ErrorChannelAsync/DelayedRetryHandler.php
+  s_fa7f41ccbd0ebc::t_58ac49fabc2e76 1-95
+packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/InterceptedPollingConsumerBuilder.php
+  s_fa7f41ccbd0ebc::t_5d3ddee3da9a63 128
+packages/Ecotone/tests/Messaging/Fixture/Service/Gateway/HandlerLevelErrorChannelService.php
+  s_fa7f41ccbd0ebc::t_8039d83319572d 1-34
+packages/Ecotone/src/Messaging/Attribute/DelayedRetry.php
+  s_fa7f41ccbd0ebc::t_58ac49fabc2e76 1-32,38
+  s_fa7f41ccbd0ebc::t_43335671c4a520 33-37
+packages/Ecotone/src/Messaging/Endpoint/InterceptedChannelAdapterBuilder.php
+  s_fa7f41ccbd0ebc::t_5face3ae13b32c 88
+packages/Kafka/tests/Integration/KafkaChannelAdapterTest.php
+  s_fa7f41ccbd0ebc::t_787be1b0260210 7-9,12,33,41,280-395,624-631
+packages/Kafka/tests/Fixture/KafkaConsumer/KafkaConsumerFailingExample.php
+  s_fa7f41ccbd0ebc::t_787be1b0260210 1-21
+packages/Ecotone/src/Messaging/Attribute/Asynchronous.php
+  s_fa7f41ccbd0ebc::t_35e57b437c72f3 18,21,23,26,28,39,41
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "10a732f17ea5c06e81f7b951ae8d019984083a59",
+  "prompts": {},
+  "sessions": {
+    "s_fa7f41ccbd0ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b372edd-4776-46cc-802d-d0e75adf8469",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

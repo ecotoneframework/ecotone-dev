@@ -455,6 +455,21 @@ final class MessagingSystemConfiguration implements Configuration
                         );
                     }
 
+                    foreach ($handlerInterface->getMethodAnnotations() as $methodAnnotation) {
+                        if ($methodAnnotation instanceof \Ecotone\Messaging\Attribute\ErrorChannel) {
+                            throw ConfigurationException::create(
+                                "Asynchronous handler `{$targetEndpointId}` has `#[ErrorChannel]` placed directly on the handler method — this has no effect on async handlers. " .
+                                "Pass it via the #[Asynchronous] attribute instead: `#[Asynchronous('channel', asynchronousExecution: [new ErrorChannel('...')])]` so the polling consumer routes failures correctly."
+                            );
+                        }
+                        if ($methodAnnotation instanceof \Ecotone\Messaging\Attribute\DelayedRetry) {
+                            throw ConfigurationException::create(
+                                "Asynchronous handler `{$targetEndpointId}` has `#[DelayedRetry]` placed directly on the handler method — this has no effect on async handlers. " .
+                                "Pass it via the #[Asynchronous] attribute instead: `#[Asynchronous('channel', asynchronousExecution: [new DelayedRetry(...)])]` so the polling consumer applies the retry policy correctly."
+                            );
+                        }
+                    }
+
                     $contextAnnotations = $endpointAnnotations;
                     if ($hasDelayedRetry) {
                         $contextAnnotations[] = new AsynchronousRunningEndpoint($targetEndpointId);

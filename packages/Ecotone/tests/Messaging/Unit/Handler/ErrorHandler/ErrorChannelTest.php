@@ -21,6 +21,8 @@ use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel\FailingScheduledExample;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannelAsync\AsyncFailingHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannelAsync\DelayedRetryHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel\OrderService;
+use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannelAsyncMisplaced\AsyncHandlerWithDelayedRetryDirectlyOnMethod;
+use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannelAsyncMisplaced\AsyncHandlerWithErrorChannelDirectlyOnMethod;
 
 /**
  * @internal
@@ -423,5 +425,42 @@ final class ErrorChannelTest extends TestCase
 
         $this->assertNotNull($deadLetter->receive(), '#[DelayedRetry] must route the failure to its own dead letter channel');
         $this->assertNull($globalDefault->receive(), 'Global default error channel must not receive the failure when handler declares #[DelayedRetry]');
+    }
+
+    public function test_async_handler_with_error_channel_directly_on_method_throws_descriptive_error(): void
+    {
+        $this->expectException(\Ecotone\Messaging\Config\ConfigurationException::class);
+        $this->expectExceptionMessage('#[ErrorChannel]');
+        $this->expectExceptionMessage('asynchronousExecution');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [AsyncHandlerWithErrorChannelDirectlyOnMethod::class],
+            [new AsyncHandlerWithErrorChannelDirectlyOnMethod()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel(AsyncHandlerWithErrorChannelDirectlyOnMethod::ASYNC_CHANNEL),
+                    SimpleMessageChannelBuilder::createQueueChannel('someErrorChannel'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_async_handler_with_delayed_retry_directly_on_method_throws_descriptive_error(): void
+    {
+        $this->expectException(\Ecotone\Messaging\Config\ConfigurationException::class);
+        $this->expectExceptionMessage('#[DelayedRetry]');
+        $this->expectExceptionMessage('asynchronousExecution');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [AsyncHandlerWithDelayedRetryDirectlyOnMethod::class],
+            [new AsyncHandlerWithDelayedRetryDirectlyOnMethod()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel(AsyncHandlerWithDelayedRetryDirectlyOnMethod::ASYNC_CHANNEL),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 }

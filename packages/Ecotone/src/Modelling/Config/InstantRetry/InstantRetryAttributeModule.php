@@ -68,16 +68,19 @@ final class InstantRetryAttributeModule implements AnnotationModule
         $asynchronousEndpointsWithInstantRetry = [];
         $annotatedMethods = $annotationRegistrationService->findAnnotatedMethods(InstantRetry::class);
         foreach ($annotatedMethods as $annotatedMethod) {
-            if (! $annotatedMethod->hasMethodAnnotation(MessageConsumer::class)) {
+            $hasMessageConsumer = $annotatedMethod->hasMethodAnnotation(MessageConsumer::class);
+            $hasChannelAdapter = $annotatedMethod->hasMethodAnnotation(\Ecotone\Messaging\Attribute\ChannelAdapter::class);
+            if (! $hasMessageConsumer && ! $hasChannelAdapter) {
                 throw new ConfigurationException(sprintf(
-                    "InstantRetry attribute can only be used on methods annotated with MessageConsumer. '%s' is not annotated with MessageConsumer (e.g. RabbitConsumer, KafkaConsumer).",
+                    "InstantRetry attribute can only be used on Inbound Channel Adapter methods (annotated with MessageConsumer e.g. KafkaConsumer, RabbitConsumer; or with ChannelAdapter subclass e.g. #[Scheduled]). '%s' has neither.",
                     $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName()
                 ));
             }
 
-            /** @var MessageConsumer $messageConsumer */
-            $messageConsumer = $annotatedMethod->getMethodAnnotationsWithType(MessageConsumer::class)[0];
-            $asynchronousEndpointsWithInstantRetry[$messageConsumer->getEndpointId()] = $annotatedMethod->getAnnotationForMethod();
+            $consumerAttribute = $hasMessageConsumer
+                ? $annotatedMethod->getMethodAnnotationsWithType(MessageConsumer::class)[0]
+                : $annotatedMethod->getMethodAnnotationsWithType(\Ecotone\Messaging\Attribute\ChannelAdapter::class)[0];
+            $asynchronousEndpointsWithInstantRetry[$consumerAttribute->getEndpointId()] = $annotatedMethod->getAnnotationForMethod();
         }
 
         return new self($commandBusesWithInstantRetry, $asynchronousEndpointsWithInstantRetry);

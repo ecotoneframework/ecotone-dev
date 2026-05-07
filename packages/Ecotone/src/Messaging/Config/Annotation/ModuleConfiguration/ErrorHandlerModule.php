@@ -51,6 +51,19 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
     {
         $perHandlerRetryConfigurations = [];
 
+        foreach ($annotationRegistrationService->findAnnotatedMethods(DelayedRetry::class) as $delayedRetryMethod) {
+            $isInboundChannelAdapter = $delayedRetryMethod->hasMethodAnnotation(\Ecotone\Messaging\Attribute\MessageConsumer::class)
+                || $delayedRetryMethod->hasMethodAnnotation(\Ecotone\Messaging\Attribute\ChannelAdapter::class);
+            if (! $isInboundChannelAdapter) {
+                continue;
+            }
+            throw ConfigurationException::create(
+                "#[DelayedRetry] cannot be used on an Inbound Channel Adapter `{$delayedRetryMethod->getClassName()}::{$delayedRetryMethod->getMethodName()}`. " .
+                'Inbound Channel Adapters consume from external systems (Kafka, AMQP, scheduled tasks) and have no source Message Channel for the framework to reschedule a delayed retry into. ' .
+                'Use #[ErrorChannel] to capture the failure for later replay (e.g. from a Dead Letter), and optionally combine it with #[InstantRetry] for in-process retries before forwarding to the Error Channel.'
+            );
+        }
+
         $endpointMethods = $annotationRegistrationService->findAnnotatedMethods(\Ecotone\Messaging\Attribute\EndpointAnnotation::class);
         $asynchronousMethods = $annotationRegistrationService->findAnnotatedMethods(Asynchronous::class);
 

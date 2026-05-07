@@ -21,8 +21,10 @@ use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel\FailingScheduledExample;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannelAsync\AsyncFailingHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannelAsync\DelayedRetryHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel\OrderService;
+use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannelAsync\InboundChannelAdapterWithInstantRetryAndErrorChannel;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannelAsyncMisplaced\AsyncHandlerWithDelayedRetryDirectlyOnMethod;
 use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannelAsyncMisplaced\AsyncHandlerWithErrorChannelDirectlyOnMethod;
+use Test\Ecotone\Messaging\Fixture\Handler\ErrorChannelAsyncMisplaced\InboundChannelAdapterWithDelayedRetry;
 
 /**
  * @internal
@@ -462,5 +464,93 @@ final class ErrorChannelTest extends TestCase
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    public function test_delayed_retry_on_inbound_channel_adapter_throws_descriptive_error(): void
+    {
+        $this->expectException(\Ecotone\Messaging\Config\ConfigurationException::class);
+        $this->expectExceptionMessage('#[DelayedRetry] cannot be used on an Inbound Channel Adapter');
+        $this->expectExceptionMessage('#[ErrorChannel]');
+        $this->expectExceptionMessage('#[InstantRetry]');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [InboundChannelAdapterWithDelayedRetry::class],
+            [new InboundChannelAdapterWithDelayedRetry()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE])),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_inbound_channel_adapter_with_instant_retry_recovers_within_in_process_retries(): void
+    {
+        $handler = new InboundChannelAdapterWithInstantRetryAndErrorChannel();
+        $handler->maxFailures = 2;
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [InboundChannelAdapterWithInstantRetryAndErrorChannel::class],
+            [$handler],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->run(InboundChannelAdapterWithInstantRetryAndErrorChannel::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
+            amountOfMessagesToHandle: 1,
+            failAtError: false,
+        ));
+
+        $this->assertSame(3, $handler->invocations, 'Handler must be invoked once + retried twice (retryTimes: 2) before succeeding on the third attempt');
+
+        /** @var PollableChannel $errorChannel */
+        $errorChannel = $ecotone->getMessageChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL);
+        $this->assertNull($errorChannel->receive(), 'Error channel must remain empty when InstantRetry recovers within retry budget');
+    }
+
+    public function test_instant_retry_on_inbound_channel_adapter_requires_enterprise_licence(): void
+    {
+        $this->expectException(\Ecotone\Messaging\Support\LicensingException::class);
+        $this->expectExceptionMessage('Instant retry attribute is available only for Ecotone Enterprise');
+
+        EcotoneLite::bootstrapFlowTesting(
+            [InboundChannelAdapterWithInstantRetryAndErrorChannel::class],
+            [new InboundChannelAdapterWithInstantRetryAndErrorChannel()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL),
+                ]),
+        );
+    }
+
+    public function test_inbound_channel_adapter_with_instant_retry_forwards_to_error_channel_after_retries_exhausted(): void
+    {
+        $handler = new InboundChannelAdapterWithInstantRetryAndErrorChannel();
+        $handler->maxFailures = PHP_INT_MAX;
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [InboundChannelAdapterWithInstantRetryAndErrorChannel::class],
+            [$handler],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->run(InboundChannelAdapterWithInstantRetryAndErrorChannel::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
+            amountOfMessagesToHandle: 1,
+            failAtError: false,
+        ));
+
+        $this->assertSame(3, $handler->invocations, 'Handler must be invoked once + retried twice before forwarding to Error Channel');
+
+        /** @var PollableChannel $errorChannel */
+        $errorChannel = $ecotone->getMessageChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL);
+        $this->assertNotNull($errorChannel->receive(), 'Failed message must land in the configured Error Channel after InstantRetry retries are exhausted');
     }
 }

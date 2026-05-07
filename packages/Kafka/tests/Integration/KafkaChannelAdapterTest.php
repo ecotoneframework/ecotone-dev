@@ -42,6 +42,7 @@ use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerFailingExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithDelayedRetryExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithFailStrategyExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithInstantRetryAndErrorChannelExample;
+use Test\Ecotone\Kafka\Fixture\KafkaConsumer\ReplayableKafkaConsumerExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithInstantRetryExample;
 use Test\Ecotone\Kafka\Fixture\MediaTypeConverter\JsonEncodingConverter;
 
@@ -391,6 +392,65 @@ final class KafkaChannelAdapterTest extends TestCase
         $processedMessages = $ecotoneLite->sendQueryWithRouting('consumer.getProcessedMessages');
         $this->assertCount(1, $processedMessages);
         $this->assertEquals($payload, $processedMessages[0]);
+    }
+
+    public function test_inbound_channel_adapter_failure_lands_in_dead_letter_and_replays_back_to_handler(): void
+    {
+        $topicName = 'test_topic_replayable_' . Uuid::v7()->toRfc4122();
+        $handler = new ReplayableKafkaConsumerExample();
+
+        $dbalConnectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@database:5432/ecotone');
+        $this->cleanDeadLetterTable($dbalConnectionFactory);
+
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ReplayableKafkaConsumerExample::class],
+            [
+                KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
+                DbalConnectionFactory::class => $dbalConnectionFactory,
+                'managerRegistry' => $dbalConnectionFactory,
+                $handler,
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults($topicName)
+                        ->withHeaderMapper('*'),
+                    TopicConfiguration::createWithReferenceName(ReplayableKafkaConsumerExample::TOPIC_REFERENCE, $topicName),
+                    KafkaConsumerConfiguration::createWithDefaults(ReplayableKafkaConsumerExample::ENDPOINT_ID),
+                    DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            pathToRootCatalog: __DIR__ . '/../../',
+        );
+
+        $payload = Uuid::v7()->toRfc4122();
+        $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
+        $messagePublisher->send($payload);
+
+        $ecotoneLite->run(ReplayableKafkaConsumerExample::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
+            maxExecutionTimeInMilliseconds: 30000,
+            failAtError: false,
+        ));
+
+        /** @var DeadLetterGateway $deadLetter */
+        $deadLetter = $ecotoneLite->getGateway(DeadLetterGateway::class);
+        $this->assertEquals(1, $deadLetter->count(), 'Failed Kafka Message must land in DBAL Dead Letter');
+        $this->assertSame(1, $handler->invocations);
+        $this->assertSame([], $handler->processedPayloads);
+
+        $handler->shouldFail = false;
+        $deadLetter->replyAll();
+        $this->assertEquals(0, $deadLetter->count());
+
+        $ecotoneLite->run(ReplayableKafkaConsumerExample::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
+            maxExecutionTimeInMilliseconds: 30000,
+            failAtError: false,
+        ));
+
+        $this->assertSame(2, $handler->invocations, 'Replayed Message must re-invoke the handler exactly once');
+        $this->assertSame([$payload], $handler->processedPayloads, 'Replayed Message must carry the original payload back to the handler');
     }
 
     public function test_convert_and_send(): void

@@ -4,26 +4,29 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
+use Ecotone\Dbal\Attribute\WithTenantResolver;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\Interceptor\Before;
+use Ecotone\Messaging\Attribute\Parameter\Headers;
+use Ecotone\Messaging\Attribute\Scheduled;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
-use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\ExternalEventPoller;
-use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\ExternalEventPollerNonScalarExpression;
-use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\ExternalEventPollerNullExpression;
-use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\ExternalEventPollerWithoutResolver;
-use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\ExternalEventReceiver;
-use Test\Ecotone\Dbal\Fixture\MultiTenant\Scheduled\TenantResolverInvocationCounter;
 
 /**
  * @internal
@@ -36,12 +39,29 @@ final class ScheduledTenantResolverTest extends TestCase
 {
     public function test_resolves_tenant_header_from_inbound_message_via_with_tenant_resolver(): void
     {
-        $poller = new ExternalEventPoller([
+        $poller = new class ([
             ['source' => 'tenant_a', 'payload' => 'first'],
             ['source' => 'tenant_b', 'payload' => 'second'],
-        ]);
-        $receiver = new ExternalEventReceiver();
-        $ecotone = $this->bootstrap([$poller, $receiver], [ExternalEventPoller::class, ExternalEventReceiver::class]);
+        ]) {
+            public function __construct(private array $pending)
+            {
+            }
+
+            #[Scheduled(requestChannelName: 'externalEventArrived', endpointId: 'externalEventPoller')]
+            #[WithTenantResolver(expression: "headers['source']")]
+            public function poll(): ?Message
+            {
+                if ($this->pending === []) {
+                    return null;
+                }
+                $event = array_shift($this->pending);
+                return MessageBuilder::withPayload($event['payload'])
+                    ->setHeader('source', $event['source'])
+                    ->build();
+            }
+        };
+        $receiver = $this->newReceiver();
+        $ecotone = $this->bootstrap([$poller, $receiver], [$poller::class, $receiver::class]);
 
         $this->pollOnce($ecotone);
         $this->drainProcessing($ecotone);
@@ -60,15 +80,32 @@ final class ScheduledTenantResolverTest extends TestCase
 
     public function test_explicit_tenant_header_takes_precedence_over_resolver(): void
     {
-        $poller = new ExternalEventPoller([
-            [
-                'source' => 'tenant_a',
-                'payload' => 'first',
-                'additionalHeaders' => ['tenant' => 'tenant_b'],
-            ],
-        ]);
-        $receiver = new ExternalEventReceiver();
-        $ecotone = $this->bootstrap([$poller, $receiver], [ExternalEventPoller::class, ExternalEventReceiver::class]);
+        $poller = new class ([
+            'source' => 'tenant_a',
+            'payload' => 'first',
+            'tenant' => 'tenant_b',
+        ]) {
+            public function __construct(private ?array $next)
+            {
+            }
+
+            #[Scheduled(requestChannelName: 'externalEventArrived', endpointId: 'externalEventPoller')]
+            #[WithTenantResolver(expression: "headers['source']")]
+            public function poll(): ?Message
+            {
+                $event = $this->next;
+                $this->next = null;
+                if ($event === null) {
+                    return null;
+                }
+                return MessageBuilder::withPayload($event['payload'])
+                    ->setHeader('source', $event['source'])
+                    ->setHeader('tenant', $event['tenant'])
+                    ->build();
+            }
+        };
+        $receiver = $this->newReceiver();
+        $ecotone = $this->bootstrap([$poller, $receiver], [$poller::class, $receiver::class]);
 
         $this->pollOnce($ecotone);
         $this->drainProcessing($ecotone);
@@ -80,11 +117,20 @@ final class ScheduledTenantResolverTest extends TestCase
 
     public function test_no_tenant_header_when_resolver_attribute_missing(): void
     {
-        $poller = new ExternalEventPollerWithoutResolver([
-            ['source' => 'tenant_a', 'payload' => 'first'],
-        ]);
-        $receiver = new ExternalEventReceiver();
-        $ecotone = $this->bootstrap([$poller, $receiver], [ExternalEventPollerWithoutResolver::class, ExternalEventReceiver::class]);
+        $poller = new class () {
+            #[Scheduled(requestChannelName: 'externalEventArrived', endpointId: 'externalEventPoller')]
+            public function poll(): ?Message
+            {
+                static $emitted = false;
+                if ($emitted) {
+                    return null;
+                }
+                $emitted = true;
+                return MessageBuilder::withPayload('first')->setHeader('source', 'tenant_a')->build();
+            }
+        };
+        $receiver = $this->newReceiver();
+        $ecotone = $this->bootstrap([$poller, $receiver], [$poller::class, $receiver::class]);
 
         $this->pollOnce($ecotone);
         $this->drainProcessing($ecotone);
@@ -96,11 +142,21 @@ final class ScheduledTenantResolverTest extends TestCase
 
     public function test_no_tenant_header_when_expression_evaluates_to_null(): void
     {
-        $poller = new ExternalEventPollerNullExpression([
-            ['payload' => 'first'],
-        ]);
-        $receiver = new ExternalEventReceiver();
-        $ecotone = $this->bootstrap([$poller, $receiver], [ExternalEventPollerNullExpression::class, ExternalEventReceiver::class]);
+        $poller = new class () {
+            #[Scheduled(requestChannelName: 'externalEventArrived', endpointId: 'externalEventPoller')]
+            #[WithTenantResolver(expression: "headers['source'] ?? null")]
+            public function poll(): ?Message
+            {
+                static $emitted = false;
+                if ($emitted) {
+                    return null;
+                }
+                $emitted = true;
+                return MessageBuilder::withPayload('first')->build();
+            }
+        };
+        $receiver = $this->newReceiver();
+        $ecotone = $this->bootstrap([$poller, $receiver], [$poller::class, $receiver::class]);
 
         $this->pollOnce($ecotone);
         $this->drainProcessing($ecotone);
@@ -112,14 +168,38 @@ final class ScheduledTenantResolverTest extends TestCase
 
     public function test_resolver_interceptor_fires_exactly_once_per_inbound_message(): void
     {
-        $poller = new ExternalEventPoller([
-            ['source' => 'tenant_a', 'payload' => 'first'],
-        ]);
-        $receiver = new ExternalEventReceiver();
-        $counter = new TenantResolverInvocationCounter();
+        $poller = new class () {
+            #[Scheduled(requestChannelName: 'externalEventArrived', endpointId: 'externalEventPoller')]
+            #[WithTenantResolver(expression: "headers['source']")]
+            public function poll(): ?Message
+            {
+                static $emitted = false;
+                if ($emitted) {
+                    return null;
+                }
+                $emitted = true;
+                return MessageBuilder::withPayload('first')->setHeader('source', 'tenant_a')->build();
+            }
+        };
+        $receiver = $this->newReceiver();
+        $counter = new class () {
+            private int $count = 0;
+
+            #[Before(pointcut: WithTenantResolver::class)]
+            public function increment(): void
+            {
+                $this->count++;
+            }
+
+            #[QueryHandler('counter.invocations')]
+            public function invocations(): int
+            {
+                return $this->count;
+            }
+        };
         $ecotone = $this->bootstrap(
             [$poller, $receiver, $counter],
-            [ExternalEventPoller::class, ExternalEventReceiver::class, TenantResolverInvocationCounter::class],
+            [$poller::class, $receiver::class, $counter::class],
         );
 
         $this->pollOnce($ecotone);
@@ -134,16 +214,50 @@ final class ScheduledTenantResolverTest extends TestCase
 
     public function test_throws_when_resolver_expression_returns_non_scalar(): void
     {
-        $poller = new ExternalEventPollerNonScalarExpression([
-            ['source' => 'tenant_a'],
-        ]);
-        $receiver = new ExternalEventReceiver();
-        $ecotone = $this->bootstrap([$poller, $receiver], [ExternalEventPollerNonScalarExpression::class, ExternalEventReceiver::class]);
+        $poller = new class () {
+            #[Scheduled(requestChannelName: 'externalEventArrived', endpointId: 'externalEventPoller')]
+            #[WithTenantResolver(expression: 'payload')]
+            public function poll(): ?Message
+            {
+                static $emitted = false;
+                if ($emitted) {
+                    return null;
+                }
+                $emitted = true;
+                return MessageBuilder::withPayload(['source' => 'tenant_a'])->build();
+            }
+        };
+        $receiver = $this->newReceiver();
+        $ecotone = $this->bootstrap([$poller, $receiver], [$poller::class, $receiver::class]);
 
         $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('must evaluate to string|int|null');
 
         $this->pollOnce($ecotone);
+    }
+
+    private function newReceiver(): object
+    {
+        return new class () {
+            /** @var array<int, array<string, mixed>> */
+            private array $captured = [];
+
+            #[Asynchronous('external_processing')]
+            #[CommandHandler('externalEventArrived', endpointId: 'externalEventArrivedEndpoint')]
+            public function handle(mixed $payload, #[Headers] array $headers): void
+            {
+                $this->captured[] = $headers;
+            }
+
+            /**
+             * @return array<string, mixed>|null
+             */
+            #[QueryHandler('lastCapturedHeaders')]
+            public function lastCapturedHeaders(): ?array
+            {
+                return array_shift($this->captured);
+            }
+        };
     }
 
     /**

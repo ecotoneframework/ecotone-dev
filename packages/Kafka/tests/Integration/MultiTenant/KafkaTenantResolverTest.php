@@ -4,24 +4,29 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration\MultiTenant;
 
+use Ecotone\Dbal\Attribute\WithTenantResolver;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
+use Ecotone\Kafka\Attribute\KafkaConsumer;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Interop\Queue\ConnectionFactory;
+use Interop\Queue\Context;
+use LogicException;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
 use RdKafka\Conf;
 use RdKafka\Producer;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Kafka\ConnectionTestCase;
-use Test\Ecotone\Kafka\Fixture\MultiTenant\FakeConnectionFactoryStub;
-use Test\Ecotone\Kafka\Fixture\MultiTenant\KafkaTenantConsumerExample;
 
 /**
  * @internal
@@ -38,18 +43,41 @@ final class KafkaTenantResolverTest extends TestCase
         $tenantATopic = 'tenant_a_' . Uuid::v7()->toRfc4122();
         $tenantBTopic = 'tenant_b_' . Uuid::v7()->toRfc4122();
 
-        $consumer = new KafkaTenantConsumerExample([
-            'tenant_a_topic' => $tenantATopic,
-            'tenant_b_topic' => $tenantBTopic,
-        ]);
+        $consumer = new class () {
+            /** @var array<int, array<string, mixed>> */
+            private array $captured = [];
+
+            #[KafkaConsumer('tenantTopicConsumer', topics: ['tenant_a_topic', 'tenant_b_topic'])]
+            #[WithTenantResolver(expression: "headers['kafka_topic']")]
+            public function handle(string $payload, #[Headers] array $headers): void
+            {
+                $this->captured[] = $headers;
+            }
+
+            /**
+             * @return array<string, mixed>|null
+             */
+            #[QueryHandler('consumer.lastCapturedHeaders')]
+            public function lastCapturedHeaders(): ?array
+            {
+                return array_shift($this->captured);
+            }
+        };
+
+        $stubConnection = new class () implements ConnectionFactory {
+            public function createContext(): Context
+            {
+                throw new LogicException('Tenant resolver test does not exercise downstream connection use.');
+            }
+        };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [KafkaTenantConsumerExample::class],
+            [$consumer::class],
             [
                 $consumer,
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
-                'tenant_a_connection' => new FakeConnectionFactoryStub(),
-                'tenant_b_connection' => new FakeConnectionFactoryStub(),
+                'tenant_a_connection' => $stubConnection,
+                'tenant_b_connection' => $stubConnection,
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))

@@ -19,6 +19,15 @@
         "Kafka"
     ],
     "description": "Apache Kafka transport for Ecotone asynchronous messaging and Distributed Bus.",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Ecotone\\Kafka\\": "src"
@@ -33,7 +42,7 @@
     },
     "require": {
         "ext-rdkafka": "*",
-        "ecotone/ecotone": "~1.309.3"
+        "ecotone/ecotone": "~1.311.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0",
@@ -54,15 +63,10 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.309.3-dev"
+            "dev-main": "1.311.0-dev"
         },
         "ecotone": {
             "repository": "kafka"
-        },
-        "merge-plugin": {
-            "include": [
-                "../local_packages.json"
-            ]
         },
         "license-info": {
             "Apache-2.0": {
@@ -75,11 +79,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-04-23 17:37:39"
-    },
-    "config": {
-        "allow-plugins": {
-            "wikimedia/composer-merge-plugin": true
-        }
+        "release-time": "2026-05-07 06:06:38"
     }
 }

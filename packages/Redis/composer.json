@@ -25,6 +25,15 @@
         "redis"
     ],
     "description": "Redis transport for Ecotone asynchronous messaging.",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "autoload": {
         "psr-4": {
             "Ecotone\\Redis\\": "src"
@@ -38,14 +47,13 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "~1.309.3",
+        "ecotone/enqueue": "~1.311.0",
         "enqueue/redis": "^0.10.9"
     },
     "require-dev": {
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^10.5|^11.0",
-        "predis/predis": "^1.1.10",
-        "wikimedia/composer-merge-plugin": "^2.1"
+        "predis/predis": "^1.1.10"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",
@@ -57,15 +65,10 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.309.3-dev"
+            "dev-main": "1.311.0-dev"
         },
         "ecotone": {
             "repository": "redis"
-        },
-        "merge-plugin": {
-            "include": [
-                "../local_packages.json"
-            ]
         },
         "license-info": {
             "Apache-2.0": {
@@ -78,11 +81,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-04-23 17:37:39"
-    },
-    "config": {
-        "allow-plugins": {
-            "wikimedia/composer-merge-plugin": true
-        }
+        "release-time": "2026-05-07 06:06:38"
     }
 }

@@ -1,0 +1,22 @@
+packages/Kafka/tests/Fixture/KafkaConsumer/ReplayableKafkaConsumerExample.php
+  s_fa7f41ccbd0ebc::t_8af930d7b1bd72 1-33
+packages/Kafka/tests/Integration/KafkaChannelAdapterTest.php
+  s_fa7f41ccbd0ebc::t_71838668dbf1f4 45
+  s_fa7f41ccbd0ebc::t_bde231c82b538d 397-455
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "642019702ecc80d67619f15198dafd429d85f686",
+  "prompts": {},
+  "sessions": {
+    "s_fa7f41ccbd0ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b372edd-4776-46cc-802d-d0e75adf8469",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

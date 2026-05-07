@@ -1,0 +1,42 @@
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_fa7f41ccbd0ebc::t_e04c53064ad49e 453,460,465
+packages/Ecotone/src/Modelling/Config/InstantRetry/InstantRetryAttributeModule.php
+  s_fa7f41ccbd0ebc::t_09257b4a58cdcf 71,73,78-79
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ErrorHandlerModule.php
+  s_fa7f41ccbd0ebc::t_7e0ebf8efaded5 55,59
+  s_fa7f41ccbd0ebc::t_89d9e38fbe39f3 95
+  s_fa7f41ccbd0ebc::t_8027f4f0b8eae1 120
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ErrorChannelExceptionMessages.php
+  s_fa7f41ccbd0ebc::t_bf70a86602e1f8 5,8-10,12,14,16-18,21,23-24,27,29-30,33,35-36,39,41-42
+packages/Ecotone/src/Messaging/Attribute/ChannelAdapter.php
+  s_fa7f41ccbd0ebc::t_c6c00708fce5bf 10
+packages/Ecotone/tests/Messaging/Unit/Handler/ErrorHandler/ErrorChannelTest.php
+  s_fa7f41ccbd0ebc::t_fc0d52062576a8 578-759
+  s_fa7f41ccbd0ebc::t_82bc8d9dce9f8e 427-435,441-442,446,455-463,469-470,474,482-491,498-499
+packages/Ecotone/tests/Messaging/Unit/Handler/Gateway/ErrorChannelCommandBusTest.php
+  s_fa7f41ccbd0ebc::t_26230c8294ac52 229-243
+  s_fa7f41ccbd0ebc::t_80abcafe191b72 127-139,142
+packages/Ecotone/src/Messaging/Attribute/MessageConsumer.php
+  s_fa7f41ccbd0ebc::t_1673c870e8a4c3 11-14,17
+packages/Dbal/tests/Integration/DeadLetterTest.php
+  s_fa7f41ccbd0ebc::t_88f43d162e9ba8 272-279
+  s_fa7f41ccbd0ebc::t_9980da09bf9edd 209-240,253,257,270
+packages/Kafka/tests/Integration/KafkaChannelAdapterTest.php
+  s_fa7f41ccbd0ebc::t_5482e1e2bdd29a 399-417,423,436-437,449,466-473
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "353f925a74aa33813162d3ced45e5908a9ccb641",
+  "prompts": {},
+  "sessions": {
+    "s_fa7f41ccbd0ebc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "3b372edd-4776-46cc-802d-d0e75adf8469",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

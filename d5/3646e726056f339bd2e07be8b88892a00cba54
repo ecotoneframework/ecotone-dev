@@ -1,0 +1,23 @@
+packages/Ecotone/tests/Messaging/Unit/Config/Annotation/ModuleConfiguration/ScheduledModuleTest.php
+  s_4ba416755315fc::t_36977656da1927 7-10,12,24,26-33,36,38-41
+packages/Ecotone/tests/Messaging/Fixture/Scheduled/ScheduledMarkerInvocationCounter.php
+  s_4ba416755315fc::t_986de8b7f83fa7 1-28
+packages/Ecotone/tests/Messaging/Fixture/Scheduled/ScheduledServiceWithMarker.php
+  s_4ba416755315fc::t_365dd0d4fa11af 8,15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.1",
+  "base_commit_sha": "d53646e726056f339bd2e07be8b88892a00cba54",
+  "prompts": {},
+  "sessions": {
+    "s_4ba416755315fc": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8a2f9f4c-b445-4141-bf4d-b881b2fe75d2",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

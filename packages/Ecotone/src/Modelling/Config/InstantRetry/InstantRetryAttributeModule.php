@@ -68,18 +68,15 @@ final class InstantRetryAttributeModule implements AnnotationModule
         $asynchronousEndpointsWithInstantRetry = [];
         $annotatedMethods = $annotationRegistrationService->findAnnotatedMethods(InstantRetry::class);
         foreach ($annotatedMethods as $annotatedMethod) {
-            $hasMessageConsumer = $annotatedMethod->hasMethodAnnotation(MessageConsumer::class);
-            $hasChannelAdapter = $annotatedMethod->hasMethodAnnotation(\Ecotone\Messaging\Attribute\ChannelAdapter::class);
-            if (! $hasMessageConsumer && ! $hasChannelAdapter) {
+            if (! $annotatedMethod->hasMethodAnnotation(MessageConsumer::class)) {
                 throw new ConfigurationException(sprintf(
-                    "InstantRetry attribute can only be used on Inbound Channel Adapter methods (annotated with MessageConsumer e.g. KafkaConsumer, RabbitConsumer; or with ChannelAdapter subclass e.g. #[Scheduled]). '%s' has neither.",
+                    "InstantRetry attribute can only be used on Inbound Channel Adapter methods (annotated with MessageConsumer e.g. #[KafkaConsumer], #[RabbitConsumer], #[Scheduled]). '%s' has none.",
                     $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName()
                 ));
             }
 
-            $consumerAttribute = $hasMessageConsumer
-                ? $annotatedMethod->getMethodAnnotationsWithType(MessageConsumer::class)[0]
-                : $annotatedMethod->getMethodAnnotationsWithType(\Ecotone\Messaging\Attribute\ChannelAdapter::class)[0];
+            /** @var MessageConsumer $consumerAttribute */
+            $consumerAttribute = $annotatedMethod->getMethodAnnotationsWithType(MessageConsumer::class)[0];
             $asynchronousEndpointsWithInstantRetry[$consumerAttribute->getEndpointId()] = $annotatedMethod->getAnnotationForMethod();
         }
 

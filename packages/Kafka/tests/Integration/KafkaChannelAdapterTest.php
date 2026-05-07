@@ -42,7 +42,6 @@ use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerFailingExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithDelayedRetryExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithFailStrategyExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithInstantRetryAndErrorChannelExample;
-use Test\Ecotone\Kafka\Fixture\KafkaConsumer\ReplayableKafkaConsumerExample;
 use Test\Ecotone\Kafka\Fixture\KafkaConsumer\KafkaConsumerWithInstantRetryExample;
 use Test\Ecotone\Kafka\Fixture\MediaTypeConverter\JsonEncodingConverter;
 
@@ -397,13 +396,31 @@ final class KafkaChannelAdapterTest extends TestCase
     public function test_inbound_channel_adapter_failure_lands_in_dead_letter_and_replays_back_to_handler(): void
     {
         $topicName = 'test_topic_replayable_' . Uuid::v7()->toRfc4122();
-        $handler = new ReplayableKafkaConsumerExample();
+        $handler = new class () {
+            public const ENDPOINT_ID = 'replayable_kafka_consumer';
+            public const TOPIC_REFERENCE = 'replayableKafkaTopic';
+
+            public bool $shouldFail = true;
+            public int $invocations = 0;
+            /** @var string[] */
+            public array $processedPayloads = [];
+
+            #[KafkaConsumer(self::ENDPOINT_ID, self::TOPIC_REFERENCE)]
+            public function handle(#[\Ecotone\Messaging\Attribute\Parameter\Payload] string $payload): void
+            {
+                $this->invocations++;
+                if ($this->shouldFail) {
+                    throw new \RuntimeException('simulated');
+                }
+                $this->processedPayloads[] = $payload;
+            }
+        };
 
         $dbalConnectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@database:5432/ecotone');
         $this->cleanDeadLetterTable($dbalConnectionFactory);
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ReplayableKafkaConsumerExample::class],
+            [$handler::class],
             [
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
                 DbalConnectionFactory::class => $dbalConnectionFactory,
@@ -416,8 +433,8 @@ final class KafkaChannelAdapterTest extends TestCase
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),
-                    TopicConfiguration::createWithReferenceName(ReplayableKafkaConsumerExample::TOPIC_REFERENCE, $topicName),
-                    KafkaConsumerConfiguration::createWithDefaults(ReplayableKafkaConsumerExample::ENDPOINT_ID),
+                    TopicConfiguration::createWithReferenceName('replayableKafkaTopic', $topicName),
+                    KafkaConsumerConfiguration::createWithDefaults('replayable_kafka_consumer'),
                     DbalConfiguration::createWithDefaults()
                         ->withAutomaticTableInitialization(true),
                 ]),
@@ -429,7 +446,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->send($payload);
 
-        $ecotoneLite->run(ReplayableKafkaConsumerExample::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
+        $ecotoneLite->run('replayable_kafka_consumer', ExecutionPollingMetadata::createWithTestingSetup(
             maxExecutionTimeInMilliseconds: 30000,
             failAtError: false,
         ));
@@ -446,6 +463,14 @@ final class KafkaChannelAdapterTest extends TestCase
         $this->assertEquals(0, $deadLetter->count());
         $this->assertSame(2, $handler->invocations, 'replyAll() must synchronously re-invoke the handler via MessagingEntrypoint — no second run() needed');
         $this->assertSame([$payload], $handler->processedPayloads, 'Replayed Message must carry the original payload back to the handler');
+
+        $ecotoneLite->run('replayable_kafka_consumer', ExecutionPollingMetadata::createWithTestingSetup(
+            maxExecutionTimeInMilliseconds: 30000,
+            failAtError: false,
+        ));
+
+        $this->assertSame(2, $handler->invocations, 'Replayed Message must not be re-consumed from the Kafka topic (committed)');
+        $this->assertSame([$payload], $handler->processedPayloads, 'Processed payloads must remain unchanged after a second poll');
     }
 
     public function test_convert_and_send(): void

@@ -52,15 +52,11 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
         $perHandlerRetryConfigurations = [];
 
         foreach ($annotationRegistrationService->findAnnotatedMethods(DelayedRetry::class) as $delayedRetryMethod) {
-            $isInboundChannelAdapter = $delayedRetryMethod->hasMethodAnnotation(\Ecotone\Messaging\Attribute\MessageConsumer::class)
-                || $delayedRetryMethod->hasMethodAnnotation(\Ecotone\Messaging\Attribute\ChannelAdapter::class);
-            if (! $isInboundChannelAdapter) {
+            if (! $delayedRetryMethod->hasMethodAnnotation(\Ecotone\Messaging\Attribute\MessageConsumer::class)) {
                 continue;
             }
             throw ConfigurationException::create(
-                "#[DelayedRetry] cannot be used on an Inbound Channel Adapter `{$delayedRetryMethod->getClassName()}::{$delayedRetryMethod->getMethodName()}`. " .
-                'Inbound Channel Adapters consume from external systems (Kafka, AMQP, scheduled tasks) and have no source Message Channel for the framework to reschedule a delayed retry into. ' .
-                'Use #[ErrorChannel] to capture the failure for later replay (e.g. from a Dead Letter), and optionally combine it with #[InstantRetry] for in-process retries before forwarding to the Error Channel.'
+                ErrorChannelExceptionMessages::delayedRetryOnInboundChannelAdapter($delayedRetryMethod->getClassName(), $delayedRetryMethod->getMethodName())
             );
         }
 
@@ -96,8 +92,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
 
                 if ($hasErrorChannel) {
                     throw ConfigurationException::create(
-                        "Handler `{$handlerEndpointId}` declares both #[ErrorChannel] and #[DelayedRetry] in #[Asynchronous] asynchronousExecution — these are mutually exclusive. " .
-                        'Use #[ErrorChannel] to send failures to a channel you control, OR #[DelayedRetry] to have Ecotone manage the retry+dead-letter flow with a generated channel.'
+                        ErrorChannelExceptionMessages::errorChannelAndDelayedRetryMutuallyExclusiveOnHandler($handlerEndpointId)
                     );
                 }
 
@@ -122,8 +117,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
             $errorChannelOnGateway = $annotationRegistrationService->findAnnotatedClasses(ErrorChannel::class);
             if (in_array($gatewayInterfaceFqn, $errorChannelOnGateway, true)) {
                 throw ConfigurationException::create(
-                    "Gateway `{$gatewayInterfaceFqn}` declares both #[ErrorChannel] and #[DelayedRetry] — these are mutually exclusive. " .
-                    'Use #[ErrorChannel] to send failures to a channel you control, OR #[DelayedRetry] to have Ecotone manage the retry+dead-letter flow with a generated channel.'
+                    ErrorChannelExceptionMessages::errorChannelAndDelayedRetryMutuallyExclusiveOnGateway($gatewayInterfaceFqn)
                 );
             }
 

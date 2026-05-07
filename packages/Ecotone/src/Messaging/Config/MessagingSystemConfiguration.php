@@ -450,22 +450,19 @@ final class MessagingSystemConfiguration implements Configuration
                     }
                     if ($hasErrorChannel && $hasDelayedRetry) {
                         throw ConfigurationException::create(
-                            "Handler `{$targetEndpointId}` declares both #[ErrorChannel] and #[DelayedRetry] in #[Asynchronous] asynchronousExecution — these are mutually exclusive. " .
-                            "Use #[ErrorChannel] to send failures to a channel you control, OR #[DelayedRetry] to have Ecotone manage the retry+dead-letter flow with a generated channel."
+                            \Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::errorChannelAndDelayedRetryMutuallyExclusiveOnHandler($targetEndpointId)
                         );
                     }
 
                     foreach ($handlerInterface->getMethodAnnotations() as $methodAnnotation) {
                         if ($methodAnnotation instanceof \Ecotone\Messaging\Attribute\ErrorChannel) {
                             throw ConfigurationException::create(
-                                "Asynchronous handler `{$targetEndpointId}` has `#[ErrorChannel]` placed directly on the handler method — this has no effect on async handlers. " .
-                                "Pass it via the #[Asynchronous] attribute instead: `#[Asynchronous('channel', asynchronousExecution: [new ErrorChannel('...')])]` so the polling consumer routes failures correctly."
+                                \Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::errorChannelDirectlyOnAsyncHandlerMethod($targetEndpointId)
                             );
                         }
                         if ($methodAnnotation instanceof \Ecotone\Messaging\Attribute\DelayedRetry) {
                             throw ConfigurationException::create(
-                                "Asynchronous handler `{$targetEndpointId}` has `#[DelayedRetry]` placed directly on the handler method — this has no effect on async handlers. " .
-                                "Pass it via the #[Asynchronous] attribute instead: `#[Asynchronous('channel', asynchronousExecution: [new DelayedRetry(...)])]` so the polling consumer applies the retry policy correctly."
+                                \Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::delayedRetryDirectlyOnAsyncHandlerMethod($targetEndpointId)
                             );
                         }
                     }

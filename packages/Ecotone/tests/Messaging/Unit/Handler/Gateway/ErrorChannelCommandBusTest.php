@@ -23,10 +23,8 @@ use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 use RuntimeException;
-use Test\Ecotone\Messaging\Fixture\Service\Gateway\DelayedRetryCommandBus;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\ErrorChannelCommandBus;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\ErrorChannelWithAsyncChannel;
-use Test\Ecotone\Messaging\Fixture\Service\Gateway\HandlerLevelErrorChannelService;
 use Test\Ecotone\Messaging\Fixture\Service\Gateway\TicketService;
 use Test\Ecotone\Messaging\SerializationSupport;
 
@@ -126,10 +124,22 @@ final class ErrorChannelCommandBusTest extends TestCase
 
     public function test_error_channel_on_command_handler_is_silently_ignored_must_be_placed_on_gateway(): void
     {
-        $service = new HandlerLevelErrorChannelService();
+        // Wrong placement: #[ErrorChannel] on the handler method has no effect.
+        // Must be on the messaging entry-point (CommandBus/EventBus/BusinessMethod).
+        $service = new class () {
+            public bool $sideEffectExecuted = false;
+
+            #[\Ecotone\Modelling\Attribute\CommandHandler('handler.level.error.channel.test')]
+            #[\Ecotone\Messaging\Attribute\ErrorChannel('handlerLevelErrorChannel')]
+            public function handle(mixed $payload): void
+            {
+                $this->sideEffectExecuted = true;
+                throw new RuntimeException('handler-failure');
+            }
+        };
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [HandlerLevelErrorChannelService::class],
+            [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
@@ -215,4 +225,19 @@ final class ErrorChannelCommandBusTest extends TestCase
             "#[DelayedRetry] on a CommandBus gateway must route failures to the auto-generated channel `{$generatedRetryChannel}`"
         );
     }
+}
+
+/**
+ * Custom Command Bus declaring a per-gateway #[DelayedRetry] policy.
+ *
+ * @internal
+ */
+#[DelayedRetry(
+    initialDelayMs: 1,
+    multiplier: 1,
+    maxAttempts: 1,
+    deadLetterChannel: 'gatewayRetryDeadLetter',
+)]
+interface DelayedRetryCommandBus extends \Ecotone\Modelling\CommandBus
+{
 }

@@ -22,7 +22,6 @@ use Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler\ExampleEvent;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\ErrorConfigurationContext;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderGateway;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\Example\OrderService;
-use Test\Ecotone\Dbal\Fixture\DeadLetter\InboundChannelAdapter\ReplayableInboundChannelAdapterExample;
 
 /**
  * @internal
@@ -207,7 +206,38 @@ final class DeadLetterTest extends DbalMessagingTestCase
 
     public function test_inbound_channel_adapter_failure_lands_in_dead_letter_and_replays_back_to_handler(): void
     {
-        $handler = new ReplayableInboundChannelAdapterExample();
+        $handler = new class () {
+            public const ENDPOINT_ID = 'failingInboundAdapter';
+            public const REQUEST_CHANNEL = 'failingInboundAdapterRequestChannel';
+
+            public bool $shouldFail = true;
+            public int $invocations = 0;
+            /** @var string[] */
+            public array $processedPayloads = [];
+            private bool $hasEmitted = false;
+
+            #[\Ecotone\Messaging\Attribute\Scheduled(self::REQUEST_CHANNEL, self::ENDPOINT_ID)]
+            #[\Ecotone\Messaging\Attribute\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
+            public function emit(): ?string
+            {
+                if ($this->hasEmitted) {
+                    return null;
+                }
+                $this->hasEmitted = true;
+
+                return 'first-payload';
+            }
+
+            #[\Ecotone\Messaging\Attribute\ServiceActivator(self::REQUEST_CHANNEL)]
+            public function handle(string $payload): void
+            {
+                $this->invocations++;
+                if ($this->shouldFail) {
+                    throw new \RuntimeException('simulated');
+                }
+                $this->processedPayloads[] = $payload;
+            }
+        };
         $connectionFactory = $this->getConnectionFactory();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
@@ -220,11 +250,11 @@ final class DeadLetterTest extends DbalMessagingTestCase
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
-            classesToResolve: [ReplayableInboundChannelAdapterExample::class],
+            classesToResolve: [$handler::class],
             pathToRootCatalog: __DIR__ . '/../../',
         );
 
-        $ecotone->run(ReplayableInboundChannelAdapterExample::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
+        $ecotone->run('failingInboundAdapter', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,
             failAtError: false,
         ));
@@ -237,8 +267,16 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->replyAllErrorMessages($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0);
-        $this->assertSame(2, $handler->invocations, 'Replay must re-invoke the handler synchronously via the routing slip stored on the failed Message');
+        $this->assertSame(2, $handler->invocations, 'replyAll() must synchronously re-invoke the handler via MessagingEntrypoint — no second run() needed');
         $this->assertSame(['first-payload'], $handler->processedPayloads, 'Replayed Message must carry the original payload back to the handler');
+
+        $ecotone->run('failingInboundAdapter', ExecutionPollingMetadata::createWithTestingSetup(
+            amountOfMessagesToHandle: 1,
+            failAtError: false,
+        ));
+
+        $this->assertSame(2, $handler->invocations, 'Subsequent polls must not re-process the replayed Message (emit() returns null after the first emission)');
+        $this->assertSame(['first-payload'], $handler->processedPayloads);
     }
 
     private function assertErrorMessageCount(FlowTestSupport $ecotone, int $amount, string $deadLetterReference = DeadLetterGateway::class): void

@@ -49,7 +49,7 @@
         "phpstan/phpstan": "^1.8",
         "psr/container": "^1.1.1|^2.0.1",
         "kwn/php-rdkafka-stubs": "^2.2",
-        "ecotone/dbal": "~1.309.3",
+        "ecotone/dbal": "~1.311.0",
         "symfony/expression-language": "^6.4|^7.0|^8.0"
     },
     "scripts": {

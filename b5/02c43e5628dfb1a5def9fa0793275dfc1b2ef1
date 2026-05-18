@@ -1,0 +1,49 @@
+quickstart-examples/Laravel/Projection/EloquentReadModel/README.md
+  s_97d25b9e122608::t_93750f04b64ea3 1-166
+quickstart-examples/Laravel/Projection/DatabaseReadModel/config/ecotone.php
+  s_97d25b9e122608::t_7c395f5d25ede6 3-6
+quickstart-examples/composer.json
+  s_97d25b9e122608::t_3efc601451d8f9 67-69
+quickstart-examples/Laravel/Projection/DatabaseReadModel/config/database.php
+  s_97d25b9e122608::t_4c8535238d2d1e 3-6
+quickstart-examples/Laravel/Projection/DatabaseReadModel/config/app.php
+  s_97d25b9e122608::t_5cf753ef9a4faa 3-6
+quickstart-examples/Laravel/Projection/EloquentReadModel/config/ecotone.php
+  s_97d25b9e122608::t_a8cc9af08daefd 3-6
+quickstart-examples/Laravel/Projection/EloquentReadModel/bootstrap/app.php
+  s_97d25b9e122608::t_ddeca670fc3a5a 3-6
+quickstart-examples/Laravel/Projection/README.md
+  s_97d25b9e122608::t_cc2531ac0d9629 1-23
+quickstart-examples/Laravel/Projection/EloquentReadModel/config/database.php
+  s_97d25b9e122608::t_db8f3aa8b5b979 3-6
+quickstart-examples/Laravel/Projection/EloquentReadModel/storage/framework/.gitignore
+  s_97d25b9e122608::t_3b5efa4f21f0b1 1
+quickstart-examples/Laravel/Projection/DatabaseReadModel/storage/framework/.gitignore
+  s_97d25b9e122608::t_d83caf35deffef 1
+quickstart-examples/Laravel/Projection/EloquentReadModel/run_example.php
+  s_97d25b9e122608::t_cf1d6ddf02632b 3-6
+quickstart-examples/Laravel/Projection/DatabaseReadModel/bootstrap/app.php
+  s_97d25b9e122608::t_495796d66f9e62 3-6
+quickstart-examples/Laravel/Projection/DatabaseReadModel/run_example.php
+  s_97d25b9e122608::t_acc8e10c18c16b 3-6
+quickstart-examples/Laravel/Projection/DatabaseReadModel/README.md
+  s_97d25b9e122608::t_105d8cc3f154e5 1-146
+quickstart-examples/Laravel/Projection/EloquentReadModel/config/app.php
+  s_97d25b9e122608::t_42ae5fb1baea05 3-6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "b502c43e5628dfb1a5def9fa0793275dfc1b2ef1",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

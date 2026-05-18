@@ -73,11 +73,11 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.313.0-dev"
+            "dev-main": "1.313.1-dev"
         },
         "ecotone": {
             "repository": "quickstart-examples"
         },
-        "release-time": "2026-05-07 19:43:12"
+        "release-time": "2026-05-18 19:18:46"
     }
 }

@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.313.1] - 2026-05-18
+
+## What's Changed
+* docs: add Laravel and Symfony projection quickstart examples by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/666
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.313.0...1.313.1
+
 ## [1.313.0] - 2026-05-07
 
 ## What's Changed

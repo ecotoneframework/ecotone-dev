@@ -1,0 +1,18 @@
+doctrine:
+  dbal:
+    default_connection: default
+    connections:
+      default:
+        url: '%env(resolve:DATABASE_DSN)%'
+        charset: UTF8
+  orm:
+    entity_managers:
+      default:
+        connection: default
+        mappings:
+          App:
+            is_bundle: false
+            type: attribute
+            dir: '%kernel.project_dir%/src/ReadModel'
+            prefix: 'App\ReadModel'
+            alias: App

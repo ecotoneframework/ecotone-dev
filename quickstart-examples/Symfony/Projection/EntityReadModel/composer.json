@@ -1,0 +1,42 @@
+{
+    "name": "ecotone/quickstart",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Dariusz Gafka",
+            "email": "dgafka.mail@gmail.com"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../../../../packages/*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "App\\": "src"
+        }
+    },
+    "require": {
+        "ecotone/pdo-event-sourcing": "^1.211",
+        "ecotone/symfony-starter": "^1.1.0",
+        "symfony/expression-language": "^6.4|^7.0|^8.0",
+        "symfony/framework-bundle": "^6.4|^7.0|^8.0",
+        "symfony/orm-pack": "^2.4",
+        "symfony/yaml": "^6.4|^7.0|^8.0",
+        "ramsey/uuid": "^4.0"
+    },
+    "require-dev": {
+        "doctrine/orm": "^2.11|^3.0",
+        "phpunit/phpunit": "^9.6|^10.5|^11.0"
+    },
+    "config": {
+        "sort-packages": true
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}

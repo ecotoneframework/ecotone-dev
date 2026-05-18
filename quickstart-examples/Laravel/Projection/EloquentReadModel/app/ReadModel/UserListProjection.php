@@ -12,9 +12,6 @@ use App\Domain\Event\UserNameWasChanged;
 use App\Domain\Event\UserWasDeactivated;
 use App\Domain\Event\UserWasRegistered;
 use App\Domain\User;
-use App\ReadModel\Command\ChangeUserReadModelName;
-use App\ReadModel\Command\DeactivateUserReadModel;
-use App\ReadModel\Command\RegisterUserReadModel;
 use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -48,22 +45,32 @@ final class UserListProjection
         $this->db->statement('DROP TABLE IF EXISTS user_list_eloquent');
     }
 
-    #[EventHandler(outputChannelName: RegisterUserReadModel::class)]
-    public function onRegistered(UserWasRegistered $event): RegisterUserReadModel
+    #[EventHandler(outputChannelName: 'RegisterUserReadModel')]
+    public function onRegistered(UserWasRegistered $event): array
     {
-        return new RegisterUserReadModel($event->userId, $event->name, $event->email);
+        return [
+            'user_id' => $event->userId,
+            'name' => $event->name,
+            'email' => $event->email,
+            'active' => true,
+        ];
     }
 
-    #[EventHandler(outputChannelName: ChangeUserReadModelName::class)]
-    public function onNameChanged(UserNameWasChanged $event): ChangeUserReadModelName
+    #[EventHandler(outputChannelName: 'ChangeUserReadModelName')]
+    public function onNameChanged(UserNameWasChanged $event): array
     {
-        return new ChangeUserReadModelName($event->userId, $event->name);
+        return [
+            'user_id' => $event->userId,
+            'name' => $event->name,
+        ];
     }
 
-    #[EventHandler(outputChannelName: DeactivateUserReadModel::class)]
-    public function onDeactivated(UserWasDeactivated $event): DeactivateUserReadModel
+    #[EventHandler(outputChannelName: 'DeactivateUserReadModel')]
+    public function onDeactivated(UserWasDeactivated $event): array
     {
-        return new DeactivateUserReadModel($event->userId);
+        return [
+            'user_id' => $event->userId,
+        ];
     }
 
     #[QueryHandler('user.listActive')]

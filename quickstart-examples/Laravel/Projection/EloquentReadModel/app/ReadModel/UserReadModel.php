@@ -8,9 +8,6 @@ declare(strict_types=1);
 
 namespace App\ReadModel;
 
-use App\ReadModel\Command\ChangeUserReadModelName;
-use App\ReadModel\Command\DeactivateUserReadModel;
-use App\ReadModel\Command\RegisterUserReadModel;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
@@ -37,25 +34,20 @@ final class UserReadModel extends Model
         return $this->user_id;
     }
 
-    #[CommandHandler(RegisterUserReadModel::class)]
-    public static function register(RegisterUserReadModel $command): self
+    #[CommandHandler('RegisterUserReadModel')]
+    public static function register(array $data): self
     {
-        return self::create([
-            'user_id' => $command->userId,
-            'name' => $command->name,
-            'email' => $command->email,
-            'active' => true,
-        ]);
+        return self::create($data);
     }
 
-    #[CommandHandler(ChangeUserReadModelName::class, identifierMapping: ['user_id' => 'payload.userId'])]
-    public function changeName(ChangeUserReadModelName $command): void
+    #[CommandHandler('ChangeUserReadModelName', identifierMapping: ['user_id' => "payload['user_id']"])]
+    public function changeName(array $data): void
     {
-        $this->name = $command->name;
+        $this->name = $data['name'];
     }
 
-    #[CommandHandler(DeactivateUserReadModel::class, identifierMapping: ['user_id' => 'payload.userId'])]
-    public function deactivate(DeactivateUserReadModel $command): void
+    #[CommandHandler('DeactivateUserReadModel', identifierMapping: ['user_id' => "payload['user_id']"])]
+    public function deactivate(array $data): void
     {
         $this->active = false;
     }

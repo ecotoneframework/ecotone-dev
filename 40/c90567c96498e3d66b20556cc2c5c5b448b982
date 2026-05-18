@@ -1,0 +1,21 @@
+quickstart-examples/Symfony/Projection/EntityReadModel/src/ReadModel/UserListProjection.php
+  s_97d25b9e122608::t_901ce267674ee2 34-38,49-53
+quickstart-examples/Symfony/Projection/EntityReadModel/run_example.php
+  s_97d25b9e122608::t_22a04670dac429 48-50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "40c90567c96498e3d66b20556cc2c5c5b448b982",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

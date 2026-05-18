@@ -87,6 +87,8 @@ public function onRegistered(UserWasRegistered $event): array
 
 The array key `'userId'` matches the PHP property name on the aggregate (`$userId`), so Ecotone auto-resolves the identifier on instance command handlers — no `identifierMapping` needed.
 
+> **Arrays are not the only option.** You can return a typed command class instead — e.g. `RegisterUserReadModel` with a `public string $userId` property. The aggregate's command handler then type-hints that class instead of `array $data`, and identifier resolution works the same way (matches the property name). Use a class when you want named fields, IDE autocompletion, and static analysis on the payload shape. Use an array when you want to keep the example dependency-free and avoid one DTO class per channel. Both reach the same `#[CommandHandler]`.
+
 ### 4.3 The read model is a stateful Doctrine entity aggregate
 
 ```php

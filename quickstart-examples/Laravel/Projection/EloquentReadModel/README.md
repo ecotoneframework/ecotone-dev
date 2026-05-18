@@ -72,6 +72,8 @@ flowchart TD
 
 Each `#[EventHandler]` on `UserListProjection` returns a plain associative array of the row data and declares `outputChannelName: 'RegisterUserReadModel'` (etc.). Ecotone hands that array to the matching `#[CommandHandler]` on `UserReadModel` by string routing key. No DTO classes are needed; the array travels straight from the projection to the aggregate.
 
+> **Arrays are not the only option.** You can return a typed command class instead — e.g. `RegisterUserReadModel` with a `public string $userId` property. The aggregate's command handler then type-hints that class instead of `array $data`, and identifier resolution uses dot syntax (`payload.userId`) on instance handlers. Use a class when you want named fields, IDE autocompletion, and static analysis on the payload shape. Use an array when you want to keep things dependency-free and skip a DTO class per channel. Both reach the same `#[CommandHandler]`.
+
 ```php
 #[EventHandler(outputChannelName: 'RegisterUserReadModel')]
 public function onRegistered(UserWasRegistered $event): array

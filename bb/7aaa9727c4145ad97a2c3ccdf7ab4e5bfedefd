@@ -1,0 +1,9 @@
+quickstart-examples/Symfony/Projection/EntityReadModel/src/ReadModel/UserReadModel.php
+  ai_agent 16,56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "bb7aaa9727c4145ad97a2c3ccdf7ab4e5bfedefd",
+  "prompts": {}
+}

@@ -13,9 +13,9 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 
+#[Aggregate]
 #[ORM\Entity]
 #[ORM\Table(name: 'user_list_entity')]
-#[Aggregate]
 final class UserReadModel
 {
     #[ORM\Id]
@@ -53,7 +53,7 @@ final class UserReadModel
     }
 
     #[CommandHandler('DeactivateUserReadModel', identifierMapping: ['userId' => "payload['user_id']"])]
-    public function deactivate(array $data): void
+    public function deactivate(): void
     {
         $this->active = false;
     }

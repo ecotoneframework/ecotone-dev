@@ -64,7 +64,11 @@
             "(cd Workflows/AsynchronousStateless && composer update && php run_example.php)",
             "(cd Workflows/Saga && composer update && php run_example.php)",
             "(cd ConsoleCommand/Symfony && ./test.sh)",
-            "(cd ConsoleCommand/Laravel && ./test.sh)"
+            "(cd ConsoleCommand/Laravel && ./test.sh)",
+            "(cd Laravel/Projection/DatabaseReadModel && composer update && php run_example.php)",
+            "(cd Laravel/Projection/EloquentReadModel && composer update && php run_example.php)",
+            "(cd Symfony/Projection/DatabaseReadModel && composer update && php run_example.php)",
+            "(cd Symfony/Projection/EntityReadModel && composer update && php run_example.php)"
         ]
     },
     "extra": {

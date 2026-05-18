@@ -25,7 +25,8 @@
         "ecotone/laravel-starter": "^1.1.0",
         "ecotone/lite-event-sourcing-starter": "^1.0",
         "laravel/laravel": "^10.0",
-        "ramsey/uuid": "^4.0"
+        "ramsey/uuid": "^4.0",
+        "symfony/expression-language": "^8.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6|^10.5|^11.0"

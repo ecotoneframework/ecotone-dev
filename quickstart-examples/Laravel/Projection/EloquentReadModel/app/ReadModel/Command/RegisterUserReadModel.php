@@ -6,9 +6,9 @@
 
 declare(strict_types=1);
 
-namespace App\Application;
+namespace App\ReadModel\Command;
 
-final readonly class ApplyUserRegistered
+final readonly class RegisterUserReadModel
 {
     public function __construct(
         public string $userId,

@@ -8,14 +8,13 @@ declare(strict_types=1);
 
 namespace App\ReadModel;
 
-use App\Application\ApplyUserDeactivated;
-use App\Application\ApplyUserNameChanged;
-use App\Application\ApplyUserRegistered;
 use App\Domain\Event\UserNameWasChanged;
 use App\Domain\Event\UserWasDeactivated;
 use App\Domain\Event\UserWasRegistered;
 use App\Domain\User;
-use App\Models\UserReadModel;
+use App\ReadModel\Command\ChangeUserReadModelName;
+use App\ReadModel\Command\DeactivateUserReadModel;
+use App\ReadModel\Command\RegisterUserReadModel;
 use Ecotone\EventSourcing\Attribute\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -49,22 +48,22 @@ final class UserListProjection
         $this->db->statement('DROP TABLE IF EXISTS user_list_eloquent');
     }
 
-    #[EventHandler(outputChannelName: 'user_read_model.apply_registered')]
-    public function onRegistered(UserWasRegistered $event): ApplyUserRegistered
+    #[EventHandler(outputChannelName: RegisterUserReadModel::class)]
+    public function onRegistered(UserWasRegistered $event): RegisterUserReadModel
     {
-        return new ApplyUserRegistered($event->userId, $event->name, $event->email);
+        return new RegisterUserReadModel($event->userId, $event->name, $event->email);
     }
 
-    #[EventHandler(outputChannelName: 'user_read_model.apply_name_changed')]
-    public function onNameChanged(UserNameWasChanged $event): ApplyUserNameChanged
+    #[EventHandler(outputChannelName: ChangeUserReadModelName::class)]
+    public function onNameChanged(UserNameWasChanged $event): ChangeUserReadModelName
     {
-        return new ApplyUserNameChanged($event->userId, $event->name);
+        return new ChangeUserReadModelName($event->userId, $event->name);
     }
 
-    #[EventHandler(outputChannelName: 'user_read_model.apply_deactivated')]
-    public function onDeactivated(UserWasDeactivated $event): ApplyUserDeactivated
+    #[EventHandler(outputChannelName: DeactivateUserReadModel::class)]
+    public function onDeactivated(UserWasDeactivated $event): DeactivateUserReadModel
     {
-        return new ApplyUserDeactivated($event->userId);
+        return new DeactivateUserReadModel($event->userId);
     }
 
     #[QueryHandler('user.listActive')]

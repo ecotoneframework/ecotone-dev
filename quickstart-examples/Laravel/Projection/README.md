@@ -9,9 +9,9 @@ These two examples walk through the complete projection lifecycle using a `User`
 | Example | Pattern | When to use |
 |---------|---------|-------------|
 | [DatabaseReadModel](./DatabaseReadModel/) | Projection writes directly to the DB via `ConnectionInterface` | Simplest approach; straightforward SQL; no ORM overhead |
-| [EloquentReadModel](./EloquentReadModel/) | Projection emits DTOs via `outputChannelName`; a writer service persists via Eloquent | When you need Eloquent lifecycle hooks, observers, mutators, or scopes on the read model |
+| [EloquentReadModel](./EloquentReadModel/) | Projection emits commands via `outputChannelName` to a stateful `#[Aggregate]` Eloquent model | When you want the "auto-load + auto-save" sugar on a read model and Eloquent's lifecycle hooks |
 
-**Start with DatabaseReadModel.** It gets the projection lifecycle working with minimal moving parts. Once you understand init → backfill → reset → delete, switch to EloquentReadModel to see how the `outputChannelName` pattern separates projection logic from persistence.
+**Start with DatabaseReadModel.** It gets the projection lifecycle working with minimal moving parts. Once you understand init → backfill → reset → delete, switch to EloquentReadModel to see how a stateful Eloquent aggregate becomes the read model's persistence layer.
 
 ## What both examples share
 

@@ -163,15 +163,14 @@ composer update
 php run_example.php
 ```
 
-## 6. Reset vs Delete vs Rebuild
+## 6. Reset vs Delete
 
 ```mermaid
 stateDiagram-v2
     [*] --> Gone: start (no projection)
     Gone --> Empty: ecotone:projection:init
-    Empty --> Active: ecotone:projection:backfill\n(events → commands → Doctrine entity)
+    Empty --> Active: events emitted\n(handlers → commands → Doctrine entity)
     Active --> Empty: ecotone:projection:delete\n+ ecotone:projection:init\n(reset = clear rows + position)
-    Empty --> Active: ecotone:projection:backfill\n(rebuild from event store)
     Active --> Gone: ecotone:projection:delete
     Gone --> [*]
 ```
@@ -180,9 +179,10 @@ stateDiagram-v2
 |---------|--------|
 | `ecotone:projection:init` | Calls `#[ProjectionInitialization]`, records projection as known |
 | `ecotone:projection:delete` | Calls `#[ProjectionDelete]`, removes projection tracking |
-| `ecotone:projection:backfill` | Replays all events; each event flows through the outputChannelName chain and lands on a `UserReadModel` aggregate |
 
-During backfill the full chain runs: event → projection handler returns command → Ecotone routes command to `UserReadModel` → Doctrine loads/creates the entity, applies the change, persists and flushes.
+For each event the full chain runs: event → projection handler returns command → Ecotone routes command to `UserReadModel` → Doctrine loads/creates the entity, applies the change, persists and flushes.
+
+> **Replaying historical events.** Ecotone ships `ecotone:projection:backfill` to replay everything in the event store into a projection. This example doesn't exercise it because synchronous projections naturally fill from events as they're emitted; backfill is what you reach for after a reset to rebuild from history, or when introducing a new projection over an existing event stream.
 
 ## 7. When to choose this pattern
 

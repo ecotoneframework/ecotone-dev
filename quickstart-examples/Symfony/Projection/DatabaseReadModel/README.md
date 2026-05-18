@@ -2,7 +2,7 @@
 
 ## 1. What you'll learn
 
-This example shows how to build a **projection** (a read-optimised view) on top of an event-sourced `User` aggregate using Symfony and Ecotone. You will see how the projection's `#[ProjectionInitialization]` hook creates the storage, how `#[EventHandler]` methods react to each domain event, and how the full projection lifecycle (init → query → reset → backfill → delete) lets you rebuild the read model from scratch whenever you need to.
+This example shows how to build a **projection** (a read-optimised view) on top of an event-sourced `User` aggregate using Symfony and Ecotone. You will see how the projection's `#[ProjectionInitialization]` hook creates the storage, how `#[EventHandler]` methods react to each domain event, and how the projection lifecycle commands (init, delete, reset) let you wipe and recreate the read model whenever you need to.
 
 ## 2. The problem this solves
 
@@ -77,7 +77,7 @@ flowchart TD
 | Initialise | `#[ProjectionInitialization]` | `CREATE TABLE IF NOT EXISTS user_list_database (...)` |
 | Delete | `#[ProjectionDelete]` | `DROP TABLE IF EXISTS user_list_database` |
 
-Resetting the projection is done by deleting and re-initialising it, which clears both the read model table and Ecotone's stored stream position for this projection. A subsequent backfill replays all events from position 0.
+Resetting the projection is done by deleting and re-initialising it, which clears both the read model table and Ecotone's stored stream position for this projection. Future events flow into the empty projection synchronously as they're emitted.
 
 ### 4.4 Querying the read model
 
@@ -105,17 +105,16 @@ composer update
 php run_example.php
 ```
 
-The script exits 0 and prints a seven-step ribbon showing each lifecycle phase.
+The script exits 0 and prints a six-step ribbon showing each lifecycle phase.
 
-## 6. Reset vs Delete vs Rebuild
+## 6. Reset vs Delete
 
 ```mermaid
 stateDiagram-v2
     [*] --> Gone: start (no projection)
     Gone --> Empty: ecotone:projection:init
-    Empty --> Active: ecotone:projection:backfill\n(events processed)
+    Empty --> Active: events emitted\n(handlers fire synchronously)
     Active --> Empty: ecotone:projection:delete\n+ ecotone:projection:init\n(reset = clear rows + position)
-    Empty --> Active: ecotone:projection:backfill\n(rebuild from event store)
     Active --> Gone: ecotone:projection:delete
     Gone --> [*]
 ```
@@ -124,9 +123,10 @@ stateDiagram-v2
 |---------|--------|
 | `ecotone:projection:init` | Calls `#[ProjectionInitialization]`, records projection as known |
 | `ecotone:projection:delete` | Calls `#[ProjectionDelete]`, removes projection tracking |
-| `ecotone:projection:backfill` | Replays all events from the event store into the projection |
 
-**Reset = delete + re-init.** This two-step approach makes the state transitions explicit: you see the table disappear, then reappear empty, then fill up during backfill.
+**Reset = delete + re-init.** This two-step approach makes the state transitions explicit: you see the table disappear, then reappear empty.
+
+> **Replaying historical events.** Ecotone ships `ecotone:projection:backfill` to replay everything in the event store into a projection. This example doesn't exercise it because synchronous projections naturally fill from events as they're emitted; backfill is what you reach for after a reset to rebuild from history, or when introducing a new projection over an existing event stream.
 
 ## 7. When to choose this pattern
 

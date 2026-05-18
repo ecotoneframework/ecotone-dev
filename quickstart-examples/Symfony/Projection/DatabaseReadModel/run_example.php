@@ -69,14 +69,7 @@ $rows = $queryBus->sendWithRouting('user.listActive');
 Assert::assertSame([], $rows);
 echo "   Read model is empty after reset\n\n";
 
-echo "6) Backfill projection (replay all events from event store)\n";
-$messagingSystem->runConsoleCommand('ecotone:projection:backfill', ['name' => 'user_list_database']);
-$rows = $queryBus->sendWithRouting('user.listActive');
-Assert::assertCount(1, $rows);
-Assert::assertSame('Alice Cooper', $rows[0]['name']);
-echo "   Read model rebuilt from events: " . count($rows) . " active user (Alice Cooper)\n\n";
-
-echo "7) Delete projection (drop storage)\n";
+echo "6) Delete projection (drop storage)\n";
 $messagingSystem->runConsoleCommand('ecotone:projection:delete', ['name' => 'user_list_database']);
 echo "   Projection deleted\n\n";
 

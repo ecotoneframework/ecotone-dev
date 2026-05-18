@@ -11,7 +11,7 @@ These two examples walk through the complete projection lifecycle using a `User`
 | [DatabaseReadModel](./DatabaseReadModel/) | Projection writes directly to the DB via `ConnectionInterface` | Simplest approach; straightforward SQL; no ORM overhead |
 | [EloquentReadModel](./EloquentReadModel/) | Projection emits commands via `outputChannelName` to a stateful `#[Aggregate]` Eloquent model | When you want the "auto-load + auto-save" sugar on a read model and Eloquent's lifecycle hooks |
 
-**Start with DatabaseReadModel.** It gets the projection lifecycle working with minimal moving parts. Once you understand init → backfill → reset → delete, switch to EloquentReadModel to see how a stateful Eloquent aggregate becomes the read model's persistence layer.
+**Start with DatabaseReadModel.** It gets the projection lifecycle working with minimal moving parts. Once you understand init → query → reset → delete, switch to EloquentReadModel to see how a stateful Eloquent aggregate becomes the read model's persistence layer.
 
 ## What both examples share
 
@@ -19,4 +19,4 @@ These two examples walk through the complete projection lifecycle using a `User`
 - `#[ProjectionV2]` + `#[FromAggregateStream(User::class)]` for automatic stream wiring
 - `#[ProjectionInitialization]` and `#[ProjectionDelete]` lifecycle hooks
 - `#[QueryHandler]` on the projection class for `user.listActive`
-- A `run_example.php` script that exercises all seven lifecycle steps and asserts on the read model state
+- A `run_example.php` script that walks the projection lifecycle and asserts on the read model state

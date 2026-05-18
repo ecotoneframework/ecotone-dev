@@ -1,0 +1,33 @@
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Domain/Event/UserWasDeactivated.php
+  s_97d25b9e122608::t_a3954fc885fe06 11-13,16-17
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Domain/Event/UserWasRegistered.php
+  s_97d25b9e122608::t_d70aa3a7ceef38 11-13,16-17
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Domain/Event/UserNameWasChanged.php
+  s_97d25b9e122608::t_3d4dbe3767a84b 11-13,16-17
+quickstart-examples/Laravel/Projection/EloquentReadModel/README.md
+  s_97d25b9e122608::t_a603e66e1c9170 65-66
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Domain/Event/UserWasRegistered.php
+  s_97d25b9e122608::t_525d5ce0fbf77c 11-13,16-17
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Domain/Event/UserNameWasChanged.php
+  s_97d25b9e122608::t_b75ba0699ecc81 11-13,16-17
+quickstart-examples/Laravel/Projection/DatabaseReadModel/README.md
+  s_97d25b9e122608::t_e12ccd5116f252 57-58
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Domain/Event/UserWasDeactivated.php
+  s_97d25b9e122608::t_232ab2a1588e96 11-13,16-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "35bc65bd66e1581166b4f6494edb0971c98425fc",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

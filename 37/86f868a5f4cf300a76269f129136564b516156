@@ -1,0 +1,21 @@
+quickstart-examples/Symfony/Projection/EntityReadModel/README.md
+  s_97d25b9e122608::t_857cabfc27010e 90-91
+quickstart-examples/Laravel/Projection/EloquentReadModel/README.md
+  s_97d25b9e122608::t_f620a934a10afc 75-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "3786f868a5f4cf300a76269f129136564b516156",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

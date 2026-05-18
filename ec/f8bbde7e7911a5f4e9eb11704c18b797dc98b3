@@ -1,0 +1,36 @@
+packages/PdoEventSourcing/tests/Projecting/MySqlProjectionTransactionSafetyTest.php
+  s_97d25b9e122608::t_7dff336072c270 1-9,12-14,16,22-25,29,34-36,54,72-75,80,91-92
+  s_97d25b9e122608::t_a9e6741871a4b4 10-11,15,17-18,20-21,37,40-41,47,51-53,55-64,66-67,69,71,76-79,81-88
+  s_97d25b9e122608::t_103532ee70a3d0 65,70
+  s_97d25b9e122608::t_b0e6fe4441e59a 19
+  s_97d25b9e122608::t_007b644fcfe1b0 68
+  s_97d25b9e122608::t_0c0bc7a72033f6 26-28,30-33,38-39,42-46,48-50,89-90
+packages/PdoEventSourcing/tests/Fixture/MySqlSafety/Event/UserEventConverter.php
+  s_97d25b9e122608::t_1ec68f57237639 1-25
+packages/PdoEventSourcing/tests/Fixture/MySqlSafety/ReadModel/UserListProjection.php
+  s_97d25b9e122608::t_3eb573236050e2 1-49
+packages/PdoEventSourcing/tests/Fixture/MySqlSafety/ReadModel/UserReadModel.php
+  s_97d25b9e122608::t_4b0b329f698ed6 1-44
+packages/PdoEventSourcing/tests/Fixture/MySqlSafety/Aggregate/RegisterUser.php
+  s_97d25b9e122608::t_761416d0715124 1-17
+packages/PdoEventSourcing/tests/Fixture/MySqlSafety/Event/UserWasRegistered.php
+  s_97d25b9e122608::t_54544fdc24f551 1-17
+packages/PdoEventSourcing/tests/Fixture/MySqlSafety/Aggregate/User.php
+  s_97d25b9e122608::t_9dcaf0fc308694 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "ecf8bbde7e7911a5f4e9eb11704c18b797dc98b3",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

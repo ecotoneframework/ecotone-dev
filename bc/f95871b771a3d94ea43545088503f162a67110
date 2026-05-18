@@ -1,0 +1,37 @@
+quickstart-examples/Laravel/Projection/EloquentReadModel/README.md
+  s_97d25b9e122608::t_180e45ab9e4b0f 5,9,17,19-22,25,29-32,62,66-71,74,76-114,123,161,172,174,180,187-191
+quickstart-examples/Laravel/Projection/README.md
+  s_97d25b9e122608::t_3e16e2b4889247 12,14
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/ReadModel/Command/ChangeUserReadModelName.php
+  s_97d25b9e122608::t_32dcfd8a390f22 16
+  s_97d25b9e122608::t_9679607fed5b87 9,11-13
+quickstart-examples/Laravel/Projection/EloquentReadModel/composer.json
+  s_97d25b9e122608::t_975bad700d2135 28-29
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/ReadModel/Command/RegisterUserReadModel.php
+  s_97d25b9e122608::t_0e95cc1dd6d8cc 9,11
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/ReadModel/Command/DeactivateUserReadModel.php
+  s_97d25b9e122608::t_8a35a92f159d9c 9,11-13
+  s_97d25b9e122608::t_ad2a9c2b2562dd 16
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/ReadModel/UserReadModel.php
+  s_97d25b9e122608::t_cbf27f49997869 51,57
+  s_97d25b9e122608::t_5ff37b82ff1df0 9-16,19,33-39,41-50,52-56,58-61
+  s_97d25b9e122608::t_0c9def3a2e249d 40
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/ReadModel/UserListProjection.php
+  s_97d25b9e122608::t_98586c78049fc4 15-17,51-52,54,57-58,60,63-64,66
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "bcf95871b771a3d94ea43545088503f162a67110",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -20,4 +20,3 @@ These two examples walk through the complete projection lifecycle using a `User`
 - `#[ProjectionInitialization]` and `#[ProjectionDelete]` lifecycle hooks
 - `#[QueryHandler]` on the projection class for `user.listActive`
 - A `run_example.php` script that exercises all seven lifecycle steps and asserts on the read model state
-- PostgreSQL (event sourcing requires it; SQLite is not supported)

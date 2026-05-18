@@ -107,8 +107,6 @@ php run_example.php
 
 The script exits 0 and prints a seven-step ribbon showing each lifecycle phase.
 
-> **PostgreSQL only.** Event sourcing requires PostgreSQL; SQLite is not supported.
-
 ## 6. Reset vs Delete vs Rebuild
 
 ```mermaid
@@ -144,5 +142,4 @@ See [EloquentReadModel](../EloquentReadModel/README.md) when you want to use Elo
 1. **Forgetting `CREATE TABLE IF NOT EXISTS`.** Without `IF NOT EXISTS` the `init` hook fails if the table already exists, for example after a partial run.
 2. **Querying before init.** If you call `user.listActive` before `ecotone:projection:init` the table does not exist and you get a DB error. Always initialise before querying.
 3. **Event store accumulates across runs.** This example cleans up the User aggregate stream at the start of `run_example.php`. In production you would never delete the event stream — that is your source of truth.
-4. **PostgreSQL only.** The Ecotone event store uses Prooph's PostgreSQL adapter. MySQL is supported via a different adapter but requires explicit configuration.
-5. **Projection name collisions.** The name `user_list_database` is unique to this example. If you run both examples simultaneously they write to separate tables and use separate projection tracking entries.
+4. **Projection name collisions.** The name `user_list_database` is unique to this example. If you run both examples simultaneously they write to separate tables and use separate projection tracking entries.

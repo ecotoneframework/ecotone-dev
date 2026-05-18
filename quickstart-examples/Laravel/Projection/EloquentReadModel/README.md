@@ -127,8 +127,6 @@ composer update
 php run_example.php
 ```
 
-> **PostgreSQL only.** Event sourcing requires PostgreSQL; SQLite is not supported.
-
 ## 6. Reset vs Delete vs Rebuild
 
 ```mermaid

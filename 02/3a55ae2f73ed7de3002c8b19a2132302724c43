@@ -1,0 +1,43 @@
+quickstart-examples/Laravel/Projection/README.md
+  s_97d25b9e122608::t_5fb2579ab1e586 14
+  s_97d25b9e122608::t_5e0426eb72444e 22
+quickstart-examples/Laravel/Projection/EloquentReadModel/README.md
+  s_97d25b9e122608::t_8763694687ca79 169,175,186-188
+quickstart-examples/Symfony/Projection/DatabaseReadModel/run_example.php
+  s_97d25b9e122608::t_8611165424131e 72
+quickstart-examples/Laravel/Projection/DatabaseReadModel/run_example.php
+  s_97d25b9e122608::t_38ca0e62057e8d 71
+quickstart-examples/Symfony/Projection/EntityReadModel/run_example.php
+  s_97d25b9e122608::t_f9de9999ef9749 72
+quickstart-examples/Symfony/Projection/README.md
+  s_97d25b9e122608::t_468f3ae19fc1bf 14
+  s_97d25b9e122608::t_b056410054ec8b 22
+quickstart-examples/Laravel/Projection/EloquentReadModel/run_example.php
+  s_97d25b9e122608::t_f2e3cee2d96d8e 71
+quickstart-examples/Symfony/Projection/DatabaseReadModel/README.md
+  s_97d25b9e122608::t_ffe13b9d9cf16e 5
+  s_97d25b9e122608::t_4a4250ed1a653e 80
+  s_97d25b9e122608::t_be896775a03675 108,110,116,127-129
+quickstart-examples/Laravel/Projection/DatabaseReadModel/README.md
+  s_97d25b9e122608::t_625cfb123a5779 108,110,116,127-129
+  s_97d25b9e122608::t_fcacdb3ab7e677 80
+  s_97d25b9e122608::t_b1ae380b79641f 5
+quickstart-examples/Symfony/Projection/EntityReadModel/README.md
+  s_97d25b9e122608::t_703ea87db58581 166,172,183-185
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "023a55ae2f73ed7de3002c8b19a2132302724c43",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

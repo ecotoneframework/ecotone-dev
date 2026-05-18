@@ -1,0 +1,118 @@
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Domain/Event/UserWasDeactivated.php
+  s_97d25b9e122608::t_01d7826cc01d1f 1-17
+quickstart-examples/Laravel/Projection/DatabaseReadModel/storage/framework/views/.gitignore
+  s_97d25b9e122608::t_bc840d84dccd43 1-2
+quickstart-examples/Laravel/Projection/DatabaseReadModel/config/app.php
+  s_97d25b9e122608::t_6564d9956d8f7d 1-40
+quickstart-examples/Laravel/Projection/DatabaseReadModel/storage/framework/sessions/.gitignore
+  s_97d25b9e122608::t_38ee0ef5274afe 1-2
+quickstart-examples/Laravel/Projection/DatabaseReadModel/run_example.php
+  s_97d25b9e122608::t_069213b8c7d923 1-7,11-21,24-27,30-31,36-78
+  s_97d25b9e122608::t_286998702089ca 8-9,28-29,32-35
+  s_97d25b9e122608::t_cf9d777fb4caa2 10,22-23
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Models/UserReadModel.php
+  s_97d25b9e122608::t_47e023580fe6b4 1-26
+quickstart-examples/Laravel/Projection/EloquentReadModel/storage/logs/.gitignore
+  s_97d25b9e122608::t_1fba412bebda54 1-2
+quickstart-examples/Laravel/Projection/EloquentReadModel/config/ecotone.php
+  s_97d25b9e122608::t_144194e19c59a8 1-5
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Domain/Command/DeactivateUser.php
+  s_97d25b9e122608::t_519f95925aaf4e 1-17
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Application/ApplyUserDeactivated.php
+  s_97d25b9e122608::t_b040f0542c6266 1-17
+quickstart-examples/Laravel/Projection/EloquentReadModel/composer.json
+  s_97d25b9e122608::t_cee48098e7fe60 1-38
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Domain/Command/RegisterUser.php
+  s_97d25b9e122608::t_aefa28bbee4bc0 1-19
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/ReadModel/UserListProjection.php
+  s_97d25b9e122608::t_3f69f853f85def 1-85
+quickstart-examples/Laravel/Projection/DatabaseReadModel/config/database.php
+  s_97d25b9e122608::t_63a96675187fcb 1-10
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Infrastructure/EcotoneConfiguration.php
+  s_97d25b9e122608::t_9f0ffae1c5c573 1-21
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Domain/Event/UserWasDeactivated.php
+  s_97d25b9e122608::t_7ae1184d41bd9b 1-17
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Domain/Event/UserWasRegistered.php
+  s_97d25b9e122608::t_7ae1184d41bd9b 1-19
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Domain/Command/ChangeUserName.php
+  s_97d25b9e122608::t_94e41f3f31d32e 1-18
+quickstart-examples/Laravel/Projection/DatabaseReadModel/config/ecotone.php
+  s_97d25b9e122608::t_6029c46034118a 1-5
+quickstart-examples/Laravel/Projection/EloquentReadModel/config/database.php
+  s_97d25b9e122608::t_d768a1273d02ce 1-10
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Application/ApplyUserRegistered.php
+  s_97d25b9e122608::t_a4aa20ec5092ac 1-19
+quickstart-examples/Laravel/Projection/DatabaseReadModel/bootstrap/app.php
+  s_97d25b9e122608::t_1bd490c6b9830f 1-22
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Domain/User.php
+  s_97d25b9e122608::t_7ae1184d41bd9b 1-80
+quickstart-examples/Laravel/Projection/EloquentReadModel/bootstrap/app.php
+  s_97d25b9e122608::t_b952bc7bcc4000 1-22
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Domain/Event/UserNameWasChanged.php
+  s_97d25b9e122608::t_3f9372bc72e004 1-18
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Application/ApplyUserNameChanged.php
+  s_97d25b9e122608::t_4b01a042aaa3ed 1-18
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/ReadModel/UserListProjection.php
+  s_97d25b9e122608::t_f61fb1f18b97bf 1-78
+quickstart-examples/Laravel/Projection/DatabaseReadModel/storage/framework/.gitignore
+  s_97d25b9e122608::t_ebb3861b85f953 1-9
+quickstart-examples/Laravel/Projection/DatabaseReadModel/storage/app/public/.gitignore
+  s_97d25b9e122608::t_3362a3b5b39a4e 1-2
+quickstart-examples/Laravel/Projection/DatabaseReadModel/composer.json
+  s_97d25b9e122608::t_9956dfc9d8aa7f 1-38
+quickstart-examples/Laravel/Projection/EloquentReadModel/storage/app/.gitignore
+  s_97d25b9e122608::t_1fba412bebda54 1-3
+quickstart-examples/Laravel/Projection/EloquentReadModel/storage/framework/views/.gitignore
+  s_97d25b9e122608::t_1fba412bebda54 1-2
+quickstart-examples/Laravel/Projection/EloquentReadModel/storage/framework/sessions/.gitignore
+  s_97d25b9e122608::t_1fba412bebda54 1-2
+quickstart-examples/Laravel/Projection/DatabaseReadModel/storage/logs/.gitignore
+  s_97d25b9e122608::t_5efba0078cc278 1-2
+quickstart-examples/Laravel/Projection/EloquentReadModel/run_example.php
+  s_97d25b9e122608::t_2c4a95b7992328 1-78
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Application/UserReadModelWriter.php
+  s_97d25b9e122608::t_fe392b1396df75 1-38
+quickstart-examples/Laravel/Projection/DatabaseReadModel/storage/app/.gitignore
+  s_97d25b9e122608::t_dfdc4fe34a8567 1-3
+quickstart-examples/Laravel/Projection/EloquentReadModel/storage/app/public/.gitignore
+  s_97d25b9e122608::t_1fba412bebda54 1-2
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Domain/Command/ChangeUserName.php
+  s_97d25b9e122608::t_7ae1184d41bd9b 1-18
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Domain/User.php
+  s_97d25b9e122608::t_4289cd3c67a63d 1-80
+quickstart-examples/Laravel/Projection/DatabaseReadModel/storage/framework/testing/.gitignore
+  s_97d25b9e122608::t_06a85b082709f0 1-2
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Domain/Event/UserNameWasChanged.php
+  s_97d25b9e122608::t_7ae1184d41bd9b 1-18
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Infrastructure/EcotoneConfiguration.php
+  s_97d25b9e122608::t_d07d50847b3edb 1-16,18,20-21
+  s_97d25b9e122608::t_da99860e1420ec 17,19
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Domain/Command/DeactivateUser.php
+  s_97d25b9e122608::t_7ae1184d41bd9b 1-17
+quickstart-examples/Laravel/Projection/EloquentReadModel/config/app.php
+  s_97d25b9e122608::t_203289829ab6a5 1-40
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/Domain/Command/RegisterUser.php
+  s_97d25b9e122608::t_7ae1184d41bd9b 1-19
+quickstart-examples/Laravel/Projection/DatabaseReadModel/app/Domain/Event/UserWasRegistered.php
+  s_97d25b9e122608::t_a849cd82dfcd4f 1-19
+quickstart-examples/Laravel/Projection/EloquentReadModel/storage/framework/testing/.gitignore
+  s_97d25b9e122608::t_1fba412bebda54 1-2
+quickstart-examples/Laravel/Projection/EloquentReadModel/storage/framework/.gitignore
+  s_97d25b9e122608::t_1fba412bebda54 1-9
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "4ffe3c75f230b906bbfaa2588770cf658ccc584d",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

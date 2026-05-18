@@ -1,0 +1,26 @@
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/ReadModel/UserReadModel.php
+  s_97d25b9e122608::t_3bff29c8407f2e 37-38,40,43-44,46,49-50
+quickstart-examples/Laravel/Projection/EloquentReadModel/app/ReadModel/UserListProjection.php
+  s_97d25b9e122608::t_c32e18dcee067b 48-49,51-56,59-60,62-65,68-69,71-73
+quickstart-examples/Laravel/Projection/EloquentReadModel/README.md
+  s_97d25b9e122608::t_ac30445bd9a373 199-200
+  s_97d25b9e122608::t_9159110ed47711 61,65-70,73-86,104-105,107,110-111,113,122
+  s_97d25b9e122608::t_5881b3380bab74 5
+  s_97d25b9e122608::t_25088801f4f0fa 19-21,30-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "4a5820419ec089e8d7d7b5fae48d92ab29c94d43",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

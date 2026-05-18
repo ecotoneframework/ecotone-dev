@@ -77,13 +77,15 @@ Each `#[EventHandler]` on `UserListProjection` returns a plain associative array
 public function onRegistered(UserWasRegistered $event): array
 {
     return [
-        'user_id' => $event->userId,
+        'userId' => $event->userId,
         'name' => $event->name,
         'email' => $event->email,
         'active' => true,
     ];
 }
 ```
+
+The array key `'userId'` matches the PHP property name on the aggregate (`$userId`), so Ecotone auto-resolves the identifier on instance command handlers — no `identifierMapping` needed.
 
 ### 4.3 The read model is a stateful Doctrine entity aggregate
 
@@ -101,10 +103,10 @@ final class UserReadModel
     #[CommandHandler('RegisterUserReadModel')]
     public static function register(array $data): self
     {
-        return new self($data['user_id'], $data['name'], $data['email'], $data['active']);
+        return new self($data['userId'], $data['name'], $data['email'], $data['active']);
     }
 
-    #[CommandHandler('ChangeUserReadModelName', identifierMapping: ['userId' => "payload['user_id']"])]
+    #[CommandHandler('ChangeUserReadModelName')]
     public function changeName(array $data): void
     {
         $this->name = $data['name'];
@@ -112,11 +114,10 @@ final class UserReadModel
 }
 ```
 
-Three things make this work end-to-end:
+Two things make this work end-to-end:
 
-- **`#[ORM\Entity]` + `#[Aggregate]`** — Ecotone detects a Doctrine ORM aggregate and wires its Doctrine repository automatically when `DbalConfiguration::withDoctrineORMRepositories(true)` is set.
-- **`#[Identifier]` on the id property** — declares which property identifies the aggregate. Ecotone uses this to load the entity from the DB before invoking instance command handlers, and to persist it afterwards.
-- **`identifierMapping: ['userId' => "payload['user_id']"]`** — tells Ecotone where to find the identifier *in the inbound payload*. The key (`'userId'`) is the **PHP property name**; the expression (`payload['user_id']`) reads the column name key from the inbound array. The bracket notation is required because the payload is an array; dot notation (`payload.userId`) works only for object DTOs. The static `register` handler doesn't need it — it creates a new aggregate, so there's nothing to load first.
+- **`#[ORM\Entity]` + `#[Aggregate]`** — Ecotone detects a Doctrine ORM aggregate and wires its Doctrine repository automatically. No repository configuration needed.
+- **`#[Identifier]` on the id property** — declares which property identifies the aggregate. Ecotone uses this to load the entity from the DB before invoking instance command handlers, and to persist it afterwards. Because the projection emits an array whose key (`'userId'`) matches this property name, Ecotone resolves the identifier without an explicit `identifierMapping`.
 
 After the handler returns, Ecotone calls the entity manager's persist and flush for you. That's the "auto-load + auto-save" sugar applied to a read model.
 
@@ -193,7 +194,7 @@ See [DatabaseReadModel](../DatabaseReadModel/README.md) for the simpler direct-w
 ## 8. Common pitfalls
 
 1. **`outputChannelName` must match a `#[CommandHandler]` routing key string exactly.** A typo causes a silent "no handler found" failure. Consider extracting the strings to constants if you have many.
-2. **`identifierMapping` is required on instance command handlers.** Without it Ecotone can't extract the aggregate id from the inbound payload (chaining via `outputChannelName` bypasses bus-level identifier extraction). Static creation handlers don't need it. The key is the **PHP property name** (`'userId'`), not the column name (`'user_id'`). For arrays use bracket syntax: `"payload['user_id']"`.
+2. **Match the payload key to the aggregate's PHP property name** to skip `identifierMapping`. The projection emits arrays keyed `userId` and the aggregate property is `$userId`, so Ecotone resolves the identifier automatically. If the payload key differs (e.g. `user_id`), an explicit `identifierMapping: ['userId' => "payload['user_id']"]` is required on instance command handlers (chaining via `outputChannelName` bypasses bus-level identifier extraction). Static creation handlers don't need either.
 3. **`withDoctrineORMRepositories(true)` is required.** Without it Ecotone doesn't wire the Doctrine entity manager as the aggregate repository.
 4. **`#[Identifier]` goes on the property, not the getter.** For Doctrine entities, use the property-based `#[Identifier]` attribute — not `#[AggregateIdentifierMethod]` which is for Eloquent models with dynamic accessors.
 5. **ORM mapping must point at `src/ReadModel`.** The `doctrine.yaml` maps only `App\ReadModel` to avoid scanning event-sourced domain classes (which are not entities).

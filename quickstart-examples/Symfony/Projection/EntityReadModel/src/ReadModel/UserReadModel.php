@@ -43,16 +43,16 @@ final class UserReadModel
     #[CommandHandler('RegisterUserReadModel')]
     public static function register(array $data): self
     {
-        return new self($data['user_id'], $data['name'], $data['email'], $data['active']);
+        return new self($data['userId'], $data['name'], $data['email'], $data['active']);
     }
 
-    #[CommandHandler('ChangeUserReadModelName', identifierMapping: ['userId' => "payload['user_id']"])]
+    #[CommandHandler('ChangeUserReadModelName')]
     public function changeName(array $data): void
     {
         $this->name = $data['name'];
     }
 
-    #[CommandHandler('DeactivateUserReadModel', identifierMapping: ['userId' => "payload['user_id']"])]
+    #[CommandHandler('DeactivateUserReadModel')]
     public function deactivate(): void
     {
         $this->active = false;

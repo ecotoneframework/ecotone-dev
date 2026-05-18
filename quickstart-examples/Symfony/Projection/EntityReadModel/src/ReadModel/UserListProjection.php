@@ -49,7 +49,7 @@ final class UserListProjection
     public function onRegistered(UserWasRegistered $event): array
     {
         return [
-            'user_id' => $event->userId,
+            'userId' => $event->userId,
             'name' => $event->name,
             'email' => $event->email,
             'active' => true,
@@ -60,7 +60,7 @@ final class UserListProjection
     public function onNameChanged(UserNameWasChanged $event): array
     {
         return [
-            'user_id' => $event->userId,
+            'userId' => $event->userId,
             'name' => $event->name,
         ];
     }
@@ -69,7 +69,7 @@ final class UserListProjection
     public function onDeactivated(UserWasDeactivated $event): array
     {
         return [
-            'user_id' => $event->userId,
+            'userId' => $event->userId,
         ];
     }
 

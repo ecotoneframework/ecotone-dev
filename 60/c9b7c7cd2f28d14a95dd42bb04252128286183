@@ -1,0 +1,104 @@
+quickstart-examples/Symfony/Projection/DatabaseReadModel/src/Domain/Event/UserWasDeactivated.php
+  s_97d25b9e122608::t_da34e6c6d9a8d0 1-22
+quickstart-examples/Symfony/Projection/EntityReadModel/src/Domain/Command/ChangeUserName.php
+  s_97d25b9e122608::t_1bc80e18655cf0 1-18
+quickstart-examples/Symfony/Projection/EntityReadModel/src/Domain/User.php
+  s_97d25b9e122608::t_d7a5d076071877 1-80
+quickstart-examples/Symfony/Projection/EntityReadModel/config/services.php
+  s_97d25b9e122608::t_72c84653821540 3-6
+  s_97d25b9e122608::t_d62583fea50347 1-2,7-15
+quickstart-examples/Symfony/Projection/DatabaseReadModel/src/Domain/Event/UserWasRegistered.php
+  s_97d25b9e122608::t_051039fc808b85 1-24
+quickstart-examples/Symfony/Projection/README.md
+  s_97d25b9e122608::t_44b67e16f05ee3 1-22
+quickstart-examples/Symfony/Projection/EntityReadModel/src/Domain/Command/RegisterUser.php
+  s_97d25b9e122608::t_2167ebd91fcefb 1-19
+quickstart-examples/Symfony/Projection/EntityReadModel/src/Domain/Command/DeactivateUser.php
+  s_97d25b9e122608::t_de60c14511d305 1-17
+quickstart-examples/Symfony/Projection/DatabaseReadModel/src/Domain/Command/RegisterUser.php
+  s_97d25b9e122608::t_569381b7c47db8 1-19
+quickstart-examples/Symfony/Projection/DatabaseReadModel/src/Domain/Command/ChangeUserName.php
+  s_97d25b9e122608::t_731ab14cd0b961 1-18
+quickstart-examples/Symfony/Projection/DatabaseReadModel/bin/console
+  s_97d25b9e122608::t_3d17677a4fdace 1-21
+quickstart-examples/Symfony/Projection/EntityReadModel/src/Domain/Event/UserWasDeactivated.php
+  s_97d25b9e122608::t_b690523add2f16 1-22
+quickstart-examples/Symfony/Projection/DatabaseReadModel/.gitignore
+  s_97d25b9e122608::t_2d481f8691cdfa 1-4
+quickstart-examples/Symfony/Projection/EntityReadModel/README.md
+  s_97d25b9e122608::t_704a4c5fee1810 119
+  s_97d25b9e122608::t_91f5caf449434c 196
+  s_97d25b9e122608::t_c3c6587cf7e830 107
+  s_97d25b9e122608::t_6905040affd229 1-106,108-118,120-195,197-199
+quickstart-examples/Symfony/Projection/DatabaseReadModel/config/services.php
+  s_97d25b9e122608::t_92294a86c3e78d 1-2,7-15
+  s_97d25b9e122608::t_d2353640693c80 3-6
+quickstart-examples/Symfony/Projection/EntityReadModel/src/ReadModel/UserReadModel.php
+  s_97d25b9e122608::t_070fed14d625a1 1-48,50-54,56-60
+  s_97d25b9e122608::t_908e80b6e8185a 49,55
+quickstart-examples/Symfony/Projection/DatabaseReadModel/src/Domain/Event/UserNameWasChanged.php
+  s_97d25b9e122608::t_e023b3fdf3c47c 1-23
+quickstart-examples/Symfony/Projection/EntityReadModel/src/Domain/Event/UserWasRegistered.php
+  s_97d25b9e122608::t_e7e055eabfc3d2 1-24
+quickstart-examples/Symfony/Projection/DatabaseReadModel/README.md
+  s_97d25b9e122608::t_32beaf7471e490 1-145
+quickstart-examples/composer.json
+  s_97d25b9e122608::t_6a0528e90378e2 69-71
+quickstart-examples/Symfony/Projection/EntityReadModel/.gitignore
+  s_97d25b9e122608::t_b48a72a8e9e462 1-4
+quickstart-examples/Symfony/Projection/DatabaseReadModel/config/packages/doctrine.yaml
+  s_97d25b9e122608::t_83a822d245b9f4 1-7
+quickstart-examples/Symfony/Projection/DatabaseReadModel/src/Domain/Command/DeactivateUser.php
+  s_97d25b9e122608::t_dc4df9046ed7bc 1-17
+quickstart-examples/Symfony/Projection/DatabaseReadModel/config/bundles.php
+  s_97d25b9e122608::t_80dcbdf572fa15 1-2,7-13
+  s_97d25b9e122608::t_be8243f5b85490 3-6
+quickstart-examples/Symfony/Projection/DatabaseReadModel/src/ReadModel/UserListProjection.php
+  s_97d25b9e122608::t_6d6a5921c2548f 51-54,60-62,69-70
+  s_97d25b9e122608::t_c05d197e73e0a5 1-50,55-59,63-68,71-82
+quickstart-examples/Symfony/Projection/EntityReadModel/composer.json
+  s_97d25b9e122608::t_491d86b90a37c0 1-42
+quickstart-examples/Symfony/Projection/EntityReadModel/src/Configuration/Kernel.php
+  s_97d25b9e122608::t_01f187175df84f 1-21
+quickstart-examples/Symfony/Projection/EntityReadModel/src/Domain/Event/UserNameWasChanged.php
+  s_97d25b9e122608::t_d1bbb66367ed78 1-23
+quickstart-examples/Symfony/Projection/DatabaseReadModel/src/Configuration/Kernel.php
+  s_97d25b9e122608::t_8155eecbeec124 1-21
+quickstart-examples/Symfony/Projection/EntityReadModel/run_example.php
+  s_97d25b9e122608::t_5d1a0f54e80363 1-83
+quickstart-examples/Symfony/Projection/EntityReadModel/bin/console
+  s_97d25b9e122608::t_cc6a11dcaf0bd4 1-21
+quickstart-examples/Symfony/Projection/EntityReadModel/config/bundles.php
+  s_97d25b9e122608::t_c52a026d4d6e30 3-6
+  s_97d25b9e122608::t_76c4fdf04f036c 1-2,7-13
+quickstart-examples/Symfony/Projection/DatabaseReadModel/composer.json
+  s_97d25b9e122608::t_820bdd7e56b76d 1-42
+quickstart-examples/Symfony/Projection/DatabaseReadModel/src/Configuration/EcotoneConfiguration.php
+  s_97d25b9e122608::t_d536a7b20707c7 1-21
+quickstart-examples/Symfony/Projection/DatabaseReadModel/src/Domain/User.php
+  s_97d25b9e122608::t_a53abf39fa5649 1-80
+quickstart-examples/Symfony/Projection/DatabaseReadModel/run_example.php
+  s_97d25b9e122608::t_e7c6b9a6e1742a 1-83
+quickstart-examples/Symfony/Projection/EntityReadModel/config/packages/doctrine.yaml
+  s_97d25b9e122608::t_c79e5877191012 1-18
+quickstart-examples/Symfony/Projection/EntityReadModel/src/Configuration/EcotoneConfiguration.php
+  s_97d25b9e122608::t_6e7326ee3684d9 1-29
+quickstart-examples/Symfony/Projection/EntityReadModel/src/ReadModel/UserListProjection.php
+  s_97d25b9e122608::t_6b510b4808d4fb 1-90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "60c9b7c7cd2f28d14a95dd42bb04252128286183",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

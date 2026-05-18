@@ -45,6 +45,9 @@ echo "   Projection deleted\n\n";
 
 echo "2) Initialise projection (create read model storage)\n";
 $messagingSystem->runConsoleCommand('ecotone:projection:init', ['name' => 'user_list_entity']);
+if (! $eventStore->hasStream(User::class)) {
+    $eventStore->create(User::class);
+}
 echo "   Projection initialised\n\n";
 
 echo "3) Emit events via commands\n";

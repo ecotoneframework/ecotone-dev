@@ -31,7 +31,11 @@ final class UserListProjection
     #[ProjectionInitialization]
     public function init(): void
     {
-        $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS user_list_entity (
+        if ($this->connection->createSchemaManager()->tablesExist(['user_list_entity'])) {
+            return;
+        }
+
+        $this->connection->executeStatement('CREATE TABLE user_list_entity (
             user_id VARCHAR(36) PRIMARY KEY,
             name VARCHAR(255) NOT NULL,
             email VARCHAR(255) NOT NULL,
@@ -42,7 +46,11 @@ final class UserListProjection
     #[ProjectionDelete]
     public function delete(): void
     {
-        $this->connection->executeStatement('DROP TABLE IF EXISTS user_list_entity');
+        if (! $this->connection->createSchemaManager()->tablesExist(['user_list_entity'])) {
+            return;
+        }
+
+        $this->connection->executeStatement('DROP TABLE user_list_entity');
     }
 
     #[EventHandler(outputChannelName: 'RegisterUserReadModel')]

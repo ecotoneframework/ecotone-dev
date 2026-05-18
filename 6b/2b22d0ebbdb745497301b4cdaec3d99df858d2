@@ -1,0 +1,19 @@
+quickstart-examples/Laravel/Projection/DatabaseReadModel/README.md
+  s_97d25b9e122608::t_cd5fc8a0ce05ef 145
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.8",
+  "base_commit_sha": "6b2b22d0ebbdb745497301b4cdaec3d99df858d2",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

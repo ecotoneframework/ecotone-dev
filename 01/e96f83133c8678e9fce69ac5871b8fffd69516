@@ -1,0 +1,30 @@
+packages/PdoEventSourcing/src/Config/ProophProjectingModule.php
+  s_97d25b9e122608::t_d940dcbb33e9aa 299
+packages/Ecotone/src/Projecting/PreparableStreamSource.php
+  s_97d25b9e122608::t_41ab0eb1e1b489 1-27
+packages/Ecotone/src/Projecting/ProjectingManager.php
+  s_97d25b9e122608::t_24e00b5ed5dd67 152-156
+packages/PdoEventSourcing/src/Projecting/StreamSource/EventStoreGlobalStreamSource.php
+  s_97d25b9e122608::t_5a52d2c1ac26f0 61-62
+  s_97d25b9e122608::t_b20c3f44414889 24-25,34,47,56-60,63-65
+packages/PdoEventSourcing/src/Projecting/StreamSource/EventStoreAggregateStreamSource.php
+  s_97d25b9e122608::t_ef20463ec6d9dd 44-45,48-52
+  s_97d25b9e122608::t_a036686141d9f0 18,27
+  s_97d25b9e122608::t_ae3006762cad04 46-47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.4.9",
+  "base_commit_sha": "01e96f83133c8678e9fce69ac5871b8fffd69516",
+  "prompts": {},
+  "sessions": {
+    "s_97d25b9e122608": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "27932e9b-f67a-4895-bc13-afcc8e1d3857",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

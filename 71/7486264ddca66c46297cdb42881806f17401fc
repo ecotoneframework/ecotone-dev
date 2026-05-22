@@ -1,0 +1,85 @@
+packages/OpenTelemetry/README.md
+  s_c5e33dc9a822e2::t_e5e4bc7bfdf643 20
+packages/JmsConverter/README.md
+  s_c5e33dc9a822e2::t_f104f96d584ab8 20
+packages/DataProtection/README.md
+  s_c5e33dc9a822e2::t_807b09b17ec4a3 20
+packages/LiteApplication/README.md
+  s_c5e33dc9a822e2::t_ba253b590164df 63
+  s_c5e33dc9a822e2::t_ad76733740a486 20
+packages/Kafka/composer.json
+  s_c5e33dc9a822e2::t_14bc76ac0e1431 19-25
+packages/Sqs/composer.json
+  s_c5e33dc9a822e2::t_cdf93cae5bc6fa 20-27
+packages/OpenTelemetry/composer.json
+  s_c5e33dc9a822e2::t_47b1413677e04a 20-25
+packages/Enqueue/composer.json
+  s_c5e33dc9a822e2::t_b0dd7d00233048 20-25
+packages/PdoEventSourcing/composer.json
+  s_c5e33dc9a822e2::t_8a3eeaf8c0e9e8 19-28,31
+  s_c5e33dc9a822e2::t_19d24ce9ca0aa1 29
+packages/DataProtection/composer.json
+  s_c5e33dc9a822e2::t_4d04e8aee6a9f5 20-27
+packages/Ecotone/composer.json
+  s_c5e33dc9a822e2::t_f6329201738fe2 21-27,33
+packages/Enqueue/README.md
+  s_c5e33dc9a822e2::t_671bf232c645c8 22
+packages/Dbal/README.md
+  s_c5e33dc9a822e2::t_7eb615ab6225d9 20,22-23,25
+packages/Ecotone/README.md
+  s_c5e33dc9a822e2::t_4542de21a47e3c 105-108,110-118
+  s_c5e33dc9a822e2::t_06e46b3cb486a4 109
+  s_c5e33dc9a822e2::t_843f4443828584 187
+packages/Amqp/README.md
+  s_c5e33dc9a822e2::t_24ab5117499e1a 20
+packages/JmsConverter/composer.json
+  s_c5e33dc9a822e2::t_53d01624620692 22-23
+composer.json
+  s_c5e33dc9a822e2::t_a37ad9250c0a85 18-24,26-28,30
+packages/Sqs/README.md
+  s_c5e33dc9a822e2::t_646d4146e4b6f8 20
+packages/PdoEventSourcing/README.md
+  s_c5e33dc9a822e2::t_23c32b5e97f387 65
+  s_c5e33dc9a822e2::t_1050a2df16703c 18,23
+packages/Laravel/README.md
+  s_c5e33dc9a822e2::t_6658d34d979c70 20
+  s_c5e33dc9a822e2::t_c3cd3b986f52ea 67
+packages/Redis/composer.json
+  s_c5e33dc9a822e2::t_e5b932e3cef9af 25-29
+README.md
+  s_c5e33dc9a822e2::t_7fe7826d8d2597 40,42-49
+  s_c5e33dc9a822e2::t_698e81c9d9a2ca 41
+packages/Kafka/README.md
+  s_c5e33dc9a822e2::t_9bdd50f502b41a 20
+packages/Dbal/composer.json
+  s_c5e33dc9a822e2::t_adbfb8f4eb37bc 20-27,29
+packages/LiteApplication/composer.json
+  s_c5e33dc9a822e2::t_53767c9cdc49b2 19-21,24-28,30
+packages/Amqp/composer.json
+  s_c5e33dc9a822e2::t_90b49ca90de28c 23-24,26-29
+packages/Symfony/composer.json
+  s_c5e33dc9a822e2::t_01d30826952164 20-21,24-29,31,33
+packages/Redis/README.md
+  s_c5e33dc9a822e2::t_617fa34514c871 20
+packages/Symfony/README.md
+  s_c5e33dc9a822e2::t_ba3101f3dc411e 20
+  s_c5e33dc9a822e2::t_377425acaecc0a 67
+packages/Laravel/composer.json
+  s_c5e33dc9a822e2::t_72e1cfeed0b5b7 21-27,29-30,32
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.0",
+  "base_commit_sha": "717486264ddca66c46297cdb42881806f17401fc",
+  "prompts": {},
+  "sessions": {
+    "s_c5e33dc9a822e2": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f0da6c36-3ad4-43ab-99be-7a51200e20b1",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

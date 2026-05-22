@@ -17,7 +17,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## Ecotone for Laravel
 
-Laravel handles HTTP beautifully. But the moment you need Event Sourcing, Sagas, or multi-step workflows, you're stitching packages together. Ecotone gives you one coherent toolkit — Aggregates, Projections, Outbox, and more — all attribute-driven, all testable in-process, all running on the Laravel queues you already have.
+Laravel handles HTTP beautifully. But the moment you need [Event Sourcing](https://ecotone.tech/event-sourcing), [Sagas, or multi-step workflows](https://ecotone.tech/durable-workflows), you're stitching packages together. Ecotone gives you one coherent toolkit — Aggregates, Projections, [Outbox](https://docs.ecotone.tech/solutions/unreliable-async-processing), and more — all attribute-driven, all testable in-process, all running on the Laravel queues you already have.
 
 - **Works with Eloquent and Doctrine**
 - **Laravel Queue integration** — use your existing queue drivers
@@ -64,4 +64,4 @@ If you want to help building and improving Ecotone consider becoming a sponsor:
 
 ## Tags
 
-PHP, Laravel, Eloquent, DDD, CQRS, Event Sourcing, Sagas, Projections, Workflows, Outbox, Service Bus, Laravel Queue
+PHP, Laravel, Eloquent, DDD, CQRS, Event Sourcing, Sagas, Projections, Durable Workflows, Workflows, Outbox, Service Bus, Laravel Queue

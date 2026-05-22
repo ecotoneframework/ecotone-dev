@@ -20,12 +20,13 @@
         "rabbitmq",
         "rabbit",
         "messaging",
-        "asynchronous",
-        "message",
-        "enterprise integration patterns",
+        "async-messaging",
+        "message-broker",
         "eip",
-        "distributed architecture",
-        "domain driven design"
+        "ecotone",
+        "outbox",
+        "durable-workflows",
+        "saga"
     ],
     "description": "AMQP / RabbitMQ transport for Ecotone asynchronous messaging, outbox, and dead letter.",
     "repositories": [

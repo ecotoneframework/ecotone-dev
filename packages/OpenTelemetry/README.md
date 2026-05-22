@@ -17,7 +17,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## OpenTelemetry integration
 
-Distributed tracing for every message in your Ecotone application. Commands, events, queries, async handlers, saga steps, and projections are traced automatically — so the full causal chain across sync and async flows is visible in any OTLP-compatible backend (Jaeger, Tempo, Grafana, Honeycomb, Datadog, New Relic, and others).
+Distributed tracing for every message in your Ecotone application. Commands, events, queries, [async handlers](https://ecotone.tech/asynchronous-communication), [saga steps](https://ecotone.tech/durable-workflows), and [projections](https://ecotone.tech/event-sourcing) are traced automatically — so the full causal chain across sync and async flows is visible in any OTLP-compatible backend (Jaeger, Tempo, Grafana, Honeycomb, Datadog, New Relic, and others). See [tracing configuration](https://docs.ecotone.tech/modules/opentelemetry-tracing-and-metrics) for the full setup.
 
 - **Automatic span creation** per handler invocation
 - **Trace context propagation** across async channels — traces don't break when a message crosses a queue

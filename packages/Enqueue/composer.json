@@ -17,7 +17,12 @@
     ],
     "keywords": [
         "enqueue",
-        "ecotone"
+        "ecotone",
+        "message-broker",
+        "async-messaging",
+        "amqp",
+        "sqs",
+        "redis"
     ],
     "description": "Enqueue adapter layer for Ecotone \u2014 shared base for AMQP, Redis, and SQS transports.",
     "repositories": [

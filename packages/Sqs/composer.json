@@ -17,7 +17,14 @@
     ],
     "keywords": [
         "ecotone",
-        "Sqs"
+        "sqs",
+        "aws-sqs",
+        "amazon-sqs",
+        "message-broker",
+        "async-messaging",
+        "fifo",
+        "outbox",
+        "durable-workflows"
     ],
     "description": "AWS SQS transport for Ecotone asynchronous messaging.",
     "repositories": [

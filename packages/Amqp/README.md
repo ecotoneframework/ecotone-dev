@@ -17,7 +17,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## AMQP / RabbitMQ transport
 
-Route `#[Asynchronous]` handlers to RabbitMQ. Exchanges, queues, and bindings are declared from your PHP configuration, and every message flows through Ecotone's standard retry, outbox, and dead letter pipeline — so switching to AMQP in production never changes how your handlers or tests are written.
+Route `#[Asynchronous]` handlers to RabbitMQ. Exchanges, queues, and bindings are declared from your PHP configuration, and every message flows through Ecotone's standard [retry, outbox, and dead letter pipeline](https://docs.ecotone.tech/solutions/unreliable-async-processing) — so switching to AMQP in production never changes how your handlers or tests are written. Carries [asynchronous communication](https://ecotone.tech/asynchronous-communication), [durable workflow](https://ecotone.tech/durable-workflows) execution, and [cross-service distribution](https://ecotone.tech/microservices) on the same broker.
 
 Supports both implementations:
 

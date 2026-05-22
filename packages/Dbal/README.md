@@ -17,11 +17,12 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## Doctrine DBAL integration
 
-Database-backed foundation for Ecotone, built on Doctrine DBAL. Use your existing relational database as a message transport, outbox, or dead letter store — no extra infrastructure required to get started.
+Database-backed foundation for Ecotone, built on Doctrine DBAL. Use your existing relational database as a [message transport](https://ecotone.tech/asynchronous-communication), outbox, dead letter store, or [durable saga state](https://ecotone.tech/durable-workflows) — no extra infrastructure required to get started.
 
-- **DBAL message channel** — durable asynchronous channel backed by your database
-- **Outbox pattern** — atomic commit of business state and outbound messages, so no event is lost on crash
+- **DBAL message channel** — durable [asynchronous channel](https://ecotone.tech/asynchronous-communication) backed by your database
+- **Outbox pattern** — atomic commit of business state and outbound messages, so no event is lost on crash ([details](https://docs.ecotone.tech/solutions/unreliable-async-processing))
 - **Dead Letter Queue** — failed messages persisted to your database, inspectable and replayable
+- **Saga state storage** — non-event-sourced sagas persist their state per `#[Identifier]` in your DB
 - **Document Store** — aggregates persisted as JSON documents, no ORM required
 - **Business Interfaces** — declarative DBAL query methods via `#[DbalBusinessMethod]`
 - **Transactional message handling** — each handler wrapped in a DB transaction automatically

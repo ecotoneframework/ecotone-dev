@@ -17,7 +17,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## Redis transport
 
-Route `#[Asynchronous]` handlers to Redis-backed channels. Low-latency, low-setup asynchronous messaging that plugs into the same retry, outbox, and dead letter pipeline as every other Ecotone transport — so switching to RabbitMQ, Kafka, or DBAL later doesn't change your handler code or your tests.
+Route `#[Asynchronous]` handlers to Redis-backed channels. Low-latency, low-setup [asynchronous messaging](https://ecotone.tech/asynchronous-communication) that plugs into the same [retry, outbox, and dead letter pipeline](https://docs.ecotone.tech/solutions/unreliable-async-processing) as every other Ecotone transport — so switching to RabbitMQ, Kafka, or DBAL later doesn't change your handler code or your tests. Carries [durable workflow](https://ecotone.tech/durable-workflows) execution on the same broker.
 
 Ideal for teams that already run Redis and want asynchronous processing without standing up a dedicated message broker.
 

@@ -18,14 +18,19 @@
     "keywords": [
         "ddd",
         "cqrs",
-        "EventSourcing",
+        "event-sourcing",
+        "sagas",
+        "durable-workflows",
+        "durable-execution",
+        "workflow",
+        "outbox",
+        "projections",
         "ecotone",
         "service-bus",
         "message-driven",
-        "event",
         "event-driven"
     ],
-    "description": "Enterprise architecture layer for Laravel and Symfony \u2014 CQRS, Event Sourcing, Sagas, Projections, Workflows, and Outbox messaging via PHP attributes.",
+    "description": "Enterprise architecture layer for Laravel and Symfony \u2014 CQRS, Event Sourcing, Durable Workflows (Sagas, Orchestrators), Projections, and Outbox messaging via PHP attributes.",
     "repositories": [
         {
             "type": "path",

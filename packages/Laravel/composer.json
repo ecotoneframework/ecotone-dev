@@ -18,13 +18,18 @@
     "keywords": [
         "ddd",
         "cqrs",
-        "messaging",
-        "eip",
-        "distributed architecture",
+        "laravel",
+        "laravel-queue",
+        "event-sourcing",
+        "sagas",
+        "durable-workflows",
+        "workflow",
+        "outbox",
         "ecotone",
-        "ddd and cqrs on top of eip"
+        "messaging",
+        "eip"
     ],
-    "description": "Ecotone for Laravel \u2014 CQRS, Event Sourcing, Sagas, and Workflows on top of Laravel Queue, via PHP attributes.",
+    "description": "Ecotone for Laravel \u2014 CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox on top of Laravel Queue, via PHP attributes.",
     "repositories": [
         {
             "type": "path",

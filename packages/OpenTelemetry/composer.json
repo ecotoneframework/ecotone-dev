@@ -17,8 +17,12 @@
     ],
     "keywords": [
         "ecotone",
-        "Open telemetry",
-        "tracing"
+        "opentelemetry",
+        "otel",
+        "tracing",
+        "distributed-tracing",
+        "observability",
+        "otlp"
     ],
     "description": "OpenTelemetry distributed tracing for Ecotone \u2014 automatic spans and trace context propagation across sync and async flows.",
     "repositories": [

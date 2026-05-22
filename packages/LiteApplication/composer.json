@@ -16,15 +16,18 @@
         }
     ],
     "keywords": [
+        "ecotone",
+        "ecotone-lite",
+        "psr-11",
         "ddd",
         "cqrs",
-        "messaging",
-        "eip",
-        "distributed architecture",
-        "ecotone",
-        "ddd and cqrs on top of eip"
+        "event-sourcing",
+        "sagas",
+        "durable-workflows",
+        "workflow",
+        "framework-agnostic"
     ],
-    "description": "Ecotone Lite \u2014 framework-agnostic bootstrap for PSR-11 applications with CQRS, Event Sourcing, Sagas, and Workflows.",
+    "description": "Ecotone Lite \u2014 framework-agnostic bootstrap for PSR-11 applications with CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox.",
     "repositories": [
         {
             "type": "path",

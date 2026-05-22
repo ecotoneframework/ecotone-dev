@@ -17,7 +17,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## JMS Serializer media type converter
 
-Integration between Ecotone's media type converter system and [JMS Serializer](https://github.com/schmittjoh/serializer). Use JMS annotations to control serialization of commands, events, and query responses — custom naming, groups, type handlers — when Ecotone's default converter isn't enough.
+Integration between Ecotone's [media type converter system](https://docs.ecotone.tech/messaging/conversion/conversion) and [JMS Serializer](https://github.com/schmittjoh/serializer). Use JMS annotations to control serialization of commands, events, and query responses — custom naming, groups, type handlers — when Ecotone's default converter isn't enough.
 
 Typical reasons to reach for this:
 

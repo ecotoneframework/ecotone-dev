@@ -19,7 +19,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 Shared adapter layer between Ecotone and [Enqueue](https://github.com/php-enqueue/enqueue) — the PHP messaging abstraction used by Ecotone's AMQP, Redis, and SQS transports. You typically don't install this package directly; it's pulled in by whichever transport package you use.
 
-Install it directly only when building a custom Enqueue-backed transport (e.g., Stomp, Gearman, Beanstalkd) and integrating it with Ecotone's channel and consumer lifecycle.
+Install it directly only when building a custom Enqueue-backed transport (e.g., Stomp, Gearman, Beanstalkd) and integrating it with Ecotone's channel and consumer lifecycle — useful for [asynchronous communication](https://ecotone.tech/asynchronous-communication) on a broker Ecotone doesn't ship a dedicated package for.
 
 Visit [ecotone.tech](https://ecotone.tech) to learn more.
 

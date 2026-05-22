@@ -17,7 +17,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## Ecotone Lite — framework-agnostic
 
-Not on Laravel or Symfony? Ecotone Lite integrates with your existing PSR-11 container to provide Command, Event, and Query buses — plus the full feature set of Aggregates, Sagas, Projections, and Event Sourcing. Same attributes, same testing, same architecture.
+Not on Laravel or Symfony? Ecotone Lite integrates with your existing PSR-11 container to provide Command, Event, and Query buses — plus the full feature set of [Aggregates](https://ecotone.tech/domain-driven-design), [Sagas and durable workflows](https://ecotone.tech/durable-workflows), Projections, and [Event Sourcing](https://ecotone.tech/event-sourcing). Same attributes, same testing, same architecture.
 
 - **Any PSR-11 container**
 - **Full feature set available** — nothing framework-specific is held back
@@ -60,4 +60,4 @@ If you want to help building and improving Ecotone consider becoming a sponsor:
 
 ## Tags
 
-PHP, PSR-11, Ecotone Lite, DDD, CQRS, Event Sourcing, Sagas, Projections, Workflows, Outbox, Service Bus
+PHP, PSR-11, Ecotone Lite, DDD, CQRS, Event Sourcing, Sagas, Projections, Durable Workflows, Workflows, Outbox, Service Bus

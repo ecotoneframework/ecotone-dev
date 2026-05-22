@@ -17,7 +17,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## AWS SQS transport
 
-Route `#[Asynchronous]` handlers to AWS SQS queues. Managed messaging for teams already on AWS, with automatic retry, outbox, and dead letter handling — all through the same Ecotone pipeline that works with RabbitMQ, Kafka, Redis, and DBAL, so switching transports never changes your handler or test code.
+Route `#[Asynchronous]` handlers to AWS SQS queues. Managed messaging for teams already on AWS, with automatic [retry, outbox, and dead letter handling](https://docs.ecotone.tech/solutions/unreliable-async-processing) — all through the same Ecotone pipeline that works with RabbitMQ, Kafka, Redis, and DBAL, so switching transports never changes your handler or test code. Carries [asynchronous communication](https://ecotone.tech/asynchronous-communication) and [durable workflow](https://ecotone.tech/durable-workflows) execution on the same broker.
 
 - **Standard and FIFO queues** supported
 - **IAM-based authentication** via the AWS SDK

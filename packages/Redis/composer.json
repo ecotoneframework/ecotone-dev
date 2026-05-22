@@ -22,7 +22,11 @@
     ],
     "keywords": [
         "ecotone",
-        "redis"
+        "redis",
+        "message-broker",
+        "async-messaging",
+        "outbox",
+        "durable-workflows"
     ],
     "description": "Redis transport for Ecotone asynchronous messaging.",
     "repositories": [

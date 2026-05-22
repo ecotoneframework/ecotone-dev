@@ -17,7 +17,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## Apache Kafka transport
 
-Route `#[Asynchronous]` handlers to Kafka topics with partition-aware consumers and the same retry, outbox, and dead letter semantics as every other Ecotone transport. Publish from one service and consume in another via the Distributed Bus — switching transports never changes how your handlers or tests are written.
+Route `#[Asynchronous]` handlers to Kafka topics with partition-aware consumers and the same [retry, outbox, and dead letter semantics](https://docs.ecotone.tech/solutions/unreliable-async-processing) as every other Ecotone transport. Publish from one service and consume in another via the [Distributed Bus](https://ecotone.tech/microservices) — switching transports never changes how your handlers or tests are written. Carries [asynchronous communication](https://ecotone.tech/asynchronous-communication) and [durable workflow](https://ecotone.tech/durable-workflows) execution on the same broker.
 
 - **Partitioned consumers** — ordering guarantees per key
 - **Consumer groups** — scale out horizontally

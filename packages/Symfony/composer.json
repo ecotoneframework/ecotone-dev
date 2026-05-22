@@ -17,15 +17,20 @@
     ],
     "keywords": [
         "symfony",
+        "symfony-bundle",
+        "symfony-messenger",
         "ecotone",
         "ddd",
+        "cqrs",
+        "event-sourcing",
+        "sagas",
+        "durable-workflows",
+        "workflow",
+        "outbox",
         "messaging",
-        "message",
-        "enterprise integration patterns",
-        "eip",
-        "distributed architecture"
+        "eip"
     ],
-    "description": "Ecotone for Symfony \u2014 CQRS, Event Sourcing, Sagas, and Workflows on top of Symfony Messenger, via PHP attributes.",
+    "description": "Ecotone for Symfony \u2014 CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox on top of Symfony Messenger, via PHP attributes.",
     "repositories": [
         {
             "type": "path",

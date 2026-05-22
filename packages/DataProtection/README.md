@@ -17,7 +17,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## Data Protection
 
-Attribute-driven encryption and PII masking for Ecotone messages. Mark sensitive fields on commands, events, or queries and Ecotone handles protection transparently — in message channels, event stores, dead letter queues, and traces — without changing your handler code.
+Attribute-driven encryption and PII masking for Ecotone messages. Mark sensitive fields on commands, events, or queries and Ecotone handles protection transparently — in [message channels](https://ecotone.tech/asynchronous-communication), [event stores](https://ecotone.tech/event-sourcing), dead letter queues, and traces — without changing your handler code. See the [Data Protection module docs](https://docs.ecotone.tech/modules/data-protection) for setup and key management.
 
 - **Field-level encryption** — sensitive fields encrypted in transit and at rest
 - **PII masking** — configurable masking for logs and traces

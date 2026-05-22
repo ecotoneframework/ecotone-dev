@@ -16,7 +16,13 @@
     ],
     "keywords": [
         "ecotone",
-        "Kafka"
+        "kafka",
+        "apache-kafka",
+        "streaming",
+        "message-broker",
+        "async-messaging",
+        "distributed-bus",
+        "event-streaming"
     ],
     "description": "Apache Kafka transport for Ecotone asynchronous messaging and Distributed Bus.",
     "repositories": [

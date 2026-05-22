@@ -19,6 +19,8 @@
         "messaging",
         "ecotone",
         "serializer",
+        "jms",
+        "jms-serializer",
         "integration",
         "json",
         "xml",

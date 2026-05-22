@@ -37,7 +37,16 @@ class NotificationService
 
 Every flow — sync, async, sagas, projections — runs through the same messaging pipeline in production and in tests. Swap the in-memory channel for RabbitMQ, Kafka, SQS, Redis, or DBAL in production; the test shape never changes.
 
-Visit [ecotone.tech](https://ecotone.tech) to learn more.
+## Topic deep dives
+
+- [Durable Workflows in PHP](https://ecotone.tech/durable-workflows) — long-running processes, sagas, orchestrators, event-sourced replay on your existing DB + broker
+- [Event Sourcing in PHP](https://ecotone.tech/event-sourcing) — built-in event store, projections (catch-up, partitioned, streaming), blue-green rebuilds, PII encryption end-to-end
+- [Asynchronous Communication](https://ecotone.tech/asynchronous-communication) — message channels, retries, outbox, delayed messages, scheduling, dead letter with replay
+- [Domain-Driven Design in PHP](https://ecotone.tech/domain-driven-design) — aggregates, repositories, domain events, sagas — all via attributes
+- [Orchestration Layer](https://ecotone.tech/orchestration-layer) — declarative multi-step workflows, EIP routing, dynamic step lists
+- [Microservices](https://ecotone.tech/microservices) — Distributed Bus, Service Map, multi-broker single topology
+
+Visit [ecotone.tech](https://ecotone.tech) for the full overview.
 
 > Works with [Symfony](https://docs.ecotone.tech/modules/symfony-ddd-cqrs-event-sourcing), [Laravel](https://docs.ecotone.tech/modules/laravel-ddd-cqrs-event-sourcing), or any PSR-11 framework via [Ecotone Lite](https://docs.ecotone.tech/install-php-service-bus#install-ecotone-lite-no-framework).
 

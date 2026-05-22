@@ -17,7 +17,7 @@ From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distr
 
 ## Ecotone for Symfony
 
-Symfony Messenger gives you a bus. Ecotone gives you the full architecture on top — Event Sourcing, Sagas, Workflows, Outbox, and per-handler failure isolation, so one failing listener never blocks another.
+Symfony Messenger gives you a bus. Ecotone gives you the full architecture on top — [Event Sourcing](https://ecotone.tech/event-sourcing), [Sagas and durable workflows](https://ecotone.tech/durable-workflows), [Outbox](https://docs.ecotone.tech/solutions/unreliable-async-processing), and per-handler failure isolation, so one failing listener never blocks another.
 
 - **Symfony Messenger compatible** — your existing transports keep working
 - **Bundle auto-configuration** — zero config to start
@@ -64,4 +64,4 @@ If you want to help building and improving Ecotone consider becoming a sponsor:
 
 ## Tags
 
-PHP, Symfony, Symfony Bundle, DDD, CQRS, Event Sourcing, Sagas, Projections, Workflows, Outbox, Service Bus, Messenger
+PHP, Symfony, Symfony Bundle, DDD, CQRS, Event Sourcing, Sagas, Projections, Durable Workflows, Workflows, Outbox, Service Bus, Messenger

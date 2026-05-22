@@ -16,10 +16,19 @@
         }
     ],
     "keywords": [
-        "dbal",
-        "ecotone"
+        "ecotone",
+        "event-sourcing",
+        "event-store",
+        "event-sourced-saga",
+        "durable-workflows",
+        "projections",
+        "cqrs",
+        "ddd",
+        "postgresql",
+        "mysql",
+        "pdo"
     ],
-    "description": "PDO-backed Event Store for Ecotone \u2014 event-sourced aggregates, projections, upcasting, and streaming projections (Kafka, RabbitMQ).",
+    "description": "PDO-backed Event Store for Ecotone \u2014 event-sourced aggregates, event-sourced sagas (durable workflows), projections, upcasting, and streaming projections (Kafka, RabbitMQ) on PostgreSQL or MySQL.",
     "repositories": [
         {
             "type": "path",

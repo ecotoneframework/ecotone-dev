@@ -15,11 +15,12 @@ To contribute make use of [Ecotone-Dev repository](https://github.com/ecotonefra
 
 From `#[CommandHandler]` on day one, to event sourcing, sagas, outbox, and distributed messaging at scale — one package, same codebase, no forced migrations between growth stages. Declarative PHP 8 attributes on the classes you already have.
 
-## Event Sourcing (PDO-backed Event Store)
+## [Event Sourcing](https://ecotone.tech/event-sourcing) (PDO-backed Event Store)
 
 Full Event Sourcing support for Ecotone, backed by your relational database via PDO. Event-sourced aggregates, projections, upcasting, and replay — all driven by attributes on your existing classes.
 
 - **Event-sourced aggregates** via `#[EventSourcingAggregate]` — one attribute flips state-stored to event-sourced
+- **Event-sourced sagas** via `#[EventSourcingSaga]` — [durable workflows](https://ecotone.tech/durable-workflows) where every state transition is a replayable event in your database
 - **Projections** via `#[Projection]` — catch-up, reset, partition, and streaming variants
 - **Event versioning and upcasting** — evolve your event schema without rewriting history
 - **Streaming Projections** — process events in real-time with Message Broker transport
@@ -61,4 +62,4 @@ If you want to help building and improving Ecotone consider becoming a sponsor:
 
 ## Tags
 
-PHP, Event Sourcing, Event Store, Projections, DCB, CQRS, DDD, PostgreSQL, MySQL, Ecotone
+PHP, Event Sourcing, Event Store, Projections, Event-Sourced Sagas, Durable Workflows, CQRS, DDD, PostgreSQL, MySQL, Ecotone

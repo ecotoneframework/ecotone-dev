@@ -1,0 +1,22 @@
+packages/Dbal/tests/Integration/MultiTenant/DeduplicationCleanupMultiTenantTest.php
+  s_0c0db2c3b7bdf8::t_d606f89397d308 29
+  s_0c0db2c3b7bdf8::t_335f87dda6e6a8 1-28,30-101
+packages/Ecotone/src/Messaging/Config/ConsoleCommandRunner.php
+  s_0c0db2c3b7bdf8::t_ffe280f7d9605e 57
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "a06b8928e80a48b8e6758c07ed242a5cd90cea63",
+  "prompts": {},
+  "sessions": {
+    "s_0c0db2c3b7bdf8": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "e01844d6-a301-4dbb-8889-424203237ecf",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

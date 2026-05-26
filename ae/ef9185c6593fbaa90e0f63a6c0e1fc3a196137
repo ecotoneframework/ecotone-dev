@@ -1,0 +1,65 @@
+packages/Symfony/tests/phpunit/EnvPlaceholderEndpoint/EnvPlaceholderEndpointTest.php
+  s_86277df5575659::t_6aabb3f2cb0495 1-51
+packages/Symfony/tests/phpunit/EnvPlaceholderEndpoint/src/Configuration/EcotoneConfiguration.php
+  s_86277df5575659::t_237c32afb74735 1-22
+packages/Symfony/tests/phpunit/EnvPlaceholderEndpoint/src/PlaceOrderHandler.php
+  s_86277df5575659::t_3a39d52b31bb9e 1-21
+packages/Symfony/tests/phpunit/EnvPlaceholderKafka/EnvPlaceholderKafkaConsumerTest.php
+  s_86277df5575659::t_685ab8603ddb29 9-10,14-15,24-25,35-37,48,53-55,59,62-65
+  s_86277df5575659::t_48dc92cbc45fa0 1-8,11-13,16-23,26-34,38-47,49-52,56-58,60-61,66-67
+packages/Ecotone/src/Messaging/Attribute/DelayedRetry.php
+  s_86277df5575659::t_a760fa2ad2c812 8-9,16
+  s_86277df5575659::t_063aafe703c266 31-41
+composer.json
+  s_86277df5575659::t_bc2d55f0ce5f89 132
+  s_86277df5575659::t_d5a92ecad0c728 133
+packages/Symfony/tests/phpunit/EnvPlaceholderKafka/src/PlaceOrderKafkaConsumer.php
+  s_86277df5575659::t_eccc6ff081fdff 1-8,10-15,19-20,30,32-33
+  s_86277df5575659::t_6efdfcd3cc461a 9,16-18,21-29,31
+packages/Symfony/tests/phpunit/EnvPlaceholderEndpoint/config/services.php
+  s_86277df5575659::t_821e856e550fec 1-20
+packages/Ecotone/src/Messaging/Attribute/Asynchronous.php
+  s_86277df5575659::t_9484069d404132 45-49
+  s_86277df5575659::t_8526c03022666e 8-9,16
+packages/Ecotone/src/Messaging/Config/Container/DefinitionHelper.php
+  s_86277df5575659::t_57348e19b40e0d 28-37
+  s_86277df5575659::t_54eaa1477d55a9 50-55
+packages/Symfony/tests/phpunit/EnvPlaceholderKafka/src/Configuration/EcotoneConfiguration.php
+  s_86277df5575659::t_6cda5d7c534362 1-21
+packages/Symfony/tests/phpunit/EnvPlaceholderKafka/config/services.php
+  s_86277df5575659::t_7c0874ab824b52 1-33
+packages/Ecotone/src/Messaging/Attribute/WithoutDatabaseTransaction.php
+  s_86277df5575659::t_9f6bb7fe6866c8 8-9,15,17-20
+packages/Symfony/composer.json
+  s_86277df5575659::t_bd91a04aa1cb2f 53-54
+  s_86277df5575659::t_b13c3ad2f4cb08 87-88
+  s_86277df5575659::t_8dfa55d42f13e5 86
+packages/Symfony/tests/phpunit/EnvPlaceholderKafka/src/Configuration/Kernel.php
+  s_86277df5575659::t_145919852cfd3b 1-18
+packages/Symfony/tests/phpunit/EnvPlaceholderKafka/config/bundles.php
+  s_86277df5575659::t_8e82e06bb17872 1-8
+packages/Ecotone/src/Messaging/Attribute/WithoutMessageCollector.php
+  s_86277df5575659::t_3f3f1deca59137 8-9,15,17-20
+packages/Ecotone/src/Messaging/Attribute/ErrorChannel.php
+  s_86277df5575659::t_c0243a90a22db7 8-9,16,26-29
+packages/Symfony/tests/phpunit/EnvPlaceholderEndpoint/config/bundles.php
+  s_86277df5575659::t_d0d40448060e56 1-8
+packages/Symfony/tests/phpunit/EnvPlaceholderEndpoint/src/Configuration/Kernel.php
+  s_86277df5575659::t_31eb937b9157f5 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "aeef9185c6593fbaa90e0f63a6c0e1fc3a196137",
+  "prompts": {},
+  "sessions": {
+    "s_86277df5575659": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fd6f8ff5-aca8-4b79-9da9-63a513ce7ba5",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

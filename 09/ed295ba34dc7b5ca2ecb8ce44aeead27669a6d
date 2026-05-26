@@ -1,0 +1,19 @@
+packages/Amqp/src/Attribute/RabbitConsumer.php
+  s_86277df5575659::t_5a8152599c747e 54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "09ed295ba34dc7b5ca2ecb8ce44aeead27669a6d",
+  "prompts": {},
+  "sessions": {
+    "s_86277df5575659": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "fd6f8ff5-aca8-4b79-9da9-63a513ce7ba5",
+        "model": "claude-opus-4-7"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

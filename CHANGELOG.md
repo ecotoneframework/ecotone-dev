@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.314.0] - 2026-05-26
+
+## What's Changed
+* Fix deduplication cleanup under multi-tenant with no default connection (#667) by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/670
+* fix: preserve env placeholders in serialized message attributes by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/671
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.313.2...1.314.0
+
 ## [1.313.2] - 2026-05-22
 
 ## What's Changed

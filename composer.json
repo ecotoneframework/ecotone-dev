@@ -129,6 +129,8 @@
             "Symfony\\App\\MultiTenant\\": "packages/Symfony/tests/phpunit/MultiTenant/src",
             "Symfony\\App\\SingleTenant\\": "packages/Symfony/tests/phpunit/SingleTenant/src",
             "Symfony\\App\\Licence\\": "packages/Symfony/tests/phpunit/Licence/src",
+            "Symfony\\App\\EnvPlaceholderEndpoint\\": "packages/Symfony/tests/phpunit/EnvPlaceholderEndpoint/src",
+            "Symfony\\App\\EnvPlaceholderKafka\\": "packages/Symfony/tests/phpunit/EnvPlaceholderKafka/src",
             "Tests\\Ecotone\\": "tests"
         }
     },

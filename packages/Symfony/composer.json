@@ -50,6 +50,8 @@
         "doctrine/doctrine-bundle": "^2.7.2",
         "doctrine/orm": "^2.11|^3.0",
         "ecotone/dbal": "~1.313.2",
+        "ecotone/kafka": "~1.313.2",
+        "ext-rdkafka": "*",
         "monolog/monolog": "^2.9|^3.3.1",
         "phpstan/phpstan": "^1.8",
         "phpunit/phpunit": "^10.5|^11.0",
@@ -81,7 +83,9 @@
             "Ecotone\\SymfonyBundle\\App\\": "App",
             "Symfony\\App\\MultiTenant\\": "tests/phpunit/MultiTenant/src",
             "Symfony\\App\\SingleTenant\\": "tests/phpunit/SingleTenant/src",
-            "Symfony\\App\\Licence\\": "tests/phpunit/Licence/src"
+            "Symfony\\App\\Licence\\": "tests/phpunit/Licence/src",
+            "Symfony\\App\\EnvPlaceholderEndpoint\\": "tests/phpunit/EnvPlaceholderEndpoint/src",
+            "Symfony\\App\\EnvPlaceholderKafka\\": "tests/phpunit/EnvPlaceholderKafka/src"
         }
     },
     "scripts": {

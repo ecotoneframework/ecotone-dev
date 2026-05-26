@@ -51,6 +51,7 @@ final class RabbitConsumer extends MessageConsumer implements DefinedObject
             [
                 $this->getEndpointId(),
                 $this->queueName,
+                $this->finalFailureStrategy,
                 $this->connectionReference,
             ]
         );

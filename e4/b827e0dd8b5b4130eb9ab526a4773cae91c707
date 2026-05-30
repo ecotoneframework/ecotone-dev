@@ -1,0 +1,26 @@
+packages/Tempest/tests/Repository/TempestRepositoryIntegrationTest.php
+  s_fc33ff94f9a77a::t_badcd5be899e21 1-95,104-114
+  s_fc33ff94f9a77a::t_0102055419450e 96-103
+packages/Tempest/tests/Fixture/Order/PlaceOrder.php
+  s_fc33ff94f9a77a::t_f88cebf49d48da 1-17
+packages/Tempest/tests/Fixture/Order/Order.php
+  s_fc33ff94f9a77a::t_946510a9622024 24,26,28,34-36
+  s_fc33ff94f9a77a::t_07e7d4c02fe62c 51,57
+  s_fc33ff94f9a77a::t_7f1a4de4a982f3 1-23,25,27,29-33,37-50,52-56,58-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e4b827e0dd8b5b4130eb9ab526a4773cae91c707",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

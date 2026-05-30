@@ -1,0 +1,27 @@
+packages/Tempest/src/EcotoneConsoleCommandDiscovery.php
+  s_fc33ff94f9a77a::t_201cb25e9491b7 59
+packages/Tempest/tests/Application/ConsoleCommandProxyTest.php
+  s_fc33ff94f9a77a::t_4d42bb1d4d0984 7,35,61-114
+packages/Tempest/src/MessagingSystemInitializer.php
+  s_fc33ff94f9a77a::t_51332969a59b60 156,204
+  s_fc33ff94f9a77a::t_1eeec496cfdb9f 33-34,40-44,48
+  s_fc33ff94f9a77a::t_bad47ddee63326 61,70
+packages/Tempest/src/ConsoleCommandProxyGenerator.php
+  s_fc33ff94f9a77a::t_9d36e0f2669f66 16-17,22,28-33,40-43,47-75
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e2df7b357740444320e97951dd4ea7a88fcfe561",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

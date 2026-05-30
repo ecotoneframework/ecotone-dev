@@ -1,0 +1,34 @@
+packages/Tempest/tests/EcotoneIntegrationTest.php
+  s_fc33ff94f9a77a::t_346d354699b25b 87-99
+packages/Tempest/tests/Fixture/AsyncQueue/NotifyCommand.php
+  s_fc33ff94f9a77a::t_253c5db13e2d16 1-15
+packages/Tempest/tests/Application/ConsoleCommandProxyTest.php
+  s_fc33ff94f9a77a::t_b567ec12f390c7 111-135
+  s_fc33ff94f9a77a::t_9b055fe97158af 103-110
+packages/Tempest/src/ConsoleCommandProxyGenerator.php
+  s_fc33ff94f9a77a::t_d0948dc7787f30 101,103,120-122,132-137
+packages/Tempest/tests/Application/ConsoleCommandEndToEndTest.php
+  s_fc33ff94f9a77a::t_a032b086aee9c2 1-25,34-40
+  s_fc33ff94f9a77a::t_08d4d3fa4b7499 26-33
+packages/Tempest/tests/Fixture/AsyncQueue/AsyncQueueChannelConfiguration.php
+  s_fc33ff94f9a77a::t_984f57be12c23c 1-20
+packages/Tempest/tests/Fixture/AsyncQueue/NotifyCommandHandler.php
+  s_fc33ff94f9a77a::t_df6bd809bab823 1-17,19-23
+  s_fc33ff94f9a77a::t_a0f85b1fa83929 18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "f6cfd618df564b4ee6ab063384462046678054fe",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

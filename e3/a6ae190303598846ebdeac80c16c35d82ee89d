@@ -1,0 +1,25 @@
+packages/Tempest/tests/Repository/TempestRepositoryTest.php
+  s_fc33ff94f9a77a::t_41f19d9b3d87ff 1-38
+packages/Tempest/src/MessagingSystemInitializer.php
+  s_fc33ff94f9a77a::t_fb5ab0003e23c1 139-140
+packages/Tempest/src/TempestRepositoryBuilder.php
+  s_fc33ff94f9a77a::t_faa3a59fab77c3 1-33
+packages/Tempest/src/TempestRepository.php
+  s_fc33ff94f9a77a::t_2c746ccec56098 1-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "e3a6ae190303598846ebdeac80c16c35d82ee89d",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

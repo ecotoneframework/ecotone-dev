@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Tempest;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\QueryBus;
 use Tempest\Container\Container;
 use Tempest\Container\DynamicInitializer;
+use Tempest\Container\GenericContainer;
 use Tempest\Reflection\ClassReflector;
 use UnitEnum;
 
@@ -20,9 +18,12 @@ final class EcotoneServiceInitializer implements DynamicInitializer
 {
     private static ?array $compiledServiceIds = null;
 
+    private static bool $compiling = false;
+
     public static function clearCache(): void
     {
         self::$compiledServiceIds = null;
+        self::$compiling = false;
     }
 
     public static function markCompiled(array $serviceIds): void
@@ -36,7 +37,21 @@ final class EcotoneServiceInitializer implements DynamicInitializer
             return isset(self::$compiledServiceIds[$class->getName()]);
         }
 
-        return $this->isKnownEcotoneGateway($class->getName());
+        if (self::$compiling) {
+            return false;
+        }
+
+        $container = GenericContainer::instance();
+
+        if ($container === null || ! $container->has(EcotoneConfig::class)) {
+            return false;
+        }
+
+        self::$compiling = true;
+        $container->get(ConfiguredMessagingSystem::class);
+        self::$compiling = false;
+
+        return isset(self::$compiledServiceIds[$class->getName()]);
     }
 
     public function initialize(ClassReflector $class, null|string|UnitEnum $tag, Container $container): object
@@ -44,14 +59,5 @@ final class EcotoneServiceInitializer implements DynamicInitializer
         $configuredMessagingSystem = $container->get(ConfiguredMessagingSystem::class);
 
         return $configuredMessagingSystem->getGatewayByName($class->getName());
-    }
-
-    private function isKnownEcotoneGateway(string $className): bool
-    {
-        return in_array($className, [
-            CommandBus::class,
-            QueryBus::class,
-            EventBus::class,
-        ], true);
     }
 }

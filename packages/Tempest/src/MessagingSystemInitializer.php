@@ -28,6 +28,18 @@ final class MessagingSystemInitializer implements Initializer
 {
     public const MESSAGING_SYSTEM_FILE_NAME = 'messaging_system';
 
+    private static ?ContainerDefinitionsHolder $definitionHolder = null;
+
+    public static function getDefinitionHolder(): ?ContainerDefinitionsHolder
+    {
+        return self::$definitionHolder;
+    }
+
+    public static function clearDefinitionHolder(): void
+    {
+        self::$definitionHolder = null;
+    }
+
     public function initialize(Container $container): ConfiguredMessagingSystem
     {
         $config = $this->resolveEcotoneConfig($container);
@@ -45,6 +57,8 @@ final class MessagingSystemInitializer implements Initializer
             $config->test,
             $cacheDirectory,
         );
+
+        self::$definitionHolder = $definitionHolder;
 
         $ecotoneContainer = new LazyInMemoryContainer(
             $definitionHolder->getDefinitions(),

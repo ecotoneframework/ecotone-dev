@@ -7,6 +7,7 @@ namespace Test\Ecotone\Tempest;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
+use Ecotone\Tempest\MessagingSystemInitializer;
 use Tempest\Core\FrameworkKernel;
 use Tempest\Core\KernelEvent;
 use Tempest\Discovery\AutoloadDiscoveryLocations;
@@ -63,6 +64,8 @@ abstract class EcotoneIntegrationTest extends IntegrationTest
 
         $this->injectDiscoveryAndConfig($kernel, $allLocations);
 
+        $kernel->container->config($this->ecotoneConfig());
+
         $kernel->loadConfig()
                ->bootDiscovery()
                ->registerExceptionHandler()
@@ -70,8 +73,6 @@ abstract class EcotoneIntegrationTest extends IntegrationTest
 
         $this->kernel = $kernel;
         $this->container = $kernel->container;
-
-        $this->container->config($this->ecotoneConfig());
 
         return $this;
     }
@@ -82,6 +83,7 @@ abstract class EcotoneIntegrationTest extends IntegrationTest
         restore_exception_handler();
         restore_error_handler();
         EcotoneServiceInitializer::clearCache();
+        MessagingSystemInitializer::clearDefinitionHolder();
     }
 
     private function injectDiscoveryAndConfig(FrameworkKernel $kernel, array $extraLocations): void

@@ -1,0 +1,48 @@
+packages/Tempest/src/Config/TempestConnectionResolver.php
+  s_fc33ff94f9a77a::t_8d37f825cc8b3a 1-55
+packages/Tempest/tests/Dbal/DbalConnectionRequirementWithoutConnectionTest.php
+  s_fc33ff94f9a77a::t_06752e8e29a395 1-6,8-9,12-16,18-23,32-33
+  s_fc33ff94f9a77a::t_96a50fa0deff2c 7,10-11,17,24-31
+packages/Tempest/tests/Dbal/DbalConnectionRequirementWithConnectionTest.php
+  s_fc33ff94f9a77a::t_1ee92411b52438 1-35
+packages/Tempest/tests/Dbal/DbalConnectionConnectivityTest.php
+  s_fc33ff94f9a77a::t_667eb4eacb6b11 1-45,47-52
+  s_fc33ff94f9a77a::t_0163d8de84c5c3 46
+packages/Tempest/src/Config/PDO/MySqlDriver.php
+  s_fc33ff94f9a77a::t_12cbe28504c24d 1-18
+packages/Ecotone/src/Messaging/Config/ModuleClassList.php
+  s_fc33ff94f9a77a::t_b7fd208daeb914 84
+  s_fc33ff94f9a77a::t_b6fdc61beb3cc0 206-209
+packages/Tempest/src/Config/PDO/SQLiteDriver.php
+  s_fc33ff94f9a77a::t_f79ee48023d380 1-18
+packages/Ecotone/src/Messaging/Config/ModulePackageList.php
+  s_fc33ff94f9a77a::t_0f5236d9c8063d 47
+  s_fc33ff94f9a77a::t_2a50cb8088fd0b 28
+  s_fc33ff94f9a77a::t_675e7e5687cdba 71
+packages/Tempest/src/Config/TempestConnectionReference.php
+  s_fc33ff94f9a77a::t_5092b43c4bc6c3 1-46
+packages/Tempest/src/Config/PDO/Connection.php
+  s_fc33ff94f9a77a::t_038e46b14d91d8 1-100
+packages/Tempest/src/Config/PDO/PostgresDriver.php
+  s_fc33ff94f9a77a::t_0edd8ebfd13f00 1-18
+packages/Tempest/tests/Fixture/Dbal/DbalConnectionConfiguration.php
+  s_fc33ff94f9a77a::t_eb02aa8ec7008a 1-20
+packages/Tempest/src/Config/TempestConnectionModule.php
+  s_fc33ff94f9a77a::t_9dcfad0796d2ed 1-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "efdd046313b8e93e55e8f97f0d0ba6d24915010c",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

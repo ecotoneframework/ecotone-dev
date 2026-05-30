@@ -1,0 +1,47 @@
+packages/Tempest/src/Config/TempestConnectionResolver.php
+  s_fc33ff94f9a77a::t_c8e4d294880b6a 16,25,31-32,50-54
+packages/Tempest/tests/MultiTenant/MultiTenantTest.php
+  s_fc33ff94f9a77a::t_3f8a7400e5e224 1-159
+packages/Tempest/tests/Fixture/MultiTenant/MultiTenantEcotoneConfiguration.php
+  s_fc33ff94f9a77a::t_c6fbc9cf801d6e 1-41
+packages/Tempest/tests/Fixture/MultiTenant/CustomerService.php
+  s_fc33ff94f9a77a::t_77925da9b595a8 7,29
+  s_fc33ff94f9a77a::t_ecf61240a13a9a 1-6,8-16,18,20-28,30,32-33
+  s_fc33ff94f9a77a::t_f2598d204f998a 17,19,31
+packages/Tempest/src/Config/TempestConnectionModule.php
+  s_fc33ff94f9a77a::t_41566c1a87631f 40,51,62,104-116
+  s_fc33ff94f9a77a::t_25b3e9c641acdb 8-9,19,43-50,52-61,63-74,76-91,96-97
+  s_fc33ff94f9a77a::t_a57439a143c258 75
+packages/Tempest/tests/Fixture/MultiTenant/RegisterCustomer.php
+  s_fc33ff94f9a77a::t_a831083154d279 1-16
+packages/Tempest/tests/Fixture/MultiTenant/Customer.php
+  s_fc33ff94f9a77a::t_16bd918a4dd69a 1-29
+packages/Tempest/tests/Fixture/MultiTenant/CustomerInterface.php
+  s_fc33ff94f9a77a::t_e345014ca1b47d 1-16
+packages/Tempest/src/Config/TempestTenantDatabaseSwitcher.php
+  s_fc33ff94f9a77a::t_8419b095c16bd5 22,27,36,38
+  s_fc33ff94f9a77a::t_eab6e34448037c 1-21,23-26,28-35,37,39-55
+packages/Tempest/tests/Fixture/MultiTenant/CustomerRepository.php
+  s_fc33ff94f9a77a::t_f9dd0bd25b63f7 15
+  s_fc33ff94f9a77a::t_1fc545bd2f3730 1-14,16-17
+packages/Tempest/src/Config/TempestConnectionReference.php
+  s_fc33ff94f9a77a::t_2ec59ca525d6b4 41-43,50,54,58-63
+  s_fc33ff94f9a77a::t_f996a4c81dc77e 11,20,22,25,27,37-40
+  s_fc33ff94f9a77a::t_a015bf44762fe1 35-36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "f7266856cfc88a4ce96a05ba86ec22293fe0eb03",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

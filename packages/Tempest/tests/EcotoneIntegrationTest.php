@@ -84,6 +84,19 @@ abstract class EcotoneIntegrationTest extends IntegrationTest
         restore_error_handler();
         EcotoneServiceInitializer::clearCache();
         MessagingSystemInitializer::clearDefinitionHolder();
+        $this->removeProxyCache();
+    }
+
+    private function removeProxyCache(): void
+    {
+        $proxyDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone_tempest_console_proxies';
+        if (is_dir($proxyDir)) {
+            foreach (glob($proxyDir . '/*.php') ?: [] as $file) {
+                @unlink($file);
+            }
+            @unlink($proxyDir . '/.ecotone_hash');
+            @rmdir($proxyDir);
+        }
     }
 
     private function injectDiscoveryAndConfig(FrameworkKernel $kernel, array $extraLocations): void

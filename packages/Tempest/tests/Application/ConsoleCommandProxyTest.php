@@ -4,11 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Application;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
-use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Tempest\ConsoleCommandProxyGenerator;
 use Ecotone\Tempest\EcotoneConfig;
 use Test\Ecotone\Tempest\EcotoneIntegrationTest;
@@ -100,6 +97,39 @@ final class ConsoleCommandProxyTest extends EcotoneIntegrationTest
             @unlink($file);
         }
         @unlink($outputDir . '/.ecotone_hash');
+        @rmdir($outputDir);
+    }
+
+    public function test_ecotone_list_command_runs_through_tempest_console_runner_by_name_and_prints_column_headers(): void
+    {
+        $this->console
+            ->call('ecotone:list')
+            ->assertSuccess()
+            ->assertContains('Name');
+    }
+
+    public function test_generator_produces_proxy_code_that_prints_console_command_result_set(): void
+    {
+        $outputDir = sys_get_temp_dir() . '/ecotone_proxy_result_test_' . getmypid();
+
+        $generator = new ConsoleCommandProxyGenerator();
+        $generatedClasses = $generator->generate(
+            [
+                ConsoleCommandConfiguration::create(
+                    'ecotone.channel.ecotone:list',
+                    'ecotone:list',
+                    [],
+                ),
+            ],
+            $outputDir,
+        );
+
+        $fileContent = file_get_contents($generatedClasses[0]);
+        $this->assertStringContainsString('Console $console', $fileContent);
+        $this->assertStringContainsString('ConsoleCommandResultSet', $fileContent);
+        $this->assertStringContainsString('writeln', $fileContent);
+
+        array_map('unlink', $generatedClasses);
         @rmdir($outputDir);
     }
 

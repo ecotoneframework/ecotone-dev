@@ -98,7 +98,9 @@ final class ConsoleCommandProxyGenerator
             namespace Ecotone\Tempest\Generated;
 
             use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+            use Ecotone\Messaging\Config\ConsoleCommandResultSet;
             use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+            use Tempest\Console\Console;
             use Tempest\Console\ConsoleCommand;
             use Tempest\Console\ExitCode;
             use Tempest\Console\Input\ConsoleArgumentBag;
@@ -115,6 +117,9 @@ final class ConsoleCommandProxyGenerator
                 #[Inject]
                 private readonly ConsoleArgumentBag \$argumentBag;
 
+                #[Inject]
+                private readonly Console \$console;
+
                 #[ConsoleCommand(name: '{$escapedCommandName}', allowDynamicArguments: true)]
                 public function __invoke(): ExitCode
                 {
@@ -124,6 +129,12 @@ final class ConsoleCommandProxyGenerator
                         \$allArgs[\$arg->name !== null ? \$arg->name : ''] = \$arg->value;
                     }
                     \$result = \$runner->execute('{$escapedCommandName}', \$allArgs);
+                    if (\$result instanceof ConsoleCommandResultSet) {
+                        \$this->console->writeln(implode(' | ', \$result->getColumnHeaders()));
+                        foreach (\$result->getRows() as \$row) {
+                            \$this->console->writeln(implode(' | ', \$row));
+                        }
+                    }
                     return ExitCode::SUCCESS;
                 }
             }

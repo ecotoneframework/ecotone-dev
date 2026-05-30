@@ -30,14 +30,22 @@ final class MessagingSystemInitializer implements Initializer
 
     private static ?ContainerDefinitionsHolder $definitionHolder = null;
 
+    private static ?string $configHash = null;
+
     public static function getDefinitionHolder(): ?ContainerDefinitionsHolder
     {
         return self::$definitionHolder;
     }
 
+    public static function getConfigHash(): ?string
+    {
+        return self::$configHash;
+    }
+
     public static function clearDefinitionHolder(): void
     {
         self::$definitionHolder = null;
+        self::$configHash = null;
     }
 
     public function initialize(Container $container): ConfiguredMessagingSystem
@@ -50,7 +58,7 @@ final class MessagingSystemInitializer implements Initializer
 
         $applicationConfiguration = $this->buildServiceConfiguration($config, $environment, $cacheDirectory);
 
-        [$serviceCacheConfiguration, $definitionHolder] = $this->prepareFromCache(
+        [$serviceCacheConfiguration, $definitionHolder, $configHash] = $this->prepareFromCache(
             $useProductionCache,
             $rootPath,
             $applicationConfiguration,
@@ -59,6 +67,7 @@ final class MessagingSystemInitializer implements Initializer
         );
 
         self::$definitionHolder = $definitionHolder;
+        self::$configHash = $configHash;
 
         $ecotoneContainer = new LazyInMemoryContainer(
             $definitionHolder->getDefinitions(),
@@ -144,7 +153,7 @@ final class MessagingSystemInitializer implements Initializer
                 $definitionHolder = unserialize(file_get_contents($messagingFile));
 
                 if ($definitionHolder instanceof ContainerDefinitionsHolder) {
-                    return [new ServiceCacheConfiguration($cacheDirectory, true), $definitionHolder];
+                    return [new ServiceCacheConfiguration($cacheDirectory, true), $definitionHolder, null];
                 }
             }
         }
@@ -192,6 +201,6 @@ final class MessagingSystemInitializer implements Initializer
             }
         }
 
-        return [$serviceCacheConfiguration, $definitionHolder];
+        return [$serviceCacheConfiguration, $definitionHolder, $cacheHash];
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Application;
 
+use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\ConsoleCommandProxyGenerator;
 use Ecotone\Tempest\EcotoneConfig;
@@ -31,7 +32,7 @@ final class ConsoleCommandProxyTest extends EcotoneIntegrationTest
         $generator = new ConsoleCommandProxyGenerator();
         $generatedClasses = $generator->generate(
             [
-                \Ecotone\Messaging\Config\ConsoleCommandConfiguration::create(
+                ConsoleCommandConfiguration::create(
                     'ecotone.channel.ecotone:list',
                     'ecotone:list',
                     [],
@@ -56,5 +57,60 @@ final class ConsoleCommandProxyTest extends EcotoneIntegrationTest
 
         $this->assertArrayHasKey('ecotone:list', $consoleConfig->commands);
         $this->assertArrayHasKey('ecotone:run', $consoleConfig->commands);
+    }
+
+    public function test_proxy_files_are_not_rewritten_when_config_hash_is_unchanged(): void
+    {
+        $outputDir = sys_get_temp_dir() . '/ecotone_proxy_hash_test_' . getmypid();
+        $commands = [
+            ConsoleCommandConfiguration::create('ecotone.channel.ecotone:list', 'ecotone:list', []),
+        ];
+        $configHash = 'abc123';
+
+        $generator = new ConsoleCommandProxyGenerator();
+        $firstFiles = $generator->generate($commands, $outputDir, $configHash);
+
+        $mtimeBefore = filemtime($firstFiles[0]);
+
+        sleep(1);
+
+        $secondFiles = $generator->generate($commands, $outputDir, $configHash);
+
+        $mtimeAfter = filemtime($secondFiles[0]);
+
+        $this->assertSame($mtimeBefore, $mtimeAfter);
+
+        foreach ($firstFiles as $file) {
+            @unlink($file);
+        }
+        @unlink($outputDir . '/.ecotone_hash');
+        @rmdir($outputDir);
+    }
+
+    public function test_proxy_files_are_rewritten_when_config_hash_changes(): void
+    {
+        $outputDir = sys_get_temp_dir() . '/ecotone_proxy_rehash_test_' . getmypid();
+        $commands = [
+            ConsoleCommandConfiguration::create('ecotone.channel.ecotone:list', 'ecotone:list', []),
+        ];
+
+        $generator = new ConsoleCommandProxyGenerator();
+        $firstFiles = $generator->generate($commands, $outputDir, 'hash_v1');
+
+        $mtimeBefore = filemtime($firstFiles[0]);
+
+        sleep(1);
+
+        $secondFiles = $generator->generate($commands, $outputDir, 'hash_v2');
+
+        $mtimeAfter = filemtime($secondFiles[0]);
+
+        $this->assertGreaterThan($mtimeBefore, $mtimeAfter);
+
+        foreach ($secondFiles as $file) {
+            @unlink($file);
+        }
+        @unlink($outputDir . '/.ecotone_hash');
+        @rmdir($outputDir);
     }
 }

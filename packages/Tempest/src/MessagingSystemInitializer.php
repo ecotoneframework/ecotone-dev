@@ -136,6 +136,8 @@ final class MessagingSystemInitializer implements Initializer
             $applicationConfiguration = $applicationConfiguration->withLicenceKey($config->licenceKey);
         }
 
+        $applicationConfiguration = $applicationConfiguration->withExtensionObjects([new TempestRepositoryBuilder()]);
+
         return MessagingSystemConfiguration::addCorePackage($applicationConfiguration, $config->test);
     }
 

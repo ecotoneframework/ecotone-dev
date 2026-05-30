@@ -1,0 +1,20 @@
+packages/Tempest/tests/Application/StaticStateIsolationTest.php
+  s_fc33ff94f9a77a::t_49eafad88025e0 1-30,34-47
+  s_fc33ff94f9a77a::t_3b50466cd2ab01 31-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "369c62cfe22cdaedbfb6de0a46c9686030cf5883",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

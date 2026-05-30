@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Application;
 
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
+use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Tempest\ConsoleCommandProxyGenerator;
 use Ecotone\Tempest\EcotoneConfig;
 use Test\Ecotone\Tempest\EcotoneIntegrationTest;
@@ -57,6 +60,19 @@ final class ConsoleCommandProxyTest extends EcotoneIntegrationTest
 
         $this->assertArrayHasKey('ecotone:list', $consoleConfig->commands);
         $this->assertArrayHasKey('ecotone:run', $consoleConfig->commands);
+    }
+
+    public function test_generated_proxy_invoke_forwards_to_ecotone_console_command_runner_and_returns_exit_success(): void
+    {
+        $proxyClassName = 'Ecotone\\Tempest\\Generated\\EcotoneConsoleCommand_ecotone_list';
+
+        $this->assertTrue(class_exists($proxyClassName));
+
+        $proxy = $this->container->get($proxyClassName);
+
+        $result = $proxy->__invoke();
+
+        $this->assertSame(\Tempest\Console\ExitCode::SUCCESS, $result);
     }
 
     public function test_proxy_files_are_not_rewritten_when_config_hash_is_unchanged(): void

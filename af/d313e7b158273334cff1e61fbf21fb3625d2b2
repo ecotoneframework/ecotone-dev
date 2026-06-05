@@ -1,0 +1,19 @@
+packages/Tempest/README.md
+  s_fc33ff94f9a77a::t_c93c0953a0f8a5 9-12,18,20,22-27,31,33-35,37,39,41-300,324
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "afd313e7b158273334cff1e61fbf21fb3625d2b2",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

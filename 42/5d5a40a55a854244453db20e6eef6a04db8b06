@@ -1,0 +1,20 @@
+packages/Tempest/tests/Application/RealBootTest.php
+  s_fc33ff94f9a77a::t_4a6211959488fe 1-15,18-46,50-51,53-63,65-81,102-103
+  s_fc33ff94f9a77a::t_bb9157d3f235ca 16-17,47-49,52,64,82-101
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "425d5a40a55a854244453db20e6eef6a04db8b06",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

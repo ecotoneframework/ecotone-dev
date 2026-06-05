@@ -1,0 +1,25 @@
+packages/PdoEventSourcing/tests/Integration/GapDetectionInPollingProjectionTest.php
+  s_de367e0ba2569e::t_df78e18f5c58b5 64,68,72
+packages/PdoEventSourcing/tests/Integration/CustomEventStreamTest.php
+  s_de367e0ba2569e::t_696bde2d129ea9 7-8,15-16
+  s_de367e0ba2569e::t_67784612a79460 48
+  s_de367e0ba2569e::t_a7e5501f66896b 62,64-70
+packages/PdoEventSourcing/tests/Integration/GapDetectionInSynchronousProjectionTest.php
+  s_de367e0ba2569e::t_df78e18f5c58b5 61,65,69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "2b84cb35b14cf4871d3664236d4727a691d5a70f",
+  "prompts": {},
+  "sessions": {
+    "s_de367e0ba2569e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7d883cd6-5a75-44e4-a3d9-76d81186bc08",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -65,20 +65,6 @@ jobs:
           --health-retries=5
         ports:
           - 3306:3306
-      mariadb:
-        image: mariadb:11.4
-        env:
-          MARIADB_ROOT_PASSWORD: "secret"
-          MARIADB_USER: "ecotone"
-          MARIADB_PASSWORD: "secret"
-          MARIADB_DATABASE: "ecotone"
-        options: >-
-          --health-cmd="healthcheck.sh --connect --innodb_initialized"
-          --health-interval=10s
-          --health-timeout=10s
-          --health-retries=5
-        ports:
-          - 3307:3306
       postgres:
         image: simplycodedsoftware/postgres:16.1
         env:

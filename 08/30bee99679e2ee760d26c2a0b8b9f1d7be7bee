@@ -1,0 +1,22 @@
+packages/Tempest/composer.json
+  s_fc33ff94f9a77a::t_2944bfe897046f 56-59
+packages/Tempest/tests/Dbal/ConnectionReferenceCredentialsTest.php
+  s_fc33ff94f9a77a::t_5636b6122a5b3e 1-46,48-73
+  s_fc33ff94f9a77a::t_d191f6808aab5c 47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "0830bee99679e2ee760d26c2a0b8b9f1d7be7bee",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

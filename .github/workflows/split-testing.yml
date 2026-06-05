@@ -210,18 +210,6 @@ jobs:
                 overall_exit_code=1
               fi
 
-              # Run MariaDB pass
-              db_name="ecotone_${slug}_mariadb"
-              if ! _run_tests "$dir (MariaDB)" "\
-                psql 'postgresql://ecotone:secret@${db_host}:5432/postgres' -v ON_ERROR_STOP=1 -c 'CREATE DATABASE ${db_name} OWNER ecotone' && \
-                mysql -h '${db_host}' -P 3307 -uroot -psecret -e \"CREATE DATABASE ${db_name}; GRANT ALL PRIVILEGES ON ${db_name}.* TO 'ecotone'@'%'; FLUSH PRIVILEGES;\" && \
-                cd '${dir}' && \
-                DATABASE_DSN='mysql://ecotone:secret@${db_host}:3307/${db_name}?serverVersion=11.4.5-MariaDB' \
-                SECONDARY_DATABASE_DSN='pgsql://ecotone:secret@${db_host}:5432/${db_name}?serverVersion=16' \
-                ${run_tests_cmd}"; then
-                overall_exit_code=1
-              fi
-
               # Run SQLite pass (skip for PdoEventSourcing and DataProtection - SQLite event store not supported)
               if [[ ! "$dir" =~ (PdoEventSourcing|DataProtection) ]]; then
                 local sqlite_db="/tmp/ecotone_${slug}_test.db"

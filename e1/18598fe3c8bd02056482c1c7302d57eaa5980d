@@ -1,0 +1,34 @@
+packages/Tempest/src/MessagingSystemInitializer.php
+  s_fc33ff94f9a77a::t_6c972418a32477 22
+  s_fc33ff94f9a77a::t_c8dc58091b05e9 60
+  s_fc33ff94f9a77a::t_09a9ead3cfdd32 131,133-138,143
+  s_fc33ff94f9a77a::t_9dd02bab34777a 104-119
+packages/Tempest/tests/app/composer.json
+  s_fc33ff94f9a77a::t_45fe53531d8c5b 6
+composer.json
+  s_fc33ff94f9a77a::t_18a48ed3d9375d 129
+packages/Tempest/tests/Application/AppNamespaceAutoDiscoveryTest.php
+  s_fc33ff94f9a77a::t_e1547817aa7382 1-39,42-43,45-89,92-94,96-114
+  s_fc33ff94f9a77a::t_0e4cfa543d3c83 40
+  s_fc33ff94f9a77a::t_a72e3680db3a38 91
+  s_fc33ff94f9a77a::t_bf1efd5b334688 41,44,90,95
+packages/Tempest/tests/app/src/AppCommandHandler.php
+  s_fc33ff94f9a77a::t_b1de37ee7978c1 1-4,6-28
+  s_fc33ff94f9a77a::t_a8911017bde822 5
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "e118598fe3c8bd02056482c1c7302d57eaa5980d",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -19,6 +19,7 @@ use Psr\Log\LoggerInterface;
 use Tempest\Container\Container;
 use Tempest\Container\Initializer;
 use Tempest\Container\Singleton;
+use Tempest\Discovery\Composer;
 
 /**
  * licence Apache-2.0
@@ -56,7 +57,7 @@ final class MessagingSystemInitializer implements Initializer
         $environment = getenv('APP_ENV') ?: 'production';
         $useProductionCache = in_array($environment, ['prod', 'production'], true) ? true : $config->cacheConfiguration;
 
-        $applicationConfiguration = $this->buildServiceConfiguration($config, $environment, $cacheDirectory);
+        $applicationConfiguration = $this->buildServiceConfiguration($config, $environment, $cacheDirectory, $container);
 
         [$serviceCacheConfiguration, $definitionHolder, $configHash] = $this->prepareFromCache(
             $useProductionCache,
@@ -100,6 +101,22 @@ final class MessagingSystemInitializer implements Initializer
         return new EcotoneConfig();
     }
 
+    private function deriveNamespacesFromComposer(Container $container): array
+    {
+        try {
+            $composer = $container->get(Composer::class);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $namespaces = [];
+        foreach ($composer->namespaces as $psr4Namespace) {
+            $namespaces[] = $psr4Namespace->namespace;
+        }
+
+        return $namespaces;
+    }
+
     private function wireLogger(Container $container, LazyInMemoryContainer $ecotoneContainer): void
     {
         if ($container->has(LoggerInterface::class)) {
@@ -111,12 +128,19 @@ final class MessagingSystemInitializer implements Initializer
         EcotoneConfig $config,
         string $environment,
         string $cacheDirectory,
+        Container $container,
     ): ServiceConfiguration {
+        $namespaces = $config->namespaces;
+
+        if ($namespaces === [] && $config->loadAppNamespaces) {
+            $namespaces = $this->deriveNamespacesFromComposer($container);
+        }
+
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
             ->withLoadCatalog('')
             ->withFailFast(false)
-            ->withNamespaces($config->namespaces)
+            ->withNamespaces($namespaces)
             ->withSkippedModulePackageNames($config->skippedModulePackageNames)
             ->withCacheDirectoryPath($cacheDirectory);
 

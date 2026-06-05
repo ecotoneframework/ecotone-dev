@@ -126,6 +126,7 @@
             ],
             "Test\\Ecotone\\Laravel\\": "packages/Laravel/tests",
             "Test\\Ecotone\\Tempest\\": "packages/Tempest/tests",
+            "App\\Tempest\\": "packages/Tempest/tests/app/src",
             "App\\MultiTenant\\": "packages/Laravel/tests/MultiTenant/app",
             "App\\Licence\\Laravel\\": "packages/Laravel/tests/Licence/app",
             "Symfony\\App\\MultiTenant\\": "packages/Symfony/tests/phpunit/MultiTenant/src",

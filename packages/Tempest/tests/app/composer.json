@@ -3,7 +3,7 @@
     "type": "project",
     "autoload": {
         "psr-4": {
-            "App\\": "src/"
+            "App\\Tempest\\": "src/"
         }
     },
     "require": {

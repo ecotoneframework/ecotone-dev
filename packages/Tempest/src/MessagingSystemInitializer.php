@@ -119,8 +119,11 @@ final class MessagingSystemInitializer implements Initializer
 
     private function wireLogger(Container $container, LazyInMemoryContainer $ecotoneContainer): void
     {
-        if ($container->has(LoggerInterface::class)) {
-            $ecotoneContainer->set(LoggerInterface::class, $container->get(LoggerInterface::class));
+        try {
+            $logger = $container->get(LoggerInterface::class);
+            $ecotoneContainer->set('logger', $logger);
+            $ecotoneContainer->set(LoggerInterface::class, $logger);
+        } catch (\Throwable) {
         }
     }
 

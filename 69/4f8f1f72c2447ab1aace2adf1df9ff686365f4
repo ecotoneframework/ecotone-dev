@@ -1,0 +1,25 @@
+packages/Tempest/tests/Application/LicenceKeyTest.php
+  s_fc33ff94f9a77a::t_934e7c11ade8fa 1-36
+packages/Tempest/tests/Application/CoverageParityTest.php
+  s_fc33ff94f9a77a::t_38efcb4c90ff54 1-102
+packages/Tempest/tests/Application/ParameterExpressionTest.php
+  s_fc33ff94f9a77a::t_cacb21485e8651 1-55
+packages/Tempest/tests/Fixture/ExpressionLanguage/CalculatorHandler.php
+  s_fc33ff94f9a77a::t_59bb00be8b503d 1-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "694f8f1f72c2447ab1aace2adf1df9ff686365f4",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

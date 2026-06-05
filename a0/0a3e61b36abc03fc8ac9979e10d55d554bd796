@@ -1,0 +1,24 @@
+packages/Tempest/tests/Application/LoggerWiringTest.php
+  s_fc33ff94f9a77a::t_b6a8d43df1beea 1-9,12-13,21-27,29,32-33,35,40-41,43,64,66,75-86,98,101,129-142
+  s_fc33ff94f9a77a::t_46dd3a1c022fd8 88-89,95
+  s_fc33ff94f9a77a::t_d2efe3ce0cd1cf 10-11,14-20,28,30-31,34,36-39,42,44-63,65,67-74,87,90-94,96-97,99-100,102-128
+packages/Tempest/src/MessagingSystemInitializer.php
+  s_fc33ff94f9a77a::t_299e311b2ae8cc 122-123,125-126
+  s_fc33ff94f9a77a::t_69b6ee914470f7 124
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "a00a3e61b36abc03fc8ac9979e10d55d554bd796",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -89,13 +89,19 @@ abstract class EcotoneIntegrationTest extends IntegrationTest
 
     private function removeProxyCache(): void
     {
-        $proxyDir = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone_tempest_console_proxies';
-        if (is_dir($proxyDir)) {
-            foreach (glob($proxyDir . '/*.php') ?: [] as $file) {
-                @unlink($file);
+        $proxyDirs = [
+            MessagingSystemInitializer::getProxyDirectory(),
+            sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone_tempest_console_proxies',
+        ];
+
+        foreach (array_filter($proxyDirs) as $proxyDir) {
+            if (is_dir($proxyDir)) {
+                foreach (glob($proxyDir . '/*.php') ?: [] as $file) {
+                    @unlink($file);
+                }
+                @unlink($proxyDir . '/.ecotone_hash');
+                @rmdir($proxyDir);
             }
-            @unlink($proxyDir . '/.ecotone_hash');
-            @rmdir($proxyDir);
         }
     }
 

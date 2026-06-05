@@ -29,9 +29,13 @@ final class MessagingSystemInitializer implements Initializer
 {
     public const MESSAGING_SYSTEM_FILE_NAME = 'messaging_system';
 
+    private const CONFIG_HASH_FILE_NAME = 'messaging_system_hash';
+
     private static ?ContainerDefinitionsHolder $definitionHolder = null;
 
     private static ?string $configHash = null;
+
+    private static ?string $proxyDirectory = null;
 
     public static function getDefinitionHolder(): ?ContainerDefinitionsHolder
     {
@@ -43,10 +47,16 @@ final class MessagingSystemInitializer implements Initializer
         return self::$configHash;
     }
 
+    public static function getProxyDirectory(): ?string
+    {
+        return self::$proxyDirectory;
+    }
+
     public static function clearDefinitionHolder(): void
     {
         self::$definitionHolder = null;
         self::$configHash = null;
+        self::$proxyDirectory = null;
     }
 
     public function initialize(Container $container): ConfiguredMessagingSystem
@@ -69,6 +79,7 @@ final class MessagingSystemInitializer implements Initializer
 
         self::$definitionHolder = $definitionHolder;
         self::$configHash = $configHash;
+        self::$proxyDirectory = $cacheDirectory . DIRECTORY_SEPARATOR . 'console_proxies';
 
         $ecotoneContainer = new LazyInMemoryContainer(
             $definitionHolder->getDefinitions(),
@@ -182,7 +193,9 @@ final class MessagingSystemInitializer implements Initializer
                 $definitionHolder = unserialize(file_get_contents($messagingFile));
 
                 if ($definitionHolder instanceof ContainerDefinitionsHolder) {
-                    return [new ServiceCacheConfiguration($cacheDirectory, true), $definitionHolder, null];
+                    $persistedHash = $this->readPersistedConfigHash($cacheDirectory);
+
+                    return [new ServiceCacheConfiguration($cacheDirectory, true), $definitionHolder, $persistedHash];
                 }
             }
         }
@@ -227,9 +240,32 @@ final class MessagingSystemInitializer implements Initializer
             if ($serviceCacheConfiguration->shouldUseCache()) {
                 MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
                 file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
+
+                if ($useProductionCache && $cacheHash !== null) {
+                    $this->persistConfigHash($cacheDirectory, $cacheHash);
+                }
             }
         }
 
         return [$serviceCacheConfiguration, $definitionHolder, $cacheHash];
+    }
+
+    private function persistConfigHash(string $cacheDirectory, string $configHash): void
+    {
+        $hashFile = $cacheDirectory . DIRECTORY_SEPARATOR . self::CONFIG_HASH_FILE_NAME;
+        file_put_contents($hashFile, $configHash);
+    }
+
+    private function readPersistedConfigHash(string $cacheDirectory): ?string
+    {
+        $hashFile = $cacheDirectory . DIRECTORY_SEPARATOR . self::CONFIG_HASH_FILE_NAME;
+
+        if (! file_exists($hashFile)) {
+            return null;
+        }
+
+        $hash = file_get_contents($hashFile);
+
+        return $hash !== false && $hash !== '' ? $hash : null;
     }
 }

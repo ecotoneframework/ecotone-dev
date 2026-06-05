@@ -53,7 +53,8 @@ final class EcotoneConsoleCommandDiscovery implements Discovery
             return;
         }
 
-        $outputDirectory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone_tempest_console_proxies';
+        $outputDirectory = MessagingSystemInitializer::getProxyDirectory()
+            ?? sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone_tempest_console_proxies';
 
         $generator = new ConsoleCommandProxyGenerator();
         $generatedFiles = $generator->generate($commands, $outputDirectory, MessagingSystemInitializer::getConfigHash());

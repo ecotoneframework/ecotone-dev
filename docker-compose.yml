@@ -17,6 +17,7 @@ services:
       SQLITE_DATABASE_DSN: sqlite:////tmp/ecotone_test.db
       SECONDARY_DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
+      DATABASE_MARIADB: mysql://ecotone:secret@database-mariadb:3306/ecotone?serverVersion=11.4.5-MariaDB
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
       REDIS_DSN: redis://redis:6379
       KAFKA_DSN: kafka:9092
@@ -40,6 +41,7 @@ services:
       SQLITE_DATABASE_DSN: sqlite:////tmp/ecotone_test.db
       SECONDARY_DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16
       DATABASE_MYSQL: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
+      DATABASE_MARIADB: mysql://ecotone:secret@database-mariadb:3306/ecotone?serverVersion=11.4.5-MariaDB
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localstack:4566&version=latest
       REDIS_DSN: redis://redis:6379
       KAFKA_DSN: kafka:9092
@@ -61,6 +63,15 @@ services:
       MYSQL_DATABASE: "ecotone"
     ports:
       - "${MYSQL_PORT:-0}:3306"
+  database-mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_ROOT_PASSWORD: "secret"
+      MARIADB_USER: "ecotone"
+      MARIADB_PASSWORD: "secret"
+      MARIADB_DATABASE: "ecotone"
+    ports:
+      - "${MARIADB_PORT:-0}:3306"
   rabbitmq:
     build: ./.docker/rabbitmq
     environment:

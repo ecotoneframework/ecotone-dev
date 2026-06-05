@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
@@ -111,7 +111,7 @@ final class TransactionRollbackTest extends ProjectingTestCase
 
         $ecotone = $this->bootstrapEcotoneForCalendar([$projection::class], [$projection], $projection::CHANNEL);
 
-        if ($this->getConnection()->getDatabasePlatform() instanceof MySQLPlatform) {
+        if ($this->getConnection()->getDatabasePlatform() instanceof AbstractMySQLPlatform) {
             $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_rollback_events (id INT AUTO_INCREMENT PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
         } else {
             $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_rollback_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
@@ -146,7 +146,7 @@ final class TransactionRollbackTest extends ProjectingTestCase
 
         $ecotone = $this->bootstrapEcotoneForCalendar([$projection::class], [$projection], $projection::CHANNEL);
 
-        if ($this->getConnection()->getDatabasePlatform() instanceof MySQLPlatform) {
+        if ($this->getConnection()->getDatabasePlatform() instanceof AbstractMySQLPlatform) {
             $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_fail_second_events (id INT AUTO_INCREMENT PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');
         } else {
             $this->getConnection()->executeStatement('CREATE TABLE IF NOT EXISTS multi_stream_fail_second_events (id SERIAL PRIMARY KEY, event_type VARCHAR(100), aggregate_id VARCHAR(36), stream_name VARCHAR(255))');

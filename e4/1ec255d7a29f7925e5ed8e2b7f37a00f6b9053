@@ -1,0 +1,44 @@
+packages/PdoEventSourcing/tests/Projecting/Partitioned/PartitionedProjectionEdgeCasesTest.php
+  s_de367e0ba2569e::t_1793bd91ad940a 265,416
+  s_de367e0ba2569e::t_af25a002ab1540 11
+docker-compose.yml
+  s_de367e0ba2569e::t_93430b1000d831 44
+  s_de367e0ba2569e::t_5fa0fe70462d01 20
+  s_de367e0ba2569e::t_b9a377a06ddc69 66-74
+packages/Dbal/tests/Integration/DeduplicationModuleTest.php
+  s_de367e0ba2569e::t_090198a2ffbab3 161
+packages/Dbal/src/DbalTransaction/ImplicitCommit.php
+  s_de367e0ba2569e::t_bc0bd6283283bd 18
+  s_de367e0ba2569e::t_49621397f36139 11
+packages/PdoEventSourcing/tests/Projecting/Partitioned/ProjectionWithStateTest.php
+  s_de367e0ba2569e::t_6a4e72055f566d 8
+  s_de367e0ba2569e::t_2322cd60d6a14d 177
+packages/PdoEventSourcing/tests/Projecting/RebuildProjectionTest.php
+  s_de367e0ba2569e::t_270c2d0e2b23f1 8
+  s_de367e0ba2569e::t_f4f87d0f3f9521 144
+packages/PdoEventSourcing/src/Projecting/PartitionState/DbalProjectionStateStorage.php
+  s_de367e0ba2569e::t_4681a86eccf86e 118,158
+  s_de367e0ba2569e::t_f32232a8217a17 11
+packages/PdoEventSourcing/src/Database/ProjectionStateTableManager.php
+  s_de367e0ba2569e::t_a2c60c70aca99d 8
+  s_de367e0ba2569e::t_835449c762c308 49
+packages/PdoEventSourcing/tests/Projecting/TransactionRollbackTest.php
+  s_de367e0ba2569e::t_9a110a70eaa185 11
+  s_de367e0ba2569e::t_7ea8a21f209cb7 114,149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "e41ec255d7a29f7925e5ed8e2b7f37a00f6b9053",
+  "prompts": {},
+  "sessions": {
+    "s_de367e0ba2569e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7d883cd6-5a75-44e4-a3d9-76d81186bc08",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

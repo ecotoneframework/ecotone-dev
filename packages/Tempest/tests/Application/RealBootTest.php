@@ -40,6 +40,56 @@ final class RealBootTest extends TestCase
         MessagingSystemInitializer::clearDefinitionHolder();
     }
 
+    public function test_command_bus_resolves_from_tempest_container_without_any_ecotone_config_file(): void
+    {
+        $internalStorage = '/tmp/ecotone_tempest_real_boot_noconfig_' . getmypid();
+
+        $appLocation = new DiscoveryLocation('App\\Tempest\\', self::APP_ROOT . '/src');
+        $ecotoneLocation = new DiscoveryLocation('Ecotone\\Tempest\\', '/data/app/packages/Tempest/src');
+
+        $kernel = new FrameworkKernel(
+            root: self::APP_ROOT,
+            discoveryLocations: [$ecotoneLocation, $appLocation],
+            internalStorage: $internalStorage,
+        );
+
+        $kernel->registerKernel()
+               ->validateRoot()
+               ->loadEnv()
+               ->registerEmergencyExceptionHandler()
+               ->registerShutdownFunction()
+               ->registerInternalStorage()
+               ->loadComposer();
+
+        $this->injectDiscoveryConfig($kernel, $ecotoneLocation, $appLocation);
+
+        // Monorepo: all packages including Enterprise ones are present, so skip them to avoid
+        // licence errors. In a real app only installed packages load — no skip needed.
+        // The key proof: no ecotone.config.php discovered in the boot path; the app
+        // derives its EcotoneConfig from MessagingSystemInitializer's fallback new EcotoneConfig().
+        $kernel->container->singleton(
+            EcotoneConfig::class,
+            new EcotoneConfig(
+                skippedModulePackageNames: ModulePackageList::allPackages(),
+                test: true,
+            ),
+        );
+
+        $kernel->loadConfig()
+               ->bootDiscovery()
+               ->registerExceptionHandler()
+               ->event(KernelEvent::BOOTED);
+
+        // Resolve CommandBus WITHOUT touching ConfiguredMessagingSystem first —
+        // EcotoneServiceInitializer must trigger compile on the first gateway request.
+        $commandBus = $kernel->container->get(CommandBus::class);
+        $queryBus = $kernel->container->get(QueryBus::class);
+
+        $commandBus->sendWithRouting('app.ping');
+
+        $this->assertTrue($queryBus->sendWithRouting('app.wasHandled'));
+    }
+
     public function test_zero_config_namespace_derivation_from_composer_psr4_discovers_handlers(): void
     {
         $internalStorage = '/tmp/ecotone_tempest_real_boot_' . getmypid();

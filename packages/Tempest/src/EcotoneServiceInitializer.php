@@ -43,7 +43,7 @@ final class EcotoneServiceInitializer implements DynamicInitializer
 
         $container = GenericContainer::instance();
 
-        if ($container === null || ! $container->has(EcotoneConfig::class)) {
+        if ($container === null) {
             return false;
         }
 

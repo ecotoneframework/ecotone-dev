@@ -1,0 +1,19 @@
+packages/Laravel/composer.json
+  s_de367e0ba2569e::t_a749b2eb35f94d 67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "8646748646bab611b6e62cdf60207d3f420e4412",
+  "prompts": {},
+  "sessions": {
+    "s_de367e0ba2569e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "7d883cd6-5a75-44e4-a3d9-76d81186bc08",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": null
+    }
+  }
+}

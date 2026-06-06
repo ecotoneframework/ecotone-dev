@@ -1,0 +1,52 @@
+packages/Tempest/tests/Fixture/MultiTenant/MultiTenantEcotoneConfiguration.php
+  s_fc33ff94f9a77a::t_7a1e37836e84bc 22-23
+packages/Tempest/tests/Dbal/ConnectionReferenceCredentialsTest.php
+  s_fc33ff94f9a77a::t_bdd0c2024dd9f4 8,17,19,21,25,27-36,38-48,51,55,59,63-64
+packages/Tempest/src/Config/TempestTenantDatabaseSwitcher.php
+  s_fc33ff94f9a77a::t_82e190d28d6d15 49
+  s_fc33ff94f9a77a::t_58cf6f845f6aa7 60-63,72-87
+  s_fc33ff94f9a77a::t_80a50464b9ad9b 8
+  s_fc33ff94f9a77a::t_d6fb39e006d908 12
+  s_fc33ff94f9a77a::t_3efd702c3249ae 38,40,45
+  s_fc33ff94f9a77a::t_dc839be07fcca4 46-48,50-56,58
+packages/Tempest/tests/Fixture/TenantSharedConnection/TenantSharedConnectionConfiguration.php
+  s_fc33ff94f9a77a::t_1e3288461448fc 1-16,23-32
+  s_fc33ff94f9a77a::t_4b721eac02f499 17-22
+packages/Tempest/tests/MultiTenant/MultiTenantTest.php
+  s_fc33ff94f9a77a::t_797b6c36e3431e 58-74
+packages/Tempest/src/Config/PDO/TempestDynamicDriverConnection.php
+  s_fc33ff94f9a77a::t_41a8ee37462b25 72
+  s_fc33ff94f9a77a::t_c3c042f63dbb6a 1-61,63-71,73-84
+  s_fc33ff94f9a77a::t_56de042a3d3064 62
+packages/Tempest/src/Config/TempestConnectionReference.php
+  s_fc33ff94f9a77a::t_797aff24010189 19,24-32,34,37-41,44,47,49,58,62,67,69
+packages/Tempest/src/Config/PDO/TempestDynamicDriver.php
+  s_fc33ff94f9a77a::t_fe3e1a96652191 1-24
+packages/Tempest/src/Config/TempestConnectionResolver.php
+  s_fc33ff94f9a77a::t_8f121c14d9399d 43-45
+  s_fc33ff94f9a77a::t_c8bae20f6ba529 47-48,50-52,54-57,65,73,75-78
+  s_fc33ff94f9a77a::t_d3bd6bd165cc26 66-70
+  s_fc33ff94f9a77a::t_87bb07704ddd71 49
+  s_fc33ff94f9a77a::t_e13972662828aa 21
+  s_fc33ff94f9a77a::t_925078ab14802e 34,36,40
+  s_fc33ff94f9a77a::t_9dd31de8954ff7 14
+  s_fc33ff94f9a77a::t_4cc6994469e526 64,71-72
+packages/Tempest/tests/Fixture/TenantSharedConnection/TenantInsertThenFailHandler.php
+  s_fc33ff94f9a77a::t_1e3288461448fc 1-34
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "08fdde5fe33e438c1bf7a9bb3d2c00bbfd875612",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

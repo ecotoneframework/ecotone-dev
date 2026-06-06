@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -141,7 +141,7 @@ class RebuildRollbackProjection
     public function onTicketRegistered(TicketWasRegistered $event): void
     {
         $this->handleEvent($event->getTicketId());
-        if ($this->connection->getDatabasePlatform() instanceof MySQLPlatform) {
+        if ($this->connection->getDatabasePlatform() instanceof AbstractMySQLPlatform) {
             $this->connection->executeStatement('INSERT IGNORE INTO rebuild_rollback_tickets VALUES (?,?)', [$event->getTicketId(), $event->getTicketType()]);
         } else {
             $this->connection->executeStatement('INSERT INTO rebuild_rollback_tickets VALUES (?,?) ON CONFLICT(ticket_id) DO NOTHING', [$event->getTicketId(), $event->getTicketType()]);

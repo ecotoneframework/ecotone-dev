@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\EventSourcing\Attribute\FromStream;
 use Ecotone\EventSourcing\Attribute\ProjectionDelete;
 use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
@@ -174,7 +174,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
                         )
                     SQL);
                 $insertQuery = match (true) {
-                    $this->connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
+                    $this->connection->getDatabasePlatform() instanceof AbstractMySQLPlatform => <<<SQL
                         INSERT INTO ticket_counter_partitioned (id, ticket_count, closed_count) VALUES (1, 0, 0)
                         ON DUPLICATE KEY UPDATE id = id
                         SQL,

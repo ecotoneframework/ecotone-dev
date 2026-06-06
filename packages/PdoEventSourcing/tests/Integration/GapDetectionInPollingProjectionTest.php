@@ -61,15 +61,15 @@ final class GapDetectionInPollingProjectionTest extends EventSourcingMessagingTe
 
         $metadata = json_decode($connection->fetchOne(sprintf('select metadata from %s where no = ?', $streamName), [1]), true);
         $metadata['timestamp'] = $initialTimestamp;
-        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp)], ['no' => 1]);
+        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date('Y-m-d\TH:i:s', $initialTimestamp)], ['no' => 1]);
 
         $metadata = json_decode($connection->fetchOne(sprintf('select metadata from %s where no = ?', $streamName), [3]), true);
         $metadata['timestamp'] = $initialTimestamp + 10;
-        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp + 10)], ['no' => 3]);
+        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date('Y-m-d\TH:i:s', $initialTimestamp + 10)], ['no' => 3]);
 
         $metadata = json_decode($connection->fetchOne(sprintf('select metadata from %s where no = ?', $streamName), [4]), true);
         $metadata['timestamp'] = $initialTimestamp + 20;
-        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date(DATE_ATOM, $initialTimestamp + 20)], ['no' => 4]);
+        $connection->update($streamName, ['metadata' => json_encode($metadata), 'created_at' => date('Y-m-d\TH:i:s', $initialTimestamp + 20)], ['no' => 4]);
     }
 
     public function test_detecting_gaps_without_detection_window(): void

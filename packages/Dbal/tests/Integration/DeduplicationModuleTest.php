@@ -158,7 +158,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         // Set global lock timeout for the session
         if ($platform instanceof \Doctrine\DBAL\Platforms\PostgreSQLPlatform) {
             $connection2->executeStatement('SET lock_timeout = 1000'); // 1 second
-        } elseif ($platform instanceof \Doctrine\DBAL\Platforms\MySQLPlatform) {
+        } elseif ($platform instanceof \Doctrine\DBAL\Platforms\AbstractMySQLPlatform) {
             // For MySQL, we need to set this on the session level
             $connection2->executeStatement('SET SESSION innodb_lock_wait_timeout = 1'); // 1 second
         }

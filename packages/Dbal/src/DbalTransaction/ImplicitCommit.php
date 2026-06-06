@@ -8,14 +8,14 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\DbalTransaction;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Throwable;
 
 class ImplicitCommit
 {
     public static function isImplicitCommitException(Throwable $exception, Connection $connection): bool
     {
-        if (! ($connection->getDriver()->getDatabasePlatform($connection) instanceof MySQLPlatform)) {
+        if (! ($connection->getDriver()->getDatabasePlatform($connection) instanceof AbstractMySQLPlatform)) {
             return false;
         }
 

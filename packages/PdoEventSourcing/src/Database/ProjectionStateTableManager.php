@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\Database\DbalTableManager;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -46,7 +46,7 @@ final class ProjectionStateTableManager implements DbalTableManager
 
     public function getCreateTableSql(Connection $connection): string|array
     {
-        if ($connection->getDatabasePlatform() instanceof MySQLPlatform) {
+        if ($connection->getDatabasePlatform() instanceof AbstractMySQLPlatform) {
             return $this->getMysqlCreateSql();
         }
 

@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.315.0] - 2026-06-06
+
+## What's Changed
+* Add MariaDB test support and fix MySQL-family platform detection by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/672
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.314.0...1.315.0
+
 ## [1.314.0] - 2026-05-26
 
 ## What's Changed

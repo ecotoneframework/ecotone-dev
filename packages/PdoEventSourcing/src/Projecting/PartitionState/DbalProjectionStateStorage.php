@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\MySQLPlatform;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
@@ -115,7 +115,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
         // Try to insert the partition state, ignoring if it already exists
         $insertQuery = match (true) {
-            $connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
+            $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform => <<<SQL
                 INSERT INTO {$tableName} (projection_name, partition_key, last_position, user_state, metadata)
                 VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :metadata)
                 ON DUPLICATE KEY UPDATE projection_name = projection_name -- no-op to ignore
@@ -155,7 +155,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
         $tableName = $this->getTableName();
 
         $saveStateQuery = match (true) {
-            $connection->getDatabasePlatform() instanceof MySQLPlatform => <<<SQL
+            $connection->getDatabasePlatform() instanceof AbstractMySQLPlatform => <<<SQL
                 INSERT INTO {$tableName} (projection_name, partition_key, last_position, user_state, metadata)
                 VALUES (:projectionName, :partitionKey, :lastPosition, :userState, :metadata)
                 ON DUPLICATE KEY UPDATE last_position = :lastPosition, user_state = :userState, metadata = :metadata

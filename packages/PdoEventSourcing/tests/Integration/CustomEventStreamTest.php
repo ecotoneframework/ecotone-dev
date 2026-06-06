@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Doctrine\DBAL\Driver\PDO\PgSQL\Driver;
+use Doctrine\DBAL\Platforms\MariaDBPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\FromProophMessageToArrayConverter;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Prooph\EventStore\Pdo\PersistenceStrategy;
+use Prooph\EventStore\Pdo\PersistenceStrategy\MariaDbSingleStreamStrategy;
 use Prooph\EventStore\Pdo\PersistenceStrategy\MySqlSingleStreamStrategy;
 use Prooph\EventStore\Pdo\PersistenceStrategy\PostgresSingleStreamStrategy;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -42,11 +45,7 @@ final class CustomEventStreamTest extends EventSourcingMessagingTestCase
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
-                        ->withCustomPersistenceStrategy(
-                            $this->isPostgres()
-                                ? new PostgresSingleStreamStrategy(new FromProophMessageToArrayConverter())
-                                : new MySqlSingleStreamStrategy(new FromProophMessageToArrayConverter())
-                        ),
+                        ->withCustomPersistenceStrategy($this->persistenceStrategy()),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true
@@ -60,8 +59,14 @@ final class CustomEventStreamTest extends EventSourcingMessagingTestCase
         self::assertEquals(2, $ecotone->sendQueryWithRouting('action_collector.getCount'));
     }
 
-    private function isPostgres(): bool
+    private function persistenceStrategy(): PersistenceStrategy
     {
-        return $this->getConnection()->getDriver() instanceof Driver;
+        $platform = $this->getConnection()->getDatabasePlatform();
+
+        return match (true) {
+            $platform instanceof PostgreSQLPlatform => new PostgresSingleStreamStrategy(new FromProophMessageToArrayConverter()),
+            $platform instanceof MariaDBPlatform => new MariaDbSingleStreamStrategy(new FromProophMessageToArrayConverter()),
+            default => new MySqlSingleStreamStrategy(new FromProophMessageToArrayConverter()),
+        };
     }
 }

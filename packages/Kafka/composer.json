@@ -48,14 +48,14 @@
     },
     "require": {
         "ext-rdkafka": "*",
-        "ecotone/ecotone": "~1.314.0"
+        "ecotone/ecotone": "~1.315.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0",
         "phpstan/phpstan": "^1.8",
         "psr/container": "^1.1.1|^2.0.1",
         "kwn/php-rdkafka-stubs": "^2.2",
-        "ecotone/dbal": "~1.314.0",
+        "ecotone/dbal": "~1.315.0",
         "symfony/expression-language": "^6.4|^7.0|^8.0"
     },
     "scripts": {
@@ -68,7 +68,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.314.0-dev"
+            "dev-main": "1.315.0-dev"
         },
         "ecotone": {
             "repository": "kafka"
@@ -84,6 +84,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-05-26 21:04:29"
+        "release-time": "2026-06-06 09:17:43"
     }
 }

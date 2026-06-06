@@ -173,7 +173,7 @@ final class Core
         // mb_substr($str, 0, NULL, '8bit') returns an empty string on PHP 5.3,
         // so we have to find the length ourselves. Also, substr() doesn't
         // accept null for the length.
-        if (! isset($length)) {
+        if ($length === null) {
             if ($start >= 0) {
                 $length = $input_len - $start;
             } else {

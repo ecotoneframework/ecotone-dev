@@ -1,0 +1,24 @@
+packages/Tempest/src/EcotoneConsoleCommandDiscovery.php
+  s_fc33ff94f9a77a::t_999a931513d811 37-40
+packages/Tempest/tests/Application/RealBootTest.php
+  s_fc33ff94f9a77a::t_840199d94571ef 43-65,78-82,85-92
+  s_fc33ff94f9a77a::t_0a2618259571c4 66-77,83-84
+packages/Tempest/src/EcotoneServiceInitializer.php
+  s_fc33ff94f9a77a::t_52ef5641a62889 46
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "bc99ac273b1d2f8d9aa34381620a16b6f8036bcb",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

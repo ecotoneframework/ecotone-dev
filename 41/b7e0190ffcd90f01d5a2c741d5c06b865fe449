@@ -1,0 +1,31 @@
+packages/Tempest/tests/Fixture/SharedConnection/SharedConnectionConfiguration.php
+  s_fc33ff94f9a77a::t_bcd5a1c7aa1faa 1-20
+packages/Tempest/tests/Dbal/SharedConnectionTransactionTest.php
+  s_fc33ff94f9a77a::t_8c6f92174ea4f8 1-89
+packages/Tempest/tests/Fixture/SharedConnection/InsertThenFailHandler.php
+  s_fc33ff94f9a77a::t_bcd5a1c7aa1faa 1-24
+packages/Tempest/src/Config/TempestConnectionResolver.php
+  s_fc33ff94f9a77a::t_1113859b70b78f 33-37
+  s_fc33ff94f9a77a::t_4abdfece34e809 16
+  s_fc33ff94f9a77a::t_25242f7d12f123 56,59-60,65-66,68-69
+  s_fc33ff94f9a77a::t_18d07436e1d2b4 20
+  s_fc33ff94f9a77a::t_6c63e0aff48253 62-64,67
+packages/Tempest/tests/Fixture/SharedConnection/SharedConnectionItem.php
+  s_fc33ff94f9a77a::t_bcd5a1c7aa1faa 1-19
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.3",
+  "base_commit_sha": "41b7e0190ffcd90f01d5a2c741d5c06b865fe449",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-sonnet-4-6"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

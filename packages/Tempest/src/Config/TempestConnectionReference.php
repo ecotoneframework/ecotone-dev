@@ -8,7 +8,6 @@ use Ecotone\Messaging\Config\ConnectionReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Tempest\Database\Config\DatabaseConfig;
 
 /**
  * licence Apache-2.0
@@ -17,28 +16,37 @@ final class TempestConnectionReference extends ConnectionReference implements De
 {
     private function __construct(
         string $referenceName,
-        private readonly ?DatabaseConfig $databaseConfig = null,
+        private readonly ?string $configTag = null,
     ) {
         parent::__construct($referenceName, $referenceName);
     }
 
-    public static function create(string $referenceName, ?DatabaseConfig $databaseConfig = null): self
+    /**
+     * Reference resolved from a tagged Tempest DatabaseConfig in the container.
+     * No credentials are stored here or in Ecotone's compiled cache — the config
+     * is looked up at runtime from Tempest's container by tag.
+     *
+     * Register the matching config in a Tempest *.config.php:
+     *   return new PostgresConfig(host: '...', tag: 'tenant_a');
+     */
+    public static function create(string $configTag, ?string $referenceName = null): self
     {
-        return new self($referenceName, $databaseConfig);
+        return new self($referenceName ?? $configTag, $configTag);
     }
 
+    /**
+     * Reference to the default (untagged) Tempest Connection singleton.
+     * Shares the same PDO that Tempest's IsDatabaseModel / Database use,
+     * so Ecotone's DBAL transactions wrap Tempest ORM writes on the same connection.
+     */
     public static function defaultConnection(): self
     {
-        return new self(DbalConnectionFactory::class);
+        return new self(DbalConnectionFactory::class, null);
     }
 
-    public static function clearRegistry(): void
+    public function getConfigTag(): ?string
     {
-    }
-
-    public function getDatabaseConfig(): ?DatabaseConfig
-    {
-        return $this->databaseConfig;
+        return $this->configTag;
     }
 
     public function getDefinition(): Definition
@@ -47,19 +55,17 @@ final class TempestConnectionReference extends ConnectionReference implements De
             TempestConnectionReference::class,
             [
                 $this->getReferenceName(),
-                $this->databaseConfig !== null ? base64_encode(serialize($this->databaseConfig)) : null,
+                $this->configTag,
             ],
             [
                 self::class,
-                'createFromSerializedConfig',
+                'fromTagAndReferenceName',
             ]
         );
     }
 
-    public static function createFromSerializedConfig(string $referenceName, ?string $serializedConfig = null): self
+    public static function fromTagAndReferenceName(string $referenceName, ?string $configTag = null): self
     {
-        $config = $serializedConfig !== null ? unserialize(base64_decode($serializedConfig)) : null;
-
-        return new self($referenceName, $config);
+        return new self($referenceName, $configTag);
     }
 }

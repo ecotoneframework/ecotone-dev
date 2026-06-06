@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Tempest\Dbal;
 
 use Ecotone\Tempest\Config\TempestConnectionReference;
+use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
-use Tempest\Database\Config\PostgresConfig;
 
 /**
  * licence Apache-2.0
@@ -14,60 +14,53 @@ use Tempest\Database\Config\PostgresConfig;
  */
 final class ConnectionReferenceCredentialsTest extends TestCase
 {
-    public function test_create_builds_reference_with_provided_database_config(): void
+    public function test_create_stores_only_tag_name_not_credentials(): void
     {
-        $config = new PostgresConfig(
-            host: 'database',
-            port: '5432',
-            username: 'ecotone',
-            password: 'secret',
-            database: 'ecotone',
-        );
+        $reference = TempestConnectionReference::create('tenant_a');
 
-        $reference = TempestConnectionReference::create('tenant_a', $config);
-
+        $this->assertSame('tenant_a', $reference->getConfigTag());
         $this->assertSame('tenant_a', $reference->getReferenceName());
-        $this->assertSame($config, $reference->getDatabaseConfig());
     }
 
-    public function test_get_definition_round_trips_reference_name_and_database_config(): void
+    public function test_create_with_custom_reference_name(): void
     {
-        $config = new PostgresConfig(
-            host: 'database',
-            port: '5432',
-            username: 'ecotone',
-            password: 'secret',
-            database: 'ecotone',
-        );
+        $reference = TempestConnectionReference::create('tenant_a', 'custom_ref');
 
-        $reference = TempestConnectionReference::create('tenant_a', $config);
+        $this->assertSame('tenant_a', $reference->getConfigTag());
+        $this->assertSame('custom_ref', $reference->getReferenceName());
+    }
+
+    public function test_get_definition_serializes_only_tag_name_no_credentials(): void
+    {
+        $reference = TempestConnectionReference::create('tenant_a');
         $definition = $reference->getDefinition();
 
-        $reconstructed = TempestConnectionReference::createFromSerializedConfig(
+        $args = $definition->getArguments();
+        $this->assertSame('tenant_a', $args[0]);
+        $this->assertSame('tenant_a', $args[1]);
+        foreach ($args as $arg) {
+            $this->assertIsString($arg);
+        }
+    }
+
+    public function test_definition_round_trips_via_factory(): void
+    {
+        $reference = TempestConnectionReference::create('tenant_a');
+        $definition = $reference->getDefinition();
+
+        $reconstructed = TempestConnectionReference::fromTagAndReferenceName(
             ...$definition->getArguments()
         );
 
+        $this->assertSame('tenant_a', $reconstructed->getConfigTag());
         $this->assertSame('tenant_a', $reconstructed->getReferenceName());
-
-        $reconstructedConfig = $reconstructed->getDatabaseConfig();
-        $this->assertNotNull($reconstructedConfig);
-        $this->assertSame('database', $reconstructedConfig->host);
-        $this->assertSame('ecotone', $reconstructedConfig->database);
-        $this->assertSame('ecotone', $reconstructedConfig->username);
-        $this->assertSame('secret', $reconstructedConfig->password);
     }
 
-    public function test_default_connection_has_no_embedded_database_config(): void
+    public function test_default_connection_has_no_tag(): void
     {
         $reference = TempestConnectionReference::defaultConnection();
 
-        $this->assertNull($reference->getDatabaseConfig());
-    }
-
-    public function test_create_without_config_produces_null_database_config(): void
-    {
-        $reference = TempestConnectionReference::create('some_connection');
-
-        $this->assertNull($reference->getDatabaseConfig());
+        $this->assertNull($reference->getConfigTag());
+        $this->assertSame(DbalConnectionFactory::class, $reference->getReferenceName());
     }
 }

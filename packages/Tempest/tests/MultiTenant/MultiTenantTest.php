@@ -55,6 +55,23 @@ final class MultiTenantTest extends EcotoneIntegrationTest
 
         $this->setupKernel();
 
+        $this->container->config(new PostgresConfig(
+            host: 'database',
+            port: '5432',
+            username: 'ecotone',
+            password: 'secret',
+            database: 'ecotone',
+            tag: 'tenant_a',
+        ));
+        $this->container->config(new MysqlConfig(
+            host: 'database-mysql',
+            port: '3306',
+            username: 'ecotone',
+            password: 'secret',
+            database: 'ecotone',
+            tag: 'tenant_b',
+        ));
+
         $this->createPersonsTableForBothTenants();
 
         $this->commandBus = $this->container->get(CommandBus::class);

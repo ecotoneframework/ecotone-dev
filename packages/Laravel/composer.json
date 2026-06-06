@@ -64,6 +64,7 @@
         "nesbot/carbon": "^2.71|^3.0",
         "moneyphp/money": "^4.1.0",
         "ecotone/dbal": "~1.314.0",
+        "doctrine/dbal": "^4.0",
         "timacdonald/log-fake": "^2.0"
     },
     "extra": {

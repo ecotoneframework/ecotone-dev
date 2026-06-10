@@ -16,6 +16,7 @@
       <directory suffix=".php">packages/PdoEventSourcing/src</directory>
       <directory suffix=".php">packages/JmsConverter/src</directory>
       <directory suffix=".php">packages/Laravel/src</directory>
+      <directory suffix=".php">packages/Tempest/src</directory>
       <directory suffix=".php">packages/Symfony/App</directory>
       <directory suffix=".php">packages/Symfony/DependencyInjection</directory>
       <directory suffix=".php">packages/Symfony/SymfonyBundle</directory>
@@ -54,6 +55,9 @@
     </testsuite>
     <testsuite name="Laravel tests">
       <directory>packages/Laravel/tests</directory>
+    </testsuite>
+    <testsuite name="Tempest tests">
+      <directory>packages/Tempest/tests</directory>
     </testsuite>
     <testsuite name="Symfony tests">
       <directory>packages/Symfony/tests</directory>

@@ -16,7 +16,7 @@ jobs:
       fail-fast: true # Fail the entire workflow if any job fails
       matrix:
         operating-system: [ ubuntu-latest ]
-        php-versions: [ 8.3 ]
+        php-versions: [ 8.5 ]
         stability: [prefer-stable]
     services:
       rabbitmq:
@@ -74,7 +74,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-versions }}
-          extensions: grpc, rdkafka
+          extensions: rdkafka
           coverage: none
 
       - uses: actions/checkout@v3
@@ -82,7 +82,7 @@ jobs:
           ref: main
 
       - name: Install dependencies
-        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --ignore-platform-reqs
 
       - name: Benchmark main as baseline
         id: baseline
@@ -99,7 +99,7 @@ jobs:
           git clean -fxd -e .phpbench -e vendor
 
       - name: Install dependencies
-        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
+        run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --ignore-platform-reqs
 
       - name: Benchmark PR
         shell: bash

@@ -1,0 +1,13 @@
+{
+    "name": "ecotone/tempest-test-app",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "App\\Tempest\\": "src/"
+        }
+    },
+    "require": {
+        "ecotone/tempest": "*",
+        "tempest/framework": "*"
+    }
+}

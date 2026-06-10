@@ -1,0 +1,100 @@
+{
+    "name": "ecotone/tempest",
+    "license": [
+        "Apache-2.0",
+        "proprietary"
+    ],
+    "homepage": "https://docs.ecotone.tech/",
+    "forum": "https://discord.gg/GwM2BSuXeg",
+    "type": "library",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "authors": [
+        {
+            "name": "Dariusz Gafka",
+            "email": "support@simplycodedsoftware.com"
+        }
+    ],
+    "keywords": [
+        "ddd",
+        "cqrs",
+        "tempest",
+        "event-sourcing",
+        "sagas",
+        "durable-workflows",
+        "workflow",
+        "outbox",
+        "ecotone",
+        "messaging",
+        "eip"
+    ],
+    "description": "Ecotone for Tempest — CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox via PHP attributes.",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "../*",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Ecotone\\Tempest\\": "src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Test\\Ecotone\\Tempest\\": "tests",
+            "App\\Tempest\\": "tests/app/src"
+        }
+    },
+    "require": {
+        "php": "^8.4",
+        "ecotone/ecotone": "~1.315.0",
+        "tempest/framework": "^3.11"
+    },
+    "suggest": {
+        "ecotone/dbal": "Enables DBAL integration, database repositories, multi-tenant connections via TempestConnectionReference, and the DbalModule for transactional outbox, sagas, and event sourcing backed by relational databases.",
+        "enqueue/dbal": "DBAL-backed message queue transport; required if you want durable async messaging over a relational database using ecotone/dbal."
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.0",
+        "phpstan/phpstan": "^1.8|^2.0",
+        "symfony/expression-language": "^6.4|^7.0|^8.0",
+        "ecotone/dbal": "~1.315.0",
+        "doctrine/dbal": "^4.0"
+    },
+    "scripts": {
+        "tests:phpstan": "vendor/bin/phpstan",
+        "tests:phpunit": [
+            "vendor/bin/phpunit --no-coverage"
+        ],
+        "tests:ci": [
+            "@tests:phpstan",
+            "@tests:phpunit"
+        ]
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "1.315.0-dev"
+        },
+        "ecotone": {
+            "repository": "tempest"
+        },
+        "tempest": {
+            "can-discover": true
+        },
+        "license-info": {
+            "Apache-2.0": {
+                "name": "Apache License 2.0",
+                "url": "https://github.com/ecotoneframework/ecotone-dev/blob/main/LICENSE",
+                "description": "Allows to use non Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            },
+            "proprietary": {
+                "name": "Enterprise License",
+                "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
+            }
+        }
+    }
+}

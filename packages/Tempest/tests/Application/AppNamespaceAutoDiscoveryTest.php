@@ -17,6 +17,7 @@ use Tempest\Discovery\Composer;
 use Tempest\Discovery\DiscoveryConfig;
 use Tempest\Discovery\DiscoveryLocation;
 use Tempest\Framework\Testing\IntegrationTest;
+use Test\Ecotone\Tempest\TempestTestPaths;
 
 /**
  * licence Apache-2.0
@@ -24,7 +25,7 @@ use Tempest\Framework\Testing\IntegrationTest;
  */
 final class AppNamespaceAutoDiscoveryTest extends IntegrationTest
 {
-    protected string $root = '/data/app/packages/Tempest/tests/app';
+    protected string $root = '';
 
     public function setUp(): void
     {
@@ -35,12 +36,16 @@ final class AppNamespaceAutoDiscoveryTest extends IntegrationTest
 
     public function setupKernel(): self
     {
+        if ($this->root === '') {
+            $this->root = TempestTestPaths::appRoot();
+        }
+
         EcotoneServiceInitializer::clearCache();
 
-        $appSrcLocation = new DiscoveryLocation('App\\Tempest\\', '/data/app/packages/Tempest/tests/app/src');
+        $appSrcLocation = new DiscoveryLocation('App\\Tempest\\', TempestTestPaths::appRoot() . '/src');
 
         $allLocations = [
-            new DiscoveryLocation('Ecotone\\Tempest\\', '/data/app/packages/Tempest/src'),
+            new DiscoveryLocation('Ecotone\\Tempest\\', TempestTestPaths::srcPath()),
             $appSrcLocation,
         ];
 
@@ -91,7 +96,7 @@ final class AppNamespaceAutoDiscoveryTest extends IntegrationTest
         $testAppComposer->namespaces = [];
 
         $autoloadLocations = (new AutoloadDiscoveryLocations(
-            rootPath: '/data/app',
+            rootPath: TempestTestPaths::discoveryRoot(),
             composer: $testAppComposer,
         ))();
 

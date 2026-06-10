@@ -8,8 +8,8 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Tempest\Database\Config\PostgresConfig;
 use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
 
 /**
  * licence Apache-2.0
@@ -31,13 +31,7 @@ final class DbalConnectionConnectivityTest extends EcotoneIntegrationTest
 
     public function test_dbal_connection_derived_from_tempest_postgres_config_executes_query(): void
     {
-        $postgresConfig = new PostgresConfig(
-            host: 'database',
-            port: '5432',
-            username: 'ecotone',
-            password: 'secret',
-            database: 'ecotone',
-        );
+        $postgresConfig = TempestDatabaseConfigFactory::primary();
 
         $this->setupKernel();
         $this->container->config($postgresConfig);

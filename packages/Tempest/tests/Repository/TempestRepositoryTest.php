@@ -27,7 +27,7 @@ final class TempestRepositoryTest extends TestCase
     {
         $repository = new TempestRepository();
 
-        $modelClass = new class {
+        $modelClass = new class () {
             use IsDatabaseModel;
 
             public PrimaryKey $id;

@@ -8,14 +8,14 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
-use Tempest\Database\Config\PostgresConfig;
 use Tempest\Database\Database;
 use Tempest\Database\Query;
 use Tempest\Database\QueryStatements\CreateTableStatement;
-use Tempest\Database\QueryStatements\DropTableStatement;
 use Test\Ecotone\Tempest\EcotoneIntegrationTest;
 use Test\Ecotone\Tempest\Fixture\Order\Order;
 use Test\Ecotone\Tempest\Fixture\Order\PlaceOrder;
+use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -39,13 +39,7 @@ final class TempestRepositoryIntegrationTest extends EcotoneIntegrationTest
 
         $this->setupKernel();
 
-        $postgresConfig = new PostgresConfig(
-            host: 'database',
-            port: '5432',
-            username: 'ecotone',
-            password: 'secret',
-            database: 'ecotone',
-        );
+        $postgresConfig = TempestDatabaseConfigFactory::primary();
         $this->container->config($postgresConfig);
 
         $this->createOrdersTable();
@@ -108,7 +102,7 @@ final class TempestRepositoryIntegrationTest extends EcotoneIntegrationTest
         try {
             $database = $this->container->get(Database::class);
             $database->execute(new Query('DROP TABLE IF EXISTS orders'));
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
     }
 }

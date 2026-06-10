@@ -24,6 +24,9 @@ jobs:
         with:
           php-version: 8.2
 
+      - name: Remove tempest/framework (requires PHP 8.5+; its function files fail to parse on 8.2)
+        run: composer remove --dev --no-update tempest/framework
+
       - name: Install dependencies
         run: composer update --prefer-dist --no-interaction --ignore-platform-reqs
 

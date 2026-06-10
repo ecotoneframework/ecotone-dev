@@ -11,10 +11,9 @@ use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
 use PDO;
-use Tempest\Database\Config\MysqlConfig;
-use Tempest\Database\Config\PostgresConfig;
 use Test\Ecotone\Tempest\EcotoneIntegrationTest;
 use Test\Ecotone\Tempest\Fixture\MultiTenant\RegisterCustomer;
+use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
 
 /**
  * licence Apache-2.0
@@ -43,7 +42,7 @@ final class MultiTenantTest extends EcotoneIntegrationTest
             ...parent::discoverTestLocations(),
             new \Tempest\Discovery\DiscoveryLocation(
                 'Test\\Ecotone\\Tempest\\Fixture\\MultiTenant\\',
-                '/data/app/packages/Tempest/tests/Fixture/MultiTenant',
+                \Test\Ecotone\Tempest\TempestTestPaths::fixturePath() . '/MultiTenant',
             ),
         ];
     }
@@ -55,22 +54,8 @@ final class MultiTenantTest extends EcotoneIntegrationTest
 
         $this->setupKernel();
 
-        $this->container->config(new PostgresConfig(
-            host: 'database',
-            port: '5432',
-            username: 'ecotone',
-            password: 'secret',
-            database: 'ecotone',
-            tag: 'tenant_a',
-        ));
-        $this->container->config(new MysqlConfig(
-            host: 'database-mysql',
-            port: '3306',
-            username: 'ecotone',
-            password: 'secret',
-            database: 'ecotone',
-            tag: 'tenant_b',
-        ));
+        $this->container->config(TempestDatabaseConfigFactory::primary('tenant_a'));
+        $this->container->config(TempestDatabaseConfigFactory::secondary('tenant_b'));
 
         $this->createPersonsTableForBothTenants();
 
@@ -146,31 +131,15 @@ final class MultiTenantTest extends EcotoneIntegrationTest
 
     private function postgresConnection(): PDO
     {
-        return new PDO(
-            (new PostgresConfig(
-                host: 'database',
-                port: '5432',
-                username: 'ecotone',
-                password: 'secret',
-                database: 'ecotone',
-            ))->dsn,
-            'ecotone',
-            'secret',
-        );
+        $config = TempestDatabaseConfigFactory::primary();
+
+        return new PDO($config->dsn, $config->username, $config->password);
     }
 
     private function mysqlConnection(): PDO
     {
-        return new PDO(
-            (new MysqlConfig(
-                host: 'database-mysql',
-                port: '3306',
-                username: 'ecotone',
-                password: 'secret',
-                database: 'ecotone',
-            ))->dsn,
-            'ecotone',
-            'secret',
-        );
+        $config = TempestDatabaseConfigFactory::secondary();
+
+        return new PDO($config->dsn, $config->username, $config->password);
     }
 }

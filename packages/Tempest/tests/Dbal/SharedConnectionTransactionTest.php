@@ -11,11 +11,12 @@ use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
 use Enqueue\Dbal\DbalConnectionFactory;
 use RuntimeException;
-use Tempest\Database\Config\PostgresConfig;
 use Tempest\Database\Database;
 use Tempest\Database\Query;
 use Tempest\Database\QueryStatements\CreateTableStatement;
 use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -42,13 +43,7 @@ final class SharedConnectionTransactionTest extends EcotoneIntegrationTest
 
         $this->setupKernel();
 
-        $this->container->config(new PostgresConfig(
-            host: 'database',
-            port: '5432',
-            username: 'ecotone',
-            password: 'secret',
-            database: 'ecotone',
-        ));
+        $this->container->config(TempestDatabaseConfigFactory::primary());
 
         $database = $this->container->get(Database::class);
         $database->execute(new Query('DROP TABLE IF EXISTS shared_connection_items'));
@@ -64,7 +59,7 @@ final class SharedConnectionTransactionTest extends EcotoneIntegrationTest
         try {
             $database = $this->container->get(Database::class);
             $database->execute(new Query('DROP TABLE IF EXISTS shared_connection_items'));
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
         parent::tearDown();
     }

@@ -98,6 +98,9 @@ jobs:
         run: |
           git clean -fxd -e .phpbench -e vendor
 
+      - name: Remove tempest/framework (requires PHP 8.5+, not run in benchmark)
+        run: composer remove --dev --no-update tempest/framework
+
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction
 

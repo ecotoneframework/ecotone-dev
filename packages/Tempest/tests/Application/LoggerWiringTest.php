@@ -18,8 +18,9 @@ use Tempest\Discovery\Composer;
 use Tempest\Discovery\DiscoveryConfig;
 use Tempest\Discovery\DiscoveryLocation;
 use Tempest\Framework\Testing\IntegrationTest;
-use Tempest\Log\LogChannel;
 use Tempest\Log\Config\MultipleChannelsLogConfig;
+use Tempest\Log\LogChannel;
+use Test\Ecotone\Tempest\TempestTestPaths;
 
 /**
  * licence Apache-2.0
@@ -27,7 +28,7 @@ use Tempest\Log\Config\MultipleChannelsLogConfig;
  */
 final class LoggerWiringTest extends IntegrationTest
 {
-    protected string $root = '/data/app/packages/Tempest/tests/app';
+    protected string $root = '';
 
     private TestHandler $logHandler;
 
@@ -41,11 +42,15 @@ final class LoggerWiringTest extends IntegrationTest
 
     public function setupKernel(): self
     {
+        if ($this->root === '') {
+            $this->root = TempestTestPaths::appRoot();
+        }
+
         EcotoneServiceInitializer::clearCache();
 
         $allLocations = [
-            new DiscoveryLocation('Ecotone\\Tempest\\', '/data/app/packages/Tempest/src'),
-            new DiscoveryLocation('Test\\Ecotone\\Tempest\\Fixture\\', '/data/app/packages/Tempest/tests/Fixture'),
+            new DiscoveryLocation('Ecotone\\Tempest\\', TempestTestPaths::srcPath()),
+            new DiscoveryLocation('Test\\Ecotone\\Tempest\\Fixture\\', TempestTestPaths::fixturePath()),
         ];
 
         $kernel = new FrameworkKernel(
@@ -72,7 +77,9 @@ final class LoggerWiringTest extends IntegrationTest
 
         $captureHandler = $this->logHandler;
         $captureChannel = new class ($captureHandler) implements LogChannel {
-            public function __construct(private TestHandler $handler) {}
+            public function __construct(private TestHandler $handler)
+            {
+            }
 
             public function getHandlers(Level $level): array
             {
@@ -117,7 +124,7 @@ final class LoggerWiringTest extends IntegrationTest
         $testAppComposer->namespaces = [];
 
         $autoloadLocations = (new AutoloadDiscoveryLocations(
-            rootPath: '/data/app',
+            rootPath: TempestTestPaths::discoveryRoot(),
             composer: $testAppComposer,
         ))();
 

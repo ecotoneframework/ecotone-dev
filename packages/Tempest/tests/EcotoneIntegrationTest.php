@@ -21,7 +21,7 @@ use Tempest\Framework\Testing\IntegrationTest;
  */
 abstract class EcotoneIntegrationTest extends IntegrationTest
 {
-    protected string $root = '/data/app/packages/Tempest/tests/app';
+    protected string $root = '';
 
     protected function ecotoneConfig(): EcotoneConfig
     {
@@ -35,14 +35,18 @@ abstract class EcotoneIntegrationTest extends IntegrationTest
     protected function discoverTestLocations(): array
     {
         return [
-            new DiscoveryLocation('Ecotone\\Tempest\\', '/data/app/packages/Tempest/src'),
-            new DiscoveryLocation('Test\\Ecotone\\Tempest\\Fixture\\', '/data/app/packages/Tempest/tests/Fixture'),
+            new DiscoveryLocation('Ecotone\\Tempest\\', TempestTestPaths::srcPath()),
+            new DiscoveryLocation('Test\\Ecotone\\Tempest\\Fixture\\', TempestTestPaths::fixturePath()),
         ];
     }
 
     protected function setupKernel(): self
     {
         EcotoneServiceInitializer::clearCache();
+
+        if ($this->root === '') {
+            $this->root = TempestTestPaths::appRoot();
+        }
 
         $this->internalStorage = '/tmp/ecotone_tempest_test_storage_' . getmypid();
 
@@ -111,7 +115,7 @@ abstract class EcotoneIntegrationTest extends IntegrationTest
         $testAppComposer->namespaces = [];
 
         $autoloadLocations = (new AutoloadDiscoveryLocations(
-            rootPath: '/data/app',
+            rootPath: TempestTestPaths::discoveryRoot(),
             composer: $testAppComposer,
         ))();
 

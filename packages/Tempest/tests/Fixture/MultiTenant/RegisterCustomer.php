@@ -12,5 +12,6 @@ final class RegisterCustomer
     public function __construct(
         public readonly int $customerId,
         public readonly string $name,
-    ) {}
+    ) {
+    }
 }

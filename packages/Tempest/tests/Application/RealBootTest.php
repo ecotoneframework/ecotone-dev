@@ -17,6 +17,7 @@ use Tempest\Discovery\AutoloadDiscoveryLocations;
 use Tempest\Discovery\Composer;
 use Tempest\Discovery\DiscoveryConfig;
 use Tempest\Discovery\DiscoveryLocation;
+use Test\Ecotone\Tempest\TempestTestPaths;
 
 /**
  * licence Apache-2.0
@@ -24,8 +25,6 @@ use Tempest\Discovery\DiscoveryLocation;
  */
 final class RealBootTest extends TestCase
 {
-    private const APP_ROOT = '/data/app/packages/Tempest/tests/app';
-
     protected function setUp(): void
     {
         EcotoneServiceInitializer::clearCache();
@@ -44,11 +43,11 @@ final class RealBootTest extends TestCase
     {
         $internalStorage = '/tmp/ecotone_tempest_real_boot_noconfig_' . getmypid();
 
-        $appLocation = new DiscoveryLocation('App\\Tempest\\', self::APP_ROOT . '/src');
-        $ecotoneLocation = new DiscoveryLocation('Ecotone\\Tempest\\', '/data/app/packages/Tempest/src');
+        $appLocation = new DiscoveryLocation('App\\Tempest\\', TempestTestPaths::appRoot() . '/src');
+        $ecotoneLocation = new DiscoveryLocation('Ecotone\\Tempest\\', TempestTestPaths::srcPath());
 
         $kernel = new FrameworkKernel(
-            root: self::APP_ROOT,
+            root: TempestTestPaths::appRoot(),
             discoveryLocations: [$ecotoneLocation, $appLocation],
             internalStorage: $internalStorage,
         );
@@ -94,11 +93,11 @@ final class RealBootTest extends TestCase
     {
         $internalStorage = '/tmp/ecotone_tempest_real_boot_' . getmypid();
 
-        $appLocation = new DiscoveryLocation('App\\Tempest\\', self::APP_ROOT . '/src');
-        $ecotoneLocation = new DiscoveryLocation('Ecotone\\Tempest\\', '/data/app/packages/Tempest/src');
+        $appLocation = new DiscoveryLocation('App\\Tempest\\', TempestTestPaths::appRoot() . '/src');
+        $ecotoneLocation = new DiscoveryLocation('Ecotone\\Tempest\\', TempestTestPaths::srcPath());
 
         $kernel = new FrameworkKernel(
-            root: self::APP_ROOT,
+            root: TempestTestPaths::appRoot(),
             discoveryLocations: [$ecotoneLocation, $appLocation],
             internalStorage: $internalStorage,
         );
@@ -136,11 +135,11 @@ final class RealBootTest extends TestCase
         DiscoveryLocation $ecotoneLocation,
         DiscoveryLocation $appLocation,
     ): void {
-        $vendorOnlyComposer = (new Composer(self::APP_ROOT))->load();
+        $vendorOnlyComposer = (new Composer(TempestTestPaths::appRoot()))->load();
         $vendorOnlyComposer->namespaces = [];
 
         $vendorLocations = (new AutoloadDiscoveryLocations(
-            rootPath: '/data/app',
+            rootPath: TempestTestPaths::discoveryRoot(),
             composer: $vendorOnlyComposer,
         ))();
 

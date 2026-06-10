@@ -134,10 +134,10 @@ jobs:
       - name: Run tests
         run: |
           COMPONENTS=$(find packages -maxdepth 2 -type f -name phpunit.xml.dist | xargs -I{} dirname {})
-          # ecotone/tempest depends on tempest/framework which requires PHP 8.5+; skip it on lower PHP versions
-          if [ "${{ matrix.php-version }}" != "8.5" ]; then
-            COMPONENTS=$(echo "$COMPONENTS" | grep -v 'packages/Tempest')
-          fi
+          # ecotone/tempest needs PHP 8.5+ (tempest/framework) and its integration tests use a
+          # kernel-boot harness tied to the monorepo layout; it is covered by the unified Monorepo
+          # job, so exclude it from the isolated per-package Split Testing matrix.
+          COMPONENTS=$(echo "$COMPONENTS" | grep -v 'packages/Tempest')
           RUN_TESTS="composer tests:ci"
 
           if [ "${{ matrix.stability }}" = "prefer-lowest" ]; then

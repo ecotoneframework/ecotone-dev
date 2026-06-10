@@ -1,0 +1,52 @@
+packages/Tempest/tests/Application/LicenceKeyTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 11,17
+packages/Tempest/composer.json
+  s_fc33ff94f9a77a::t_2a6dbe75e74efb 48-49
+  s_fc33ff94f9a77a::t_7f0f0374634a57 64-66
+packages/Tempest/tests/Application/ProdCacheHashTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 11,17
+packages/Tempest/tests/MultiTenant/MultiTenantTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 14,22
+packages/Tempest/tests/Application/ConsoleCommandProxyTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 11,17
+packages/Tempest/tests/Application/CacheClearCommandTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 10,16
+packages/Tempest/tests/Application/CoverageParityTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 12,20
+packages/Tempest/tests/Dbal/DbalConnectionRequirementWithConnectionTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 10,16
+packages/Tempest/tests/Dbal/DbalConnectionConnectivityTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 11,18
+packages/Tempest/tests/EcotoneIntegrationTestCase.php
+  s_fc33ff94f9a77a::t_d4a89989241170 22
+packages/Tempest/tests/Application/TempestApplicationTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 9,17
+packages/Tempest/tests/Application/ParameterExpressionTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 11,17
+packages/Tempest/tests/Dbal/SharedConnectionTransactionTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 17,25
+packages/Tempest/tests/Application/StaticStateIsolationTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 10,18
+packages/Tempest/tests/Application/ConsoleCommandEndToEndTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 9,15
+packages/Tempest/tests/Repository/TempestRepositoryIntegrationTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 14,24
+packages/Tempest/tests/Application/BusinessInterfaceResolutionTest.php
+  s_fc33ff94f9a77a::t_d4a89989241170 9,16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "95b5f398a99de1afa1d1bad67fced1a9cb5ca122",
+  "prompts": {},
+  "sessions": {
+    "s_fc33ff94f9a77a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "138a9c3f-744d-47db-8bec-20dcad66c0e7",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

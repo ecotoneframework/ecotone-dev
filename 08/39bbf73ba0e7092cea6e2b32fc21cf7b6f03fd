@@ -1,0 +1,29 @@
+packages/Tempest/tests/MultiTenant/TenantAggregatePersistenceTest.php
+  s_208ad7af03c782::t_527310918456a2 1-112
+packages/Tempest/tests/Fixture/TenantAggregate/RegisterTenantProduct.php
+  s_208ad7af03c782::t_af4d97bebdb1bd 1-16
+packages/Tempest/src/Config/TempestTenantDatabaseSwitcher.php
+  s_208ad7af03c782::t_45f5dd55c59e2b 58-62,65
+  s_208ad7af03c782::t_69ab2c498f18fb 82-91
+  s_208ad7af03c782::t_6c122636682b92 14-17
+packages/Tempest/tests/Fixture/TenantAggregate/TenantProduct.php
+  s_208ad7af03c782::t_ded1cc27166c80 1-44
+packages/Tempest/tests/Fixture/TenantAggregate/TenantAggregateConfiguration.php
+  s_208ad7af03c782::t_8c02198003de54 1-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "0839bbf73ba0e7092cea6e2b32fc21cf7b6f03fd",
+  "prompts": {},
+  "sessions": {
+    "s_208ad7af03c782": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "347e1581-cebc-4de9-93b1-d62be370047d",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

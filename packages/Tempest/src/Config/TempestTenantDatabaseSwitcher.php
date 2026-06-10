@@ -11,6 +11,10 @@ use Tempest\Database\Config\DatabaseConfig;
 use Tempest\Database\Connection\Connection;
 use Tempest\Database\Connection\PDOConnection;
 use Tempest\Database\Database;
+use Tempest\Database\GenericDatabase;
+use Tempest\Database\Transactions\GenericTransactionManager;
+use Tempest\EventBus\EventBus;
+use Tempest\Mapper\SerializerFactory;
 
 /**
  * licence Apache-2.0
@@ -51,12 +55,14 @@ final class TempestTenantDatabaseSwitcher
             $container->singleton(Connection::class, $connection, tag: $configTag);
         }
 
-        // Register the tenant's already-built Connection as the default so IsDatabaseModel
-        // and Ecotone's DBAL share one PDO — enabling transaction rollback across both
+        // Promote the tenant's already-built Connection as the default so IsDatabaseModel
+        // and Ecotone's DBAL share one PDO — enabling transaction rollback across both.
+        // The default Database is rebuilt from that same Connection and registered as a
+        // singleton, otherwise Tempest's DatabaseInitializer would resolve it lazily from the
+        // discovered default DatabaseConfig and clobber the promoted Connection back to it.
         $tenantConnection = $container->get(Connection::class, tag: $configTag);
-        $container->singleton(DatabaseConfig::class, $tenantConfig);
         $container->singleton(Connection::class, $tenantConnection);
-        $container->unregister(Database::class);
+        $container->singleton(Database::class, $this->buildDatabaseFor($container, $tenantConnection));
 
         // Close the Doctrine Connection so TempestDynamicDriver reconnects on next use,
         // picking up the now-promoted default Connection's PDO
@@ -71,6 +77,16 @@ final class TempestTenantDatabaseSwitcher
         $container->unregister(Database::class);
 
         $this->closeDoctrineDefaultConnection($container);
+    }
+
+    private function buildDatabaseFor(GenericContainer $container, Connection $connection): GenericDatabase
+    {
+        return new GenericDatabase(
+            $connection,
+            new GenericTransactionManager($connection),
+            $container->get(SerializerFactory::class),
+            $container->get(EventBus::class),
+        );
     }
 
     private function closeDoctrineDefaultConnection(GenericContainer $container): void

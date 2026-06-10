@@ -1,0 +1,39 @@
+quickstart-examples/Tempest/MultiTenant/MessageBus/app/Domain/Command/RegisterCustomer.php
+  s_208ad7af03c782::t_3c9eb2807e5a34 1-17
+quickstart-examples/Tempest/MultiTenant/MessageBus/run_example.php
+  s_208ad7af03c782::t_6fb7dd0f32571b 1-66
+quickstart-examples/Tempest/MultiTenant/MessageBus/.gitignore
+  s_208ad7af03c782::t_bc67f8379e2b24 1-3
+quickstart-examples/Tempest/MultiTenant/MessageBus/app/ReadModel/CustomerFinder.php
+  s_208ad7af03c782::t_b502e76cd072df 1-30
+quickstart-examples/Tempest/MultiTenant/MessageBus/app/tenant_b.config.php
+  s_208ad7af03c782::t_74439a65faec66 1-18
+quickstart-examples/Tempest/MultiTenant/MessageBus/app/Infrastructure/EcotoneConfiguration.php
+  s_208ad7af03c782::t_f76df646348352 1-28
+quickstart-examples/Tempest/MultiTenant/MessageBus/README.md
+  s_208ad7af03c782::t_1f2c39a0f02339 1-157
+quickstart-examples/Tempest/MultiTenant/MessageBus/app/Domain/Customer.php
+  s_208ad7af03c782::t_a8f16e7632ffa4 1-46
+quickstart-examples/Tempest/MultiTenant/MessageBus/composer.json
+  s_208ad7af03c782::t_b6b5ac1dc9fc09 1-28,31-43
+  s_208ad7af03c782::t_962e7346e5af0f 29
+  s_208ad7af03c782::t_c470396903c0bd 30
+quickstart-examples/Tempest/MultiTenant/MessageBus/app/tenant_a.config.php
+  s_208ad7af03c782::t_3efc22dc4b12d4 1-18
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "6e954c9ed800e3121fc20089edebb63606cf6eb3",
+  "prompts": {},
+  "sessions": {
+    "s_208ad7af03c782": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "347e1581-cebc-4de9-93b1-d62be370047d",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

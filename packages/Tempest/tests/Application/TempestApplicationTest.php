@@ -6,7 +6,7 @@ namespace Test\Ecotone\Tempest\Application;
 
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\Fixture\User\User;
 use Test\Ecotone\Tempest\Fixture\User\UserRepository;
 
@@ -14,7 +14,7 @@ use Test\Ecotone\Tempest\Fixture\User\UserRepository;
  * licence Apache-2.0
  * @internal
  */
-final class TempestApplicationTest extends EcotoneIntegrationTest
+final class TempestApplicationTest extends EcotoneIntegrationTestCase
 {
     public function test_command_bus_resolves_from_tempest_container(): void
     {

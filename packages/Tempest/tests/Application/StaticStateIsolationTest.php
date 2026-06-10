@@ -7,7 +7,7 @@ namespace Test\Ecotone\Tempest\Application;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\Fixture\User\User;
 use Test\Ecotone\Tempest\Fixture\User\UserRepository;
 
@@ -15,7 +15,7 @@ use Test\Ecotone\Tempest\Fixture\User\UserRepository;
  * licence Apache-2.0
  * @internal
  */
-final class StaticStateIsolationTest extends EcotoneIntegrationTest
+final class StaticStateIsolationTest extends EcotoneIntegrationTestCase
 {
     public function test_second_boot_in_same_process_sees_fresh_messaging_system_state(): void
     {

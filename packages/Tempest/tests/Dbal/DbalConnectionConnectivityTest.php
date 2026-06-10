@@ -8,14 +8,14 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Enqueue\Dbal\DbalConnectionFactory;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
 
 /**
  * licence Apache-2.0
  * @internal
  */
-final class DbalConnectionConnectivityTest extends EcotoneIntegrationTest
+final class DbalConnectionConnectivityTest extends EcotoneIntegrationTestCase
 {
     protected function ecotoneConfig(): EcotoneConfig
     {

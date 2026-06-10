@@ -14,7 +14,7 @@ use RuntimeException;
 use Tempest\Database\Database;
 use Tempest\Database\Query;
 use Tempest\Database\QueryStatements\CreateTableStatement;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
 use Throwable;
 
@@ -22,7 +22,7 @@ use Throwable;
  * licence Apache-2.0
  * @internal
  */
-final class SharedConnectionTransactionTest extends EcotoneIntegrationTest
+final class SharedConnectionTransactionTest extends EcotoneIntegrationTestCase
 {
     protected function ecotoneConfig(): EcotoneConfig
     {

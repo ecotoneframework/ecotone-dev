@@ -9,7 +9,7 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\Fixture\User\User;
 use Test\Ecotone\Tempest\Fixture\User\UserRepository;
 
@@ -17,7 +17,7 @@ use Test\Ecotone\Tempest\Fixture\User\UserRepository;
  * licence Apache-2.0
  * @internal
  */
-final class CoverageParityTest extends EcotoneIntegrationTest
+final class CoverageParityTest extends EcotoneIntegrationTestCase
 {
     protected function ecotoneConfig(): EcotoneConfig
     {

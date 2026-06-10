@@ -11,7 +11,7 @@ use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
 use PDO;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\Fixture\MultiTenant\RegisterCustomer;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
 
@@ -19,7 +19,7 @@ use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
  * licence Apache-2.0
  * @internal
  */
-final class MultiTenantTest extends EcotoneIntegrationTest
+final class MultiTenantTest extends EcotoneIntegrationTestCase
 {
     private CommandBus $commandBus;
     private QueryBus $queryBus;

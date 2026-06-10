@@ -6,14 +6,14 @@ namespace Test\Ecotone\Tempest\Application;
 
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\Fixture\Counter\CounterGateway;
 
 /**
  * licence Apache-2.0
  * @internal
  */
-final class BusinessInterfaceResolutionTest extends EcotoneIntegrationTest
+final class BusinessInterfaceResolutionTest extends EcotoneIntegrationTestCase
 {
     protected function ecotoneConfig(): EcotoneConfig
     {

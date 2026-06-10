@@ -19,7 +19,7 @@ use Tempest\Framework\Testing\IntegrationTest;
 /**
  * licence Apache-2.0
  */
-abstract class EcotoneIntegrationTest extends IntegrationTest
+abstract class EcotoneIntegrationTestCase extends IntegrationTest
 {
     protected string $root = '';
 

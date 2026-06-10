@@ -11,7 +11,7 @@ use Ecotone\Tempest\MessagingSystemInitializer;
 use Tempest\Database\Database;
 use Tempest\Database\Query;
 use Tempest\Database\QueryStatements\CreateTableStatement;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\Fixture\Order\Order;
 use Test\Ecotone\Tempest\Fixture\Order\PlaceOrder;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
@@ -21,7 +21,7 @@ use Throwable;
  * licence Apache-2.0
  * @internal
  */
-final class TempestRepositoryIntegrationTest extends EcotoneIntegrationTest
+final class TempestRepositoryIntegrationTest extends EcotoneIntegrationTestCase
 {
     protected function ecotoneConfig(): EcotoneConfig
     {

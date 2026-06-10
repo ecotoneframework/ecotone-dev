@@ -8,13 +8,13 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Ecotone\Tempest\EcotoneConfig;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 
 /**
  * licence Apache-2.0
  * @internal
  */
-final class ParameterExpressionTest extends EcotoneIntegrationTest
+final class ParameterExpressionTest extends EcotoneIntegrationTestCase
 {
     protected function ecotoneConfig(): EcotoneConfig
     {

@@ -7,13 +7,13 @@ namespace Test\Ecotone\Tempest\Application;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\MessagingSystemInitializer;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 
 /**
  * licence Apache-2.0
  * @internal
  */
-final class CacheClearCommandTest extends EcotoneIntegrationTest
+final class CacheClearCommandTest extends EcotoneIntegrationTestCase
 {
     protected function ecotoneConfig(): EcotoneConfig
     {

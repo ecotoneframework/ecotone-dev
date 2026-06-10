@@ -8,13 +8,13 @@ use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\ConsoleCommandProxyGenerator;
 use Ecotone\Tempest\EcotoneConfig;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 
 /**
  * licence Apache-2.0
  * @internal
  */
-final class ConsoleCommandProxyTest extends EcotoneIntegrationTest
+final class ConsoleCommandProxyTest extends EcotoneIntegrationTestCase
 {
     protected function ecotoneConfig(): EcotoneConfig
     {

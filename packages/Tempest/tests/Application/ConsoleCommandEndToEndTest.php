@@ -6,13 +6,13 @@ namespace Test\Ecotone\Tempest\Application;
 
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 
 /**
  * licence Apache-2.0
  * @internal
  */
-final class ConsoleCommandEndToEndTest extends EcotoneIntegrationTest
+final class ConsoleCommandEndToEndTest extends EcotoneIntegrationTestCase
 {
     protected function ecotoneConfig(): EcotoneConfig
     {

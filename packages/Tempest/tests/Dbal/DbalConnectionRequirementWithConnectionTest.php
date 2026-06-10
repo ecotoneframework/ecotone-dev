@@ -7,13 +7,13 @@ namespace Test\Ecotone\Tempest\Dbal;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
-use Test\Ecotone\Tempest\EcotoneIntegrationTest;
+use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 
 /**
  * licence Apache-2.0
  * @internal
  */
-final class DbalConnectionRequirementWithConnectionTest extends EcotoneIntegrationTest
+final class DbalConnectionRequirementWithConnectionTest extends EcotoneIntegrationTestCase
 {
     protected function ecotoneConfig(): EcotoneConfig
     {

@@ -45,7 +45,8 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Test\\Ecotone\\Tempest\\": "tests"
+            "Test\\Ecotone\\Tempest\\": "tests",
+            "App\\Tempest\\": "tests/app/src"
         }
     },
     "require": {
@@ -60,7 +61,9 @@
     "require-dev": {
         "phpunit/phpunit": "^11.0",
         "phpstan/phpstan": "^1.8|^2.0",
-        "symfony/expression-language": "^6.4|^7.0|^8.0"
+        "symfony/expression-language": "^6.4|^7.0|^8.0",
+        "ecotone/dbal": "~1.315.0",
+        "doctrine/dbal": "^4.0"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

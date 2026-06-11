@@ -4,19 +4,16 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite;
 
-use DI\ContainerBuilder as PhpDiContainerBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
-
-use function file_put_contents;
-
-use Symfony\Component\Uid\Uuid;
+use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 
 /**
  * licence Apache-2.0
@@ -52,52 +49,41 @@ class EcotoneLiteApplication
             $serviceConfiguration->getCacheDirectoryPath() . DIRECTORY_SEPARATOR . 'ecotone',
             $cacheConfiguration
         );
-        $file = $serviceCacheConfiguration->getPath() . '/CompiledContainer.php';
-        if ($serviceCacheConfiguration->shouldUseCache() && file_exists($file)) {
-            $container = require $file;
-        } else {
+
+        $externalContainer = new AutowiringContainer(InMemoryPSRContainer::createFromAssociativeArray(array_merge($classesToRegister, $objectsToRegister)));
+        $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
+        $runtimeServices = [
+            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
+            ConfigurationVariableService::REFERENCE_NAME => $configurationVariableService,
+        ];
+
+        $container = null;
+        if ($serviceCacheConfiguration->shouldUseCache()) {
+            $container = EcotoneSymfonyContainerFactory::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
+        }
+
+        if (! $container) {
             /** @var MessagingSystemConfiguration $messagingConfiguration */
             $messagingConfiguration = MessagingSystemConfiguration::prepare(
                 $pathToRootCatalog,
-                InMemoryConfigurationVariableService::create($configurationVariables),
+                $configurationVariableService,
                 $serviceConfiguration,
             );
-
-            $containerClass = 'CompiledContainer_'.self::hash(Uuid::v7()->toRfc4122());
-            $builder = new PhpDiContainerBuilder();
-            $builder->useAttributes(false);
-            $builder->useAutowiring(true);
-            if ($serviceCacheConfiguration->shouldUseCache()) {
-                $builder->enableCompilation($serviceCacheConfiguration->getPath(), $containerClass);
-                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-                file_put_contents($file, <<<EOL
-                    <?php
-                    require_once __DIR__.'/$containerClass.php';
-                    return new $containerClass();
-                    EOL);
-            }
+            $messagingConfiguration->withExternalContainer($externalContainer);
 
             $containerBuilder = new ContainerBuilder();
-            $messagingConfiguration->withExternalContainer(InMemoryPSRContainer::createFromAssociativeArray(array_merge($classesToRegister, $objectsToRegister)));
             $containerBuilder->addCompilerPass($messagingConfiguration);
             $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-            $containerBuilder->addCompilerPass(new PhpDiContainerImplementation($builder, $classesToRegister));
-            $containerBuilder->compile();
+            $containerBuilder->addCompilerPass(new ValidityCheckPass());
 
-            $container = $builder->build();
+            if ($serviceCacheConfiguration->shouldUseCache()) {
+                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
+            }
+
+            $container = EcotoneSymfonyContainerFactory::build($containerBuilder, $serviceCacheConfiguration, $externalContainer, $runtimeServices);
         }
 
-        $container->set(ServiceCacheConfiguration::class, $serviceCacheConfiguration);
-
-        $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
-        $container->set(ConfigurationVariableService::REFERENCE_NAME, $configurationVariableService);
-
-        foreach ($objectsToRegister as $referenceName => $object) {
-            $container->set($referenceName, $object);
-        }
-        foreach ($classesToRegister as $referenceName => $object) {
-            $container->set(PhpDiContainerImplementation::EXTERNAL_PREFIX.$referenceName, $object);
-        }
+        $externalContainer->setEcotoneContainer($container);
 
         return $container->get(ConfiguredMessagingSystem::class);
     }
@@ -110,12 +96,5 @@ class EcotoneLiteApplication
     public static function boostrap(array $objectsToRegister = [], array $configurationVariables = [], ?ServiceConfiguration $serviceConfiguration = null, bool $cacheConfiguration = false, ?string $pathToRootCatalog = null): ConfiguredMessagingSystem
     {
         return self::bootstrap($objectsToRegister, $configurationVariables, $serviceConfiguration, $cacheConfiguration, $pathToRootCatalog);
-    }
-
-    private static function hash($value)
-    {
-        $hash = substr(base64_encode(hash('sha256', serialize($value), true)), 0, 7);
-
-        return str_replace(['/', '+'], ['_', '_'], $hash);
     }
 }

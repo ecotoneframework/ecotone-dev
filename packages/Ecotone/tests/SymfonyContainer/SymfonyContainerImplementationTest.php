@@ -17,6 +17,7 @@ use Ecotone\Test\StubLogger;
 use Psr\Container\ContainerInterface;
 use Test\Ecotone\Lite\ADefinedObject;
 use Test\Ecotone\Lite\ContainerImplementationTestCase;
+use Test\Ecotone\Lite\WithNoDependencies;
 
 /**
  * licence Apache-2.0
@@ -74,6 +75,28 @@ class SymfonyContainerImplementationTest extends ContainerImplementationTestCase
         ]);
 
         self::assertSame($definedObjectInstance, $container->get('aService')->dependency);
+    }
+
+    public function test_it_resolves_external_references_into_single_shared_instance(): void
+    {
+        $externalContainer = new class () implements ContainerInterface {
+            public function get(string $id): mixed
+            {
+                return new WithNoDependencies();
+            }
+
+            public function has(string $id): bool
+            {
+                return $id === 'externallyDefined';
+            }
+        };
+
+        $container = self::buildContainerFromDefinitions([
+            'def1' => new Definition(WithReferenceToUnknown::class, [new Reference('externallyDefined')]),
+            'def2' => new Definition(WithReferenceToUnknown::class, [new Reference('externallyDefined')]),
+        ], $externalContainer);
+
+        self::assertSame($container->get('def1')->dependency, $container->get('def2')->dependency);
     }
 
     public function test_it_resolves_references_from_external_container(): void

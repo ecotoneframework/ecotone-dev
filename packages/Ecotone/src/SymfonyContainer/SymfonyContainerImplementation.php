@@ -130,7 +130,6 @@ class SymfonyContainerImplementation implements ContainerImplementation
                 (new SymfonyDefinition(stdClass::class))
                     ->setFactory([ExternalReferenceResolver::class, 'resolve'])
                     ->setArguments([new SymfonyReference(self::EXTERNAL_CONTAINER_ID), $id, $invalidBehavior])
-                    ->setShared(false)
                     ->setPublic(true)
             );
         }

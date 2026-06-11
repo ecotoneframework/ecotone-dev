@@ -64,6 +64,9 @@ class SymfonyContainerImplementation implements ContainerImplementation
 
         $this->definitions = $builder->getDefinitions();
         foreach ($this->definitions as $id => $definition) {
+            if (in_array($id, $this->syntheticServiceIds, true)) {
+                continue;
+            }
             $symfonyDefinition = $this->resolveArgument($definition);
             if ($symfonyDefinition instanceof SymfonyReference) {
                 $this->symfonyBuilder->setAlias(ServiceIdNormalizer::normalize($id), (string) $symfonyDefinition)->setPublic(true);
@@ -84,8 +87,13 @@ class SymfonyContainerImplementation implements ContainerImplementation
 
     private function resolveArgument($argument): mixed
     {
-        if ($argument instanceof DefinedObjectWrapper && $this->preserveRuntimeInstances) {
-            return $this->convertRuntimeInstanceDefinition($argument);
+        if ($this->preserveRuntimeInstances) {
+            if ($argument instanceof DefinedObjectWrapper) {
+                return $this->convertRuntimeInstanceDefinition($argument);
+            }
+            if ($argument instanceof DefinedObject) {
+                return $this->runtimeInstanceDefinition($argument);
+            }
         }
         if ($argument instanceof DefinedObject) {
             $argument = $argument->getDefinition();
@@ -138,12 +146,18 @@ class SymfonyContainerImplementation implements ContainerImplementation
         return $delegateId;
     }
 
+    private function runtimeInstanceDefinition(object $instance): SymfonyDefinition
+    {
+        return (new SymfonyDefinition(get_class($instance)))
+            ->setFactory([RuntimeInstanceProvider::class, 'provide'])
+            ->setArguments([$instance])
+            ->setPublic(true);
+    }
+
     private function convertRuntimeInstanceDefinition(DefinedObjectWrapper $definedObjectWrapper): SymfonyDefinition
     {
         $instance = $definedObjectWrapper->instance();
-        $sfDefinition = (new SymfonyDefinition(get_class($instance)))
-            ->setFactory([RuntimeInstanceProvider::class, 'provide'])
-            ->setArguments([$instance]);
+        $sfDefinition = $this->runtimeInstanceDefinition($instance);
         foreach ($definedObjectWrapper->getMethodCalls() as $methodCall) {
             $sfDefinition->addMethodCall(
                 $methodCall->getMethodName(),

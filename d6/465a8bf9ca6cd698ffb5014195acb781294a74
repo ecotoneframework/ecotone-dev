@@ -1,0 +1,23 @@
+packages/Laravel/src/LaravelPsrContainerAdapter.php
+  s_bd4e924a1e9b0a::t_7b8ef3a7d6ff82 1-30
+packages/Laravel/src/EcotoneProvider.php
+  s_bd4e924a1e9b0a::t_a36cc20209c341 197-200,202-204,206-208,232,234,236,244-250,253
+  s_bd4e924a1e9b0a::t_56d5d0bf00e2ca 10-12,19-20
+  s_bd4e924a1e9b0a::t_56bf91df843561 101,103-107,128-129
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "d6465a8bf9ca6cd698ffb5014195acb781294a74",
+  "prompts": {},
+  "sessions": {
+    "s_bd4e924a1e9b0a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8858425-6a0e-4281-92d5-4b4082bde3ae",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -239,11 +239,9 @@ final class EcotoneLite
 
         if ($allowGatewaysToBeRegisteredInContainer) {
             Assert::isTrue(method_exists($externalContainer, 'set'), 'Gateways registration was enabled however given container has no `set` method. Please add it or turn off the option.');
-            $externalContainer->set(ConfiguredMessagingSystem::class, $messagingSystem);
-            foreach ($messagingSystem->getGatewayList() as $gatewayReference) {
-                $gatewayReferenceName = $gatewayReference->getReferenceName();
-                $externalContainer->set($gatewayReferenceName, $messagingSystem->getGatewayByName($gatewayReferenceName));
-            }
+            $container->registerBridgesInto(
+                fn (string $referenceName, string $interfaceName, callable $factory) => $externalContainer->set($referenceName, $factory()),
+            );
         } elseif ($externalContainer->has(ConfiguredMessagingSystem::class)) {
             /** @var ConfiguredMessagingSystem $alreadyConfiguredMessaging */
             $alreadyConfiguredMessaging = $externalContainer->get(ConfiguredMessagingSystem::class);

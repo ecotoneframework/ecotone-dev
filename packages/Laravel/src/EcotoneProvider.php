@@ -96,12 +96,9 @@ class EcotoneProvider extends ServiceProvider
 
         [$serviceCacheConfiguration, $container] = $this->prepareFromCache($useProductionCache, $rootCatalog, $applicationConfiguration, $enableTesting, $cacheDirectory);
 
-        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
-        $this->app->singleton(ConfiguredMessagingSystem::class, fn () => $messagingSystem);
-        foreach ($messagingSystem->getGatewayList() as $gatewayReference) {
-            $gatewayReferenceName = $gatewayReference->getReferenceName();
-            $this->app->singleton($gatewayReferenceName, fn () => $container->get($gatewayReferenceName));
-        }
+        $container->registerBridgesInto(
+            fn (string $referenceName, string $interfaceName, callable $factory) => $this->app->singleton($referenceName, fn () => $factory()),
+        );
 
         $this->app->singleton(
             ConfigurationVariableService::REFERENCE_NAME,

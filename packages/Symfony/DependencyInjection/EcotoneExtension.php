@@ -2,10 +2,9 @@
 
 namespace Ecotone\SymfonyBundle\DependencyInjection;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
@@ -109,6 +108,7 @@ class EcotoneExtension extends Extension
         $containerBuilder->register(ServiceCacheConfiguration::REFERENCE_NAME, $serviceCacheConfiguration);
         $containerBuilder->addCompilerPass($messagingConfiguration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
+        $containerBuilder->addCompilerPass(new ValidityCheckPass());
         $ecotoneContainer = EcotoneSymfonyContainerFactory::build($containerBuilder, $serviceCacheConfiguration);
 
         $container->register('ecotone.container', EcotoneContainer::class)
@@ -116,18 +116,12 @@ class EcotoneExtension extends Extension
             ->setArguments([$cacheDirectory, new Reference('service_container')])
             ->setPublic(true);
 
-        $container->register(ConfiguredMessagingSystem::class, MessagingSystemContainer::class)
-            ->setFactory([new Reference('ecotone.container'), 'get'])
-            ->setArguments([ConfiguredMessagingSystem::class])
-            ->setPublic(true);
-
-        foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
-            $referenceName = $gatewayProxyBuilder->getReferenceName();
-            $container->register($referenceName, $gatewayProxyBuilder->getInterfaceName())
+        $ecotoneContainer->registerBridgesInto(function (string $referenceName, string $interfaceName) use ($container) {
+            $container->register($referenceName, $interfaceName)
                 ->setFactory([new Reference('ecotone.container'), 'get'])
                 ->setArguments([$referenceName])
                 ->setPublic(true);
-        }
+        });
 
         $container->register(ProxyFactory::class, ProxyFactory::class)
             ->setFactory([new Reference('ecotone.container'), 'get'])

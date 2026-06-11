@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\SymfonyContainer;
 
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface as SymfonyContainerInterface;
@@ -81,6 +82,20 @@ final class EcotoneContainer implements ContainerInterface
     public function getExternalReferenceIds(): array
     {
         return $this->container->getParameter(SymfonyContainerImplementation::EXTERNAL_REFERENCES_PARAMETER);
+    }
+
+    /**
+     * @param callable(string $referenceName, string $interfaceName, callable(): object $factory): void $register
+     */
+    public function registerBridgesInto(callable $register): void
+    {
+        /** @var ConfiguredMessagingSystem $messagingSystem */
+        $messagingSystem = $this->get(ConfiguredMessagingSystem::class);
+        $register(ConfiguredMessagingSystem::class, ConfiguredMessagingSystem::class, fn () => $messagingSystem);
+        foreach ($messagingSystem->getGatewayList() as $gatewayReference) {
+            $referenceName = $gatewayReference->getReferenceName();
+            $register($referenceName, $gatewayReference->getInterfaceName(), fn () => $this->get($referenceName));
+        }
     }
 
     public function getConfigHash(): ?string

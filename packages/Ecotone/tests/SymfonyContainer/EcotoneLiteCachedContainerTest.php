@@ -6,9 +6,11 @@ namespace Test\Ecotone\SymfonyContainer;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\CommandBus;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\OneTimeWithResultExample;
@@ -61,6 +63,27 @@ class EcotoneLiteCachedContainerTest extends TestCase
 
         $consoleCommands = $container->getRegisteredConsoleCommands();
         self::assertContains('doSomething', array_map(fn ($command) => $command->getName(), $consoleCommands));
+    }
+
+    public function test_gateway_bridges_can_be_registered_into_framework_container(): void
+    {
+        $messagingSystem = EcotoneLite::bootstrap(
+            [CachedCommandHandlerService::class],
+            [CachedCommandHandlerService::class => new CachedCommandHandlerService()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+        );
+        $container = $messagingSystem->getServiceFromContainer(ContainerInterface::class);
+
+        $registeredBridges = [];
+        $container->registerBridgesInto(function (string $referenceName, string $interfaceName, callable $factory) use (&$registeredBridges) {
+            $registeredBridges[$referenceName] = [$interfaceName, $factory];
+        });
+
+        self::assertArrayHasKey(ConfiguredMessagingSystem::class, $registeredBridges);
+        self::assertArrayHasKey(CommandBus::class, $registeredBridges);
+        self::assertSame(CommandBus::class, $registeredBridges[CommandBus::class][0]);
+        self::assertInstanceOf(CommandBus::class, $registeredBridges[CommandBus::class][1]());
     }
 }
 

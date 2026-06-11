@@ -21,8 +21,9 @@ final class EcotoneContainer implements ContainerInterface
 
     public function get(string $id): mixed
     {
-        if ($this->container->has($id)) {
-            return $this->container->get($id);
+        $normalizedId = ServiceIdNormalizer::normalize($id);
+        if ($this->container->has($normalizedId)) {
+            return $this->container->get($normalizedId);
         }
 
         return ExternalReferenceResolver::resolve($this->externalContainer, $id, ContainerImplementation::EXCEPTION_ON_INVALID_REFERENCE);
@@ -30,11 +31,11 @@ final class EcotoneContainer implements ContainerInterface
 
     public function has(string $id): bool
     {
-        return $this->container->has($id) || $this->externalContainer->has($id);
+        return $this->container->has(ServiceIdNormalizer::normalize($id)) || $this->externalContainer->has($id);
     }
 
     public function set(string $id, mixed $service): void
     {
-        $this->container->set($id, $service);
+        $this->container->set(ServiceIdNormalizer::normalize($id), $service);
     }
 }

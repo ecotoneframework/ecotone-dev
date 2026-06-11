@@ -18,28 +18,40 @@ use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
  */
 final class EcotoneSymfonyContainerFactory
 {
+    /**
+     * @param array<string, object> $runtimeServices
+     */
     public static function build(
         ContainerBuilder $builder,
         ServiceCacheConfiguration $serviceCacheConfiguration,
         ?ContainerInterface $externalContainer = null,
+        array $runtimeServices = [],
     ): EcotoneContainer {
         $symfonyBuilder = new SymfonyContainerBuilder();
-        $builder->addCompilerPass(new SymfonyContainerImplementation($symfonyBuilder));
+        $builder->addCompilerPass(new SymfonyContainerImplementation(
+            $symfonyBuilder,
+            array_keys($runtimeServices),
+            preserveRuntimeInstances: ! $serviceCacheConfiguration->shouldUseCache(),
+        ));
         $builder->compile();
-        $symfonyBuilder->compile();
 
         if ($serviceCacheConfiguration->shouldUseCache()) {
+            $symfonyBuilder->compile();
             self::dumpToCache($symfonyBuilder, $serviceCacheConfiguration);
-            return self::loadCached($serviceCacheConfiguration, $externalContainer)
+            return self::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices)
                 ?? throw ConfigurationException::create("Failed to load dumped Ecotone container from {$serviceCacheConfiguration->getPath()}");
         }
 
-        return self::wrapWithExternalFallback($symfonyBuilder, $externalContainer);
+        return self::wrapWithExternalFallback($symfonyBuilder, $externalContainer, $runtimeServices);
     }
 
+    /**
+     * @param array<string, object> $runtimeServices
+     */
     public static function loadCached(
         ServiceCacheConfiguration $serviceCacheConfiguration,
         ?ContainerInterface $externalContainer = null,
+        array $runtimeServices = [],
     ): ?EcotoneContainer {
         $containerFile = self::containerFilePath($serviceCacheConfiguration);
         $className = self::containerClassName($serviceCacheConfiguration);
@@ -50,7 +62,7 @@ final class EcotoneSymfonyContainerFactory
             require_once $containerFile;
         }
 
-        return self::wrapWithExternalFallback(new $className(), $externalContainer);
+        return self::wrapWithExternalFallback(new $className(), $externalContainer, $runtimeServices);
     }
 
     private static function dumpToCache(
@@ -78,14 +90,21 @@ final class EcotoneSymfonyContainerFactory
         return 'EcotoneCachedContainer_' . md5($serviceCacheConfiguration->getPath());
     }
 
+    /**
+     * @param array<string, object> $runtimeServices
+     */
     private static function wrapWithExternalFallback(
         SymfonyContainerInterface $symfonyContainer,
         ?ContainerInterface $externalContainer,
+        array $runtimeServices = [],
     ): EcotoneContainer {
         $externalContainer ??= InMemoryPSRContainer::createEmpty();
         $container = new EcotoneContainer($symfonyContainer, $externalContainer);
         $container->set(SymfonyContainerImplementation::EXTERNAL_CONTAINER_ID, $externalContainer);
         $container->set(ContainerInterface::class, $container);
+        foreach ($runtimeServices as $id => $service) {
+            $container->set($id, $service);
+        }
 
         return $container;
     }

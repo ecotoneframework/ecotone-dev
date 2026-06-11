@@ -15,7 +15,9 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\Container\ContainerConfig;
+use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
+use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -24,6 +26,7 @@ use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
+use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 
 use function json_decode;
 
@@ -218,15 +221,17 @@ final class EcotoneLite
         );
 
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
-        $definitionHolder = null;
-        $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'messaging';
+        $runtimeServices = [
+            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
+            ConfigurationVariableService::REFERENCE_NAME => $configurationVariableService,
+        ];
+        $container = null;
 
-        if ($serviceCacheConfiguration->shouldUseCache() && file_exists($messagingSystemCachePath)) {
-            /** It may fail on deserialization, then return `false` and we can build new one */
-            $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
+        if ($serviceCacheConfiguration->shouldUseCache()) {
+            $container = EcotoneSymfonyContainerFactory::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
         }
 
-        if (! $definitionHolder) {
+        if (! $container) {
             $messagingConfiguration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
                 $annotationFinder,
                 $configurationVariableService,
@@ -236,19 +241,17 @@ final class EcotoneLite
 
             $messagingConfiguration->withExternalContainer($externalContainer);
 
-            $definitionHolder = ContainerConfig::buildDefinitionHolder($messagingConfiguration);
+            $ecotoneBuilder = new ContainerBuilder();
+            $ecotoneBuilder->addCompilerPass($messagingConfiguration);
+            $ecotoneBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
+            $ecotoneBuilder->addCompilerPass(new ValidityCheckPass());
 
             if ($serviceCacheConfiguration->shouldUseCache()) {
-                Assert::notNull($messagingSystemCachePath, 'Cache path should be defined');
-
                 MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-                file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
             }
-        }
 
-        $container = new LazyInMemoryContainer($definitionHolder->getDefinitions(), $externalContainer);
-        $container->set(ServiceCacheConfiguration::class, $serviceCacheConfiguration);
-        $container->set(ConfigurationVariableService::REFERENCE_NAME, $configurationVariableService);
+            $container = EcotoneSymfonyContainerFactory::build($ecotoneBuilder, $serviceCacheConfiguration, $externalContainer, $runtimeServices);
+        }
 
         $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
 

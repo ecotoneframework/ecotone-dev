@@ -11,7 +11,10 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\DefinedObjectWrapper;
 
+use function get_class;
+use function in_array;
 use function is_array;
 use function is_string;
 use function method_exists;
@@ -30,6 +33,8 @@ class SymfonyContainerImplementation implements ContainerImplementation
 {
     public const EXTERNAL_CONTAINER_ID = 'ecotone.external_container';
     public const EXTERNAL_REFERENCES_PARAMETER = 'ecotone.external_references';
+    public const EXTERNAL_DELEGATE_SUFFIX = '.ecotone.external';
+    public const NULLABLE_EXTERNAL_DELEGATE_SUFFIX = '.ecotone.external.nullable';
 
     /**
      * @var Definition[]|Reference[] $definitions
@@ -38,35 +43,49 @@ class SymfonyContainerImplementation implements ContainerImplementation
 
     private array $externalReferences = [];
 
-    public function __construct(private SymfonyContainerBuilder $symfonyBuilder)
-    {
+    /**
+     * @param string[] $syntheticServiceIds
+     */
+    public function __construct(
+        private SymfonyContainerBuilder $symfonyBuilder,
+        private array $syntheticServiceIds = [],
+        private bool $preserveRuntimeInstances = false,
+    ) {
     }
 
     public function process(ContainerBuilder $builder): void
     {
-        $this->symfonyBuilder->setDefinition(
-            self::EXTERNAL_CONTAINER_ID,
-            (new SymfonyDefinition(ContainerInterface::class))->setSynthetic(true)->setPublic(true)
-        );
-        $this->symfonyBuilder->setDefinition(
-            ContainerInterface::class,
-            (new SymfonyDefinition(ContainerInterface::class))->setSynthetic(true)->setPublic(true)
-        );
+        $this->registerSyntheticService(self::EXTERNAL_CONTAINER_ID, ContainerInterface::class);
+        $this->registerSyntheticService(ContainerInterface::class, ContainerInterface::class);
+        foreach ($this->syntheticServiceIds as $syntheticServiceId) {
+            $this->registerSyntheticService(ServiceIdNormalizer::normalize($syntheticServiceId), stdClass::class);
+        }
 
         $this->definitions = $builder->getDefinitions();
         foreach ($this->definitions as $id => $definition) {
             $symfonyDefinition = $this->resolveArgument($definition);
             if ($symfonyDefinition instanceof SymfonyReference) {
-                $this->symfonyBuilder->setAlias($id, (string) $symfonyDefinition)->setPublic(true);
+                $this->symfonyBuilder->setAlias(ServiceIdNormalizer::normalize($id), (string) $symfonyDefinition)->setPublic(true);
             } else {
-                $this->symfonyBuilder->setDefinition($id, $symfonyDefinition);
+                $this->symfonyBuilder->setDefinition(ServiceIdNormalizer::normalize($id), $symfonyDefinition);
             }
         }
         $this->symfonyBuilder->setParameter(self::EXTERNAL_REFERENCES_PARAMETER, array_values($this->externalReferences));
     }
 
+    private function registerSyntheticService(string $id, string $className): void
+    {
+        $this->symfonyBuilder->setDefinition(
+            $id,
+            (new SymfonyDefinition($className))->setSynthetic(true)->setPublic(true)
+        );
+    }
+
     private function resolveArgument($argument): mixed
     {
+        if ($argument instanceof DefinedObjectWrapper && $this->preserveRuntimeInstances) {
+            return $this->convertRuntimeInstanceDefinition($argument);
+        }
         if ($argument instanceof DefinedObject) {
             $argument = $argument->getDefinition();
         }
@@ -91,8 +110,8 @@ class SymfonyContainerImplementation implements ContainerImplementation
     private function resolveReference(Reference $reference): SymfonyReference
     {
         $id = $reference->getId();
-        if (isset($this->definitions[$id]) || $id === ContainerInterface::class) {
-            return new SymfonyReference($id);
+        if (isset($this->definitions[$id]) || $id === ContainerInterface::class || in_array($id, $this->syntheticServiceIds, true)) {
+            return new SymfonyReference(ServiceIdNormalizer::normalize($id));
         }
 
         return new SymfonyReference($this->registerExternalReferenceDelegate($id, $reference->getInvalidBehavior()));
@@ -100,9 +119,9 @@ class SymfonyContainerImplementation implements ContainerImplementation
 
     private function registerExternalReferenceDelegate(string $id, int $invalidBehavior): string
     {
-        $delegateId = $invalidBehavior === self::NULL_ON_INVALID_REFERENCE
-            ? $id . '.ecotone.nullable'
-            : $id;
+        $delegateId = ServiceIdNormalizer::normalize($id) . ($invalidBehavior === self::NULL_ON_INVALID_REFERENCE
+            ? self::NULLABLE_EXTERNAL_DELEGATE_SUFFIX
+            : self::EXTERNAL_DELEGATE_SUFFIX);
 
         if (! $this->symfonyBuilder->hasDefinition($delegateId)) {
             $this->symfonyBuilder->setDefinition(
@@ -117,6 +136,21 @@ class SymfonyContainerImplementation implements ContainerImplementation
         $this->externalReferences[$id] = $id;
 
         return $delegateId;
+    }
+
+    private function convertRuntimeInstanceDefinition(DefinedObjectWrapper $definedObjectWrapper): SymfonyDefinition
+    {
+        $instance = $definedObjectWrapper->instance();
+        $sfDefinition = (new SymfonyDefinition(get_class($instance)))
+            ->setFactory([RuntimeInstanceProvider::class, 'provide'])
+            ->setArguments([$instance]);
+        foreach ($definedObjectWrapper->getMethodCalls() as $methodCall) {
+            $sfDefinition->addMethodCall(
+                $methodCall->getMethodName(),
+                $this->normalizeNamedArgument($this->resolveArgument($methodCall->getArguments()))
+            );
+        }
+        return $sfDefinition->setPublic(true);
     }
 
     private function convertDefinition(Definition $ecotoneDefinition): SymfonyDefinition

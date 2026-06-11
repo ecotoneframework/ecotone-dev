@@ -43,4 +43,12 @@ final class EcotoneContainer implements ContainerInterface
     {
         return $this->container->getParameter($name);
     }
+
+    /**
+     * @return string[]
+     */
+    public function getServiceIds(): array
+    {
+        return $this->container->getServiceIds();
+    }
 }

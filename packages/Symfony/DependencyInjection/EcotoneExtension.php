@@ -2,16 +2,24 @@
 
 namespace Ecotone\SymfonyBundle\DependencyInjection;
 
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
+use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Messaging\Handler\Logger\LoggingGateway;
+use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheWarmer;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\SymfonyConfigurationVariableService;
+use Ecotone\SymfonyContainer\EcotoneContainer;
+use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
+use Ecotone\SymfonyContainer\ExternalReferenceResolver;
+use Ecotone\SymfonyContainer\RuntimeInstanceProvider;
+use Ecotone\SymfonyContainer\SymfonyContainerImplementation;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 use Symfony\Component\DependencyInjection\Extension\Extension;
@@ -74,6 +82,9 @@ class EcotoneExtension extends Extension
 
         $configurationVariableService = new SymfonyConfigurationVariableService($container);
 
+        if (! $container->has(\Psr\Container\ContainerInterface::class)) {
+            $container->setAlias(\Psr\Container\ContainerInterface::class, 'service_container');
+        }
         $container->register(\Ecotone\Messaging\ConfigurationVariableService::class, SymfonyConfigurationVariableService::class)->setAutowired(true)->setPublic(true);
 
         $container->register(ServiceCacheConfiguration::REFERENCE_NAME, ServiceCacheConfiguration::class)
@@ -92,15 +103,61 @@ class EcotoneExtension extends Extension
             enableTestPackage: $config['test']
         );
 
+        $cacheDirectory = $container->getParameter('kernel.build_dir') . DIRECTORY_SEPARATOR . 'ecotone';
+        $serviceCacheConfiguration = new ServiceCacheConfiguration($cacheDirectory, true);
+
         $containerBuilder = new \Ecotone\Messaging\Config\Container\ContainerBuilder();
+        $containerBuilder->register(ServiceCacheConfiguration::REFERENCE_NAME, $serviceCacheConfiguration);
         $containerBuilder->addCompilerPass($messagingConfiguration);
         $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-        $containerBuilder->addCompilerPass(new SymfonyContainerAdapter($container));
-        $definitionHolder = $containerBuilder->compile();
+        $ecotoneContainer = EcotoneSymfonyContainerFactory::build($containerBuilder, $serviceCacheConfiguration);
 
-        $container->getDefinition(LoggingGateway::class)->addTag('monolog.logger', ['channel' => 'ecotone']);
+        $container->register('ecotone.container', EcotoneContainer::class)
+            ->setFactory([EcotoneContainerLoader::class, 'load'])
+            ->setArguments([$cacheDirectory, new Reference('service_container')])
+            ->setPublic(true);
 
-        foreach ($definitionHolder->getRegisteredCommands() as $oneTimeCommandConfiguration) {
+        $container->register(ConfiguredMessagingSystem::class, MessagingSystemContainer::class)
+            ->setFactory([new Reference('ecotone.container'), 'get'])
+            ->setArguments([ConfiguredMessagingSystem::class])
+            ->setPublic(true);
+
+        foreach ($messagingConfiguration->getRegisteredGateways() as $gatewayProxyBuilder) {
+            $referenceName = $gatewayProxyBuilder->getReferenceName();
+            $container->register($referenceName, $gatewayProxyBuilder->getInterfaceName())
+                ->setFactory([new Reference('ecotone.container'), 'get'])
+                ->setArguments([$referenceName])
+                ->setPublic(true);
+        }
+
+        $container->register(ProxyFactory::class, ProxyFactory::class)
+            ->setFactory([new Reference('ecotone.container'), 'get'])
+            ->setArguments([ProxyFactory::class])
+            ->setPublic(true);
+
+        foreach ($ecotoneContainer->getServiceIds() as $serviceId) {
+            if ($container->has($serviceId) || ! (class_exists($serviceId) || interface_exists($serviceId))) {
+                continue;
+            }
+            $container->register($serviceId, $serviceId)
+                ->setFactory([new Reference('ecotone.container'), 'get'])
+                ->setArguments([$serviceId])
+                ->setPublic(true);
+        }
+
+        $container->register(ExternalReferenceResolver::TESTING_ALIAS_PREFIX . 'logger', LoggerInterface::class)
+            ->setFactory([RuntimeInstanceProvider::class, 'provide'])
+            ->setArguments([new Reference('logger')])
+            ->addTag('monolog.logger', ['channel' => 'ecotone'])
+            ->setPublic(true);
+
+        $container->setParameter(
+            'ecotone.external_references',
+            $ecotoneContainer->getParameter(SymfonyContainerImplementation::EXTERNAL_REFERENCES_PARAMETER),
+        );
+
+        $registeredCommands = unserialize($ecotoneContainer->getParameter(SymfonyContainerImplementation::CONSOLE_COMMANDS_PARAMETER));
+        foreach ($registeredCommands as $oneTimeCommandConfiguration) {
             $definition = new Definition();
             $definition->setClass(MessagingEntrypointCommand::class);
             $definition->addArgument($oneTimeCommandConfiguration->getName());
@@ -111,6 +168,26 @@ class EcotoneExtension extends Extension
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);
         }
 
-        $container->setParameter('ecotone.messaging_system_configuration.required_references', $messagingConfiguration->getRequiredReferencesForValidation());
+        if (! $container->hasDefinition(ConsoleCommandRunner::class)) {
+            $container->register(ConsoleCommandRunner::class, ConsoleCommandRunner::class)
+                ->setFactory([new Reference('ecotone.container'), 'get'])
+                ->setArguments([ConsoleCommandRunner::class])
+                ->setPublic(true);
+        }
+
+        $unresolvedRequiredReferences = [];
+        foreach ($messagingConfiguration->getRequiredReferencesForValidation() as $referenceId => $errorMessage) {
+            if (! $ecotoneContainer->has($referenceId)) {
+                $unresolvedRequiredReferences[$referenceId] = $errorMessage;
+                continue;
+            }
+            if (! $container->has($referenceId)) {
+                $container->register($referenceId, class_exists($referenceId) || interface_exists($referenceId) ? $referenceId : null)
+                    ->setFactory([new Reference('ecotone.container'), 'get'])
+                    ->setArguments([$referenceId])
+                    ->setPublic(true);
+            }
+        }
+        $container->setParameter('ecotone.messaging_system_configuration.required_references', $unresolvedRequiredReferences);
     }
 }

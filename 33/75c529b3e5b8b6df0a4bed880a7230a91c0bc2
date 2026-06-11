@@ -1,0 +1,33 @@
+packages/Symfony/DependencyInjection/EcotoneExtension.php
+  s_bd4e924a1e9b0a::t_d2aeb1877c9f7e 171-177
+  s_bd4e924a1e9b0a::t_8336f3f29cb044 85-87
+  s_bd4e924a1e9b0a::t_9ecdc7785cbd96 19-20,22
+  s_bd4e924a1e9b0a::t_52f163e98eee22 178-181,189-191
+  s_bd4e924a1e9b0a::t_6905e97ab1e9af 106-108,110,113-136,154-160
+  s_bd4e924a1e9b0a::t_b7c7a046d2ac72 5,8,12,17-18,21
+  s_bd4e924a1e9b0a::t_617d108066666b 148-152
+  s_bd4e924a1e9b0a::t_7e733573ea5226 182-188
+  s_bd4e924a1e9b0a::t_0c6196fdc78f91 138-146
+packages/Symfony/DependencyInjection/Compiler/AliasExternalReferenceForTesting.php
+  s_bd4e924a1e9b0a::t_c8479a58c078bb 21-26
+packages/Ecotone/src/SymfonyContainer/EcotoneContainer.php
+  s_bd4e924a1e9b0a::t_4cede302ae3ec7 46-53
+packages/Symfony/DependencyInjection/EcotoneContainerLoader.php
+  s_bd4e924a1e9b0a::t_a66e2d24030ad2 1-25
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "3375c529b3e5b8b6df0a4bed880a7230a91c0bc2",
+  "prompts": {},
+  "sessions": {
+    "s_bd4e924a1e9b0a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8858425-6a0e-4281-92d5-4b4082bde3ae",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

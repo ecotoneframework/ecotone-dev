@@ -195,26 +195,19 @@ final class MessagingSystemInitializer implements Initializer
             $useProductionCache ? $cacheDirectory : ($cacheDirectory . DIRECTORY_SEPARATOR . $cacheHash),
             true,
         );
-        $runtimeServices[ServiceCacheConfiguration::REFERENCE_NAME] = $serviceCacheConfiguration;
 
-        $ecotoneContainer = EcotoneSymfonyContainerFactory::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
-
-        if (! $ecotoneContainer) {
-            $configuration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
+        $ecotoneContainer = EcotoneSymfonyContainerFactory::bootstrap(
+            $serviceCacheConfiguration,
+            new TempestConfigurationVariableService(),
+            $externalContainer,
+            fn () => MessagingSystemConfiguration::prepareWithAnnotationFinder(
                 $annotationFinder,
                 new TempestConfigurationVariableService(),
                 $applicationConfiguration,
                 enableTestPackage: $enableTesting,
-            );
-
-            $ecotoneBuilder = new ContainerBuilder();
-            $ecotoneBuilder->addCompilerPass($configuration);
-            $ecotoneBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-            $ecotoneBuilder->addCompilerPass(new ValidityCheckPass());
-
-            MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-            $ecotoneContainer = EcotoneSymfonyContainerFactory::build($ecotoneBuilder, $serviceCacheConfiguration, $externalContainer, $runtimeServices, $cacheHash);
-        }
+            ),
+            $cacheHash,
+        );
 
         return [$ecotoneContainer, $cacheHash];
     }

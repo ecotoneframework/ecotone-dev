@@ -52,36 +52,23 @@ class EcotoneLiteApplication
 
         $externalContainer = new AutowiringContainer(InMemoryPSRContainer::createFromAssociativeArray(array_merge($classesToRegister, $objectsToRegister)));
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
-        $runtimeServices = [
-            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
-            ConfigurationVariableService::REFERENCE_NAME => $configurationVariableService,
-        ];
 
-        $container = null;
-        if ($serviceCacheConfiguration->shouldUseCache()) {
-            $container = EcotoneSymfonyContainerFactory::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
-        }
+        $container = EcotoneSymfonyContainerFactory::bootstrap(
+            $serviceCacheConfiguration,
+            $configurationVariableService,
+            $externalContainer,
+            function () use ($pathToRootCatalog, $configurationVariableService, $serviceConfiguration, $externalContainer) {
+                /** @var MessagingSystemConfiguration $messagingConfiguration */
+                $messagingConfiguration = MessagingSystemConfiguration::prepare(
+                    $pathToRootCatalog,
+                    $configurationVariableService,
+                    $serviceConfiguration,
+                );
+                $messagingConfiguration->withExternalContainer($externalContainer);
 
-        if (! $container) {
-            /** @var MessagingSystemConfiguration $messagingConfiguration */
-            $messagingConfiguration = MessagingSystemConfiguration::prepare(
-                $pathToRootCatalog,
-                $configurationVariableService,
-                $serviceConfiguration,
-            );
-            $messagingConfiguration->withExternalContainer($externalContainer);
-
-            $containerBuilder = new ContainerBuilder();
-            $containerBuilder->addCompilerPass($messagingConfiguration);
-            $containerBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-            $containerBuilder->addCompilerPass(new ValidityCheckPass());
-
-            if ($serviceCacheConfiguration->shouldUseCache()) {
-                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-            }
-
-            $container = EcotoneSymfonyContainerFactory::build($containerBuilder, $serviceCacheConfiguration, $externalContainer, $runtimeServices);
-        }
+                return $messagingConfiguration;
+            },
+        );
 
         $externalContainer->setEcotoneContainer($container);
 

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\SymfonyContainer;
 
 use Ecotone\Lite\InMemoryPSRContainer;
+use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use Ecotone\Messaging\ConfigurationVariableService;
+use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\TestCase;
@@ -90,6 +93,31 @@ class EcotoneSymfonyContainerFactoryCacheTest extends TestCase
         );
 
         self::assertSame($logger, $loaded->get('aService')->dependency);
+    }
+
+    public function test_bootstrap_builds_once_and_warm_boots_without_invoking_configuration_factory(): void
+    {
+        $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);
+        $configurationVariableService = InMemoryConfigurationVariableService::createEmpty();
+        $factoryInvocations = 0;
+        $configurationFactory = function () use (&$factoryInvocations) {
+            $factoryInvocations++;
+            return new class () implements CompilerPass {
+                public function process(ContainerBuilder $builder): void
+                {
+                    $builder->register('aService', new Definition(ACachedService::class, ['fromFactory']));
+                }
+            };
+        };
+
+        $coldBooted = EcotoneSymfonyContainerFactory::bootstrap($cacheConfiguration, $configurationVariableService, null, $configurationFactory);
+        self::assertSame(1, $factoryInvocations);
+        self::assertSame('fromFactory', $coldBooted->get('aService')->name);
+        self::assertSame($configurationVariableService, $coldBooted->get(ConfigurationVariableService::REFERENCE_NAME));
+
+        $warmBooted = EcotoneSymfonyContainerFactory::bootstrap($cacheConfiguration, $configurationVariableService, null, $configurationFactory);
+        self::assertSame(1, $factoryInvocations);
+        self::assertSame('fromFactory', $warmBooted->get('aService')->name);
     }
 
     private function uniqueCacheDirectory(): string

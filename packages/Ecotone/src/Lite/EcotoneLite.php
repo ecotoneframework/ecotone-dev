@@ -15,9 +15,6 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
-use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
-use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
@@ -221,37 +218,24 @@ final class EcotoneLite
         );
 
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
-        $runtimeServices = [
-            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
-            ConfigurationVariableService::REFERENCE_NAME => $configurationVariableService,
-        ];
-        $container = null;
 
-        if ($serviceCacheConfiguration->shouldUseCache()) {
-            $container = EcotoneSymfonyContainerFactory::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
-        }
+        $container = EcotoneSymfonyContainerFactory::bootstrap(
+            $serviceCacheConfiguration,
+            $configurationVariableService,
+            $externalContainer,
+            function () use ($annotationFinder, $configurationVariableService, $serviceConfiguration, $enableTesting, $externalContainer) {
+                $messagingConfiguration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
+                    $annotationFinder,
+                    $configurationVariableService,
+                    $serviceConfiguration,
+                    $enableTesting
+                );
+                $messagingConfiguration->withExternalContainer($externalContainer);
 
-        if (! $container) {
-            $messagingConfiguration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
-                $annotationFinder,
-                $configurationVariableService,
-                $serviceConfiguration,
-                $enableTesting
-            );
-
-            $messagingConfiguration->withExternalContainer($externalContainer);
-
-            $ecotoneBuilder = new ContainerBuilder();
-            $ecotoneBuilder->addCompilerPass($messagingConfiguration);
-            $ecotoneBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-            $ecotoneBuilder->addCompilerPass(new ValidityCheckPass());
-
-            if ($serviceCacheConfiguration->shouldUseCache()) {
-                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-            }
-
-            $container = EcotoneSymfonyContainerFactory::build($ecotoneBuilder, $serviceCacheConfiguration, $externalContainer, $runtimeServices);
-        }
+                return $messagingConfiguration;
+            },
+            $cacheHash,
+        );
 
         $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
 

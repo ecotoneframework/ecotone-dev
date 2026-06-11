@@ -6,8 +6,13 @@ namespace Ecotone\SymfonyContainer;
 
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
+use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
+use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
+use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
+use Ecotone\Messaging\ConfigurationVariableService;
 use Psr\Container\ContainerInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface as SymfonyContainerInterface;
@@ -18,6 +23,42 @@ use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
  */
 final class EcotoneSymfonyContainerFactory
 {
+    /**
+     * @param callable(): CompilerPass $messagingConfigurationFactory invoked only on cache miss
+     * @param array<string, object> $additionalRuntimeServices
+     */
+    public static function bootstrap(
+        ServiceCacheConfiguration $serviceCacheConfiguration,
+        ConfigurationVariableService $configurationVariableService,
+        ?ContainerInterface $externalContainer,
+        callable $messagingConfigurationFactory,
+        ?string $configHash = null,
+        array $additionalRuntimeServices = [],
+    ): EcotoneContainer {
+        $runtimeServices = [
+            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
+            ConfigurationVariableService::REFERENCE_NAME => $configurationVariableService,
+        ] + $additionalRuntimeServices;
+
+        if ($serviceCacheConfiguration->shouldUseCache()) {
+            $container = self::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
+            if ($container) {
+                return $container;
+            }
+        }
+
+        $builder = new ContainerBuilder();
+        $builder->addCompilerPass($messagingConfigurationFactory());
+        $builder->addCompilerPass(new RegisterInterfaceToCallReferences());
+        $builder->addCompilerPass(new ValidityCheckPass());
+
+        if ($serviceCacheConfiguration->shouldUseCache()) {
+            MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
+        }
+
+        return self::build($builder, $serviceCacheConfiguration, $externalContainer, $runtimeServices, $configHash);
+    }
+
     /**
      * @param array<string, object> $runtimeServices
      */

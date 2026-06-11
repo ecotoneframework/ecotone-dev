@@ -227,26 +227,19 @@ class EcotoneProvider extends ServiceProvider
             $useProductionCache ? $cacheDirectory : ($cacheDirectory . DIRECTORY_SEPARATOR . $cacheHash),
             true,
         );
-        $runtimeServices[ServiceCacheConfiguration::REFERENCE_NAME] = $serviceCacheConfiguration;
 
-        $container = EcotoneSymfonyContainerFactory::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
-
-        if (! $container) {
-            $configuration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
+        $container = EcotoneSymfonyContainerFactory::bootstrap(
+            $serviceCacheConfiguration,
+            new LaravelConfigurationVariableService(),
+            $externalContainer,
+            fn () => MessagingSystemConfiguration::prepareWithAnnotationFinder(
                 $annotationFinder,
                 new LaravelConfigurationVariableService(),
                 $applicationConfiguration,
                 enableTestPackage: $enableTesting
-            );
-
-            $ecotoneBuilder = new ContainerBuilder();
-            $ecotoneBuilder->addCompilerPass($configuration);
-            $ecotoneBuilder->addCompilerPass(new RegisterInterfaceToCallReferences());
-            $ecotoneBuilder->addCompilerPass(new ValidityCheckPass());
-
-            MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-            $container = EcotoneSymfonyContainerFactory::build($ecotoneBuilder, $serviceCacheConfiguration, $externalContainer, $runtimeServices);
-        }
+            ),
+            $cacheHash,
+        );
 
         return [$serviceCacheConfiguration, $container];
     }

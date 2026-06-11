@@ -26,6 +26,7 @@ final class EcotoneSymfonyContainerFactory
         ServiceCacheConfiguration $serviceCacheConfiguration,
         ?ContainerInterface $externalContainer = null,
         array $runtimeServices = [],
+        ?string $configHash = null,
     ): EcotoneContainer {
         $symfonyBuilder = new SymfonyContainerBuilder();
         $implementation = new SymfonyContainerImplementation(
@@ -39,6 +40,7 @@ final class EcotoneSymfonyContainerFactory
             SymfonyContainerImplementation::CONSOLE_COMMANDS_PARAMETER,
             serialize($definitionsHolder->getRegisteredCommands()),
         );
+        $symfonyBuilder->setParameter(SymfonyContainerImplementation::CONFIG_HASH_PARAMETER, $configHash);
 
         if ($serviceCacheConfiguration->shouldUseCache()) {
             $symfonyBuilder->compile();

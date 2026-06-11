@@ -51,4 +51,44 @@ final class EcotoneContainer implements ContainerInterface
     {
         return $this->container->getServiceIds();
     }
+
+    /**
+     * @return string[]
+     */
+    public function getDefinedServiceIds(): array
+    {
+        return array_values(array_filter(
+            $this->getServiceIds(),
+            fn (string $serviceId) => ! str_ends_with($serviceId, SymfonyContainerImplementation::EXTERNAL_DELEGATE_SUFFIX)
+                && ! str_ends_with($serviceId, SymfonyContainerImplementation::NULLABLE_EXTERNAL_DELEGATE_SUFFIX)
+                && $serviceId !== SymfonyContainerImplementation::EXTERNAL_CONTAINER_ID
+                && $serviceId !== 'service_container'
+                && $serviceId !== ContainerInterface::class,
+        ));
+    }
+
+    /**
+     * @return \Ecotone\Messaging\Config\ConsoleCommandConfiguration[]
+     */
+    public function getRegisteredConsoleCommands(): array
+    {
+        return unserialize($this->container->getParameter(SymfonyContainerImplementation::CONSOLE_COMMANDS_PARAMETER));
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getExternalReferenceIds(): array
+    {
+        return $this->container->getParameter(SymfonyContainerImplementation::EXTERNAL_REFERENCES_PARAMETER);
+    }
+
+    public function getConfigHash(): ?string
+    {
+        if (! $this->container->hasParameter(SymfonyContainerImplementation::CONFIG_HASH_PARAMETER)) {
+            return null;
+        }
+
+        return $this->container->getParameter(SymfonyContainerImplementation::CONFIG_HASH_PARAMETER);
+    }
 }

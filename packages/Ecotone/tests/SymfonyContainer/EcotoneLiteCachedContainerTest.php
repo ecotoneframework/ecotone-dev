@@ -59,7 +59,7 @@ class EcotoneLiteCachedContainerTest extends TestCase
 
         $container = $messagingSystem->getServiceFromContainer(ContainerInterface::class);
 
-        $consoleCommands = unserialize($container->getParameter('ecotone.console_commands'));
+        $consoleCommands = $container->getRegisteredConsoleCommands();
         self::assertContains('doSomething', array_map(fn ($command) => $command->getName(), $consoleCommands));
     }
 }

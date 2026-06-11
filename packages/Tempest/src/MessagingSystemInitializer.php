@@ -16,7 +16,6 @@ use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
-use Ecotone\SymfonyContainer\SymfonyContainerImplementation;
 use Tempest\Container\Container;
 use Tempest\Container\Initializer;
 use Tempest\Container\Singleton;
@@ -30,8 +29,6 @@ use Throwable;
 final class MessagingSystemInitializer implements Initializer
 {
     public const MESSAGING_SYSTEM_FILE_NAME = 'messaging_system';
-
-    private const CONFIG_HASH_FILE_NAME = 'messaging_system_hash';
 
     private static ?array $registeredCommands = null;
 
@@ -80,18 +77,11 @@ final class MessagingSystemInitializer implements Initializer
             $container,
         );
 
-        self::$registeredCommands = unserialize($ecotoneContainer->getParameter(SymfonyContainerImplementation::CONSOLE_COMMANDS_PARAMETER));
+        self::$registeredCommands = $ecotoneContainer->getRegisteredConsoleCommands();
         self::$configHash = $configHash;
         self::$proxyDirectory = $cacheDirectory . DIRECTORY_SEPARATOR . 'console_proxies';
 
-        EcotoneServiceInitializer::markCompiled(array_filter(
-            $ecotoneContainer->getServiceIds(),
-            fn (string $serviceId) => ! str_ends_with($serviceId, SymfonyContainerImplementation::EXTERNAL_DELEGATE_SUFFIX)
-                && ! str_ends_with($serviceId, SymfonyContainerImplementation::NULLABLE_EXTERNAL_DELEGATE_SUFFIX)
-                && $serviceId !== SymfonyContainerImplementation::EXTERNAL_CONTAINER_ID
-                && $serviceId !== 'service_container'
-                && $serviceId !== \Psr\Container\ContainerInterface::class,
-        ));
+        EcotoneServiceInitializer::markCompiled($ecotoneContainer->getDefinedServiceIds());
 
         return $ecotoneContainer->get(ConfiguredMessagingSystem::class);
     }
@@ -181,7 +171,7 @@ final class MessagingSystemInitializer implements Initializer
 
             $ecotoneContainer = EcotoneSymfonyContainerFactory::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
             if ($ecotoneContainer) {
-                return [$ecotoneContainer, $this->readPersistedConfigHash($cacheDirectory)];
+                return [$ecotoneContainer, $ecotoneContainer->getConfigHash()];
             }
         }
 
@@ -223,32 +213,9 @@ final class MessagingSystemInitializer implements Initializer
             $ecotoneBuilder->addCompilerPass(new ValidityCheckPass());
 
             MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-            $ecotoneContainer = EcotoneSymfonyContainerFactory::build($ecotoneBuilder, $serviceCacheConfiguration, $externalContainer, $runtimeServices);
-
-            if ($useProductionCache && $cacheHash !== null) {
-                $this->persistConfigHash($cacheDirectory, $cacheHash);
-            }
+            $ecotoneContainer = EcotoneSymfonyContainerFactory::build($ecotoneBuilder, $serviceCacheConfiguration, $externalContainer, $runtimeServices, $cacheHash);
         }
 
         return [$ecotoneContainer, $cacheHash];
-    }
-
-    private function persistConfigHash(string $cacheDirectory, string $configHash): void
-    {
-        $hashFile = $cacheDirectory . DIRECTORY_SEPARATOR . self::CONFIG_HASH_FILE_NAME;
-        file_put_contents($hashFile, $configHash);
-    }
-
-    private function readPersistedConfigHash(string $cacheDirectory): ?string
-    {
-        $hashFile = $cacheDirectory . DIRECTORY_SEPARATOR . self::CONFIG_HASH_FILE_NAME;
-
-        if (! file_exists($hashFile)) {
-            return null;
-        }
-
-        $hash = file_get_contents($hashFile);
-
-        return $hash !== false && $hash !== '' ? $hash : null;
     }
 }

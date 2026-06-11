@@ -52,6 +52,19 @@ class EcotoneSymfonyContainerFactoryCacheTest extends TestCase
         self::assertSame('second', $rebuilt->get('aService')->name);
     }
 
+    public function test_it_exposes_config_hash_on_built_and_cache_loaded_container(): void
+    {
+        $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);
+        $builder = new ContainerBuilder();
+        $builder->replace('aService', new Definition(ACachedService::class, ['someName']));
+
+        $built = EcotoneSymfonyContainerFactory::build($builder, $cacheConfiguration, configHash: 'abc123');
+        self::assertSame('abc123', $built->getConfigHash());
+
+        $loaded = EcotoneSymfonyContainerFactory::loadCached($cacheConfiguration);
+        self::assertSame('abc123', $loaded->getConfigHash());
+    }
+
     public function test_it_returns_null_when_no_dumped_container_exists(): void
     {
         $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);

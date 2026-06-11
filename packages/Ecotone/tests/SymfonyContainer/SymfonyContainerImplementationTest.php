@@ -99,6 +99,26 @@ class SymfonyContainerImplementationTest extends ContainerImplementationTestCase
         self::assertSame($container->get('def1')->dependency, $container->get('def2')->dependency);
     }
 
+    public function test_it_exposes_defined_service_ids_without_internal_ids(): void
+    {
+        $container = self::buildContainerFromDefinitions([
+            'def1' => new Definition(WithNoDependencies::class),
+            'def2' => new Definition(WithReferenceToUnknown::class, [new Reference('externalService', ContainerImplementation::NULL_ON_INVALID_REFERENCE)]),
+            'def3' => new Definition(WithReferenceToUnknown::class, [new Reference('anotherExternalService')]),
+        ]);
+
+        $definedServiceIds = $container->getDefinedServiceIds();
+
+        self::assertContains('def1', $definedServiceIds);
+        self::assertContains('def2', $definedServiceIds);
+        self::assertNotContains('service_container', $definedServiceIds);
+        self::assertNotContains('ecotone.external_container', $definedServiceIds);
+        self::assertNotContains(ContainerInterface::class, $definedServiceIds);
+        foreach ($definedServiceIds as $serviceId) {
+            self::assertStringNotContainsString('.ecotone.external', $serviceId);
+        }
+    }
+
     public function test_it_resolves_references_from_external_container(): void
     {
         $logger = StubLogger::create();

@@ -17,7 +17,6 @@ use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
-use Ecotone\SymfonyContainer\SymfonyContainerImplementation;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Support\Facades\App;
@@ -125,8 +124,7 @@ class EcotoneProvider extends ServiceProvider
         );
 
         if ($this->app->runningInConsole()) {
-            $registeredCommands = unserialize($container->getParameter(SymfonyContainerImplementation::CONSOLE_COMMANDS_PARAMETER));
-            foreach ($registeredCommands as $oneTimeCommandConfiguration) {
+            foreach ($container->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
                 $commandName = $oneTimeCommandConfiguration->getName();
 
                 foreach ($oneTimeCommandConfiguration->getParameters() as $parameter) {

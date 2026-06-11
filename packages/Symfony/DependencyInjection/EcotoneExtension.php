@@ -18,7 +18,6 @@ use Ecotone\SymfonyContainer\EcotoneContainer;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Ecotone\SymfonyContainer\ExternalReferenceResolver;
 use Ecotone\SymfonyContainer\RuntimeInstanceProvider;
-use Ecotone\SymfonyContainer\SymfonyContainerImplementation;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
@@ -151,13 +150,9 @@ class EcotoneExtension extends Extension
             ->addTag('monolog.logger', ['channel' => 'ecotone'])
             ->setPublic(true);
 
-        $container->setParameter(
-            'ecotone.external_references',
-            $ecotoneContainer->getParameter(SymfonyContainerImplementation::EXTERNAL_REFERENCES_PARAMETER),
-        );
+        $container->setParameter('ecotone.external_references', $ecotoneContainer->getExternalReferenceIds());
 
-        $registeredCommands = unserialize($ecotoneContainer->getParameter(SymfonyContainerImplementation::CONSOLE_COMMANDS_PARAMETER));
-        foreach ($registeredCommands as $oneTimeCommandConfiguration) {
+        foreach ($ecotoneContainer->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
             $definition = new Definition();
             $definition->setClass(MessagingEntrypointCommand::class);
             $definition->addArgument($oneTimeCommandConfiguration->getName());

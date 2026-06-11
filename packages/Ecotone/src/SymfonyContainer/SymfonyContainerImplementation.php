@@ -34,6 +34,7 @@ class SymfonyContainerImplementation implements ContainerImplementation
     public const EXTERNAL_CONTAINER_ID = 'ecotone.external_container';
     public const EXTERNAL_REFERENCES_PARAMETER = 'ecotone.external_references';
     public const CONSOLE_COMMANDS_PARAMETER = 'ecotone.console_commands';
+    public const CONFIG_HASH_PARAMETER = 'ecotone.config_hash';
     public const EXTERNAL_DELEGATE_SUFFIX = '.ecotone.external';
     public const NULLABLE_EXTERNAL_DELEGATE_SUFFIX = '.ecotone.external.nullable';
 

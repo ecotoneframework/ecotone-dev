@@ -1,0 +1,53 @@
+packages/Ecotone/tests/SymfonyContainer/EcotoneLiteCachedContainerTest.php
+  s_bd4e924a1e9b0a::t_5f3946fe90c831 36
+  s_bd4e924a1e9b0a::t_6cc0ccc642515b 23-25
+  s_bd4e924a1e9b0a::t_30e7352d7e3de9 9
+  s_bd4e924a1e9b0a::t_ef364a5171e9cb 1-8,10-22,26-35,37-62
+packages/Ecotone/tests/SymfonyContainer/SymfonyContainerImplementationTest.php
+  s_bd4e924a1e9b0a::t_cdde3a699c17fb 90-99
+  s_bd4e924a1e9b0a::t_9db2265b2c3676 8,11
+  s_bd4e924a1e9b0a::t_1f820879077586 9
+  s_bd4e924a1e9b0a::t_834e059085c18b 57-78
+  s_bd4e924a1e9b0a::t_b659923c080482 49,54
+  s_bd4e924a1e9b0a::t_25e9f6e185e746 32-48,50-53,55-56
+  s_bd4e924a1e9b0a::t_0934673312a078 18
+  s_bd4e924a1e9b0a::t_802dcfe8fb7743 13
+packages/Ecotone/src/SymfonyContainer/ServiceIdNormalizer.php
+  s_bd4e924a1e9b0a::t_3b55400968535b 1-18
+packages/Ecotone/src/SymfonyContainer/EcotoneContainer.php
+  s_bd4e924a1e9b0a::t_d5b3806f4c61a6 24-26,34,39
+packages/Ecotone/src/SymfonyContainer/EcotoneSymfonyContainerFactory.php
+  s_bd4e924a1e9b0a::t_cbcc270b315b03 21-23,28,41,45,48-50,54,65
+  s_bd4e924a1e9b0a::t_7a33f2396a12f2 31-35
+  s_bd4e924a1e9b0a::t_d8adb243407e2a 93-95,99,105-107
+  s_bd4e924a1e9b0a::t_9c3589f9381741 39
+packages/Ecotone/src/Lite/EcotoneLite.php
+  s_bd4e924a1e9b0a::t_0fd3594de3c842 29
+  s_bd4e924a1e9b0a::t_feba37a211510f 224-227,231,253
+  s_bd4e924a1e9b0a::t_f21fec5ef82e47 228-230,234,244-247,254
+  s_bd4e924a1e9b0a::t_49acec2eb45381 18-20
+packages/Ecotone/src/SymfonyContainer/SymfonyContainerImplementation.php
+  s_bd4e924a1e9b0a::t_e3eec472bfb0ef 141-155
+  s_bd4e924a1e9b0a::t_5b67887a11c694 86-88
+  s_bd4e924a1e9b0a::t_04ef4b9f311dc4 14,16
+  s_bd4e924a1e9b0a::t_36d155a881a3ce 17,36-37,46-48,58-62,68,70,76-81,113-114,122-124
+  s_bd4e924a1e9b0a::t_7f5817d46d8208 49-53
+packages/Ecotone/src/SymfonyContainer/RuntimeInstanceProvider.php
+  s_bd4e924a1e9b0a::t_b974da4270e231 1-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "0a5e55152615d073df9ff5c5c1c9d75f7d3cd92a",
+  "prompts": {},
+  "sessions": {
+    "s_bd4e924a1e9b0a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8858425-6a0e-4281-92d5-4b4082bde3ae",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

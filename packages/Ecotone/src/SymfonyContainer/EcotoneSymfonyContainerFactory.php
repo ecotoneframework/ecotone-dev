@@ -59,12 +59,17 @@ final class EcotoneSymfonyContainerFactory
         array $runtimeServices = [],
     ): ?EcotoneContainer {
         $containerFile = self::containerFilePath($serviceCacheConfiguration);
-        $className = self::containerClassName($serviceCacheConfiguration);
+        if (! file_exists($containerFile)) {
+            return null;
+        }
+
+        $containerCode = file_get_contents($containerFile);
+        if ($containerCode === false || preg_match('/^class (EcotoneCachedContainer_[a-f0-9]+)/m', $containerCode, $matches) !== 1) {
+            return null;
+        }
+        $className = $matches[1];
         if (! class_exists($className, false)) {
-            if (! file_exists($containerFile)) {
-                return null;
-            }
-            require_once $containerFile;
+            require $containerFile;
         }
 
         return self::wrapWithExternalFallback(new $className(), $externalContainer, $runtimeServices);
@@ -79,20 +84,19 @@ final class EcotoneSymfonyContainerFactory
             mkdir($cacheDirectory, 0777, true);
         }
         $dumper = new PhpDumper($symfonyBuilder);
-        file_put_contents(
-            self::containerFilePath($serviceCacheConfiguration),
-            $dumper->dump(['class' => self::containerClassName($serviceCacheConfiguration)]),
+        $placeholderClassName = 'EcotoneCachedContainerPlaceholder';
+        $containerCode = $dumper->dump(['class' => $placeholderClassName]);
+        $containerCode = str_replace(
+            $placeholderClassName,
+            'EcotoneCachedContainer_' . md5($containerCode),
+            $containerCode,
         );
+        file_put_contents(self::containerFilePath($serviceCacheConfiguration), $containerCode);
     }
 
     private static function containerFilePath(ServiceCacheConfiguration $serviceCacheConfiguration): string
     {
         return $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'ecotone_container.php';
-    }
-
-    private static function containerClassName(ServiceCacheConfiguration $serviceCacheConfiguration): string
-    {
-        return 'EcotoneCachedContainer_' . md5($serviceCacheConfiguration->getPath());
     }
 
     /**

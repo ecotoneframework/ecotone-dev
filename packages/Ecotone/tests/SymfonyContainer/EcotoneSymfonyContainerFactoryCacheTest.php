@@ -32,6 +32,26 @@ class EcotoneSymfonyContainerFactoryCacheTest extends TestCase
         self::assertEquals(new ACachedService('someName'), $loaded->get('aService'));
     }
 
+    public function test_it_rebuilds_fresh_container_when_cache_files_are_removed_in_same_process(): void
+    {
+        $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);
+        $builder = new ContainerBuilder();
+        $builder->replace('aService', new Definition(ACachedService::class, ['first']));
+        EcotoneSymfonyContainerFactory::build($builder, $cacheConfiguration);
+
+        foreach (glob($cacheConfiguration->getPath() . '/*') as $file) {
+            unlink($file);
+        }
+
+        self::assertNull(EcotoneSymfonyContainerFactory::loadCached($cacheConfiguration));
+
+        $rebuiltBuilder = new ContainerBuilder();
+        $rebuiltBuilder->replace('aService', new Definition(ACachedService::class, ['second']));
+        $rebuilt = EcotoneSymfonyContainerFactory::build($rebuiltBuilder, $cacheConfiguration);
+
+        self::assertSame('second', $rebuilt->get('aService')->name);
+    }
+
     public function test_it_returns_null_when_no_dumped_container_exists(): void
     {
         $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);

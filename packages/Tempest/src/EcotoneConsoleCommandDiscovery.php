@@ -33,7 +33,7 @@ final class EcotoneConsoleCommandDiscovery implements Discovery
 
     public function apply(): void
     {
-        if (MessagingSystemInitializer::getDefinitionHolder() === null) {
+        if (MessagingSystemInitializer::getRegisteredCommands() === null) {
             if (! $this->container->has(EcotoneConfig::class)) {
                 return;
             }
@@ -41,13 +41,11 @@ final class EcotoneConsoleCommandDiscovery implements Discovery
             (new MessagingSystemInitializer())->initialize($this->container);
         }
 
-        $definitionHolder = MessagingSystemInitializer::getDefinitionHolder();
+        $commands = MessagingSystemInitializer::getRegisteredCommands();
 
-        if ($definitionHolder === null) {
+        if ($commands === null) {
             return;
         }
-
-        $commands = $definitionHolder->getRegisteredCommands();
 
         if ($commands === []) {
             return;

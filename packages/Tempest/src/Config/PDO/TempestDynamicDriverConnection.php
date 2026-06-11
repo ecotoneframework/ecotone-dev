@@ -10,6 +10,7 @@ use Doctrine\DBAL\Driver\PDO\Statement;
 use Doctrine\DBAL\Driver\Result as ResultInterface;
 use Doctrine\DBAL\Driver\Statement as StatementInterface;
 use PDO;
+use ReflectionProperty;
 use Tempest\Container\GenericContainer;
 use Tempest\Database\Connection\Connection;
 
@@ -27,7 +28,7 @@ final class TempestDynamicDriverConnection implements DriverConnection
     private function pdo(): PDO
     {
         $connection = GenericContainer::instance()->get(Connection::class);
-        $property = new \ReflectionProperty($connection, 'pdo');
+        $property = new ReflectionProperty($connection, 'pdo');
         return $property->getValue($connection);
     }
 

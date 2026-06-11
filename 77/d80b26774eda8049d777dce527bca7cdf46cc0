@@ -1,0 +1,32 @@
+packages/Symfony/DependencyInjection/EcotoneExtension.php
+  s_bd4e924a1e9b0a::t_ae39685d7da1b0 111
+  s_bd4e924a1e9b0a::t_345597d27a1cb4 119-120,124
+  s_bd4e924a1e9b0a::t_9e0f05bfbeb4c0 6
+packages/Ecotone/src/SymfonyContainer/EcotoneContainer.php
+  s_bd4e924a1e9b0a::t_81efd42d137b2e 7
+  s_bd4e924a1e9b0a::t_f747f8e4c76546 87-100
+packages/Ecotone/tests/SymfonyContainer/EcotoneLiteCachedContainerTest.php
+  s_bd4e924a1e9b0a::t_d37da93a770377 71-73
+  s_bd4e924a1e9b0a::t_262a528eee90fa 9,13
+  s_bd4e924a1e9b0a::t_f6a7611fe3555e 67-70,74-87
+packages/Laravel/src/EcotoneProvider.php
+  s_bd4e924a1e9b0a::t_d9347e29bed154 99-101
+packages/Ecotone/src/Lite/EcotoneLite.php
+  s_bd4e924a1e9b0a::t_991c825afccd99 242-244
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "77d80b26774eda8049d777dce527bca7cdf46cc0",
+  "prompts": {},
+  "sessions": {
+    "s_bd4e924a1e9b0a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8858425-6a0e-4281-92d5-4b4082bde3ae",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

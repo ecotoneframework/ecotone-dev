@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite;
 
-use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
 use Ecotone\AnnotationFinder\FileSystem\RootCatalogNotFound;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
@@ -23,6 +22,7 @@ use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
+use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 
 use function json_decode;
@@ -202,20 +202,18 @@ final class EcotoneLite
         $externalContainer = $containerOrAvailableServices instanceof ContainerInterface ? $containerOrAvailableServices : InMemoryPSRContainer::createFromAssociativeArray($containerOrAvailableServices);
         $serviceConfiguration = MessagingSystemConfiguration::addCorePackage($serviceConfiguration, $enableTesting);
 
-        $annotationFinder = AnnotationFinderFactory::createForAttributes(
-            realpath($pathToRootCatalog),
-            $serviceConfiguration->getNamespaces(),
-            $serviceConfiguration->getEnvironment(),
-            $serviceConfiguration->getLoadedCatalog() ?? '',
-            MessagingSystemConfiguration::getModuleClassesFor($serviceConfiguration),
-            $classesToResolve,
-            $enableTesting
-        );
-        $cacheHash = $annotationFinder->getCacheMessagingFileNameBasedOnConfig($pathToRootCatalog, $serviceConfiguration, $configurationVariables, $enableTesting);
-        $serviceCacheConfiguration = new ServiceCacheConfiguration(
-            $serviceConfiguration->getCacheDirectoryPath() . DIRECTORY_SEPARATOR . $cacheHash,
+        $cacheLayout = ContainerCacheLayout::resolve(
+            $pathToRootCatalog,
+            $serviceConfiguration,
+            $serviceConfiguration->getCacheDirectoryPath(),
             self::shouldUseAutomaticCache($useCachedVersion, $pathToRootCatalog),
+            configurationVariables: $configurationVariables,
+            classesToResolve: $classesToResolve,
+            enableTesting: $enableTesting,
         );
+        $annotationFinder = $cacheLayout->annotationFinder;
+        $serviceCacheConfiguration = $cacheLayout->serviceCacheConfiguration;
+        $cacheHash = $cacheLayout->configHash;
 
         $configurationVariableService = InMemoryConfigurationVariableService::create($configurationVariables);
 

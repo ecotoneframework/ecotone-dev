@@ -120,6 +120,28 @@ class EcotoneSymfonyContainerFactoryCacheTest extends TestCase
         self::assertSame('fromFactory', $warmBooted->get('aService')->name);
     }
 
+    public function test_load_cached_with_defaults_provides_runtime_services(): void
+    {
+        $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);
+        $configurationVariableService = InMemoryConfigurationVariableService::createEmpty();
+        EcotoneSymfonyContainerFactory::bootstrap(
+            $cacheConfiguration,
+            $configurationVariableService,
+            null,
+            fn () => new class () implements CompilerPass {
+                public function process(ContainerBuilder $builder): void
+                {
+                }
+            },
+        );
+
+        $loaded = EcotoneSymfonyContainerFactory::loadCachedWithDefaults($cacheConfiguration, $configurationVariableService);
+
+        self::assertNotNull($loaded);
+        self::assertSame($configurationVariableService, $loaded->get(ConfigurationVariableService::REFERENCE_NAME));
+        self::assertSame($cacheConfiguration, $loaded->get(ServiceCacheConfiguration::REFERENCE_NAME));
+    }
+
     private function uniqueCacheDirectory(): string
     {
         return sys_get_temp_dir() . '/ecotone_container_cache_test/' . uniqid('', true);

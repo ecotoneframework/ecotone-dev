@@ -35,10 +35,7 @@ final class EcotoneSymfonyContainerFactory
         ?string $configHash = null,
         array $additionalRuntimeServices = [],
     ): EcotoneContainer {
-        $runtimeServices = [
-            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
-            ConfigurationVariableService::REFERENCE_NAME => $configurationVariableService,
-        ] + $additionalRuntimeServices;
+        $runtimeServices = self::defaultRuntimeServices($serviceCacheConfiguration, $configurationVariableService) + $additionalRuntimeServices;
 
         if ($serviceCacheConfiguration->shouldUseCache()) {
             $container = self::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
@@ -91,6 +88,31 @@ final class EcotoneSymfonyContainerFactory
         }
 
         return self::wrapWithExternalFallback($symfonyBuilder, $externalContainer, $runtimeServices);
+    }
+
+    public static function loadCachedWithDefaults(
+        ServiceCacheConfiguration $serviceCacheConfiguration,
+        ConfigurationVariableService $configurationVariableService,
+        ?ContainerInterface $externalContainer = null,
+    ): ?EcotoneContainer {
+        return self::loadCached(
+            $serviceCacheConfiguration,
+            $externalContainer,
+            self::defaultRuntimeServices($serviceCacheConfiguration, $configurationVariableService),
+        );
+    }
+
+    /**
+     * @return array<string, object>
+     */
+    private static function defaultRuntimeServices(
+        ServiceCacheConfiguration $serviceCacheConfiguration,
+        ConfigurationVariableService $configurationVariableService,
+    ): array {
+        return [
+            ServiceCacheConfiguration::REFERENCE_NAME => $serviceCacheConfiguration,
+            ConfigurationVariableService::REFERENCE_NAME => $configurationVariableService,
+        ];
     }
 
     /**

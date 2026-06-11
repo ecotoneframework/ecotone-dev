@@ -5,9 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Lite;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
-use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
-use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;

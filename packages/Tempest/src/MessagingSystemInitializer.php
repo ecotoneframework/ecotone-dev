@@ -6,15 +6,12 @@ namespace Ecotone\Tempest;
 
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
-use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
-use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
+use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Tempest\Container\Container;
 use Tempest\Container\Initializer;
@@ -161,40 +158,29 @@ final class MessagingSystemInitializer implements Initializer
         Container $container,
     ): array {
         $externalContainer = new TempestPsrContainerAdapter($container);
-        $runtimeServices = [
-            ConfigurationVariableService::REFERENCE_NAME => new TempestConfigurationVariableService(),
-        ];
 
         if ($useProductionCache && $cacheDirectory) {
-            $serviceCacheConfiguration = new ServiceCacheConfiguration($cacheDirectory, true);
-            $runtimeServices[ServiceCacheConfiguration::REFERENCE_NAME] = $serviceCacheConfiguration;
-
-            $ecotoneContainer = EcotoneSymfonyContainerFactory::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
+            $ecotoneContainer = EcotoneSymfonyContainerFactory::loadCachedWithDefaults(
+                new ServiceCacheConfiguration($cacheDirectory, true),
+                new TempestConfigurationVariableService(),
+                $externalContainer,
+            );
             if ($ecotoneContainer) {
                 return [$ecotoneContainer, $ecotoneContainer->getConfigHash()];
             }
         }
 
-        $annotationFinder = AnnotationFinderFactory::createForAttributes(
-            realpath($rootCatalog) ?: $rootCatalog,
-            $applicationConfiguration->getNamespaces(),
-            $applicationConfiguration->getEnvironment(),
-            $applicationConfiguration->getLoadedCatalog() ?? '',
-            MessagingSystemConfiguration::getModuleClassesFor($applicationConfiguration),
-            isRunningForTesting: $enableTesting,
-        );
-
-        $cacheHash = $annotationFinder->getCacheMessagingFileNameBasedOnConfig(
-            realpath($rootCatalog) ?: $rootCatalog,
+        $cacheLayout = ContainerCacheLayout::resolve(
+            $rootCatalog,
             $applicationConfiguration,
-            [],
-            $enableTesting,
+            $cacheDirectory,
+            shouldUseCache: true,
+            useHashSubDirectory: ! $useProductionCache,
+            enableTesting: $enableTesting,
         );
-
-        $serviceCacheConfiguration = new ServiceCacheConfiguration(
-            $useProductionCache ? $cacheDirectory : ($cacheDirectory . DIRECTORY_SEPARATOR . $cacheHash),
-            true,
-        );
+        $annotationFinder = $cacheLayout->annotationFinder;
+        $serviceCacheConfiguration = $cacheLayout->serviceCacheConfiguration;
+        $cacheHash = $cacheLayout->configHash;
 
         $ecotoneContainer = EcotoneSymfonyContainerFactory::bootstrap(
             $serviceCacheConfiguration,

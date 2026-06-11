@@ -4,18 +4,15 @@ namespace Ecotone\Laravel;
 
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
-use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
-use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
-use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Console\ClosureCommand;
@@ -193,40 +190,27 @@ class EcotoneProvider extends ServiceProvider
     public function prepareFromCache(mixed $useProductionCache, string $rootCatalog, ServiceConfiguration $applicationConfiguration, mixed $enableTesting, string $cacheDirectory): array
     {
         $externalContainer = new LaravelPsrContainerAdapter($this->app);
-        $runtimeServices = [
-            ConfigurationVariableService::REFERENCE_NAME => new LaravelConfigurationVariableService(),
-        ];
 
         if ($useProductionCache && $cacheDirectory) {
             $serviceCacheConfiguration = new ServiceCacheConfiguration($cacheDirectory, true);
-            $runtimeServices[ServiceCacheConfiguration::REFERENCE_NAME] = $serviceCacheConfiguration;
-
-            $container = EcotoneSymfonyContainerFactory::loadCached($serviceCacheConfiguration, $externalContainer, $runtimeServices);
+            $container = EcotoneSymfonyContainerFactory::loadCachedWithDefaults($serviceCacheConfiguration, new LaravelConfigurationVariableService(), $externalContainer);
             if ($container) {
                 return [$serviceCacheConfiguration, $container];
             }
         }
 
-        $annotationFinder = AnnotationFinderFactory::createForAttributes(
-            realpath($rootCatalog),
-            $applicationConfiguration->getNamespaces(),
-            $applicationConfiguration->getEnvironment(),
-            $applicationConfiguration->getLoadedCatalog() ?? '',
-            MessagingSystemConfiguration::getModuleClassesFor($applicationConfiguration),
-            isRunningForTesting: $enableTesting,
-        );
-
-        $cacheHash = $annotationFinder->getCacheMessagingFileNameBasedOnConfig(
-            realpath($rootCatalog),
+        $cacheLayout = ContainerCacheLayout::resolve(
+            $rootCatalog,
             $applicationConfiguration,
-            Config::all(),
-            $enableTesting
+            $cacheDirectory,
+            shouldUseCache: true,
+            useHashSubDirectory: ! $useProductionCache,
+            configurationVariables: Config::all(),
+            enableTesting: (bool) $enableTesting,
         );
-
-        $serviceCacheConfiguration = new ServiceCacheConfiguration(
-            $useProductionCache ? $cacheDirectory : ($cacheDirectory . DIRECTORY_SEPARATOR . $cacheHash),
-            true,
-        );
+        $annotationFinder = $cacheLayout->annotationFinder;
+        $serviceCacheConfiguration = $cacheLayout->serviceCacheConfiguration;
+        $cacheHash = $cacheLayout->configHash;
 
         $container = EcotoneSymfonyContainerFactory::bootstrap(
             $serviceCacheConfiguration,

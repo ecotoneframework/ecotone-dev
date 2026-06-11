@@ -1,0 +1,38 @@
+packages/Tempest/src/MessagingSystemInitializer.php
+  s_bd4e924a1e9b0a::t_33e6920bbe1daf 87-94
+  s_bd4e924a1e9b0a::t_e7b9fdbec427fe 11-13,18-19,36,42,44,59,74,80,83,171,173-176,178-180,182-184,208,210,212,220-226,228-229,233
+  s_bd4e924a1e9b0a::t_8f03aad0106b9c 24,112
+packages/Tempest/src/EcotoneConsoleCommandDiscovery.php
+  s_bd4e924a1e9b0a::t_bab3e728a25429 36,44,46
+packages/Tempest/src/Config/TempestTenantDatabaseSwitcher.php
+  s_bd4e924a1e9b0a::t_8f03aad0106b9c 18,27-28,104
+packages/Tempest/src/TempestPsrContainerAdapter.php
+  s_bd4e924a1e9b0a::t_aba17998f1722a 8,25,30
+  s_bd4e924a1e9b0a::t_8f03aad0106b9c 12,39
+  s_bd4e924a1e9b0a::t_a19bf083548a7f 35-38,40-43
+  s_bd4e924a1e9b0a::t_af4d6bfdb29392 55-59
+packages/Symfony/DependencyInjection/Compiler/CacheClearer.php
+  s_bd4e924a1e9b0a::t_27453234ddf886 46
+packages/Ecotone/src/SymfonyContainer/EcotoneSymfonyContainerFactory.php
+  s_bd4e924a1e9b0a::t_72caa86a518b7a 62-70,72,87-92,94
+packages/Tempest/src/Config/PDO/TempestDynamicDriverConnection.php
+  s_bd4e924a1e9b0a::t_8f03aad0106b9c 13,31
+packages/Ecotone/tests/SymfonyContainer/EcotoneSymfonyContainerFactoryCacheTest.php
+  s_bd4e924a1e9b0a::t_9ac82b8bd9cd1b 35-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "4023e5e9cf47fa69b21b2fbf28b74d1431b996b3",
+  "prompts": {},
+  "sessions": {
+    "s_bd4e924a1e9b0a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8858425-6a0e-4281-92d5-4b4082bde3ae",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

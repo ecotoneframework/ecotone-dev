@@ -28,12 +28,17 @@ final class EcotoneSymfonyContainerFactory
         array $runtimeServices = [],
     ): EcotoneContainer {
         $symfonyBuilder = new SymfonyContainerBuilder();
-        $builder->addCompilerPass(new SymfonyContainerImplementation(
+        $implementation = new SymfonyContainerImplementation(
             $symfonyBuilder,
             array_keys($runtimeServices),
             preserveRuntimeInstances: ! $serviceCacheConfiguration->shouldUseCache(),
-        ));
-        $builder->compile();
+        );
+        $definitionsHolder = $builder->compile();
+        $implementation->process($builder);
+        $symfonyBuilder->setParameter(
+            SymfonyContainerImplementation::CONSOLE_COMMANDS_PARAMETER,
+            serialize($definitionsHolder->getRegisteredCommands()),
+        );
 
         if ($serviceCacheConfiguration->shouldUseCache()) {
             $symfonyBuilder->compile();

@@ -10,6 +10,8 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
+use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\OneTimeWithResultExample;
 
 /**
  * licence Apache-2.0
@@ -44,6 +46,21 @@ class EcotoneLiteCachedContainerTest extends TestCase
         $warmBootedMessagingSystem->getCommandBus()->sendWithRouting('cache.command', 'second');
 
         self::assertSame(['first', 'second'], $handler->received);
+    }
+
+    public function test_registered_console_commands_are_available_as_container_parameter(): void
+    {
+        $messagingSystem = EcotoneLite::bootstrap(
+            [OneTimeWithResultExample::class],
+            [OneTimeWithResultExample::class => new OneTimeWithResultExample()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+        );
+
+        $container = $messagingSystem->getServiceFromContainer(ContainerInterface::class);
+
+        $consoleCommands = unserialize($container->getParameter('ecotone.console_commands'));
+        self::assertContains('doSomething', array_map(fn ($command) => $command->getName(), $consoleCommands));
     }
 }
 

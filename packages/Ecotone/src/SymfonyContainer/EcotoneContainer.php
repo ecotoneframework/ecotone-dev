@@ -38,4 +38,9 @@ final class EcotoneContainer implements ContainerInterface
     {
         $this->container->set(ServiceIdNormalizer::normalize($id), $service);
     }
+
+    public function getParameter(string $name): mixed
+    {
+        return $this->container->getParameter($name);
+    }
 }

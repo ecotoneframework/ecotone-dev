@@ -1,0 +1,26 @@
+packages/Ecotone/tests/Messaging/Unit/Handler/Processor/CodeGeneration/InterceptedMessageProcessorCodeRendererTest.php
+  s_ce30c813ba0ba9::t_82fe223fcb82be 142
+  s_ce30c813ba0ba9::t_e21539dc6104f1 70
+packages/Ecotone/src/Messaging/Handler/Gateway/GatewayInternalProcessorBuilder.php
+  s_ce30c813ba0ba9::t_98b021b990cf10 14-15
+  s_ce30c813ba0ba9::t_a07157b5ae1e94 50-66,69-70
+packages/Ecotone/src/Messaging/Handler/Processor/CodeGeneration/InterceptedMessageProcessorCodeRenderer.php
+  s_ce30c813ba0ba9::t_60b62c310611ce 126
+  s_ce30c813ba0ba9::t_dd264e0f2d0bee 61
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "54bd8135a13b91ec209f86d180bf3fec0b43eeee",
+  "prompts": {},
+  "sessions": {
+    "s_ce30c813ba0ba9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d92497d2-970e-4825-96e3-1272b7024ecc",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -8,7 +8,6 @@ use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\InMemoryConfigurationVariableService;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 

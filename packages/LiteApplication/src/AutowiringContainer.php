@@ -68,10 +68,6 @@ final class AutowiringContainer implements ContainerInterface
             $type = $parameter->getType();
             if ($type instanceof ReflectionNamedType && ! $type->isBuiltin()) {
                 $typeName = $type->getName();
-                if ($this->innerContainer->has($typeName)) {
-                    $arguments[] = $this->innerContainer->get($typeName);
-                    continue;
-                }
                 if ($this->ecotoneContainer?->has($typeName)) {
                     $arguments[] = $this->ecotoneContainer->get($typeName);
                     continue;

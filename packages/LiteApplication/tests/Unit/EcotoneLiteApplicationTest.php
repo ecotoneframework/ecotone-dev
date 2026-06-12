@@ -11,6 +11,8 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Lite\Fixture\AddMoney;
+use Test\Ecotone\Lite\Fixture\Ticketing\InMemoryTicketRepository;
+use Test\Ecotone\Lite\Fixture\Ticketing\TicketRepository;
 
 /**
  * @internal
@@ -58,6 +60,24 @@ class EcotoneLiteApplicationTest extends TestCase
         $this->assertEquals(
             2,
             $queryBus->sendWithRouting('person.getMoney', $personId)
+        );
+    }
+
+    public function test_autowired_services_receive_ecotone_gateway_over_instance_registered_under_interface_id()
+    {
+        $ecotoneLite = EcotoneLiteApplication::bootstrap(
+            serviceConfiguration: ServiceConfiguration::createWithDefaults()
+                ->withNamespaces(["Test\Ecotone\Lite\Fixture\Ticketing"])
+                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+            pathToRootCatalog: __DIR__ . '/../../',
+            classesToRegister: [TicketRepository::class => new InMemoryTicketRepository()],
+        );
+
+        $ecotoneLite->getCommandBus()->sendWithRouting('ticket.register', 'ticket-1');
+
+        $this->assertSame(
+            'ticket-1',
+            $ecotoneLite->getQueryBus()->sendWithRouting('ticket.getRegistered', 'ticket-1')
         );
     }
 

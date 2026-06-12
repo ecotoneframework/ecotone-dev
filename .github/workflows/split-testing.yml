@@ -175,6 +175,12 @@ jobs:
             local run_tests_cmd="$3"
             local overall_exit_code=0
 
+            # Isolate temp directory per component, so parallel PHPStan runs do not race on a shared /tmp/phpstan cache
+            local tmp_slug=$(echo "$dir" | tr '/.-' '___' | tr '[:upper:]' '[:lower:]')
+            local component_tmp_dir="/tmp/ecotone_component_${tmp_slug}"
+            mkdir -p "$component_tmp_dir"
+            run_tests_cmd="TMPDIR='${component_tmp_dir}' ${run_tests_cmd}"
+
             # Install dependencies and determine if MySQL pass is needed (direct or transitive doctrine/dbal)
             if ! _run_tests "Install composer dependencies ($dir)" "cd '${dir}' && ${compose_up_cmd}"; then
               overall_exit_code=1

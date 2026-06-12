@@ -11,8 +11,10 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\CodeGeneration\AroundInterceptorMetadata;
+use Ecotone\Messaging\Handler\Processor\CodeGeneration\InterceptedMessageProcessorCodeRenderer;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
-use Ecotone\Messaging\Handler\Processor\MethodInvokerProcessor;
+use Ecotone\Messaging\Support\Assert;
 
 use function is_string;
 
@@ -75,10 +77,38 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
             ])
         };
 
-        return new Definition(MethodInvokerProcessor::class, [
-            $this->compileWithoutProcessor($builder, $aroundInterceptors),
+        $generatedClass = $builder->generateClass(
+            $this->generatedClassNameBaseFor($interfaceToCall),
+            fn (string $className) => (new InterceptedMessageProcessorCodeRenderer())->render(
+                $className,
+                $interfaceToCall->getMethodName(),
+                array_map(fn (Definition $aroundInterceptor) => $this->aroundInterceptorMetadataFrom($aroundInterceptor), $aroundInterceptors),
+            ),
+        );
+
+        return (new Definition($generatedClass->className, [
+            $this->compileWithoutProcessor($builder, []),
             $messageConverter,
-        ]);
+            ...array_values($aroundInterceptors),
+        ]))->withFile($generatedClass->filePath);
+    }
+
+    private function generatedClassNameBaseFor(InterfaceToCall $interfaceToCall): string
+    {
+        $sanitizedName = preg_replace('/[^A-Za-z0-9_]/', '_', $interfaceToCall->getInterfaceName() . '_' . $interfaceToCall->getMethodName());
+
+        return 'MessageProcessor__' . substr($sanitizedName, 0, 150);
+    }
+
+    private function aroundInterceptorMetadataFrom(Definition $aroundInterceptor): AroundInterceptorMetadata
+    {
+        Assert::isTrue(
+            $aroundInterceptor->getClassName() === AroundMethodInterceptor::class,
+            'Around interceptor for code generation must be ' . AroundMethodInterceptor::class . ", got {$aroundInterceptor->getClassName()}",
+        );
+        $arguments = $aroundInterceptor->getArguments();
+
+        return new AroundInterceptorMetadata($arguments[1], $arguments[3]);
     }
 
     public function compileWithoutProcessor(MessagingContainerBuilder $builder, array $aroundInterceptors = []): Definition

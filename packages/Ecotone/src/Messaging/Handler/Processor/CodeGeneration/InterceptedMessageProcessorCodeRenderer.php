@@ -18,6 +18,10 @@ final class InterceptedMessageProcessorCodeRenderer
             return <<<PHP
                 <?php
 
+                if (class_exists('{$className}', false)) {
+                    return;
+                }
+
                 final class {$className} implements \Ecotone\Messaging\Handler\MessageProcessor
                 {
                     public function __construct(
@@ -42,6 +46,10 @@ final class InterceptedMessageProcessorCodeRenderer
 
         return <<<PHP
             <?php
+
+            if (class_exists('{$className}', false)) {
+                return;
+            }
 
             final class {$invocationClassName} implements \Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation
             {

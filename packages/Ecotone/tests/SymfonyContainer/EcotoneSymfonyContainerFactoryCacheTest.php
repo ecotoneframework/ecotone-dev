@@ -185,6 +185,55 @@ class EcotoneSymfonyContainerFactoryCacheTest extends TestCase
         self::assertSame('generated', $loaded->get('generatedService')->greet());
     }
 
+    public function test_cache_loaded_container_serves_generated_services_after_cache_directory_removal(): void
+    {
+        $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);
+        EcotoneSymfonyContainerFactory::build($this->builderWithGeneratedService('greet me'), $cacheConfiguration);
+
+        $loaded = EcotoneSymfonyContainerFactory::loadCached($cacheConfiguration);
+        foreach (glob($cacheConfiguration->getPath() . '/handlers/*.php') as $generatedFile) {
+            unlink($generatedFile);
+        }
+
+        self::assertSame('greet me', $loaded->get('generatedService')->dependency->greet());
+    }
+
+    public function test_load_cached_misses_when_generated_files_are_removed(): void
+    {
+        $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);
+        EcotoneSymfonyContainerFactory::build($this->builderWithGeneratedService('greet me'), $cacheConfiguration);
+
+        foreach (glob($cacheConfiguration->getPath() . '/handlers/*.php') as $generatedFile) {
+            unlink($generatedFile);
+        }
+
+        self::assertNull(EcotoneSymfonyContainerFactory::loadCached($cacheConfiguration));
+    }
+
+    private function builderWithGeneratedService(string $greeting): ContainerBuilder
+    {
+        $builder = new ContainerBuilder();
+        $builder->addCompilerPass(new class ($greeting) implements CompilerPass {
+            public function __construct(private string $greeting)
+            {
+            }
+
+            public function process(ContainerBuilder $builder): void
+            {
+                $messagingBuilder = new MessagingContainerBuilder($builder);
+                $generatedClass = $messagingBuilder->generateClass(
+                    'ARemovableGeneratedHandler',
+                    fn (string $className) => "<?php if (class_exists('{$className}', false)) { return; } final class {$className} { public function greet(): string { return '{$this->greeting}'; } }",
+                );
+                $builder->register('generatedService', new Definition(WithReferenceToUnknown::class, [
+                    (new Definition($generatedClass->className))->withFile($generatedClass->filePath),
+                ]));
+            }
+        });
+
+        return $builder;
+    }
+
     private function uniqueCacheDirectory(): string
     {
         return sys_get_temp_dir() . '/ecotone_container_cache_test/' . uniqid('', true);

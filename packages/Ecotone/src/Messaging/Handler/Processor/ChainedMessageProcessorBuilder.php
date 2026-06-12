@@ -16,6 +16,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\MethodInterceptorsConfiguration;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\MessageProcessor;
+use Ecotone\Messaging\Handler\Processor\CodeGeneration\ChainedMessageProcessorCodeRenderer;
 
 class ChainedMessageProcessorBuilder implements CompilableBuilder
 {
@@ -71,17 +72,38 @@ class ChainedMessageProcessorBuilder implements CompilableBuilder
             }
         }
         foreach ($compiledProcessors as $compiledProcessor) {
-            if ($compiledProcessor instanceof Definition
-                && ! is_a($compiledProcessor->getClassName(), MessageProcessor::class, true)) {
-                throw ConfigurationException::create('Processor should implement ' . MessageProcessor::class . " interface, but got {$compiledProcessor->getClassName()}");
+            if ($compiledProcessor instanceof Definition) {
+                if ($compiledProcessor->getFile() !== null && ! class_exists($compiledProcessor->getClassName(), false)) {
+                    require_once $compiledProcessor->getFile();
+                }
+                if (! is_a($compiledProcessor->getClassName(), MessageProcessor::class, true)) {
+                    throw ConfigurationException::create('Processor should implement ' . MessageProcessor::class . " interface, but got {$compiledProcessor->getClassName()}");
+                }
             }
         }
 
         return match(count($compiledProcessors)) {
             0 => throw ConfigurationException::create('At least one processor should be provided'),
             1 => $compiledProcessors[0],
-            default => new Definition(ChainedMessageProcessor::class, [$compiledProcessors])
+            default => $this->compileGeneratedChain($builder, $compiledProcessors)
         };
+    }
+
+    /**
+     * @param array<Definition|Reference> $compiledProcessors
+     */
+    private function compileGeneratedChain(MessagingContainerBuilder $builder, array $compiledProcessors): Definition
+    {
+        $interceptedInterface = $this->getInterceptedInterface();
+        $sanitizedName = $interceptedInterface
+            ? preg_replace('/[^A-Za-z0-9_]/', '_', $interceptedInterface->getClassName() . '_' . $interceptedInterface->getMethodName())
+            : 'anonymous';
+        $generatedClass = $builder->generateClass(
+            'MessageProcessorChain__' . substr($sanitizedName, 0, 150),
+            fn (string $className) => (new ChainedMessageProcessorCodeRenderer())->render($className, count($compiledProcessors)),
+        );
+
+        return (new Definition($generatedClass->className, array_values($compiledProcessors)))->withFile($generatedClass->filePath);
     }
 
     private array $annotations = [];

@@ -17,6 +17,7 @@ use Psr\Container\ContainerInterface;
 use Symfony\Component\DependencyInjection\Container as SymfonyBaseContainer;
 use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface as SymfonyContainerInterface;
+use Symfony\Component\DependencyInjection\Definition as SymfonyDefinition;
 use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
 
 /**
@@ -143,7 +144,10 @@ final class EcotoneSymfonyContainerFactory
      */
     public static function dumpedContainerFiles(ServiceCacheConfiguration $serviceCacheConfiguration): array
     {
-        return glob($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'EcotoneCachedContainer_*.php') ?: [];
+        return array_merge(
+            glob($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'handlers' . DIRECTORY_SEPARATOR . '*.php') ?: [],
+            glob($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'EcotoneCachedContainer_*.php') ?: [],
+        );
     }
 
     private static function dumpToCache(
@@ -154,23 +158,82 @@ final class EcotoneSymfonyContainerFactory
         if (! is_dir($cacheDirectory)) {
             mkdir($cacheDirectory, 0777, true);
         }
+        $generatedClassFiles = self::extractGeneratedClassFiles($symfonyBuilder);
         $dumper = new PhpDumper($symfonyBuilder);
         $placeholderClassName = 'EcotoneCachedContainerPlaceholder';
         $containerCode = $dumper->dump(['class' => $placeholderClassName]);
         $className = 'EcotoneCachedContainer_' . md5($containerCode);
         $containerCode = str_replace($placeholderClassName, $className, $containerCode);
 
-        foreach (self::dumpedContainerFiles($serviceCacheConfiguration) as $staleContainerFile) {
+        foreach (glob($cacheDirectory . DIRECTORY_SEPARATOR . 'EcotoneCachedContainer_*.php') ?: [] as $staleContainerFile) {
             @unlink($staleContainerFile);
         }
         file_put_contents($cacheDirectory . DIRECTORY_SEPARATOR . $className . '.php', $containerCode);
-        file_put_contents(self::containerFilePath($serviceCacheConfiguration), self::loaderStub($className));
+        file_put_contents(self::containerFilePath($serviceCacheConfiguration), self::loaderStub($className, $generatedClassFiles));
     }
 
-    private static function loaderStub(string $className): string
+    /**
+     * @return string[] generated class files to load eagerly, keeping the dumped container usable when the cache directory is cleared mid-process
+     */
+    private static function extractGeneratedClassFiles(SymfonyContainerBuilder $symfonyBuilder): array
     {
+        $generatedClassFiles = [];
+        foreach ($symfonyBuilder->getDefinitions() as $definition) {
+            self::extractGeneratedClassFilesFromDefinition($definition, $generatedClassFiles);
+        }
+
+        return array_values($generatedClassFiles);
+    }
+
+    /**
+     * @param array<string, string> $generatedClassFiles
+     */
+    private static function extractGeneratedClassFilesFromDefinition(SymfonyDefinition $definition, array &$generatedClassFiles): void
+    {
+        $file = $definition->getFile();
+        if ($file !== null) {
+            $generatedClassFiles[$file] = $file;
+            $definition->setFile(null);
+        }
+
+        self::extractGeneratedClassFilesFromArgument($definition->getArguments(), $generatedClassFiles);
+        self::extractGeneratedClassFilesFromArgument($definition->getProperties(), $generatedClassFiles);
+        self::extractGeneratedClassFilesFromArgument($definition->getFactory(), $generatedClassFiles);
+        foreach ($definition->getMethodCalls() as [$methodName, $methodArguments]) {
+            self::extractGeneratedClassFilesFromArgument($methodArguments, $generatedClassFiles);
+        }
+    }
+
+    /**
+     * @param array<string, string> $generatedClassFiles
+     */
+    private static function extractGeneratedClassFilesFromArgument(mixed $argument, array &$generatedClassFiles): void
+    {
+        if ($argument instanceof SymfonyDefinition) {
+            self::extractGeneratedClassFilesFromDefinition($argument, $generatedClassFiles);
+        } elseif (is_array($argument)) {
+            foreach ($argument as $value) {
+                self::extractGeneratedClassFilesFromArgument($value, $generatedClassFiles);
+            }
+        }
+    }
+
+    /**
+     * @param string[] $generatedClassFiles
+     */
+    private static function loaderStub(string $className, array $generatedClassFiles): string
+    {
+        $generatedClassFilesCode = var_export($generatedClassFiles, true);
+
         return <<<PHP
             <?php
+
+            foreach ({$generatedClassFilesCode} as \$generatedClassFile) {
+                if (! is_file(\$generatedClassFile)) {
+                    return null;
+                }
+                require_once \$generatedClassFile;
+            }
 
             if (! class_exists('{$className}', false)) {
                 if (! is_file(__DIR__ . '/{$className}.php')) {

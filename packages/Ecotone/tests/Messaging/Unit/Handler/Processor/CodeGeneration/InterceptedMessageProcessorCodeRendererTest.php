@@ -22,6 +22,10 @@ final class InterceptedMessageProcessorCodeRendererTest extends TestCase
             <<<'PHP'
                 <?php
 
+                if (class_exists('GeneratedProcessor', false)) {
+                    return;
+                }
+
                 final class GeneratedProcessor implements \Ecotone\Messaging\Handler\MessageProcessor
                 {
                     public function __construct(
@@ -51,6 +55,10 @@ final class InterceptedMessageProcessorCodeRendererTest extends TestCase
         self::assertSame(
             <<<'PHP'
                 <?php
+
+                if (class_exists('GeneratedProcessor', false)) {
+                    return;
+                }
 
                 final class GeneratedProcessor_Invocation implements \Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation
                 {

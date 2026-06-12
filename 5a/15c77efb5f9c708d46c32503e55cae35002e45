@@ -1,0 +1,19 @@
+.github/workflows/split-testing.yml
+  s_bd4e924a1e9b0a::t_581c512e76606a 178-183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "5a15c77efb5f9c708d46c32503e55cae35002e45",
+  "prompts": {},
+  "sessions": {
+    "s_bd4e924a1e9b0a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8858425-6a0e-4281-92d5-4b4082bde3ae",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

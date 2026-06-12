@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
+use Ecotone\Messaging\Config\Container\CodeGeneration\GeneratedClass;
+use Ecotone\Messaging\Config\Container\CodeGeneration\GeneratedClassWriter;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -58,6 +60,14 @@ class MessagingContainerBuilder
     public function getServiceConfiguration(): ServiceConfiguration
     {
         return $this->applicationConfiguration;
+    }
+
+    /**
+     * @param callable(string $classNamePlaceholder): string $buildCode
+     */
+    public function generateClass(string $baseName, callable $buildCode): GeneratedClass
+    {
+        return (new GeneratedClassWriter())->write($baseName, $this->builder->getGeneratedClassesDirectory(), $buildCode);
     }
 
     public function registerPollingEndpoint(string $endpointId, Definition $definition, bool $withContinuousPolling = false): void

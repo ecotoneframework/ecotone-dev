@@ -30,8 +30,22 @@ class ContainerBuilder
 
     private ?Configuration $configuration = null;
 
+    private ?string $generatedClassesDirectory = null;
+
     public function __construct()
     {
+    }
+
+    public function withGeneratedClassesDirectory(string $directory): self
+    {
+        $this->generatedClassesDirectory = $directory;
+
+        return $this;
+    }
+
+    public function getGeneratedClassesDirectory(): string
+    {
+        return $this->generatedClassesDirectory ?? sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone' . DIRECTORY_SEPARATOR . 'handlers';
     }
 
     public function register(string $id, DefinedObject|Definition|Reference $definition): Reference

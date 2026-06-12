@@ -73,6 +73,7 @@ final class EcotoneSymfonyContainerFactory
             array_keys($runtimeServices),
             preserveRuntimeInstances: ! $serviceCacheConfiguration->shouldUseCache(),
         );
+        $builder->withGeneratedClassesDirectory($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'handlers');
         $definitionsHolder = $builder->compile();
         $implementation->process($builder);
         $symfonyBuilder->setParameter(

@@ -8,6 +8,7 @@ use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\Container\Compiler\CompilerPass;
 use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
@@ -157,6 +158,31 @@ class EcotoneSymfonyContainerFactoryCacheTest extends TestCase
         $loaded = EcotoneSymfonyContainerFactory::loadCached($cacheConfiguration);
 
         self::assertSame('hello', $loaded->get('generatedService')->greet());
+    }
+
+    public function test_compiler_pass_generates_class_into_cache_directory_and_loads_it_through_dumped_container(): void
+    {
+        $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);
+        $builder = new ContainerBuilder();
+        $builder->addCompilerPass(new class () implements CompilerPass {
+            public function process(ContainerBuilder $builder): void
+            {
+                $messagingBuilder = new MessagingContainerBuilder($builder);
+                $generatedClass = $messagingBuilder->generateClass(
+                    'AGeneratedHandler',
+                    fn (string $className) => "<?php final class {$className} { public function greet(): string { return 'generated'; } }",
+                );
+                $builder->register('generatedService', (new Definition($generatedClass->className))->withFile($generatedClass->filePath));
+            }
+        });
+
+        $container = EcotoneSymfonyContainerFactory::build($builder, $cacheConfiguration);
+
+        self::assertSame('generated', $container->get('generatedService')->greet());
+        self::assertNotEmpty(glob($cacheConfiguration->getPath() . '/handlers/AGeneratedHandler_*.php'));
+
+        $loaded = EcotoneSymfonyContainerFactory::loadCached($cacheConfiguration);
+        self::assertSame('generated', $loaded->get('generatedService')->greet());
     }
 
     private function uniqueCacheDirectory(): string

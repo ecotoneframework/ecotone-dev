@@ -58,7 +58,7 @@ final class InterceptedMessageProcessorCodeRenderer
 
                 public function __construct(
                     private \Ecotone\Messaging\Message \$message,
-                    private \Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker \$invoker,
+                    private \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptable \$invoker,
             {$aroundConstructorParameters}
                 ) {
                     \$this->arguments = \$invoker->getArguments(\$message);
@@ -123,7 +123,7 @@ final class InterceptedMessageProcessorCodeRenderer
             final class {$className} implements \Ecotone\Messaging\Handler\MessageProcessor
             {
                 public function __construct(
-                    private \Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker \$invoker,
+                    private \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptable \$invoker,
                     private \Ecotone\Messaging\Handler\Processor\MethodInvoker\ResultToMessageConverter \$resultConverter,
             {$aroundConstructorParameters}
                 ) {

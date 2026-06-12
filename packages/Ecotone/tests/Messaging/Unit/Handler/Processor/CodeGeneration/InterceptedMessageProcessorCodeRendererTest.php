@@ -67,7 +67,7 @@ final class InterceptedMessageProcessorCodeRendererTest extends TestCase
 
                     public function __construct(
                         private \Ecotone\Messaging\Message $message,
-                        private \Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker $invoker,
+                        private \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptable $invoker,
                         private \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor $around0,
                         private \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor $around1,
                     ) {
@@ -139,7 +139,7 @@ final class InterceptedMessageProcessorCodeRendererTest extends TestCase
                 final class GeneratedProcessor implements \Ecotone\Messaging\Handler\MessageProcessor
                 {
                     public function __construct(
-                        private \Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvoker $invoker,
+                        private \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptable $invoker,
                         private \Ecotone\Messaging\Handler\Processor\MethodInvoker\ResultToMessageConverter $resultConverter,
                         private \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor $around0,
                         private \Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundMethodInterceptor $around1,

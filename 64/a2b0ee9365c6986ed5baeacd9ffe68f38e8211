@@ -1,0 +1,55 @@
+packages/PdoEventSourcing/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 54,76,92
+packages/LiteApplication/composer.json
+  s_bd4e924a1e9b0a::t_16d36c064ca157 51-52,62,78
+packages/Laravel/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 55,66,77,93
+packages/OpenTelemetry/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 50,76,92
+packages/JmsConverter/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 52,72,88
+packages/Sqs/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 52,73,89
+packages/Enqueue/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 50,71,87
+packages/DataProtection/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 54-55,59,79,95
+packages/Redis/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 54,72,88
+packages/Symfony/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 44,52-53,104,120
+packages/Tempest/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 31,54,65,80,98-99,101
+packages/Dbal/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 53,64,77,93
+packages/Ecotone/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 81,97
+CHANGELOG.md
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 6-18
+quickstart-examples/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 76,81
+.claude/.claude-plugin/marketplace.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 9,16
+packages/Amqp/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 55,96,112
+packages/Kafka/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 51,58,71,87
+.claude/composer.json
+  s_bd4e924a1e9b0a::t_03fd53260b0f9b 4,6
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "64a2b0ee9365c6986ed5baeacd9ffe68f38e8211",
+  "prompts": {},
+  "sessions": {
+    "s_bd4e924a1e9b0a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8858425-6a0e-4281-92d5-4b4082bde3ae",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

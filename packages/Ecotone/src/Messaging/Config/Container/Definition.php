@@ -12,6 +12,8 @@ class Definition implements CompilableBuilder
      */
     private array $methodCalls = [];
 
+    private ?string $file = null;
+
     /**
      * @param array<string|int, mixed> $arguments
      */
@@ -48,6 +50,18 @@ class Definition implements CompilableBuilder
     public function hasFactory(): bool
     {
         return ! empty($this->factory);
+    }
+
+    public function withFile(string $filePath): self
+    {
+        $this->file = $filePath;
+
+        return $this;
+    }
+
+    public function getFile(): ?string
+    {
+        return $this->file;
     }
 
     public function addMethodCall(string $string, array $array): self

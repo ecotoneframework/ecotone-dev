@@ -177,6 +177,9 @@ class SymfonyContainerImplementation implements ContainerImplementation
         if ($ecotoneDefinition->hasFactory()) {
             $sfDefinition->setFactory($this->resolveFactoryArgument($ecotoneDefinition->getFactory()));
         }
+        if ($ecotoneDefinition->getFile() !== null) {
+            $sfDefinition->setFile($ecotoneDefinition->getFile());
+        }
         foreach ($ecotoneDefinition->getMethodCalls() as $methodCall) {
             $sfDefinition->addMethodCall(
                 $methodCall->getMethodName(),

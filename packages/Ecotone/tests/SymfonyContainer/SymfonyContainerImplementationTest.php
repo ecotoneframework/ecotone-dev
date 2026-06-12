@@ -129,6 +129,19 @@ class SymfonyContainerImplementationTest extends ContainerImplementationTestCase
 
         self::assertSame($logger, $container->get('aReference'));
     }
+
+    public function test_it_instantiates_service_from_definition_backed_by_generated_file(): void
+    {
+        $className = 'FileBackedService' . uniqid();
+        $filePath = sys_get_temp_dir() . DIRECTORY_SEPARATOR . $className . '.php';
+        file_put_contents($filePath, "<?php final class {$className} { public function greet(): string { return 'hello'; } }");
+
+        $container = self::buildContainerFromDefinitions([
+            'generatedService' => (new Definition($className))->withFile($filePath),
+        ]);
+
+        self::assertSame('hello', $container->get('generatedService')->greet());
+    }
 }
 
 /**

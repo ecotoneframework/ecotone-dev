@@ -142,6 +142,23 @@ class EcotoneSymfonyContainerFactoryCacheTest extends TestCase
         self::assertSame($cacheConfiguration, $loaded->get(ServiceCacheConfiguration::REFERENCE_NAME));
     }
 
+    public function test_it_instantiates_file_backed_service_from_cache_loaded_container(): void
+    {
+        $cacheConfiguration = new ServiceCacheConfiguration($this->uniqueCacheDirectory(), true);
+        mkdir($cacheConfiguration->getPath(), 0777, true);
+        $className = 'CachedFileBackedService' . uniqid();
+        $filePath = $cacheConfiguration->getPath() . DIRECTORY_SEPARATOR . $className . '.php';
+        file_put_contents($filePath, "<?php final class {$className} { public function greet(): string { return 'hello'; } }");
+
+        $builder = new ContainerBuilder();
+        $builder->replace('generatedService', (new Definition($className))->withFile($filePath));
+        EcotoneSymfonyContainerFactory::build($builder, $cacheConfiguration);
+
+        $loaded = EcotoneSymfonyContainerFactory::loadCached($cacheConfiguration);
+
+        self::assertSame('hello', $loaded->get('generatedService')->greet());
+    }
+
     private function uniqueCacheDirectory(): string
     {
         return sys_get_temp_dir() . '/ecotone_container_cache_test/' . uniqid('', true);

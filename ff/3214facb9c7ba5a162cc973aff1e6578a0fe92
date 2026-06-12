@@ -1,0 +1,33 @@
+packages/Ecotone/src/Messaging/Config/Container/ContainerBuilder.php
+  s_ce30c813ba0ba9::t_0bce088744b47c 33-34,39-48
+packages/Ecotone/src/Messaging/Config/Container/CodeGeneration/GeneratedClassWriter.php
+  s_ce30c813ba0ba9::t_cd658295392f09 1-47
+packages/Ecotone/tests/SymfonyContainer/EcotoneSymfonyContainerFactoryCacheTest.php
+  s_ce30c813ba0ba9::t_eb622e64a21452 11
+  s_ce30c813ba0ba9::t_57570a0708b0fc 163-187
+packages/Ecotone/src/Messaging/Config/Container/MessagingContainerBuilder.php
+  s_ce30c813ba0ba9::t_73eefd2300069a 65-72
+  s_ce30c813ba0ba9::t_be722aa0056ab3 5-6
+packages/Ecotone/tests/Messaging/Unit/Config/Container/CodeGeneration/GeneratedClassWriterTest.php
+  s_ce30c813ba0ba9::t_95b44858757968 1-76
+packages/Ecotone/src/SymfonyContainer/EcotoneSymfonyContainerFactory.php
+  s_ce30c813ba0ba9::t_28e199ec8b8241 76
+packages/Ecotone/src/Messaging/Config/Container/CodeGeneration/GeneratedClass.php
+  s_ce30c813ba0ba9::t_24adc96f1c5c4e 1-17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "ff3214facb9c7ba5a162cc973aff1e6578a0fe92",
+  "prompts": {},
+  "sessions": {
+    "s_ce30c813ba0ba9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d92497d2-970e-4825-96e3-1272b7024ecc",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

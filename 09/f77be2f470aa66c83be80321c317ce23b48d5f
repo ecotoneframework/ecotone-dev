@@ -1,0 +1,26 @@
+packages/Ecotone/tests/SymfonyContainer/SymfonyContainerImplementationTest.php
+  s_ce30c813ba0ba9::t_654e0ce1a1b2f8 132-144
+packages/Ecotone/src/SymfonyContainer/SymfonyContainerImplementation.php
+  s_ce30c813ba0ba9::t_323b4ad81201de 180-182
+packages/Ecotone/tests/SymfonyContainer/EcotoneSymfonyContainerFactoryCacheTest.php
+  s_ce30c813ba0ba9::t_a00e827f9d07b3 145-161
+packages/Ecotone/src/Messaging/Config/Container/Definition.php
+  s_ce30c813ba0ba9::t_ec13e3dd76c305 55-66
+  s_ce30c813ba0ba9::t_091dc9523a7024 15-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "09f77be2f470aa66c83be80321c317ce23b48d5f",
+  "prompts": {},
+  "sessions": {
+    "s_ce30c813ba0ba9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d92497d2-970e-4825-96e3-1272b7024ecc",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

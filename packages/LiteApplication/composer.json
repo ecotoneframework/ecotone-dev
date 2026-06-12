@@ -49,8 +49,7 @@
     },
     "require": {
         "ecotone/ecotone": "~1.316.1",
-        "ecotone/jms-converter": "~1.316.1",
-        "php-di/php-di": "^7.0.5"
+        "ecotone/jms-converter": "~1.316.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0",

@@ -2,7 +2,7 @@
 
 namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 
-use Ecotone\Lite\InMemoryContainerImplementation;
+use Ecotone\SymfonyContainer\ExternalReferenceResolver;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
@@ -18,8 +18,12 @@ class AliasExternalReferenceForTesting implements CompilerPassInterface
         }
 
         foreach ($container->getParameter('ecotone.external_references') as $id) {
-            if ($container->hasDefinition($id)) {
-                $container->setAlias(InMemoryContainerImplementation::ALIAS_PREFIX.$id, $id)
+            $aliasId = ExternalReferenceResolver::TESTING_ALIAS_PREFIX . $id;
+            if ($container->has($aliasId)) {
+                continue;
+            }
+            if ($container->hasDefinition($id) || $container->hasAlias($id)) {
+                $container->setAlias($aliasId, $id)
                     ->setPublic(true);
             }
         }

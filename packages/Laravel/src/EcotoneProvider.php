@@ -2,31 +2,24 @@
 
 namespace Ecotone\Laravel;
 
-use function class_exists;
-
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
-use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
-use Ecotone\Messaging\Config\Container\ContainerConfig;
-use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\SymfonyContainer\ContainerCacheLayout;
+use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
-use InvalidArgumentException;
-use ReflectionMethod;
 
 /**
  * licence Apache-2.0
@@ -101,13 +94,11 @@ class EcotoneProvider extends ServiceProvider
         $applicationConfiguration = $applicationConfiguration->withExtensionObjects([new EloquentRepositoryBuilder()]);
         $applicationConfiguration = MessagingSystemConfiguration::addCorePackage($applicationConfiguration, $enableTesting);
 
-        [$serviceCacheConfiguration, $definitionHolder] = $this->prepareFromCache($useProductionCache, $rootCatalog, $applicationConfiguration, $enableTesting, $cacheDirectory);
+        [$serviceCacheConfiguration, $container] = $this->prepareFromCache($useProductionCache, $rootCatalog, $applicationConfiguration, $enableTesting, $cacheDirectory);
 
-        foreach ($definitionHolder->getDefinitions() as $id => $definition) {
-            $this->app->singleton($id, function () use ($definition) {
-                return $this->resolveArgument($definition);
-            });
-        }
+        $container->registerBridgesInto(
+            fn (string $referenceName, string $interfaceName, callable $factory) => $this->app->singleton($referenceName, fn () => $factory()),
+        );
 
         $this->app->singleton(
             ConfigurationVariableService::REFERENCE_NAME,
@@ -127,7 +118,7 @@ class EcotoneProvider extends ServiceProvider
         );
 
         if ($this->app->runningInConsole()) {
-            foreach ($definitionHolder->getRegisteredCommands() as $oneTimeCommandConfiguration) {
+            foreach ($container->getRegisteredConsoleCommands() as $oneTimeCommandConfiguration) {
                 $commandName = $oneTimeCommandConfiguration->getName();
 
                 foreach ($oneTimeCommandConfiguration->getParameters() as $parameter) {
@@ -193,112 +184,45 @@ class EcotoneProvider extends ServiceProvider
         return App::storagePath() . DIRECTORY_SEPARATOR . 'framework' . DIRECTORY_SEPARATOR . 'cache' . DIRECTORY_SEPARATOR . 'data';
     }
 
-    private function instantiateDefinition(Definition $definition): object
-    {
-        $arguments = $this->resolveArgument($definition->getArguments());
-        if ($definition->hasFactory()) {
-            $factory = $definition->getFactory();
-            if (method_exists($factory[0], $factory[1]) && (new ReflectionMethod($factory[0], $factory[1]))->isStatic()) {
-                // static call
-                return $factory(...$arguments);
-            } else {
-                // method call from a service instance
-                $service = $this->app->make($factory[0]);
-                return $service->{$factory[1]}(...$arguments);
-            }
-        } else {
-            $class = $definition->getClassName();
-            return new $class(...$arguments);
-        }
-    }
-
-    private function resolveArgument(mixed $argument): mixed
-    {
-        if (is_array($argument)) {
-            return array_map(fn ($argument) => $this->resolveArgument($argument), $argument);
-        } elseif ($argument instanceof Definition) {
-            $object = $this->instantiateDefinition($argument);
-            foreach ($argument->getMethodCalls() as $methodCall) {
-                $object->{$methodCall->getMethodName()}(...$this->resolveArgument($methodCall->getArguments()));
-            }
-            return $object;
-        } elseif ($argument instanceof Reference) {
-            if ($this->app->has($argument->getId())) {
-                return $this->app->get($argument->getId());
-            }
-            if ($argument->getInvalidBehavior() === ContainerImplementation::NULL_ON_INVALID_REFERENCE) {
-                return null;
-            }
-            if (class_exists($argument->getId())) {
-                return $this->app->make($argument->getId());
-            }
-            throw new InvalidArgumentException("Reference to {$argument->getId()} is not found");
-        } else {
-            return $argument;
-        }
-    }
-
     public function prepareFromCache(mixed $useProductionCache, string $rootCatalog, ServiceConfiguration $applicationConfiguration, mixed $enableTesting, string $cacheDirectory): array
     {
+        $externalContainer = new LaravelPsrContainerAdapter($this->app);
+
         if ($useProductionCache && $cacheDirectory) {
-            $messagingFile = $cacheDirectory . DIRECTORY_SEPARATOR . self::MESSAGING_SYSTEM_FILE_NAME;
-
-            if (file_exists($messagingFile)) {
-                /** It may fail on deserialization, then return `false` and we can build new one */
-                $definitionHolder = unserialize(file_get_contents($messagingFile));
-
-                if ($definitionHolder) {
-                    return [new ServiceCacheConfiguration($cacheDirectory, true), $definitionHolder];
-                }
+            $serviceCacheConfiguration = new ServiceCacheConfiguration($cacheDirectory, true);
+            $container = EcotoneSymfonyContainerFactory::loadCachedWithDefaults($serviceCacheConfiguration, new LaravelConfigurationVariableService(), $externalContainer);
+            if ($container) {
+                return [$serviceCacheConfiguration, $container];
             }
         }
 
-        $annotationFinder = AnnotationFinderFactory::createForAttributes(
-            realpath($rootCatalog),
-            $applicationConfiguration->getNamespaces(),
-            $applicationConfiguration->getEnvironment(),
-            $applicationConfiguration->getLoadedCatalog() ?? '',
-            MessagingSystemConfiguration::getModuleClassesFor($applicationConfiguration),
-            isRunningForTesting: $enableTesting,
-        );
-
-        $cacheHash = $annotationFinder->getCacheMessagingFileNameBasedOnConfig(
-            realpath($rootCatalog),
+        $cacheLayout = ContainerCacheLayout::resolve(
+            $rootCatalog,
             $applicationConfiguration,
-            Config::all(),
-            $enableTesting
+            $cacheDirectory,
+            shouldUseCache: true,
+            useHashSubDirectory: ! $useProductionCache,
+            configurationVariables: Config::all(),
+            enableTesting: (bool) $enableTesting,
         );
+        $annotationFinder = $cacheLayout->annotationFinder;
+        $serviceCacheConfiguration = $cacheLayout->serviceCacheConfiguration;
+        $cacheHash = $cacheLayout->configHash;
 
-        $serviceCacheConfiguration = new ServiceCacheConfiguration(
-            $useProductionCache ? $cacheDirectory : ($cacheDirectory . DIRECTORY_SEPARATOR . $cacheHash),
-            true,
-        );
-
-        $definitionHolder = null;
-
-        $messagingSystemCachePath = $serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . self::MESSAGING_SYSTEM_FILE_NAME;
-
-        if ($serviceCacheConfiguration->shouldUseCache() && file_exists($messagingSystemCachePath)) {
-            /** It may fail on deserialization, then return `false` and we can build new one */
-            $definitionHolder = unserialize(file_get_contents($messagingSystemCachePath));
-        }
-
-        if (! $definitionHolder) {
-            $configuration = MessagingSystemConfiguration::prepareWithAnnotationFinder(
+        $container = EcotoneSymfonyContainerFactory::bootstrap(
+            $serviceCacheConfiguration,
+            new LaravelConfigurationVariableService(),
+            $externalContainer,
+            fn () => MessagingSystemConfiguration::prepareWithAnnotationFinder(
                 $annotationFinder,
                 new LaravelConfigurationVariableService(),
                 $applicationConfiguration,
                 enableTestPackage: $enableTesting
-            );
-            $definitionHolder = ContainerConfig::buildDefinitionHolder($configuration);
+            ),
+            $cacheHash,
+        );
 
-            if ($serviceCacheConfiguration->shouldUseCache()) {
-                MessagingSystemConfiguration::prepareCacheDirectory($serviceCacheConfiguration);
-                file_put_contents($messagingSystemCachePath, serialize($definitionHolder));
-            }
-        }
-
-        return [$serviceCacheConfiguration, $definitionHolder];
+        return [$serviceCacheConfiguration, $container];
     }
 
     /**

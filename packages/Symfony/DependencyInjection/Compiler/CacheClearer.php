@@ -43,7 +43,7 @@ class CacheClearer implements CacheClearerInterface
             if (is_dir($filePath)) {
                 $this->deleteDirectory($filePath);
                 rmdir($filePath);
-            } else {
+            } elseif ($file !== 'ecotone_container.php' && ! str_starts_with($file, 'EcotoneCachedContainer_')) {
                 unlink($filePath);
             }
         }

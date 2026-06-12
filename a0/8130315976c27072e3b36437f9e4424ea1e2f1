@@ -1,0 +1,28 @@
+packages/Ecotone/tests/Messaging/Unit/Handler/Processor/CodeGeneration/GeneratedInvocationSemanticsTest.php
+  s_ce30c813ba0ba9::t_8c66bd3f99b2db 1-243
+packages/Ecotone/tests/Messaging/Unit/Handler/Processor/CodeGeneration/InterceptedMessageProcessorCodeRendererTest.php
+  s_ce30c813ba0ba9::t_3c1a3611a39356 1-42,154
+  s_ce30c813ba0ba9::t_bd02125651de85 43-153
+packages/Ecotone/src/Messaging/Handler/Processor/CodeGeneration/AroundInterceptorMetadata.php
+  s_ce30c813ba0ba9::t_f0b032846f35f8 1-17
+packages/Ecotone/src/Messaging/Handler/Processor/CodeGeneration/InterceptedMessageProcessorCodeRenderer.php
+  s_ce30c813ba0ba9::t_266e4a1d9c03a4 1-37,185-186
+  s_ce30c813ba0ba9::t_cb1fb0c9af4abf 38-170,182-184
+  s_ce30c813ba0ba9::t_83c05c66c60d67 171-181
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "a08130315976c27072e3b36437f9e4424ea1e2f1",
+  "prompts": {},
+  "sessions": {
+    "s_ce30c813ba0ba9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d92497d2-970e-4825-96e3-1272b7024ecc",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

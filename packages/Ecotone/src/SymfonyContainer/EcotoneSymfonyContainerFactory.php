@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
 use Psr\Container\ContainerInterface;
+use Symfony\Component\DependencyInjection\Container as SymfonyBaseContainer;
 use Symfony\Component\DependencyInjection\ContainerBuilder as SymfonyContainerBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface as SymfonyContainerInterface;
 use Symfony\Component\DependencyInjection\Dumper\PhpDumper;
@@ -128,16 +129,20 @@ final class EcotoneSymfonyContainerFactory
             return null;
         }
 
-        $containerCode = file_get_contents($containerFile);
-        if ($containerCode === false || preg_match('/^class (EcotoneCachedContainer_[a-f0-9]+)/m', $containerCode, $matches) !== 1) {
+        $container = require $containerFile;
+        if (! $container instanceof SymfonyBaseContainer) {
             return null;
         }
-        $className = $matches[1];
-        if (! class_exists($className, false)) {
-            require $containerFile;
-        }
 
-        return self::wrapWithExternalFallback(new $className(), $externalContainer, $runtimeServices);
+        return self::wrapWithExternalFallback($container, $externalContainer, $runtimeServices);
+    }
+
+    /**
+     * @return string[] dumped container files, to be included in opcache preloading
+     */
+    public static function dumpedContainerFiles(ServiceCacheConfiguration $serviceCacheConfiguration): array
+    {
+        return glob($serviceCacheConfiguration->getPath() . DIRECTORY_SEPARATOR . 'EcotoneCachedContainer_*.php') ?: [];
     }
 
     private static function dumpToCache(
@@ -151,12 +156,30 @@ final class EcotoneSymfonyContainerFactory
         $dumper = new PhpDumper($symfonyBuilder);
         $placeholderClassName = 'EcotoneCachedContainerPlaceholder';
         $containerCode = $dumper->dump(['class' => $placeholderClassName]);
-        $containerCode = str_replace(
-            $placeholderClassName,
-            'EcotoneCachedContainer_' . md5($containerCode),
-            $containerCode,
-        );
-        file_put_contents(self::containerFilePath($serviceCacheConfiguration), $containerCode);
+        $className = 'EcotoneCachedContainer_' . md5($containerCode);
+        $containerCode = str_replace($placeholderClassName, $className, $containerCode);
+
+        foreach (self::dumpedContainerFiles($serviceCacheConfiguration) as $staleContainerFile) {
+            @unlink($staleContainerFile);
+        }
+        file_put_contents($cacheDirectory . DIRECTORY_SEPARATOR . $className . '.php', $containerCode);
+        file_put_contents(self::containerFilePath($serviceCacheConfiguration), self::loaderStub($className));
+    }
+
+    private static function loaderStub(string $className): string
+    {
+        return <<<PHP
+            <?php
+
+            if (! class_exists('{$className}', false)) {
+                if (! is_file(__DIR__ . '/{$className}.php')) {
+                    return null;
+                }
+                require_once __DIR__ . '/{$className}.php';
+            }
+
+            return new {$className}();
+            PHP;
     }
 
     private static function containerFilePath(ServiceCacheConfiguration $serviceCacheConfiguration): string

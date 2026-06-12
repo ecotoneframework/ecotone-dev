@@ -1,0 +1,49 @@
+packages/Ecotone/tests/Lite/GeneratedMessageProcessorBootstrapTest.php
+  s_ce30c813ba0ba9::t_ec0567473225bf 48
+  s_ce30c813ba0ba9::t_b77d3bb9831be8 1-47,49-86
+packages/Ecotone/tests/SymfonyContainer/EcotoneSymfonyContainerFactoryCacheTest.php
+  s_ce30c813ba0ba9::t_cddc4ff2f15c2d 228-230
+  s_ce30c813ba0ba9::t_a092719df88dec 198
+  s_ce30c813ba0ba9::t_fea655bc7a586d 188-197,199-227,231-236
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/MethodInvokerBuilder.php
+  s_ce30c813ba0ba9::t_9990a5acae1862 80-90,92-111
+  s_ce30c813ba0ba9::t_b49d724d86f260 14-15,17
+packages/Ecotone/src/Messaging/Handler/Processor/CodeGeneration/ChainedMessageProcessorCodeRenderer.php
+  s_ce30c813ba0ba9::t_e0bf37fed936b1 1-54
+packages/Ecotone/src/Messaging/Handler/Processor/ChainedMessageProcessorBuilder.php
+  s_ce30c813ba0ba9::t_f73d6e0de3bf75 88,92-106
+  s_ce30c813ba0ba9::t_949b06261e4541 75-81
+  s_ce30c813ba0ba9::t_c0f8ad0231256b 19
+packages/Ecotone/tests/Messaging/Unit/Handler/Processor/CodeGeneration/ChainedMessageProcessorCodeRendererTest.php
+  s_ce30c813ba0ba9::t_537772e08e9a22 1-56
+packages/Ecotone/src/SymfonyContainer/EcotoneSymfonyContainerFactory.php
+  s_ce30c813ba0ba9::t_b75162bef05581 147-150
+  s_ce30c813ba0ba9::t_3554d11ea06542 20
+  s_ce30c813ba0ba9::t_0fad86eb69de37 176
+  s_ce30c813ba0ba9::t_5588c46357b4f6 182,186-204,207-210,212-218
+  s_ce30c813ba0ba9::t_6a4cfaf65a497c 161,168,172-175,177-181,183-185,219-227,231-236
+packages/Ecotone/tests/Lite/ResiliencyThroughGeneratedProcessorTest.php
+  s_ce30c813ba0ba9::t_37a025253ccc14 1-126
+packages/Ecotone/src/Messaging/Handler/Processor/CodeGeneration/InterceptedMessageProcessorCodeRenderer.php
+  s_ce30c813ba0ba9::t_af5725f6829d88 21-24
+  s_ce30c813ba0ba9::t_4c65a2f9acf383 50-53
+packages/Ecotone/tests/Messaging/Unit/Handler/Processor/CodeGeneration/InterceptedMessageProcessorCodeRendererTest.php
+  s_ce30c813ba0ba9::t_b2b56c207c92bb 25-28
+  s_ce30c813ba0ba9::t_048edc30159526 59-62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "aadc952640b6d725847ba59b8b7ed0fd2b8822f6",
+  "prompts": {},
+  "sessions": {
+    "s_ce30c813ba0ba9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d92497d2-970e-4825-96e3-1272b7024ecc",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

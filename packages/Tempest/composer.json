@@ -51,7 +51,7 @@
     },
     "require": {
         "php": "^8.4",
-        "ecotone/ecotone": "~1.316.0",
+        "ecotone/ecotone": "~1.316.1",
         "tempest/framework": "^3.11"
     },
     "suggest": {
@@ -62,7 +62,7 @@
         "phpunit/phpunit": "^11.0",
         "phpstan/phpstan": "^1.8|^2.0",
         "symfony/expression-language": "^6.4|^7.0|^8.0",
-        "ecotone/dbal": "~1.316.0",
+        "ecotone/dbal": "~1.316.1",
         "doctrine/dbal": "^4.0"
     },
     "scripts": {
@@ -77,7 +77,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.316.0-dev"
+            "dev-main": "1.316.1-dev"
         },
         "ecotone": {
             "repository": "tempest"
@@ -96,6 +96,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-06-12 04:47:18"
+        "release-time": "2026-06-12 04:51:25"
     }
 }

@@ -3,6 +3,10 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.316.1] - 2026-06-12
+
+Adjust Tempest package release: https://github.com/ecotoneframework/ecotone-dev/releases/tag/1.316.0
+
 ## [1.316.0] - 2026-06-12
 
 ## What's Changed

@@ -20,6 +20,7 @@ use Tempest\Container\Container;
 use Tempest\Container\Initializer;
 use Tempest\Container\Singleton;
 use Tempest\Discovery\Composer;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -116,7 +117,7 @@ final class MessagingSystemInitializer implements Initializer
     {
         try {
             $composer = $container->get(Composer::class);
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return [];
         }
 
@@ -134,7 +135,7 @@ final class MessagingSystemInitializer implements Initializer
             $logger = $container->get(LoggerInterface::class);
             $ecotoneContainer->set('logger', $logger);
             $ecotoneContainer->set(LoggerInterface::class, $logger);
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
     }
 

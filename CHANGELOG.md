@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.316.0] - 2026-06-12
+
+## What's Changed
+* feat(tempest): add ecotone/tempest framework integration package by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/673
+* feat: add Tempest quickstart examples and multi-tenant ORM fix by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/674
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.315.0...1.316.0
+
 ## [1.315.0] - 2026-06-06
 
 ## What's Changed

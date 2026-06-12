@@ -15,6 +15,7 @@ use Tempest\Database\GenericDatabase;
 use Tempest\Database\Transactions\GenericTransactionManager;
 use Tempest\EventBus\EventBus;
 use Tempest\Mapper\SerializerFactory;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -23,7 +24,8 @@ final class TempestTenantDatabaseSwitcher
 {
     public function __construct(
         private readonly DatabaseConfig $defaultDatabaseConfig,
-    ) {}
+    ) {
+    }
 
     public static function create(): self
     {
@@ -99,7 +101,7 @@ final class TempestTenantDatabaseSwitcher
             $factory = $container->get(DbalConnectionFactory::class);
             $doctrineConnection = $factory->createContext()->getDbalConnection();
             $doctrineConnection->close();
-        } catch (\Throwable) {
+        } catch (Throwable) {
         }
     }
 }

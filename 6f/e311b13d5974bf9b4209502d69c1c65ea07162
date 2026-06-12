@@ -1,0 +1,28 @@
+packages/LiteApplication/tests/Fixture/Ticketing/TicketNotifier.php
+  s_bd4e924a1e9b0a::t_1226d3c54e16f2 1-23
+packages/LiteApplication/tests/Fixture/Ticketing/Ticket.php
+  s_bd4e924a1e9b0a::t_1226d3c54e16f2 1-31
+packages/LiteApplication/tests/Unit/EcotoneLiteApplicationTest.php
+  s_bd4e924a1e9b0a::t_19329668371c79 66-83
+  s_bd4e924a1e9b0a::t_6c6dc98f089c86 14-15
+packages/LiteApplication/tests/Fixture/Ticketing/InMemoryTicketRepository.php
+  s_bd4e924a1e9b0a::t_1226d3c54e16f2 1-32
+packages/LiteApplication/tests/Fixture/Ticketing/TicketRepository.php
+  s_bd4e924a1e9b0a::t_1226d3c54e16f2 1-16
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "6fe311b13d5974bf9b4209502d69c1c65ea07162",
+  "prompts": {},
+  "sessions": {
+    "s_bd4e924a1e9b0a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c8858425-6a0e-4281-92d5-4b4082bde3ae",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

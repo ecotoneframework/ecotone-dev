@@ -1,0 +1,29 @@
+packages/Symfony/DependencyInjection/Compiler/CacheClearer.php
+  s_ce30c813ba0ba9::t_a6d5cf0eddeb72 28-29,32,44-46,54-65
+packages/Symfony/tests/phpunit/CacheClearerTest.php
+  s_ce30c813ba0ba9::t_e0a3cdadfb5af4 3,5-9,13,15,17,19-31
+packages/Ecotone/src/Messaging/Handler/ServiceActivator/MessageProcessorActivatorBuilder.php
+  s_ce30c813ba0ba9::t_8af755f38e4be1 84
+  s_ce30c813ba0ba9::t_a513abc086a031 14
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/MethodInvoker.php
+  s_ce30c813ba0ba9::t_c5796711c1a153 28-31
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/MethodInvokerBuilder.php
+  s_ce30c813ba0ba9::t_4603e153f11bfb 90
+  s_ce30c813ba0ba9::t_072c4942ea72c1 114
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.6",
+  "base_commit_sha": "4a409444edc88491d7feb40ade62e30f2d5269b6",
+  "prompts": {},
+  "sessions": {
+    "s_ce30c813ba0ba9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d92497d2-970e-4825-96e3-1272b7024ecc",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

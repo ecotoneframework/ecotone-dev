@@ -3,7 +3,9 @@
 namespace Ecotone\SymfonyBundle\DependencyInjection\Compiler;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
+use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use Symfony\Component\HttpKernel\CacheWarmer\CacheWarmerInterface;
 
 /**
@@ -13,7 +15,8 @@ class CacheWarmer implements CacheWarmerInterface
 {
     public function __construct(
         private ConfiguredMessagingSystem $configuredMessagingSystem,
-        private ProxyFactory $proxyFactory
+        private ProxyFactory $proxyFactory,
+        private ServiceCacheConfiguration $serviceCacheConfiguration,
     ) {
     }
 
@@ -29,6 +32,6 @@ class CacheWarmer implements CacheWarmerInterface
             $files[] = $this->proxyFactory->generateCachedProxyFileFor($gatewayReference, true);
         }
 
-        return $files;
+        return array_merge($files, EcotoneSymfonyContainerFactory::dumpedContainerFiles($this->serviceCacheConfiguration));
     }
 }

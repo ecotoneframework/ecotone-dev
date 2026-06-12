@@ -87,7 +87,7 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
         );
 
         return (new Definition($generatedClass->className, [
-            $this->compileWithoutProcessor($builder, []),
+            $this->compileWithoutProcessor($builder),
             $messageConverter,
             ...array_values($aroundInterceptors),
         ]))->withFile($generatedClass->filePath);
@@ -111,7 +111,7 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
         return new AroundInterceptorMetadata($arguments[1], $arguments[3]);
     }
 
-    public function compileWithoutProcessor(MessagingContainerBuilder $builder, array $aroundInterceptors = []): Definition
+    public function compileWithoutProcessor(MessagingContainerBuilder $builder): Definition
     {
         $interfaceToCall = $builder->getInterfaceToCall($this->interfaceToCallReference);
 
@@ -129,7 +129,6 @@ class MethodInvokerBuilder implements InterceptedMessageProcessorBuilder
             $interfaceToCall->getMethodName(),
             $this->buildParameterConverters($interfaceToCall),
             $interfaceToCall->getInterfaceParametersNames(),
-            $aroundInterceptors,
         ]);
     }
 

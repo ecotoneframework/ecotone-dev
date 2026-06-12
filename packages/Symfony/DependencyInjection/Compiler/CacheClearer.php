@@ -25,11 +25,11 @@ class CacheClearer implements CacheClearerInterface
      */
     public function clear(string $cacheDir): void
     {
-        $this->deleteDirectory($this->serviceCacheConfiguration->getPath());
-        $this->deleteDirectory(ServiceCacheConfiguration::defaultCachePath() . DIRECTORY_SEPARATOR . 'ecotone');
+        $this->deleteDirectoryPreservingCompiledContainer($this->serviceCacheConfiguration->getPath());
+        $this->deleteDirectoryPreservingCompiledContainer(ServiceCacheConfiguration::defaultCachePath() . DIRECTORY_SEPARATOR . 'ecotone');
     }
 
-    private function deleteDirectory(string $directory): void
+    private function deleteDirectoryPreservingCompiledContainer(string $directory): void
     {
         if (! is_dir($directory)) {
             return;
@@ -41,9 +41,28 @@ class CacheClearer implements CacheClearerInterface
             $filePath = $directory . DIRECTORY_SEPARATOR . $file;
 
             if (is_dir($filePath)) {
+                if ($file === 'handlers') {
+                    continue;
+                }
                 $this->deleteDirectory($filePath);
                 rmdir($filePath);
             } elseif ($file !== 'ecotone_container.php' && ! str_starts_with($file, 'EcotoneCachedContainer_')) {
+                unlink($filePath);
+            }
+        }
+    }
+
+    private function deleteDirectory(string $directory): void
+    {
+        $files = array_diff(scandir($directory), ['.', '..']);
+
+        foreach ($files as $file) {
+            $filePath = $directory . DIRECTORY_SEPARATOR . $file;
+
+            if (is_dir($filePath)) {
+                $this->deleteDirectory($filePath);
+                rmdir($filePath);
+            } else {
                 unlink($filePath);
             }
         }

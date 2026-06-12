@@ -14,31 +14,21 @@ final class MethodInvoker implements AroundInterceptable
 {
     /**
      * @param ParameterConverter[] $methodParameterConverters
-     * @param AroundMethodInterceptor[] $aroundInterceptors
      */
     public function __construct(
         private MethodInvokerObjectResolver $methodInvokerObjectResolver,
         private string $methodName,
         private array $methodParameterConverters,
         private array $methodParameterNames,
-        private array $aroundInterceptors = [],
     ) {
     }
 
     public function execute(Message $message): mixed
     {
-        if ($this->aroundInterceptors) {
-            return (new AroundMethodInvocation(
-                $message,
-                $this->aroundInterceptors,
-                $this,
-            ))->proceed();
-        } else {
-            $objectToInvokeOn = $this->getObjectToInvokeOn($message);
-            return is_string($objectToInvokeOn)
-                ? $objectToInvokeOn::{$this->getMethodName()}(...$this->getArguments($message))
-                : $objectToInvokeOn->{$this->getMethodName()}(...$this->getArguments($message));
-        }
+        $objectToInvokeOn = $this->getObjectToInvokeOn($message);
+        return is_string($objectToInvokeOn)
+            ? $objectToInvokeOn::{$this->getMethodName()}(...$this->getArguments($message))
+            : $objectToInvokeOn->{$this->getMethodName()}(...$this->getArguments($message));
     }
 
     public function getMethodName(): string

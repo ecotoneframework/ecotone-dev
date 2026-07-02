@@ -1,0 +1,37 @@
+packages/Dbal/tests/Integration/Consumer/ExecutionTimeLimitReceiveTimeoutTest.php
+  s_91dff32f722a76::t_f4a84bb67fa3c7 1-59
+packages/Kafka/tests/Integration/FinalFailureStrategyTest.php
+  s_91dff32f722a76::t_97baa13fece2c2 103,142,231,245,286,318
+packages/Kafka/tests/Integration/CommitIntervalTest.php
+  s_91dff32f722a76::t_838cb15e6076da 57
+  s_91dff32f722a76::t_150e854fb1b4c7 104
+  s_91dff32f722a76::t_659cad5850b53e 109
+packages/Enqueue/src/EnqueueInboundChannelAdapter.php
+  s_91dff32f722a76::t_6b476590f350d9 60-62
+packages/Dbal/tests/Integration/Consumer/GracefulShutdownOnSignalTest.php
+  s_91dff32f722a76::t_d2a526e87ea5f8 39,41
+  s_91dff32f722a76::t_90ba1075f46630 1-35,42-71
+  s_91dff32f722a76::t_a8de2f522a8dbb 36-38,40
+packages/Kafka/src/Inbound/KafkaInboundChannelAdapter.php
+  s_91dff32f722a76::t_75b6b9544b691f 50-52
+packages/Amqp/src/AmqpStreamInboundChannelAdapter.php
+  s_91dff32f722a76::t_5e3ea841e0e1b9 149-151
+packages/Kafka/tests/Integration/KafkaMessageChannelTest.php
+  s_91dff32f722a76::t_e7e8472e05ed37 653-657
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "7b9a4c95dda34965e02857aacff79da5fb9a34b2",
+  "prompts": {},
+  "sessions": {
+    "s_91dff32f722a76": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "77b5517b-d0bd-4812-a54a-436e3e10b79e",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

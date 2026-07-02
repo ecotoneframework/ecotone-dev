@@ -1,0 +1,29 @@
+packages/Ecotone/src/Messaging/Config/Container/Compiler/VerifyEnterpriseLicenceForClosureExpressions.php
+  s_d24dc3ed11e1f9::t_0232ffce596d22 65-77
+  s_d24dc3ed11e1f9::t_6bb1383ea55b29 10
+  s_d24dc3ed11e1f9::t_8f881e70cc0e09 1-9,11-40,46-64,78-125
+  s_d24dc3ed11e1f9::t_632066d8c38b4a 41-45
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_d24dc3ed11e1f9::t_deca23db9b3574 1079
+packages/Ecotone/tests/Messaging/Unit/Handler/ClosureExpressionTest.php
+  s_d24dc3ed11e1f9::t_94356e89cba5c4 72,74-76
+  s_d24dc3ed11e1f9::t_d8eeed5160b923 101,103-105
+packages/Dbal/tests/Integration/ClosureInAttribute/ClosureExpressionDbalTest.php
+  s_d24dc3ed11e1f9::t_723ede66ab9ee3 56,58-60,62,68,70-72
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "42a1042663be8c6067dfb0c300d2ac889467d09f",
+  "prompts": {},
+  "sessions": {
+    "s_d24dc3ed11e1f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6db88ad3-ec31-4a8f-a44e-e648948c9657",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

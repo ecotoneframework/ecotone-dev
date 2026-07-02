@@ -28,6 +28,12 @@ interface PersonClosureParameterApi
         })] string $name,
     ): void;
 
+    #[DbalWrite('INSERT INTO persons (person_id, name) VALUES (:personId, :titledName)')]
+    #[DbalParameter('titledName', expression: static function (string $name, string $title = 'Sir'): string {
+        return $title . ' ' . $name;
+    })]
+    public function insertWithTitledName(int $personId, string $name): void;
+
     #[DbalQuery(
         'SELECT name FROM persons WHERE person_id = :personId',
         fetchMode: FetchMode::FIRST_COLUMN_OF_FIRST_ROW

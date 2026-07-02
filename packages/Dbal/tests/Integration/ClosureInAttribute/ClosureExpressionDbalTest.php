@@ -15,8 +15,8 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -104,6 +104,16 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
         $personApi->insertWithParameterLevelClosure(2, 'MARIA');
 
         $this->assertSame('maria', $personApi->getNameById(2));
+    }
+
+    public function test_dbal_parameter_closure_binds_context_variables_and_default_values(): void
+    {
+        $ecotoneLite = $this->bootstrapWithBusinessMethods();
+        $personApi = $ecotoneLite->getGateway(PersonClosureParameterApi::class);
+
+        $personApi->insertWithTitledName(3, 'John');
+
+        $this->assertSame('Sir John', $personApi->getNameById(3));
     }
 
     public function test_tenant_resolver_with_closure_expression(): void

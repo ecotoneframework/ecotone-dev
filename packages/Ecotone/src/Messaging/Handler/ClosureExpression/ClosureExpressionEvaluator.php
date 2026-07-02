@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\ClosureExpression;
 
+use function array_key_exists;
+
 use Closure;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Attribute\Parameter\ConfigurationVariable;
@@ -42,9 +44,14 @@ final class ClosureExpressionEvaluator
     public const REFERENCE_NAME = self::class;
 
     /**
-     * @var WeakMap<Closure, ParameterConverter[]>
+     * @var WeakMap<Closure, array<callable(Message, array): mixed>>
      */
-    private WeakMap $resolvedParameterConverters;
+    private WeakMap $resolvedMessageParameterResolvers;
+
+    /**
+     * @var WeakMap<Closure, ReflectionParameter[]>
+     */
+    private WeakMap $resolvedReflectionParameters;
 
     public function __construct(
         private LicenceDecider $licenceDecider,
@@ -54,44 +61,119 @@ final class ClosureExpressionEvaluator
         private ConfigurationVariableService $configurationVariableService,
         private ContainerInterface $container,
     ) {
-        $this->resolvedParameterConverters = new WeakMap();
+        $this->resolvedMessageParameterResolvers = new WeakMap();
+        $this->resolvedReflectionParameters = new WeakMap();
     }
 
-    public function evaluate(Closure $closure, Message $message): mixed
+    public function evaluate(Closure $closure, Message $message, array $additionalContext = []): mixed
     {
-        if (! $this->licenceDecider->hasEnterpriseLicence()) {
-            throw LicensingException::create('Closure given as attribute expression is available as part of Ecotone Enterprise.');
-        }
+        $this->ensureEnterpriseLicence();
 
         $arguments = [];
-        foreach ($this->parameterConvertersFor($closure) as $parameterConverter) {
-            $arguments[] = $parameterConverter->getArgumentFrom($message);
+        foreach ($this->messageParameterResolversFor($closure) as $parameterResolver) {
+            $arguments[] = $parameterResolver($message, $additionalContext);
         }
 
         return $closure(...$arguments);
     }
 
-    /**
-     * @return ParameterConverter[]
-     */
-    private function parameterConvertersFor(Closure $closure): array
+    public function evaluateWithContext(Closure $closure, array $context): mixed
     {
-        if (! isset($this->resolvedParameterConverters[$closure])) {
-            $parameterConverters = [];
-            foreach ((new ReflectionFunction($closure))->getParameters() as $index => $reflectionParameter) {
-                $parameterConverters[] = $this->parameterConverterFor($reflectionParameter, $index === 0);
-            }
+        $this->ensureEnterpriseLicence();
 
-            $this->resolvedParameterConverters[$closure] = $parameterConverters;
+        $arguments = [];
+        foreach ($this->reflectionParametersFor($closure) as $index => $reflectionParameter) {
+            $arguments[] = $this->resolveFromContext($reflectionParameter, $index, $context);
         }
 
-        return $this->resolvedParameterConverters[$closure];
+        return $closure(...$arguments);
     }
 
-    private function parameterConverterFor(ReflectionParameter $reflectionParameter, bool $isFirstParameter): ParameterConverter
+    private function ensureEnterpriseLicence(): void
+    {
+        if (! $this->licenceDecider->hasEnterpriseLicence()) {
+            throw LicensingException::create('Closure given as attribute expression is available as part of Ecotone Enterprise.');
+        }
+    }
+
+    private function resolveFromContext(ReflectionParameter $reflectionParameter, int $index, array $context): mixed
+    {
+        if (array_key_exists($reflectionParameter->getName(), $context)) {
+            return $context[$reflectionParameter->getName()];
+        }
+        if ($index === 0 && array_key_exists('payload', $context)) {
+            return $context['payload'];
+        }
+        if ($reflectionParameter->isDefaultValueAvailable()) {
+            return $reflectionParameter->getDefaultValue();
+        }
+
+        throw InvalidArgumentException::create(sprintf('Cannot resolve parameter `%s` of closure expression. Available context variables: %s', $reflectionParameter->getName(), implode(', ', array_keys($context))));
+    }
+
+    /**
+     * @return ReflectionParameter[]
+     */
+    private function reflectionParametersFor(Closure $closure): array
+    {
+        if (! isset($this->resolvedReflectionParameters[$closure])) {
+            $this->resolvedReflectionParameters[$closure] = (new ReflectionFunction($closure))->getParameters();
+        }
+
+        return $this->resolvedReflectionParameters[$closure];
+    }
+
+    /**
+     * @return array<callable(Message, array): mixed>
+     */
+    private function messageParameterResolversFor(Closure $closure): array
+    {
+        if (! isset($this->resolvedMessageParameterResolvers[$closure])) {
+            $parameterResolvers = [];
+            foreach ($this->reflectionParametersFor($closure) as $index => $reflectionParameter) {
+                $parameterResolvers[] = $this->messageParameterResolverFor($reflectionParameter, $index === 0);
+            }
+
+            $this->resolvedMessageParameterResolvers[$closure] = $parameterResolvers;
+        }
+
+        return $this->resolvedMessageParameterResolvers[$closure];
+    }
+
+    /**
+     * @return callable(Message, array): mixed
+     */
+    private function messageParameterResolverFor(ReflectionParameter $reflectionParameter, bool $isFirstParameter): callable
     {
         $parameterType = Type::createWithDocBlock($reflectionParameter->getType() ? (string) $reflectionParameter->getType() : null, null);
 
+        $attributeBasedConverter = $this->attributeBasedConverterFor($reflectionParameter, $parameterType);
+        if ($attributeBasedConverter !== null) {
+            return static fn (Message $message, array $additionalContext): mixed => $attributeBasedConverter->getArgumentFrom($message);
+        }
+
+        $fallbackConverter = $this->fallbackConverterFor($reflectionParameter, $parameterType, $isFirstParameter);
+        $parameterName = $reflectionParameter->getName();
+        $hasDefaultValue = $reflectionParameter->isDefaultValueAvailable();
+        $defaultValue = $hasDefaultValue ? $reflectionParameter->getDefaultValue() : null;
+
+        return static function (Message $message, array $additionalContext) use ($parameterName, $fallbackConverter, $hasDefaultValue, $defaultValue): mixed {
+            if (array_key_exists($parameterName, $additionalContext)) {
+                return $additionalContext[$parameterName];
+            }
+            if ($fallbackConverter !== null) {
+                return $fallbackConverter->getArgumentFrom($message);
+            }
+            if ($hasDefaultValue) {
+                return $defaultValue;
+            }
+
+            throw InvalidArgumentException::create("Cannot resolve parameter `{$parameterName}` of closure expression. Use #[Payload], #[Header], #[Headers], #[Reference] or #[ConfigurationVariable] to define how it should be resolved.");
+        };
+    }
+
+    private function attributeBasedConverterFor(ReflectionParameter $reflectionParameter, Type $parameterType): ?ParameterConverter
+    {
         foreach ($reflectionParameter->getAttributes() as $attribute) {
             $annotation = $attribute->newInstance();
 
@@ -117,6 +199,11 @@ final class ClosureExpressionEvaluator
             }
         }
 
+        return null;
+    }
+
+    private function fallbackConverterFor(ReflectionParameter $reflectionParameter, Type $parameterType, bool $isFirstParameter): ?ParameterConverter
+    {
         if ($parameterType->isMessage()) {
             return new MessageConverter();
         }
@@ -127,14 +214,14 @@ final class ClosureExpressionEvaluator
             return ValueConverter::createWith($this->container->get($parameterType->toString()));
         }
 
-        throw InvalidArgumentException::create("Cannot resolve parameter `{$reflectionParameter->getName()}` of closure expression. Use #[Payload], #[Header], #[Headers], #[Reference] or #[ConfigurationVariable] to define how it should be resolved.");
+        return null;
     }
 
     private function headerConverterFor(Header $annotation, ReflectionParameter $reflectionParameter, Type $parameterType): ParameterConverter
     {
         $expression = $annotation->getExpression();
         if ($expression instanceof Closure) {
-            return new ClosureExpressionParameterConverter($this, $annotation);
+            return new ClosureExpressionParameterConverter($this->expressionEvaluationService, $annotation, valueFromHeaderName: $annotation->getHeaderName());
         }
         if ($expression) {
             return new HeaderExpressionConverter($this->expressionEvaluationService, $annotation->getHeaderName(), $expression, ! $reflectionParameter->allowsNull());
@@ -153,7 +240,7 @@ final class ClosureExpressionEvaluator
     {
         $expression = $annotation->getExpression();
         if ($expression instanceof Closure) {
-            return new ClosureExpressionParameterConverter($this, $annotation);
+            return new ClosureExpressionParameterConverter($this->expressionEvaluationService, $annotation, valueFromPayload: true);
         }
         if ($expression) {
             return new PayloadExpressionConverter($this->expressionEvaluationService, $expression);
@@ -168,7 +255,7 @@ final class ClosureExpressionEvaluator
 
         $expression = $annotation->getExpression();
         if ($expression instanceof Closure) {
-            return new ClosureExpressionParameterConverter($this, $annotation);
+            return new ClosureExpressionParameterConverter($this->expressionEvaluationService, $annotation, staticAdditionalContext: ['service' => $referencedService]);
         }
         if ($expression) {
             return new ReferenceConverter($this->expressionEvaluationService, $referencedService, $expression);

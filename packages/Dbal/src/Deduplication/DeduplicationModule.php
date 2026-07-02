@@ -18,7 +18,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionEvaluator;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -89,7 +88,6 @@ class DeduplicationModule implements AnnotationModule
                     new Reference(LoggingGateway::class),
                     new Reference(ExpressionEvaluationService::REFERENCE),
                     new Reference(DeduplicationTableManager::class),
-                    new Reference(ClosureExpressionEvaluator::REFERENCE_NAME),
                 ]
             )
         );

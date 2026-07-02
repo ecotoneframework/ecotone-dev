@@ -4,12 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\DbaBusinessMethod;
 
-use Closure;
 use DateTimeInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Dbal\Attribute\DbalParameter;
-use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
@@ -17,13 +15,11 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\GenericType;
 use Ecotone\Messaging\Handler\Type\UnionType;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalContext;
 use Generator;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
-use ReflectionFunction;
 
 /**
  * licence Apache-2.0
@@ -42,7 +38,6 @@ final class DbalBusinessMethodHandler
         private ConnectionFactory $connectionFactory,
         private ConversionService $conversionService,
         private ExpressionEvaluationService $expressionEvaluationService,
-        private LicenceDecider $licenceDecider,
     ) {
 
     }
@@ -155,28 +150,6 @@ final class DbalBusinessMethodHandler
         return [$sql, $preparedParameters, $this->autoResolveTypesIfNeeded($preparedParameters, $preparedParameterTypes)];
     }
 
-    private function evaluateClosureExpression(Closure $expression, array $context): mixed
-    {
-        if (! $this->licenceDecider->hasEnterpriseLicence()) {
-            throw LicensingException::create('Closure given as attribute expression is available as part of Ecotone Enterprise.');
-        }
-
-        $arguments = [];
-        foreach ((new ReflectionFunction($expression))->getParameters() as $index => $reflectionParameter) {
-            if (array_key_exists($reflectionParameter->getName(), $context)) {
-                $arguments[] = $context[$reflectionParameter->getName()];
-            } elseif ($index === 0 && array_key_exists('payload', $context)) {
-                $arguments[] = $context['payload'];
-            } elseif ($reflectionParameter->isDefaultValueAvailable()) {
-                $arguments[] = $reflectionParameter->getDefaultValue();
-            } else {
-                throw new InvalidArgumentException(sprintf('Cannot resolve parameter `%s` of DbalParameter closure expression. Available parameters: %s', $reflectionParameter->getName(), implode(', ', array_keys($context))));
-            }
-        }
-
-        return $expression(...$arguments);
-    }
-
     private function getConnection(): Connection
     {
         /** @var DbalContext $context */
@@ -189,14 +162,8 @@ final class DbalBusinessMethodHandler
      */
     private function getParameterValue(DbalParameter $dbalParameter, array $context, mixed $parameterValue): mixed
     {
-        $expression = $dbalParameter->getExpression();
-        if ($expression instanceof Closure) {
-            $parameterValue = $this->evaluateClosureExpression($expression, $context);
-        } elseif ($expression) {
-            $parameterValue = $this->expressionEvaluationService->evaluate(
-                $expression,
-                $context
-            );
+        if ($dbalParameter->getExpression()) {
+            $parameterValue = $this->expressionEvaluationService->evaluateWithContext($dbalParameter->getExpression(), $context);
         }
 
         if ($dbalParameter->getConvertToMediaType()) {

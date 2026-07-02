@@ -17,7 +17,6 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -138,7 +137,6 @@ final class DbaBusinessMethodModule implements AnnotationModule
                         Reference::to($connectionReference),
                         Reference::to(ConversionService::REFERENCE_NAME),
                         Reference::to(ExpressionEvaluationService::REFERENCE),
-                        Reference::to(LicenceDecider::class),
                     ]
                 )
             );

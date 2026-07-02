@@ -29,6 +29,16 @@ final class ClosureExpressionService
         $this->notifications[] = [$content, $token];
     }
 
+    #[CommandHandler('notification.sendWithReversedToken')]
+    public function sendWithReversedToken(
+        string $content,
+        #[Header('token', expression: static function (string $value): string {
+            return strrev($value);
+        })] string $token,
+    ): void {
+        $this->notifications[] = [$content, $token];
+    }
+
     #[CommandHandler('order.total')]
     public function calculateTotal(
         #[Payload(expression: static function (#[Payload] array $order, #[Headers] array $headers): int {

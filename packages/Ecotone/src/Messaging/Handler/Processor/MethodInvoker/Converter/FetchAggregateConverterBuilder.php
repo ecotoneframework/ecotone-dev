@@ -10,7 +10,6 @@ use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
-use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionEvaluator;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -65,7 +64,6 @@ class FetchAggregateConverterBuilder implements ParameterConverterBuilder
             $interfaceToCall->getParameterWithName($this->parameterName)->doesAllowNulls(),
             Reference::to(LicenceDecider::class),
             Reference::to(AggregateDefinitionRegistry::class),
-            Reference::to(ClosureExpressionEvaluator::REFERENCE_NAME),
         ]);
     }
 }

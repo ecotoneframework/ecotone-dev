@@ -16,7 +16,6 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionEvaluator;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\UnionType;
@@ -38,10 +37,8 @@ use function str_ends_with;
  */
 class EndpointHeadersInterceptor implements DefinedObject
 {
-    public function __construct(
-        private ExpressionEvaluationService $expressionEvaluationService,
-        private ClosureExpressionEvaluator $closureExpressionEvaluator,
-    ) {
+    public function __construct(private ExpressionEvaluationService $expressionEvaluationService)
+    {
 
     }
 
@@ -119,20 +116,12 @@ class EndpointHeadersInterceptor implements DefinedObject
     {
         return new Definition(self::class, [
             Reference::to(ExpressionEvaluationService::REFERENCE),
-            Reference::to(ClosureExpressionEvaluator::REFERENCE_NAME),
         ]);
     }
 
     private function evaluateExpression(string|Closure $expression, Message $message): mixed
     {
-        if ($expression instanceof Closure) {
-            return $this->closureExpressionEvaluator->evaluate($expression, $message);
-        }
-
-        return $this->expressionEvaluationService->evaluate($expression, [
-            'payload' => $message->getPayload(),
-            'headers' => $message->getHeaders()->headers(),
-        ]);
+        return $this->expressionEvaluationService->evaluateWithMessage($expression, $message);
     }
 
     private function parseDateTimeStringWithRequiredOffset(string $dateTimeString): DateTimeImmutable

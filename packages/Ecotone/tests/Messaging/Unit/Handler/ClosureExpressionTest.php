@@ -44,6 +44,19 @@ final class ClosureExpressionTest extends TestCase
         $this->assertSame([['hello', 'ABC']], $ecotoneLite->sendQueryWithRouting('notification.getNotifications'));
     }
 
+    public function test_header_closure_expression_binds_header_value_to_closure_parameter_by_name(): void
+    {
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [ClosureExpressionService::class, UpperCaseService::class],
+            [new ClosureExpressionService(), new UpperCaseService()],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('notification.sendWithReversedToken', 'hello', metadata: ['token' => 'abc']);
+
+        $this->assertSame([['hello', 'cba']], $ecotoneLite->sendQueryWithRouting('notification.getNotifications'));
+    }
+
     public function test_payload_closure_expression_with_headers(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(

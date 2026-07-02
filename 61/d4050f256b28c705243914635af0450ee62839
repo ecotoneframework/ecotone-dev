@@ -1,0 +1,24 @@
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureExpressionInvokerCompiler.php
+  s_d24dc3ed11e1f9::t_c39c87c0e5d2c6 8,10,37-39,43-48,50-55,59-60,62-65,67-74,79,86,92,114-115,125-132
+  s_d24dc3ed11e1f9::t_75dabd64c77907 133
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureExpressionParameterConverterBuilder.php
+  s_d24dc3ed11e1f9::t_476349143b5460 7,56,60-69,72-73,76-92
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureExpressionEvaluator.php
+  s_d24dc3ed11e1f9::t_5745c7a54cab40 8,11-13,31,33,44,53-54,107,109,111-119,121,124,127,129-130,132-135,137,139,141-142,144-145,148
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "61d4050f256b28c705243914635af0450ee62839",
+  "prompts": {},
+  "sessions": {
+    "s_d24dc3ed11e1f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6db88ad3-ec31-4a8f-a44e-e648948c9657",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

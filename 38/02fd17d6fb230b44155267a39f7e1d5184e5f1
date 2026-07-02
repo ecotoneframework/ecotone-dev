@@ -1,0 +1,53 @@
+packages/Dbal/src/Attribute/DbalParameter.php
+  s_d24dc3ed11e1f9::t_56359a75e0ef2a 19
+  s_d24dc3ed11e1f9::t_b0b691f035c16a 11
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AttributeExpressionExecutor.php
+  s_d24dc3ed11e1f9::t_cea163bb676c2d 8
+  s_d24dc3ed11e1f9::t_37930886d34ed9 35
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AttributeExpressionExecutorCompiler.php
+  s_d24dc3ed11e1f9::t_33596549d17b59 8
+  s_d24dc3ed11e1f9::t_17d0bac392072f 131
+  s_d24dc3ed11e1f9::t_9abc5bc4155c43 229
+  s_d24dc3ed11e1f9::t_0c4b4ade2f4fae 35
+packages/Dbal/src/Attribute/WithTenantResolver.php
+  s_d24dc3ed11e1f9::t_56359a75e0ef2a 9,15
+packages/Ecotone/src/Messaging/Attribute/Parameter/Header.php
+  s_d24dc3ed11e1f9::t_56359a75e0ef2a 9,16
+packages/Ecotone/src/Messaging/Attribute/Parameter/Reference.php
+  s_d24dc3ed11e1f9::t_56359a75e0ef2a 9,15
+packages/Dbal/src/MultiTenant/MultiTenantHeaderResolver.php
+  s_d24dc3ed11e1f9::t_e4ee052378c490 41,43
+packages/Ecotone/src/Messaging/Attribute/WithExpression.php
+  s_d24dc3ed11e1f9::t_17ebac2545080b 1-18
+packages/Ecotone/src/Messaging/Attribute/Parameter/Fetch.php
+  s_d24dc3ed11e1f9::t_56359a75e0ef2a 9,15
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AttributeExpressionContextExecutor.php
+  s_d24dc3ed11e1f9::t_78e3cff3a45116 28
+  s_d24dc3ed11e1f9::t_89db7c4d465234 10
+packages/Ecotone/src/Messaging/Attribute/Deduplicated.php
+  s_d24dc3ed11e1f9::t_56359a75e0ef2a 15
+packages/Ecotone/src/Messaging/Attribute/Endpoint/AddHeader.php
+  s_d24dc3ed11e1f9::t_56359a75e0ef2a 7,14
+packages/Ecotone/src/Messaging/Config/Container/Compiler/VerifyEnterpriseLicenceForClosureExpressions.php
+  s_d24dc3ed11e1f9::t_1e11d9c288b410 78
+  s_d24dc3ed11e1f9::t_d1ca838eef3b03 8,16
+  s_d24dc3ed11e1f9::t_73abadf172547d 65
+packages/Ecotone/src/Messaging/Attribute/Parameter/Payload.php
+  s_d24dc3ed11e1f9::t_56359a75e0ef2a 9,15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "3802fd17d6fb230b44155267a39f7e1d5184e5f1",
+  "prompts": {},
+  "sessions": {
+    "s_d24dc3ed11e1f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6db88ad3-ec31-4a8f-a44e-e648948c9657",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

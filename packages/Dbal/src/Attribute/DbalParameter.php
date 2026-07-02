@@ -8,6 +8,7 @@ use Attribute;
 use Closure;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
+use Ecotone\Messaging\Attribute\WithExpression;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 
@@ -15,7 +16,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 /**
  * licence Apache-2.0
  */
-final class DbalParameter implements DefinedObject
+final class DbalParameter implements DefinedObject, WithExpression
 {
     /**
      * @param int|ArrayParameterType|ParameterType|null $type One of the \Doctrine\DBAL\ParameterType::* or \Doctrine\DBAL\ArrayParameterType constants

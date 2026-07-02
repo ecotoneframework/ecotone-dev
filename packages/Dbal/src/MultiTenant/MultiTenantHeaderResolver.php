@@ -29,9 +29,6 @@ final class MultiTenantHeaderResolver
             return [];
         }
 
-        /** @var WithTenantResolver $config */
-        $config = $tenantResolver->getAttribute();
-        $expression = $config->getExpression();
         $value = $tenantResolver->execute($message);
 
         if ($value === null) {
@@ -41,10 +38,9 @@ final class MultiTenantHeaderResolver
         if (! is_string($value) && ! is_int($value)) {
             $type = is_object($value) ? $value::class : gettype($value);
             throw InvalidArgumentException::create(sprintf(
-                'WithTenantResolver expression for tenant header "%s" must evaluate to string|int|null, got %s. Expression: %s',
+                'WithTenantResolver expression for tenant header "%s" must evaluate to string|int|null, got %s',
                 $this->tenantHeaderName,
-                $type,
-                is_string($expression) ? $expression : 'closure'
+                $type
             ));
         }
 

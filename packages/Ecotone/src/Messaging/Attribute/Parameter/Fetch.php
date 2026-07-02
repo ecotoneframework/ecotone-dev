@@ -6,12 +6,13 @@ namespace Ecotone\Messaging\Attribute\Parameter;
 
 use Attribute;
 use Closure;
+use Ecotone\Messaging\Attribute\WithExpression;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 /**
  * licence Enterprise
  */
-class Fetch
+class Fetch implements WithExpression
 {
     public string|Closure $expression;
 

@@ -6,13 +6,14 @@ namespace Ecotone\Messaging\Attribute\Parameter;
 
 use Attribute;
 use Closure;
+use Ecotone\Messaging\Attribute\WithExpression;
 use Ecotone\Messaging\Support\Assert;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 /**
  * licence Apache-2.0
  */
-class Header
+class Header implements WithExpression
 {
     public string $headerName;
     public string|Closure $expression = '';

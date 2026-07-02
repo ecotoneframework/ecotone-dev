@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Container\Compiler;
 
 use Closure;
+use Ecotone\Messaging\Attribute\WithExpression;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\AttributeReference;
@@ -12,8 +13,8 @@ use Ecotone\Messaging\Config\Container\ContainerBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\LicensingException;
 
+use function is_a;
 use function is_array;
-use function method_exists;
 use function sprintf;
 
 /**
@@ -61,7 +62,7 @@ final class VerifyEnterpriseLicenceForClosureExpressions implements CompilerPass
     private function verifyAttributeReference(AttributeReference $attributeReference): void
     {
         $attributeClassName = $attributeReference->getAttributeClass();
-        if (! method_exists($attributeClassName, 'getExpression')) {
+        if (! is_a($attributeClassName, WithExpression::class, true)) {
             return;
         }
 
@@ -74,7 +75,7 @@ final class VerifyEnterpriseLicenceForClosureExpressions implements CompilerPass
     private function verifyAttributeDefinition(AttributeDefinition $attributeDefinition): void
     {
         $attributeClassName = $attributeDefinition->getClassName();
-        if (! method_exists($attributeClassName, 'getExpression')) {
+        if (! is_a($attributeClassName, WithExpression::class, true)) {
             return;
         }
         if (! $this->mayContainClosure($attributeDefinition)) {

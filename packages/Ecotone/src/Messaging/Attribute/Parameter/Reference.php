@@ -6,12 +6,13 @@ namespace Ecotone\Messaging\Attribute\Parameter;
 
 use Attribute;
 use Closure;
+use Ecotone\Messaging\Attribute\WithExpression;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 /**
  * licence Apache-2.0
  */
-class Reference
+class Reference implements WithExpression
 {
     public string $referenceName;
 

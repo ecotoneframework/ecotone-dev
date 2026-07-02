@@ -7,6 +7,7 @@ namespace Ecotone\Messaging\Handler\ClosureExpression;
 use function array_key_exists;
 
 use Closure;
+use Ecotone\Messaging\Attribute\WithExpression;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
@@ -24,7 +25,7 @@ final class AttributeExpressionContextExecutor
      * @param array<array{name: string, hasDefaultValue: bool, defaultValue: mixed}> $parameterSpecifications
      */
     public function __construct(
-        object $attribute,
+        WithExpression $attribute,
         private array $parameterSpecifications,
     ) {
         $expression = $attribute->getExpression();

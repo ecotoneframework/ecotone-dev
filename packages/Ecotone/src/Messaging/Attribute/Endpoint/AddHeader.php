@@ -4,13 +4,14 @@ namespace Ecotone\Messaging\Attribute\Endpoint;
 
 use Attribute;
 use Closure;
+use Ecotone\Messaging\Attribute\WithExpression;
 use Ecotone\Messaging\Support\Assert;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 /**
  * licence Apache-2.0
  */
-class AddHeader
+class AddHeader implements WithExpression
 {
     private string $headerName;
     private mixed $headerValue;

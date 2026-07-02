@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\ClosureExpression;
 
 use Closure;
+use Ecotone\Messaging\Attribute\WithExpression;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -31,7 +32,7 @@ final class AttributeExpressionExecutor
         private ExpressionEvaluationService $expressionEvaluationService,
         private array $closureParameterResolvers = [],
     ) {
-        $this->expression = method_exists($attribute, 'getExpression') ? $attribute->getExpression() : null;
+        $this->expression = $attribute instanceof WithExpression ? $attribute->getExpression() : null;
     }
 
     public function getAttribute(): object

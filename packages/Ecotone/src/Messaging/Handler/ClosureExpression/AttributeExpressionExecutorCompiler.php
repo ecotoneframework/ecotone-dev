@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\ClosureExpression;
 
 use Closure;
+use Ecotone\Messaging\Attribute\WithExpression;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
@@ -31,7 +32,7 @@ final class AttributeExpressionExecutorCompiler
     /**
      * Compiles attribute expression into container definition with all closure parameter converters resolved at build time.
      */
-    public static function compile(object $attributeWithExpression, AttributeDeclaration $attributeDeclaration): Definition
+    public static function compile(WithExpression $attributeWithExpression, AttributeDeclaration $attributeDeclaration): Definition
     {
         return self::executorDefinition(
             $attributeDeclaration->toAttributeDefinition(),
@@ -127,7 +128,7 @@ final class AttributeExpressionExecutorCompiler
 
     private static function expressionOf(object $attribute): Closure|string|null
     {
-        return method_exists($attribute, 'getExpression') ? $attribute->getExpression() : null;
+        return $attribute instanceof WithExpression ? $attribute->getExpression() : null;
     }
 
     private static function executorDefinition(AttributeDefinition $attributeArgument, Closure|string|null $expression, string $ownerClassName, ?string $ownerMethodName): Definition
@@ -225,7 +226,7 @@ final class AttributeExpressionExecutorCompiler
     private static function ensureNoNestedClosureExpression(InterfaceParameter $interfaceParameter, InterfaceToCall $interfaceToCall): void
     {
         foreach ($interfaceParameter->getAnnotations() as $annotation) {
-            if (method_exists($annotation, 'getExpression') && $annotation->getExpression() instanceof Closure) {
+            if ($annotation instanceof WithExpression && $annotation->getExpression() instanceof Closure) {
                 throw ConfigurationException::create(sprintf('Closure expression inside %s attribute cannot be used on closure expression parameter `%s` in %s. Nested closure expressions are not supported.', get_class($annotation), $interfaceParameter->getName(), $interfaceToCall));
             }
         }

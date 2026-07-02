@@ -12,7 +12,7 @@ use Ecotone\Messaging\Support\Assert;
 /**
  * licence Apache-2.0
  */
-final class Deduplicated
+final class Deduplicated implements WithExpression
 {
     public function __construct(private string $deduplicationHeaderName = '', private string|Closure|null $expression = null, private ?string $trackingName = null)
     {

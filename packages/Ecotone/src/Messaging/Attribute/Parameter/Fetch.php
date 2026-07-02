@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Attribute\Parameter;
 
 use Attribute;
+use Closure;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 /**
@@ -12,14 +13,14 @@ use Attribute;
  */
 class Fetch
 {
-    public string $expression;
+    public string|Closure $expression;
 
-    public function __construct(string $expression)
+    public function __construct(string|Closure $expression)
     {
         $this->expression = $expression;
     }
 
-    public function getExpression(): string
+    public function getExpression(): string|Closure
     {
         return $this->expression;
     }

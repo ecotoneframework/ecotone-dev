@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
+use Closure;
+use Ecotone\Messaging\Attribute\Parameter\Fetch;
 use Ecotone\Messaging\Config\LicenceDecider;
+use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionEvaluator;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
@@ -23,10 +26,11 @@ class FetchAggregateConverter implements ParameterConverter
         private AllAggregateRepository $aggregateRepository,
         private ExpressionEvaluationService $expressionEvaluationService,
         private string $aggregateClassName,
-        private string $expression,
+        private string|Fetch $expression,
         private bool $doesAllowsNull,
         private LicenceDecider $licenceDecider,
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
+        private ClosureExpressionEvaluator $closureExpressionEvaluator,
     ) {
     }
 
@@ -37,14 +41,7 @@ class FetchAggregateConverter implements ParameterConverter
         }
 
         /** @var string|string<string, string>|null $identifiers */
-        $identifiers = $this->expressionEvaluationService->evaluate(
-            $this->expression,
-            [
-                'value' => $message->getPayload(),
-                'headers' => $message->getHeaders()->headers(),
-                'payload' => $message->getPayload(),
-            ],
-        );
+        $identifiers = $this->resolveIdentifiers($message);
 
         if ($identifiers === null) {
             if (! $this->doesAllowsNull) {
@@ -74,5 +71,23 @@ class FetchAggregateConverter implements ParameterConverter
         }
 
         return $resolvedAggregate?->getAggregateInstance();
+    }
+
+    private function resolveIdentifiers(Message $message): mixed
+    {
+        $expression = $this->expression instanceof Fetch ? $this->expression->getExpression() : $this->expression;
+
+        if ($expression instanceof Closure) {
+            return $this->closureExpressionEvaluator->evaluate($expression, $message);
+        }
+
+        return $this->expressionEvaluationService->evaluate(
+            $expression,
+            [
+                'value' => $message->getPayload(),
+                'headers' => $message->getHeaders()->headers(),
+                'payload' => $message->getPayload(),
+            ],
+        );
     }
 }

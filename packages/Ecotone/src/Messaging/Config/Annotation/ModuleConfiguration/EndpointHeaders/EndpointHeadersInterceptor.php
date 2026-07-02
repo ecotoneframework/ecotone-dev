@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders;
 
+use Closure;
 use DateTimeImmutable;
 use DateTimeInterface;
 use Ecotone\Messaging\Attribute\Endpoint\AddHeader;
@@ -15,6 +16,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionEvaluator;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\UnionType;
@@ -36,8 +38,10 @@ use function str_ends_with;
  */
 class EndpointHeadersInterceptor implements DefinedObject
 {
-    public function __construct(private ExpressionEvaluationService $expressionEvaluationService)
-    {
+    public function __construct(
+        private ExpressionEvaluationService $expressionEvaluationService,
+        private ClosureExpressionEvaluator $closureExpressionEvaluator,
+    ) {
 
     }
 
@@ -49,10 +53,7 @@ class EndpointHeadersInterceptor implements DefinedObject
             $metadata[$addHeader->getHeaderName()] = $addHeader->getHeaderValue();
 
             if ($addHeader->getExpression()) {
-                $metadata[$addHeader->getHeaderName()] = $this->expressionEvaluationService->evaluate($addHeader->getExpression(), [
-                    'payload' => $message->getPayload(),
-                    'headers' => $message->getHeaders()->headers(),
-                ]);
+                $metadata[$addHeader->getHeaderName()] = $this->evaluateExpression($addHeader->getExpression(), $message);
             }
         }
 
@@ -61,10 +62,7 @@ class EndpointHeadersInterceptor implements DefinedObject
             $metadata[MessageHeaders::DELIVERY_DELAY] = $delayed->getHeaderValue();
 
             if ($delayed->getExpression()) {
-                $metadata[MessageHeaders::DELIVERY_DELAY] = $this->expressionEvaluationService->evaluate($delayed->getExpression(), [
-                    'payload' => $message->getPayload(),
-                    'headers' => $message->getHeaders()->headers(),
-                ]);
+                $metadata[MessageHeaders::DELIVERY_DELAY] = $this->evaluateExpression($delayed->getExpression(), $message);
             }
 
             if (is_string($metadata[MessageHeaders::DELIVERY_DELAY])) {
@@ -87,10 +85,7 @@ class EndpointHeadersInterceptor implements DefinedObject
             $metadata[MessageHeaders::PRIORITY] = $priority->getHeaderValue();
 
             if ($priority->getExpression()) {
-                $metadata[MessageHeaders::PRIORITY] = $this->expressionEvaluationService->evaluate($priority->getExpression(), [
-                    'payload' => $message->getPayload(),
-                    'headers' => $message->getHeaders()->headers(),
-                ]);
+                $metadata[MessageHeaders::PRIORITY] = $this->evaluateExpression($priority->getExpression(), $message);
             }
         }
 
@@ -99,10 +94,7 @@ class EndpointHeadersInterceptor implements DefinedObject
             $metadata[MessageHeaders::TIME_TO_LIVE] = $timeToLive->getHeaderValue();
 
             if ($timeToLive->getExpression()) {
-                $metadata[MessageHeaders::TIME_TO_LIVE] = $this->expressionEvaluationService->evaluate($timeToLive->getExpression(), [
-                    'payload' => $message->getPayload(),
-                    'headers' => $message->getHeaders()->headers(),
-                ]);
+                $metadata[MessageHeaders::TIME_TO_LIVE] = $this->evaluateExpression($timeToLive->getExpression(), $message);
             }
 
             $type = Type::createFromVariable($metadata[MessageHeaders::TIME_TO_LIVE]);
@@ -127,6 +119,19 @@ class EndpointHeadersInterceptor implements DefinedObject
     {
         return new Definition(self::class, [
             Reference::to(ExpressionEvaluationService::REFERENCE),
+            Reference::to(ClosureExpressionEvaluator::REFERENCE_NAME),
+        ]);
+    }
+
+    private function evaluateExpression(string|Closure $expression, Message $message): mixed
+    {
+        if ($expression instanceof Closure) {
+            return $this->closureExpressionEvaluator->evaluate($expression, $message);
+        }
+
+        return $this->expressionEvaluationService->evaluate($expression, [
+            'payload' => $message->getPayload(),
+            'headers' => $message->getHeaders()->headers(),
         ]);
     }
 

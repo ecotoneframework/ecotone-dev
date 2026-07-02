@@ -4,6 +4,10 @@ $finder = PhpCsFixer\Finder::create()
     ->in([
         __DIR__ . '/packages',
     ])
+    ->exclude([
+        'Ecotone/tests/Messaging/Fixture/Handler/ClosureInAttribute',
+        'Dbal/tests/Fixture/ClosureInAttribute',
+    ])
     ->name('*.php');
 
 $config = new PhpCsFixer\Config();

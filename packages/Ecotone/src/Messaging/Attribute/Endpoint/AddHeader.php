@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Attribute\Endpoint;
 
 use Attribute;
+use Closure;
 use Ecotone\Messaging\Support\Assert;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
@@ -14,7 +15,7 @@ class AddHeader
     private string $headerName;
     private mixed $headerValue;
 
-    public function __construct(string $name, mixed $value = null, private string|null $expression = null)
+    public function __construct(string $name, mixed $value = null, private string|Closure|null $expression = null)
     {
         Assert::notNullAndEmpty($name, 'Name of the header can not be empty');
         Assert::isTrue(
@@ -42,7 +43,7 @@ class AddHeader
         return false;
     }
 
-    public function getExpression(): ?string
+    public function getExpression(): string|Closure|null
     {
         return $this->expression;
     }

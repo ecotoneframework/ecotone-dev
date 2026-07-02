@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Attribute;
 
 use Attribute;
+use Closure;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Messaging\Config\Container\DefinedObject;
@@ -22,7 +23,7 @@ final class DbalParameter implements DefinedObject
     public function __construct(
         private ?string $name = null,
         private int|ArrayParameterType|ParameterType|null $type = null,
-        private ?string $expression = null,
+        private string|Closure|null $expression = null,
         private ?string $convertToMediaType = null,
         private bool $ignored = false
     ) {
@@ -43,7 +44,7 @@ final class DbalParameter implements DefinedObject
         return $this->name;
     }
 
-    public function getExpression(): ?string
+    public function getExpression(): string|Closure|null
     {
         return $this->expression;
     }

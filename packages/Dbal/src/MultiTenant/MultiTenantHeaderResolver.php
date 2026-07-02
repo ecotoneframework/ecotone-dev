@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\MultiTenant;
 
+use Closure;
 use Ecotone\Dbal\Attribute\WithTenantResolver;
+use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionEvaluator;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -17,6 +19,7 @@ final class MultiTenantHeaderResolver
     public function __construct(
         private string $tenantHeaderName,
         private ExpressionEvaluationService $expressionEvaluationService,
+        private ClosureExpressionEvaluator $closureExpressionEvaluator,
     ) {
     }
 
@@ -29,13 +32,16 @@ final class MultiTenantHeaderResolver
             return [];
         }
 
-        $value = $this->expressionEvaluationService->evaluate(
-            $config->getExpression(),
-            [
-                'payload' => $message->getPayload(),
-                'headers' => $message->getHeaders()->headers(),
-            ]
-        );
+        $expression = $config->getExpression();
+        $value = $expression instanceof Closure
+            ? $this->closureExpressionEvaluator->evaluate($expression, $message)
+            : $this->expressionEvaluationService->evaluate(
+                $expression,
+                [
+                    'payload' => $message->getPayload(),
+                    'headers' => $message->getHeaders()->headers(),
+                ]
+            );
 
         if ($value === null) {
             return [];
@@ -47,7 +53,7 @@ final class MultiTenantHeaderResolver
                 'WithTenantResolver expression for tenant header "%s" must evaluate to string|int|null, got %s. Expression: %s',
                 $this->tenantHeaderName,
                 $type,
-                $config->getExpression()
+                is_string($expression) ? $expression : 'closure'
             ));
         }
 

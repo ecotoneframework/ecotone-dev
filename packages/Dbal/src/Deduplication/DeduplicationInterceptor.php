@@ -2,6 +2,7 @@
 
 namespace Ecotone\Dbal\Deduplication;
 
+use Closure;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\Types;
@@ -11,6 +12,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionEvaluator;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -43,6 +45,7 @@ class DeduplicationInterceptor
         private LoggingGateway $logger,
         private ExpressionEvaluationService $expressionEvaluationService,
         private DeduplicationTableManager $tableManager,
+        private ClosureExpressionEvaluator $closureExpressionEvaluator,
     ) {
         $this->minimumTimeToRemoveMessage = Duration::milliseconds($minimumTimeToRemoveMessageInMilliseconds);
         if ($this->minimumTimeToRemoveMessage->isNegativeOrZero()) {
@@ -197,8 +200,13 @@ class DeduplicationInterceptor
         }
 
         if ($deduplicatedAttribute->hasExpression()) {
+            $expression = $deduplicatedAttribute->getExpression();
+            if ($expression instanceof Closure) {
+                return (string) $this->closureExpressionEvaluator->evaluate($expression, $message);
+            }
+
             return (string) $this->expressionEvaluationService->evaluate(
-                $deduplicatedAttribute->getExpression(),
+                $expression,
                 [
                     'payload' => $message->getPayload(),
                     'headers' => $message->getHeaders()->headers(),

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
-use Ecotone\Messaging\Attribute\Parameter\Fetch;
+use Closure;
 use Ecotone\Messaging\Config\LicenceDecider;
+use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvoker;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
@@ -24,7 +25,7 @@ class FetchAggregateConverter implements ParameterConverter
         private AllAggregateRepository $aggregateRepository,
         private ExpressionEvaluationService $expressionEvaluationService,
         private string $aggregateClassName,
-        private string|Fetch $expression,
+        private string|Closure|ClosureExpressionInvoker $expression,
         private bool $doesAllowsNull,
         private LicenceDecider $licenceDecider,
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
@@ -72,10 +73,12 @@ class FetchAggregateConverter implements ParameterConverter
 
     private function resolveIdentifiers(Message $message): mixed
     {
-        $expression = $this->expression instanceof Fetch ? $this->expression->getExpression() : $this->expression;
+        if ($this->expression instanceof ClosureExpressionInvoker) {
+            return $this->expression->invoke($message, ['value' => $message->getPayload()]);
+        }
 
         return $this->expressionEvaluationService->evaluateWithMessage(
-            $expression,
+            $this->expression,
             $message,
             ['value' => $message->getPayload()],
         );

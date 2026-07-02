@@ -6,7 +6,9 @@ namespace Ecotone\Messaging\Config\Container;
 
 use function array_merge;
 
+use Closure;
 use Ecotone\AnnotationFinder\TypeResolver;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 use ReflectionAttribute;
 use ReflectionClass;
 use ReflectionParameter;
@@ -25,6 +27,16 @@ final class AttributeDeclaration
     ) {
     }
 
+    public function getClassName(): string
+    {
+        return $this->className;
+    }
+
+    public function getMethodName(): ?string
+    {
+        return $this->methodName;
+    }
+
     public function toAttributeDefinition(): AttributeDefinition
     {
         return new AttributeDefinition(
@@ -35,9 +47,29 @@ final class AttributeDeclaration
         );
     }
 
+    public function toClosureDefinition(): Definition
+    {
+        return new Definition(
+            Closure::class,
+            [$this->attributeClassName, $this->className, $this->methodName, $this->parameterName, $this->indexAmongSameAttributes],
+            [self::class, 'resolveClosure'],
+        );
+    }
+
     public static function resolveAttributeInstance(string $attributeClassName, string $className, ?string $methodName, ?string $parameterName, int $indexAmongSameAttributes): object
     {
         return self::declaredAttributes($attributeClassName, $className, $methodName, $parameterName)[$indexAmongSameAttributes]->newInstance();
+    }
+
+    public static function resolveClosure(string $attributeClassName, string $className, ?string $methodName, ?string $parameterName, int $indexAmongSameAttributes): Closure
+    {
+        $attribute = self::resolveAttributeInstance($attributeClassName, $className, $methodName, $parameterName, $indexAmongSameAttributes);
+        $expression = $attribute->getExpression();
+        if (! $expression instanceof Closure) {
+            throw InvalidArgumentException::create(sprintf('Expected closure expression inside %s attribute declared at %s, got %s', $attributeClassName, $className . ($methodName ? '::' . $methodName : ''), gettype($expression)));
+        }
+
+        return $expression;
     }
 
     /**

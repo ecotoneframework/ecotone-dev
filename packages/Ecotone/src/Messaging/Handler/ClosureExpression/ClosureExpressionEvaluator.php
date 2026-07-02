@@ -221,7 +221,7 @@ final class ClosureExpressionEvaluator
     {
         $expression = $annotation->getExpression();
         if ($expression instanceof Closure) {
-            return new ClosureExpressionParameterConverter($this->expressionEvaluationService, $annotation, valueFromHeaderName: $annotation->getHeaderName());
+            return new RuntimeClosureExpressionParameterConverter($this->expressionEvaluationService, $expression, valueFromHeaderName: $annotation->getHeaderName());
         }
         if ($expression) {
             return new HeaderExpressionConverter($this->expressionEvaluationService, $annotation->getHeaderName(), $expression, ! $reflectionParameter->allowsNull());
@@ -240,7 +240,7 @@ final class ClosureExpressionEvaluator
     {
         $expression = $annotation->getExpression();
         if ($expression instanceof Closure) {
-            return new ClosureExpressionParameterConverter($this->expressionEvaluationService, $annotation, valueFromPayload: true);
+            return new RuntimeClosureExpressionParameterConverter($this->expressionEvaluationService, $expression, valueFromPayload: true);
         }
         if ($expression) {
             return new PayloadExpressionConverter($this->expressionEvaluationService, $expression);
@@ -255,7 +255,7 @@ final class ClosureExpressionEvaluator
 
         $expression = $annotation->getExpression();
         if ($expression instanceof Closure) {
-            return new ClosureExpressionParameterConverter($this->expressionEvaluationService, $annotation, staticAdditionalContext: ['service' => $referencedService]);
+            return new RuntimeClosureExpressionParameterConverter($this->expressionEvaluationService, $expression, staticAdditionalContext: ['service' => $referencedService]);
         }
         if ($expression) {
             return new ReferenceConverter($this->expressionEvaluationService, $referencedService, $expression);

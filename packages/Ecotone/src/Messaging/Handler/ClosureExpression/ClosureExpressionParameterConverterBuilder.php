@@ -8,7 +8,6 @@ use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Attribute\Parameter\Reference as ReferenceAttribute;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
-use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
@@ -56,9 +55,19 @@ final class ClosureExpressionParameterConverterBuilder implements ParameterConve
             $staticAdditionalContext['service'] = new Reference($this->attributeWithExpression->getReferenceName() ?: $interfaceToCall->getParameterWithName($this->parameterName)->getTypeHint());
         }
 
-        return new Definition(ClosureExpressionParameterConverter::class, [
+        $invokerDefinition = ClosureExpressionInvokerCompiler::compile($this->attributeWithExpression->getExpression(), $this->attributeDeclaration);
+        if ($invokerDefinition !== null) {
+            return new Definition(ClosureExpressionParameterConverter::class, [
+                $invokerDefinition,
+                $valueFromHeaderName,
+                $valueFromPayload,
+                $staticAdditionalContext,
+            ]);
+        }
+
+        return new Definition(RuntimeClosureExpressionParameterConverter::class, [
             Reference::to(ExpressionEvaluationService::REFERENCE),
-            AttributeDefinition::fromObject($this->attributeWithExpression, $this->attributeDeclaration),
+            $this->attributeDeclaration->toClosureDefinition(),
             $valueFromHeaderName,
             $valueFromPayload,
             $staticAdditionalContext,

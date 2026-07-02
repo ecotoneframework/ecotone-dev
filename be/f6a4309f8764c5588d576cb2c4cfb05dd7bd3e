@@ -1,0 +1,44 @@
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AdditionalContextResolver.php
+  s_d24dc3ed11e1f9::t_915c80c59f94cc 1-25
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureExpressionEvaluator.php
+  s_d24dc3ed11e1f9::t_2439a271a4f47f 224,243,258
+packages/Ecotone/src/Messaging/Config/Container/AttributeDeclaration.php
+  s_d24dc3ed11e1f9::t_6ae6d081ced92d 50-58,64-73
+  s_d24dc3ed11e1f9::t_bb0b1004eaaa77 30-39
+  s_d24dc3ed11e1f9::t_ade850f44c31cb 9,11
+  s_d24dc3ed11e1f9::t_771c95e78e4684 74
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/Converter/FetchAggregateConverterBuilder.php
+  s_d24dc3ed11e1f9::t_2439a271a4f47f 13,64-66
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureExpressionParameterConverter.php
+  s_d24dc3ed11e1f9::t_d249f0a41c7058 16,25
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/Converter/FetchAggregateConverter.php
+  s_d24dc3ed11e1f9::t_0825768f1966d9 7,81
+  s_d24dc3ed11e1f9::t_2439a271a4f47f 9,28,76-78
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureExpressionInvoker.php
+  s_d24dc3ed11e1f9::t_993057371ec35b 1-40
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureExpressionParameterConverterBuilder.php
+  s_d24dc3ed11e1f9::t_2439a271a4f47f 58-68
+  s_d24dc3ed11e1f9::t_0825768f1966d9 70
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureParameterResolver.php
+  s_d24dc3ed11e1f9::t_da59515e93b577 1-41
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/RuntimeClosureExpressionParameterConverter.php
+  s_d24dc3ed11e1f9::t_9c43b2793c0165 1-30
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureExpressionInvokerCompiler.php
+  s_d24dc3ed11e1f9::t_053fb52f8f45cf 1-131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "bef6a4309f8764c5588d576cb2c4cfb05dd7bd3e",
+  "prompts": {},
+  "sessions": {
+    "s_d24dc3ed11e1f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6db88ad3-ec31-4a8f-a44e-e648948c9657",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

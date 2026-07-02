@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\ClosureExpression;
 
 use Closure;
+use Ecotone\Messaging\Attribute\Parameter\Fetch;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -32,29 +34,10 @@ final class ClosureExpressionInvokerCompiler
     public static function compile(Closure $expression, AttributeDeclaration $attributeDeclaration): ?Definition
     {
         $reflectionParameters = (new ReflectionFunction($expression))->getParameters();
-        if (self::containsNestedClosureExpression($reflectionParameters)) {
+        $interfaceToCall = self::closureInterfaceToCall($attributeDeclaration->getClassName(), $attributeDeclaration->getMethodName(), $reflectionParameters);
+        $parameterResolvers = self::parameterResolverDefinitions($reflectionParameters, $interfaceToCall, allowRuntimeOnlyResolvers: false);
+        if ($parameterResolvers === null) {
             return null;
-        }
-
-        $interfaceToCall = self::closureInterfaceToCall($attributeDeclaration, $reflectionParameters);
-
-        $parameterResolvers = [];
-        foreach ($reflectionParameters as $index => $reflectionParameter) {
-            $interfaceParameter = $interfaceToCall->getParameterWithName($reflectionParameter->getName());
-            $converterBuilder = ParameterConverterAnnotationFactory::getConverterFor($interfaceParameter, $interfaceToCall);
-
-            $resolvesFromAdditionalContext = $converterBuilder === null || $converterBuilder instanceof MessageConverterBuilder;
-            if ($converterBuilder === null) {
-                $converterBuilder = self::defaultConverterBuilderFor($interfaceParameter, $index === 0);
-            }
-
-            $parameterResolvers[] = new Definition(ClosureParameterResolver::class, [
-                $reflectionParameter->getName(),
-                $converterBuilder?->compile($interfaceToCall),
-                $resolvesFromAdditionalContext,
-                $reflectionParameter->isDefaultValueAvailable(),
-                $reflectionParameter->isDefaultValueAvailable() ? $reflectionParameter->getDefaultValue() : null,
-            ]);
         }
 
         return new Definition(ClosureExpressionInvoker::class, [
@@ -66,25 +49,47 @@ final class ClosureExpressionInvokerCompiler
 
     /**
      * @param ReflectionParameter[] $reflectionParameters
+     * @return Definition[]|null null when runtime only resolution is required, yet not allowed
      */
-    private static function containsNestedClosureExpression(array $reflectionParameters): bool
+    public static function parameterResolverDefinitions(array $reflectionParameters, InterfaceToCall $interfaceToCall, bool $allowRuntimeOnlyResolvers): ?array
     {
-        foreach ($reflectionParameters as $reflectionParameter) {
-            foreach ($reflectionParameter->getAttributes() as $attribute) {
-                $annotation = $attribute->newInstance();
-                if (method_exists($annotation, 'getExpression') && $annotation->getExpression() instanceof Closure) {
-                    return true;
+        $parameterResolvers = [];
+        foreach ($reflectionParameters as $index => $reflectionParameter) {
+            $interfaceParameter = $interfaceToCall->getParameterWithName($reflectionParameter->getName());
+            self::ensureFetchWithClosureIsNotUsed($interfaceParameter, $interfaceToCall);
+
+            $converterBuilder = ParameterConverterAnnotationFactory::getConverterFor($interfaceParameter, $interfaceToCall);
+            if ($converterBuilder instanceof ClosureExpressionParameterConverterBuilder) {
+                if (! $allowRuntimeOnlyResolvers) {
+                    return null;
                 }
+
+                $converterDefinition = $converterBuilder->compileForRuntimeResolution($interfaceToCall);
+                $resolvesFromAdditionalContext = false;
+            } else {
+                $resolvesFromAdditionalContext = $converterBuilder === null || $converterBuilder instanceof MessageConverterBuilder;
+                if ($converterBuilder === null) {
+                    $converterBuilder = self::defaultConverterBuilderFor($interfaceParameter, $index === 0);
+                }
+                $converterDefinition = $converterBuilder?->compile($interfaceToCall);
             }
+
+            $parameterResolvers[] = new Definition(ClosureParameterResolver::class, [
+                $reflectionParameter->getName(),
+                $converterDefinition,
+                $resolvesFromAdditionalContext,
+                $reflectionParameter->isDefaultValueAvailable(),
+                $reflectionParameter->isDefaultValueAvailable() ? $reflectionParameter->getDefaultValue() : null,
+            ]);
         }
 
-        return false;
+        return $parameterResolvers;
     }
 
     /**
      * @param ReflectionParameter[] $reflectionParameters
      */
-    private static function closureInterfaceToCall(AttributeDeclaration $attributeDeclaration, array $reflectionParameters): InterfaceToCall
+    public static function closureInterfaceToCall(string $className, ?string $methodName, array $reflectionParameters): InterfaceToCall
     {
         $interfaceParameters = [];
         foreach ($reflectionParameters as $reflectionParameter) {
@@ -106,8 +111,8 @@ final class ClosureExpressionInvokerCompiler
         }
 
         return new InterfaceToCall(
-            $attributeDeclaration->getClassName(),
-            ($attributeDeclaration->getMethodName() ?? 'closure') . ' expression',
+            $className,
+            ($methodName ?? 'closure') . ' expression',
             [],
             [],
             $interfaceParameters,
@@ -115,6 +120,15 @@ final class ClosureExpressionInvokerCompiler
             true,
             false,
         );
+    }
+
+    private static function ensureFetchWithClosureIsNotUsed(InterfaceParameter $interfaceParameter, InterfaceToCall $interfaceToCall): void
+    {
+        foreach ($interfaceParameter->getAnnotations() as $annotation) {
+            if ($annotation instanceof Fetch && $annotation->getExpression() instanceof Closure) {
+                throw ConfigurationException::create("Fetch attribute with closure expression is not supported on closure expression parameter `{$interfaceParameter->getName()}` in {$interfaceToCall}.");
+            }
+        }
     }
 
     private static function defaultConverterBuilderFor(InterfaceParameter $interfaceParameter, bool $isFirstParameter): ?ParameterConverterBuilder

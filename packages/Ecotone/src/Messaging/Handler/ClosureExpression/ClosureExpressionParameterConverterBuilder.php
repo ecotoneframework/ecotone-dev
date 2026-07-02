@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\ClosureExpression;
 
+use Closure;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Attribute\Parameter\Reference as ReferenceAttribute;
@@ -48,29 +49,45 @@ final class ClosureExpressionParameterConverterBuilder implements ParameterConve
 
     public function compile(InterfaceToCall $interfaceToCall): Definition
     {
-        $valueFromHeaderName = $this->attributeWithExpression instanceof Header ? $this->attributeWithExpression->getHeaderName() : null;
-        $valueFromPayload = $this->attributeWithExpression instanceof Payload;
+        $invokerDefinition = ClosureExpressionInvokerCompiler::compile($this->attributeWithExpression->getExpression(), $this->attributeDeclaration);
+        if ($invokerDefinition !== null) {
+            return new Definition(ClosureExpressionParameterConverter::class, [
+                $invokerDefinition,
+                ...$this->additionalContextSpecification($interfaceToCall),
+            ]);
+        }
+
+        return $this->runtimeResolutionDefinition($this->attributeDeclaration->toClosureDefinition(), $interfaceToCall);
+    }
+
+    public function compileForRuntimeResolution(InterfaceToCall $interfaceToCall): Definition
+    {
+        return $this->runtimeResolutionDefinition($this->attributeWithExpression->getExpression(), $interfaceToCall);
+    }
+
+    private function runtimeResolutionDefinition(Definition|Closure $expression, InterfaceToCall $interfaceToCall): Definition
+    {
+        return new Definition(RuntimeClosureExpressionParameterConverter::class, [
+            Reference::to(ExpressionEvaluationService::REFERENCE),
+            $expression,
+            ...$this->additionalContextSpecification($interfaceToCall),
+        ]);
+    }
+
+    /**
+     * @return array{0: ?string, 1: bool, 2: array}
+     */
+    private function additionalContextSpecification(InterfaceToCall $interfaceToCall): array
+    {
         $staticAdditionalContext = [];
         if ($this->attributeWithExpression instanceof ReferenceAttribute) {
             $staticAdditionalContext['service'] = new Reference($this->attributeWithExpression->getReferenceName() ?: $interfaceToCall->getParameterWithName($this->parameterName)->getTypeHint());
         }
 
-        $invokerDefinition = ClosureExpressionInvokerCompiler::compile($this->attributeWithExpression->getExpression(), $this->attributeDeclaration);
-        if ($invokerDefinition !== null) {
-            return new Definition(ClosureExpressionParameterConverter::class, [
-                $invokerDefinition,
-                $valueFromHeaderName,
-                $valueFromPayload,
-                $staticAdditionalContext,
-            ]);
-        }
-
-        return new Definition(RuntimeClosureExpressionParameterConverter::class, [
-            Reference::to(ExpressionEvaluationService::REFERENCE),
-            $this->attributeDeclaration->toClosureDefinition(),
-            $valueFromHeaderName,
-            $valueFromPayload,
+        return [
+            $this->attributeWithExpression instanceof Header ? $this->attributeWithExpression->getHeaderName() : null,
+            $this->attributeWithExpression instanceof Payload,
             $staticAdditionalContext,
-        ]);
+        ];
     }
 }

@@ -14,8 +14,6 @@ use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\ConfigurationVariableService;
-use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Bridge\Bridge;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionEvaluator;
@@ -64,10 +62,6 @@ class RegisterSingletonMessagingServices implements CompilerPass
         $this->registerDefault($builder, LicenceDecider::class, new Definition(LicenceDecider::class, [$this->serviceConfiguration->isRunningForEnterprise()]));
         $this->registerDefault($builder, ClosureExpressionEvaluator::REFERENCE_NAME, new Definition(ClosureExpressionEvaluator::class, [
             new Reference(LicenceDecider::class),
-            new Reference(ConversionService::REFERENCE_NAME),
-            new Reference(EventMapper::class),
-            new Reference(ExpressionEvaluationService::REFERENCE),
-            new Reference(ConfigurationVariableService::REFERENCE_NAME),
             new Reference(ContainerInterface::class),
         ]));
     }

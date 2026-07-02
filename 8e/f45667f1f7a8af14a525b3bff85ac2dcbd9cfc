@@ -1,0 +1,23 @@
+packages/Ecotone/tests/Messaging/Unit/Config/Annotation/ModuleConfiguration/ContentTypeAttributeTest.php
+  s_344170b3957fa7::t_35ee786c13a5be 1-120
+packages/Ecotone/src/Messaging/Attribute/Endpoint/ContentType.php
+  s_344170b3957fa7::t_161ad7ec2d8216 1-28
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/EndpointHeaders/EndpointHeadersInterceptor.php
+  s_344170b3957fa7::t_a80a6a96b9f202 10,45,60-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "8ef45667f1f7a8af14a525b3bff85ac2dcbd9cfc",
+  "prompts": {},
+  "sessions": {
+    "s_344170b3957fa7": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "d91821b0-b647-4c67-aaaa-f91a09442f0d",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

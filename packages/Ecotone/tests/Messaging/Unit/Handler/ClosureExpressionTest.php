@@ -9,7 +9,6 @@ use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
@@ -70,19 +69,14 @@ final class ClosureExpressionTest extends TestCase
         $this->assertSame(400, $ecotoneLite->sendQueryWithRouting('order.getTotal'));
     }
 
-    public function test_closure_expression_throws_licensing_exception_without_enterprise_licence(): void
+    public function test_closure_expression_throws_licensing_exception_on_bootstrap_without_enterprise_licence(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $this->expectException(LicensingException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
             [ClosureExpressionService::class, UpperCaseService::class],
             [new ClosureExpressionService(), new UpperCaseService()],
         );
-
-        try {
-            $ecotoneLite->sendCommandWithRoutingKey('notification.send', 'hello', metadata: ['token' => 'abc']);
-            $this->fail('Expected licensing exception was not thrown');
-        } catch (MethodInvocationException $exception) {
-            $this->assertInstanceOf(LicensingException::class, $exception->getPrevious());
-        }
     }
 
     public function test_delayed_endpoint_attribute_with_closure_expression(): void
@@ -104,19 +98,17 @@ final class ClosureExpressionTest extends TestCase
         $this->assertSame(1234, $headers[MessageHeaders::DELIVERY_DELAY]);
     }
 
-    public function test_delayed_closure_expression_throws_licensing_exception_without_enterprise_licence(): void
+    public function test_delayed_closure_expression_throws_licensing_exception_on_bootstrap_without_enterprise_licence(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $this->expectException(LicensingException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
             [DelayedClosureService::class],
             [new DelayedClosureService()],
             enableAsynchronousProcessing: [
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
             ],
         );
-
-        $this->expectException(LicensingException::class);
-
-        $ecotoneLite->sendCommandWithRoutingKey('notification.delayed', new DelayCommand(1234));
     }
 
     public function test_fetch_closure_expression_loads_aggregate(): void

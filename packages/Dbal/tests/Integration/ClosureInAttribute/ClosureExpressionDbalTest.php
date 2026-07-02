@@ -53,25 +53,23 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
         $this->assertEquals(2, $ecotoneLite->sendQueryWithRouting('closureDedup.getCallCount'));
     }
 
-    public function test_deduplication_closure_expression_throws_licensing_exception_without_enterprise_licence(): void
+    public function test_deduplication_closure_expression_throws_licensing_exception_on_bootstrap_without_enterprise_licence(): void
     {
-        $handler = new ClosureDeduplicatedHandler();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $this->expectException(LicensingException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [ClosureDeduplicatedHandler::class],
-            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
+            containerOrAvailableServices: [new ClosureDeduplicatedHandler(), DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE])),
         );
-
-        $this->expectException(LicensingException::class);
-
-        $ecotoneLite->sendCommandWithRoutingKey('closureDedup.handle', 'test', metadata: ['orderId' => 'order-123']);
     }
 
-    public function test_dbal_parameter_closure_expression_throws_licensing_exception_without_enterprise_licence(): void
+    public function test_dbal_parameter_closure_expression_throws_licensing_exception_on_bootstrap_without_enterprise_licence(): void
     {
-        $this->setupUserTable();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $this->expectException(LicensingException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [PersonClosureParameterApi::class],
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
@@ -79,11 +77,6 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE])),
         );
-        $personApi = $ecotoneLite->getGateway(PersonClosureParameterApi::class);
-
-        $this->expectException(LicensingException::class);
-
-        $personApi->insertWithMethodLevelClosure(1, 'John', 'Doe');
     }
 
     public function test_dbal_parameter_with_method_level_closure_expression(): void

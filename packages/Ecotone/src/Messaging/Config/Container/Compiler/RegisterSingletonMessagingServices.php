@@ -61,7 +61,6 @@ class RegisterSingletonMessagingServices implements CompilerPass
         $this->registerDefault($builder, EventMapper::class, new Definition(EventMapper::class, factory: 'createEmpty'));
         $this->registerDefault($builder, LicenceDecider::class, new Definition(LicenceDecider::class, [$this->serviceConfiguration->isRunningForEnterprise()]));
         $this->registerDefault($builder, ClosureExpressionEvaluator::REFERENCE_NAME, new Definition(ClosureExpressionEvaluator::class, [
-            new Reference(LicenceDecider::class),
             new Reference(ContainerInterface::class),
         ]));
     }

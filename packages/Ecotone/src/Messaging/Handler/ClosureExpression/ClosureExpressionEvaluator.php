@@ -11,10 +11,8 @@ use Closure;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Messaging\Support\LicensingException;
 use Psr\Container\ContainerInterface;
 use ReflectionFunction;
 use ReflectionParameter;
@@ -38,7 +36,6 @@ final class ClosureExpressionEvaluator
     private WeakMap $resolvedReflectionParameters;
 
     public function __construct(
-        private LicenceDecider $licenceDecider,
         private ContainerInterface $container,
     ) {
         $this->resolvedParameterResolvers = new WeakMap();
@@ -47,8 +44,6 @@ final class ClosureExpressionEvaluator
 
     public function evaluate(Closure $closure, Message $message, array $additionalContext = []): mixed
     {
-        $this->ensureEnterpriseLicence();
-
         $arguments = [];
         foreach ($this->parameterResolversFor($closure) as $parameterResolver) {
             $arguments[] = $parameterResolver->resolve($message, $additionalContext);
@@ -59,21 +54,12 @@ final class ClosureExpressionEvaluator
 
     public function evaluateWithContext(Closure $closure, array $context): mixed
     {
-        $this->ensureEnterpriseLicence();
-
         $arguments = [];
         foreach ($this->reflectionParametersFor($closure) as $index => $reflectionParameter) {
             $arguments[] = $this->resolveFromContext($reflectionParameter, $index, $context);
         }
 
         return $closure(...$arguments);
-    }
-
-    private function ensureEnterpriseLicence(): void
-    {
-        if (! $this->licenceDecider->hasEnterpriseLicence()) {
-            throw LicensingException::create('Closure given as attribute expression is available as part of Ecotone Enterprise.');
-        }
     }
 
     private function resolveFromContext(ReflectionParameter $reflectionParameter, int $index, array $context): mixed

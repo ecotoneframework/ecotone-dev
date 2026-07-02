@@ -10,8 +10,6 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAn
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
@@ -43,7 +41,6 @@ final class ClosureExpressionInvokerCompiler
         return new Definition(ClosureExpressionInvoker::class, [
             $attributeDeclaration->toClosureDefinition(),
             $parameterResolvers,
-            Reference::to(LicenceDecider::class),
         ]);
     }
 

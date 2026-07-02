@@ -1,0 +1,39 @@
+packages/OpenTelemetry/src/TracingChannelInterceptor.php
+  s_754dbe373baba0::t_13f33077f72fb6 42-43,59-60,62-64
+  s_754dbe373baba0::t_fac94ee990b20e 29-31
+  s_754dbe373baba0::t_eb6b7cdd9a91fc 61,65-66
+packages/OpenTelemetry/src/ChannelSendSpan.php
+  s_754dbe373baba0::t_af112e1253b8ff 1-49
+packages/OpenTelemetry/tests/Integration/TracingScopeCleanupTest.php
+  s_754dbe373baba0::t_cfa7c3c401b923 259,261,263-269,271-277,279,284-285,287,289,295-303,305-310,312
+  s_754dbe373baba0::t_3ef6baecd55dda 7-8
+  s_754dbe373baba0::t_4a83f174f8eac5 62,64-65,210,212-214
+  s_754dbe373baba0::t_40f61cc29409e9 19-20,262,270
+  s_754dbe373baba0::t_940402a6276a51 12,14
+  s_754dbe373baba0::t_55d92f914e06e4 10,21-22,26,40-61,63,66-209,211,216-217,219,223,229-231,233-234,236-253,260,278,280-283,286,288,290-294,304,311
+  s_754dbe373baba0::t_f456d07af176f0 29
+  s_754dbe373baba0::t_23e0319f14da2e 1-6,9,11,13,15-18,23-25,27-28,30-39,215,218,220-222,224-228,232,235,254-258,313
+packages/OpenTelemetry/src/TracerInterceptor.php
+  s_754dbe373baba0::t_59d15bd5ddbf17 75-82
+  s_754dbe373baba0::t_75b841abc384ee 43,53
+packages/Ecotone/src/Messaging/Channel/SendingInterceptorAdapter.php
+  s_754dbe373baba0::t_e1c81dfe0511db 53,56,58-59,61,64,68-70,73,75-80,88,93,95-109,111-119
+  s_754dbe373baba0::t_1314af38980f12 52,54-55,57,62,65,72,74,87,89-90,92,94,110
+  s_754dbe373baba0::t_c54261a4f95182 63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "6405f8ca1ee09c95f5120fc901e0dcf566b7162c",
+  "prompts": {},
+  "sessions": {
+    "s_754dbe373baba0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "35004acc-0458-4b0c-b070-04782696a38f",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

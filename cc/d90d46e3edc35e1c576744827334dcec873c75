@@ -1,0 +1,54 @@
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/AroundInterceptorBuilder.php
+  s_d24dc3ed11e1f9::t_b1d3c21894857e 16,154
+packages/Dbal/src/MultiTenant/MultiTenantHeaderResolver.php
+  s_d24dc3ed11e1f9::t_8b5f5cbab37984 8-9,23,25,32-33,35
+packages/Dbal/src/DbaBusinessMethod/DbaBusinessMethodModule.php
+  s_d24dc3ed11e1f9::t_fcc3a0a97698ed 24,262
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AttributeExpressionExecutor.php
+  s_d24dc3ed11e1f9::t_06477dd72cbee5 1-64
+packages/Dbal/src/DbaBusinessMethod/DbalBusinessMethodHandler.php
+  s_d24dc3ed11e1f9::t_fcc3a0a97698ed 166
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AttributeExpressionContextExecutor.php
+  s_d24dc3ed11e1f9::t_aaf3c70579674b 1-55
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/Converter/FetchAggregateConverter.php
+  s_d24dc3ed11e1f9::t_b1d3c21894857e 8,27,75-76
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/Converter/FetchAggregateConverterBuilder.php
+  s_d24dc3ed11e1f9::t_b1d3c21894857e 14,66
+  s_d24dc3ed11e1f9::t_35bdb2b0459edf 8
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ExecutorFor.php
+  s_d24dc3ed11e1f9::t_0b5d224b6b38d1 1-22
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/EndpointHeaders/EndpointHeadersInterceptor.php
+  s_d24dc3ed11e1f9::t_3aac6356c1f336 18-19,42-47,52-54,59-62,68-69,71-72,91,94-95,97-98,112-114,122,125,127-128,131-134
+packages/Dbal/src/DbaBusinessMethod/DbalParameterWithCompiledExpression.php
+  s_d24dc3ed11e1f9::t_fcc3a0a97698ed 9,20,39,41
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureExpressionParameterConverter.php
+  s_d24dc3ed11e1f9::t_b1d3c21894857e 16,25
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/EndpointHeaders/EndpointHeadersInterceptorModule.php
+  s_d24dc3ed11e1f9::t_d932fbcccb643b 41
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AttributeExpressionExecutorCompiler.php
+  s_d24dc3ed11e1f9::t_9a3fef7c069817 1-245
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/MethodArgumentsFactory.php
+  s_d24dc3ed11e1f9::t_b1d3c21894857e 9,90
+packages/Dbal/src/Deduplication/DeduplicationInterceptor.php
+  s_d24dc3ed11e1f9::t_8b5f5cbab37984 214,216-217
+  s_d24dc3ed11e1f9::t_d932fbcccb643b 14-15,55
+  s_d24dc3ed11e1f9::t_8ec75000875b20 65,67,69,195,197,201-204
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/ClosureExpressionParameterConverterBuilder.php
+  s_d24dc3ed11e1f9::t_b1d3c21894857e 51
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "ccd90d46e3edc35e1c576744827334dcec873c75",
+  "prompts": {},
+  "sessions": {
+    "s_d24dc3ed11e1f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6db88ad3-ec31-4a8f-a44e-e648948c9657",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

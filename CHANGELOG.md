@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.318.0] - 2026-07-02
+
+## What's Changed
+* fix: restore tenant context for error channel in multi-tenant setup by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/677
+* feat: add ContentType attribute for default message content type by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/679
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.317.0...1.318.0
+
 ## [1.317.0] - 2026-07-02
 
 ## What's Changed

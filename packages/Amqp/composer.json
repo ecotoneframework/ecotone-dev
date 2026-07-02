@@ -52,7 +52,7 @@
     },
     "require": {
         "ext-amqp": "*",
-        "ecotone/enqueue": "~1.317.0",
+        "ecotone/enqueue": "~1.318.0",
         "enqueue/amqp-ext": "^0.10.18",
         "enqueue/dsn": "^0.10.4",
         "enqueue/enqueue": "^0.10.0"
@@ -93,7 +93,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.317.0-dev"
+            "dev-main": "1.318.0-dev"
         },
         "ecotone": {
             "repository": "amqp"
@@ -109,6 +109,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-07-02 15:45:11"
+        "release-time": "2026-07-02 17:20:52"
     }
 }

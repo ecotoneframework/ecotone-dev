@@ -6,7 +6,7 @@ use Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvokerCompiler;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
@@ -87,7 +87,7 @@ class MethodArgumentsFactory
             if (self::hasParameterConverter($passedMethodParameterConverters, $interfaceParameter)) {
                 continue;
             }
-            if ($closureExpressionInvokerConverter = ClosureExpressionInvokerCompiler::interceptorParameterConverterFor($interfaceParameter, $interceptedInterface, $endpointAnnotations)) {
+            if ($closureExpressionInvokerConverter = AttributeExpressionExecutorCompiler::interceptorParameterConverterFor($interfaceParameter, $interceptedInterface, $endpointAnnotations)) {
                 $passedMethodParameterConverters[] = $closureExpressionInvokerConverter;
 
                 continue;

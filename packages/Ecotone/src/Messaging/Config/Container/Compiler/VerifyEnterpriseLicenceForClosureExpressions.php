@@ -47,10 +47,6 @@ final class VerifyEnterpriseLicenceForClosureExpressions implements CompilerPass
             $this->verifyAttributeDefinition($argument);
         }
         if ($argument instanceof Definition) {
-            if ($argument->hasFactory() && $argument->getFactory() === [AttributeDeclaration::class, 'resolveClosure']) {
-                throw self::licensingException($argument->getArguments()[0], $argument->getArguments()[1], $argument->getArguments()[2]);
-            }
-
             $this->verify($argument->getArguments());
             foreach ($argument->getMethodCalls() as $methodCall) {
                 $this->verify($methodCall->getArguments());

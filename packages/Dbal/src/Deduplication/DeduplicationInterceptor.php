@@ -11,8 +11,8 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
-use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvoker;
-use Ecotone\Messaging\Handler\ClosureExpression\InvokerFor;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
+use Ecotone\Messaging\Handler\ClosureExpression\ExecutorFor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -52,7 +52,7 @@ class DeduplicationInterceptor
         }
     }
 
-    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ?Deduplicated $deduplicatedAttribute, #[InvokerFor(Deduplicated::class)] ?ClosureExpressionInvoker $deduplicatedInvoker, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): mixed
+    public function deduplicate(MethodInvocation $methodInvocation, Message $message, #[ExecutorFor(Deduplicated::class)] ?AttributeExpressionExecutor $deduplicated, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): mixed
     {
         $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connection));
         $contextId = spl_object_id($connectionFactory->createContext());
@@ -62,11 +62,11 @@ class DeduplicationInterceptor
             $this->initialized[$contextId] = true;
         }
 
-        $messageId = $this->extractDeduplicationId($message, $deduplicatedAttribute, $deduplicatedInvoker);
+        $messageId = $this->extractDeduplicationId($message, $deduplicated);
         /** If trackingName is provided, use it for deduplication isolation */
-        $consumerEndpointId = $this->determineConsumerEndpointId($deduplicatedAttribute, $asynchronousRunningEndpoint);
+        $consumerEndpointId = $this->determineConsumerEndpointId($deduplicated, $asynchronousRunningEndpoint);
         /** IF handler deduplication then endpoint id will be used */
-        $routingSlip = $deduplicatedAttribute === null && $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
+        $routingSlip = $deduplicated === null && $message->getHeaders()->containsKey(MessageHeaders::ROUTING_SLIP)
             ? $message->getHeaders()->get(MessageHeaders::ROUTING_SLIP)
             : ($identifiedAnnotation === null ? '' : $identifiedAnnotation->getEndpointId());
 
@@ -192,17 +192,16 @@ class DeduplicationInterceptor
         return $messageIds;
     }
 
-    private function extractDeduplicationId(Message $message, ?Deduplicated $deduplicatedAttribute, ?ClosureExpressionInvoker $deduplicatedInvoker): string
+    private function extractDeduplicationId(Message $message, ?AttributeExpressionExecutor $deduplicated): string
     {
-        if ($deduplicatedAttribute === null) {
+        if ($deduplicated === null) {
             return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
         }
 
-        if ($deduplicatedInvoker !== null) {
-            return (string) $deduplicatedInvoker->invoke($message);
-        }
-        if ($deduplicatedAttribute->hasExpression()) {
-            return (string) $this->expressionEvaluationService->evaluateWithMessage($deduplicatedAttribute->getExpression(), $message);
+        /** @var Deduplicated $deduplicatedAttribute */
+        $deduplicatedAttribute = $deduplicated->getAttribute();
+        if ($deduplicated->hasExpression()) {
+            return (string) $deduplicated->execute($message);
         }
 
         if ($deduplicatedAttribute->getDeduplicationHeaderName() !== '') {
@@ -212,8 +211,10 @@ class DeduplicationInterceptor
         return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
     }
 
-    private function determineConsumerEndpointId(?Deduplicated $deduplicatedAttribute, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): string
+    private function determineConsumerEndpointId(?AttributeExpressionExecutor $deduplicated, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): string
     {
+        /** @var Deduplicated|null $deduplicatedAttribute */
+        $deduplicatedAttribute = $deduplicated?->getAttribute();
         // If trackingName is provided, use it for deduplication isolation
         if ($deduplicatedAttribute?->getTrackingName() !== null) {
             return $deduplicatedAttribute->getTrackingName();

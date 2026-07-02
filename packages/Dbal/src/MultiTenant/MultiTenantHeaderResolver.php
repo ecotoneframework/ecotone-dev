@@ -5,9 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\MultiTenant;
 
 use Ecotone\Dbal\Attribute\WithTenantResolver;
-use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvoker;
-use Ecotone\Messaging\Handler\ClosureExpression\InvokerFor;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
+use Ecotone\Messaging\Handler\ClosureExpression\ExecutorFor;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
@@ -18,23 +17,22 @@ final class MultiTenantHeaderResolver
 {
     public function __construct(
         private string $tenantHeaderName,
-        private ExpressionEvaluationService $expressionEvaluationService,
     ) {
     }
 
-    public function resolve(Message $message, ?WithTenantResolver $config = null, #[InvokerFor(WithTenantResolver::class)] ?ClosureExpressionInvoker $tenantInvoker = null): array
+    public function resolve(Message $message, #[ExecutorFor(WithTenantResolver::class)] ?AttributeExpressionExecutor $tenantResolver = null): array
     {
-        if ($config === null) {
+        if ($tenantResolver === null) {
             return [];
         }
         if ($message->getHeaders()->containsKey($this->tenantHeaderName)) {
             return [];
         }
 
+        /** @var WithTenantResolver $config */
+        $config = $tenantResolver->getAttribute();
         $expression = $config->getExpression();
-        $value = $tenantInvoker !== null
-            ? $tenantInvoker->invoke($message)
-            : $this->expressionEvaluationService->evaluateWithMessage($expression, $message);
+        $value = $tenantResolver->execute($message);
 
         if ($value === null) {
             return [];

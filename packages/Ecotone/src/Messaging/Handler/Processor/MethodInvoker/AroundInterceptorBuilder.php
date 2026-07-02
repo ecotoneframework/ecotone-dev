@@ -13,7 +13,7 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvokerCompiler;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
@@ -151,7 +151,7 @@ final class AroundInterceptorBuilder implements InterceptorWithPointCut
                 $converterDefinitions[] = new Definition(MethodInvocationObjectConverter::class);
                 continue;
             }
-            if ($closureExpressionInvokerConverter = ClosureExpressionInvokerCompiler::interceptorParameterConverterFor($parameter, $interceptedInterface, $endpointAnnotations)) {
+            if ($closureExpressionInvokerConverter = AttributeExpressionExecutorCompiler::interceptorParameterConverterFor($parameter, $interceptedInterface, $endpointAnnotations)) {
                 $converterDefinitions[] = $closureExpressionInvokerConverter->compile($interceptingInterface);
                 continue;
             }

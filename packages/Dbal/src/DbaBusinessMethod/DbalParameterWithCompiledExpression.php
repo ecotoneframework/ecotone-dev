@@ -6,7 +6,7 @@ namespace Ecotone\Dbal\DbaBusinessMethod;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
-use Ecotone\Messaging\Handler\ClosureExpression\ContextClosureExpressionInvoker;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionContextExecutor;
 
 /**
  * licence Enterprise
@@ -17,7 +17,7 @@ final class DbalParameterWithCompiledExpression
         private ?string $name,
         private int|ArrayParameterType|ParameterType|null $type,
         private ?string $convertToMediaType,
-        private ContextClosureExpressionInvoker $invoker,
+        private AttributeExpressionContextExecutor $executor,
     ) {
     }
 
@@ -36,8 +36,8 @@ final class DbalParameterWithCompiledExpression
         return $this->convertToMediaType;
     }
 
-    public function getInvoker(): ContextClosureExpressionInvoker
+    public function getExecutor(): AttributeExpressionContextExecutor
     {
-        return $this->invoker;
+        return $this->executor;
     }
 }

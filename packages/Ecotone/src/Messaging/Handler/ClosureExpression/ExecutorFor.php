@@ -8,13 +8,13 @@ use Attribute;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 /**
- * Marks interceptor parameter to receive compiled ClosureExpressionInvoker for given attribute class,
- * when related intercepted endpoint attribute contains closure expression.
+ * Marks interceptor parameter to receive AttributeExpressionExecutor carrying related intercepted endpoint attribute
+ * together with its compiled expression program.
  */
 /**
  * licence Enterprise
  */
-final class InvokerFor
+final class ExecutorFor
 {
     public function __construct(public string $attributeClassName)
     {

@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
 use Closure;
+use Ecotone\Messaging\Attribute\Parameter\Fetch;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
-use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvokerCompiler;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -62,7 +63,7 @@ class FetchAggregateConverterBuilder implements ParameterConverterBuilder
             new Reference(ExpressionEvaluationService::REFERENCE),
             $this->aggregateClassName,
             $this->expression instanceof Closure
-                ? ClosureExpressionInvokerCompiler::compile($this->expression, $this->attributeDeclaration)
+                ? AttributeExpressionExecutorCompiler::compile(new Fetch($this->expression), $this->attributeDeclaration)
                 : $this->expression,
             $interfaceToCall->getParameterWithName($this->parameterName)->doesAllowNulls(),
             Reference::to(LicenceDecider::class),

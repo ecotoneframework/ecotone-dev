@@ -28,7 +28,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
@@ -175,7 +174,6 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
                     MultiTenantHeaderResolver::class,
                     [
                         $multiTenantConfig->getTenantHeaderName(),
-                        Reference::to(ExpressionEvaluationService::REFERENCE),
                     ]
                 )
             );

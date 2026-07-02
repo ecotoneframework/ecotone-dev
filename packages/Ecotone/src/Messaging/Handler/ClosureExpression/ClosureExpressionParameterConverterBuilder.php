@@ -48,7 +48,7 @@ final class ClosureExpressionParameterConverterBuilder implements ParameterConve
     public function compile(InterfaceToCall $interfaceToCall): Definition
     {
         return new Definition(ClosureExpressionParameterConverter::class, [
-            ClosureExpressionInvokerCompiler::compile($this->attributeWithExpression->getExpression(), $this->attributeDeclaration),
+            AttributeExpressionExecutorCompiler::compile($this->attributeWithExpression, $this->attributeDeclaration),
             ...$this->additionalContextSpecification($interfaceToCall),
         ]);
     }

@@ -47,7 +47,9 @@ final class KafkaInboundChannelAdapter implements MessagePoller
             );
         }
 
-        $timeoutInMilliseconds = $pollingMetadata->getExecutionTimeLimitInMilliseconds() ?: $this->receiveTimeoutInMilliseconds;
+        $timeoutInMilliseconds = $pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0
+            ? min($pollingMetadata->getExecutionTimeLimitInMilliseconds(), $this->receiveTimeoutInMilliseconds)
+            : $this->receiveTimeoutInMilliseconds;
         if ($timeoutInMilliseconds <= self::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING) {
             $timeoutInMilliseconds = self::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING;
         }

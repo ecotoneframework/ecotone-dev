@@ -146,7 +146,9 @@ class AmqpStreamInboundChannelAdapter extends EnqueueInboundChannelAdapter imple
             $this->startStreamConsuming($context, $pollingMetadata->getEndpointId());
 
             // Wait for messages with the specified timeout
-            $timeout = $pollingMetadata->getExecutionTimeLimitInMilliseconds() ?: $this->receiveTimeoutInMilliseconds;
+            $timeout = $pollingMetadata->getExecutionTimeLimitInMilliseconds() > 0
+                ? min($pollingMetadata->getExecutionTimeLimitInMilliseconds(), $this->receiveTimeoutInMilliseconds)
+                : $this->receiveTimeoutInMilliseconds;
             $timeoutInSeconds = $timeout > 0 ? $timeout / 1000.0 : 10.0;
 
             // Keep calling wait() in a loop while the consumer is active

@@ -650,8 +650,11 @@ final class KafkaMessageChannelTest extends TestCase
 
         // Both consumers should receive all events independently
         // Using amountOfMessagesToHandle and maxExecutionTimeInMilliseconds for Kafka consumer group coordination
-        $consumerService1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 4000));
-        $consumerService2->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 4000));
+        // maxExecutionTimeInMilliseconds must comfortably exceed KafkaInboundChannelAdapter::MINIMUM_REQUIRED_TIME_FOR_LOAD_BALANCING (10000ms)
+        // to leave room for more than one poll cycle - each of these consumers is a brand-new consumer group needing to
+        // rebalance before it can receive any of the 3 published events.
+        $consumerService1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 20000));
+        $consumerService2->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 20000));
 
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService1->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService2->sendQueryWithRouting('getConsumed2'));

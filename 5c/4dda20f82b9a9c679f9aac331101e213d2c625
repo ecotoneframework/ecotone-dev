@@ -1,0 +1,69 @@
+.claude/.claude-plugin/marketplace.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 9,16
+packages/JmsConverter/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 52,72,88
+packages/Laravel/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 55,66,77,93
+packages/Ecotone/src/Messaging/Attribute/Endpoint/ContentType.php
+  s_d24dc3ed11e1f9::t_5c447872ed159a 1-28
+quickstart-examples/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 76,81
+packages/Dbal/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 53,64,77,93
+packages/Dbal/tests/Integration/Recoverability/MultiTenantDeadLetterTest.php
+  s_d24dc3ed11e1f9::t_5c447872ed159a 1-76
+packages/Ecotone/tests/Messaging/Unit/Config/Annotation/ModuleConfiguration/ContentTypeAttributeTest.php
+  s_d24dc3ed11e1f9::t_5c447872ed159a 1-120
+packages/OpenTelemetry/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 50,76,92
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/EndpointHeaders/EndpointHeadersInterceptor.php
+  s_d24dc3ed11e1f9::t_42f663993fd354 58
+  s_d24dc3ed11e1f9::t_5c447872ed159a 11,70-75
+  s_d24dc3ed11e1f9::t_5f50353be67894 76-78
+packages/Symfony/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 44,52-53,104,120
+.claude/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 4,6
+packages/DataProtection/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 54-55,59,79,95
+packages/PdoEventSourcing/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 54,76,92
+CHANGELOG.md
+  s_d24dc3ed11e1f9::t_5c447872ed159a 6-14
+packages/Redis/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 54,72,88
+packages/Ecotone/src/Messaging/Handler/Gateway/ErrorChannelService.php
+  s_d24dc3ed11e1f9::t_5c447872ed159a 15,27,56-63
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/BasicMessagingModule.php
+  s_d24dc3ed11e1f9::t_5c447872ed159a 136
+packages/Ecotone/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 81,97
+packages/Sqs/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 52,73,89
+packages/Kafka/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 51,58,71,87
+packages/LiteApplication/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 51-52,62,78
+packages/Tempest/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 54,65,80,99
+packages/Amqp/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 55,96,112
+packages/Enqueue/composer.json
+  s_d24dc3ed11e1f9::t_5c447872ed159a 50,71,87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "5c4dda20f82b9a9c679f9aac331101e213d2c625",
+  "prompts": {},
+  "sessions": {
+    "s_d24dc3ed11e1f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6db88ad3-ec31-4a8f-a44e-e648948c9657",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

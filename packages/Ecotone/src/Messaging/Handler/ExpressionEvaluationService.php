@@ -2,7 +2,6 @@
 
 namespace Ecotone\Messaging\Handler;
 
-use Closure;
 use Ecotone\Messaging\Message;
 
 /**
@@ -26,13 +25,12 @@ interface ExpressionEvaluationService
     public function evaluate(string $expression, array $evaluationContext);
 
     /**
-     * Evaluates Symfony expression with `payload` and `headers` context variables, or executes given Closure with message handler alike parameter resolution.
-     * Additional context variables are available in Symfony expression and are bound to Closure parameters by name.
+     * Evaluates Symfony expression with `payload` and `headers` context variables, merged with additional context variables.
      */
-    public function evaluateWithMessage(string|Closure $expression, Message $message, array $additionalContext = []): mixed;
+    public function evaluateWithMessage(string $expression, Message $message, array $additionalContext = []): mixed;
 
     /**
-     * Evaluates Symfony expression with given context variables, or executes given Closure binding its parameters to context variables by name.
+     * Evaluates Symfony expression with given context variables.
      */
-    public function evaluateWithContext(string|Closure $expression, array $context): mixed;
+    public function evaluateWithContext(string $expression, array $context): mixed;
 }

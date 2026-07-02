@@ -4,9 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler;
 
-use Closure;
 use Ecotone\Messaging\ConfigurationVariableService;
-use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionEvaluator;
 use Ecotone\Messaging\Message;
 use Symfony\Component\ExpressionLanguage\ExpressionLanguage;
 
@@ -119,7 +117,7 @@ class SymfonyExpressionEvaluationAdapter implements ExpressionEvaluationService
     public static function create(ReferenceSearchService $referenceSearchService): ExpressionEvaluationService
     {
         if (! class_exists(ExpressionLanguage::class)) {
-            return new StubExpressionEvaluationAdapter($referenceSearchService);
+            return new StubExpressionEvaluationAdapter();
         }
 
         return new self(new ExpressionLanguage(), $referenceSearchService);
@@ -133,12 +131,8 @@ class SymfonyExpressionEvaluationAdapter implements ExpressionEvaluationService
         return $this->language->evaluate($expression, array_merge($evaluationContext, ['referenceService' => $this->referenceSearchService]));
     }
 
-    public function evaluateWithMessage(string|Closure $expression, Message $message, array $additionalContext = []): mixed
+    public function evaluateWithMessage(string $expression, Message $message, array $additionalContext = []): mixed
     {
-        if ($expression instanceof Closure) {
-            return $this->closureExpressionEvaluator()->evaluate($expression, $message, $additionalContext);
-        }
-
         return $this->evaluate($expression, array_merge(
             [
                 'payload' => $message->getPayload(),
@@ -148,17 +142,8 @@ class SymfonyExpressionEvaluationAdapter implements ExpressionEvaluationService
         ));
     }
 
-    public function evaluateWithContext(string|Closure $expression, array $context): mixed
+    public function evaluateWithContext(string $expression, array $context): mixed
     {
-        if ($expression instanceof Closure) {
-            return $this->closureExpressionEvaluator()->evaluateWithContext($expression, $context);
-        }
-
         return $this->evaluate($expression, $context);
-    }
-
-    private function closureExpressionEvaluator(): ClosureExpressionEvaluator
-    {
-        return $this->referenceSearchService->get(ClosureExpressionEvaluator::REFERENCE_NAME);
     }
 }

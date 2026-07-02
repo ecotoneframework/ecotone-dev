@@ -21,6 +21,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvokerCompiler;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
@@ -241,17 +242,25 @@ final class DbaBusinessMethodModule implements AnnotationModule
 
     private static function dbalParameterHeaderValue(DbalParameter $dbalParameterAttribute, InterfaceToCall $interface, ?string $methodName, ?string $parameterName, int $index): mixed
     {
-        if (! $dbalParameterAttribute->getExpression() instanceof Closure) {
+        $expression = $dbalParameterAttribute->getExpression();
+        if (! $expression instanceof Closure) {
             return $dbalParameterAttribute;
         }
 
-        return (new AttributeDeclaration(
+        $attributeDeclaration = new AttributeDeclaration(
             DbalParameter::class,
             $interface->getInterfaceName(),
             $methodName,
             $parameterName,
             $index,
-        ))->toAttributeDefinition();
+        );
+
+        return new Definition(DbalParameterWithCompiledExpression::class, [
+            $dbalParameterAttribute->getName(),
+            $dbalParameterAttribute->getType(),
+            $dbalParameterAttribute->getConvertToMediaType(),
+            ClosureExpressionInvokerCompiler::compileForContext($expression, $attributeDeclaration),
+        ]);
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

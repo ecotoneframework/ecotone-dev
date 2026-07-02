@@ -62,7 +62,7 @@ class FetchAggregateConverterBuilder implements ParameterConverterBuilder
             new Reference(ExpressionEvaluationService::REFERENCE),
             $this->aggregateClassName,
             $this->expression instanceof Closure
-                ? ClosureExpressionInvokerCompiler::compile($this->expression, $this->attributeDeclaration) ?? $this->attributeDeclaration->toClosureDefinition()
+                ? ClosureExpressionInvokerCompiler::compile($this->expression, $this->attributeDeclaration)
                 : $this->expression,
             $interfaceToCall->getParameterWithName($this->parameterName)->doesAllowNulls(),
             Reference::to(LicenceDecider::class),

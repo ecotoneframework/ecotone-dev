@@ -88,7 +88,7 @@ final class DbalBusinessMethodHandler
      */
     private function prepareExecution(string $sql, array $headers): array
     {
-        /** @var array<string, DbalParameter> $parameterTypes */
+        /** @var array<string, DbalParameter|DbalParameterWithCompiledExpression> $parameterTypes */
         $parameterTypes = [];
         foreach ($headers as $headerName => $headerValue) {
             if (str_starts_with($headerName, self::HEADER_PARAMETER_TYPE_PREFIX)) {
@@ -160,9 +160,11 @@ final class DbalBusinessMethodHandler
     /**
      * @param array<string, mixed> $context
      */
-    private function getParameterValue(DbalParameter $dbalParameter, array $context, mixed $parameterValue): mixed
+    private function getParameterValue(DbalParameter|DbalParameterWithCompiledExpression $dbalParameter, array $context, mixed $parameterValue): mixed
     {
-        if ($dbalParameter->getExpression()) {
+        if ($dbalParameter instanceof DbalParameterWithCompiledExpression) {
+            $parameterValue = $dbalParameter->getInvoker()->invoke($context);
+        } elseif ($dbalParameter->getExpression()) {
             $parameterValue = $this->expressionEvaluationService->evaluateWithContext($dbalParameter->getExpression(), $context);
         }
 

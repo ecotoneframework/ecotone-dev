@@ -16,6 +16,8 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvoker;
+use Ecotone\Messaging\Handler\ClosureExpression\InvokerFor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\UnionType;
@@ -42,15 +44,24 @@ class EndpointHeadersInterceptor implements DefinedObject
 
     }
 
-    public function addMetadata(Message $message, ?AddHeader $addHeader, ?Delayed $delayed, ?Priority $priority, ?TimeToLive $timeToLive, ?RemoveHeader $removeHeader): array
-    {
+    public function addMetadata(
+        Message $message,
+        ?AddHeader $addHeader,
+        #[InvokerFor(AddHeader::class)] ?ClosureExpressionInvoker $addHeaderInvoker,
+        ?Delayed $delayed,
+        #[InvokerFor(Delayed::class)] ?ClosureExpressionInvoker $delayedInvoker,
+        ?Priority $priority,
+        ?TimeToLive $timeToLive,
+        #[InvokerFor(TimeToLive::class)] ?ClosureExpressionInvoker $timeToLiveInvoker,
+        ?RemoveHeader $removeHeader,
+    ): array {
         $metadata = [];
 
         if ($addHeader) {
             $metadata[$addHeader->getHeaderName()] = $addHeader->getHeaderValue();
 
-            if ($addHeader->getExpression()) {
-                $metadata[$addHeader->getHeaderName()] = $this->evaluateExpression($addHeader->getExpression(), $message);
+            if ($addHeaderInvoker !== null || $addHeader->getExpression()) {
+                $metadata[$addHeader->getHeaderName()] = $this->evaluateExpression($addHeaderInvoker, $addHeader->getExpression(), $message);
             }
         }
 
@@ -58,8 +69,8 @@ class EndpointHeadersInterceptor implements DefinedObject
         if ($delayed && ($delayed->shouldReplaceExistingHeader() || ! $isDeliveryDelayHeaderExists)) {
             $metadata[MessageHeaders::DELIVERY_DELAY] = $delayed->getHeaderValue();
 
-            if ($delayed->getExpression()) {
-                $metadata[MessageHeaders::DELIVERY_DELAY] = $this->evaluateExpression($delayed->getExpression(), $message);
+            if ($delayedInvoker !== null || $delayed->getExpression()) {
+                $metadata[MessageHeaders::DELIVERY_DELAY] = $this->evaluateExpression($delayedInvoker, $delayed->getExpression(), $message);
             }
 
             if (is_string($metadata[MessageHeaders::DELIVERY_DELAY])) {
@@ -82,7 +93,7 @@ class EndpointHeadersInterceptor implements DefinedObject
             $metadata[MessageHeaders::PRIORITY] = $priority->getHeaderValue();
 
             if ($priority->getExpression()) {
-                $metadata[MessageHeaders::PRIORITY] = $this->evaluateExpression($priority->getExpression(), $message);
+                $metadata[MessageHeaders::PRIORITY] = $this->evaluateExpression(null, $priority->getExpression(), $message);
             }
         }
 
@@ -90,8 +101,8 @@ class EndpointHeadersInterceptor implements DefinedObject
         if ($timeToLive && ($timeToLive->shouldReplaceExistingHeader() || ! $isTtlHeaderExists)) {
             $metadata[MessageHeaders::TIME_TO_LIVE] = $timeToLive->getHeaderValue();
 
-            if ($timeToLive->getExpression()) {
-                $metadata[MessageHeaders::TIME_TO_LIVE] = $this->evaluateExpression($timeToLive->getExpression(), $message);
+            if ($timeToLiveInvoker !== null || $timeToLive->getExpression()) {
+                $metadata[MessageHeaders::TIME_TO_LIVE] = $this->evaluateExpression($timeToLiveInvoker, $timeToLive->getExpression(), $message);
             }
 
             $type = Type::createFromVariable($metadata[MessageHeaders::TIME_TO_LIVE]);
@@ -119,8 +130,12 @@ class EndpointHeadersInterceptor implements DefinedObject
         ]);
     }
 
-    private function evaluateExpression(string|Closure $expression, Message $message): mixed
+    private function evaluateExpression(?ClosureExpressionInvoker $invoker, string|Closure|null $expression, Message $message): mixed
     {
+        if ($invoker !== null) {
+            return $invoker->invoke($message);
+        }
+
         return $this->expressionEvaluationService->evaluateWithMessage($expression, $message);
     }
 

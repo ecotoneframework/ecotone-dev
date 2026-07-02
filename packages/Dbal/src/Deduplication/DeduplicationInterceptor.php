@@ -11,6 +11,8 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvoker;
+use Ecotone\Messaging\Handler\ClosureExpression\InvokerFor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -50,7 +52,7 @@ class DeduplicationInterceptor
         }
     }
 
-    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ?Deduplicated $deduplicatedAttribute, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): mixed
+    public function deduplicate(MethodInvocation $methodInvocation, Message $message, ?Deduplicated $deduplicatedAttribute, #[InvokerFor(Deduplicated::class)] ?ClosureExpressionInvoker $deduplicatedInvoker, ?IdentifiedAnnotation $identifiedAnnotation, ?AsynchronousRunningEndpoint $asynchronousRunningEndpoint): mixed
     {
         $connectionFactory = CachedConnectionFactory::createFor(new DbalReconnectableConnectionFactory($this->connection));
         $contextId = spl_object_id($connectionFactory->createContext());
@@ -60,7 +62,7 @@ class DeduplicationInterceptor
             $this->initialized[$contextId] = true;
         }
 
-        $messageId = $this->extractDeduplicationId($message, $deduplicatedAttribute);
+        $messageId = $this->extractDeduplicationId($message, $deduplicatedAttribute, $deduplicatedInvoker);
         /** If trackingName is provided, use it for deduplication isolation */
         $consumerEndpointId = $this->determineConsumerEndpointId($deduplicatedAttribute, $asynchronousRunningEndpoint);
         /** IF handler deduplication then endpoint id will be used */
@@ -190,12 +192,15 @@ class DeduplicationInterceptor
         return $messageIds;
     }
 
-    private function extractDeduplicationId(Message $message, ?Deduplicated $deduplicatedAttribute): string
+    private function extractDeduplicationId(Message $message, ?Deduplicated $deduplicatedAttribute, ?ClosureExpressionInvoker $deduplicatedInvoker): string
     {
         if ($deduplicatedAttribute === null) {
             return $message->getHeaders()->get(MessageHeaders::MESSAGE_ID);
         }
 
+        if ($deduplicatedInvoker !== null) {
+            return (string) $deduplicatedInvoker->invoke($message);
+        }
         if ($deduplicatedAttribute->hasExpression()) {
             return (string) $this->expressionEvaluationService->evaluateWithMessage($deduplicatedAttribute->getExpression(), $message);
         }

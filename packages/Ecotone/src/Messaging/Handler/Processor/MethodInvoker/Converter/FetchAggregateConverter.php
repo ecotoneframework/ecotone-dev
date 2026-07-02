@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
-use Closure;
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvoker;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
@@ -25,7 +24,7 @@ class FetchAggregateConverter implements ParameterConverter
         private AllAggregateRepository $aggregateRepository,
         private ExpressionEvaluationService $expressionEvaluationService,
         private string $aggregateClassName,
-        private string|Closure|ClosureExpressionInvoker $expression,
+        private string|ClosureExpressionInvoker $expression,
         private bool $doesAllowsNull,
         private LicenceDecider $licenceDecider,
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,

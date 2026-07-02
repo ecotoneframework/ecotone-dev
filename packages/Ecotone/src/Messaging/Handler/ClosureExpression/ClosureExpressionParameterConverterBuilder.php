@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\ClosureExpression;
 
-use Closure;
 use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Attribute\Parameter\Reference as ReferenceAttribute;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
@@ -49,27 +47,8 @@ final class ClosureExpressionParameterConverterBuilder implements ParameterConve
 
     public function compile(InterfaceToCall $interfaceToCall): Definition
     {
-        $invokerDefinition = ClosureExpressionInvokerCompiler::compile($this->attributeWithExpression->getExpression(), $this->attributeDeclaration);
-        if ($invokerDefinition !== null) {
-            return new Definition(ClosureExpressionParameterConverter::class, [
-                $invokerDefinition,
-                ...$this->additionalContextSpecification($interfaceToCall),
-            ]);
-        }
-
-        return $this->runtimeResolutionDefinition($this->attributeDeclaration->toClosureDefinition(), $interfaceToCall);
-    }
-
-    public function compileForRuntimeResolution(InterfaceToCall $interfaceToCall): Definition
-    {
-        return $this->runtimeResolutionDefinition($this->attributeWithExpression->getExpression(), $interfaceToCall);
-    }
-
-    private function runtimeResolutionDefinition(Definition|Closure $expression, InterfaceToCall $interfaceToCall): Definition
-    {
-        return new Definition(RuntimeClosureExpressionParameterConverter::class, [
-            Reference::to(ExpressionEvaluationService::REFERENCE),
-            $expression,
+        return new Definition(ClosureExpressionParameterConverter::class, [
+            ClosureExpressionInvokerCompiler::compile($this->attributeWithExpression->getExpression(), $this->attributeDeclaration),
             ...$this->additionalContextSpecification($interfaceToCall),
         ]);
     }

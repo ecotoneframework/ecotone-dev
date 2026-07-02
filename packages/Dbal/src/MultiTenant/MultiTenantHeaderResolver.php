@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\MultiTenant;
 
 use Ecotone\Dbal\Attribute\WithTenantResolver;
+use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionInvoker;
+use Ecotone\Messaging\Handler\ClosureExpression\InvokerFor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -20,7 +22,7 @@ final class MultiTenantHeaderResolver
     ) {
     }
 
-    public function resolve(Message $message, ?WithTenantResolver $config = null): array
+    public function resolve(Message $message, ?WithTenantResolver $config = null, #[InvokerFor(WithTenantResolver::class)] ?ClosureExpressionInvoker $tenantInvoker = null): array
     {
         if ($config === null) {
             return [];
@@ -30,7 +32,9 @@ final class MultiTenantHeaderResolver
         }
 
         $expression = $config->getExpression();
-        $value = $this->expressionEvaluationService->evaluateWithMessage($expression, $message);
+        $value = $tenantInvoker !== null
+            ? $tenantInvoker->invoke($message)
+            : $this->expressionEvaluationService->evaluateWithMessage($expression, $message);
 
         if ($value === null) {
             return [];

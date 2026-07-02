@@ -40,7 +40,7 @@ final class TracerInterceptor
 
         $scope = $parentContext->activate();
         try {
-            $trace = $this->trace(
+            return $this->trace(
                 $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME)
                     ? 'Receiving from channel: ' . $message->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME)
                     : ($message->getHeaders()->containsKey(MessageHeaders::INBOUND_REQUEST_CHANNEL)
@@ -50,14 +50,9 @@ final class TracerInterceptor
                 $message,
                 spanKind: SpanKind::KIND_CONSUMER,
             );
-        } catch (Throwable $exception) {
+        } finally {
             $scope->detach();
-
-            throw $exception;
         }
-        $scope->detach();
-
-        return $trace;
     }
 
     public function provideContextForDistributedBus(Message $message): Message
@@ -77,7 +72,14 @@ final class TracerInterceptor
             ->startSpan();
         $spanScope = $span->activate();
 
-        $result = $methodInvocation->proceed();
+        try {
+            $result = $methodInvocation->proceed();
+        } catch (Throwable $exception) {
+            $span->recordException($exception);
+            $this->closeSpan($span, $spanScope, StatusCode::STATUS_ERROR, $exception->getMessage());
+
+            throw $exception;
+        }
 
         $this->closeSpan($span, $spanScope, StatusCode::STATUS_OK, null);
 
@@ -179,9 +181,6 @@ final class TracerInterceptor
 
     private function closeSpan(SpanInterface $span, ScopeInterface $spanScope, string $statusCode, ?string $descriptionStatusCode): void
     {
-        $currentSpan = Span::getCurrent();
-        $currentContext = Context::getCurrent();
-
         $span->setStatus($statusCode, $descriptionStatusCode);
         $spanScope->detach();
         $span->end();

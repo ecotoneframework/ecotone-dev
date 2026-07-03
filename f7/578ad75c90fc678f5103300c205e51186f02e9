@@ -1,0 +1,36 @@
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/Converter/FetchAggregateConverterBuilder.php
+  s_d24dc3ed11e1f9::t_a4b919e97e3dee 63
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AttributeExpressionContextExecutor.php
+  s_d24dc3ed11e1f9::t_a642709e848db4 11,14-15,17-19,26,32-33,37-38,44-48,51-54
+packages/Dbal/src/DbaBusinessMethod/DbalBusinessMethodHandler.php
+  s_d24dc3ed11e1f9::t_6b4e29a5ecbe91 136-139
+  s_d24dc3ed11e1f9::t_12d950264288c9 121-123,126-127
+  s_d24dc3ed11e1f9::t_d1a880ee0f457e 13,19
+  s_d24dc3ed11e1f9::t_a0c08ac5369209 187-198
+  s_d24dc3ed11e1f9::t_8b9f38a688201b 93
+  s_d24dc3ed11e1f9::t_2a4b686aaf0797 167,169-171
+packages/Dbal/src/DbaBusinessMethod/DbaBusinessMethodModule.php
+  s_d24dc3ed11e1f9::t_7fcd7d9fede651 244,256
+packages/Ecotone/src/Messaging/Handler/Processor/MethodInvoker/Converter/FetchAggregateConverter.php
+  s_d24dc3ed11e1f9::t_9e6ffe12d84804 25
+  s_d24dc3ed11e1f9::t_6aac6fc1c80543 73
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AttributeExpressionExecutorCompiler.php
+  s_d24dc3ed11e1f9::t_aa57f5026f8ee9 35,37,39-49,59,61,64-72,77
+  s_d24dc3ed11e1f9::t_e82df3b5ef8d56 24
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "f7578ad75c90fc678f5103300c205e51186f02e9",
+  "prompts": {},
+  "sessions": {
+    "s_d24dc3ed11e1f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6db88ad3-ec31-4a8f-a44e-e648948c9657",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

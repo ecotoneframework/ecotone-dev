@@ -8,6 +8,7 @@ use Ecotone\Messaging\Channel\AsyncPublishing\DeliveryResult;
 use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
 use Ecotone\Messaging\Channel\AsyncPublishing\PendingDelivery;
 use Ecotone\Messaging\Message;
+use RuntimeException;
 
 /**
  * licence Apache-2.0
@@ -21,6 +22,7 @@ final class InMemoryPendingDelivery implements PendingDelivery
         private ?string $failureReason = null,
         private ?OperationsLog $operationsLog = null,
         private string $channelName = 'in_memory_channel',
+        private bool $throwOnAwait = false,
     ) {
     }
 
@@ -28,6 +30,10 @@ final class InMemoryPendingDelivery implements PendingDelivery
     {
         $this->awaitCalls++;
         $this->operationsLog?->log('delivery confirmations awaited');
+
+        if ($this->throwOnAwait) {
+            throw new RuntimeException('broker connection lost while awaiting confirmation');
+        }
 
         if ($this->failureReason !== null) {
             return DeliveryResult::withFailedDeliveries([

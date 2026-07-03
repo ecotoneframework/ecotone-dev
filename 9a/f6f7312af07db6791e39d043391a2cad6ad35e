@@ -1,0 +1,62 @@
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/InMemoryAsyncPublishingChannel.php
+  s_1f8e8d18ce67ab::t_2c34fca28d835b 1-9,11-58,60-63,68-77
+  s_1f8e8d18ce67ab::t_9049dd50418ef8 64-67
+  s_1f8e8d18ce67ab::t_6120eb86a84193 10
+  s_1f8e8d18ce67ab::t_cb1344faba40af 59
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/AsyncOrderSubscriber.php
+  s_1f8e8d18ce67ab::t_5d94b35dc70eac 1-32
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/FakeTransactionModule.php
+  s_1f8e8d18ce67ab::t_5db496b4329394 1-58
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/OrderService.php
+  s_1f8e8d18ce67ab::t_24405fc20d305c 1-26
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingRegistry.php
+  s_1f8e8d18ce67ab::t_7b6f33f70e1899 17-18,21-52
+  s_1f8e8d18ce67ab::t_bb2512a85fa065 53
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingWaiterInterceptor.php
+  s_1f8e8d18ce67ab::t_1003999bb12ef7 1-38
+packages/Ecotone/src/Messaging/Precedence.php
+  s_1f8e8d18ce67ab::t_6955cc04e9b824 62-65,69
+  s_1f8e8d18ce67ab::t_a31b1dedc333a1 61
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/InMemoryPendingDelivery.php
+  s_1f8e8d18ce67ab::t_7feee0beecc895 22,29
+packages/Ecotone/tests/Messaging/Unit/PrecedenceTest.php
+  s_1f8e8d18ce67ab::t_af464160347c4b 1-23
+packages/Ecotone/src/Messaging/Channel/BatchSupportingMessageChannel.php
+  s_1f8e8d18ce67ab::t_f932a2391a2c28 1-13
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/OperationsLog.php
+  s_1f8e8d18ce67ab::t_6723ed8a80b8d7 1-27
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/Config/AsyncPublishingModule.php
+  s_1f8e8d18ce67ab::t_f7a48bf111674e 1-60
+packages/Ecotone/src/Messaging/Channel/SendingInterceptorAdapter.php
+  s_1f8e8d18ce67ab::t_b64891b1e03bab 53
+  s_1f8e8d18ce67ab::t_af16abbd5dfa9d 113-119
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/InMemoryAsyncPublishingChannelBuilder.php
+  s_1f8e8d18ce67ab::t_a9655096fe43e6 1-50
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/OrderWasPlaced.php
+  s_1f8e8d18ce67ab::t_5ff55bab2de906 1-15
+packages/Ecotone/tests/Messaging/Unit/Channel/AsyncPublishing/AsyncPublishingChannelTest.php
+  s_1f8e8d18ce67ab::t_d8860fa566f089 1-8,11-42,72-82
+  s_1f8e8d18ce67ab::t_c3b13f40d3acc6 43-71
+  s_1f8e8d18ce67ab::t_44cfc6c4a90365 9-10
+packages/Ecotone/src/Messaging/Config/ModuleClassList.php
+  s_1f8e8d18ce67ab::t_0a035cb5210c5b 29
+  s_1f8e8d18ce67ab::t_30e1323756d5f6 112
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/FakeTransactionInterceptor.php
+  s_1f8e8d18ce67ab::t_99c54bdc649646 1-33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "9af6f7312af07db6791e39d043391a2cad6ad35e",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

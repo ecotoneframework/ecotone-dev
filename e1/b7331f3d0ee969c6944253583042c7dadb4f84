@@ -1,0 +1,52 @@
+packages/Ecotone/src/Messaging/Config/Container/Compiler/RegisterSingletonMessagingServices.php
+  s_1f8e8d18ce67ab::t_a9dd38ce6189b8 63
+  s_1f8e8d18ce67ab::t_f9a4ae98c57616 6
+packages/Ecotone/src/Messaging/MessagePublisher.php
+  s_1f8e8d18ce67ab::t_c88da2e98d5b16 21-22
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/InMemoryPendingDelivery.php
+  s_1f8e8d18ce67ab::t_7c76bc4ba394e7 1-47
+packages/Ecotone/src/Messaging/Handler/Gateway/FutureReplyReceiver.php
+  s_1f8e8d18ce67ab::t_b624d4a180725e 67
+  s_1f8e8d18ce67ab::t_27b93e4e147683 24-27
+  s_1f8e8d18ce67ab::t_1b947414242c7c 51-58,62-66,69
+packages/Ecotone/tests/Messaging/Unit/Channel/AsyncPublishing/MessagePublisherAsyncPublishTest.php
+  s_1f8e8d18ce67ab::t_9230b2a16b7658 8,10
+  s_1f8e8d18ce67ab::t_c636a2e9959d1c 1-7,9,11-83,100,106,108-112
+  s_1f8e8d18ce67ab::t_b48bbfad6bdd4a 84-99,101-105,107
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingGateway.php
+  s_1f8e8d18ce67ab::t_886132bad94591 1-43
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/PendingDelivery.php
+  s_1f8e8d18ce67ab::t_a73e39ebfc404c 1-15
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingRegistry.php
+  s_1f8e8d18ce67ab::t_43a5a10f7f93b2 1-14,17-21,23-31,33-68
+  s_1f8e8d18ce67ab::t_e4ae6897e11f6f 15-16,22,32
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/DeliveryResult.php
+  s_1f8e8d18ce67ab::t_d83e122da0ce16 1-44
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/InMemoryAsyncPublisherModule.php
+  s_1f8e8d18ce67ab::t_4139324953fdea 1-86
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingFailedException.php
+  s_1f8e8d18ce67ab::t_c133dcf9a59067 1-52
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/DeliveryFuture.php
+  s_1f8e8d18ce67ab::t_06cbf8905bf58c 40,58
+  s_1f8e8d18ce67ab::t_4364527e9ca64a 1-39,41-57,59-60
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/FailedDelivery.php
+  s_1f8e8d18ce67ab::t_778c04cc08201d 1-29
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/InMemoryAsyncOutboundAdapter.php
+  s_1f8e8d18ce67ab::t_797156a1001f42 1-74
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "e1b7331f3d0ee969c6944253583042c7dadb4f84",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

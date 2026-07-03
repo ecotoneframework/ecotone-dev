@@ -57,6 +57,23 @@ final class AsyncPublishingTest extends AmqpMessagingTestCase
         $this->bootstrapEcotone($channelName, $orderService, licenceKey: null);
     }
 
+    public function test_async_publishing_via_message_publisher_requires_enterprise_licence(): void
+    {
+        $this->expectException(LicensingException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            [],
+            [...$this->getConnectionFactoryReferences()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpMessagePublisherConfiguration::create()
+                        ->withDefaultRoutingKey(Uuid::v7()->toRfc4122())
+                        ->withAsyncPublishing(),
+                ]),
+        );
+    }
+
     public function test_message_publisher_async_publish_confirms_delivery_on_future_resolve(): void
     {
         $messaging = EcotoneLite::bootstrapFlowTesting(

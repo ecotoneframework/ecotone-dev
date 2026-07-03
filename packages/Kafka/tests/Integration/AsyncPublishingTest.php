@@ -16,6 +16,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessagePublisher;
+use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -63,6 +64,22 @@ final class AsyncPublishingTest extends TestCase
         $this->expectException(AsyncPublishingFailedException::class);
 
         $messaging->sendCommandWithRoutingKey('order.place', 'espresso');
+    }
+
+    public function test_async_publishing_requires_enterprise_licence(): void
+    {
+        $this->expectException(LicensingException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            [],
+            [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
+                        ->withAsyncPublishing(),
+                ]),
+        );
     }
 
     public function test_message_publisher_async_publish_confirms_delivery_on_future_resolve(): void

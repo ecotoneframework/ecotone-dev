@@ -20,6 +20,7 @@ use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 use Ecotone\Modelling\AggregateMessage;
 use RdKafka\Producer;
 use RdKafka\ProducerTopic;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -49,8 +50,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             return;
         }
 
-        $trackDelivery = $this->isAsyncPublishingEnabled();
-        $deliveryId = $this->produce($message, $topic, trackDelivery: $trackDelivery);
+        $deliveryId = $this->produce($message, $topic, trackDelivery: true);
         $producer->poll(0);
 
         if ($this->canPublishAsynchronously()) {
@@ -59,7 +59,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             return;
         }
 
-        $this->flushSynchronously($producer, $trackDelivery ? [$deliveryId] : []);
+        $this->flushSynchronously($producer, [$deliveryId]);
     }
 
     public function isAsyncPublishingEnabled(): bool
@@ -69,16 +69,22 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
 
     private function handleBatch(BatchMessage $batchMessage, Producer $producer, ProducerTopic $topic): void
     {
-        $trackDelivery = $this->isAsyncPublishingEnabled();
-
         $deliveryIds = [];
-        foreach ($batchMessage->getEntries() as $entry) {
-            $entryMessage = MessageBuilder::withPayload($entry['payload'])
-                ->setMultipleHeaders($entry['headers'])
-                ->build();
+        try {
+            foreach ($batchMessage->getEntries() as $entry) {
+                $entryMessage = MessageBuilder::withPayload($entry['payload'])
+                    ->setMultipleHeaders($entry['headers'])
+                    ->build();
 
-            $deliveryIds[] = $this->produce($entryMessage, $topic, trackDelivery: $trackDelivery);
-            $producer->poll(0);
+                $deliveryIds[] = $this->produce($entryMessage, $topic, trackDelivery: true);
+                $producer->poll(0);
+            }
+        } catch (Throwable $exception) {
+            if ($deliveryIds !== []) {
+                $this->registerPendingDelivery($producer, $deliveryIds);
+            }
+
+            throw $exception;
         }
 
         if ($this->canPublishAsynchronously()) {
@@ -87,7 +93,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             return;
         }
 
-        $this->flushSynchronously($producer, $trackDelivery ? $deliveryIds : []);
+        $this->flushSynchronously($producer, $deliveryIds);
     }
 
     private function produce(Message $message, ProducerTopic $topic, bool $trackDelivery): ?string
@@ -111,6 +117,21 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             ? $this->kafkaAdmin->getDeliveryTracker($this->referenceName)->trackInFlight($message)
             : null;
 
+        try {
+            $this->produceTracked($topic, $outboundMessage, $partitionKey, $headers, $deliveryId);
+        } catch (Throwable $exception) {
+            if ($deliveryId !== null) {
+                $this->kafkaAdmin->getDeliveryTracker($this->referenceName)->discard($deliveryId);
+            }
+
+            throw $exception;
+        }
+
+        return $deliveryId;
+    }
+
+    private function produceTracked(ProducerTopic $topic, \Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessage $outboundMessage, mixed $partitionKey, array $headers, ?string $deliveryId): void
+    {
         $topic->producev(
             RD_KAFKA_PARTITION_UA,
             0,
@@ -125,8 +146,6 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             null,
             $deliveryId,
         );
-
-        return $deliveryId;
     }
 
     private function canPublishAsynchronously(): bool
@@ -161,15 +180,23 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
          * calling flush immediately after produce will publish all messages to the broker irrespective of these two config values.
          */
         $result = $producer->flush((int)(KafkaPublisherConfiguration::ACKNOWLEDGE_TIMEOUT * 1.5));
-        if ($result !== 0) {
-            throw MessagePublishingException::create('Failed to send message to Kafka');
-        }
 
         if ($deliveryIds !== []) {
             $deliveryResult = $this->kafkaAdmin->getDeliveryTracker($this->referenceName)->collectResult($deliveryIds, $this->referenceName);
             if (! $deliveryResult->isSuccessful()) {
-                throw AsyncPublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
+                if ($this->isAsyncPublishingEnabled()) {
+                    throw AsyncPublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
+                }
+
+                throw MessagePublishingException::create(sprintf(
+                    'Failed to send message to Kafka: %s',
+                    $deliveryResult->getFailedDeliveries()[0]->getFailureReason(),
+                ));
             }
+        }
+
+        if ($result !== 0) {
+            throw MessagePublishingException::create('Failed to send message to Kafka');
         }
     }
 }

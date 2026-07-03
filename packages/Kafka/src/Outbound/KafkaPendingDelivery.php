@@ -15,6 +15,8 @@ final class KafkaPendingDelivery implements PendingDelivery
 {
     private bool $awaited = false;
 
+    private ?DeliveryResult $deliveryResult = null;
+
     /**
      * @param string[] $deliveryIds
      */
@@ -29,10 +31,14 @@ final class KafkaPendingDelivery implements PendingDelivery
 
     public function awaitDelivery(): DeliveryResult
     {
+        if ($this->deliveryResult !== null) {
+            return $this->deliveryResult;
+        }
+
         $this->awaited = true;
         $this->producer->flush($this->timeoutInMilliseconds);
 
-        return $this->deliveryTracker->collectResult($this->deliveryIds, $this->channelName);
+        return $this->deliveryResult = $this->deliveryTracker->collectResult($this->deliveryIds, $this->channelName);
     }
 
     public function isAwaited(): bool

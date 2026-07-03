@@ -76,6 +76,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
 
     public function withAsyncPublishing(bool $enabled = true, ?int $timeoutInMilliseconds = null): self
     {
+        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
         $this->asyncPublishing = $enabled;
         if ($timeoutInMilliseconds !== null) {
             $this->asyncPublishingTimeout = $timeoutInMilliseconds;

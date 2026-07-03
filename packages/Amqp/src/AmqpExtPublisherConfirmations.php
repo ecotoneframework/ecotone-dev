@@ -11,6 +11,8 @@ final class AmqpExtPublisherConfirmations
 {
     private int $publishedCount = 0;
 
+    private int $epoch = 0;
+
     private int $highestConfirmedTag = 0;
 
     /** @var array<int, bool> */
@@ -46,8 +48,14 @@ final class AmqpExtPublisherConfirmations
 
     public function reset(): void
     {
+        $this->epoch++;
         $this->publishedCount = 0;
         $this->highestConfirmedTag = 0;
         $this->individuallyConfirmedTags = [];
+    }
+
+    public function getEpoch(): int
+    {
+        return $this->epoch;
     }
 }

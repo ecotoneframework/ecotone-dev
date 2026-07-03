@@ -85,6 +85,38 @@ final class AsyncPublishingReliabilityTest extends AmqpMessagingTestCase
         $this->assertFalse($confirmations->hasOutstandingConfirmations());
     }
 
+    public function test_unroutable_message_fails_delivery_confirmation_over_amqp_lib(): void
+    {
+        $libConnectionFactory = new AmqpLibConnection(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f']);
+        $publisher = $this->bootstrapPublisher($libConnectionFactory, Uuid::v7()->toRfc4122());
+
+        $this->expectException(AsyncPublishingFailedException::class);
+
+        $publisher->asyncPublish('order that routes nowhere')->resolve();
+    }
+
+    public function test_unroutable_message_fails_delivery_confirmation_over_amqp_ext(): void
+    {
+        $extConnectionFactory = new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f']);
+        $publisher = $this->bootstrapPublisher($extConnectionFactory, Uuid::v7()->toRfc4122());
+
+        $this->expectException(AsyncPublishingFailedException::class);
+
+        $publisher->asyncPublish('order that routes nowhere')->resolve();
+    }
+
+    public function test_ext_confirmations_reset_while_awaiting_is_detectable_through_epoch(): void
+    {
+        $confirmations = new AmqpExtPublisherConfirmations();
+        $epochBeforeReset = $confirmations->getEpoch();
+        $confirmations->recordPublishedMessage();
+
+        $confirmations->reset();
+
+        $this->assertNotSame($epochBeforeReset, $confirmations->getEpoch());
+        $this->assertFalse($confirmations->hasOutstandingConfirmations());
+    }
+
     private function declareQueueRejectingOverflow(AmqpLibConnection|AmqpConnectionFactory $connectionFactory): string
     {
         $queueName = Uuid::v7()->toRfc4122();

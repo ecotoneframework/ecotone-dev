@@ -49,6 +49,11 @@ final class KafkaDeliveryTracker
     /**
      * @param string[] $deliveryIds
      */
+    public function discard(string $deliveryId): void
+    {
+        unset($this->inFlightMessages[$deliveryId], $this->deliveryFailures[$deliveryId]);
+    }
+
     public function collectResult(array $deliveryIds, string $channelName): DeliveryResult
     {
         $failedDeliveries = [];

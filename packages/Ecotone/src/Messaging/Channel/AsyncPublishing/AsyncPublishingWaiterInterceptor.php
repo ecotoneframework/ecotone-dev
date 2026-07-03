@@ -40,11 +40,12 @@ final class AsyncPublishingWaiterInterceptor
 
             $deliveryResult = $this->asyncPublishingRegistry->awaitAll();
             if (! $deliveryResult->isSuccessful()) {
-                $this->handleFailedDeliveries($deliveryResult->getFailedDeliveries());
+                $unroutedFailedDeliveries = $this->handleFailedDeliveries($deliveryResult->getFailedDeliveries());
 
                 $errorChannelDeliveryResult = $this->asyncPublishingRegistry->awaitAll();
-                if (! $errorChannelDeliveryResult->isSuccessful()) {
-                    throw AsyncPublishingFailedException::withFailedDeliveries($errorChannelDeliveryResult->getFailedDeliveries());
+                $remainingFailedDeliveries = array_merge($unroutedFailedDeliveries, $errorChannelDeliveryResult->getFailedDeliveries());
+                if ($remainingFailedDeliveries !== []) {
+                    throw AsyncPublishingFailedException::withFailedDeliveries($remainingFailedDeliveries);
                 }
             }
         } finally {
@@ -56,8 +57,9 @@ final class AsyncPublishingWaiterInterceptor
 
     /**
      * @param FailedDelivery[] $failedDeliveries
+     * @return FailedDelivery[]
      */
-    private function handleFailedDeliveries(array $failedDeliveries): void
+    private function handleFailedDeliveries(array $failedDeliveries): array
     {
         $unroutedFailedDeliveries = [];
         foreach ($failedDeliveries as $failedDelivery) {
@@ -81,9 +83,7 @@ final class AsyncPublishingWaiterInterceptor
             }
         }
 
-        if ($unroutedFailedDeliveries !== []) {
-            throw AsyncPublishingFailedException::withFailedDeliveries($unroutedFailedDeliveries);
-        }
+        return $unroutedFailedDeliveries;
     }
 
     /**

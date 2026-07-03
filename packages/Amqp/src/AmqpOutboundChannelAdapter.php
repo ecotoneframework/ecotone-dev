@@ -117,14 +117,13 @@ class AmqpOutboundChannelAdapter implements MessageHandler
      */
     private function publishBatchThroughSingleWrite(array $messages, AmqpLibContext $context): void
     {
-        $libChannel = $context->getLibChannel();
-        $anyMessageBatched = false;
-
+        $preparedEntries = [];
+        $delayedMessages = [];
         foreach ($messages as $message) {
             [$interopMessage, $exchangeName, $deliveryDelay] = $this->prepareInteropMessage($message);
 
             if ($deliveryDelay) {
-                $this->publish($message);
+                $delayedMessages[] = $message;
 
                 continue;
             }
@@ -134,15 +133,19 @@ class AmqpOutboundChannelAdapter implements MessageHandler
                 $amqpProperties['application_headers'] = new AMQPTable($applicationProperties);
             }
 
-            $libChannel->batch_basic_publish(
-                new LibAMQPMessage($interopMessage->getBody(), $amqpProperties),
-                $exchangeName,
-                $interopMessage->getRoutingKey() ?? '',
-            );
-            $anyMessageBatched = true;
+            $preparedEntries[] = [new LibAMQPMessage($interopMessage->getBody(), $amqpProperties), $exchangeName, $interopMessage->getRoutingKey() ?? ''];
         }
 
-        if ($anyMessageBatched) {
+        foreach ($delayedMessages as $delayedMessage) {
+            $this->publish($delayedMessage);
+        }
+
+        $libChannel = $context->getLibChannel();
+        foreach ($preparedEntries as [$libMessage, $exchangeName, $routingKey]) {
+            $libChannel->batch_basic_publish($libMessage, $exchangeName, $routingKey, mandatory: $this->publisherConfirms);
+        }
+
+        if ($preparedEntries !== []) {
             $libChannel->publish_batch();
         }
     }
@@ -153,7 +156,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         $this->connectionFactory->getProducer()
             ->setTimeToLive($timeToLive)
-            ->setDelayStrategy($this->delayStrategy ?? new HeadersExchangeDelayStrategy())
+            ->setDelayStrategy($this->delayStrategy ??= new HeadersExchangeDelayStrategy())
             ->setDeliveryDelay($deliveryDelay)
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);
@@ -222,9 +225,8 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         if ($this->publisherConfirms) {
             Assert::isFalse($this->amqpTransactionInterceptor->isRunningInTransaction(), 'Cannot use publisher acknowledgments together with transactions. Please disable one of them.');
+            $messageToSend->addFlag(AmqpMessage::FLAG_MANDATORY);
         }
-
-        $this->connectionFactory->createContext();
 
         return [$messageToSend, $exchangeName, $outboundMessage->getDeliveryDelay(), $timeToLive];
     }
@@ -260,18 +262,19 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             return;
         }
 
+        $timeoutInSeconds = $this->asyncPublishingTimeout / 1000;
         $context = $this->connectionFactory->createContext();
         if ($context instanceof AmqpLibContext) {
-            $context->getLibChannel()->wait_for_pending_acks(5);
+            $context->getLibChannel()->wait_for_pending_acks_returns($timeoutInSeconds);
         } elseif ($context instanceof AmqpExtContext) {
             $extPublisherConfirmations = $this->getExtPublisherConfirmations();
             if ($extPublisherConfirmations === null) {
-                $context->getExtChannel()->waitForConfirm(5);
+                $context->getExtChannel()->waitForConfirm($timeoutInSeconds);
 
                 return;
             }
 
-            $deadline = microtime(true) + 5;
+            $deadline = microtime(true) + $timeoutInSeconds;
             while ($extPublisherConfirmations->hasOutstandingConfirmations()) {
                 $remainingSeconds = $deadline - microtime(true);
                 if ($remainingSeconds <= 0) {

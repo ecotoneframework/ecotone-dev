@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\AsyncPublishing;
 
+use Throwable;
+
 /**
  * licence Enterprise
  */
@@ -39,6 +41,9 @@ final class AsyncPublishingRegistry
         $this->scopeActive = false;
         foreach ($this->pendingDeliveries as $index => $registration) {
             if ($registration['scopeOwned']) {
+                if (! $registration['pendingDelivery']->isAwaited()) {
+                    $this->awaitAndLogFailures($registration['pendingDelivery']);
+                }
                 unset($this->pendingDeliveries[$index]);
             }
         }
@@ -95,9 +100,9 @@ final class AsyncPublishingRegistry
     public function registeredSince(int $collectionPoint): array
     {
         $registered = [];
-        foreach ($this->pendingDeliveries as $index => $registration) {
-            if ($index >= $collectionPoint) {
-                $registered[] = $registration['pendingDelivery'];
+        for ($index = $collectionPoint; $index < $this->nextRegistrationIndex; $index++) {
+            if (isset($this->pendingDeliveries[$index])) {
+                $registered[] = $this->pendingDeliveries[$index]['pendingDelivery'];
             }
         }
 
@@ -148,7 +153,13 @@ final class AsyncPublishingRegistry
 
     private function awaitAndLogFailures(PendingDelivery $pendingDelivery): void
     {
-        $deliveryResult = $pendingDelivery->awaitDelivery();
+        try {
+            $deliveryResult = $pendingDelivery->awaitDelivery();
+        } catch (Throwable $exception) {
+            error_log(sprintf('Ecotone async publishing: awaiting unresolved delivery failed: %s', $exception->getMessage()));
+
+            return;
+        }
         foreach ($deliveryResult->getFailedDeliveries() as $failedDelivery) {
             error_log(sprintf(
                 'Ecotone async publishing: unresolved delivery for channel `%s` failed confirmation: %s',

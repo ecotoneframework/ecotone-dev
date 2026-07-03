@@ -229,7 +229,13 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         /** @var PollableChannel $messageChannel */
         $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
 
-        $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
+        $sendFailed = false;
+        try {
+            $messageChannel->send(MessageBuilder::withPayload($messagePayload)->build());
+        } catch (Throwable) {
+            $sendFailed = true;
+        }
+        $this->assertTrue($sendFailed);
 
         // AMQP Ext throws AMQPException, AMQP Lib throws AMQPProtocolChannelException
         $this->expectException(Throwable::class);

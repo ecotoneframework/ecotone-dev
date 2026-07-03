@@ -27,6 +27,7 @@ use Enqueue\Redis\RedisContext;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;
 use Test\Ecotone\Redis\Fixture\AsyncPublishing\OrderWasPlaced;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -146,6 +147,55 @@ final class AsyncPublishingTest extends ConnectionTestCase
         /** @var RedisContext $context */
         $context = $this->getConnectionFactory()->createContext();
         $this->assertSame(1, $context->getRedis()->eval('return redis.call("zcard", KEYS[1])', [$queueName . ':delayed']));
+    }
+
+    public function test_publishing_to_wrong_type_key_throws(): void
+    {
+        $queueName = Uuid::v7()->toRfc4122();
+        $messaging = $this->bootstrapPublisher($queueName, asyncPublishing: true);
+        /** @var RedisContext $context */
+        $context = $this->getConnectionFactory()->createContext();
+        $context->getRedis()->eval('redis.call("set", KEYS[1], "blocked") return 1', [$queueName]);
+        $publisher = $messaging->getGateway(MessagePublisher::class);
+
+        $publishFailed = false;
+        try {
+            $publisher->asyncPublish(
+                BatchMessage::constructEmpty()
+                    ->append('first order')
+                    ->append('second order')
+            );
+        } catch (Throwable) {
+            $publishFailed = true;
+        }
+
+        $this->assertTrue($publishFailed);
+    }
+
+    public function test_partially_applied_mixed_batch_throws_while_immediate_entries_remain(): void
+    {
+        $queueName = Uuid::v7()->toRfc4122();
+        $messaging = $this->bootstrapPublisher($queueName, asyncPublishing: true);
+        /** @var RedisContext $context */
+        $context = $this->getConnectionFactory()->createContext();
+        $context->getRedis()->lpush($queueName . ':delayed', 'poison entry forcing wrong type on the delayed set');
+        $publisher = $messaging->getGateway(MessagePublisher::class);
+
+        $publishFailed = false;
+        try {
+            $publisher->asyncPublish(
+                BatchMessage::constructEmpty()
+                    ->append('immediate order')
+                    ->append('delayed order', [MessageHeaders::DELIVERY_DELAY => 60000])
+            );
+        } catch (Throwable) {
+            $publishFailed = true;
+        }
+
+        $this->assertTrue($publishFailed);
+
+        $context->getRedis()->del($queueName . ':delayed');
+        $this->assertSame('immediate order', $messaging->getMessageChannel($queueName)->receive()->getPayload());
     }
 
     private function createOrderService(): object

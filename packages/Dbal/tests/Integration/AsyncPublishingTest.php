@@ -22,6 +22,7 @@ use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
+use Interop\Queue\Exception\Exception;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsyncPublishing\OrderWasPlaced;
@@ -113,6 +114,20 @@ final class AsyncPublishingTest extends DbalMessagingTestCase
         }
         sort($receivedPayloads);
         $this->assertSame(['first order', 'second order', 'single order'], $receivedPayloads);
+    }
+
+    public function test_publishing_after_queue_table_is_dropped_throws(): void
+    {
+        $queueName = Uuid::v7()->toRfc4122();
+        $messaging = $this->bootstrapPublisher($queueName, asyncPublishing: true);
+        $publisher = $messaging->getGateway(MessagePublisher::class);
+        $publisher->asyncPublish('first order')->resolve();
+
+        $this->getConnection()->executeStatement('DROP TABLE enqueue');
+
+        $this->expectException(Exception::class);
+
+        $publisher->asyncPublish('order published into missing table');
     }
 
     private function createOrderService(): object

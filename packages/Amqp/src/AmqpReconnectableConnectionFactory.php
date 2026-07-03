@@ -53,10 +53,12 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
             if ($context instanceof AmqpLibContext) {
                 $context->getLibChannel()->confirm_select();
                 $context->getLibChannel()->set_nack_handler(fn () => throw new RuntimeException('Message was rejected (nack) by RabbitMQ instance. Check RabbitMQ server logs.'));
+                $context->getLibChannel()->set_return_listener(fn (int $replyCode, string $replyText, string $exchange, string $routingKey) => throw new RuntimeException(sprintf('Message was returned as unroutable by RabbitMQ instance (%d %s) for exchange `%s` and routing key `%s`.', $replyCode, $replyText, $exchange, $routingKey)));
             } elseif ($context instanceof AmqpExtContext) {
                 $confirmations = $this->getExtPublisherConfirmations();
                 $confirmations->reset();
                 $context->getExtChannel()->confirmSelect();
+                $context->getExtChannel()->setReturnCallback(fn (int $replyCode, string $replyText, string $exchange, string $routingKey) => throw new RuntimeException(sprintf('Message was returned as unroutable by RabbitMQ instance (%d %s) for exchange `%s` and routing key `%s`.', $replyCode, $replyText, $exchange, $routingKey)));
                 $context->getExtChannel()->setConfirmCallback(
                     function (int $deliveryTag, bool $multiple) use ($confirmations): bool {
                         $confirmations->recordConfirmation($deliveryTag, $multiple);
@@ -78,7 +80,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
 
     public function getConnectionInstanceId(): string
     {
-        return get_class($this->connectionFactory) . $this->connectionInstanceId;
+        return get_class($this->connectionFactory) . $this->connectionInstanceId . ($this->publisherConfirms ? '.confirms' : '');
     }
 
     /**

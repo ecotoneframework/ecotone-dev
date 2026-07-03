@@ -94,12 +94,12 @@ class DbalProducer implements Producer
             foreach (array_chunk($records, self::BATCH_INSERT_CHUNK_SIZE) as $recordsChunk) {
                 $rowsAffected += $this->insertRecords($recordsChunk);
             }
-
-            if (count($records) !== $rowsAffected) {
-                throw new Exception('The batch was not enqueued. Dbal did not confirm that all records are inserted.');
-            }
         } catch (\Exception $e) {
             throw new Exception('The transport fails to send the message due to some internal error.', 0, $e);
+        }
+
+        if (count($records) !== $rowsAffected) {
+            throw new Exception('The batch was not enqueued. Dbal did not confirm that all records are inserted.');
         }
     }
 

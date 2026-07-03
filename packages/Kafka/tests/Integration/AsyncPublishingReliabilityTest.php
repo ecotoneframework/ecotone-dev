@@ -6,6 +6,7 @@ namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
+use Ecotone\Kafka\Outbound\MessagePublishingException;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -42,6 +43,26 @@ final class AsyncPublishingReliabilityTest extends TestCase
         $this->expectException(AsyncPublishingFailedException::class);
 
         $future->resolve();
+    }
+
+    public function test_broker_rejected_message_fails_plain_synchronous_publisher(): void
+    {
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
+                        ->setConfiguration('message.max.bytes', '4000000'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $publisher = $messaging->getGateway(MessagePublisher::class);
+
+        $this->expectException(MessagePublishingException::class);
+
+        $publisher->send(str_repeat('x', 2_000_000));
     }
 
     private function bootstrapPublisher(): MessagePublisher

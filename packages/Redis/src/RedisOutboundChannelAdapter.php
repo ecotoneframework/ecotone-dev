@@ -109,6 +109,24 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             }
         }
 
+        if (count($immediatePayloads) === 1 && $delayedEntries === []) {
+            $queueLength = $context->getRedis()->lpush($this->queueName, $immediatePayloads[0]);
+            if ($queueLength < 1) {
+                throw new RuntimeException(sprintf('Redis did not confirm publishing message to queue %s.', $this->queueName));
+            }
+
+            return;
+        }
+
+        if ($immediatePayloads === [] && count($delayedEntries) === 1) {
+            $addedMessages = $context->getRedis()->zadd($this->queueName . ':delayed', $delayedEntries[0]['payload'], $delayedEntries[0]['score']);
+            if ($addedMessages !== 1) {
+                throw new RuntimeException(sprintf('Redis did not confirm publishing delayed message to queue %s.', $this->queueName));
+            }
+
+            return;
+        }
+
         $arguments = [count($immediatePayloads), ...$immediatePayloads];
         foreach ($delayedEntries as $delayedEntry) {
             $arguments[] = $delayedEntry['score'];

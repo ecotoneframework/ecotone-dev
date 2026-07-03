@@ -43,21 +43,25 @@ final class DeliveryFuture implements Future
 
         $this->resolved = true;
         $failedDeliveries = [];
-        try {
-            foreach ($this->pendingDeliveries as $pendingDelivery) {
-                if ($pendingDelivery->isAwaited()) {
-                    continue;
-                }
-
+        $awaitFailure = null;
+        foreach ($this->pendingDeliveries as $pendingDelivery) {
+            try {
                 $deliveryResult = $pendingDelivery->awaitDelivery();
-                if (! $deliveryResult->isSuccessful()) {
-                    $failedDeliveries = array_merge($failedDeliveries, $deliveryResult->getFailedDeliveries());
-                }
+            } catch (Throwable $exception) {
+                $awaitFailure ??= $exception;
+
+                continue;
             }
-        } catch (Throwable $exception) {
-            $this->failure = $exception instanceof AsyncPublishingFailedException
-                ? $exception
-                : new AsyncPublishingFailedException(sprintf('Awaiting delivery confirmation failed: %s', $exception->getMessage()), 0, $exception);
+
+            if (! $deliveryResult->isSuccessful()) {
+                $failedDeliveries = array_merge($failedDeliveries, $deliveryResult->getFailedDeliveries());
+            }
+        }
+
+        if ($awaitFailure !== null) {
+            $this->failure = $awaitFailure instanceof AsyncPublishingFailedException && $failedDeliveries === []
+                ? $awaitFailure
+                : new AsyncPublishingFailedException(sprintf('Awaiting delivery confirmation failed: %s', $awaitFailure->getMessage()), 0, $awaitFailure);
 
             throw $this->failure;
         }
@@ -67,7 +71,5 @@ final class DeliveryFuture implements Future
 
             throw $this->failure;
         }
-
-
     }
 }

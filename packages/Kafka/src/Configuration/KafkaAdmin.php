@@ -127,14 +127,12 @@ final class KafkaAdmin
             $conf = $configuration->getAsKafkaConfig();
             $conf->set('metadata.broker.list', implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
             $this->setLoggerCallbacks($conf, $referenceName);
-            if ($configuration->isAsyncPublishingEnabled()) {
-                $deliveryTracker = $this->getDeliveryTracker($referenceName);
-                $conf->setDrMsgCb(
-                    function ($producer, $kafkaMessage) use ($deliveryTracker): void {
-                        $deliveryTracker->recordDeliveryReport($kafkaMessage);
-                    }
-                );
-            }
+            $deliveryTracker = $this->getDeliveryTracker($referenceName);
+            $conf->setDrMsgCb(
+                function ($producer, $kafkaMessage) use ($deliveryTracker): void {
+                    $deliveryTracker->recordDeliveryReport($kafkaMessage);
+                }
+            );
             $producer = new Producer($conf);
             $producer->addBrokers(implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
 

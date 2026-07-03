@@ -115,6 +115,53 @@ final class SqsPendingDeliveryTest extends TestCase
         $this->assertSame(1, $dispatchedRequests);
     }
 
+    public function test_synchronously_throwing_dispatcher_marks_only_its_messages_failed_and_dispatches_remaining_requests(): void
+    {
+        $secondDispatcherInvocations = 0;
+        $pendingDelivery = new SqsPendingDelivery(
+            [
+                fn () => throw new RuntimeException('curl init failed'),
+                function () use (&$secondDispatcherInvocations) {
+                    $secondDispatcherInvocations++;
+
+                    return new FulfilledPromise(new Result(['Successful' => [['Id' => '0', 'MessageId' => 'second-id']]]));
+                },
+            ],
+            [
+                ['0' => MessageBuilder::withPayload('first order')->build()],
+                ['0' => MessageBuilder::withPayload('second order')->build()],
+            ],
+            'orders',
+        );
+
+        $deliveryResult = $pendingDelivery->awaitDelivery();
+
+        $this->assertSame(1, $secondDispatcherInvocations);
+        $this->assertCount(1, $deliveryResult->getFailedDeliveries());
+        $this->assertSame('first order', $deliveryResult->getFailedDeliveries()[0]->getMessage()->getPayload());
+        $this->assertStringContainsString('curl init failed', $deliveryResult->getFailedDeliveries()[0]->getFailureReason());
+    }
+
+    public function test_second_await_returns_memoized_result_without_redispatching_requests(): void
+    {
+        $dispatchedRequests = 0;
+        $pendingDelivery = new SqsPendingDelivery(
+            [function () use (&$dispatchedRequests) {
+                $dispatchedRequests++;
+
+                return new FulfilledPromise(new Result(['Successful' => [['Id' => '0', 'MessageId' => 'aws-message-id']]]));
+            }],
+            [['0' => MessageBuilder::withPayload('order')->build()]],
+            'orders',
+        );
+
+        $firstResult = $pendingDelivery->awaitDelivery();
+        $secondResult = $pendingDelivery->awaitDelivery();
+
+        $this->assertSame(1, $dispatchedRequests);
+        $this->assertSame($firstResult, $secondResult);
+    }
+
     public function test_all_requests_are_dispatched_even_when_earlier_request_is_rejected(): void
     {
         $dispatchedRequests = 0;

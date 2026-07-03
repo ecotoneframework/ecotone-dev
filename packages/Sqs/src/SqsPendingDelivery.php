@@ -12,6 +12,7 @@ use Ecotone\Messaging\Channel\AsyncPublishing\PendingDelivery;
 use Ecotone\Messaging\Message;
 use GuzzleHttp\Promise\Each;
 use GuzzleHttp\Promise\PromiseInterface;
+use GuzzleHttp\Promise\RejectedPromise;
 use Throwable;
 
 /**
@@ -22,6 +23,8 @@ final class SqsPendingDelivery implements PendingDelivery
     public const DEFAULT_MAX_CONCURRENT_REQUESTS = 25;
 
     private bool $awaited = false;
+
+    private ?DeliveryResult $deliveryResult = null;
 
     /**
      * @param Closure[] $sendRequestDispatchers each returns a PromiseInterface when invoked, so requests are dispatched lazily with bounded concurrency
@@ -37,9 +40,12 @@ final class SqsPendingDelivery implements PendingDelivery
 
     public function awaitDelivery(): DeliveryResult
     {
-        $this->awaited = true;
+        if ($this->deliveryResult !== null) {
+            return $this->deliveryResult;
+        }
 
         $settledResults = $this->dispatchWithBoundedConcurrency();
+        $this->awaited = true;
 
         $failedDeliveries = [];
         foreach ($this->trackedMessagesPerRequest as $requestIndex => $trackedMessages) {
@@ -87,9 +93,9 @@ final class SqsPendingDelivery implements PendingDelivery
             }
         }
 
-        return $failedDeliveries === []
+        return $this->deliveryResult = ($failedDeliveries === []
             ? DeliveryResult::successful()
-            : DeliveryResult::withFailedDeliveries($failedDeliveries);
+            : DeliveryResult::withFailedDeliveries($failedDeliveries));
     }
 
     public function isAwaited(): bool
@@ -105,7 +111,13 @@ final class SqsPendingDelivery implements PendingDelivery
         $settledResults = [];
         $sendRequestPromises = (function () use (&$settledResults) {
             foreach ($this->sendRequestDispatchers as $requestIndex => $dispatchSendRequest) {
-                yield $dispatchSendRequest()->then(
+                try {
+                    $sendRequestPromise = $dispatchSendRequest();
+                } catch (Throwable $dispatchFailure) {
+                    $sendRequestPromise = new RejectedPromise($dispatchFailure);
+                }
+
+                yield $sendRequestPromise->then(
                     function (mixed $value) use (&$settledResults, $requestIndex): void {
                         $settledResults[$requestIndex] = ['state' => PromiseInterface::FULFILLED, 'value' => $value];
                     },

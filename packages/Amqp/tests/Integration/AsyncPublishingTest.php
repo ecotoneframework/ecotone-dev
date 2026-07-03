@@ -106,6 +106,9 @@ final class AsyncPublishingTest extends AmqpMessagingTestCase
 
     public function test_message_publisher_async_publish_confirms_delivery_on_future_resolve(): void
     {
+        $queueName = Uuid::v7()->toRfc4122();
+        $context = self::getRabbitConnectionFactory()->createContext();
+        $context->declareQueue($context->createQueue($queueName));
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [],
             [...$this->getConnectionFactoryReferences()],
@@ -114,7 +117,7 @@ final class AsyncPublishingTest extends AmqpMessagingTestCase
                 ->withExtensionObjects([
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
-                        ->withDefaultRoutingKey(Uuid::v7()->toRfc4122())
+                        ->withDefaultRoutingKey($queueName)
                         ->withAsyncPublishing(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,

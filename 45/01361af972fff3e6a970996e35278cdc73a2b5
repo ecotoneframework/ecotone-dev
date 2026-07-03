@@ -1,0 +1,30 @@
+packages/Dbal/src/DbaBusinessMethod/DbalBusinessMethodHandler.php
+  s_d24dc3ed11e1f9::t_7d663695d627e9 119-120,123-124
+  s_d24dc3ed11e1f9::t_6efb0776283ec4 91
+  s_d24dc3ed11e1f9::t_932680ca8ad210 133-135
+  s_d24dc3ed11e1f9::t_153bd206ba1956 163,165-166
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AttributeExpressionContextExecutor.php
+  s_d24dc3ed11e1f9::t_dc809db432d13b 32
+packages/Dbal/src/Attribute/DbalParameter.php
+  s_d24dc3ed11e1f9::t_3479d37bf0b7d2 22-23,36-47
+  s_d24dc3ed11e1f9::t_aae56cb04cccea 14
+  s_d24dc3ed11e1f9::t_e238b168664506 48
+packages/Dbal/src/DbaBusinessMethod/DbaBusinessMethodModule.php
+  s_d24dc3ed11e1f9::t_50f9475225a9cc 256-263
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "4501361af972fff3e6a970996e35278cdc73a2b5",
+  "prompts": {},
+  "sessions": {
+    "s_d24dc3ed11e1f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6db88ad3-ec31-4a8f-a44e-e648948c9657",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

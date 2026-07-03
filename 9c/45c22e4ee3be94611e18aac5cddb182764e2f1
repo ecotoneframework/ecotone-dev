@@ -1,0 +1,45 @@
+packages/Sqs/src/SqsOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_95820fb36c5650 9-11,14-15,18,25-37,43-46,57-185
+packages/Sqs/tests/Fixture/AsyncPublishing/OrderWasPlaced.php
+  s_1f8e8d18ce67ab::t_5c86a61f823287 1-15
+packages/Sqs/src/SqsPendingDelivery.php
+  s_1f8e8d18ce67ab::t_1d6a9d693f4535 1-63,65-76,78-95
+  s_1f8e8d18ce67ab::t_21afecedf7e61f 77
+  s_1f8e8d18ce67ab::t_86a174a73f2d7d 64
+packages/Sqs/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_72d447a10715b2 1-200
+packages/Sqs/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_1f8e8d18ce67ab::t_ee61b9619294d7 1-87
+packages/Enqueue/src/EnqueueOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_cca75ecfc56e7c 45
+  s_1f8e8d18ce67ab::t_5afefe49bf744e 56,68
+  s_1f8e8d18ce67ab::t_78a168a7465e93 44
+  s_1f8e8d18ce67ab::t_ba3c889726b2fc 46-48,53-55
+  s_1f8e8d18ce67ab::t_80f436f3150cdc 49-52
+packages/Sqs/tests/Unit/SqsPendingDeliveryTest.php
+  s_1f8e8d18ce67ab::t_2e9444a8386ba9 1-97
+packages/Sqs/src/Configuration/SqsMessagePublisherConfiguration.php
+  s_1f8e8d18ce67ab::t_5647b9c2a6faf3 17-18,76-95
+packages/Sqs/src/SqsBackedMessageChannelBuilder.php
+  s_1f8e8d18ce67ab::t_21ea379a8f80b2 35-51
+packages/Sqs/src/Configuration/SqsMessagePublisherModule.php
+  s_1f8e8d18ce67ab::t_6b9d5776ffa49b 9,85,87-88
+packages/Sqs/src/SqsOutboundChannelAdapterBuilder.php
+  s_1f8e8d18ce67ab::t_325f662d0c1872 10,16,24-26,37-51,54-57,79-81
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "9c45c22e4ee3be94611e18aac5cddb182764e2f1",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

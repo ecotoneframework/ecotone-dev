@@ -1,0 +1,26 @@
+Monorepo/Benchmark/AsyncPublishingBenchmark.php
+  s_1f8e8d18ce67ab::t_23971b7b844c74 1-128
+Monorepo/Benchmark/AsyncPublishing/OrderPublisherService.php
+  s_1f8e8d18ce67ab::t_9509d8b28f7608 1-27
+Monorepo/Benchmark/AsyncPublishing/BenchmarkOrderPlaced.php
+  s_1f8e8d18ce67ab::t_b698dd76a874d6 1-12
+.github/workflows/benchmark-pr.yml
+  s_1f8e8d18ce67ab::t_1379443e729e4c 22-38
+  s_1f8e8d18ce67ab::t_64c86875e83947 86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "aa10185639026bfd28e379d8b01960fe72ae3643",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

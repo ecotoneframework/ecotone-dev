@@ -8,36 +8,50 @@ use function array_key_exists;
 
 use Closure;
 use Ecotone\Messaging\Attribute\WithExpression;
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
+use function is_string;
+
 /**
- * Carries attribute together with compiled closure expression bound to plain context variables by parameter name,
- * for evaluation without Message.
+ * Carries attribute together with compiled expression bound to plain context variables,
+ * for evaluation without Message. Closure expressions bind context variables by parameter name,
+ * string expressions evaluate with Expression Language.
  */
 /**
  * licence Enterprise
  */
 final class AttributeExpressionContextExecutor
 {
-    private Closure $expression;
+    private Closure|string $expression;
 
     /**
      * @param array<array{name: string, hasDefaultValue: bool, defaultValue: mixed}> $parameterSpecifications
      */
     public function __construct(
-        WithExpression $attribute,
+        private WithExpression $attribute,
+        private ExpressionEvaluationService $expressionEvaluationService,
         private array $parameterSpecifications,
     ) {
         $expression = $attribute->getExpression();
-        if (! $expression instanceof Closure) {
-            throw InvalidArgumentException::create(sprintf('Expected closure expression inside %s attribute, got %s', get_class($attribute), get_debug_type($expression)));
+        if ($expression === null || $expression === '') {
+            throw InvalidArgumentException::create(sprintf('Attribute %s has no expression to execute', get_class($attribute)));
         }
 
         $this->expression = $expression;
     }
 
+    public function getAttribute(): WithExpression
+    {
+        return $this->attribute;
+    }
+
     public function execute(array $context): mixed
     {
+        if (is_string($this->expression)) {
+            return $this->expressionEvaluationService->evaluateWithContext($this->expression, $context);
+        }
+
         $arguments = [];
         foreach ($this->parameterSpecifications as $index => $parameterSpecification) {
             if (array_key_exists($parameterSpecification['name'], $context)) {

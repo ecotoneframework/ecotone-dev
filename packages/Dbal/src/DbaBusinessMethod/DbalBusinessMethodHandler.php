@@ -10,11 +10,13 @@ use Doctrine\DBAL\ParameterType;
 use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionContextExecutor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\GenericType;
 use Ecotone\Messaging\Handler\Type\UnionType;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\Dbal\DbalContext;
 use Generator;
@@ -88,7 +90,7 @@ final class DbalBusinessMethodHandler
      */
     private function prepareExecution(string $sql, array $headers): array
     {
-        /** @var array<string, DbalParameter|DbalParameterWithCompiledExpression> $parameterTypes */
+        /** @var array<string, DbalParameter|AttributeExpressionContextExecutor> $parameterTypes */
         $parameterTypes = [];
         foreach ($headers as $headerName => $headerValue) {
             if (str_starts_with($headerName, self::HEADER_PARAMETER_TYPE_PREFIX)) {
@@ -116,12 +118,13 @@ final class DbalBusinessMethodHandler
                 unset($parameterTypes[$parameterName]);
 
                 $parameterValue = $this->getParameterValue($dbalParameter, ['payload' => $parameterValue], $parameterValue);
-                if ($dbalParameter->getName()) {
-                    $parameterName = $dbalParameter->getName();
+                $dbalParameterAttribute = $this->dbalParameterAttributeOf($dbalParameter);
+                if ($dbalParameterAttribute->getName()) {
+                    $parameterName = $dbalParameterAttribute->getName();
                 }
 
-                if ($dbalParameter->getType()) {
-                    $preparedParameterTypes[$parameterName] = $dbalParameter->getType();
+                if ($dbalParameterAttribute->getType()) {
+                    $preparedParameterTypes[$parameterName] = $dbalParameterAttribute->getType();
                 }
             }
 
@@ -130,9 +133,10 @@ final class DbalBusinessMethodHandler
 
         /** Class/Method leve DbalParameters */
         foreach ($parameterTypes as $dbalParameter) {
-            $preparedParameters[$dbalParameter->getName()] = $this->getParameterValue($dbalParameter, $originalParameters, null);
-            if ($dbalParameter->getType()) {
-                $preparedParameterTypes[$dbalParameter->getName()] = $dbalParameter->getType();
+            $dbalParameterAttribute = $this->dbalParameterAttributeOf($dbalParameter);
+            $preparedParameters[$dbalParameterAttribute->getName()] = $this->getParameterValue($dbalParameter, $originalParameters, null);
+            if ($dbalParameterAttribute->getType()) {
+                $preparedParameterTypes[$dbalParameterAttribute->getName()] = $dbalParameterAttribute->getType();
             }
         }
 
@@ -160,12 +164,11 @@ final class DbalBusinessMethodHandler
     /**
      * @param array<string, mixed> $context
      */
-    private function getParameterValue(DbalParameter|DbalParameterWithCompiledExpression $dbalParameter, array $context, mixed $parameterValue): mixed
+    private function getParameterValue(DbalParameter|AttributeExpressionContextExecutor $dbalParameter, array $context, mixed $parameterValue): mixed
     {
-        if ($dbalParameter instanceof DbalParameterWithCompiledExpression) {
-            $parameterValue = $dbalParameter->getExecutor()->execute($context);
-        } elseif ($dbalParameter->getExpression()) {
-            $parameterValue = $this->expressionEvaluationService->evaluateWithContext($dbalParameter->getExpression(), $context);
+        if ($dbalParameter instanceof AttributeExpressionContextExecutor) {
+            $parameterValue = $dbalParameter->execute($context);
+            $dbalParameter = $this->dbalParameterAttributeOf($dbalParameter);
         }
 
         if ($dbalParameter->getConvertToMediaType()) {
@@ -179,6 +182,18 @@ final class DbalBusinessMethodHandler
         }
 
         return $this->getParameterValueWithDefaultConversion($parameterValue);
+    }
+
+    private function dbalParameterAttributeOf(DbalParameter|AttributeExpressionContextExecutor $dbalParameter): DbalParameter
+    {
+        if ($dbalParameter instanceof DbalParameter) {
+            return $dbalParameter;
+        }
+
+        $attribute = $dbalParameter->getAttribute();
+        Assert::isTrue($attribute instanceof DbalParameter, sprintf('Expected %s attribute, got %s', DbalParameter::class, get_class($attribute)));
+
+        return $attribute;
     }
 
     private function autoResolveTypesIfNeeded(array $preparedParameters, array $preparedParameterTypes): array

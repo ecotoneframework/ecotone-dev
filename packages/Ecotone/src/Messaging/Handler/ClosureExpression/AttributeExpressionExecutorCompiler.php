@@ -21,6 +21,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ValueBuilder;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Support\Assert;
 use ReflectionFunction;
 use ReflectionParameter;
 
@@ -31,9 +32,21 @@ final class AttributeExpressionExecutorCompiler
 {
     /**
      * Compiles attribute expression into container definition with all closure parameter converters resolved at build time.
+     * Declaration may be omitted only for string expressions, where attribute is serializable as it is.
      */
-    public static function compile(WithExpression $attributeWithExpression, AttributeDeclaration $attributeDeclaration): Definition
+    public static function compile(WithExpression $attributeWithExpression, ?AttributeDeclaration $attributeDeclaration): Definition
     {
+        if ($attributeDeclaration === null) {
+            Assert::isFalse($attributeWithExpression->getExpression() instanceof Closure, sprintf('Closure expression inside %s attribute requires attribute declaration to compile.', get_class($attributeWithExpression)));
+
+            return self::executorDefinition(
+                AttributeDefinition::fromObject($attributeWithExpression),
+                $attributeWithExpression->getExpression(),
+                get_class($attributeWithExpression),
+                null,
+            );
+        }
+
         return self::executorDefinition(
             $attributeDeclaration->toAttributeDefinition(),
             $attributeWithExpression->getExpression(),
@@ -43,21 +56,25 @@ final class AttributeExpressionExecutorCompiler
     }
 
     /**
-     * Compiles closure expression bound to plain context variables by parameter name, for evaluation without Message.
+     * Compiles attribute expression bound to plain context variables, for evaluation without Message.
      */
-    public static function compileForContext(Closure $expression, AttributeDeclaration $attributeDeclaration): Definition
+    public static function compileForContext(WithExpression $attributeWithExpression, AttributeDeclaration $attributeDeclaration): Definition
     {
         $parameterSpecifications = [];
-        foreach ((new ReflectionFunction($expression))->getParameters() as $reflectionParameter) {
-            $parameterSpecifications[] = [
-                'name' => $reflectionParameter->getName(),
-                'hasDefaultValue' => $reflectionParameter->isDefaultValueAvailable(),
-                'defaultValue' => $reflectionParameter->isDefaultValueAvailable() ? $reflectionParameter->getDefaultValue() : null,
-            ];
+        $expression = $attributeWithExpression->getExpression();
+        if ($expression instanceof Closure) {
+            foreach ((new ReflectionFunction($expression))->getParameters() as $reflectionParameter) {
+                $parameterSpecifications[] = [
+                    'name' => $reflectionParameter->getName(),
+                    'hasDefaultValue' => $reflectionParameter->isDefaultValueAvailable(),
+                    'defaultValue' => $reflectionParameter->isDefaultValueAvailable() ? $reflectionParameter->getDefaultValue() : null,
+                ];
+            }
         }
 
         return new Definition(AttributeExpressionContextExecutor::class, [
             $attributeDeclaration->toAttributeDefinition(),
+            Reference::to(ExpressionEvaluationService::REFERENCE),
             $parameterSpecifications,
         ]);
     }

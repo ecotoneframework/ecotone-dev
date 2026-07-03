@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\DbaBusinessMethod;
 
-use Closure;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Attribute\DbalParameter;
@@ -242,8 +241,7 @@ final class DbaBusinessMethodModule implements AnnotationModule
 
     private static function dbalParameterHeaderValue(DbalParameter $dbalParameterAttribute, InterfaceToCall $interface, ?string $methodName, ?string $parameterName, int $index): mixed
     {
-        $expression = $dbalParameterAttribute->getExpression();
-        if (! $expression instanceof Closure) {
+        if ($dbalParameterAttribute->getExpression() === null) {
             return $dbalParameterAttribute;
         }
 
@@ -255,12 +253,7 @@ final class DbaBusinessMethodModule implements AnnotationModule
             $index,
         );
 
-        return new Definition(DbalParameterWithCompiledExpression::class, [
-            $dbalParameterAttribute->getName(),
-            $dbalParameterAttribute->getType(),
-            $dbalParameterAttribute->getConvertToMediaType(),
-            AttributeExpressionExecutorCompiler::compileForContext($expression, $attributeDeclaration),
-        ]);
+        return AttributeExpressionExecutorCompiler::compileForContext($dbalParameterAttribute, $attributeDeclaration);
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

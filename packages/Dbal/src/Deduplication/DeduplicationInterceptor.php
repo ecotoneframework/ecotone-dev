@@ -13,7 +13,6 @@ use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ClosureExpression\ExecutorFor;
-use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
@@ -43,7 +42,6 @@ class DeduplicationInterceptor
         int $minimumTimeToRemoveMessageInMilliseconds,
         private int $deduplicationRemovalBatchSize,
         private LoggingGateway $logger,
-        private ExpressionEvaluationService $expressionEvaluationService,
         private DeduplicationTableManager $tableManager,
     ) {
         $this->minimumTimeToRemoveMessage = Duration::milliseconds($minimumTimeToRemoveMessageInMilliseconds);

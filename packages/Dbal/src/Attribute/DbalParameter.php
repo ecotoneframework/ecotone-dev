@@ -11,6 +11,7 @@ use Doctrine\DBAL\ParameterType;
 use Ecotone\Messaging\Attribute\WithExpression;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionContextExecutor;
 
 #[Attribute(Attribute::TARGET_PARAMETER | Attribute::TARGET_METHOD | Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
 /**
@@ -18,6 +19,8 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class DbalParameter implements DefinedObject, WithExpression
 {
+    private ?AttributeExpressionContextExecutor $expressionExecutor = null;
+
     /**
      * @param int|ArrayParameterType|ParameterType|null $type One of the \Doctrine\DBAL\ParameterType::* or \Doctrine\DBAL\ArrayParameterType constants
      */
@@ -28,6 +31,19 @@ final class DbalParameter implements DefinedObject, WithExpression
         private ?string $convertToMediaType = null,
         private bool $ignored = false
     ) {
+    }
+
+    public static function withExpressionExecutor(self $dbalParameter, AttributeExpressionContextExecutor $expressionExecutor): self
+    {
+        $dbalParameter = clone $dbalParameter;
+        $dbalParameter->expressionExecutor = $expressionExecutor;
+
+        return $dbalParameter;
+    }
+
+    public function getExpressionExecutor(): ?AttributeExpressionContextExecutor
+    {
+        return $this->expressionExecutor;
     }
 
     public function getHeaderName(): string

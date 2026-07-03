@@ -29,7 +29,7 @@ final class AttributeExpressionContextExecutor
      * @param array<array{name: string, hasDefaultValue: bool, defaultValue: mixed}> $parameterSpecifications
      */
     public function __construct(
-        private WithExpression $attribute,
+        WithExpression $attribute,
         private ExpressionEvaluationService $expressionEvaluationService,
         private array $parameterSpecifications,
     ) {
@@ -39,11 +39,6 @@ final class AttributeExpressionContextExecutor
         }
 
         $this->expression = $expression;
-    }
-
-    public function getAttribute(): WithExpression
-    {
-        return $this->attribute;
     }
 
     public function execute(array $context): mixed

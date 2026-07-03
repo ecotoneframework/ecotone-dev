@@ -253,7 +253,14 @@ final class DbaBusinessMethodModule implements AnnotationModule
             $index,
         );
 
-        return AttributeExpressionExecutorCompiler::compileForContext($dbalParameterAttribute, $attributeDeclaration);
+        return new Definition(
+            DbalParameter::class,
+            [
+                $attributeDeclaration->toAttributeDefinition(),
+                AttributeExpressionExecutorCompiler::compileForContext($dbalParameterAttribute, $attributeDeclaration),
+            ],
+            [DbalParameter::class, 'withExpressionExecutor'],
+        );
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

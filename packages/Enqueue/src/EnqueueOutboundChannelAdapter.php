@@ -96,7 +96,7 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         return $this->outboundMessageConverter->prepare($message, $this->conversionService);
     }
 
-    private function sendSingleMessage(Message $message, Context $context): void
+    protected function sendSingleMessage(Message $message, Context $context): void
     {
         $outboundMessage                       = $this->prepareOutboundMessage($message);
         $headers                               = $outboundMessage->getHeaders();

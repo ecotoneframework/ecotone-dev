@@ -57,12 +57,6 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
     public function handle(Message $message): void
     {
-        if (! $this->asyncPublishing) {
-            parent::handle($message);
-
-            return;
-        }
-
         /** @var SqsContext $context */
         $context = $this->createOutboundContext();
 
@@ -84,7 +78,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
         $pendingDelivery = new SqsPendingDelivery($sendRequestPromises, $trackedMessagesPerRequest, $this->queueName);
 
-        if ($this->asyncPublishingRegistry->isScopeActive()) {
+        if ($this->asyncPublishing && $this->asyncPublishingRegistry->isScopeActive()) {
             $this->asyncPublishingRegistry->register($this->queueName, $pendingDelivery);
 
             return;

@@ -68,21 +68,7 @@ class DbalProducer implements Producer
      */
     public function send(Destination $destination, Message $message): void
     {
-        InvalidDestinationException::assertDestinationInstanceOf($destination, DbalDestination::class);
-        InvalidMessageException::assertMessageInstanceOf($message, DbalMessage::class);
-
-        $this->applyProducerDefaults($message);
-        $record = $this->createRecord($destination, $message);
-
-        try {
-            $rowsAffected = $this->context->getDbalConnection()->insert($this->context->getTableName(), $record, self::COLUMN_TYPES);
-
-            if (1 !== $rowsAffected) {
-                throw new Exception('The message was not enqueued. Dbal did not confirm that the record is inserted.');
-            }
-        } catch (\Exception $e) {
-            throw new Exception('The transport fails to send the message due to some internal error.', 0, $e);
-        }
+        $this->sendBatch($destination, [$message]);
     }
 
     /**

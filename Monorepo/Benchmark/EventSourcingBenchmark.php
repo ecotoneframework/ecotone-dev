@@ -27,7 +27,7 @@ class EventSourcingBenchmark extends FullAppBenchmarkCase
     {
         return ModulePackageList::allPackagesExcept([
             ModulePackageList::EVENT_SOURCING_PACKAGE,
-            ModulePackageList::JMS_CONVERTER_PACKAGE
+            ModulePackageList::JMS_CONVERTER_PACKAGE,
         ]);
     }
 

@@ -1,5 +1,5 @@
 {
-  "$schema":"./vendor/phpbench/phpbench/phpbench.schema.json",
+  "$schema": "./vendor/phpbench/phpbench/phpbench.schema.json",
   "runner.bootstrap": "./vendor/autoload.php",
   "runner.file_pattern": "*Benchmark.php",
   "runner.path": "Monorepo/Benchmark",
@@ -9,7 +9,8 @@
     "opcache_disabled": {
       "runner.php_config": {
         "opcache.enable": 0,
-        "opcache.enable_cli": 0
+        "opcache.enable_cli": 0,
+        "display_errors": "0"
       }
     },
     "opcache_enabled": {
@@ -20,15 +21,31 @@
         "opcache.validate_timestamps": 0,
         "opcache.max_accelerated_files": 20000,
         "opcache.memory_consumption": 256,
-        "opcache.jit_buffer_size": "0"
+        "opcache.jit_buffer_size": "0",
+        "display_errors": "0"
       }
     }
   },
   "report.generators": {
     "github-report": {
       "generator": "expression",
-      "aggregate": ["benchmark_class", "subject_name", "variant_name"],
-      "cols": ["benchmark", "subject", "revs", "its", "mem_peak", "mode", "rstdev"]
+      "aggregate": [
+        "benchmark_class",
+        "subject_name",
+        "variant_name"
+      ],
+      "cols": [
+        "benchmark",
+        "subject",
+        "revs",
+        "its",
+        "mem_peak",
+        "mode",
+        "rstdev"
+      ]
     }
+  },
+  "runner.php_config": {
+    "display_errors": "0"
   }
 }

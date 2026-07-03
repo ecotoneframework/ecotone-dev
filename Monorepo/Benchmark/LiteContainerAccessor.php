@@ -3,6 +3,7 @@
 namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Exception;
 use Psr\Container\ContainerInterface;
 
 class LiteContainerAccessor implements ContainerInterface
@@ -18,6 +19,6 @@ class LiteContainerAccessor implements ContainerInterface
 
     public function has(string $id): bool
     {
-        throw new \Exception("Not implemented");
+        throw new Exception('Not implemented');
     }
 }

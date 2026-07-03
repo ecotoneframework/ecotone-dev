@@ -2,13 +2,13 @@
 
 namespace Monorepo\Benchmark;
 
+use Closure;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\CommandBus;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
@@ -81,25 +81,25 @@ class ProjectingBenchmark
         self::deleteProophProjection();
     }
 
-    #[BeforeMethods("setUp")]
+    #[BeforeMethods('setUp')]
     public function bench_ecotone_projection(): void
     {
         self::execute(self::$ecotone);
     }
 
-    #[BeforeMethods("setUp")]
+    #[BeforeMethods('setUp')]
     public function bench_prooph_projection(): void
     {
         self::execute(self::$prooph);
     }
 
-    #[BeforeMethods("setUp")]
+    #[BeforeMethods('setUp')]
     public function bench_ecotone_projection_with_deletion(): void
     {
         self::executeWithDeletion(self::$ecotone, self::deleteEcotoneProjection(...));
     }
 
-    #[BeforeMethods("setUp")]
+    #[BeforeMethods('setUp')]
     public function bench_prooph_projection_with_deletion(): void
     {
         self::executeWithDeletion(self::$prooph, self::deleteProophProjection(...));
@@ -132,7 +132,7 @@ class ProjectingBenchmark
         Assert::assertEquals([new PriceChange(100, 0), new PriceChange(120, 20)], $queryBus->sendWithRouting('product.getPriceChange', $productId), 'Price change should equal to 0 after registration');
     }
 
-    private static function executeWithDeletion(ConfiguredMessagingSystem $messagingSystem, \Closure $deleteProjection): void
+    private static function executeWithDeletion(ConfiguredMessagingSystem $messagingSystem, Closure $deleteProjection): void
     {
         $commandBus = $messagingSystem->getCommandBus();
         $queryBus = $messagingSystem->getQueryBus();
@@ -150,11 +150,12 @@ class ProjectingBenchmark
         Assert::assertEquals([
             new PriceChange(100, 0),
             new PriceChange(120, 20),
-            new PriceChange(130, 10)
+            new PriceChange(130, 10),
         ], $queryBus->sendWithRouting('product.getPriceChange', $productId), 'Price changes should be projected again after deletion');
     }
 
-    public function fill(): void {
+    public function fill(): void
+    {
         $commandBus = self::$ecotone->getCommandBus();
         self::$expectedProductIds = [];
         for ($i = 0; $i < 100; $i++) {
@@ -165,40 +166,44 @@ class ProjectingBenchmark
         }
     }
 
-    #[BeforeMethods(["setUp", "fill"])]
+    #[BeforeMethods(['setUp', 'fill'])]
     #[Iterations(1), Warmup(0)]
     public function bench_ecotone_projection_backfill(): void
     {
         $projectionManager = self::$ecotone->getServiceFromContainer(ProjectionRegistry::class)->get(PriceChangeOverTimeProjectionWithEcotoneProjection::NAME);
         $projectionManager->delete();
-        Assert::assertEquals([],
+        Assert::assertEquals(
+            [],
             self::$ecotone->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])
         );
         $projectionManager->prepareBackfill();
-        Assert::assertEquals([
-            new PriceChange(100, 0),
-            new PriceChange(120, 20),
-            new PriceChange(130, 10),
-        ],
+        Assert::assertEquals(
+            [
+                new PriceChange(100, 0),
+                new PriceChange(120, 20),
+                new PriceChange(130, 10),
+            ],
             self::$ecotone->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])
         );
     }
 
-    #[BeforeMethods(["setUp", "fill"])]
+    #[BeforeMethods(['setUp', 'fill'])]
     #[Iterations(1), Warmup(0)]
     public function bench_prooph_projection_backfill(): void
     {
         $projectionManager = self::$prooph->getServiceFromContainer(ProjectionManager::class);
         $projectionManager->deleteProjection(PriceChangeOverTimeProjection::NAME);
-        Assert::assertEquals([],
+        Assert::assertEquals(
+            [],
             self::$prooph->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])
         );
         $projectionManager->triggerProjection(PriceChangeOverTimeProjection::NAME);
-        Assert::assertEquals([
-            new PriceChange(100, 0),
-            new PriceChange(120, 20),
-            new PriceChange(130, 10),
-        ],
+        Assert::assertEquals(
+            [
+                new PriceChange(100, 0),
+                new PriceChange(120, 20),
+                new PriceChange(130, 10),
+            ],
             self::$prooph->getQueryBus()->sendWithRouting('product.getPriceChange', self::$expectedProductIds[0])
         );
     }

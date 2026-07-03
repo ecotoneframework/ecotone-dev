@@ -1,0 +1,58 @@
+packages/Kafka/src/Outbound/KafkaPendingDelivery.php
+  s_1f8e8d18ce67ab::t_9f40b461b1f544 1-42
+packages/Kafka/src/Configuration/KafkaModule.php
+  s_1f8e8d18ce67ab::t_ed5c8cb897b34c 114-115
+packages/Kafka/src/Channel/KafkaMessageChannelBuilder.php
+  s_1f8e8d18ce67ab::t_57f6c4a33e1e80 121-140
+  s_1f8e8d18ce67ab::t_db223add7ed710 28-29
+packages/Kafka/src/Configuration/KafkaPublisherConfiguration.php
+  s_1f8e8d18ce67ab::t_bb494070c254d1 23-24,35-36
+  s_1f8e8d18ce67ab::t_f756351796418a 106-125
+  s_1f8e8d18ce67ab::t_b9013166457e94 165-166
+packages/Kafka/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_1b2b49f8b5ce5a 1-119
+packages/Kafka/src/Outbound/KafkaDeliveryTracker.php
+  s_1f8e8d18ce67ab::t_238a4780416718 1-67
+packages/Kafka/src/Configuration/KafkaAdmin.php
+  s_1f8e8d18ce67ab::t_ae865cb7f454ae 130-137
+  s_1f8e8d18ce67ab::t_73c4c58505b6ae 33-36
+  s_1f8e8d18ce67ab::t_74659fe1fec5e3 8
+  s_1f8e8d18ce67ab::t_48360564fabcc1 147-151
+  s_1f8e8d18ce67ab::t_34777bc5799663 32
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_95361c1577eb2e 10-11,17,20-21,32-33,44-92,108-111,122-148,150,152-153
+packages/Kafka/src/Channel/KafkaMessageChannel.php
+  s_1f8e8d18ce67ab::t_b62408147abdc6 10,18,27-29
+  s_a16ddb5757fc36::t_ce42722cf6b0bc 30-31
+packages/Ecotone/src/Messaging/Channel/PollableChannel/Serialization/OutboundSerializationChannelInterceptor.php
+  s_1f8e8d18ce67ab::t_35c0e3eb5967ee 7
+  s_1f8e8d18ce67ab::t_861e28a3aa8eec 36-37
+  s_a16ddb5757fc36::t_d7c8725f978fb9 34-35
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapterBuilder.php
+  s_1f8e8d18ce67ab::t_e2f478ecb9ef98 8
+  s_1f8e8d18ce67ab::t_4894f911cad133 103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "3459b7af6bd43d52a29f0fe23825ef33459fe49a",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    },
+    "s_a16ddb5757fc36": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "aa93eeff-c6e0-4d82-acce-70b7bb5b8939",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

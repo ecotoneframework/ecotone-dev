@@ -1,0 +1,33 @@
+packages/Ecotone/tests/Messaging/Unit/Channel/BatchMessageSendingTest.php
+  s_1f8e8d18ce67ab::t_594423d0e36324 15
+  s_1f8e8d18ce67ab::t_179e13d6275b4c 1-14,16-58
+packages/Ecotone/src/Messaging/BatchMessage.php
+  s_1f8e8d18ce67ab::t_483ae55a73c07f 1-48
+packages/Ecotone/src/Messaging/Channel/Collector/CollectorSenderInterceptor.php
+  s_1f8e8d18ce67ab::t_828d4d9962ca3e 9,15
+  s_1f8e8d18ce67ab::t_4d3a1bf73ec83f 46-48
+  s_1f8e8d18ce67ab::t_2f80eea5ee8f89 61-76
+packages/Ecotone/tests/Messaging/Unit/BatchMessageTest.php
+  s_1f8e8d18ce67ab::t_0dbcf343859e9e 1-12,14-39
+  s_1f8e8d18ce67ab::t_594423d0e36324 13
+packages/Ecotone/src/Messaging/Channel/SendingInterceptorAdapter.php
+  s_1f8e8d18ce67ab::t_6c26396b5040aa 113-123
+  s_1f8e8d18ce67ab::t_6b0f2ac221c32b 7,11
+  s_1f8e8d18ce67ab::t_f43b17022523c5 53-58
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "473825a2bbe0acbbd72f6d0b024cb97cbea26919",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

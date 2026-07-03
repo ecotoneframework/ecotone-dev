@@ -6,6 +6,7 @@ namespace Ecotone\Sqs\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Channel\AsyncPublishing\Config\AsyncPublishGatewayRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -81,7 +82,10 @@ final class SqsMessagePublisherModule extends NoExternalConfigurationModule impl
                         ->withAutoDeclareOnSend($messagePublisher->isAutoDeclareOnSend())
                         ->withHeaderMapper($messagePublisher->getHeaderMapper())
                         ->withDefaultConversionMediaType($mediaType)
+                        ->withAsyncPublishing($messagePublisher->isAsyncPublishingEnabled(), $messagePublisher->getAsyncPublishingTimeout())
                 );
+
+            AsyncPublishGatewayRegistration::registerFor($messagingConfiguration, $messagePublisher->getReferenceName(), $messagePublisher->isAsyncPublishingEnabled());
         }
     }
 

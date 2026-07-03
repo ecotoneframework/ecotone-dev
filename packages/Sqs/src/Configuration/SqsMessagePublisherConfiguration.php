@@ -14,6 +14,8 @@ final class SqsMessagePublisherConfiguration
 {
     private bool $autoDeclareOnSend = true;
     private string $headerMapper = '';
+    private bool $asyncPublishing = false;
+    private ?int $asyncPublishingTimeout = null;
 
     private function __construct(private string $connectionReference, private string $queueName, private ?string $outputDefaultConversionMediaType, private string $referenceName)
     {
@@ -70,5 +72,25 @@ final class SqsMessagePublisherConfiguration
     public function getReferenceName(): string
     {
         return $this->referenceName;
+    }
+
+    public function withAsyncPublishing(bool $asyncPublishing = true, ?int $timeoutInMilliseconds = null): self
+    {
+        $this->asyncPublishing = $asyncPublishing;
+        if ($timeoutInMilliseconds !== null) {
+            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        }
+
+        return $this;
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
+    }
+
+    public function getAsyncPublishingTimeout(): ?int
+    {
+        return $this->asyncPublishingTimeout;
     }
 }

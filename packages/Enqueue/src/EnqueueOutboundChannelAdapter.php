@@ -42,6 +42,19 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
 
     public function handle(Message $message): void
     {
+        $context = $this->createOutboundContext();
+
+        if ($message->getPayload() instanceof BatchMessage) {
+            $this->handleBatch($message->getPayload(), $context);
+        } else {
+            $this->sendSingleMessage($message, $context);
+        }
+
+        $this->registerSynchronouslyConfirmedDelivery();
+    }
+
+    protected function createOutboundContext(): Context
+    {
         $context = $this->connectionFactory->createContext();
         if ($this->autoDeclare) {
             $contextId = spl_object_id($context);
@@ -52,13 +65,7 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
             }
         }
 
-        if ($message->getPayload() instanceof BatchMessage) {
-            $this->handleBatch($message->getPayload(), $context);
-        } else {
-            $this->sendSingleMessage($message, $context);
-        }
-
-        $this->registerSynchronouslyConfirmedDelivery();
+        return $context;
     }
 
     protected function registerSynchronouslyConfirmedDelivery(): void

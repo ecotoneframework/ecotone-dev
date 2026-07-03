@@ -7,7 +7,6 @@ namespace Ecotone\Dbal\DbaBusinessMethod;
 use DateTimeInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
-use Ecotone\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
@@ -88,7 +87,7 @@ final class DbalBusinessMethodHandler
      */
     private function prepareExecution(string $sql, array $headers): array
     {
-        /** @var array<string, DbalParameter> $parameterTypes */
+        /** @var array<string, DbalParameterConfig> $parameterTypes */
         $parameterTypes = [];
         foreach ($headers as $headerName => $headerValue) {
             if (str_starts_with($headerName, self::HEADER_PARAMETER_TYPE_PREFIX)) {
@@ -160,7 +159,7 @@ final class DbalBusinessMethodHandler
     /**
      * @param array<string, mixed> $context
      */
-    private function getParameterValue(DbalParameter $dbalParameter, array $context, mixed $parameterValue): mixed
+    private function getParameterValue(DbalParameterConfig $dbalParameter, array $context, mixed $parameterValue): mixed
     {
         if ($dbalParameter->getExpressionExecutor() !== null) {
             $parameterValue = $dbalParameter->getExpressionExecutor()->execute($context);

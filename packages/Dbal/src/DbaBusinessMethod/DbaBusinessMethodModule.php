@@ -211,7 +211,7 @@ final class DbaBusinessMethodModule implements AnnotationModule
 
                 $parameterConverters[$dbalParameterAttribute->getName()] = GatewayHeaderValueBuilder::create(
                     DbalBusinessMethodHandler::HEADER_PARAMETER_TYPE_PREFIX . $dbalParameterAttribute->getName(),
-                    self::dbalParameterHeaderValue($dbalParameterAttribute, $interface, $methodName, null, $index)
+                    self::dbalParameterConfig($dbalParameterAttribute, $interface, $methodName, null, $index)
                 );
             }
         }
@@ -226,7 +226,7 @@ final class DbaBusinessMethodModule implements AnnotationModule
                 Assert::isFalse(isset($parameterConverters[$dbalParameterAttribute->getName()]), "Parameter {$dbalParameterAttribute->getName()} is defined twice");
                 $parameterConverters[] = GatewayHeaderValueBuilder::create(
                     DbalBusinessMethodHandler::HEADER_PARAMETER_TYPE_PREFIX . $interfaceParameter->getName(),
-                    self::dbalParameterHeaderValue($dbalParameterAttribute, $interface, $interface->getMethodName(), $interfaceParameter->getName(), 0)
+                    self::dbalParameterConfig($dbalParameterAttribute, $interface, $interface->getMethodName(), $interfaceParameter->getName(), 0)
                 );
             }
 
@@ -239,10 +239,10 @@ final class DbaBusinessMethodModule implements AnnotationModule
         return $parameterConverters;
     }
 
-    private static function dbalParameterHeaderValue(DbalParameter $dbalParameterAttribute, InterfaceToCall $interface, ?string $methodName, ?string $parameterName, int $index): mixed
+    private static function dbalParameterConfig(DbalParameter $dbalParameterAttribute, InterfaceToCall $interface, ?string $methodName, ?string $parameterName, int $index): Definition
     {
         if ($dbalParameterAttribute->getExpression() === null) {
-            return $dbalParameterAttribute;
+            return new Definition(DbalParameterConfig::class, [$dbalParameterAttribute, null], [DbalParameterConfig::class, 'fromAttribute']);
         }
 
         $attributeDeclaration = new AttributeDeclaration(
@@ -254,12 +254,12 @@ final class DbaBusinessMethodModule implements AnnotationModule
         );
 
         return new Definition(
-            DbalParameter::class,
+            DbalParameterConfig::class,
             [
                 $attributeDeclaration->toAttributeDefinition(),
                 AttributeExpressionExecutorCompiler::compileForContext($dbalParameterAttribute, $attributeDeclaration),
             ],
-            [DbalParameter::class, 'withExpressionExecutor'],
+            [DbalParameterConfig::class, 'fromAttribute'],
         );
     }
 

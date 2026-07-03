@@ -8,6 +8,7 @@ use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Channel\AsyncPublishing\Config\AsyncPublishGatewayRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -116,7 +117,10 @@ class DbalPublisherModule implements AnnotationModule
                         ->withAutoDeclareOnSend($dbalPublisher->isAutoDeclareQueueOnSend())
                         ->withHeaderMapper($dbalPublisher->getHeaderMapper())
                         ->withDefaultConversionMediaType($mediaType)
+                        ->withAsyncPublishing($dbalPublisher->isAsyncPublishingEnabled())
                 );
+
+            AsyncPublishGatewayRegistration::registerFor($messagingConfiguration, $dbalPublisher->getReferenceName(), $dbalPublisher->isAsyncPublishingEnabled());
         }
     }
 

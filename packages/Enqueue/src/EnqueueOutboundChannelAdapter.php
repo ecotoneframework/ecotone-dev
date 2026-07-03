@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\BatchMessage;
+use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
+use Ecotone\Messaging\Channel\AsyncPublishing\ConfirmedDelivery;
+use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\MessageBuilder;
+use Interop\Queue\Context;
 use Interop\Queue\Destination;
 
 use function spl_object_id;
@@ -25,7 +31,10 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         protected Destination              $destination,
         protected bool                     $autoDeclare,
         protected OutboundMessageConverter $outboundMessageConverter,
-        private ConversionService $conversionService
+        private ConversionService $conversionService,
+        private ?AsyncPublishingRegistry $asyncPublishingRegistry = null,
+        private bool $asyncPublishing = false,
+        private string $asyncPublishingChannelName = '',
     ) {
     }
 
@@ -43,7 +52,46 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
             }
         }
 
-        $outboundMessage                       = $this->outboundMessageConverter->prepare($message, $this->conversionService);
+        if ($message->getPayload() instanceof BatchMessage) {
+            $this->handleBatch($message->getPayload(), $context);
+        } else {
+            $this->sendSingleMessage($message, $context);
+        }
+
+        $this->registerSynchronouslyConfirmedDelivery();
+    }
+
+    protected function registerSynchronouslyConfirmedDelivery(): void
+    {
+        if (! $this->asyncPublishing || $this->asyncPublishingRegistry === null || ! $this->asyncPublishingRegistry->isScopeActive()) {
+            return;
+        }
+
+        $this->asyncPublishingRegistry->register($this->asyncPublishingChannelName, new ConfirmedDelivery());
+    }
+
+    protected function handleBatch(BatchMessage $batchMessage, Context $context): void
+    {
+        foreach ($batchMessage->getEntries() as $entry) {
+            $this->sendSingleMessage($this->convertBatchEntryToMessage($entry), $context);
+        }
+    }
+
+    protected function convertBatchEntryToMessage(array $entry): Message
+    {
+        return MessageBuilder::withPayload($entry['payload'])
+            ->setMultipleHeaders($entry['headers'])
+            ->build();
+    }
+
+    protected function prepareOutboundMessage(Message $message): OutboundMessage
+    {
+        return $this->outboundMessageConverter->prepare($message, $this->conversionService);
+    }
+
+    private function sendSingleMessage(Message $message, Context $context): void
+    {
+        $outboundMessage                       = $this->prepareOutboundMessage($message);
         $headers                               = $outboundMessage->getHeaders();
         $headers[MessageHeaders::CONTENT_TYPE] = $outboundMessage->getContentType();
 

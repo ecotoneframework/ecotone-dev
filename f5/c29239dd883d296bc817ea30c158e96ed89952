@@ -1,0 +1,34 @@
+.github/workflows/test-monorepo.yml
+  s_1f8e8d18ce67ab::t_246a9b91518d41 74,77-78
+packages/Sqs/src/SqsOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_4addadbcab08a6 72,75-76,80
+docker-compose.yml
+  s_1f8e8d18ce67ab::t_e5f0fd226da94e 84,88-89
+.github/workflows/split-testing.yml
+  s_1f8e8d18ce67ab::t_246a9b91518d41 81,84-85
+.github/workflows/quickstart-examples.yml
+  s_1f8e8d18ce67ab::t_246a9b91518d41 78,81-82
+packages/Sqs/tests/Unit/SqsPendingDeliveryTest.php
+  s_1f8e8d18ce67ab::t_681f92b36e8d96 26,49,66,83,97-148
+packages/Sqs/src/SqsPendingDelivery.php
+  s_1f8e8d18ce67ab::t_b3f2809be53d55 8,13,22-23,27,31,34,42,44-46,99-121
+  s_1f8e8d18ce67ab::t_6436a266eae007 122
+.github/workflows/benchmark-pr.yml
+  s_1f8e8d18ce67ab::t_e5f0fd226da94e 74,77-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f5c29239dd883d296bc817ea30c158e96ed89952",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

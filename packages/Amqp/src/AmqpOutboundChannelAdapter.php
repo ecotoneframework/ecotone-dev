@@ -19,6 +19,8 @@ use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Enqueue\AmqpTools\DelayStrategy;
 use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
+use PhpAmqpLib\Message\AMQPMessage as LibAMQPMessage;
+use PhpAmqpLib\Wire\AMQPTable;
 
 /**
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
@@ -84,18 +86,24 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
     private function handleBatch(BatchMessage $batchMessage, Message $carrierMessage): void
     {
-        $publishedMessages = [];
+        $entryMessages = [];
         foreach ($batchMessage->getEntries() as $entry) {
-            $entryMessage = MessageBuilder::withPayload($entry['payload'])
+            $entryMessages[] = MessageBuilder::withPayload($entry['payload'])
                 ->setMultipleHeaders($entry['headers'])
                 ->build();
+        }
 
-            $this->publish($entryMessage);
-            $publishedMessages[] = $entryMessage;
+        $context = $this->connectionFactory->createContext();
+        if ($context instanceof AmqpLibContext) {
+            $this->publishBatchThroughSingleWrite($entryMessages, $context);
+        } else {
+            foreach ($entryMessages as $entryMessage) {
+                $this->publish($entryMessage);
+            }
         }
 
         if ($this->canPublishAsynchronously()) {
-            $this->registerPendingDelivery($publishedMessages);
+            $this->registerPendingDelivery($entryMessages);
 
             return;
         }
@@ -103,7 +111,57 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $this->awaitPublisherConfirmsSynchronously();
     }
 
+    /**
+     * @param Message[] $messages
+     */
+    private function publishBatchThroughSingleWrite(array $messages, AmqpLibContext $context): void
+    {
+        $libChannel = $context->getLibChannel();
+        $anyMessageBatched = false;
+
+        foreach ($messages as $message) {
+            [$interopMessage, $exchangeName, $deliveryDelay] = $this->prepareInteropMessage($message);
+
+            if ($deliveryDelay) {
+                $this->publish($message);
+
+                continue;
+            }
+
+            $amqpProperties = $interopMessage->getHeaders();
+            if ($applicationProperties = $interopMessage->getProperties()) {
+                $amqpProperties['application_headers'] = new AMQPTable($applicationProperties);
+            }
+
+            $libChannel->batch_basic_publish(
+                new LibAMQPMessage($interopMessage->getBody(), $amqpProperties),
+                $exchangeName,
+                $interopMessage->getRoutingKey() ?? '',
+            );
+            $anyMessageBatched = true;
+        }
+
+        if ($anyMessageBatched) {
+            $libChannel->publish_batch();
+        }
+    }
+
     private function publish(Message $message): void
+    {
+        [$messageToSend, $exchangeName, $deliveryDelay, $timeToLive] = $this->prepareInteropMessage($message);
+
+        $this->connectionFactory->getProducer()
+            ->setTimeToLive($timeToLive)
+            ->setDelayStrategy($this->delayStrategy ?? new HeadersExchangeDelayStrategy())
+            ->setDeliveryDelay($deliveryDelay)
+//            this allow for having queue per delay instead of queue per delay + exchangeName
+            ->send(new AmqpTopic($exchangeName), $messageToSend);
+    }
+
+    /**
+     * @return array{0: \Interop\Amqp\Impl\AmqpMessage, 1: string, 2: int|null, 3: int|null}
+     */
+    private function prepareInteropMessage(Message $message): array
     {
         $exchangeName = $this->exchangeName;
         if ($this->exchangeFromHeaderName) {
@@ -131,6 +189,11 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             $messageToSend->setRoutingKey($routingKey);
         }
 
+        $timeToLive = $outboundMessage->getTimeToLive();
+        if ($timeToLive !== null && $messageToSend->getExpiration() === null) {
+            $messageToSend->setExpiration($timeToLive);
+        }
+
         $messageToSend
             ->setDeliveryMode($this->defaultPersistentDelivery ? AmqpMessage::DELIVERY_MODE_PERSISTENT : AmqpMessage::DELIVERY_MODE_NON_PERSISTENT);
 
@@ -139,12 +202,8 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         }
 
         $this->connectionFactory->createContext();
-        $this->connectionFactory->getProducer()
-            ->setTimeToLive($outboundMessage->getTimeToLive())
-            ->setDelayStrategy($this->delayStrategy ?? new HeadersExchangeDelayStrategy())
-            ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
-//            this allow for having queue per delay instead of queue per delay + exchangeName
-            ->send(new AmqpTopic($exchangeName), $messageToSend);
+
+        return [$messageToSend, $exchangeName, $outboundMessage->getDeliveryDelay(), $timeToLive];
     }
 
     private function canPublishAsynchronously(): bool

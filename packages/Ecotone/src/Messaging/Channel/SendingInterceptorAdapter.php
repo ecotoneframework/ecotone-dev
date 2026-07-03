@@ -50,7 +50,7 @@ abstract class SendingInterceptorAdapter implements MessageChannelInterceptorAda
      */
     public function send(Message $message): void
     {
-        if ($message->getPayload() instanceof BatchMessage) {
+        if ($message->getPayload() instanceof BatchMessage && ! $this->targetChannelSupportsBatchMessages()) {
             $this->sendEachMessageFromBatch($message->getPayload());
 
             return;
@@ -108,6 +108,13 @@ abstract class SendingInterceptorAdapter implements MessageChannelInterceptorAda
         }
 
         $this->executePostSend($messageToSend, $executedInterceptors, $firstCleanupFailure);
+    }
+
+    private function targetChannelSupportsBatchMessages(): bool
+    {
+        $targetChannel = $this->getInternalMessageChannel();
+
+        return $targetChannel instanceof BatchSupportingMessageChannel && $targetChannel->supportsBatchMessages();
     }
 
     private function sendEachMessageFromBatch(BatchMessage $batchMessage): void

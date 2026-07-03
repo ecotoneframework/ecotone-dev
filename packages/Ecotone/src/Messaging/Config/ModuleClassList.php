@@ -26,6 +26,7 @@ use Ecotone\JMSConverter\Configuration\JMSDefaultSerialization;
 use Ecotone\Kafka\Configuration\KafkaModule;
 use Ecotone\Laravel\Config\LaravelConnectionModule;
 use Ecotone\Lite\Test\Configuration\EcotoneTestSupportModule;
+use Ecotone\Messaging\Channel\AsyncPublishing\Config\AsyncPublishingModule;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorModule;
 use Ecotone\Messaging\Channel\DynamicChannel\Config\DynamicMessageChannelModule;
 use Ecotone\Messaging\Channel\Manager\ChannelSetupModule;
@@ -108,6 +109,7 @@ class ModuleClassList
         RouterModule::class,
         ScheduledModule::class,
         CollectorModule::class,
+        AsyncPublishingModule::class,
         ChannelSetupModule::class,
         SerializerModule::class,
         ServiceActivatorModule::class,

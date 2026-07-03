@@ -19,12 +19,14 @@ final class InMemoryPendingDelivery implements PendingDelivery
     public function __construct(
         private Message $message,
         private ?string $failureReason = null,
+        private ?OperationsLog $operationsLog = null,
     ) {
     }
 
     public function awaitDelivery(): DeliveryResult
     {
         $this->awaitCalls++;
+        $this->operationsLog?->log('delivery confirmations awaited');
 
         if ($this->failureReason !== null) {
             return DeliveryResult::withFailedDeliveries([

@@ -1,0 +1,36 @@
+packages/Redis/tests/Fixture/AsyncPublishing/OrderWasPlaced.php
+  s_1f8e8d18ce67ab::t_aed9da74d33f3b 1-15
+packages/Redis/src/Configuration/RedisMessagePublisherConfiguration.php
+  s_1f8e8d18ce67ab::t_a8e05ad423ab70 17
+  s_1f8e8d18ce67ab::t_115d792c3759ee 75-86
+packages/Redis/src/RedisOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_290fd882f29ff1 9-10,13,16-19,26-50,56-59,69-122
+  s_1f8e8d18ce67ab::t_ed96daf4d867d1 123
+packages/Redis/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_be35323ffbdf6e 1-214
+packages/Redis/src/RedisOutboundChannelAdapterBuilder.php
+  s_1f8e8d18ce67ab::t_f4678e6e58fc7d 24-25,39-50,53-56
+  s_1f8e8d18ce67ab::t_d9b33fbd24e4f8 16
+  s_1f8e8d18ce67ab::t_38410ef81ac6a9 78-79
+  s_1f8e8d18ce67ab::t_2296e28b557dce 10
+packages/Redis/src/RedisBackedMessageChannelBuilder.php
+  s_1f8e8d18ce67ab::t_d80444211e6946 35-51
+packages/Redis/src/Configuration/RedisMessagePublisherModule.php
+  s_1f8e8d18ce67ab::t_7c712d9ad1df9e 9,85,87-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "cd9d88f4695d14b80da8d8b5b29ec9fad033d0f4",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+Monorepo/Benchmark/AsyncPublishingBenchmark.php
+  s_1f8e8d18ce67ab::t_30f574573bfab7 7,9,11,14-15,23,26,28-30,34-35,40-41,46-47,52-53,59-61,67-73,79-81,87,90-91,93,96,98-126,128,131-132,137-138,141-142,145,147,149,152-153,158-159,162-163
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingRegistry.php
+  s_1f8e8d18ce67ab::t_5964ee6f70b350 45,47-48
+  s_1f8e8d18ce67ab::t_f29c2a327090ab 73-76
+  s_1f8e8d18ce67ab::t_f2b9db08e999aa 15-16,19
+  s_1f8e8d18ce67ab::t_23a6ae452a930e 20
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingGateway.php
+  s_1f8e8d18ce67ab::t_569859a25c07b4 50
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "b02e2b395d17cab7997da01b78b9f2f47531c955",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

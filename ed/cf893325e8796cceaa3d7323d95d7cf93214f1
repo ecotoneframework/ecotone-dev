@@ -1,0 +1,44 @@
+packages/Amqp/src/AmqpOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_6da3bcb8437812 50-54,62-106,141,148-156,158-184
+  s_1f8e8d18ce67ab::t_62ddec1411645d 9-10,16
+packages/Enqueue/src/EnqueueMessageChannelBuilder.php
+  s_1f8e8d18ce67ab::t_b4250ac6ad39bb 124,127-130
+  s_1f8e8d18ce67ab::t_06fa610b4cc122 131
+packages/Amqp/tests/Fixture/AsyncPublishing/OrderWasPlaced.php
+  s_1f8e8d18ce67ab::t_4d17c363dcbf1c 1-15
+packages/Amqp/src/AmqpBackedMessageChannelBuilder.php
+  s_1f8e8d18ce67ab::t_47092de2653d51 93-97
+  s_1f8e8d18ce67ab::t_5c3b0ae31f46f0 74-80
+packages/Amqp/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_b7d7fab51f7746 40
+  s_1f8e8d18ce67ab::t_5bc20d5885ae3f 22
+  s_1f8e8d18ce67ab::t_2afc9018849b0c 1-21,23-39,41-76,78-102
+  s_1f8e8d18ce67ab::t_645ee1eda3baee 77
+packages/Amqp/src/AmqpOutboundChannelAdapterBuilder.php
+  s_1f8e8d18ce67ab::t_98082b64420ee1 76-90
+  s_1f8e8d18ce67ab::t_c7ef0052e95475 10,16-17
+  s_1f8e8d18ce67ab::t_e07df10f0837c3 143-149
+  s_1f8e8d18ce67ab::t_cb4d6388b6cafe 181-184
+  s_1f8e8d18ce67ab::t_3efacc4a7b2a54 26-27,37-38
+packages/Enqueue/src/EnqueueMessageChannel.php
+  s_1f8e8d18ce67ab::t_158643773f252d 7,16,18,22-24
+  s_1f8e8d18ce67ab::t_cdddb60f4b5e59 25-26
+packages/Amqp/src/AmqpPendingDelivery.php
+  s_1f8e8d18ce67ab::t_dad9e1d0aa2416 1-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "edcf893325e8796cceaa3d7323d95d7cf93214f1",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

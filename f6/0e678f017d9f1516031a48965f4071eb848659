@@ -1,0 +1,21 @@
+packages/Amqp/src/AmqpOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_6e83a656438dc9 194
+  s_1f8e8d18ce67ab::t_57a4b0fc2a7d0f 22-23
+  s_1f8e8d18ce67ab::t_64756748420266 89,91,94,96-102,106,114-148,150-164,192-193,195-196,205-206
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "f60e678f017d9f1516031a48965f4071eb848659",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

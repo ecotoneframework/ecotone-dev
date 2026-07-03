@@ -111,7 +111,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                     $extensionObject->topicName,
                     MessagePublisher::class . '::' . $extensionObject->getMessageChannelName(),
                 )
-                    ->withHeaderMapper($extensionObject->getHeaderMapper());
+                    ->withHeaderMapper($extensionObject->getHeaderMapper())
+                    ->withAsyncPublishing($extensionObject->isAsyncPublishingEnabled(), $extensionObject->getAsyncPublishingTimeout());
             }
         }
 

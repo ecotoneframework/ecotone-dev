@@ -7,13 +7,18 @@ namespace Ecotone\Kafka\Outbound;
 use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
+use Ecotone\Messaging\BatchMessage;
+use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\AggregateIdMetadata;
 use Ecotone\Modelling\AggregateMessage;
+use RdKafka\Producer;
+use RdKafka\ProducerTopic;
 
 /**
  * licence Enterprise
@@ -24,7 +29,8 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         private string $referenceName,
         private KafkaAdmin                  $kafkaAdmin,
         private ConversionService           $conversionService,
-        private OutboundMessageConverter $outboundMessageConverter
+        private OutboundMessageConverter $outboundMessageConverter,
+        private AsyncPublishingRegistry $asyncPublishingRegistry,
     ) {
     }
 
@@ -35,6 +41,55 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
     {
         $producer = $this->kafkaAdmin->getProducer($this->referenceName);
         $topic = $this->kafkaAdmin->getTopicForProducer($this->referenceName);
+
+        if ($message->getPayload() instanceof BatchMessage) {
+            $this->handleBatch($message->getPayload(), $producer, $topic);
+
+            return;
+        }
+
+        if ($this->canPublishAsynchronously()) {
+            $deliveryId = $this->produce($message, $topic, trackDelivery: true);
+            $producer->poll(0);
+            $this->registerPendingDelivery($producer, [$deliveryId]);
+
+            return;
+        }
+
+        $this->produce($message, $topic, trackDelivery: false);
+        $this->flushSynchronously($producer);
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->isAsyncPublishingEnabled();
+    }
+
+    private function handleBatch(BatchMessage $batchMessage, Producer $producer, ProducerTopic $topic): void
+    {
+        $publishAsynchronously = $this->canPublishAsynchronously();
+
+        $deliveryIds = [];
+        foreach ($batchMessage->getEntries() as $entry) {
+            $entryMessage = MessageBuilder::withPayload($entry['payload'])
+                ->setMultipleHeaders($entry['headers'])
+                ->build();
+
+            $deliveryIds[] = $this->produce($entryMessage, $topic, trackDelivery: $publishAsynchronously);
+            $producer->poll(0);
+        }
+
+        if ($publishAsynchronously) {
+            $this->registerPendingDelivery($producer, $deliveryIds);
+
+            return;
+        }
+
+        $this->flushSynchronously($producer);
+    }
+
+    private function produce(Message $message, ProducerTopic $topic, bool $trackDelivery): ?string
+    {
         $outboundMessage = $this->outboundMessageConverter->prepare($message, $this->conversionService);
 
         if ($message->getHeaders()->containsKey(KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME)) {
@@ -50,6 +105,10 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         $headers = $outboundMessage->getHeaders();
         unset($headers[KafkaHeader::KAFKA_TARGET_PARTITION_KEY_HEADER_NAME]);
 
+        $deliveryId = $trackDelivery
+            ? $this->kafkaAdmin->getDeliveryTracker($this->referenceName)->trackInFlight($message)
+            : null;
+
         $topic->producev(
             RD_KAFKA_PARTITION_UA,
             0,
@@ -60,9 +119,38 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
                 [
                     KafkaHeader::KAFKA_SOURCE_PARTITION_KEY_HEADER_NAME => $partitionKey,
                 ]
-            )
+            ),
+            null,
+            $deliveryId,
         );
 
+        return $deliveryId;
+    }
+
+    private function canPublishAsynchronously(): bool
+    {
+        return $this->isAsyncPublishingEnabled() && $this->asyncPublishingRegistry->isScopeActive();
+    }
+
+    /**
+     * @param string[] $deliveryIds
+     */
+    private function registerPendingDelivery(Producer $producer, array $deliveryIds): void
+    {
+        $this->asyncPublishingRegistry->register(
+            $this->referenceName,
+            new KafkaPendingDelivery(
+                $producer,
+                $this->kafkaAdmin->getDeliveryTracker($this->referenceName),
+                $deliveryIds,
+                $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->getAsyncPublishingTimeout(),
+                $this->referenceName,
+            ),
+        );
+    }
+
+    private function flushSynchronously(Producer $producer): void
+    {
         /**
          * Producer won't produce the message to the broker immediately it will wait until the producer queue (queue.buffering.max.messages)gets full or size of the queue(queue.buffering.max.kbytes).
          * calling flush immediately after produce will publish all messages to the broker irrespective of these two config values.

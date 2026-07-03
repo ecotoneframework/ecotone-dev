@@ -20,6 +20,8 @@ final class KafkaPublisherConfiguration implements DefinedObject
 {
     public const ACKNOWLEDGE_TIMEOUT = '8000';
 
+    public const DEFAULT_ASYNC_PUBLISHING_TIMEOUT = 12000;
+
     /**
      * @param array<string, string> $configuration
      */
@@ -30,6 +32,8 @@ final class KafkaPublisherConfiguration implements DefinedObject
         private string $brokerConfigurationReference,
         private HeaderMapper $headerMapper,
         private ?string $outputDefaultConversionMediaType = null,
+        private bool $asyncPublishing = false,
+        private int $asyncPublishingTimeout = self::DEFAULT_ASYNC_PUBLISHING_TIMEOUT,
     ) {
     }
 
@@ -99,6 +103,26 @@ final class KafkaPublisherConfiguration implements DefinedObject
         return $this->headerMapper;
     }
 
+    public function withAsyncPublishing(bool $asyncPublishing = true, ?int $timeoutInMilliseconds = null): self
+    {
+        $this->asyncPublishing = $asyncPublishing;
+        if ($timeoutInMilliseconds !== null) {
+            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        }
+
+        return $this;
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
+    }
+
+    public function getAsyncPublishingTimeout(): int
+    {
+        return $this->asyncPublishingTimeout;
+    }
+
     public function getOutputDefaultConversionMediaType(): ?string
     {
         return $this->outputDefaultConversionMediaType;
@@ -138,6 +162,8 @@ final class KafkaPublisherConfiguration implements DefinedObject
             $this->brokerConfigurationReference,
             $this->headerMapper->getDefinition(),
             $this->outputDefaultConversionMediaType,
+            $this->asyncPublishing,
+            $this->asyncPublishingTimeout,
         ]);
     }
 }

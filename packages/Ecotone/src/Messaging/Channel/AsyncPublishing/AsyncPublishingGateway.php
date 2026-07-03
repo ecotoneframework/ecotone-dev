@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\AsyncPublishing;
 
+use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Future;
 use Ecotone\Messaging\Message;
@@ -24,6 +25,11 @@ final class AsyncPublishingGateway
 
     public function publish(Message $message): Future
     {
+        $payload = $message->getPayload();
+        if ($payload instanceof BatchMessage && count($payload) === 0) {
+            return DeliveryFuture::forPendingDeliveries([]);
+        }
+
         $collectionPoint = $this->asyncPublishingRegistry->collectionPoint();
 
         $this->configuredMessagingSystem->getMessageChannelByName($this->publisherReference)->send(

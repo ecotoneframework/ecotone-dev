@@ -1,0 +1,65 @@
+packages/Amqp/src/AmqpReconnectableConnectionFactory.php
+  s_1f8e8d18ce67ab::t_be5163b4508fcc 31
+  s_1f8e8d18ce67ab::t_e810b02efbea77 55,57-58,60-67,74-76
+  s_1f8e8d18ce67ab::t_7f1f1bd36d4c3a 77-78
+packages/Amqp/src/AmqpPendingDelivery.php
+  s_1f8e8d18ce67ab::t_e788e46483f080 32,45,57-73
+  s_1f8e8d18ce67ab::t_d44a5154adbe12 14
+  s_1f8e8d18ce67ab::t_1d79e70342a984 74-75
+packages/Amqp/src/AmqpOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_6ca322aec403c4 252
+  s_1f8e8d18ce67ab::t_59a43a357b28f4 160-181
+  s_1f8e8d18ce67ab::t_231febb715fb7e 267-282
+  s_1f8e8d18ce67ab::t_efcfe110acc5eb 24
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingWaiterInterceptor.php
+  s_1f8e8d18ce67ab::t_97abf7a4d3be13 44-48
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/DeliveryFuture.php
+  s_1f8e8d18ce67ab::t_50660f68d86277 8
+  s_1f8e8d18ce67ab::t_a45869e2e31a22 46-55,57-62
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingRegistry.php
+  s_1f8e8d18ce67ab::t_e0dd30a98f521f 111,124-158
+  s_1f8e8d18ce67ab::t_c2aece0959e4a1 17-18
+packages/Kafka/src/Configuration/KafkaModule.php
+  s_1f8e8d18ce67ab::t_540ddf62c36064 230
+packages/Amqp/src/Publisher/AmqpMessagePublisherModule.php
+  s_1f8e8d18ce67ab::t_da4cc3e8bb9f87 93
+  s_1f8e8d18ce67ab::t_03569e6bcab884 96
+packages/Amqp/src/AmqpExtPublisherConfirmations.php
+  s_1f8e8d18ce67ab::t_42d4c2b9857b29 1-53
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingGateway.php
+  s_1f8e8d18ce67ab::t_68400720a61ea3 21,29-32
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/Config/AsyncPublishGatewayRegistration.php
+  s_1f8e8d18ce67ab::t_bb192be7e242d7 45
+  s_1f8e8d18ce67ab::t_a0f45abeb1316b 27
+packages/Amqp/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_016666e85efb12 13,17
+  s_1f8e8d18ce67ab::t_bbbd51e46548b7 79-106
+packages/Amqp/src/AmqpOutboundChannelAdapterBuilder.php
+  s_1f8e8d18ce67ab::t_f22ece9bf29f75 192
+  s_1f8e8d18ce67ab::t_dff7c0a87ebfc9 39
+  s_1f8e8d18ce67ab::t_c2128fe6dfa19b 92-98
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_067fd3872d1914 11
+  s_1f8e8d18ce67ab::t_a89cf36347977d 52-55,62
+  s_1f8e8d18ce67ab::t_453ab945c79b26 154-157,167-172
+  s_1f8e8d18ce67ab::t_6c0589cd557444 72,80,84,90
+  s_1f8e8d18ce67ab::t_345a7f5bead8e1 173
+packages/Amqp/src/AmqpBackedMessageChannelBuilder.php
+  s_1f8e8d18ce67ab::t_49867327431a1d 33
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "800ab62067ad11ef65101328d7dee2341bdd82fd",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

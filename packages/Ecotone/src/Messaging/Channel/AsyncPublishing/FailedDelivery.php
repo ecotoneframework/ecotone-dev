@@ -14,7 +14,13 @@ final class FailedDelivery
     public function __construct(
         private Message $message,
         private string $failureReason,
+        private string $channelName,
     ) {
+    }
+
+    public function getChannelName(): string
+    {
+        return $this->channelName;
     }
 
     public function getMessage(): Message

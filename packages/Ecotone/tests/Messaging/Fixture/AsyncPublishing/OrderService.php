@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Fixture\AsyncPublishing;
 
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\EventBus;
 
 /**
@@ -22,5 +23,12 @@ final class OrderService
         $this->operationsLog->log('command handler executed');
         $eventBus->publish(new OrderWasPlaced($order . '-1'));
         $eventBus->publish(new OrderWasPlaced($order . '-2'));
+    }
+
+    #[CommandHandler('order.forward')]
+    public function forwardOrder(string $order, CommandBus $commandBus): void
+    {
+        $this->operationsLog->log('forwarding command handler executed');
+        $commandBus->sendWithRouting('order.place', $order);
     }
 }

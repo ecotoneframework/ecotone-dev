@@ -12,12 +12,19 @@ use Throwable;
  */
 final class FakeTransactionInterceptor
 {
+    private bool $transactionActive = false;
+
     public function __construct(private OperationsLog $operationsLog)
     {
     }
 
     public function transactional(MethodInvocation $methodInvocation): mixed
     {
+        if ($this->transactionActive) {
+            return $methodInvocation->proceed();
+        }
+
+        $this->transactionActive = true;
         $this->operationsLog->log('transaction started');
         try {
             $result = $methodInvocation->proceed();
@@ -28,6 +35,8 @@ final class FakeTransactionInterceptor
             $this->operationsLog->log('transaction rolled back');
 
             throw $exception;
+        } finally {
+            $this->transactionActive = false;
         }
     }
 }

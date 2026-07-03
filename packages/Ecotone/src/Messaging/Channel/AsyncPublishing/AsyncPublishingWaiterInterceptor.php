@@ -4,15 +4,28 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\AsyncPublishing;
 
+use Ecotone\Messaging\BatchMessage;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Messaging\Message;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Enterprise
  */
 final class AsyncPublishingWaiterInterceptor
 {
-    public function __construct(private AsyncPublishingRegistry $asyncPublishingRegistry)
-    {
+    /**
+     * @param array<string, string|null> $errorChannels
+     */
+    public function __construct(
+        private AsyncPublishingRegistry $asyncPublishingRegistry,
+        private array $errorChannels,
+        private ?string $globalErrorChannelName,
+        private ErrorChannelService $errorChannelService,
+        private ConfiguredMessagingSystem $configuredMessagingSystem,
+    ) {
     }
 
     public function await(MethodInvocation $methodInvocation): mixed
@@ -27,12 +40,62 @@ final class AsyncPublishingWaiterInterceptor
 
             $deliveryResult = $this->asyncPublishingRegistry->awaitAll();
             if (! $deliveryResult->isSuccessful()) {
-                throw AsyncPublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
+                $this->handleFailedDeliveries($deliveryResult->getFailedDeliveries());
             }
         } finally {
             $this->asyncPublishingRegistry->closeScope();
         }
 
         return $result;
+    }
+
+    /**
+     * @param FailedDelivery[] $failedDeliveries
+     */
+    private function handleFailedDeliveries(array $failedDeliveries): void
+    {
+        $unroutedFailedDeliveries = [];
+        foreach ($failedDeliveries as $failedDelivery) {
+            $errorChannelName = array_key_exists($failedDelivery->getChannelName(), $this->errorChannels)
+                ? $this->errorChannels[$failedDelivery->getChannelName()]
+                : $this->globalErrorChannelName;
+
+            if ($errorChannelName === null) {
+                $unroutedFailedDeliveries[] = $failedDelivery;
+
+                continue;
+            }
+
+            foreach ($this->unpackFailedMessages($failedDelivery->getMessage()) as $failedMessage) {
+                $this->errorChannelService->handle(
+                    $failedMessage,
+                    AsyncPublishingFailedException::withFailedDeliveries([$failedDelivery]),
+                    $this->configuredMessagingSystem->getMessageChannelByName($errorChannelName),
+                    $failedDelivery->getChannelName(),
+                );
+            }
+        }
+
+        if ($unroutedFailedDeliveries !== []) {
+            throw AsyncPublishingFailedException::withFailedDeliveries($unroutedFailedDeliveries);
+        }
+    }
+
+    /**
+     * @return Message[]
+     */
+    private function unpackFailedMessages(Message $message): array
+    {
+        $payload = $message->getPayload();
+        if (! $payload instanceof BatchMessage) {
+            return [$message];
+        }
+
+        return array_map(
+            fn (array $entry): Message => MessageBuilder::withPayload($entry['payload'])
+                ->setMultipleHeaders($entry['headers'])
+                ->build(),
+            $payload->getEntries(),
+        );
     }
 }

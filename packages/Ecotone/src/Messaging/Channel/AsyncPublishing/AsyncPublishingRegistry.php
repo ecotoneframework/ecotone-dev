@@ -9,7 +9,7 @@ namespace Ecotone\Messaging\Channel\AsyncPublishing;
  */
 final class AsyncPublishingRegistry
 {
-    /** @var array<int, array{channelName: string, pendingDelivery: PendingDelivery}> */
+    /** @var array<int, array{channelName: string, pendingDelivery: PendingDelivery, scopeOwned: bool}> */
     private array $pendingDeliveries = [];
 
     private int $nextRegistrationIndex = 0;
@@ -31,14 +31,30 @@ final class AsyncPublishingRegistry
     public function closeScope(): void
     {
         $this->scopeActive = false;
-        $this->pendingDeliveries = [];
+        foreach ($this->pendingDeliveries as $index => $registration) {
+            if ($registration['scopeOwned']) {
+                unset($this->pendingDeliveries[$index]);
+            }
+        }
+    }
+
+    /**
+     * @param PendingDelivery[] $pendingDeliveries
+     */
+    public function markAsPublisherOwned(array $pendingDeliveries): void
+    {
+        foreach ($this->pendingDeliveries as $index => $registration) {
+            if (in_array($registration['pendingDelivery'], $pendingDeliveries, true)) {
+                $this->pendingDeliveries[$index]['scopeOwned'] = false;
+            }
+        }
     }
 
     public function awaitAll(): DeliveryResult
     {
         $failedDeliveries = [];
         foreach ($this->pendingDeliveries as $registration) {
-            if ($registration['pendingDelivery']->isAwaited()) {
+            if (! $registration['scopeOwned'] || $registration['pendingDelivery']->isAwaited()) {
                 continue;
             }
 
@@ -54,7 +70,7 @@ final class AsyncPublishingRegistry
     public function register(string $channelName, PendingDelivery $pendingDelivery): void
     {
         $this->pruneAwaitedDeliveries();
-        $this->pendingDeliveries[$this->nextRegistrationIndex++] = ['channelName' => $channelName, 'pendingDelivery' => $pendingDelivery];
+        $this->pendingDeliveries[$this->nextRegistrationIndex++] = ['channelName' => $channelName, 'pendingDelivery' => $pendingDelivery, 'scopeOwned' => $this->scopeActive];
 
         if (! $this->shutdownFlushRegistered) {
             register_shutdown_function(fn () => $this->flushUnawaitedDeliveries());

@@ -30,16 +30,31 @@ final class AsyncPublishingGateway
             return DeliveryFuture::forPendingDeliveries([]);
         }
 
-        $collectionPoint = $this->asyncPublishingRegistry->collectionPoint();
+        $scopeWasActive = $this->asyncPublishingRegistry->isScopeActive();
+        if (! $scopeWasActive) {
+            $this->asyncPublishingRegistry->openScope();
+        }
 
-        $this->configuredMessagingSystem->getMessageChannelByName($this->publisherReference)->send(
-            MessageBuilder::fromMessage($message)
-                ->removeHeader(MessageHeaders::REPLY_CHANNEL)
-                ->removeHeader(MessageHeaders::ROUTING_SLIP)
-                ->build()
-        );
+        try {
+            $collectionPoint = $this->asyncPublishingRegistry->collectionPoint();
 
-        $pendingDeliveries = $this->asyncPublishingRegistry->registeredSince($collectionPoint);
+            $this->configuredMessagingSystem->getMessageChannelByName($this->publisherReference)->send(
+                MessageBuilder::fromMessage($message)
+                    ->removeHeader(MessageHeaders::REPLY_CHANNEL)
+                    ->removeHeader(MessageHeaders::ROUTING_SLIP)
+                    ->build()
+            );
+
+            $pendingDeliveries = $this->asyncPublishingRegistry->registeredSince($collectionPoint);
+            if (! $scopeWasActive) {
+                $this->asyncPublishingRegistry->markAsPublisherOwned($pendingDeliveries);
+            }
+        } finally {
+            if (! $scopeWasActive) {
+                $this->asyncPublishingRegistry->closeScope();
+            }
+        }
+
         if ($pendingDeliveries === []) {
             throw AsyncPublishingFailedException::publisherNotConfiguredForAsyncPublishing($this->publisherReference);
         }

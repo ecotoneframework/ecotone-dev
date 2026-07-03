@@ -9,13 +9,18 @@ use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingWaiterInterceptor;
+use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
+use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
+use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
@@ -34,9 +39,21 @@ final class AsyncPublishingModule extends NoExternalConfigurationModule implemen
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
+        $globalPollableChannelConfiguration = ExtensionObjectResolver::resolveUnique(GlobalPollableChannelConfiguration::class, $extensionObjects, GlobalPollableChannelConfiguration::createWithDefaults());
+        $errorChannels = [];
+        foreach (ExtensionObjectResolver::resolve(PollableChannelConfiguration::class, $extensionObjects) as $pollableChannelConfiguration) {
+            $errorChannels[$pollableChannelConfiguration->getChannelName()] = $pollableChannelConfiguration->getErrorChannelName();
+        }
+
         $messagingConfiguration->registerServiceDefinition(
             AsyncPublishingWaiterInterceptor::class,
-            new Definition(AsyncPublishingWaiterInterceptor::class, [new Reference(AsyncPublishingRegistry::class)])
+            new Definition(AsyncPublishingWaiterInterceptor::class, [
+                new Reference(AsyncPublishingRegistry::class),
+                $errorChannels,
+                $globalPollableChannelConfiguration->getErrorChannelName(),
+                new Reference(ErrorChannelService::class),
+                new Reference(ConfiguredMessagingSystem::class),
+            ])
         );
         $messagingConfiguration->registerAroundMethodInterceptor(
             AroundInterceptorBuilder::create(
@@ -50,7 +67,8 @@ final class AsyncPublishingModule extends NoExternalConfigurationModule implemen
 
     public function canHandle($extensionObject): bool
     {
-        return false;
+        return $extensionObject instanceof PollableChannelConfiguration
+            || $extensionObject instanceof GlobalPollableChannelConfiguration;
     }
 
     public function getModulePackageName(): string

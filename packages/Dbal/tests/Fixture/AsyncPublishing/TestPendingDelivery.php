@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Messaging\Fixture\AsyncPublishing;
+namespace Test\Ecotone\Dbal\Fixture\AsyncPublishing;
 
 use Ecotone\Messaging\Channel\AsyncPublishing\DeliveryResult;
 use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
@@ -12,22 +12,20 @@ use Ecotone\Messaging\Message;
 /**
  * licence Apache-2.0
  */
-final class InMemoryPendingDelivery implements PendingDelivery
+final class TestPendingDelivery implements PendingDelivery
 {
-    private int $awaitCalls = 0;
+    private bool $awaited = false;
 
     public function __construct(
         private Message $message,
+        private string $channelName,
         private ?string $failureReason = null,
-        private ?OperationsLog $operationsLog = null,
-        private string $channelName = 'in_memory_channel',
     ) {
     }
 
     public function awaitDelivery(): DeliveryResult
     {
-        $this->awaitCalls++;
-        $this->operationsLog?->log('delivery confirmations awaited');
+        $this->awaited = true;
 
         if ($this->failureReason !== null) {
             return DeliveryResult::withFailedDeliveries([
@@ -40,11 +38,6 @@ final class InMemoryPendingDelivery implements PendingDelivery
 
     public function isAwaited(): bool
     {
-        return $this->awaitCalls > 0;
-    }
-
-    public function awaitCalls(): int
-    {
-        return $this->awaitCalls;
+        return $this->awaited;
     }
 }

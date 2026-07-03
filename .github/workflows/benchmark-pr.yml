@@ -19,6 +19,23 @@ jobs:
         php-versions: [ 8.5 ]
         stability: [prefer-stable]
     services:
+      kafka:
+        image: apache/kafka:3.9.0
+        options: >-
+          --env KAFKA_NODE_ID=0
+          --env KAFKA_PROCESS_ROLES=broker,controller
+          --env KAFKA_CONTROLLER_QUORUM_VOTERS=0@127.0.0.1:9093
+          --env KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+          --env KAFKA_LISTENERS=PLAINTEXT://0.0.0.0:9092,CONTROLLER://:9093
+          --env KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://127.0.0.1:9092
+          --env KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+          --env KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+          --env KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+          --env KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+          --env KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+          --env KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS=0
+        ports:
+          - 9092:9092
       rabbitmq:
         image: rabbitmq:4.1.4-management-alpine
         env:
@@ -66,6 +83,7 @@ jobs:
           - '6379:6379'
     env:
       RABBIT_HOST: amqp://127.0.0.1:5672
+      KAFKA_DSN: 127.0.0.1:9092
       SQS_DSN: sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://127.0.0.1:4566&version=latest
       REDIS_DSN: redis://127.0.0.1:6379
       DATABASE_DSN: pgsql://ecotone:secret@127.0.0.1:5432/ecotone

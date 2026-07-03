@@ -1,0 +1,22 @@
+packages/Kafka/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_b41c1c6fc93929 19
+  s_1f8e8d18ce67ab::t_574893b641c3f2 69-84
+packages/Amqp/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_0d9fd4440990eb 60-76
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "e139dce80c25d973452b212d9f0eac8b41bb9bd0",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

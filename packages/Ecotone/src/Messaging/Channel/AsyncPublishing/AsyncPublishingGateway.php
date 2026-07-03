@@ -47,7 +47,7 @@ final class AsyncPublishingGateway
 
             $pendingDeliveries = $this->asyncPublishingRegistry->registeredSince($collectionPoint);
             if (! $scopeWasActive) {
-                $this->asyncPublishingRegistry->markAsPublisherOwned($pendingDeliveries);
+                $this->asyncPublishingRegistry->markRegisteredSinceAsPublisherOwned($collectionPoint);
             }
         } finally {
             if (! $scopeWasActive) {

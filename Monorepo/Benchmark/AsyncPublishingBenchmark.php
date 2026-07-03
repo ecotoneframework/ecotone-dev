@@ -4,125 +4,162 @@ declare(strict_types=1);
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
+use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Monorepo\Benchmark\AsyncPublishing\OrderPublisherService;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;
 
-#[Warmup(1), Revs(5), Iterations(3)]
+#[Warmup(0), Revs(1), Iterations(10)]
 class AsyncPublishingBenchmark
 {
-    private const AMOUNT_OF_PUBLISHED_MESSAGES = 100;
+    private const AMOUNT_OF_PUBLISHED_MESSAGES = 1000;
 
-    private FlowTestSupport $messaging;
+    private const MESSAGE_PAYLOAD = 'benchmark order payload for async publishing comparison';
+
+    private MessagePublisher $publisher;
 
     public function setUpAmqpSynchronousPublishing(): void
     {
-        $this->messaging = $this->bootstrapWithAmqp(asyncPublishing: false);
+        $this->publisher = $this->bootstrapAmqpPublisher(asyncPublishing: false);
+        $this->warmUpPublisher();
     }
 
     public function setUpAmqpAsyncPublishing(): void
     {
-        $this->messaging = $this->bootstrapWithAmqp(asyncPublishing: true);
+        $this->publisher = $this->bootstrapAmqpPublisher(asyncPublishing: true);
+        $this->warmUpPublisher();
     }
 
     public function setUpKafkaSynchronousPublishing(): void
     {
-        $this->messaging = $this->bootstrapWithKafka(asyncPublishing: false);
+        $this->publisher = $this->bootstrapKafkaPublisher(asyncPublishing: false);
+        $this->warmUpPublisher();
     }
 
     public function setUpKafkaAsyncPublishing(): void
     {
-        $this->messaging = $this->bootstrapWithKafka(asyncPublishing: true);
+        $this->publisher = $this->bootstrapKafkaPublisher(asyncPublishing: true);
+        $this->warmUpPublisher();
     }
 
     #[BeforeMethods('setUpAmqpSynchronousPublishing')]
     public function bench_amqp_synchronous_publishing(): void
     {
-        $this->publishMessagesThroughCommandHandler();
+        for ($messageNumber = 0; $messageNumber < self::AMOUNT_OF_PUBLISHED_MESSAGES; $messageNumber++) {
+            $this->publisher->send(self::MESSAGE_PAYLOAD);
+        }
     }
 
     #[BeforeMethods('setUpAmqpAsyncPublishing')]
     public function bench_amqp_async_publishing(): void
     {
-        $this->publishMessagesThroughCommandHandler();
+        $this->publishAsynchronouslyOneByOne();
+    }
+
+    #[BeforeMethods('setUpAmqpAsyncPublishing')]
+    public function bench_amqp_async_batch_publishing(): void
+    {
+        $this->publishAsynchronouslyAsBatch();
     }
 
     #[BeforeMethods('setUpKafkaSynchronousPublishing')]
     public function bench_kafka_synchronous_publishing(): void
     {
-        $this->publishMessagesThroughCommandHandler();
+        for ($messageNumber = 0; $messageNumber < self::AMOUNT_OF_PUBLISHED_MESSAGES; $messageNumber++) {
+            $this->publisher->send(self::MESSAGE_PAYLOAD);
+        }
     }
 
     #[BeforeMethods('setUpKafkaAsyncPublishing')]
     public function bench_kafka_async_publishing(): void
     {
-        $this->publishMessagesThroughCommandHandler();
+        $this->publishAsynchronouslyOneByOne();
     }
 
-    private function publishMessagesThroughCommandHandler(): void
+    #[BeforeMethods('setUpKafkaAsyncPublishing')]
+    public function bench_kafka_async_batch_publishing(): void
     {
-        $this->messaging->sendCommandWithRoutingKey('benchmark.publishOrders', self::AMOUNT_OF_PUBLISHED_MESSAGES);
+        $this->publishAsynchronouslyAsBatch();
     }
 
-    private function bootstrapWithAmqp(bool $asyncPublishing): FlowTestSupport
+    private function publishAsynchronouslyOneByOne(): void
     {
-        $channelBuilder = AmqpBackedMessageChannelBuilder::create('benchmark_orders', queueName: uniqid('benchmark_orders_'));
-        if ($asyncPublishing) {
-            $channelBuilder = $channelBuilder->withAsyncPublishing();
+        $futures = [];
+        for ($messageNumber = 0; $messageNumber < self::AMOUNT_OF_PUBLISHED_MESSAGES; $messageNumber++) {
+            $futures[] = $this->publisher->asyncPublish(self::MESSAGE_PAYLOAD, MediaType::TEXT_PLAIN);
+        }
+        foreach ($futures as $future) {
+            $future->resolve();
+        }
+    }
+
+    private function publishAsynchronouslyAsBatch(): void
+    {
+        $batch = BatchMessage::constructEmpty();
+        for ($messageNumber = 0; $messageNumber < self::AMOUNT_OF_PUBLISHED_MESSAGES; $messageNumber++) {
+            $batch = $batch->append(self::MESSAGE_PAYLOAD, ['contentType' => MediaType::TEXT_PLAIN]);
         }
 
-        return EcotoneLite::bootstrapFlowTesting(
-            [OrderPublisherService::class],
+        $this->publisher->asyncPublish($batch, MediaType::TEXT_PLAIN)->resolve();
+    }
+
+    private function warmUpPublisher(): void
+    {
+        $this->publisher->send(self::MESSAGE_PAYLOAD);
+    }
+
+    private function bootstrapAmqpPublisher(bool $asyncPublishing): MessagePublisher
+    {
+        $publisherConfiguration = AmqpMessagePublisherConfiguration::create()
+            ->withAutoDeclareQueueOnSend(true)
+            ->withDefaultRoutingKey(uniqid('benchmark_orders_'));
+        if ($asyncPublishing) {
+            $publisherConfiguration = $publisherConfiguration->withAsyncPublishing();
+        }
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [],
             [
-                new OrderPublisherService(),
                 AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f']),
-                DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
-                ->withExtensionObjects([
-                    $channelBuilder,
-                    DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
-                ]),
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withExtensionObjects([$publisherConfiguration]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+
+        return $messaging->getGateway(MessagePublisher::class);
     }
 
-    private function bootstrapWithKafka(bool $asyncPublishing): FlowTestSupport
+    private function bootstrapKafkaPublisher(bool $asyncPublishing): MessagePublisher
     {
-        $topicName = uniqid('benchmark_orders_');
-        $channelBuilder = KafkaMessageChannelBuilder::create('benchmark_orders', topicName: $topicName, messageGroupId: $topicName);
+        $publisherConfiguration = KafkaPublisherConfiguration::createWithDefaults(topicName: uniqid('benchmark_orders_'));
         if ($asyncPublishing) {
-            $channelBuilder = $channelBuilder->withAsyncPublishing();
+            $publisherConfiguration = $publisherConfiguration->withAsyncPublishing();
         }
 
-        return EcotoneLite::bootstrapFlowTesting(
-            [OrderPublisherService::class],
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [],
             [
-                new OrderPublisherService(),
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([getenv('KAFKA_DSN') ?: 'localhost:9094']),
-                DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
-                ->withExtensionObjects([
-                    $channelBuilder,
-                    DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
-                ]),
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([$publisherConfiguration]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+
+        return $messaging->getGateway(MessagePublisher::class);
     }
 }

@@ -12,7 +12,11 @@ final class AsyncPublishingRegistry
     /** @var array<int, array{channelName: string, pendingDelivery: PendingDelivery, scopeOwned: bool}> */
     private array $pendingDeliveries = [];
 
+    private const PRUNE_INTERVAL = 256;
+
     private int $nextRegistrationIndex = 0;
+
+    private int $registrationsSinceLastPrune = 0;
 
     private bool $scopeActive = false;
 
@@ -38,13 +42,10 @@ final class AsyncPublishingRegistry
         }
     }
 
-    /**
-     * @param PendingDelivery[] $pendingDeliveries
-     */
-    public function markAsPublisherOwned(array $pendingDeliveries): void
+    public function markRegisteredSinceAsPublisherOwned(int $collectionPoint): void
     {
-        foreach ($this->pendingDeliveries as $index => $registration) {
-            if (in_array($registration['pendingDelivery'], $pendingDeliveries, true)) {
+        for ($index = $collectionPoint; $index < $this->nextRegistrationIndex; $index++) {
+            if (isset($this->pendingDeliveries[$index])) {
                 $this->pendingDeliveries[$index]['scopeOwned'] = false;
             }
         }
@@ -69,7 +70,10 @@ final class AsyncPublishingRegistry
 
     public function register(string $channelName, PendingDelivery $pendingDelivery): void
     {
-        $this->pruneAwaitedDeliveries();
+        if (++$this->registrationsSinceLastPrune >= self::PRUNE_INTERVAL) {
+            $this->pruneAwaitedDeliveries();
+            $this->registrationsSinceLastPrune = 0;
+        }
         $this->pendingDeliveries[$this->nextRegistrationIndex++] = ['channelName' => $channelName, 'pendingDelivery' => $pendingDelivery, 'scopeOwned' => $this->scopeActive];
 
         if (! $this->shutdownFlushRegistered) {

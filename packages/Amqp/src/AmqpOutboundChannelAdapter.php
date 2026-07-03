@@ -6,11 +6,14 @@ namespace Ecotone\Amqp;
 
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\BatchMessage;
+use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Enqueue\AmqpTools\DelayStrategy;
@@ -44,7 +47,11 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private OutboundMessageConverter   $outboundMessageConverter,
         private ConversionService          $conversionService,
         private AmqpTransactionInterceptor $amqpTransactionInterceptor,
-        private ?DelayStrategy             $delayStrategy = null
+        private ?DelayStrategy             $delayStrategy = null,
+        private ?AsyncPublishingRegistry   $asyncPublishingRegistry = null,
+        private bool                       $asyncPublishing = false,
+        private int                        $asyncPublishingTimeout = AmqpOutboundChannelAdapterBuilder::DEFAULT_ASYNC_PUBLISHING_TIMEOUT,
+        private string                     $channelName = '',
     ) {
     }
 
@@ -52,6 +59,51 @@ class AmqpOutboundChannelAdapter implements MessageHandler
      * @inheritDoc
      */
     public function handle(Message $message): void
+    {
+        if ($message->getPayload() instanceof BatchMessage) {
+            $this->handleBatch($message->getPayload(), $message);
+
+            return;
+        }
+
+        $this->publish($message);
+
+        if ($this->canPublishAsynchronously()) {
+            $this->registerPendingDelivery([$message]);
+
+            return;
+        }
+
+        $this->awaitPublisherConfirmsSynchronously();
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
+    }
+
+    private function handleBatch(BatchMessage $batchMessage, Message $carrierMessage): void
+    {
+        $publishedMessages = [];
+        foreach ($batchMessage->getEntries() as $entry) {
+            $entryMessage = MessageBuilder::withPayload($entry['payload'])
+                ->setMultipleHeaders($entry['headers'])
+                ->build();
+
+            $this->publish($entryMessage);
+            $publishedMessages[] = $entryMessage;
+        }
+
+        if ($this->canPublishAsynchronously()) {
+            $this->registerPendingDelivery($publishedMessages);
+
+            return;
+        }
+
+        $this->awaitPublisherConfirmsSynchronously();
+    }
+
+    private function publish(Message $message): void
     {
         $exchangeName = $this->exchangeName;
         if ($this->exchangeFromHeaderName) {
@@ -86,20 +138,50 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             Assert::isFalse($this->amqpTransactionInterceptor->isRunningInTransaction(), 'Cannot use publisher acknowledgments together with transactions. Please disable one of them.');
         }
 
-        $context = $this->connectionFactory->createContext();
+        $this->connectionFactory->createContext();
         $this->connectionFactory->getProducer()
             ->setTimeToLive($outboundMessage->getTimeToLive())
             ->setDelayStrategy($this->delayStrategy ?? new HeadersExchangeDelayStrategy())
             ->setDeliveryDelay($outboundMessage->getDeliveryDelay())
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);
+    }
 
-        if ($this->publisherConfirms && ! $this->amqpTransactionInterceptor->isRunningInTransaction()) {
-            if ($context instanceof AmqpLibContext) {
-                $context->getLibChannel()->wait_for_pending_acks(5);
-            } elseif ($context instanceof AmqpExtContext) {
-                $context->getExtChannel()->waitForConfirm(5);
-            }
+    private function canPublishAsynchronously(): bool
+    {
+        return $this->asyncPublishing
+            && $this->publisherConfirms
+            && $this->asyncPublishingRegistry !== null
+            && $this->asyncPublishingRegistry->isScopeActive();
+    }
+
+    /**
+     * @param Message[] $publishedMessages
+     */
+    private function registerPendingDelivery(array $publishedMessages): void
+    {
+        $this->asyncPublishingRegistry->register(
+            $this->channelName,
+            new AmqpPendingDelivery(
+                $this->connectionFactory->createContext(),
+                $publishedMessages,
+                $this->asyncPublishingTimeout,
+                $this->channelName,
+            ),
+        );
+    }
+
+    private function awaitPublisherConfirmsSynchronously(): void
+    {
+        if (! $this->publisherConfirms || $this->amqpTransactionInterceptor->isRunningInTransaction()) {
+            return;
+        }
+
+        $context = $this->connectionFactory->createContext();
+        if ($context instanceof AmqpLibContext) {
+            $context->getLibChannel()->wait_for_pending_acks(5);
+        } elseif ($context instanceof AmqpExtContext) {
+            $context->getExtChannel()->waitForConfirm(5);
         }
     }
 }

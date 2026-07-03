@@ -1,0 +1,44 @@
+packages/Kafka/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_b4bcc67b39faba 68-93
+  s_1f8e8d18ce67ab::t_85d3d84aeb86fc 18
+  s_1f8e8d18ce67ab::t_fc1b0803dedc14 9,13
+packages/Amqp/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_cfd5c268063f6a 23-24
+  s_1f8e8d18ce67ab::t_c236ffa4fc60ed 60-87
+  s_1f8e8d18ce67ab::t_13768242d9b975 88-118
+  s_1f8e8d18ce67ab::t_1e20e6e5279d7c 8,12
+  s_1f8e8d18ce67ab::t_85d3d84aeb86fc 16
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/InMemoryAsyncPublisherModule.php
+  s_1f8e8d18ce67ab::t_35459e1054a6dc 9
+  s_1f8e8d18ce67ab::t_eb0b300de94fbc 36
+  s_1f8e8d18ce67ab::t_2f531070d318b2 35
+packages/Kafka/src/Configuration/KafkaPublisherConfiguration.php
+  s_1f8e8d18ce67ab::t_38cf932e8728eb 65-66
+packages/Kafka/src/Configuration/KafkaModule.php
+  s_1f8e8d18ce67ab::t_5bcb23b45063fb 229-230
+  s_1f8e8d18ce67ab::t_8d4e71dc1c78b7 14
+packages/Amqp/src/Publisher/AmqpMessagePublisherModule.php
+  s_1f8e8d18ce67ab::t_f8392c76436e1c 8
+  s_1f8e8d18ce67ab::t_c89f8882f040fa 92,94-95
+packages/Amqp/src/Publisher/AmqpMessagePublisherConfiguration.php
+  s_1f8e8d18ce67ab::t_f9f61c1c23ceef 55-58
+  s_1f8e8d18ce67ab::t_8e6d653b276712 157-176
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/Config/AsyncPublishGatewayRegistration.php
+  s_1f8e8d18ce67ab::t_d1c614be7a179f 1-54
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "6689f2c16a5dc60472c74cb3f0022ac564c6189b",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+packages/Dbal/src/DbaBusinessMethod/DbalParameterConfig.php
+  s_d24dc3ed11e1f9::t_cbd0a1bdd036af 1-8,10-27,38-57
+  s_d24dc3ed11e1f9::t_bd09ee3b86d319 28-37
+  s_d24dc3ed11e1f9::t_82707c4d4cb03b 9
+packages/Dbal/src/DbaBusinessMethod/DbaBusinessMethodModule.php
+  s_d24dc3ed11e1f9::t_0b8b25232128aa 245,257,262
+  s_d24dc3ed11e1f9::t_27472d27002ebb 214,229
+  s_d24dc3ed11e1f9::t_e45406e6005a99 242
+packages/Dbal/src/DbaBusinessMethod/DbalBusinessMethodHandler.php
+  s_d24dc3ed11e1f9::t_fe30f0ca9640bd 162
+  s_d24dc3ed11e1f9::t_c98a747b3ab03d 90
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.9",
+  "base_commit_sha": "8b9e67be38ad554bc21dbf48b1b426c905e46dd0",
+  "prompts": {},
+  "sessions": {
+    "s_d24dc3ed11e1f9": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "6db88ad3-ec31-4a8f-a44e-e648948c9657",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

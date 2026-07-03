@@ -1,0 +1,28 @@
+packages/Amqp/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_1f8e8d18ce67ab::t_66d482831ab180 1-120
+packages/Kafka/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_1f8e8d18ce67ab::t_b8aeaa3823761f 1-64
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/InMemoryPendingDelivery.php
+  s_1f8e8d18ce67ab::t_34a97f91764221 11
+  s_1f8e8d18ce67ab::t_393b3b0ca4715a 25,34-36
+  s_1f8e8d18ce67ab::t_4accf32647f1bc 37
+packages/Ecotone/tests/Messaging/Unit/Channel/AsyncPublishing/AsyncPublishingReliabilityTest.php
+  s_1f8e8d18ce67ab::t_0668cf968571c4 82-83
+  s_1f8e8d18ce67ab::t_9583e44388f6e4 1-81,84-102
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "d7756236a380026811a85825564081fd1f886fdc",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

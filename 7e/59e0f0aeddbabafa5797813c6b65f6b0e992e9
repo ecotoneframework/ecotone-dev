@@ -1,0 +1,26 @@
+packages/Enqueue/src/EnqueueOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_435cb2b32da81f 99
+packages/Dbal/src/EnqueueDbal/DbalProducer.php
+  s_1f8e8d18ce67ab::t_210e9645e7dd36 71
+packages/Sqs/src/SqsOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_a1cda6e523ed31 81
+packages/Redis/src/RedisOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_08b00eea97cdb2 13
+  s_1f8e8d18ce67ab::t_9789d44ee6f8aa 71-78
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "7e59e0f0aeddbabafa5797813c6b65f6b0e992e9",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

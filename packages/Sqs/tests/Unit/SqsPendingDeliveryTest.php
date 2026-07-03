@@ -23,7 +23,7 @@ final class SqsPendingDeliveryTest extends TestCase
         $deliveredMessage = MessageBuilder::withPayload('delivered order')->build();
         $rejectedMessage = MessageBuilder::withPayload('rejected order')->build();
         $pendingDelivery = new SqsPendingDelivery(
-            [new FulfilledPromise(new Result([
+            [fn () => new FulfilledPromise(new Result([
                 'Successful' => [['Id' => '0', 'MessageId' => 'aws-message-id']],
                 'Failed' => [['Id' => '1', 'Code' => 'InternalError', 'Message' => 'server hiccup', 'SenderFault' => false]],
             ]))],
@@ -46,7 +46,7 @@ final class SqsPendingDeliveryTest extends TestCase
         $firstMessage = MessageBuilder::withPayload('first order')->build();
         $secondMessage = MessageBuilder::withPayload('second order')->build();
         $pendingDelivery = new SqsPendingDelivery(
-            [new RejectedPromise(new RuntimeException('connection refused'))],
+            [fn () => new RejectedPromise(new RuntimeException('connection refused'))],
             [['0' => $firstMessage, '1' => $secondMessage]],
             'orders',
         );
@@ -63,7 +63,7 @@ final class SqsPendingDeliveryTest extends TestCase
         $confirmedMessage = MessageBuilder::withPayload('confirmed order')->build();
         $unaccountedMessage = MessageBuilder::withPayload('unaccounted order')->build();
         $pendingDelivery = new SqsPendingDelivery(
-            [new FulfilledPromise(new Result([
+            [fn () => new FulfilledPromise(new Result([
                 'Successful' => [['Id' => '0', 'MessageId' => 'aws-message-id']],
             ]))],
             [['0' => $confirmedMessage, '1' => $unaccountedMessage]],
@@ -80,7 +80,7 @@ final class SqsPendingDeliveryTest extends TestCase
     public function test_fully_confirmed_batch_reports_success_and_is_marked_as_awaited(): void
     {
         $pendingDelivery = new SqsPendingDelivery(
-            [new FulfilledPromise(new Result([
+            [fn () => new FulfilledPromise(new Result([
                 'Successful' => [['Id' => '0', 'MessageId' => 'first-id'], ['Id' => '1', 'MessageId' => 'second-id']],
             ]))],
             [['0' => MessageBuilder::withPayload('first order')->build(), '1' => MessageBuilder::withPayload('second order')->build()]],
@@ -93,5 +93,57 @@ final class SqsPendingDeliveryTest extends TestCase
 
         $this->assertTrue($deliveryResult->isSuccessful());
         $this->assertTrue($pendingDelivery->isAwaited());
+    }
+
+    public function test_send_requests_are_dispatched_lazily_on_await_not_on_creation(): void
+    {
+        $dispatchedRequests = 0;
+        $pendingDelivery = new SqsPendingDelivery(
+            [function () use (&$dispatchedRequests) {
+                $dispatchedRequests++;
+
+                return new FulfilledPromise(new Result(['Successful' => [['Id' => '0', 'MessageId' => 'aws-message-id']]]));
+            }],
+            [['0' => MessageBuilder::withPayload('order')->build()]],
+            'orders',
+        );
+
+        $this->assertSame(0, $dispatchedRequests);
+
+        $pendingDelivery->awaitDelivery();
+
+        $this->assertSame(1, $dispatchedRequests);
+    }
+
+    public function test_all_requests_are_dispatched_even_when_earlier_request_is_rejected(): void
+    {
+        $dispatchedRequests = 0;
+        $countingDispatcher = function ($promise) use (&$dispatchedRequests) {
+            return function () use ($promise, &$dispatchedRequests) {
+                $dispatchedRequests++;
+
+                return $promise;
+            };
+        };
+        $pendingDelivery = new SqsPendingDelivery(
+            [
+                $countingDispatcher(new RejectedPromise(new RuntimeException('connection refused'))),
+                $countingDispatcher(new FulfilledPromise(new Result(['Successful' => [['Id' => '0', 'MessageId' => 'second-id']]]))),
+                $countingDispatcher(new FulfilledPromise(new Result(['Successful' => [['Id' => '0', 'MessageId' => 'third-id']]]))),
+            ],
+            [
+                ['0' => MessageBuilder::withPayload('first order')->build()],
+                ['0' => MessageBuilder::withPayload('second order')->build()],
+                ['0' => MessageBuilder::withPayload('third order')->build()],
+            ],
+            'orders',
+            maxConcurrentRequests: 1,
+        );
+
+        $deliveryResult = $pendingDelivery->awaitDelivery();
+
+        $this->assertSame(3, $dispatchedRequests);
+        $this->assertCount(1, $deliveryResult->getFailedDeliveries());
+        $this->assertSame('first order', $deliveryResult->getFailedDeliveries()[0]->getMessage()->getPayload());
     }
 }

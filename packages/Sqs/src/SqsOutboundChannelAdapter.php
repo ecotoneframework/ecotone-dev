@@ -69,14 +69,15 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             return;
         }
 
-        $sendRequestPromises = [];
+        $sendRequestDispatchers = [];
         $trackedMessagesPerRequest = [];
         foreach ($this->buildBatchRequests($messagesToPublish, $context) as $batchRequest) {
-            $sendRequestPromises[] = $context->getAwsSqsClient()->sendMessageBatchAsync($batchRequest['arguments']);
+            $requestArguments = $batchRequest['arguments'];
+            $sendRequestDispatchers[] = fn () => $context->getAwsSqsClient()->sendMessageBatchAsync($requestArguments);
             $trackedMessagesPerRequest[] = $batchRequest['trackedMessages'];
         }
 
-        $pendingDelivery = new SqsPendingDelivery($sendRequestPromises, $trackedMessagesPerRequest, $this->queueName);
+        $pendingDelivery = new SqsPendingDelivery($sendRequestDispatchers, $trackedMessagesPerRequest, $this->queueName);
 
         if ($this->asyncPublishing && $this->asyncPublishingRegistry->isScopeActive()) {
             $this->asyncPublishingRegistry->register($this->queueName, $pendingDelivery);

@@ -36,6 +36,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     private ?string $delayStrategyReferenceName = null;
     private bool $asyncPublishing = false;
     private int $asyncPublishingTimeout = self::DEFAULT_ASYNC_PUBLISHING_TIMEOUT;
+    private ?string $asyncPublishingChannelName = null;
 
     private function __construct(string $exchangeName, string $amqpConnectionFactoryReferenceName)
     {
@@ -86,6 +87,13 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     public function isAsyncPublishingEnabled(): bool
     {
         return $this->asyncPublishing;
+    }
+
+    public function withAsyncPublishingChannelName(string $channelName): self
+    {
+        $this->asyncPublishingChannelName = $channelName;
+
+        return $this;
     }
 
     public function withDelayStrategy(string $delayStrategyReferenceName): self
@@ -181,7 +189,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             new Reference(AsyncPublishingRegistry::class),
             $this->asyncPublishing,
             $this->asyncPublishingTimeout,
-            $this->exchangeName,
+            $this->asyncPublishingChannelName ?? $this->exchangeName,
         ]);
     }
 }

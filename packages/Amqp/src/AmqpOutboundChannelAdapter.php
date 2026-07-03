@@ -21,6 +21,7 @@ use Interop\Amqp\AmqpMessage;
 use Interop\Amqp\Impl\AmqpTopic;
 use PhpAmqpLib\Message\AMQPMessage as LibAMQPMessage;
 use PhpAmqpLib\Wire\AMQPTable;
+use RuntimeException;
 
 /**
  * @author  Dariusz Gafka <support@simplycodedsoftware.com>
@@ -156,6 +157,28 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             ->setDeliveryDelay($deliveryDelay)
 //            this allow for having queue per delay instead of queue per delay + exchangeName
             ->send(new AmqpTopic($exchangeName), $messageToSend);
+
+        $this->recordExtPublishedMessage();
+    }
+
+    private function recordExtPublishedMessage(): void
+    {
+        if (! $this->publisherConfirms) {
+            return;
+        }
+
+        if ($this->connectionFactory->createContext() instanceof AmqpExtContext) {
+            $this->getExtPublisherConfirmations()?->recordPublishedMessage();
+        }
+    }
+
+    private function getExtPublisherConfirmations(): ?AmqpExtPublisherConfirmations
+    {
+        $innerConnectionFactory = $this->connectionFactory->getInnerConnectionFactory();
+
+        return $innerConnectionFactory instanceof AmqpReconnectableConnectionFactory
+            ? $innerConnectionFactory->getExtPublisherConfirmations()
+            : null;
     }
 
     /**
@@ -226,6 +249,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
                 $publishedMessages,
                 $this->asyncPublishingTimeout,
                 $this->channelName,
+                $this->getExtPublisherConfirmations(),
             ),
         );
     }
@@ -240,7 +264,22 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         if ($context instanceof AmqpLibContext) {
             $context->getLibChannel()->wait_for_pending_acks(5);
         } elseif ($context instanceof AmqpExtContext) {
-            $context->getExtChannel()->waitForConfirm(5);
+            $extPublisherConfirmations = $this->getExtPublisherConfirmations();
+            if ($extPublisherConfirmations === null) {
+                $context->getExtChannel()->waitForConfirm(5);
+
+                return;
+            }
+
+            $deadline = microtime(true) + 5;
+            while ($extPublisherConfirmations->hasOutstandingConfirmations()) {
+                $remainingSeconds = $deadline - microtime(true);
+                if ($remainingSeconds <= 0) {
+                    throw new RuntimeException('Timed out awaiting publisher confirms from RabbitMQ instance.');
+                }
+
+                $context->getExtChannel()->waitForConfirm($remainingSeconds);
+            }
         }
     }
 }

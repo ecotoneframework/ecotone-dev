@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\AsyncPublishing;
 
 use Ecotone\Messaging\Future;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -42,11 +43,23 @@ final class DeliveryFuture implements Future
 
         $this->resolved = true;
         $failedDeliveries = [];
-        foreach ($this->pendingDeliveries as $pendingDelivery) {
-            $deliveryResult = $pendingDelivery->awaitDelivery();
-            if (! $deliveryResult->isSuccessful()) {
-                $failedDeliveries = array_merge($failedDeliveries, $deliveryResult->getFailedDeliveries());
+        try {
+            foreach ($this->pendingDeliveries as $pendingDelivery) {
+                if ($pendingDelivery->isAwaited()) {
+                    continue;
+                }
+
+                $deliveryResult = $pendingDelivery->awaitDelivery();
+                if (! $deliveryResult->isSuccessful()) {
+                    $failedDeliveries = array_merge($failedDeliveries, $deliveryResult->getFailedDeliveries());
+                }
             }
+        } catch (Throwable $exception) {
+            $this->failure = $exception instanceof AsyncPublishingFailedException
+                ? $exception
+                : new AsyncPublishingFailedException(sprintf('Awaiting delivery confirmation failed: %s', $exception->getMessage()), 0, $exception);
+
+            throw $this->failure;
         }
 
         if ($failedDeliveries !== []) {

@@ -24,7 +24,7 @@ use Ecotone\Messaging\MessagePublisher;
  */
 final class AsyncPublishGatewayRegistration
 {
-    public static function registerFor(Configuration $messagingConfiguration, string $publisherReferenceName): void
+    public static function registerFor(Configuration $messagingConfiguration, string $publisherReferenceName, bool $asyncPublishingEnabled = true): void
     {
         $asyncPublishRequestChannel = $publisherReferenceName . '.asyncPublish';
 
@@ -42,6 +42,7 @@ final class AsyncPublishGatewayRegistration
                 ServiceActivatorBuilder::createWithDefinition(
                     new Definition(AsyncPublishingGateway::class, [
                         $publisherReferenceName,
+                        $asyncPublishingEnabled,
                         new Reference(ConfiguredMessagingSystem::class),
                         new Reference(AsyncPublishingRegistry::class),
                     ]),

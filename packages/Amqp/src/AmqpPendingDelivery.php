@@ -11,6 +11,7 @@ use Ecotone\Messaging\Message;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Interop\Amqp\AmqpContext;
+use RuntimeException;
 use Throwable;
 
 /**
@@ -28,6 +29,7 @@ final class AmqpPendingDelivery implements PendingDelivery
         private array $trackedMessages,
         private int $timeoutInMilliseconds,
         private string $channelName,
+        private ?AmqpExtPublisherConfirmations $extPublisherConfirmations = null,
     ) {
     }
 
@@ -40,7 +42,7 @@ final class AmqpPendingDelivery implements PendingDelivery
             if ($this->context instanceof AmqpLibContext) {
                 $this->context->getLibChannel()->wait_for_pending_acks($timeoutInSeconds);
             } elseif ($this->context instanceof AmqpExtContext) {
-                $this->context->getExtChannel()->waitForConfirm($timeoutInSeconds);
+                $this->awaitAllExtConfirmations($timeoutInSeconds);
             }
         } catch (Throwable $exception) {
             return DeliveryResult::withFailedDeliveries(array_map(
@@ -50,6 +52,25 @@ final class AmqpPendingDelivery implements PendingDelivery
         }
 
         return DeliveryResult::successful();
+    }
+
+    private function awaitAllExtConfirmations(float $timeoutInSeconds): void
+    {
+        if ($this->extPublisherConfirmations === null) {
+            $this->context->getExtChannel()->waitForConfirm($timeoutInSeconds);
+
+            return;
+        }
+
+        $deadline = microtime(true) + $timeoutInSeconds;
+        while ($this->extPublisherConfirmations->hasOutstandingConfirmations()) {
+            $remainingSeconds = $deadline - microtime(true);
+            if ($remainingSeconds <= 0) {
+                throw new RuntimeException('Timed out awaiting publisher confirms from RabbitMQ instance.');
+            }
+
+            $this->context->getExtChannel()->waitForConfirm($remainingSeconds);
+        }
     }
 
     public function isAwaited(): bool

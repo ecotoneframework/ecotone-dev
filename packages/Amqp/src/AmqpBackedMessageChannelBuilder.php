@@ -30,6 +30,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
                 ->withDefaultRoutingKey($queueName)
                 ->withAutoDeclareOnSend(true)
                 ->withDefaultPersistentMode(true)
+                ->withAsyncPublishingChannelName($channelName)
         );
     }
 

@@ -227,7 +227,7 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                     ->withDefaultConversionMediaType($mediaType)
             );
 
-        AsyncPublishGatewayRegistration::registerFor($messagingConfiguration, $extensionObject->getReferenceName());
+        AsyncPublishGatewayRegistration::registerFor($messagingConfiguration, $extensionObject->getReferenceName(), $extensionObject->isAsyncPublishingEnabled());
     }
 
     private function getPublisherEndpointId(string $referenceName): string

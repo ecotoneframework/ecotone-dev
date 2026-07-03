@@ -18,6 +18,7 @@ final class AsyncPublishingGateway
 {
     public function __construct(
         private string $publisherReference,
+        private bool $asyncPublishingEnabled,
         private ConfiguredMessagingSystem $configuredMessagingSystem,
         private AsyncPublishingRegistry $asyncPublishingRegistry,
     ) {
@@ -25,6 +26,10 @@ final class AsyncPublishingGateway
 
     public function publish(Message $message): Future
     {
+        if (! $this->asyncPublishingEnabled) {
+            throw AsyncPublishingFailedException::publisherNotConfiguredForAsyncPublishing($this->publisherReference);
+        }
+
         $payload = $message->getPayload();
         if ($payload instanceof BatchMessage && count($payload) === 0) {
             return DeliveryFuture::forPendingDeliveries([]);

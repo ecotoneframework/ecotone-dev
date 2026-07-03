@@ -28,6 +28,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private string $connectionInstanceId;
     private AmqpConnectionFactory $connectionFactory;
     private ?SubscriptionConsumer $subscriptionConsumer = null;
+    private ?AmqpExtPublisherConfirmations $extPublisherConfirmations = null;
 
     public function __construct(AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory, ?string $connectionInstanceId = null, private bool $publisherConfirms = false)
     {
@@ -51,13 +52,28 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         if ($this->publisherConfirms) {
             if ($context instanceof AmqpLibContext) {
                 $context->getLibChannel()->confirm_select();
+                $context->getLibChannel()->set_nack_handler(fn () => throw new RuntimeException('Message was rejected (nack) by RabbitMQ instance. Check RabbitMQ server logs.'));
             } elseif ($context instanceof AmqpExtContext) {
+                $confirmations = $this->getExtPublisherConfirmations();
+                $confirmations->reset();
                 $context->getExtChannel()->confirmSelect();
-                $context->getExtChannel()->setConfirmCallback(fn () => false, fn () => throw new RuntimeException('Message was failed to be persisted in RabbitMQ instance. Check RabbitMQ server logs.'));
+                $context->getExtChannel()->setConfirmCallback(
+                    function (int $deliveryTag, bool $multiple) use ($confirmations): bool {
+                        $confirmations->recordConfirmation($deliveryTag, $multiple);
+
+                        return $confirmations->hasOutstandingConfirmations();
+                    },
+                    fn () => throw new RuntimeException('Message was failed to be persisted in RabbitMQ instance. Check RabbitMQ server logs.')
+                );
             }
         }
 
         return $context;
+    }
+
+    public function getExtPublisherConfirmations(): AmqpExtPublisherConfirmations
+    {
+        return $this->extPublisherConfirmations ??= new AmqpExtPublisherConfirmations();
     }
 
     public function getConnectionInstanceId(): string

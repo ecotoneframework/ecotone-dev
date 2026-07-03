@@ -90,9 +90,10 @@ class AmqpMessagePublisherModule implements AnnotationModule
                         ->withRoutingKeyFromHeader($amqpPublisher->getRoutingKeyFromHeader())
                         ->withDefaultConversionMediaType($mediaType)
                         ->withAsyncPublishing($amqpPublisher->isAsyncPublishingEnabled(), $amqpPublisher->getAsyncPublishingTimeout())
+                        ->withAsyncPublishingChannelName($amqpPublisher->getReferenceName())
                 );
 
-            AsyncPublishGatewayRegistration::registerFor($messagingConfiguration, $amqpPublisher->getReferenceName());
+            AsyncPublishGatewayRegistration::registerFor($messagingConfiguration, $amqpPublisher->getReferenceName(), $amqpPublisher->isAsyncPublishingEnabled());
         }
     }
 

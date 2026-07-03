@@ -10,9 +10,11 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\BatchMessage;
+use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\CommandHandler;
@@ -72,6 +74,34 @@ final class AsyncPublishingTest extends AmqpMessagingTestCase
                         ->withAsyncPublishing(),
                 ]),
         );
+    }
+
+    public function test_async_publish_on_publisher_without_async_configuration_throws_before_publishing(): void
+    {
+        $queueName = Uuid::v7()->toRfc4122();
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [...$this->getConnectionFactoryReferences()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
+                ->withExtensionObjects([
+                    AmqpMessagePublisherConfiguration::create()
+                        ->withDefaultRoutingKey($queueName),
+                    AmqpBackedMessageChannelBuilder::create('verificationChannel', queueName: $queueName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $publisher = $messaging->getGateway(MessagePublisher::class);
+
+        $publishFailed = false;
+        try {
+            $publisher->asyncPublish('order that must not be published');
+        } catch (AsyncPublishingFailedException) {
+            $publishFailed = true;
+        }
+
+        $this->assertTrue($publishFailed);
+        $this->assertNull($messaging->getMessageChannel('verificationChannel')->receiveWithTimeout(PollingMetadata::create('verification')->setFixedRateInMilliseconds(200)));
     }
 
     public function test_message_publisher_async_publish_confirms_delivery_on_future_resolve(): void

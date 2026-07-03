@@ -14,6 +14,8 @@ final class AsyncPublishingRegistry
 
     private const PRUNE_INTERVAL = 256;
 
+    private const MAX_UNAWAITED_BACKLOG = 1024;
+
     private int $nextRegistrationIndex = 0;
 
     private int $registrationsSinceLastPrune = 0;
@@ -106,7 +108,7 @@ final class AsyncPublishingRegistry
     {
         foreach ($this->pendingDeliveries as $registration) {
             if (! $registration['pendingDelivery']->isAwaited()) {
-                $registration['pendingDelivery']->awaitDelivery();
+                $this->awaitAndLogFailures($registration['pendingDelivery']);
             }
         }
         $this->pendingDeliveries = [];
@@ -118,6 +120,41 @@ final class AsyncPublishingRegistry
             if ($registration['pendingDelivery']->isAwaited()) {
                 unset($this->pendingDeliveries[$index]);
             }
+        }
+
+        $this->flushOldestPublisherOwnedDeliveriesAboveBacklogLimit();
+    }
+
+    private function flushOldestPublisherOwnedDeliveriesAboveBacklogLimit(): void
+    {
+        $exceedingBacklogLimit = count($this->pendingDeliveries) - self::MAX_UNAWAITED_BACKLOG;
+        if ($exceedingBacklogLimit <= 0) {
+            return;
+        }
+
+        foreach ($this->pendingDeliveries as $index => $registration) {
+            if ($registration['scopeOwned']) {
+                continue;
+            }
+
+            $this->awaitAndLogFailures($registration['pendingDelivery']);
+            unset($this->pendingDeliveries[$index]);
+
+            if (--$exceedingBacklogLimit <= 0) {
+                return;
+            }
+        }
+    }
+
+    private function awaitAndLogFailures(PendingDelivery $pendingDelivery): void
+    {
+        $deliveryResult = $pendingDelivery->awaitDelivery();
+        foreach ($deliveryResult->getFailedDeliveries() as $failedDelivery) {
+            error_log(sprintf(
+                'Ecotone async publishing: unresolved delivery for channel `%s` failed confirmation: %s',
+                $failedDelivery->getChannelName(),
+                $failedDelivery->getFailureReason(),
+            ));
         }
     }
 }

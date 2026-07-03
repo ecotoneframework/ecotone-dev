@@ -41,6 +41,11 @@ final class AsyncPublishingWaiterInterceptor
             $deliveryResult = $this->asyncPublishingRegistry->awaitAll();
             if (! $deliveryResult->isSuccessful()) {
                 $this->handleFailedDeliveries($deliveryResult->getFailedDeliveries());
+
+                $errorChannelDeliveryResult = $this->asyncPublishingRegistry->awaitAll();
+                if (! $errorChannelDeliveryResult->isSuccessful()) {
+                    throw AsyncPublishingFailedException::withFailedDeliveries($errorChannelDeliveryResult->getFailedDeliveries());
+                }
             }
         } finally {
             $this->asyncPublishingRegistry->closeScope();

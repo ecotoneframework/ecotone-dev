@@ -52,6 +52,10 @@ class AmqpMessagePublisherConfiguration
      */
     private $defaultPersistentDelivery = true;
 
+    private bool $asyncPublishing = false;
+
+    private ?int $asyncPublishingTimeout = null;
+
     private function __construct(string $connectionReference, string $exchangeName, ?string $outputDefaultConversionMediaType, string $referenceName)
     {
         $this->connectionReference = $connectionReference;
@@ -148,6 +152,26 @@ class AmqpMessagePublisherConfiguration
     public function getDefaultPersistentDelivery(): bool
     {
         return $this->defaultPersistentDelivery;
+    }
+
+    public function withAsyncPublishing(bool $enabled = true, ?int $timeoutInMilliseconds = null): AmqpMessagePublisherConfiguration
+    {
+        $this->asyncPublishing = $enabled;
+        if ($timeoutInMilliseconds !== null) {
+            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        }
+
+        return $this;
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
+    }
+
+    public function getAsyncPublishingTimeout(): ?int
+    {
+        return $this->asyncPublishingTimeout;
     }
 
     /**

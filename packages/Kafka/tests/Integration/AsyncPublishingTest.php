@@ -6,13 +6,16 @@ namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -60,6 +63,32 @@ final class AsyncPublishingTest extends TestCase
         $this->expectException(AsyncPublishingFailedException::class);
 
         $messaging->sendCommandWithRoutingKey('order.place', 'espresso');
+    }
+
+    public function test_message_publisher_async_publish_confirms_delivery_on_future_resolve(): void
+    {
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
+                        ->withAsyncPublishing(),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $publisher = $messaging->getGateway(MessagePublisher::class);
+
+        $singleFuture = $publisher->asyncPublish('single order');
+        $batchFuture = $publisher->asyncPublish(
+            BatchMessage::constructEmpty()
+                ->append('first order')
+                ->append('second order', ['priority' => '5'])
+        );
+
+        $this->assertNull($singleFuture->resolve());
+        $this->assertNull($batchFuture->resolve());
     }
 
     private function createOrderService(string $channelName): object

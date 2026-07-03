@@ -62,6 +62,8 @@ final class KafkaPublisherConfiguration implements DefinedObject
                 'retries' => '5',
                 // Backoff time between retries in milliseconds
                 'retry.backoff.ms' => '300',
+                // Disables Nagle algorithm (TCP_NODELAY) so small produce requests are not delayed. Default in librdkafka only since v2.1
+                'socket.nagle.disable' => 'true',
             ],
             $brokerConfigurationReference,
             DefaultHeaderMapper::createAllHeadersMapping(),

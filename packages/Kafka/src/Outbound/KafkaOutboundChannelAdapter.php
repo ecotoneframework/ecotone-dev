@@ -27,6 +27,8 @@ use Throwable;
  */
 final class KafkaOutboundChannelAdapter implements MessageHandler
 {
+    private const POLL_EVERY_PRODUCED_MESSAGES = 100;
+
     public function __construct(
         private string $referenceName,
         private KafkaAdmin                  $kafkaAdmin,
@@ -71,14 +73,18 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
     {
         $deliveryIds = [];
         try {
+            $producedMessages = 0;
             foreach ($batchMessage->getEntries() as $entry) {
                 $entryMessage = MessageBuilder::withPayload($entry['payload'])
                     ->setMultipleHeaders($entry['headers'])
                     ->build();
 
                 $deliveryIds[] = $this->produce($entryMessage, $topic, trackDelivery: true);
-                $producer->poll(0);
+                if (++$producedMessages % self::POLL_EVERY_PRODUCED_MESSAGES === 0) {
+                    $producer->poll(0);
+                }
             }
+            $producer->poll(0);
         } catch (Throwable $exception) {
             if ($deliveryIds !== []) {
                 $this->registerPendingDelivery($producer, $deliveryIds);
@@ -118,7 +124,20 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             : null;
 
         try {
-            $this->produceTracked($topic, $outboundMessage, $partitionKey, $headers, $deliveryId);
+            $retryDeadline = microtime(true) + ($this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->getAsyncPublishingTimeout() / 1000);
+            while (true) {
+                try {
+                    $this->produceTracked($topic, $outboundMessage, $partitionKey, $headers, $deliveryId);
+
+                    break;
+                } catch (KafkaException $exception) {
+                    if ($exception->getCode() !== RD_KAFKA_RESP_ERR__QUEUE_FULL || microtime(true) >= $retryDeadline) {
+                        throw $exception;
+                    }
+
+                    $this->kafkaAdmin->getProducer($this->referenceName)->poll(100);
+                }
+            }
         } catch (Throwable $exception) {
             if ($deliveryId !== null) {
                 $this->kafkaAdmin->getDeliveryTracker($this->referenceName)->discard($deliveryId);

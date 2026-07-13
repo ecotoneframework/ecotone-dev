@@ -137,8 +137,13 @@ final class KafkaPublisherConfiguration implements DefinedObject
 
     public function getAsKafkaConfig(): Conf
     {
+        $configuration = $this->configuration;
+        if ($this->asyncPublishing && ! isset($configuration['linger.ms']) && ! isset($configuration['queue.buffering.max.ms'])) {
+            $configuration['linger.ms'] = '20';
+        }
+
         $conf = new Conf();
-        foreach ($this->configuration as $key => $value) {
+        foreach ($configuration as $key => $value) {
             $conf->set($key, $value);
         }
 

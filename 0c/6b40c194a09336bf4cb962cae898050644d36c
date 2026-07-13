@@ -1,0 +1,21 @@
+packages/Kafka/src/Configuration/KafkaPublisherConfiguration.php
+  s_1f8e8d18ce67ab::t_fec361f13b65ea 140-144,146
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_c56f45fe7937dc 30-31,76,83-85,87,127-140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "0c6b40c194a09336bf4cb962cae898050644d36c",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

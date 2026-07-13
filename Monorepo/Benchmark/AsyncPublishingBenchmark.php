@@ -35,7 +35,8 @@ use PhpBench\Attributes\Warmup;
 
 /**
  * Compares publishing scenarios per provider:
- * single message synchronous | single message asynchronous | batch message synchronous | batch message asynchronous.
+ * single message synchronous | single message asynchronous | batch message synchronous | batch message asynchronous
+ * | multiple batches synchronous | multiple batches asynchronous (fire all batches first, await all confirmations once).
  *
  * DBAL and Redis confirm deliveries synchronously as part of the send call itself (database statement result
  * and command reply respectively), so the asynchronous scenarios are not supported for them and are not benchmarked.
@@ -44,6 +45,10 @@ use PhpBench\Attributes\Warmup;
 class AsyncPublishingBenchmark
 {
     private const AMOUNT_OF_PUBLISHED_MESSAGES = 1000;
+
+    private const AMOUNT_OF_BATCHES = 10;
+
+    private const MESSAGES_PER_BATCH = 100;
 
     private const MESSAGE_PAYLOAD = 'benchmark order payload for async publishing comparison';
 
@@ -174,6 +179,18 @@ class AsyncPublishingBenchmark
         $this->publishBatchAsynchronously();
     }
 
+    #[BeforeMethods('setUpAmqpBatchChannel')]
+    public function bench_amqp_multiple_batches_synchronous(): void
+    {
+        $this->publishMultipleBatchesSynchronously();
+    }
+
+    #[BeforeMethods('setUpAmqpAsyncPublishing')]
+    public function bench_amqp_multiple_batches_asynchronous(): void
+    {
+        $this->publishMultipleBatchesAsynchronously();
+    }
+
     #[BeforeMethods('setUpKafkaSynchronousPublishing')]
     public function bench_kafka_single_message_synchronous(): void
     {
@@ -196,6 +213,18 @@ class AsyncPublishingBenchmark
     public function bench_kafka_batch_message_asynchronous(): void
     {
         $this->publishBatchAsynchronously();
+    }
+
+    #[BeforeMethods('setUpKafkaBatchChannel')]
+    public function bench_kafka_multiple_batches_synchronous(): void
+    {
+        $this->publishMultipleBatchesSynchronously();
+    }
+
+    #[BeforeMethods('setUpKafkaAsyncPublishing')]
+    public function bench_kafka_multiple_batches_asynchronous(): void
+    {
+        $this->publishMultipleBatchesAsynchronously();
     }
 
     #[BeforeMethods('setUpDbalSynchronousPublishing')]
@@ -246,6 +275,18 @@ class AsyncPublishingBenchmark
         $this->publishBatchAsynchronously();
     }
 
+    #[BeforeMethods('setUpSqsBatchChannel')]
+    public function bench_sqs_multiple_batches_synchronous(): void
+    {
+        $this->publishMultipleBatchesSynchronously();
+    }
+
+    #[BeforeMethods('setUpSqsAsyncPublishing')]
+    public function bench_sqs_multiple_batches_asynchronous(): void
+    {
+        $this->publishMultipleBatchesAsynchronously();
+    }
+
     private function publishSynchronouslyOneByOne(): void
     {
         for ($messageNumber = 0; $messageNumber < self::AMOUNT_OF_PUBLISHED_MESSAGES; $messageNumber++) {
@@ -267,19 +308,39 @@ class AsyncPublishingBenchmark
     private function publishBatchSynchronously(): void
     {
         $this->batchChannel->send(
-            MessageBuilder::withPayload($this->buildBatch())->build()
+            MessageBuilder::withPayload($this->buildBatch(self::AMOUNT_OF_PUBLISHED_MESSAGES))->build()
         );
     }
 
     private function publishBatchAsynchronously(): void
     {
-        $this->publisher->asyncPublish($this->buildBatch(), MediaType::TEXT_PLAIN)->resolve();
+        $this->publisher->asyncPublish($this->buildBatch(self::AMOUNT_OF_PUBLISHED_MESSAGES), MediaType::TEXT_PLAIN)->resolve();
     }
 
-    private function buildBatch(): BatchMessage
+    private function publishMultipleBatchesSynchronously(): void
+    {
+        for ($batchNumber = 0; $batchNumber < self::AMOUNT_OF_BATCHES; $batchNumber++) {
+            $this->batchChannel->send(
+                MessageBuilder::withPayload($this->buildBatch(self::MESSAGES_PER_BATCH))->build()
+            );
+        }
+    }
+
+    private function publishMultipleBatchesAsynchronously(): void
+    {
+        $futures = [];
+        for ($batchNumber = 0; $batchNumber < self::AMOUNT_OF_BATCHES; $batchNumber++) {
+            $futures[] = $this->publisher->asyncPublish($this->buildBatch(self::MESSAGES_PER_BATCH), MediaType::TEXT_PLAIN);
+        }
+        foreach ($futures as $future) {
+            $future->resolve();
+        }
+    }
+
+    private function buildBatch(int $amountOfMessages): BatchMessage
     {
         $batch = BatchMessage::constructEmpty();
-        for ($messageNumber = 0; $messageNumber < self::AMOUNT_OF_PUBLISHED_MESSAGES; $messageNumber++) {
+        for ($messageNumber = 0; $messageNumber < $amountOfMessages; $messageNumber++) {
             $batch = $batch->append(self::MESSAGE_PAYLOAD, ['contentType' => MediaType::TEXT_PLAIN]);
         }
 

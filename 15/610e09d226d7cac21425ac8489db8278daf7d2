@@ -1,0 +1,27 @@
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/InMemoryAsyncOutboundAdapter.php
+  s_1f8e8d18ce67ab::t_d569de8fbb7768 8,25-26,37,73-97
+  s_1f8e8d18ce67ab::t_d5cafe3a91f107 98
+packages/Ecotone/tests/Messaging/Unit/Channel/AsyncPublishing/AsyncPublishingReliabilityTest.php
+  s_1f8e8d18ce67ab::t_d569de8fbb7768 15,151-180
+  s_1f8e8d18ce67ab::t_2b308d7f927bdd 17
+  s_1f8e8d18ce67ab::t_ac454f8cc4b6bb 181-182
+packages/Sqs/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_1f8e8d18ce67ab::t_647dcba1b02585 60-85
+  s_1f8e8d18ce67ab::t_cf8ac8aa4decb5 86-87
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "15610e09d226d7cac21425ac8489db8278daf7d2",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

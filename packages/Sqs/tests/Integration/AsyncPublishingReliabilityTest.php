@@ -6,12 +6,14 @@ namespace Test\Ecotone\Sqs\Integration;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Sqs\Configuration\SqsMessagePublisherConfiguration;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
@@ -53,6 +55,34 @@ final class AsyncPublishingReliabilityTest extends ConnectionTestCase
                 BatchMessage::constructEmpty()->append(str_repeat('x', 300_000))
             )->build()
         );
+    }
+
+    public function test_one_failing_batch_among_many_published_in_command_handler_fails_before_commit(): void
+    {
+        $commandHandler = new class () {
+            #[CommandHandler('order.placeAllBatches')]
+            public function handle(string $order, #[Reference(MessagePublisher::class)] MessagePublisher $publisher): void
+            {
+                $publisher->asyncPublish(BatchMessage::constructEmpty()->append($order . ' first valid order'));
+                $publisher->asyncPublish(BatchMessage::constructEmpty()->append(str_repeat('x', 300_000)));
+                $publisher->asyncPublish(BatchMessage::constructEmpty()->append($order . ' third valid order'));
+            }
+        };
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$commandHandler::class],
+            [SqsConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE]))
+                ->withExtensionObjects([
+                    SqsMessagePublisherConfiguration::create(queueName: Uuid::v7()->toRfc4122())
+                        ->withAsyncPublishing(timeoutInMilliseconds: 10000),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->expectException(AsyncPublishingFailedException::class);
+
+        $messaging->sendCommandWithRoutingKey('order.placeAllBatches', 'espresso');
     }
 
     private function bootstrapPublisher(string $queueName): FlowTestSupport

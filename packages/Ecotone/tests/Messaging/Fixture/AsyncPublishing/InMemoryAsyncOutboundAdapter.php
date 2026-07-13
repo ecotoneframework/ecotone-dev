@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Fixture\AsyncPublishing;
 
 use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Message;
 
@@ -21,6 +22,8 @@ final class InMemoryAsyncOutboundAdapter
 
     private ?string $deliveryFailureReason = null;
 
+    private ?string $failingPayloadFragment = null;
+
     private bool $registersPendingDeliveries = true;
 
     public function handle(Message $message, #[Reference] AsyncPublishingRegistry $asyncPublishingRegistry): void
@@ -31,7 +34,7 @@ final class InMemoryAsyncOutboundAdapter
             return;
         }
 
-        $pendingDelivery = new InMemoryPendingDelivery($message, $this->deliveryFailureReason);
+        $pendingDelivery = new InMemoryPendingDelivery($message, $this->resolveFailureReason($message));
         $this->pendingDeliveries[] = $pendingDelivery;
         $asyncPublishingRegistry->register(InMemoryAsyncPublisherModule::PUBLISHER_REFERENCE, $pendingDelivery);
     }
@@ -65,6 +68,32 @@ final class InMemoryAsyncOutboundAdapter
     public function failDeliveriesWith(string $failureReason): void
     {
         $this->deliveryFailureReason = $failureReason;
+    }
+
+    public function failDeliveriesContaining(string $payloadFragment, string $failureReason): void
+    {
+        $this->failingPayloadFragment = $payloadFragment;
+        $this->deliveryFailureReason = $failureReason;
+    }
+
+    private function resolveFailureReason(Message $message): ?string
+    {
+        if ($this->failingPayloadFragment === null) {
+            return $this->deliveryFailureReason;
+        }
+
+        $payload = $message->getPayload();
+        $payloadsToInspect = $payload instanceof BatchMessage
+            ? array_column($payload->getEntries(), 'payload')
+            : [$payload];
+
+        foreach ($payloadsToInspect as $payloadToInspect) {
+            if (is_string($payloadToInspect) && str_contains($payloadToInspect, $this->failingPayloadFragment)) {
+                return $this->deliveryFailureReason;
+            }
+        }
+
+        return null;
     }
 
     public function actAsSynchronousPublisher(): void

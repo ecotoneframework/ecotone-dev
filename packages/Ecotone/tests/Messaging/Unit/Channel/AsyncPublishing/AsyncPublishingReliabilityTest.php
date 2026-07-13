@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Channel\AsyncPublishing;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\AsyncPublishing\DeliveryFuture;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Ecotone\Modelling\Attribute\CommandHandler;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\AsyncPublishing\AsyncOrderSubscriber;
 use Test\Ecotone\Messaging\Fixture\AsyncPublishing\FakeTransactionModule;
@@ -142,6 +146,38 @@ final class AsyncPublishingReliabilityTest extends TestCase
         }
 
         $this->assertTrue($followingDelivery->isAwaited());
+    }
+
+    public function test_one_failing_batch_among_many_published_in_command_handler_rolls_back_transaction(): void
+    {
+        $operationsLog = new OperationsLog();
+        $outboundAdapter = new InMemoryAsyncOutboundAdapter();
+        $commandHandler = new class () {
+            #[CommandHandler('order.placeAllBatches')]
+            public function handle(string $order, #[Reference(InMemoryAsyncPublisherModule::PUBLISHER_REFERENCE)] MessagePublisher $publisher): void
+            {
+                $publisher->asyncPublish(BatchMessage::constructEmpty()->append($order . ' first batch'));
+                $publisher->asyncPublish(BatchMessage::constructEmpty()->append($order . ' poisoned batch'));
+                $publisher->asyncPublish(BatchMessage::constructEmpty()->append($order . ' third batch'));
+            }
+        };
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [$commandHandler::class, InMemoryAsyncPublisherModule::class, InMemoryAsyncOutboundAdapter::class, FakeTransactionModule::class],
+            [$commandHandler, $outboundAdapter, OperationsLog::class => $operationsLog],
+        );
+        $outboundAdapter->failDeliveriesContaining('poisoned', 'broker rejected the batch');
+
+        $commandFailed = false;
+        try {
+            $ecotoneLite->sendCommandWithRoutingKey('order.placeAllBatches', 'espresso');
+        } catch (AsyncPublishingFailedException) {
+            $commandFailed = true;
+        }
+
+        $this->assertTrue($commandFailed);
+        $operations = $operationsLog->getOperations();
+        $this->assertSame('transaction rolled back', $operations[count($operations) - 1]);
+        $this->assertSame(3, $outboundAdapter->awaitedDeliveriesCount());
     }
 
     public function test_unresolved_publisher_futures_above_backlog_limit_are_flushed(): void

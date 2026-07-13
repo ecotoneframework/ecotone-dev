@@ -25,6 +25,8 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
     private const MAX_ENTRIES_PER_BATCH_REQUEST = 10;
     private const BATCH_REQUEST_PAYLOAD_BUDGET_IN_BYTES = 204800;
 
+    private SqsRequestDispatchPool $requestDispatchPool;
+
     public function __construct(
         CachedConnectionFactory $connectionFactory,
         private string $queueName,
@@ -35,6 +37,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         private bool $asyncPublishing = false,
         private ?int $asyncPublishingTimeout = null,
     ) {
+        $this->requestDispatchPool = new SqsRequestDispatchPool();
         parent::__construct(
             $connectionFactory,
             new SqsDestination($queueName),
@@ -69,15 +72,16 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             return;
         }
 
-        $sendRequestDispatchers = [];
+        $awsSqsClient = $context->getAwsSqsClient();
+        $sendRequestPromises = [];
         $trackedMessagesPerRequest = [];
         foreach ($this->buildBatchRequests($messagesToPublish, $context) as $batchRequest) {
             $requestArguments = $batchRequest['arguments'];
-            $sendRequestDispatchers[] = fn () => $context->getAwsSqsClient()->sendMessageBatchAsync($requestArguments);
+            $sendRequestPromises[] = $this->requestDispatchPool->dispatch(fn () => $awsSqsClient->sendMessageBatchAsync($requestArguments));
             $trackedMessagesPerRequest[] = $batchRequest['trackedMessages'];
         }
 
-        $pendingDelivery = new SqsPendingDelivery($sendRequestDispatchers, $trackedMessagesPerRequest, $this->queueName);
+        $pendingDelivery = new SqsPendingDelivery($sendRequestPromises, $trackedMessagesPerRequest, $this->queueName);
 
         if ($this->asyncPublishing && $this->asyncPublishingRegistry->isScopeActive()) {
             $this->asyncPublishingRegistry->register($this->queueName, $pendingDelivery);

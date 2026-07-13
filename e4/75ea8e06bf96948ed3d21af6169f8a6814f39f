@@ -1,0 +1,19 @@
+Monorepo/Benchmark/AsyncPublishingBenchmark.php
+  s_1f8e8d18ce67ab::t_30b91d6bbec515 38-39,49-52,182-193,218-229,278-289,311,317-326,329-340,343
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "e475ea8e06bf96948ed3d21af6169f8a6814f39f",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+.sqs_concurrent_experiment.php
+  s_1f8e8d18ce67ab::t_79b9b5b369dd60 1-130
+packages/Sqs/src/SqsOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_fd099d5ae3f5a8 28-29,40,75-76,80,84
+phpbench.local.json
+  s_1f8e8d18ce67ab::t_0ee27b4b117f41 1,3-11,14-23,26-46,50,52-56
+  s_1f8e8d18ce67ab::t_5bc8202f1f91cc 12-13,24-25,47-49
+  s_1f8e8d18ce67ab::t_464c73a8f0b1d9 51
+  s_1f8e8d18ce67ab::t_f620b43553fe6b 2
+packages/Sqs/src/SqsRequestDispatchPool.php
+  s_1f8e8d18ce67ab::t_cda1e133fbd864 55-59
+  s_1f8e8d18ce67ab::t_cc4036c5fc26e9 1-54,60-105
+packages/Sqs/src/SqsPendingDelivery.php
+  s_1f8e8d18ce67ab::t_fd099d5ae3f5a8 13,26,30,42
+packages/Sqs/tests/Unit/SqsPendingDeliveryTest.php
+  s_1f8e8d18ce67ab::t_4f653a3f54fd8b 26,49,66,83,98,101
+packages/Sqs/tests/Unit/SqsRequestDispatchPoolTest.php
+  s_1f8e8d18ce67ab::t_fa39750258a8fb 1-107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "da470054c7a2a5bbaad9e51eaa71e71651a68d6f",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

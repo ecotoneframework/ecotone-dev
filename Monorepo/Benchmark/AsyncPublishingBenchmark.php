@@ -316,9 +316,14 @@ class AsyncPublishingBenchmark
 
     private function bootstrapAmqpPublisher(bool $asyncPublishing): MessagePublisher
     {
+        $queueName = uniqid('benchmark_orders_');
+        $connectionFactory = new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f']);
+        $context = $connectionFactory->createContext();
+        $context->declareQueue($context->createQueue($queueName));
+
         $publisherConfiguration = AmqpMessagePublisherConfiguration::create()
             ->withAutoDeclareQueueOnSend(true)
-            ->withDefaultRoutingKey(uniqid('benchmark_orders_'));
+            ->withDefaultRoutingKey($queueName);
         if ($asyncPublishing) {
             $publisherConfiguration = $publisherConfiguration->withAsyncPublishing();
         }
@@ -326,7 +331,7 @@ class AsyncPublishingBenchmark
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [],
             [
-                AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f']),
+                AmqpConnectionFactory::class => $connectionFactory,
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))

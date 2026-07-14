@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
+use Ecotone\Kafka\Attribute\KafkaConsumer;
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
+use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -106,6 +109,57 @@ final class AsyncPublishingTest extends TestCase
 
         $this->assertNull($singleFuture->resolve());
         $this->assertNull($batchFuture->resolve());
+    }
+
+    public function test_batch_message_published_synchronously_from_command_handler_is_delivered(): void
+    {
+        $topicName = Uuid::v7()->toRfc4122();
+        $commandHandler = new class () {
+            /** @var string[] */
+            private array $receivedPayloads = [];
+
+            #[CommandHandler('order.placeBatch')]
+            public function handle(string $order, #[Reference(MessagePublisher::class)] MessagePublisher $publisher): void
+            {
+                $publisher->convertAndSend(
+                    BatchMessage::constructEmpty()
+                        ->append($order . ' first order')
+                        ->append($order . ' second order')
+                );
+            }
+
+            #[KafkaConsumer('batchOrdersConsumer', 'batchOrdersTopic')]
+            public function collect(string $payload): void
+            {
+                $this->receivedPayloads[] = $payload;
+            }
+
+            #[QueryHandler('order.getReceivedBatchOrders')]
+            public function getReceived(): array
+            {
+                return $this->receivedPayloads;
+            }
+        };
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$commandHandler::class],
+            [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), $commandHandler],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaPublisherConfiguration::createWithDefaults(topicName: $topicName)
+                        ->withAsyncPublishing(),
+                    TopicConfiguration::createWithReferenceName('batchOrdersTopic', $topicName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.placeBatch', 'espresso');
+
+        $messaging->run('batchOrdersConsumer', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, maxExecutionTimeInMilliseconds: 30000));
+
+        $receivedPayloads = $messaging->sendQueryWithRouting('order.getReceivedBatchOrders');
+        sort($receivedPayloads);
+        $this->assertSame(['espresso first order', 'espresso second order'], $receivedPayloads);
     }
 
     private function createOrderService(string $channelName): object

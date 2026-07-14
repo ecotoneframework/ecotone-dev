@@ -7,11 +7,13 @@ namespace Test\Ecotone\Sqs\Integration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Attribute\CommandHandler;
@@ -114,6 +116,43 @@ final class AsyncPublishingTest extends ConnectionTestCase
         $this->assertSame(['first order', 'second order', 'single order'], $receivedPayloads);
     }
 
+    public function test_batch_message_published_synchronously_from_command_handler_is_delivered(): void
+    {
+        $queueName = Uuid::v7()->toRfc4122();
+        $commandHandler = new class () {
+            #[CommandHandler('order.placeBatch')]
+            public function handle(string $order, #[Reference(MessagePublisher::class)] MessagePublisher $publisher): void
+            {
+                $publisher->convertAndSend(
+                    BatchMessage::constructEmpty()
+                        ->append($order . ' first order')
+                        ->append($order . ' second order')
+                );
+            }
+        };
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$commandHandler::class],
+            [SqsConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::SQS_PACKAGE]))
+                ->withExtensionObjects([
+                    SqsMessagePublisherConfiguration::create(queueName: $queueName)
+                        ->withAsyncPublishing(timeoutInMilliseconds: 10000),
+                    SqsBackedMessageChannelBuilder::create($queueName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.placeBatch', 'espresso');
+
+        $receivedPayloads = [];
+        while ($message = $messaging->getMessageChannel($queueName)->receive()) {
+            $receivedPayloads[] = $message->getPayload();
+        }
+        sort($receivedPayloads);
+        $this->assertSame(['espresso first order', 'espresso second order'], $receivedPayloads);
+    }
+
     public function test_batch_larger_than_ten_messages_is_chunked_and_delivered(): void
     {
         $queueName = Uuid::v7()->toRfc4122();
@@ -132,6 +171,35 @@ final class AsyncPublishingTest extends ConnectionTestCase
             $receivedPayloads[] = $message->getPayload();
         }
         $this->assertCount(25, $receivedPayloads);
+    }
+
+    public function test_delayed_entry_of_published_batch_is_delivered_after_delay(): void
+    {
+        $queueName = Uuid::v7()->toRfc4122();
+        $messaging = $this->bootstrapPublisher($queueName, asyncPublishing: true);
+        $publisher = $messaging->getGateway(MessagePublisher::class);
+
+        $publishedAt = microtime(true);
+        $publisher->asyncPublish(
+            BatchMessage::constructEmpty()
+                ->append('immediate order')
+                ->append('delayed order', [MessageHeaders::DELIVERY_DELAY => 1000])
+        )->resolve();
+
+        $channel = $messaging->getMessageChannel($queueName);
+        $receivedAt = [];
+        $deadline = microtime(true) + 15;
+        while (count($receivedAt) < 2 && microtime(true) < $deadline) {
+            if ($message = $channel->receive()) {
+                $receivedAt[$message->getPayload()] = microtime(true);
+            } else {
+                usleep(100000);
+            }
+        }
+
+        $this->assertArrayHasKey('immediate order', $receivedAt);
+        $this->assertArrayHasKey('delayed order', $receivedAt);
+        $this->assertGreaterThanOrEqual(1.0, $receivedAt['delayed order'] - $publishedAt);
     }
 
     private function createOrderService(): object

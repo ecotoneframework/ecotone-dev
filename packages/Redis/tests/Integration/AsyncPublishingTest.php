@@ -7,6 +7,7 @@ namespace Test\Ecotone\Redis\Integration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -126,6 +127,43 @@ final class AsyncPublishingTest extends ConnectionTestCase
         $this->assertSame(['first order', 'second order', 'single order'], $receivedPayloads);
     }
 
+    public function test_batch_message_published_synchronously_from_command_handler_is_delivered(): void
+    {
+        $queueName = Uuid::v7()->toRfc4122();
+        $commandHandler = new class () {
+            #[CommandHandler('order.placeBatch')]
+            public function handle(string $order, #[Reference(MessagePublisher::class)] MessagePublisher $publisher): void
+            {
+                $publisher->convertAndSend(
+                    BatchMessage::constructEmpty()
+                        ->append($order . ' first order')
+                        ->append($order . ' second order')
+                );
+            }
+        };
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$commandHandler::class],
+            [RedisConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::REDIS_PACKAGE]))
+                ->withExtensionObjects([
+                    RedisMessagePublisherConfiguration::create(queueName: $queueName)
+                        ->withAsyncPublishing(),
+                    RedisBackedMessageChannelBuilder::create($queueName),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.placeBatch', 'espresso');
+
+        $receivedPayloads = [];
+        while ($message = $messaging->getMessageChannel($queueName)->receive()) {
+            $receivedPayloads[] = $message->getPayload();
+        }
+        sort($receivedPayloads);
+        $this->assertSame(['espresso first order', 'espresso second order'], $receivedPayloads);
+    }
+
     public function test_delayed_entry_of_published_batch_lands_in_delayed_set(): void
     {
         $queueName = Uuid::v7()->toRfc4122();
@@ -147,6 +185,25 @@ final class AsyncPublishingTest extends ConnectionTestCase
         /** @var RedisContext $context */
         $context = $this->getConnectionFactory()->createContext();
         $this->assertSame(1, $context->getRedis()->eval('return redis.call("zcard", KEYS[1])', [$queueName . ':delayed']));
+    }
+
+    public function test_expired_entry_of_published_batch_is_not_delivered(): void
+    {
+        $queueName = Uuid::v7()->toRfc4122();
+        $messaging = $this->bootstrapPublisher($queueName, asyncPublishing: true);
+        $publisher = $messaging->getGateway(MessagePublisher::class);
+
+        $publisher->asyncPublish(
+            BatchMessage::constructEmpty()
+                ->append('expiring order', [MessageHeaders::TIME_TO_LIVE => 1000])
+                ->append('kept order')
+        )->resolve();
+
+        sleep(2);
+
+        $channel = $messaging->getMessageChannel($queueName);
+        $this->assertSame('kept order', $channel->receive()->getPayload());
+        $this->assertNull($channel->receive());
     }
 
     public function test_publishing_to_wrong_type_key_throws(): void

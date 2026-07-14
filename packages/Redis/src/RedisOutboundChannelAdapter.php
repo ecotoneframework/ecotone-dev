@@ -97,7 +97,7 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
             if ($outboundMessage->getTimeToLive()) {
                 $messageToSend->setTimeToLive($outboundMessage->getTimeToLive());
-                $messageToSend->setHeader('expires_at', time() + $messageToSend->getTimeToLive());
+                $messageToSend->setHeader('expires_at', time() + (int) ceil($outboundMessage->getTimeToLive() / 1000));
             }
 
             $payload = $context->getSerializer()->toString($messageToSend);

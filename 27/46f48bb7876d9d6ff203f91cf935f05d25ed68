@@ -1,0 +1,48 @@
+packages/Kafka/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_1d117b253a794a 7,11,15
+  s_1f8e8d18ce67ab::t_794028aa3a3b68 114-164
+packages/Redis/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_f8c21a509c6787 10
+  s_1f8e8d18ce67ab::t_3b0f8ec9a0c271 130-166
+  s_1f8e8d18ce67ab::t_6d5cbb438b7b8b 190-208
+packages/Amqp/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_a175fbc083e253 12
+  s_1f8e8d18ce67ab::t_7f58b707976d02 19-20,22
+  s_1f8e8d18ce67ab::t_fe6cf36ade5f23 169-206
+  s_1f8e8d18ce67ab::t_6bf1ed780a3488 271-302
+  s_1f8e8d18ce67ab::t_2d55085c85c98d 142-155,157-168
+  s_1f8e8d18ce67ab::t_aaf632baf38720 156
+packages/Dbal/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_b5e1d5b32a16df 124-160
+  s_1f8e8d18ce67ab::t_aff89fbdb03766 12
+  s_1f8e8d18ce67ab::t_8086c0718fd771 19-20,22
+  s_1f8e8d18ce67ab::t_57678590fbba70 175
+  s_1f8e8d18ce67ab::t_691e71eb532a1b 18
+  s_1f8e8d18ce67ab::t_cda825fd9c5081 213-225
+  s_1f8e8d18ce67ab::t_0a3f8012c122a6 161-174,176-198
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_5fdc3e552ca87c 119
+packages/Redis/src/RedisOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_bd6374a6d44cb1 100
+packages/Sqs/tests/Integration/AsyncPublishingTest.php
+  s_1f8e8d18ce67ab::t_8a4609803804ba 119-155
+  s_1f8e8d18ce67ab::t_df626069d64a34 176-204
+  s_1f8e8d18ce67ab::t_e1405d91ccf519 16
+  s_1f8e8d18ce67ab::t_865ed8a73d2f83 10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "2746f48bb7876d9d6ff203f91cf935f05d25ed68",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

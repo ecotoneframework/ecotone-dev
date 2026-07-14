@@ -1,0 +1,24 @@
+packages/Amqp/src/AmqpOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_044e563e2695e8 66-74,78,81,94-97,101,106-108,114,127,135-136,144-151
+  s_1f8e8d18ce67ab::t_5a6017b44ef0bf 152-153
+packages/Dbal/src/DbalOutboundChannelAdapter.php
+  s_1f8e8d18ce67ab::t_ac5014a2d93b79 61-66
+  s_1f8e8d18ce67ab::t_a61ed2ed0120e6 14
+  s_1f8e8d18ce67ab::t_dc49a4b50f58a7 67-68
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.13",
+  "base_commit_sha": "a88dc053b8a61a47dcd198beb3c6c1150c08badc",
+  "prompts": {},
+  "sessions": {
+    "s_1f8e8d18ce67ab": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "4e5d0e96-7ead-460f-8054-ca0997b89cad",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

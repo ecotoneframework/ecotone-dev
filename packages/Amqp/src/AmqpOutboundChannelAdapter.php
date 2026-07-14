@@ -63,16 +63,22 @@ class AmqpOutboundChannelAdapter implements MessageHandler
      */
     public function handle(Message $message): void
     {
-        if ($message->getPayload() instanceof BatchMessage) {
-            $this->handleBatch($message->getPayload(), $message);
+        $payload = $message->getPayload();
+        $messagesToPublish = $payload instanceof BatchMessage
+            ? array_map(
+                fn (array $entry): Message => MessageBuilder::withPayload($entry['payload'])->setMultipleHeaders($entry['headers'])->build(),
+                $payload->getEntries(),
+            )
+            : [$message];
 
+        if ($messagesToPublish === []) {
             return;
         }
 
-        $this->publish($message);
+        $this->publishMessages($messagesToPublish);
 
         if ($this->canPublishAsynchronously()) {
-            $this->registerPendingDelivery([$message]);
+            $this->registerPendingDelivery($messagesToPublish);
 
             return;
         }
@@ -85,37 +91,27 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         return $this->asyncPublishing;
     }
 
-    private function handleBatch(BatchMessage $batchMessage, Message $carrierMessage): void
+    /**
+     * @param Message[] $messages
+     */
+    private function publishMessages(array $messages): void
     {
-        $entryMessages = [];
-        foreach ($batchMessage->getEntries() as $entry) {
-            $entryMessages[] = MessageBuilder::withPayload($entry['payload'])
-                ->setMultipleHeaders($entry['headers'])
-                ->build();
-        }
-
         $context = $this->connectionFactory->createContext();
         if ($context instanceof AmqpLibContext) {
-            $this->publishBatchThroughSingleWrite($entryMessages, $context);
-        } else {
-            foreach ($entryMessages as $entryMessage) {
-                $this->publish($entryMessage);
-            }
-        }
-
-        if ($this->canPublishAsynchronously()) {
-            $this->registerPendingDelivery($entryMessages);
+            $this->publishThroughSingleBatchWrite($messages, $context);
 
             return;
         }
 
-        $this->awaitPublisherConfirmsSynchronously();
+        foreach ($messages as $message) {
+            $this->publish($message);
+        }
     }
 
     /**
      * @param Message[] $messages
      */
-    private function publishBatchThroughSingleWrite(array $messages, AmqpLibContext $context): void
+    private function publishThroughSingleBatchWrite(array $messages, AmqpLibContext $context): void
     {
         $preparedEntries = [];
         $delayedMessages = [];
@@ -128,12 +124,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
                 continue;
             }
 
-            $amqpProperties = $interopMessage->getHeaders();
-            if ($applicationProperties = $interopMessage->getProperties()) {
-                $amqpProperties['application_headers'] = new AMQPTable($applicationProperties);
-            }
-
-            $preparedEntries[] = [new LibAMQPMessage($interopMessage->getBody(), $amqpProperties), $exchangeName, $interopMessage->getRoutingKey() ?? ''];
+            $preparedEntries[] = [$this->convertToLibMessage($interopMessage), $exchangeName, $interopMessage->getRoutingKey() ?? '', (bool) ($interopMessage->getFlags() & AmqpMessage::FLAG_MANDATORY)];
         }
 
         foreach ($delayedMessages as $delayedMessage) {
@@ -141,13 +132,23 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         }
 
         $libChannel = $context->getLibChannel();
-        foreach ($preparedEntries as [$libMessage, $exchangeName, $routingKey]) {
-            $libChannel->batch_basic_publish($libMessage, $exchangeName, $routingKey, mandatory: $this->publisherConfirms);
+        foreach ($preparedEntries as [$libMessage, $exchangeName, $routingKey, $mandatory]) {
+            $libChannel->batch_basic_publish($libMessage, $exchangeName, $routingKey, mandatory: $mandatory);
         }
 
         if ($preparedEntries !== []) {
             $libChannel->publish_batch();
         }
+    }
+
+    private function convertToLibMessage(AmqpMessage $interopMessage): LibAMQPMessage
+    {
+        $amqpProperties = $interopMessage->getHeaders();
+        if ($applicationProperties = $interopMessage->getProperties()) {
+            $amqpProperties['application_headers'] = new AMQPTable($applicationProperties);
+        }
+
+        return new LibAMQPMessage($interopMessage->getBody(), $amqpProperties);
     }
 
     private function publish(Message $message): void

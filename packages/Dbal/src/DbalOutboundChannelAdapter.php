@@ -11,6 +11,7 @@ use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\Dbal\DbalContext;
 use Enqueue\Dbal\DbalDestination;
@@ -55,6 +56,14 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
         $this->tableManager->createTable($context->getDbalConnection());
         $context->createQueue($this->queueName);
+    }
+
+    protected function sendSingleMessage(Message $message, Context $context): void
+    {
+        $this->handleBatch(
+            BatchMessage::constructEmpty()->append($message->getPayload(), $message->getHeaders()->headers()),
+            $context,
+        );
     }
 
     protected function handleBatch(BatchMessage $batchMessage, Context $context): void

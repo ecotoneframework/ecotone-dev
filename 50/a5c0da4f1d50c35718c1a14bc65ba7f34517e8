@@ -1,0 +1,107 @@
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/CloseTicket.php
+  s_f7e815150375cd::t_7529bac70f35f1 1-15
+packages/JmsConverter/tests/Fixture/UnionIdentifierAggregate/TicketWasCreated.php
+  s_f7e815150375cd::t_2c3a365c414eb8 1-5,8-14,17-19
+  s_f7e815150375cd::t_509a90f1e2a051 6-7,15-16
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/EventSourcedTicket.php
+  s_f7e815150375cd::t_7efa732833739b 1-54
+packages/JmsConverter/tests/Fixture/ExamplesToConvert/UnionType/ExternalIdWithDiscriminator.php
+  s_f7e815150375cd::t_c376aef07b7de6 1-25
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/InternalId.php
+  s_f7e815150375cd::t_4928818aff5d39 1-20
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/CloseTicketByTargetIdentifier.php
+  s_f7e815150375cd::t_751b7adfe036e0 1-17
+packages/JmsConverter/tests/Integration/UnionIdentifierAggregateTest.php
+  s_f7e815150375cd::t_c3ec7d4e84b544 1-8,10-25,27-35
+  s_f7e815150375cd::t_146360af2fd4b2 26
+  s_f7e815150375cd::t_e1878a7b7b33da 9
+packages/Ecotone/tests/Modelling/Unit/IdentifierMappingTest.php
+  s_f7e815150375cd::t_e48ffc803b27f8 27
+  s_f7e815150375cd::t_4746b2320aa503 292-296,299-300,305-306
+  s_f7e815150375cd::t_18af35fdf57a6a 30,32
+  s_f7e815150375cd::t_1fa19be007918d 29
+  s_f7e815150375cd::t_fd7dcd824cfbdd 257-290
+  s_f7e815150375cd::t_64760e0cd0dae6 11
+  s_f7e815150375cd::t_60d6ffb361e7d9 291,298,301-304
+  s_f7e815150375cd::t_119b10674df5e7 253-256
+  s_f7e815150375cd::t_15298e873c5b0d 237
+  s_f7e815150375cd::t_27efa93d734bb4 221,241-243,246,250
+  s_f7e815150375cd::t_9193315a26f875 238-240,244-245,247-249,251-252
+  s_f7e815150375cd::t_b1f147ca57c178 297
+  s_f7e815150375cd::t_2a6f6cef203ad3 222-236
+  s_f7e815150375cd::t_a2f14db39c00c4 31
+  s_f7e815150375cd::t_6081d3f3649b05 26,28,33-34
+  s_f7e815150375cd::t_582aeef2396016 307-322
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/Ticket.php
+  s_f7e815150375cd::t_56807666411f8f 40-42
+  s_f7e815150375cd::t_7af04fddb59647 25-32
+  s_f7e815150375cd::t_8dc44a2e8f0fe8 48-59
+  s_f7e815150375cd::t_541c453be53cd9 7
+  s_f7e815150375cd::t_9e92b021d675a0 1-6,8-24,35-39,43-47,60-64
+  s_f7e815150375cd::t_bd79549acd252b 33
+  s_f7e815150375cd::t_d4379b4a3876fd 34
+packages/JmsConverter/tests/Fixture/UnionIdentifierAggregate/CloseTicket.php
+  s_f7e815150375cd::t_b08dc62f1f8bb6 1-13
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/CreateTicketSingleType.php
+  s_f7e815150375cd::t_acc444fd35de36 1-15
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/EventSourcedTicketSingleType.php
+  s_f7e815150375cd::t_f9d889bc154d81 1-54
+packages/JmsConverter/tests/Fixture/ExamplesToConvert/UnionType/InternalIdWithDiscriminator.php
+  s_f7e815150375cd::t_178fdd652002c9 1-25
+packages/JmsConverter/tests/Fixture/UnionIdentifierAggregate/CreateTicket.php
+  s_f7e815150375cd::t_5fe43762873942 5-6,13
+  s_f7e815150375cd::t_d5aa058774a35f 1-4,7-12,14-16
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/CreateTicketAsync.php
+  s_f7e815150375cd::t_03507515955c71 1-15
+packages/JmsConverter/tests/Fixture/UnionIdentifierAggregate/TicketWasClosed.php
+  s_f7e815150375cd::t_a067acab79fc87 1-13
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/TicketWasCreatedSingleType.php
+  s_f7e815150375cd::t_1429228cb8dc64 1-15
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/TicketWasCreated.php
+  s_f7e815150375cd::t_ff4e39faa38bd7 1-15
+packages/JmsConverter/tests/Fixture/ExamplesToConvert/UnionType/ExternalId.php
+  s_f7e815150375cd::t_ed9517ffa79add 1-18
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/TicketWasClosed.php
+  s_f7e815150375cd::t_d4be6f39345573 1-15
+packages/JmsConverter/tests/Fixture/ExamplesToConvert/UnionType/PropertyWithClassUnionType.php
+  s_f7e815150375cd::t_89876322887c73 1-18
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/ExternalId.php
+  s_f7e815150375cd::t_8af15e81d568bd 1-20
+packages/Ecotone/tests/Modelling/Fixture/IdentifierMapping/UnionType/CreateTicket.php
+  s_f7e815150375cd::t_3e1776f568f23a 1-11,13-15
+  s_f7e815150375cd::t_12716a53930ab0 12
+packages/JmsConverter/tests/Fixture/ExamplesToConvert/UnionType/InternalId.php
+  s_f7e815150375cd::t_67c4ab60933cdd 1-18
+packages/JmsConverter/tests/Unit/JMSConverterTest.php
+  s_f7e815150375cd::t_d8eecd0aaf8039 18
+  s_f7e815150375cd::t_3a038932b283e9 43,45
+  s_f7e815150375cd::t_ba4c27a2e74226 193,197-200
+  s_f7e815150375cd::t_c6a4af5d3fea02 44,46
+  s_f7e815150375cd::t_834105d8e7508f 205
+  s_f7e815150375cd::t_0b09475b0879d6 203,207-209,211,214
+  s_f7e815150375cd::t_47ff7ff04451e9 210,212-213,215-223
+  s_f7e815150375cd::t_f363d38798e21d 194-196,201-202,204,206,224-225
+  s_f7e815150375cd::t_d58f2a03bee0aa 47
+packages/JmsConverter/tests/Fixture/ExamplesToConvert/UnionType/PropertyWithClassUnionTypeAndDiscriminator.php
+  s_f7e815150375cd::t_064726061bd508 13-14,18
+  s_f7e815150375cd::t_e20e3657ee1743 1-12,15-17,19-22
+packages/JmsConverter/tests/Fixture/UnionIdentifierAggregate/Ticket.php
+  s_f7e815150375cd::t_15a516b9dc976e 1-9,12-21,23-54
+  s_f7e815150375cd::t_88ce37ef7a7f46 10-11,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "50a5c0da4f1d50c35718c1a14bc65ba7f34517e8",
+  "prompts": {},
+  "sessions": {
+    "s_f7e815150375cd": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "28a358ce-3296-41b2-a937-82061e3ba5d1",
+        "model": "claude-sonnet-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

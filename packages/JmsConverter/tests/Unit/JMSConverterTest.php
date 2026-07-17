@@ -15,6 +15,7 @@ use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
+use Error;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Test\Ecotone\JMSConverter\Fixture\Configuration\ArrayConversion\ClassToArrayConverter;
@@ -39,6 +40,11 @@ use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\ThreeLevelNestedObjectPr
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\TwoLevelNestedCollectionProperty;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\TwoLevelNestedObjectProperty;
 use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\TypedProperty;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\UnionType\ExternalIdWithDiscriminator;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\UnionType\InternalId;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\UnionType\InternalIdWithDiscriminator;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\UnionType\PropertyWithClassUnionType;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\UnionType\PropertyWithClassUnionTypeAndDiscriminator;
 
 /**
  * @internal
@@ -180,6 +186,39 @@ class JMSConverterTest extends TestCase
         $expectedSerializationString = '{"data":[]}';
 
         $this->expectException(ConversionException::class);
+
+        $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString);
+    }
+
+    public function test_class_union_type_property_can_still_be_serialized_to_json()
+    {
+        $toSerialize = new PropertyWithClassUnionType(new InternalId('123'));
+
+        $this->assertSame(
+            '{"id":{"id":"123"}}',
+            $this->serializeToJson($toSerialize, [])
+        );
+    }
+
+    public function test_throwing_exception_when_deserializing_class_union_type_without_discriminator()
+    {
+        $this->expectException(Error::class);
+
+        $this->deserialize('{"id":{"id":"123"}}', PropertyWithClassUnionType::class, [])->getId();
+    }
+
+    public function test_class_union_type_property_round_trips_using_union_discriminator()
+    {
+        $toSerialize = new PropertyWithClassUnionTypeAndDiscriminator(new InternalIdWithDiscriminator('123'));
+        $expectedSerializationString = '{"id":{"type":"internal","id":"123"}}';
+
+        $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString);
+    }
+
+    public function test_class_union_type_property_round_trips_using_union_discriminator_for_other_union_member()
+    {
+        $toSerialize = new PropertyWithClassUnionTypeAndDiscriminator(new ExternalIdWithDiscriminator('456'));
+        $expectedSerializationString = '{"id":{"type":"external","id":"456"}}';
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString);
     }

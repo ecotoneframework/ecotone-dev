@@ -1,0 +1,19 @@
+docs/superpowers/specs/2026-07-17-symfony-serializer-design.md
+  s_48f988ada93760::t_96e401527515b8 1-131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "66371bf20ec00e5d084378e182628aa9b48d71e4",
+  "prompts": {},
+  "sessions": {
+    "s_48f988ada93760": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "f4ababa6-288f-4248-992f-12d1f18384b5",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

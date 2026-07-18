@@ -8,6 +8,7 @@ use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Message;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Apache-2.0
@@ -34,7 +35,7 @@ final class InMemoryAsyncOutboundAdapter
             return;
         }
 
-        $pendingDelivery = new InMemoryPendingDelivery($message, $this->resolveFailureReason($message));
+        $pendingDelivery = new InMemoryPendingDelivery($message, $this->resolveFailureReason($message), failedMessages: $this->resolveFailedMessages($message));
         $this->pendingDeliveries[] = $pendingDelivery;
         $asyncPublishingRegistry->register(InMemoryAsyncPublisherModule::PUBLISHER_REFERENCE, $pendingDelivery);
     }
@@ -82,18 +83,40 @@ final class InMemoryAsyncOutboundAdapter
             return $this->deliveryFailureReason;
         }
 
-        $payload = $message->getPayload();
-        $payloadsToInspect = $payload instanceof BatchMessage
-            ? array_column($payload->getEntries(), 'payload')
-            : [$payload];
+        return $this->resolveFailedMessages($message) === [] ? null : $this->deliveryFailureReason;
+    }
 
-        foreach ($payloadsToInspect as $payloadToInspect) {
-            if (is_string($payloadToInspect) && str_contains($payloadToInspect, $this->failingPayloadFragment)) {
-                return $this->deliveryFailureReason;
+    /**
+     * @return Message[]
+     */
+    private function resolveFailedMessages(Message $message): array
+    {
+        if ($this->failingPayloadFragment === null) {
+            return [];
+        }
+
+        $payload = $message->getPayload();
+        if (! $payload instanceof BatchMessage) {
+            return $this->matchesFailingFragment($payload) ? [$message] : [];
+        }
+
+        $failedMessages = [];
+        foreach ($payload->getEntries() as $entry) {
+            if ($this->matchesFailingFragment($entry['payload'])) {
+                $failedMessages[] = MessageBuilder::withPayload($entry['payload'])
+                    ->setMultipleHeaders($entry['headers'])
+                    ->build();
             }
         }
 
-        return null;
+        return $failedMessages;
+    }
+
+    private function matchesFailingFragment(mixed $payload): bool
+    {
+        $payloadAsString = is_string($payload) ? $payload : json_encode($payload);
+
+        return is_string($payloadAsString) && str_contains($payloadAsString, $this->failingPayloadFragment);
     }
 
     public function actAsSynchronousPublisher(): void

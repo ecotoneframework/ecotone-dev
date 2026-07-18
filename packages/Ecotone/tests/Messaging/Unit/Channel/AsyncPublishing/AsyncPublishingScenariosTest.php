@@ -128,6 +128,35 @@ final class AsyncPublishingScenariosTest extends TestCase
         $this->assertNull($ecotoneLite->receiveMessageFrom('failure_channel'));
     }
 
+    public function test_only_failed_message_from_batch_is_routed_to_error_channel(): void
+    {
+        $operationsLog = new OperationsLog();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
+            [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
+            ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+                GlobalPollableChannelConfiguration::createWithDefaults()->withErrorChannel('failure_channel'),
+                PollableChannelConfiguration::neverRetry('async_orders')->withCollector(false)->withErrorChannel('failure_channel'),
+            ]),
+            enableAsynchronousProcessing: [
+                InMemoryAsyncPublishingChannelBuilder::create('async_orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('failure_channel'),
+            ],
+        );
+        $channel = $ecotoneLite->getMessageChannel('async_orders');
+        assert($channel instanceof MessageChannelInterceptorAdapter);
+        $channel->getInternalMessageChannel()->failDeliveriesContaining('espresso-2', 'broker rejected message');
+
+        $ecotoneLite->sendCommandWithRoutingKey('order.place', 'espresso');
+
+        $this->assertSame('transaction committed', $operationsLog->getOperations()[count($operationsLog->getOperations()) - 1]);
+
+        $failedMessage = $ecotoneLite->receiveMessageFrom('failure_channel');
+        $this->assertStringContainsString('espresso-2', $failedMessage->getPayload());
+        $this->assertStringContainsString('broker rejected message', $failedMessage->getHeaders()->get(ErrorContext::EXCEPTION_MESSAGE));
+        $this->assertNull($ecotoneLite->receiveMessageFrom('failure_channel'));
+    }
+
     private function bootstrapEcotone(OperationsLog $operationsLog): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(

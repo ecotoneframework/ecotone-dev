@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\AsyncPublishing;
 
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Throwable;
+use WeakMap;
 
 /**
  * licence Enterprise
@@ -13,6 +15,13 @@ final class AsyncPublishingRegistry
 {
     /** @var array<int, array{channelName: string, pendingDelivery: PendingDelivery, scopeOwned: bool}> */
     private array $pendingDeliveries = [];
+
+    /** @var WeakMap<self, bool>|null */
+    private static ?WeakMap $registriesFlushedOnShutdown = null;
+
+    public function __construct(private LoggingGateway $logger)
+    {
+    }
 
     private const PRUNE_INTERVAL = 256;
 
@@ -75,6 +84,7 @@ final class AsyncPublishingRegistry
 
     public function register(string $channelName, PendingDelivery $pendingDelivery): void
     {
+        $this->flushUnawaitedDeliveriesOnShutdown();
         if (++$this->registrationsSinceLastPrune >= self::PRUNE_INTERVAL) {
             $this->pruneAwaitedDeliveries();
             $this->registrationsSinceLastPrune = 0;
@@ -100,6 +110,20 @@ final class AsyncPublishingRegistry
         }
 
         return $registered;
+    }
+
+    private function flushUnawaitedDeliveriesOnShutdown(): void
+    {
+        if (self::$registriesFlushedOnShutdown === null) {
+            self::$registriesFlushedOnShutdown = new WeakMap();
+            register_shutdown_function(static function (): void {
+                foreach (self::$registriesFlushedOnShutdown as $registry => $awaitingFlush) {
+                    $registry->flushUnawaitedDeliveries();
+                }
+            });
+        }
+
+        self::$registriesFlushedOnShutdown[$this] = true;
     }
 
     public function flushUnawaitedDeliveries(): void
@@ -149,16 +173,23 @@ final class AsyncPublishingRegistry
         try {
             $deliveryResult = $pendingDelivery->awaitDelivery();
         } catch (Throwable $exception) {
-            error_log(sprintf('Ecotone async publishing: awaiting unresolved delivery failed: %s', $exception->getMessage()));
+            $this->logger->error(
+                sprintf('Async publishing: awaiting unresolved delivery failed: %s', $exception->getMessage()),
+                [],
+                ['exception' => $exception],
+            );
 
             return;
         }
         foreach ($deliveryResult->getFailedDeliveries() as $failedDelivery) {
-            error_log(sprintf(
-                'Ecotone async publishing: unresolved delivery for channel `%s` failed confirmation: %s',
-                $failedDelivery->getChannelName(),
-                $failedDelivery->getFailureReason(),
-            ));
+            $this->logger->error(
+                sprintf(
+                    'Async publishing: unresolved delivery for channel `%s` failed confirmation: %s',
+                    $failedDelivery->getChannelName(),
+                    $failedDelivery->getFailureReason(),
+                ),
+                $failedDelivery->getMessage(),
+            );
         }
     }
 }

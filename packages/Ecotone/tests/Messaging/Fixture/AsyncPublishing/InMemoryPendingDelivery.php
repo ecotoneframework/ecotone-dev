@@ -19,12 +19,16 @@ final class InMemoryPendingDelivery implements PendingDelivery
 
     private ?DeliveryResult $deliveryResult = null;
 
+    /**
+     * @param Message[] $failedMessages
+     */
     public function __construct(
         private Message $message,
         private ?string $failureReason = null,
         private ?OperationsLog $operationsLog = null,
         private string $channelName = 'in_memory_channel',
         private bool $throwOnAwait = false,
+        private array $failedMessages = [],
     ) {
     }
 
@@ -42,9 +46,12 @@ final class InMemoryPendingDelivery implements PendingDelivery
         }
 
         if ($this->failureReason !== null) {
-            return $this->deliveryResult = DeliveryResult::withFailedDeliveries([
-                new FailedDelivery($this->message, $this->failureReason, $this->channelName),
-            ]);
+            $messagesToFail = $this->failedMessages !== [] ? $this->failedMessages : [$this->message];
+
+            return $this->deliveryResult = DeliveryResult::withFailedDeliveries(array_map(
+                fn (Message $failedMessage): FailedDelivery => new FailedDelivery($failedMessage, $this->failureReason, $this->channelName),
+                $messagesToFail,
+            ));
         }
 
         return $this->deliveryResult = DeliveryResult::successful();

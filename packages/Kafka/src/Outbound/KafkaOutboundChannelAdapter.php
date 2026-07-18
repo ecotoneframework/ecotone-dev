@@ -10,6 +10,7 @@ use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
+use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
@@ -208,8 +209,12 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
                 }
 
                 throw MessagePublishingException::create(sprintf(
-                    'Failed to send message to Kafka: %s',
-                    $deliveryResult->getFailedDeliveries()[0]->getFailureReason(),
+                    'Failed to deliver %d message(s) to Kafka: %s',
+                    count($deliveryResult->getFailedDeliveries()),
+                    implode('; ', array_unique(array_map(
+                        fn (FailedDelivery $failedDelivery): string => $failedDelivery->getFailureReason(),
+                        $deliveryResult->getFailedDeliveries(),
+                    ))),
                 ));
             }
         }

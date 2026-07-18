@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Sqs\Configuration;
 
 use Ecotone\Messaging\MessagePublisher;
+use Ecotone\Messaging\Support\Assert;
 use Enqueue\Sqs\SqsConnectionFactory;
 
 /**
@@ -76,6 +77,7 @@ final class SqsMessagePublisherConfiguration
 
     public function withAsyncPublishing(bool $asyncPublishing = true, ?int $timeoutInMilliseconds = null): self
     {
+        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
         $this->asyncPublishing = $asyncPublishing;
         if ($timeoutInMilliseconds !== null) {
             $this->asyncPublishingTimeout = $timeoutInMilliseconds;

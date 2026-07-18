@@ -35,7 +35,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         ConversionService $conversionService,
         private AsyncPublishingRegistry $asyncPublishingRegistry,
         private bool $asyncPublishing = false,
-        private ?int $asyncPublishingTimeout = null,
+        private int $asyncPublishingTimeout = SqsOutboundChannelAdapterBuilder::DEFAULT_ASYNC_PUBLISHING_TIMEOUT,
     ) {
         $this->requestDispatchPool = new SqsRequestDispatchPool();
         parent::__construct(
@@ -176,9 +176,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             'Entries' => $entries,
         ];
 
-        if ($this->asyncPublishingTimeout !== null) {
-            $arguments['@http'] = ['timeout' => $this->asyncPublishingTimeout / 1000];
-        }
+        $arguments['@http'] = ['timeout' => $this->asyncPublishingTimeout / 1000];
 
         return ['arguments' => $arguments, 'trackedMessages' => $trackedMessages];
     }

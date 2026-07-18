@@ -12,6 +12,7 @@ use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\AsyncPublishing\DeliveryFuture;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Handler\Logger\LoggingService;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\CommandHandler;
@@ -109,9 +110,52 @@ final class AsyncPublishingReliabilityTest extends TestCase
         $firstFuture->resolve();
     }
 
+    public function test_unawaited_deliveries_of_all_registries_are_flushed_on_script_shutdown(): void
+    {
+        $scriptPath = tempnam(sys_get_temp_dir(), 'async_publishing_shutdown_flush_');
+        file_put_contents($scriptPath, <<<'PHP'
+            <?php
+
+            require $argv[1];
+
+            $unawaitedDelivery = new class implements \Ecotone\Messaging\Channel\AsyncPublishing\PendingDelivery {
+                private bool $awaited = false;
+
+                public function awaitDelivery(): \Ecotone\Messaging\Channel\AsyncPublishing\DeliveryResult
+                {
+                    $this->awaited = true;
+                    echo 'flushed;';
+
+                    return \Ecotone\Messaging\Channel\AsyncPublishing\DeliveryResult::successful();
+                }
+
+                public function isAwaited(): bool
+                {
+                    return $this->awaited;
+                }
+            };
+
+            $firstRegistry = new \Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry(new \Ecotone\Messaging\Handler\Logger\LoggingService());
+            $firstRegistry->register('orders', $unawaitedDelivery);
+            $secondRegistry = new \Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry(new \Ecotone\Messaging\Handler\Logger\LoggingService());
+            $secondRegistry->register('shipments', clone $unawaitedDelivery);
+
+            echo 'script finished;';
+            PHP);
+
+        $output = shell_exec(sprintf(
+            'php %s %s',
+            escapeshellarg($scriptPath),
+            escapeshellarg(dirname(__DIR__, 7) . '/vendor/autoload.php'),
+        ));
+        unlink($scriptPath);
+
+        $this->assertSame('script finished;flushed;flushed;', $output);
+    }
+
     public function test_shutdown_flush_continues_when_one_delivery_throws(): void
     {
-        $registry = new AsyncPublishingRegistry();
+        $registry = new AsyncPublishingRegistry(new LoggingService());
         $throwingDelivery = new InMemoryPendingDelivery(MessageBuilder::withPayload('first order')->build(), throwOnAwait: true);
         $followingDelivery = new InMemoryPendingDelivery(MessageBuilder::withPayload('second order')->build());
         $registry->register('orders', $throwingDelivery);
@@ -124,7 +168,7 @@ final class AsyncPublishingReliabilityTest extends TestCase
 
     public function test_closing_scope_awaits_deliveries_left_unawaited_when_execution_fails_before_await(): void
     {
-        $registry = new AsyncPublishingRegistry();
+        $registry = new AsyncPublishingRegistry(new LoggingService());
         $registry->openScope();
         $delivery = new InMemoryPendingDelivery(MessageBuilder::withPayload('order')->build());
         $registry->register('orders', $delivery);

@@ -2,6 +2,7 @@
 
 namespace Ecotone\Amqp;
 
+use AMQPBasicProperties;
 use AMQPConnection;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
@@ -16,9 +17,10 @@ use Interop\Queue\Context;
 use Interop\Queue\SubscriptionConsumer;
 use PhpAmqpLib\Channel\AMQPChannel as LibAMQPChannel;
 use PhpAmqpLib\Connection\AMQPLazyConnection;
+use PhpAmqpLib\Message\AMQPMessage as LibAMQPMessage;
+use PhpAmqpLib\Wire\AMQPTable;
 use ReflectionClass;
 use ReflectionProperty;
-use RuntimeException;
 
 /**
  * licence Apache-2.0
@@ -28,7 +30,7 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
     private string $connectionInstanceId;
     private AmqpConnectionFactory $connectionFactory;
     private ?SubscriptionConsumer $subscriptionConsumer = null;
-    private ?AmqpExtPublisherConfirmations $extPublisherConfirmations = null;
+    private ?AmqpPublisherConfirmations $publisherConfirmations = null;
 
     public function __construct(AmqpExtConnectionFactory|AmqpLibConnectionFactory $connectionFactory, ?string $connectionInstanceId = null, private bool $publisherConfirms = false)
     {
@@ -50,22 +52,39 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         $context = $this->connectionFactory->createContext();
 
         if ($this->publisherConfirms) {
+            $confirmations = $this->getPublisherConfirmations();
+            $confirmations->reset();
             if ($context instanceof AmqpLibContext) {
                 $context->getLibChannel()->confirm_select();
-                $context->getLibChannel()->set_nack_handler(fn () => throw new RuntimeException('Message was rejected (nack) by RabbitMQ instance. Check RabbitMQ server logs.'));
-                $context->getLibChannel()->set_return_listener(fn (int $replyCode, string $replyText, string $exchange, string $routingKey) => throw new RuntimeException(sprintf('Message was returned as unroutable by RabbitMQ instance (%d %s) for exchange `%s` and routing key `%s`.', $replyCode, $replyText, $exchange, $routingKey)));
+                $context->getLibChannel()->set_ack_handler(fn (LibAMQPMessage $message) => $confirmations->recordConfirmationForCorrelation(self::publishCorrelationIdFrom($message)));
+                $context->getLibChannel()->set_nack_handler(fn (LibAMQPMessage $message) => $confirmations->recordRejectionForCorrelation(self::publishCorrelationIdFrom($message)));
+                $context->getLibChannel()->set_return_listener(function (int $replyCode, string $replyText, string $exchange, string $routingKey, LibAMQPMessage $message) use ($confirmations): void {
+                    $confirmations->recordReturnedMessage(
+                        self::publishCorrelationIdFrom($message),
+                        sprintf('Message was returned as unroutable by RabbitMQ instance (%d %s) for exchange `%s` and routing key `%s`.', $replyCode, $replyText, $exchange, $routingKey),
+                    );
+                });
             } elseif ($context instanceof AmqpExtContext) {
-                $confirmations = $this->getExtPublisherConfirmations();
-                $confirmations->reset();
                 $context->getExtChannel()->confirmSelect();
-                $context->getExtChannel()->setReturnCallback(fn (int $replyCode, string $replyText, string $exchange, string $routingKey) => throw new RuntimeException(sprintf('Message was returned as unroutable by RabbitMQ instance (%d %s) for exchange `%s` and routing key `%s`.', $replyCode, $replyText, $exchange, $routingKey)));
+                $context->getExtChannel()->setReturnCallback(function (int $replyCode, string $replyText, string $exchange, string $routingKey, AMQPBasicProperties $properties) use ($confirmations): bool {
+                    $confirmations->recordReturnedMessage(
+                        (string) ($properties->getHeaders()[AmqpPublisherConfirmations::PUBLISH_BATCH_ID_PROPERTY] ?? ''),
+                        sprintf('Message was returned as unroutable by RabbitMQ instance (%d %s) for exchange `%s` and routing key `%s`.', $replyCode, $replyText, $exchange, $routingKey),
+                    );
+
+                    return true;
+                });
                 $context->getExtChannel()->setConfirmCallback(
                     function (int $deliveryTag, bool $multiple) use ($confirmations): bool {
                         $confirmations->recordConfirmation($deliveryTag, $multiple);
 
                         return $confirmations->hasOutstandingConfirmations();
                     },
-                    fn () => throw new RuntimeException('Message was failed to be persisted in RabbitMQ instance. Check RabbitMQ server logs.')
+                    function (int $deliveryTag, bool $multiple) use ($confirmations): bool {
+                        $confirmations->recordRejection($deliveryTag, $multiple);
+
+                        return $confirmations->hasOutstandingConfirmations();
+                    }
                 );
             }
         }
@@ -73,9 +92,21 @@ class AmqpReconnectableConnectionFactory implements ReconnectableConnectionFacto
         return $context;
     }
 
-    public function getExtPublisherConfirmations(): AmqpExtPublisherConfirmations
+    public function getPublisherConfirmations(): AmqpPublisherConfirmations
     {
-        return $this->extPublisherConfirmations ??= new AmqpExtPublisherConfirmations();
+        return $this->publisherConfirmations ??= new AmqpPublisherConfirmations();
+    }
+
+    private static function publishCorrelationIdFrom(LibAMQPMessage $message): string
+    {
+        $applicationHeaders = $message->get_properties()['application_headers'] ?? null;
+        if ($applicationHeaders instanceof AMQPTable) {
+            $applicationHeaders = $applicationHeaders->getNativeData();
+        }
+
+        $applicationHeaders = (array) $applicationHeaders;
+
+        return (string) ($applicationHeaders[AmqpPublisherConfirmations::PUBLISH_BATCH_ID_PROPERTY] ?? '');
     }
 
     public function getConnectionInstanceId(): string

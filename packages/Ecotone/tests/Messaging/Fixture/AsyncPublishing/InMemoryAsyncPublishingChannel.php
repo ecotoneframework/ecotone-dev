@@ -23,6 +23,8 @@ final class InMemoryAsyncPublishingChannel implements PollableChannel, BatchSupp
 
     private ?string $deliveryFailureReason = null;
 
+    private ?string $failingPayloadFragment = null;
+
     public function __construct(
         private string $channelName,
         private AsyncPublishingRegistry $asyncPublishingRegistry,
@@ -46,7 +48,13 @@ final class InMemoryAsyncPublishingChannel implements PollableChannel, BatchSupp
             $this->queue[] = $message;
         }
 
-        $pendingDelivery = new InMemoryPendingDelivery($message, $this->deliveryFailureReason, $this->operationsLog, $this->channelName);
+        $pendingDelivery = new InMemoryPendingDelivery(
+            $message,
+            $this->resolveFailureReason($message),
+            $this->operationsLog,
+            $this->channelName,
+            failedMessages: $this->resolveFailedMessages($message),
+        );
 
         if (! $this->asyncPublishingRegistry->isScopeActive()) {
             $deliveryResult = $pendingDelivery->awaitDelivery();
@@ -82,5 +90,53 @@ final class InMemoryAsyncPublishingChannel implements PollableChannel, BatchSupp
     public function failDeliveriesWith(string $failureReason): void
     {
         $this->deliveryFailureReason = $failureReason;
+    }
+
+    public function failDeliveriesContaining(string $payloadFragment, string $failureReason): void
+    {
+        $this->failingPayloadFragment = $payloadFragment;
+        $this->deliveryFailureReason = $failureReason;
+    }
+
+    private function resolveFailureReason(Message $message): ?string
+    {
+        if ($this->failingPayloadFragment === null) {
+            return $this->deliveryFailureReason;
+        }
+
+        return $this->resolveFailedMessages($message) === [] ? null : $this->deliveryFailureReason;
+    }
+
+    /**
+     * @return Message[]
+     */
+    private function resolveFailedMessages(Message $message): array
+    {
+        if ($this->failingPayloadFragment === null) {
+            return [];
+        }
+
+        $payload = $message->getPayload();
+        if (! $payload instanceof BatchMessage) {
+            return $this->matchesFailingFragment($payload) ? [$message] : [];
+        }
+
+        $failedMessages = [];
+        foreach ($payload->getEntries() as $entry) {
+            if ($this->matchesFailingFragment($entry['payload'])) {
+                $failedMessages[] = MessageBuilder::withPayload($entry['payload'])
+                    ->setMultipleHeaders($entry['headers'])
+                    ->build();
+            }
+        }
+
+        return $failedMessages;
+    }
+
+    private function matchesFailingFragment(mixed $payload): bool
+    {
+        $payloadAsString = is_string($payload) ? $payload : json_encode($payload);
+
+        return is_string($payloadAsString) && str_contains($payloadAsString, $this->failingPayloadFragment);
     }
 }

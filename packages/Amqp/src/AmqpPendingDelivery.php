@@ -11,7 +11,7 @@ use Ecotone\Messaging\Message;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;
 use Interop\Amqp\AmqpContext;
-use RuntimeException;
+use PhpAmqpLib\Exception\AMQPTimeoutException;
 use Throwable;
 
 /**
@@ -19,6 +19,10 @@ use Throwable;
  */
 final class AmqpPendingDelivery implements PendingDelivery
 {
+    private const REJECTED_FAILURE_REASON = 'Message was rejected (nack) by RabbitMQ instance. Check RabbitMQ server logs.';
+    private const TIMED_OUT_FAILURE_REASON = 'Timed out awaiting publisher confirms from RabbitMQ instance.';
+    private const CONNECTION_RESET_FAILURE_REASON = 'AMQP connection was reset while awaiting publisher confirms. Delivery confirmation is unknown.';
+
     private bool $awaited = false;
 
     private ?DeliveryResult $deliveryResult = null;
@@ -26,16 +30,16 @@ final class AmqpPendingDelivery implements PendingDelivery
     private int $confirmationsEpoch;
 
     /**
-     * @param Message[] $trackedMessages
+     * @param array<int, array{message: Message, deliveryTag: int, correlationId: string}> $publishRecords
      */
     public function __construct(
         private AmqpContext $context,
-        private array $trackedMessages,
+        private array $publishRecords,
         private int $timeoutInMilliseconds,
         private string $channelName,
-        private ?AmqpExtPublisherConfirmations $extPublisherConfirmations = null,
+        private AmqpPublisherConfirmations $confirmations,
     ) {
-        $this->confirmationsEpoch = $this->extPublisherConfirmations?->getEpoch() ?? 0;
+        $this->confirmationsEpoch = $confirmations->getEpoch();
     }
 
     public function awaitDelivery(): DeliveryResult
@@ -45,53 +49,82 @@ final class AmqpPendingDelivery implements PendingDelivery
         }
 
         $this->awaited = true;
-        $timeoutInSeconds = $this->timeoutInMilliseconds / 1000;
+        $deadline = microtime(true) + $this->timeoutInMilliseconds / 1000;
+        $unsettledFailureReason = self::TIMED_OUT_FAILURE_REASON;
 
-        try {
-            if ($this->extPublisherConfirmations !== null && $this->extPublisherConfirmations->getEpoch() !== $this->confirmationsEpoch) {
-                throw new RuntimeException('AMQP connection was reset while awaiting publisher confirms. Delivery confirmation is unknown.');
-            }
+        while (! $this->allRecordsSettled()) {
+            if ($this->confirmations->getEpoch() !== $this->confirmationsEpoch) {
+                $unsettledFailureReason = self::CONNECTION_RESET_FAILURE_REASON;
 
-            if ($this->context instanceof AmqpLibContext) {
-                $this->context->getLibChannel()->wait_for_pending_acks_returns($timeoutInSeconds);
-            } elseif ($this->context instanceof AmqpExtContext) {
-                $this->awaitAllExtConfirmations($timeoutInSeconds);
-            }
-        } catch (Throwable $exception) {
-            return $this->deliveryResult = DeliveryResult::withFailedDeliveries(array_map(
-                fn (Message $message) => new FailedDelivery($message, $exception->getMessage(), $this->channelName),
-                $this->trackedMessages,
-            ));
-        }
-
-        return $this->deliveryResult = DeliveryResult::successful();
-    }
-
-    private function awaitAllExtConfirmations(float $timeoutInSeconds): void
-    {
-        if ($this->extPublisherConfirmations === null) {
-            $this->context->getExtChannel()->waitForConfirm($timeoutInSeconds);
-
-            return;
-        }
-
-        $deadline = microtime(true) + $timeoutInSeconds;
-        while ($this->extPublisherConfirmations->hasOutstandingConfirmations()) {
-            if ($this->extPublisherConfirmations->getEpoch() !== $this->confirmationsEpoch) {
-                throw new RuntimeException('AMQP connection was reset while awaiting publisher confirms. Delivery confirmation is unknown.');
+                break;
             }
 
             $remainingSeconds = $deadline - microtime(true);
             if ($remainingSeconds <= 0) {
-                throw new RuntimeException('Timed out awaiting publisher confirms from RabbitMQ instance.');
+                break;
             }
 
-            $this->context->getExtChannel()->waitForConfirm($remainingSeconds);
+            try {
+                $this->pumpConfirmations($remainingSeconds);
+            } catch (AMQPTimeoutException) {
+                continue;
+            } catch (Throwable $exception) {
+                $unsettledFailureReason = $exception->getMessage();
+
+                break;
+            }
         }
+
+        return $this->deliveryResult = $this->collectResult($unsettledFailureReason);
     }
 
     public function isAwaited(): bool
     {
         return $this->awaited;
+    }
+
+    private function allRecordsSettled(): bool
+    {
+        foreach ($this->publishRecords as $publishRecord) {
+            if (! $this->confirmations->isSettled($publishRecord['deliveryTag'])) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private function pumpConfirmations(float $remainingSeconds): void
+    {
+        if ($this->context instanceof AmqpLibContext) {
+            $this->context->getLibChannel()->wait_for_pending_acks_returns($remainingSeconds);
+        } elseif ($this->context instanceof AmqpExtContext) {
+            $this->context->getExtChannel()->waitForConfirm($remainingSeconds);
+        }
+    }
+
+    private function collectResult(string $unsettledFailureReason): DeliveryResult
+    {
+        $failedDeliveries = [];
+        foreach ($this->publishRecords as $publishRecord) {
+            $returnReason = $this->confirmations->takeReturnReason($publishRecord['correlationId']);
+            if ($returnReason !== null) {
+                $failedDeliveries[] = new FailedDelivery($publishRecord['message'], $returnReason, $this->channelName);
+
+                continue;
+            }
+
+            if ($this->confirmations->takeRejection($publishRecord['deliveryTag'])) {
+                $failedDeliveries[] = new FailedDelivery($publishRecord['message'], self::REJECTED_FAILURE_REASON, $this->channelName);
+
+                continue;
+            }
+
+            if (! $this->confirmations->isSettled($publishRecord['deliveryTag'])) {
+                $failedDeliveries[] = new FailedDelivery($publishRecord['message'], $unsettledFailureReason, $this->channelName);
+            }
+        }
+
+        return $failedDeliveries === [] ? DeliveryResult::successful() : DeliveryResult::withFailedDeliveries($failedDeliveries);
     }
 }

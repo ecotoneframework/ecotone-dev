@@ -23,7 +23,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
 {
     private const DEFAULT_PERSISTENT_MODE = true;
 
-    public const DEFAULT_ASYNC_PUBLISHING_TIMEOUT = 5000;
+    public const DEFAULT_ASYNC_PUBLISHING_TIMEOUT = 12000;
 
     private string $amqpConnectionFactoryReferenceName;
     private string $defaultRoutingKey = '';
@@ -186,8 +186,8 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
             Reference::to(AmqpTransactionInterceptor::class),
-            $this->delayStrategyReferenceName ? new Reference($this->delayStrategyReferenceName) : null,
             new Reference(AsyncPublishingRegistry::class),
+            $this->delayStrategyReferenceName ? new Reference($this->delayStrategyReferenceName) : null,
             $this->asyncPublishing,
             $this->asyncPublishingTimeout,
             $this->asyncPublishingChannelName ?? $this->exchangeName,

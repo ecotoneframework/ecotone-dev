@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
 use Enqueue\Sqs\SqsConnectionFactory;
 
@@ -21,8 +22,10 @@ use Enqueue\Sqs\SqsConnectionFactory;
  */
 final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
+    public const DEFAULT_ASYNC_PUBLISHING_TIMEOUT = 12000;
+
     private bool $asyncPublishing = false;
-    private ?int $asyncPublishingTimeout = null;
+    private int $asyncPublishingTimeout = self::DEFAULT_ASYNC_PUBLISHING_TIMEOUT;
 
     private function __construct(private string $queueName, private string $connectionFactoryReferenceName)
     {
@@ -36,6 +39,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
 
     public function withAsyncPublishing(bool $asyncPublishing = true, ?int $timeoutInMilliseconds = null): self
     {
+        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
         $this->asyncPublishing = $asyncPublishing;
         if ($timeoutInMilliseconds !== null) {
             $this->asyncPublishingTimeout = $timeoutInMilliseconds;

@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 
+use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
+use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
@@ -12,6 +14,7 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplate;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use Psr\Log\LoggerInterface;
 use Throwable;
@@ -38,6 +41,8 @@ final class SendRetryChannelInterceptor extends AbstractChannelInterceptor imple
             return false;
         }
 
+        $messageToRedeliver = $this->messageContainingOnlyFailedDeliveries($message, $exception);
+
         if ($exception !== null) {
             $attempt = 1;
             while ($this->retryTemplate->canBeCalledNextTime($attempt)) {
@@ -49,10 +54,11 @@ final class SendRetryChannelInterceptor extends AbstractChannelInterceptor imple
                 try {
                     $this->clock->sleep($this->retryTemplate->durationToNextRetry($attempt));
 
-                    $messageChannel->send($message);
+                    $messageChannel->send($messageToRedeliver);
 
                     return true;
                 } catch (Exception $exception) {
+                    $messageToRedeliver = $this->messageContainingOnlyFailedDeliveries($messageToRedeliver, $exception);
                     $attempt++;
                 }
             }
@@ -65,7 +71,7 @@ final class SendRetryChannelInterceptor extends AbstractChannelInterceptor imple
 
         if ($this->deadLetterChannel !== null) {
             $this->errorChannelService->handle(
-                $message,
+                $messageToRedeliver,
                 $exception,
                 $this->configuredMessagingSystem->getMessageChannelByName($this->deadLetterChannel),
                 $this->relatedChannel,
@@ -75,5 +81,29 @@ final class SendRetryChannelInterceptor extends AbstractChannelInterceptor imple
         }
 
         return false;
+    }
+
+    private function messageContainingOnlyFailedDeliveries(Message $message, Throwable $exception): Message
+    {
+        if (! $exception instanceof AsyncPublishingFailedException || ! $message->getPayload() instanceof BatchMessage) {
+            return $message;
+        }
+
+        $failedDeliveries = $exception->getFailedDeliveries();
+        if ($failedDeliveries === []) {
+            return $message;
+        }
+
+        $batchOfFailedDeliveries = BatchMessage::constructEmpty();
+        foreach ($failedDeliveries as $failedDelivery) {
+            $batchOfFailedDeliveries = $batchOfFailedDeliveries->append(
+                $failedDelivery->getMessage()->getPayload(),
+                $failedDelivery->getMessage()->getHeaders()->headers(),
+            );
+        }
+
+        return MessageBuilder::fromMessage($message)
+            ->setPayload($batchOfFailedDeliveries)
+            ->build();
     }
 }

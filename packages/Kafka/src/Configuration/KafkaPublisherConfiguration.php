@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessagePublisher;
+use Ecotone\Messaging\Support\Assert;
 use RdKafka\Conf;
 
 /**
@@ -107,6 +108,7 @@ final class KafkaPublisherConfiguration implements DefinedObject
 
     public function withAsyncPublishing(bool $asyncPublishing = true, ?int $timeoutInMilliseconds = null): self
     {
+        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
         $this->asyncPublishing = $asyncPublishing;
         if ($timeoutInMilliseconds !== null) {
             $this->asyncPublishingTimeout = $timeoutInMilliseconds;

@@ -33,7 +33,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         bool $autoDeclare,
         OutboundMessageConverter $outboundMessageConverter,
         ConversionService $conversionService,
-        private ?AsyncPublishingRegistry $asyncPublishingRegistry = null,
+        private AsyncPublishingRegistry $asyncPublishingRegistry,
         private bool $asyncPublishing = false,
         private ?int $asyncPublishingTimeout = null,
     ) {

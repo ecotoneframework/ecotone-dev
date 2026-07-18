@@ -24,8 +24,6 @@ final class AsyncPublishingRegistry
 
     private bool $scopeActive = false;
 
-    private bool $shutdownFlushRegistered = false;
-
     public function openScope(): void
     {
         $this->scopeActive = true;
@@ -82,11 +80,6 @@ final class AsyncPublishingRegistry
             $this->registrationsSinceLastPrune = 0;
         }
         $this->pendingDeliveries[$this->nextRegistrationIndex++] = ['channelName' => $channelName, 'pendingDelivery' => $pendingDelivery, 'scopeOwned' => $this->scopeActive];
-
-        if (! $this->shutdownFlushRegistered) {
-            register_shutdown_function(fn () => $this->flushUnawaitedDeliveries());
-            $this->shutdownFlushRegistered = true;
-        }
     }
 
     public function collectionPoint(): int

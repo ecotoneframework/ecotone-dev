@@ -32,7 +32,7 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         protected bool                     $autoDeclare,
         protected OutboundMessageConverter $outboundMessageConverter,
         private ConversionService $conversionService,
-        private ?AsyncPublishingRegistry $asyncPublishingRegistry = null,
+        private AsyncPublishingRegistry $asyncPublishingRegistry,
         private bool $asyncPublishing = false,
         private string $asyncPublishingChannelName = '',
     ) {
@@ -70,7 +70,7 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
 
     protected function registerSynchronouslyConfirmedDelivery(): void
     {
-        if (! $this->asyncPublishing || $this->asyncPublishingRegistry === null || ! $this->asyncPublishingRegistry->isScopeActive()) {
+        if (! $this->asyncPublishing || ! $this->asyncPublishingRegistry->isScopeActive()) {
             return;
         }
 

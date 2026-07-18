@@ -1,0 +1,20 @@
+packages/Ecotone/tests/Messaging/Unit/Channel/AsyncPublishing/AsyncPublishingReliabilityTest.php
+  s_988468521ca540::t_6475e436858738 147,149,156-164
+  s_988468521ca540::t_a27a51b6c7d91a 165-166
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "f69e918f4e4bbeb5ef3edeada1df16485cd42208",
+  "prompts": {},
+  "sessions": {
+    "s_988468521ca540": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "31154dd5-0faa-4f3f-8fb3-894c2ebbc0c6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

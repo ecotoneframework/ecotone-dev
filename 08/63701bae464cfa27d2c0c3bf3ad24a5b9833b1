@@ -1,0 +1,24 @@
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapter.php
+  s_7dc9aa6e9c433e::t_24185db74bf0b5 133
+packages/Enqueue/src/EnqueueOutboundChannelAdapter.php
+  s_7dc9aa6e9c433e::t_88b59e55ccfc88 73
+  s_7dc9aa6e9c433e::t_396509e1d4c2ef 35
+packages/Sqs/src/SqsOutboundChannelAdapter.php
+  s_7dc9aa6e9c433e::t_744d367097a0e9 36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "0863701bae464cfa27d2c0c3bf3ad24a5b9833b1",
+  "prompts": {},
+  "sessions": {
+    "s_7dc9aa6e9c433e": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "651ec800-f0e3-4b5f-95d0-73a7b2fb3e82",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

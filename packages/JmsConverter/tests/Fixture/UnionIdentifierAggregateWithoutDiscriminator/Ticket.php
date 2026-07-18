@@ -1,20 +1,20 @@
 <?php
 
-declare(strict_types=1);
-
-namespace Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType;
+namespace Test\Ecotone\JMSConverter\Fixture\UnionIdentifierAggregateWithoutDiscriminator;
 
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\WithAggregateVersioning;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\UnionType\ExternalId;
+use Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\UnionType\InternalId;
 
 #[EventSourcingAggregate]
 /**
  * licence Apache-2.0
  */
-final class EventSourcedTicket
+final class Ticket
 {
     use WithAggregateVersioning;
 

@@ -8,7 +8,6 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Converter;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Modelling\AggregateMessage;
-use Error;
 use Exception;
 
 use function get_class;
@@ -27,9 +26,6 @@ use Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType\CloseTicket;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType\CloseTicketByTargetIdentifier;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType\CreateTicket;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType\CreateTicketAsync;
-use Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType\CreateTicketSingleType;
-use Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType\EventSourcedTicket;
-use Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType\EventSourcedTicketSingleType;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType\InternalId;
 use Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType\Ticket;
 
@@ -284,38 +280,6 @@ final class IdentifierMappingTest extends TestCase
             $ecotoneLite
                 ->sendCommand(new CloseTicketByTargetIdentifier('123'))
                 ->getAggregate(Ticket::class, '123')
-                ->isClosed()
-        );
-    }
-
-    public function test_union_type_identifier_is_not_supported_for_event_sourced_aggregates(): void
-    {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [EventSourcedTicket::class],
-        );
-
-        $this->expectException(Error::class);
-
-        $ecotoneLite->sendCommand(new CreateTicket(new InternalId('123')));
-
-        $ecotoneLite
-            ->sendCommand(new CloseTicket('123'))
-            ->getAggregate(EventSourcedTicket::class, '123')
-            ->isClosed();
-    }
-
-    public function test_control_single_type_identifier_works_for_event_sourced_aggregates(): void
-    {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [EventSourcedTicketSingleType::class],
-        );
-
-        $ecotoneLite->sendCommand(new CreateTicketSingleType(new InternalId('123')));
-
-        $this->assertTrue(
-            $ecotoneLite
-                ->sendCommand(new CloseTicket('123'))
-                ->getAggregate(EventSourcedTicketSingleType::class, '123')
                 ->isClosed()
         );
     }

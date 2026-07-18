@@ -1,8 +1,6 @@
 <?php
 
-declare(strict_types=1);
-
-namespace Test\Ecotone\Modelling\Fixture\IdentifierMapping\UnionType;
+namespace Test\Ecotone\JMSConverter\Fixture\UnionIdentifierAggregateWithoutDiscriminator;
 
 /**
  * licence Apache-2.0

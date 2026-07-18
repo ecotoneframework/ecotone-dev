@@ -144,13 +144,24 @@ final class AsyncPublishingReliabilityTest extends TestCase
             PHP);
 
         $output = shell_exec(sprintf(
-            'php %s %s',
+            'php %s %s 2>&1',
             escapeshellarg($scriptPath),
-            escapeshellarg(dirname(__DIR__, 7) . '/vendor/autoload.php'),
+            escapeshellarg($this->nearestComposerAutoloadPath()),
         ));
         unlink($scriptPath);
 
         $this->assertSame('script finished;flushed;flushed;', $output);
+    }
+
+    private function nearestComposerAutoloadPath(): string
+    {
+        for ($directory = __DIR__; $directory !== dirname($directory); $directory = dirname($directory)) {
+            if (file_exists($directory . '/vendor/autoload.php')) {
+                return $directory . '/vendor/autoload.php';
+            }
+        }
+
+        $this->fail('No composer autoload found above ' . __DIR__);
     }
 
     public function test_shutdown_flush_continues_when_one_delivery_throws(): void

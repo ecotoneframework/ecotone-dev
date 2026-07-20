@@ -1,0 +1,88 @@
+packages/Ecotone/src/Messaging/Console/InMemoryConsoleWriter.php
+  s_9131f461bc62a0::t_5a6e3a3cf4cd11 1-121
+packages/Laravel/tests/Application/Execution/ConsoleWriterCommandTest.php
+  s_9131f461bc62a0::t_064dcf406f3d7f 52-53
+  s_9131f461bc62a0::t_33c12e2eec2074 1-20,39-51,54-66,69-79
+  s_9131f461bc62a0::t_07232a379a59d1 21-38
+  s_9131f461bc62a0::t_a49245756a1c9b 67-68
+packages/Ecotone/src/Messaging/Console/SymfonyConsoleWriter.php
+  s_9131f461bc62a0::t_303efe79b144f0 1-6,8-60,62-63
+  s_9131f461bc62a0::t_ad68beeb78c019 7
+  s_9131f461bc62a0::t_2bcd17f04d9e26 61
+packages/Ecotone/src/Messaging/Console/InMemoryConsoleProgressBar.php
+  s_9131f461bc62a0::t_20ea4bc75b80e9 1-43
+packages/Ecotone/tests/Messaging/Unit/Config/Annotation/ModuleConfiguration/ConsoleWriterInjectionTest.php
+  s_9131f461bc62a0::t_1f95c4b08cbead 1-11,13,15-23,25-42,108
+  s_9131f461bc62a0::t_400f4ddc183865 85-86,90-99,101-103,105-106
+  s_9131f461bc62a0::t_8d3dd4c7a01e81 12,14
+  s_9131f461bc62a0::t_0ea79b5cff6997 43-45,47-75,77-84,87-89,100,104,107
+  s_9131f461bc62a0::t_dd7e72808787d8 24,46,76
+packages/Ecotone/tests/Messaging/Unit/Console/SymfonyConsoleWriterTest.php
+  s_9131f461bc62a0::t_84b79d4e001948 1-60
+packages/Ecotone/src/Messaging/Console/ConsoleWriter.php
+  s_9131f461bc62a0::t_98e7730a552acd 1-31
+packages/Symfony/DependencyInjection/EcotoneExtension.php
+  s_9131f461bc62a0::t_ea84f3be9bfff3 156
+  s_9131f461bc62a0::t_1e18937e6f7e2c 10
+packages/Ecotone/tests/Messaging/Unit/Console/PlainConsoleWriterTest.php
+  s_9131f461bc62a0::t_b4426744adf394 1-64
+packages/Tempest/src/TempestConsoleWriter.php
+  s_9131f461bc62a0::t_7df9201b04a81b 1-86
+packages/Symfony/tests/phpunit/ConsoleWriterCommandTest.php
+  s_9131f461bc62a0::t_6119a0ed1ce64f 1-69
+packages/Symfony/DependencyInjection/MessagingEntrypointCommand.php
+  s_9131f461bc62a0::t_c8a0005f8b599e 7-8,25,30,35
+  s_9131f461bc62a0::t_bdf41705566534 65-66,68-71,74
+packages/Symfony/tests/Fixture/ConsoleWriter/ConsoleWriterCommand.php
+  s_9131f461bc62a0::t_6de02fe556e54d 1-30
+packages/Tempest/tests/Fixture/ConsoleWriter/ConsoleWriterCommand.php
+  s_9131f461bc62a0::t_f4722cac80a3a1 1-29
+packages/Tempest/tests/Application/ConsoleCommandProxyTest.php
+  s_9131f461bc62a0::t_90375ec6e8cf83 130-132
+packages/Ecotone/src/Messaging/Console/ConsoleProgressBar.php
+  s_9131f461bc62a0::t_025be394c7dba2 1-15
+packages/Tempest/src/ConsoleCommandProxyGenerator.php
+  s_9131f461bc62a0::t_5fdd22a9cf6fe6 25-28
+  s_9131f461bc62a0::t_3d00937c1a9695 107-108,110,139-145,147
+  s_9131f461bc62a0::t_9926e2fab8900c 17
+packages/Laravel/tests/Fixture/ConsoleWriter/ConsoleWriterCommand.php
+  s_9131f461bc62a0::t_5c81a6741f8eaf 1-30
+packages/Ecotone/src/Messaging/Console/PlainConsoleProgressBar.php
+  s_9131f461bc62a0::t_7f191dfac8d87c 1-39
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/BasicMessagingModule.php
+  s_9131f461bc62a0::t_dd7e72808787d8 21-23
+  s_9131f461bc62a0::t_cd3ccd86ebbfc0 160-166
+packages/Ecotone/src/Messaging/Console/PlainConsoleWriter.php
+  s_9131f461bc62a0::t_20bfe7bf779562 54
+  s_9131f461bc62a0::t_2a7e51e6f6c526 1-53,55-90
+packages/Ecotone/src/Messaging/Console/SymfonyConsoleProgressBar.php
+  s_9131f461bc62a0::t_7886d8366f2ee4 1-27
+packages/Tempest/src/TempestConsoleProgressBar.php
+  s_9131f461bc62a0::t_bdf27572dcb542 1-42
+packages/Tempest/tests/Application/ConsoleWriterCommandTest.php
+  s_9131f461bc62a0::t_6851d6719ab2c3 1-27
+packages/Ecotone/src/Messaging/Console/DelegatingConsoleWriter.php
+  s_9131f461bc62a0::t_9d894c8d47bb9b 1-66
+packages/Ecotone/composer.json
+  s_9131f461bc62a0::t_b52fe9a783b696 67,70-71
+  s_9131f461bc62a0::t_af3804c63bfd16 72
+packages/Laravel/src/EcotoneProvider.php
+  s_9131f461bc62a0::t_e81bc3ca6ccd7a 13-15
+  s_9131f461bc62a0::t_2dcb0ba2ce2f5d 149-151,153-156
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "1eafba1cb49133ade169ff60201fe1ae0d36aabd",
+  "prompts": {},
+  "sessions": {
+    "s_9131f461bc62a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "02748de5-8174-4104-bfb2-24d992fd9fc7",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

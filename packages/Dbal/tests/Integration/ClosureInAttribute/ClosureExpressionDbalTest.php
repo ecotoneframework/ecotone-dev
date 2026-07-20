@@ -24,6 +24,7 @@ use PHPUnit\Framework\Attributes\RequiresPhp;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ClosureInAttribute\ClosureDeduplicatedHandler;
 use Test\Ecotone\Dbal\Fixture\ClosureInAttribute\PersonClosureParameterApi;
+use Test\Ecotone\Dbal\Fixture\ClosureInAttribute\PolicyDrivenDeduplicatedHandler;
 use Test\Ecotone\Dbal\Fixture\ClosureInAttribute\TenantClosurePoller;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
 
@@ -51,6 +52,36 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
 
         $ecotoneLite->sendCommandWithRoutingKey('closureDedup.handle', 'test', metadata: ['orderId' => 'order-456']);
         $this->assertEquals(2, $ecotoneLite->sendQueryWithRouting('closureDedup.getCallCount'));
+    }
+
+    public function test_deduplication_closure_expression_receives_attribute_declared_on_handler(): void
+    {
+        $handler = new PolicyDrivenDeduplicatedHandler();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [PolicyDrivenDeduplicatedHandler::class],
+            containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE])),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('policyDedup.perCustomer', 'test', metadata: ['customerId' => 'customer-1', 'orderId' => 'order-1']);
+        $ecotoneLite->sendCommandWithRoutingKey('policyDedup.perCustomer', 'test', metadata: ['customerId' => 'customer-1', 'orderId' => 'order-2']);
+
+        $this->assertSame(
+            ['order-1'],
+            $ecotoneLite->sendQueryWithRouting('policyDedup.handledPerCustomer'),
+            'DedupPolicy with customer scope was injected into closure, so both orders of same customer deduplicate to one'
+        );
+
+        $ecotoneLite->sendCommandWithRoutingKey('policyDedup.perOrder', 'test', metadata: ['customerId' => 'customer-2', 'orderId' => 'order-3']);
+        $ecotoneLite->sendCommandWithRoutingKey('policyDedup.perOrder', 'test', metadata: ['customerId' => 'customer-2', 'orderId' => 'order-4']);
+
+        $this->assertSame(
+            ['order-3', 'order-4'],
+            $ecotoneLite->sendQueryWithRouting('policyDedup.handledPerOrder'),
+            'Same closure with order scoped DedupPolicy deduplicates per order, proving the injected attribute drives the key'
+        );
     }
 
     public function test_deduplication_closure_expression_throws_licensing_exception_on_bootstrap_without_enterprise_licence(): void

@@ -1,0 +1,48 @@
+packages/Ecotone/tests/SymfonyContainer/ClosureInAttributeTest.php
+  s_b3ba74b2464fec::t_bcfbefd4048f22 10,15
+  s_b3ba74b2464fec::t_b581720d8cf141 38-71
+packages/Dbal/tests/Integration/MultiTenant/ConsoleCommandTenantPropagationTest.php
+  s_b3ba74b2464fec::t_47c2c43a7702a9 94,96,106,108
+  s_b3ba74b2464fec::t_f1918c90e1db4e 17
+  s_b3ba74b2464fec::t_0aa432ea2cf46f 52-53
+  s_b3ba74b2464fec::t_2b2f4e0bd9b871 13-14,36,43-44,86,88-93,95,97,110,115-116,118,120
+  s_b3ba74b2464fec::t_2ab7fc7816461d 1-6,9-12,15-16,20-34,37-42,45-51,54-72,83-85,87,111-114,117,119,121-139
+  s_b3ba74b2464fec::t_cd4ce0331984ed 18-19
+  s_b3ba74b2464fec::t_249ff080f6e58b 35
+  s_b3ba74b2464fec::t_5f83d84571b015 73-82
+  s_b3ba74b2464fec::t_51f675a05d70b7 98-105,107,109
+  s_b3ba74b2464fec::t_7dc5c5ad761cd4 7-8
+packages/Dbal/tests/Fixture/ClosureInAttribute/DedupPolicy.php
+  s_b3ba74b2464fec::t_239ef328891137 1-18
+packages/Ecotone/tests/Messaging/Fixture/Handler/ClosureInAttribute/PolicyDrivenTokenService.php
+  s_b3ba74b2464fec::t_c19736ba8a18e9 1-33
+packages/Ecotone/src/Messaging/Handler/ClosureExpression/AttributeExpressionExecutorCompiler.php
+  s_b3ba74b2464fec::t_daa1737ca0d1c4 263-291
+  s_b3ba74b2464fec::t_dcd29bb1e2b76f 26,28
+  s_b3ba74b2464fec::t_5920f1f4a25d51 162-163
+  s_b3ba74b2464fec::t_222c20e2d35af2 187,196-201
+  s_b3ba74b2464fec::t_11d8d398403a9a 19
+packages/Dbal/tests/Fixture/ClosureInAttribute/PolicyDrivenDeduplicatedHandler.php
+  s_b3ba74b2464fec::t_22d73bf11f4768 1-51
+packages/Ecotone/tests/Messaging/Fixture/Handler/ClosureInAttribute/TokenPolicy.php
+  s_b3ba74b2464fec::t_0ee6916c82d4d9 1-18
+packages/Dbal/tests/Integration/ClosureInAttribute/ClosureExpressionDbalTest.php
+  s_b3ba74b2464fec::t_d696f45e6219ab 57-86
+  s_b3ba74b2464fec::t_793f3b9b46f40f 27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "bd2725356ad3159bc557832ac131365b674c988d",
+  "prompts": {},
+  "sessions": {
+    "s_b3ba74b2464fec": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "5801e5ce-8bab-49b2-807c-c8819874f200",
+        "model": "claude-opus-4-8"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

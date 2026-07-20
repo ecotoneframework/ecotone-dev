@@ -64,7 +64,11 @@
         "phpunit/phpunit": "^10.5|^11.0",
         "ramsey/uuid": "^4.0",
         "phpstan/phpstan": "^1.8",
+        "symfony/console": "^6.4|^7.0|^8.0",
         "symfony/expression-language": "^6.4|^7.0|^8.0"
+    },
+    "suggest": {
+        "symfony/console": "Allows using SymfonyConsoleWriter for styled console command output"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

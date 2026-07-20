@@ -127,7 +127,9 @@ final class ConsoleCommandProxyTest extends EcotoneIntegrationTestCase
         $fileContent = file_get_contents($generatedClasses[0]);
         $this->assertStringContainsString('Console $console', $fileContent);
         $this->assertStringContainsString('ConsoleCommandResultSet', $fileContent);
-        $this->assertStringContainsString('writeln', $fileContent);
+        $this->assertStringContainsString('TempestConsoleWriter', $fileContent);
+        $this->assertStringContainsString('executeWith', $fileContent);
+        $this->assertStringContainsString('table', $fileContent);
 
         array_map('unlink', $generatedClasses);
         @rmdir($outputDir);

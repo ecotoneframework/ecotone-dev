@@ -10,6 +10,9 @@ use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\ConfigurationVariableService;
+use Ecotone\Messaging\Console\ConsoleWriter;
+use Ecotone\Messaging\Console\DelegatingConsoleWriter;
+use Ecotone\Messaging\Console\SymfonyConsoleWriter;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
@@ -143,8 +146,14 @@ class EcotoneProvider extends ServiceProvider
                         /** @var ClosureCommand $self */
                         $self      = $this;
 
+                        /** @var DelegatingConsoleWriter $delegatingWriter */
+                        $delegatingWriter = $configuredMessagingSystem->getServiceFromContainer(ConsoleWriter::class);
+
                         /** @var ConsoleCommandResultSet $result */
-                        $result = $consoleCommandRunner->execute($self->getName(), array_merge($self->arguments(), $self->options()));
+                        $result = $delegatingWriter->executeWith(
+                            new SymfonyConsoleWriter($self->getOutput()),
+                            fn () => $consoleCommandRunner->execute($self->getName(), array_merge($self->arguments(), $self->options()))
+                        );
 
                         if ($result) {
                             $self->table($result->getColumnHeaders(), $result->getRows());

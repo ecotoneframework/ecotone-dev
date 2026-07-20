@@ -7,6 +7,7 @@ use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Console\ConsoleWriter;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
@@ -152,6 +153,7 @@ class EcotoneExtension extends Extension
             $definition->addArgument($oneTimeCommandConfiguration->getName());
             $definition->addArgument(serialize($oneTimeCommandConfiguration->getParameters()));
             $definition->addArgument(new Reference(ConsoleCommandRunner::class));
+            $definition->addArgument(new Reference(ConsoleWriter::class));
             $definition->addTag('console.command', ['command' => $oneTimeCommandConfiguration->getName()]);
 
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);

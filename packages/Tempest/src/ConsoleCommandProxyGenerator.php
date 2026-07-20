@@ -14,6 +14,7 @@ use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 final class ConsoleCommandProxyGenerator
 {
     private const HASH_MARKER_FILE = '.ecotone_hash';
+    private const GENERATOR_VERSION = ':v2';
 
     /**
      * @param ConsoleCommandConfiguration[] $commandConfigurations
@@ -21,6 +22,10 @@ final class ConsoleCommandProxyGenerator
      */
     public function generate(array $commandConfigurations, string $outputDirectory, ?string $configHash = null): array
     {
+        if ($configHash !== null) {
+            $configHash .= self::GENERATOR_VERSION;
+        }
+
         if (! is_dir($outputDirectory)) {
             mkdir($outputDirectory, 0777, true);
         }
@@ -99,7 +104,10 @@ final class ConsoleCommandProxyGenerator
 
             use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
             use Ecotone\Messaging\Config\ConsoleCommandResultSet;
+            use Ecotone\Messaging\Console\ConsoleWriter;
+            use Ecotone\Messaging\Console\DelegatingConsoleWriter;
             use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+            use Ecotone\Tempest\TempestConsoleWriter;
             use Tempest\Console\Console;
             use Tempest\Console\ConsoleCommand;
             use Tempest\Console\ExitCode;
@@ -128,12 +136,15 @@ final class ConsoleCommandProxyGenerator
                     foreach (\$this->argumentBag->all() as \$arg) {
                         \$allArgs[\$arg->name !== null ? \$arg->name : ''] = \$arg->value;
                     }
-                    \$result = \$runner->execute('{$escapedCommandName}', \$allArgs);
+                    /** @var DelegatingConsoleWriter \$delegatingWriter */
+                    \$delegatingWriter = \$this->messagingSystem->getServiceFromContainer(ConsoleWriter::class);
+                    \$writer = new TempestConsoleWriter(\$this->console);
+                    \$result = \$delegatingWriter->executeWith(
+                        \$writer,
+                        fn () => \$runner->execute('{$escapedCommandName}', \$allArgs)
+                    );
                     if (\$result instanceof ConsoleCommandResultSet) {
-                        \$this->console->writeln(implode(' | ', \$result->getColumnHeaders()));
-                        foreach (\$result->getRows() as \$row) {
-                            \$this->console->writeln(implode(' | ', \$row));
-                        }
+                        \$writer->table(\$result->getColumnHeaders(), \$result->getRows());
                     }
                     return ExitCode::SUCCESS;
                 }

@@ -4,9 +4,10 @@ namespace Ecotone\SymfonyBundle\DependencyInjection;
 
 use Ecotone\Messaging\Config\ConsoleCommandParameter;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
+use Ecotone\Messaging\Console\DelegatingConsoleWriter;
+use Ecotone\Messaging\Console\SymfonyConsoleWriter;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Helper\Table;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -21,15 +22,17 @@ class MessagingEntrypointCommand extends Command
     /** @var ConsoleCommandParameter[] */
     private array $parameters;
     private ConsoleCommandRunner $consoleCommandRunner;
+    private DelegatingConsoleWriter $consoleWriter;
 
     /**
      * @var ConsoleCommandParameter[] $parameters
      */
-    public function __construct(string $name, string $parameters, ConsoleCommandRunner $consoleCommandRunner)
+    public function __construct(string $name, string $parameters, ConsoleCommandRunner $consoleCommandRunner, DelegatingConsoleWriter $consoleWriter)
     {
         $this->name = $name;
         $this->parameters = unserialize($parameters);
         $this->consoleCommandRunner = $consoleCommandRunner;
+        $this->consoleWriter = $consoleWriter;
 
         parent::__construct();
     }
@@ -59,16 +62,16 @@ class MessagingEntrypointCommand extends Command
 
     public function execute(InputInterface $input, OutputInterface $output): int
     {
+        $writer = new SymfonyConsoleWriter($output);
+
         /** @var ConsoleCommandResultSet $result */
-        $result = $this->consoleCommandRunner->execute($this->name, array_merge($input->getArguments(), $input->getOptions()));
+        $result = $this->consoleWriter->executeWith(
+            $writer,
+            fn () => $this->consoleCommandRunner->execute($this->name, array_merge($input->getArguments(), $input->getOptions()))
+        );
 
         if ($result) {
-            $table = new Table($output);
-            $table->setHeaders($result->getColumnHeaders())
-                ->setRows($result->getRows())
-            ;
-
-            $table->render();
+            $writer->table($result->getColumnHeaders(), $result->getRows());
         }
 
         return 0;

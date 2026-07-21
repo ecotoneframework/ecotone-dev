@@ -1,0 +1,23 @@
+packages/PdoEventSourcing/tests/Projecting/Global/AsynchronousEventDrivenProjectionTest.php
+  s_9131f461bc62a0::t_afadc765e22cc2 154-155
+packages/PdoEventSourcing/tests/Projecting/Partitioned/AsynchronousEventDrivenProjectionTest.php
+  s_9131f461bc62a0::t_afadc765e22cc2 151-152
+packages/PdoEventSourcing/tests/Integration/AsynchronousEventDrivenProjectionTest.php
+  s_9131f461bc62a0::t_afadc765e22cc2 66-67
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "56f311ac1be8120e2183d6cd8d1c717782a80cd2",
+  "prompts": {},
+  "sessions": {
+    "s_9131f461bc62a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "02748de5-8174-4104-bfb2-24d992fd9fc7",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

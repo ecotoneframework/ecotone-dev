@@ -14,7 +14,6 @@ use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 final class ConsoleCommandProxyGenerator
 {
     private const HASH_MARKER_FILE = '.ecotone_hash';
-    private const GENERATOR_VERSION = ':v3';
 
     /**
      * @param ConsoleCommandConfiguration[] $commandConfigurations
@@ -22,10 +21,6 @@ final class ConsoleCommandProxyGenerator
      */
     public function generate(array $commandConfigurations, string $outputDirectory, ?string $configHash = null): array
     {
-        if ($configHash !== null) {
-            $configHash .= self::GENERATOR_VERSION;
-        }
-
         if (! is_dir($outputDirectory)) {
             mkdir($outputDirectory, 0777, true);
         }

@@ -63,8 +63,8 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
         $finishTime = microtime(true);
 
-        // less than ~100 ms (however connection and set up might take longer)
-        self::assertLessThan(100, ($finishTime - $currentTime) * 1000);
+        // well below the default 1s polling timeout, proving the run does not wait for it (CI runners can be slow)
+        self::assertLessThan(500, ($finishTime - $currentTime) * 1000);
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }

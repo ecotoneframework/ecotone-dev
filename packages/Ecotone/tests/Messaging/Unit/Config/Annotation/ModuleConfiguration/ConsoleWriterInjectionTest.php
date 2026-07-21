@@ -41,6 +41,22 @@ final class ConsoleWriterInjectionTest extends TestCase
         $this->assertSame(['Hello John'], $inMemoryWriter->getSuccessLines());
     }
 
+    public function test_console_output_is_collected_in_memory_during_flow_testing(): void
+    {
+        $handler = new class () {
+            #[ConsoleCommand('app:greet')]
+            public function execute(string $name, ConsoleWriter $writer): void
+            {
+                $writer->success('Hello ' . $name);
+            }
+        };
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
+
+        $ecotoneLite->runConsoleCommand('app:greet', ['name' => 'John']);
+
+        $this->assertSame(['Hello John'], $ecotoneLite->getInMemoryConsoleWriter()->getSuccessLines());
+    }
+
     public function test_console_command_handler_can_render_table_and_progress_bar(): void
     {
         $handler = new class () {

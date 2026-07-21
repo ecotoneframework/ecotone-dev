@@ -18,9 +18,6 @@ use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Console\ConsoleWriter;
-use Ecotone\Messaging\Console\DelegatingConsoleWriter;
-use Ecotone\Messaging\Console\PlainConsoleWriter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\EnumToScalar\EnumToScalarConverter;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -155,13 +152,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
             new Definition(MessagingEntrypointService::class, [
                 new Reference(ChannelResolver::class),
                 Reference::to(MessageHeadersPropagatorInterceptor::class),
-            ])
-        );
-
-        $messagingConfiguration->registerServiceDefinition(
-            ConsoleWriter::class,
-            new Definition(DelegatingConsoleWriter::class, [
-                new Definition(PlainConsoleWriter::class),
             ])
         );
     }

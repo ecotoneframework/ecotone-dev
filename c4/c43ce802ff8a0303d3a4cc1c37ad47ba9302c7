@@ -1,0 +1,73 @@
+packages/Ecotone/src/Messaging/Attribute/ConsoleCommand.php
+  s_9131f461bc62a0::t_14664d0bfb21e1 15,17,21,28-31
+  s_9131f461bc62a0::t_e81b5357e65df5 32
+packages/Tempest/tests/Fixture/ConsoleWriter/ConsoleWriterCommand.php
+  s_9131f461bc62a0::t_ad34dd838ca5a1 15
+packages/Symfony/DependencyInjection/EcotoneExtension.php
+  s_9131f461bc62a0::t_4d54d643b15916 157
+packages/Tempest/src/ConsoleCommandProxyGenerator.php
+  s_9131f461bc62a0::t_ec688692d2982b 89,94,97
+  s_9131f461bc62a0::t_0051e2971b27d7 17
+  s_9131f461bc62a0::t_636b4be4b7c729 132
+packages/Dbal/src/Database/DatabaseSetupModule.php
+  s_9131f461bc62a0::t_814e742843277c 82-83,91-92,117-118,125-126
+packages/Laravel/tests/Fixture/ConsoleWriter/ConsoleWriterCommand.php
+  s_9131f461bc62a0::t_678c348d60f3fc 15
+packages/Tempest/tests/Application/ConsoleWriterCommandTest.php
+  s_9131f461bc62a0::t_650cc58dd1a37e 7,16-23,25-27
+  s_9131f461bc62a0::t_e6c52832450c0a 24
+packages/Laravel/tests/Application/Execution/ConsoleWriterCommandTest.php
+  s_9131f461bc62a0::t_d79a4ec7a791dc 65-72
+packages/Dbal/src/Recoverability/DbalDeadLetterModule.php
+  s_9131f461bc62a0::t_814e742843277c 71-76,99,106-107
+packages/Laravel/src/EcotoneProvider.php
+  s_9131f461bc62a0::t_c81eb55c00151d 140
+  s_9131f461bc62a0::t_7b2032b5b74842 165
+packages/Ecotone/src/Messaging/Channel/Manager/ChannelSetupModule.php
+  s_9131f461bc62a0::t_d0dc6b459fb9aa 90-91,98-99
+  s_9131f461bc62a0::t_b24605cd75f366 69-70
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/ConsoleCommandModule.php
+  s_9131f461bc62a0::t_66ea7d910f6def 66
+  s_9131f461bc62a0::t_359acfba7cccd0 75,88,93,108
+packages/Ecotone/src/Messaging/Config/ConsoleCommandConfiguration.php
+  s_9131f461bc62a0::t_7f48049d9dee36 24-25,29,33
+  s_9131f461bc62a0::t_3d693533a1116a 59,61,69-71
+  s_9131f461bc62a0::t_f62799db8b5d2a 93
+  s_9131f461bc62a0::t_35540ef5246086 72-73
+packages/Symfony/tests/Fixture/ConsoleWriter/ConsoleWriterCommand.php
+  s_9131f461bc62a0::t_46924aefe60c92 15
+packages/Ecotone/src/Projecting/Config/ProjectingConsoleCommands.php
+  s_9131f461bc62a0::t_a44c692d97c103 21,39,48,57
+packages/Symfony/DependencyInjection/MessagingEntrypointCommand.php
+  s_9131f461bc62a0::t_9f498e71503199 26,31,37
+  s_9131f461bc62a0::t_72b6d18e3ffc04 63
+packages/Ecotone/tests/Messaging/Unit/Console/ConsoleCommandDescriptionTest.php
+  s_9131f461bc62a0::t_bf2e4ff00c0630 36
+  s_9131f461bc62a0::t_4c178e818a6286 1-35,37-45
+packages/PdoEventSourcing/src/Config/EventSourcingModule.php
+  s_9131f461bc62a0::t_55a4e37f9a79c8 430-431,444-445,455-456,469-470,483-484,512,526-527
+packages/Dbal/src/Deduplication/DeduplicationModule.php
+  s_9131f461bc62a0::t_814e742843277c 111-112
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/MessagingCommands/MessagingCommandsModule.php
+  s_9131f461bc62a0::t_08642ca671b831 47-48
+  s_9131f461bc62a0::t_550873183c69e2 56,63-64
+packages/Symfony/tests/phpunit/ConsoleWriterCommandTest.php
+  s_9131f461bc62a0::t_995462fc664058 72-85
+  s_9131f461bc62a0::t_55c99009c8e400 62-71
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "c4c43ce802ff8a0303d3a4cc1c37ad47ba9302c7",
+  "prompts": {},
+  "sessions": {
+    "s_9131f461bc62a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "02748de5-8174-4104-bfb2-24d992fd9fc7",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

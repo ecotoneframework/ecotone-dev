@@ -1,0 +1,30 @@
+packages/Ecotone/src/Lite/Test/FlowTestSupport.php
+  s_9131f461bc62a0::t_25bd2bf5b55744 535-537
+  s_9131f461bc62a0::t_0735ea21a86039 12
+  s_9131f461bc62a0::t_cb14f2a7d805c5 538-539
+packages/Ecotone/tests/Messaging/Unit/Config/Annotation/ModuleConfiguration/ConsoleWriterInjectionTest.php
+  s_9131f461bc62a0::t_a03f74422ee5c5 44-59
+packages/Ecotone/src/Lite/Test/Configuration/EcotoneTestSupportModule.php
+  s_9131f461bc62a0::t_f5a0fef73a2ba7 26-28
+  s_9131f461bc62a0::t_430778bf7c15a6 129-138
+  s_9131f461bc62a0::t_ab44471331d1f5 139
+packages/Ecotone/src/Messaging/Config/Container/Compiler/RegisterSingletonMessagingServices.php
+  s_9131f461bc62a0::t_2261f14946ae7e 17-19
+  s_9131f461bc62a0::t_c30b81e83e5764 47-49
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "59e3426deb00aa636e2398023eeb4c085d290f90",
+  "prompts": {},
+  "sessions": {
+    "s_9131f461bc62a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "02748de5-8174-4104-bfb2-24d992fd9fc7",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

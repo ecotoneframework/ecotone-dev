@@ -154,6 +154,7 @@ class EcotoneExtension extends Extension
             $definition->addArgument(serialize($oneTimeCommandConfiguration->getParameters()));
             $definition->addArgument(new Reference(ConsoleCommandRunner::class));
             $definition->addArgument(new Reference(ConsoleWriter::class));
+            $definition->addArgument($oneTimeCommandConfiguration->getDescription());
             $definition->addTag('console.command', ['command' => $oneTimeCommandConfiguration->getName()]);
 
             $container->setDefinition($oneTimeCommandConfiguration->getChannelName(), $definition);

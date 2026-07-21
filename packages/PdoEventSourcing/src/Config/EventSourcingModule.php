@@ -427,7 +427,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventSourcingConfiguration,
             $configuration,
             self::ECOTONE_ES_DELETE_PROJECTION,
-            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false), ConsoleCommandParameter::createWithDefaultValue('deleteEmittedEvents', 'ecotone.eventSourcing.manager.deleteEmittedEvents', true, false, true)]
+            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false), ConsoleCommandParameter::createWithDefaultValue('deleteEmittedEvents', 'ecotone.eventSourcing.manager.deleteEmittedEvents', true, false, true)],
+            'Deletes given event sourcing projection'
         );
 
         $this->registerProjectionManagerAction(
@@ -440,7 +441,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventSourcingConfiguration,
             $configuration,
             self::ECOTONE_ES_RESET_PROJECTION,
-            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)]
+            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)],
+            'Resets given event sourcing projection to be rebuilt from scratch'
         );
 
         $this->registerProjectionManagerAction(
@@ -450,7 +452,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventSourcingConfiguration,
             $configuration,
             self::ECOTONE_ES_STOP_PROJECTION,
-            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)]
+            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)],
+            'Stops given event sourcing projection'
         );
 
         $this->registerProjectionManagerAction(
@@ -463,7 +466,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventSourcingConfiguration,
             $configuration,
             self::ECOTONE_ES_INITIALIZE_PROJECTION,
-            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)]
+            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)],
+            'Initializes given event sourcing projection'
         );
 
         $this->registerProjectionManagerAction(
@@ -476,7 +480,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventSourcingConfiguration,
             $configuration,
             self::ECOTONE_ES_TRIGGER_PROJECTION,
-            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)]
+            [ConsoleCommandParameter::create('name', 'ecotone.eventSourcing.manager.name', false)],
+            'Triggers given event sourcing projection to process events'
         );
 
         $this->registerProjectionManagerAction(
@@ -504,7 +509,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         );
     }
 
-    private function registerProjectionManagerAction(string $methodName, array $endpointConverters, array $gatewayConverters, EventSourcingConfiguration $eventSourcingConfiguration, Configuration $configuration, ?string $consoleCommandName = null, array $consoleCommandParameters = []): void
+    private function registerProjectionManagerAction(string $methodName, array $endpointConverters, array $gatewayConverters, EventSourcingConfiguration $eventSourcingConfiguration, Configuration $configuration, ?string $consoleCommandName = null, array $consoleCommandParameters = [], string $consoleCommandDescription = ''): void
     {
         $messageHandlerBuilder = ProjectionManagerBuilder::create($methodName, $endpointConverters, $eventSourcingConfiguration);
         $configuration->registerMessageHandler($messageHandlerBuilder);
@@ -518,7 +523,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 ConsoleCommandConfiguration::create(
                     $messageHandlerBuilder->getInputMessageChannelName(),
                     $consoleCommandName,
-                    $consoleCommandParameters
+                    $consoleCommandParameters,
+                    $consoleCommandDescription
                 )
             );
         }

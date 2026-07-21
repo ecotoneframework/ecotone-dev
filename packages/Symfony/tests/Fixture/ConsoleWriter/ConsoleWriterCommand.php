@@ -12,7 +12,7 @@ use Ecotone\Messaging\Console\ConsoleWriter;
  */
 class ConsoleWriterCommand
 {
-    #[ConsoleCommand('console-writer:show')]
+    #[ConsoleCommand('console-writer:show', 'Shows formatted console writer output')]
     public function execute(string $name, ConsoleWriter $writer): void
     {
         $writer->info('Starting ' . $name);

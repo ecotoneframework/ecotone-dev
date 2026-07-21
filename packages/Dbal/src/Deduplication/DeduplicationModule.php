@@ -108,7 +108,8 @@ class DeduplicationModule implements AnnotationModule
             ->registerConsoleCommand(ConsoleCommandConfiguration::create(
                 $inputChannelName,
                 'ecotone:deduplication:remove-expired-messages',
-                []
+                [],
+                'Removes expired message deduplication entries'
             ));
     }
 

@@ -59,6 +59,30 @@ final class ConsoleWriterCommandTest extends KernelTestCase
         $this->assertStringContainsString("\033[31mFailed orders\033[39m", $display);
     }
 
+    public function test_console_command_description_is_visible_in_symfony_console(): void
+    {
+        $application = new Application(self::$kernel);
+
+        $this->assertSame(
+            'Shows formatted console writer output',
+            $application->find('console-writer:show')->getDescription()
+        );
+    }
+
+    public function test_built_in_ecotone_commands_have_descriptions(): void
+    {
+        $application = new Application(self::$kernel);
+
+        $this->assertSame(
+            'Lists all registered asynchronous message consumers',
+            $application->find('ecotone:list')->getDescription()
+        );
+        $this->assertSame(
+            'Runs an asynchronous message consumer by name',
+            $application->find('ecotone:run')->getDescription()
+        );
+    }
+
     private function prepareCommandTester(): CommandTester
     {
         $application = new Application(self::$kernel);

@@ -14,7 +14,7 @@ use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 final class ConsoleCommandProxyGenerator
 {
     private const HASH_MARKER_FILE = '.ecotone_hash';
-    private const GENERATOR_VERSION = ':v2';
+    private const GENERATOR_VERSION = ':v3';
 
     /**
      * @param ConsoleCommandConfiguration[] $commandConfigurations
@@ -86,14 +86,15 @@ final class ConsoleCommandProxyGenerator
         $className = $this->buildClassName($commandName);
         $filePath = $outputDirectory . DIRECTORY_SEPARATOR . $className . '.php';
 
-        file_put_contents($filePath, $this->buildProxyClassCode($className, $commandName));
+        file_put_contents($filePath, $this->buildProxyClassCode($className, $commandName, $configuration->getDescription()));
 
         return $filePath;
     }
 
-    private function buildProxyClassCode(string $className, string $commandName): string
+    private function buildProxyClassCode(string $className, string $commandName, string $description): string
     {
         $escapedCommandName = addslashes($commandName);
+        $escapedDescription = addslashes($description);
 
         return <<<PHP
             <?php
@@ -128,7 +129,7 @@ final class ConsoleCommandProxyGenerator
                 #[Inject]
                 private readonly Console \$console;
 
-                #[ConsoleCommand(name: '{$escapedCommandName}', allowDynamicArguments: true)]
+                #[ConsoleCommand(name: '{$escapedCommandName}', description: '{$escapedDescription}', allowDynamicArguments: true)]
                 public function __invoke(): ExitCode
                 {
                     \$runner = \$this->messagingSystem->getGatewayByName(ConsoleCommandRunner::class);

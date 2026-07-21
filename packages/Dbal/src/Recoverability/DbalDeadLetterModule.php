@@ -68,12 +68,12 @@ class DbalDeadLetterModule implements AnnotationModule
         }
 
         $messagingConfiguration->registerServiceDefinition(DbalDeadLetterConsoleCommand::class, new Definition(DbalDeadLetterConsoleCommand::class));
-        $this->registerOneTimeCommand('list', self::LIST_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerOneTimeCommand('show', self::SHOW_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerOneTimeCommand('reply', self::REPLAY_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerOneTimeCommand('replyAll', self::REPLAY_ALL_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
-        $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry);
+        $this->registerOneTimeCommand('list', self::LIST_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Lists dead letter messages');
+        $this->registerOneTimeCommand('show', self::SHOW_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Shows details of given dead letter message');
+        $this->registerOneTimeCommand('reply', self::REPLAY_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays given dead letter message');
+        $this->registerOneTimeCommand('replyAll', self::REPLAY_ALL_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays all dead letter messages');
+        $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Deletes given dead letter message');
+        $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Shows help for dead letter management commands');
 
         $this->registerGateway(DeadLetterGateway::class, $connectionFactoryReference, false, $messagingConfiguration);
         foreach ($customDeadLetterGateways as $customDeadLetterGateway) {
@@ -96,14 +96,15 @@ class DbalDeadLetterModule implements AnnotationModule
         ];
     }
 
-    private function registerOneTimeCommand(string $methodName, string $commandName, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    private function registerOneTimeCommand(string $methodName, string $commandName, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, string $description = ''): void
     {
         [$messageHandlerBuilder, $oneTimeCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForReference(
             new Reference(DbalDeadLetterConsoleCommand::class),
             new InterfaceToCallReference(DbalDeadLetterConsoleCommand::class, $methodName),
             $commandName,
             true,
-            $interfaceToCallRegistry
+            $interfaceToCallRegistry,
+            $description
         );
         $configuration
             ->registerMessageHandler($messageHandlerBuilder)

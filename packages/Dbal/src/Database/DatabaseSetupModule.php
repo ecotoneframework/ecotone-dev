@@ -79,7 +79,8 @@ class DatabaseSetupModule implements AnnotationModule
             'ecotone:migration:database:setup',
             DatabaseSetupCommand::class,
             $messagingConfiguration,
-            $interfaceToCallRegistry
+            $interfaceToCallRegistry,
+            'Creates database tables required by Ecotone'
         );
 
         $this->registerConsoleCommand(
@@ -87,7 +88,8 @@ class DatabaseSetupModule implements AnnotationModule
             'ecotone:migration:database:delete',
             DatabaseDeleteCommand::class,
             $messagingConfiguration,
-            $interfaceToCallRegistry
+            $interfaceToCallRegistry,
+            'Drops database tables created by Ecotone'
         );
     }
 
@@ -112,14 +114,16 @@ class DatabaseSetupModule implements AnnotationModule
         string $commandName,
         string $className,
         Configuration $configuration,
-        InterfaceToCallRegistry $interfaceToCallRegistry
+        InterfaceToCallRegistry $interfaceToCallRegistry,
+        string $description = ''
     ): void {
         [$messageHandlerBuilder, $oneTimeCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForReference(
             new Reference($className),
             new InterfaceToCallReference($className, $methodName),
             $commandName,
             true,
-            $interfaceToCallRegistry
+            $interfaceToCallRegistry,
+            $description
         );
 
         $configuration

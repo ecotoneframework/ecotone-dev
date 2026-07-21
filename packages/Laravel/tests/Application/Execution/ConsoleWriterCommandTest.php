@@ -62,6 +62,14 @@ final class ConsoleWriterCommandTest extends TestCase
         $this->assertStringContainsString('2/2', $output);
     }
 
+    public function test_console_command_description_is_visible_in_artisan(): void
+    {
+        $this->assertSame(
+            'Shows formatted console writer output',
+            Artisan::all()['console-writer:show']->getDescription()
+        );
+    }
+
     public function test_console_command_writes_colored_output_when_decorated(): void
     {
         $this->withoutMockingConsoleOutput();

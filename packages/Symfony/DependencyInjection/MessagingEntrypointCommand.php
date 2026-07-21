@@ -23,16 +23,18 @@ class MessagingEntrypointCommand extends Command
     private array $parameters;
     private ConsoleCommandRunner $consoleCommandRunner;
     private DelegatingConsoleWriter $consoleWriter;
+    private string $commandDescription;
 
     /**
      * @var ConsoleCommandParameter[] $parameters
      */
-    public function __construct(string $name, string $parameters, ConsoleCommandRunner $consoleCommandRunner, DelegatingConsoleWriter $consoleWriter)
+    public function __construct(string $name, string $parameters, ConsoleCommandRunner $consoleCommandRunner, DelegatingConsoleWriter $consoleWriter, string $commandDescription = '')
     {
         $this->name = $name;
         $this->parameters = unserialize($parameters);
         $this->consoleCommandRunner = $consoleCommandRunner;
         $this->consoleWriter = $consoleWriter;
+        $this->commandDescription = $commandDescription;
 
         parent::__construct();
     }
@@ -58,6 +60,7 @@ class MessagingEntrypointCommand extends Command
         }
 
         $this->setName($this->name);
+        $this->setDescription($this->commandDescription);
     }
 
     public function execute(InputInterface $input, OutputInterface $output): int

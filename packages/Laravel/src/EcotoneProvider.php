@@ -137,7 +137,7 @@ class EcotoneProvider extends ServiceProvider
                     $commandName .= '}';
                 }
 
-                Artisan::command(
+                $artisanCommand = Artisan::command(
                     $commandName,
                     function (ConfiguredMessagingSystem $configuredMessagingSystem) {
                         /** @var ConsoleCommandRunner $consoleCommandRunner */
@@ -162,6 +162,7 @@ class EcotoneProvider extends ServiceProvider
                         return 0;
                     }
                 );
+                $artisanCommand->purpose($oneTimeCommandConfiguration->getDescription());
             }
         }
     }

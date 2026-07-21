@@ -68,7 +68,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
             Assert::notNull($connectionReference, "Lack of context about tenant in Message Headers. Please add `{$this->tenantHeaderName}` header metadata to your message.");
         }
 
-        $connectionFactory = $this->getConnectionFactory();
+        $connectionFactory = $this->getConnectionFactory($tenant);
         Assert::isTrue($connectionFactory instanceof EcotoneManagerRegistryConnectionFactory, 'Connection factory was not registered by `DbalConnection::createForManagerRegistry()`');
 
         /** @var ManagerRegistry $managerRegistry */
@@ -94,9 +94,9 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         return $dbalConnection->getDbalConnection();
     }
 
-    public function getConnectionFactory(): ConnectionFactory
+    public function getConnectionFactory(?string $tenant = null): ConnectionFactory
     {
-        $connectionReference = $this->getCurrentConnectionReferenceOrNull();
+        $connectionReference = $this->getCurrentConnectionReferenceOrNull($tenant);
 
         if ($connectionReference === null) {
             $tenant = $this->getCurrentTenantOrNull();

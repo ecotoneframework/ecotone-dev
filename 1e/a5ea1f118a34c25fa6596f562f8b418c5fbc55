@@ -1,0 +1,29 @@
+packages/Tempest/tests/Hardening/TempestPsrContainerAdapterInitializerServicesTest.php
+  s_f22ddb5ad3484a::t_26ffabb69d7b5b 47-107
+packages/Laravel/tests/MissingReference/MissingReferenceRuntimeFailureTest.php
+  s_f22ddb5ad3484a::t_886854a025f30c 75-79
+packages/Tempest/src/TempestPsrContainerAdapter.php
+  s_f22ddb5ad3484a::t_5413e697968b07 7,10-12,14-16,33-42,54,56-67,70-107
+packages/Ecotone/src/SymfonyContainer/EcotoneContainer.php
+  s_f22ddb5ad3484a::t_ad2a9f750ffd1f 58
+packages/Tempest/src/ConsoleProxyArguments.php
+  s_f22ddb5ad3484a::t_bad931f69acf81 58-61
+packages/Tempest/tests/Hardening/MissingReferenceRuntimeFailureTest.php
+  s_f22ddb5ad3484a::t_9e6da45ef7a660 77,79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "1ea5ea1f118a34c25fa6596f562f8b418c5fbc55",
+  "prompts": {},
+  "sessions": {
+    "s_f22ddb5ad3484a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "40459e15-188d-4298-a7a2-e17d249f26e6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

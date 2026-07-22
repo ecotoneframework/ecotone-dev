@@ -135,7 +135,7 @@
             "Symfony\\App\\EnvPlaceholderEndpoint\\": "packages/Symfony/tests/phpunit/EnvPlaceholderEndpoint/src",
             "Symfony\\App\\EnvPlaceholderKafka\\": "packages/Symfony/tests/phpunit/EnvPlaceholderKafka/src",
             "Tests\\Ecotone\\": "tests",
-            "App\\BootValidation\\Laravel\\": "packages/Laravel/tests/BootValidation/src"
+            "App\\MissingReference\\Laravel\\": "packages/Laravel/tests/MissingReference/src"
         }
     },
     "require": {

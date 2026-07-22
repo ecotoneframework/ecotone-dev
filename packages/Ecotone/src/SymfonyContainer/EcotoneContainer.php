@@ -81,28 +81,7 @@ final class EcotoneContainer implements ContainerInterface
      */
     public function getExternalReferenceIds(): array
     {
-        $references = $this->container->getParameter(SymfonyContainerImplementation::EXTERNAL_REFERENCES_PARAMETER);
-
-        return array_is_list($references) ? $references : array_keys($references);
-    }
-
-    /**
-     * External references that must be resolvable for the messaging system to work
-     * (excludes ones only referenced with null-on-invalid behaviour). Containers
-     * dumped before nullability was recorded return an empty list — validation
-     * against them would produce false positives.
-     *
-     * @return string[]
-     */
-    public function getRequiredExternalReferenceIds(): array
-    {
-        $references = $this->container->getParameter(SymfonyContainerImplementation::EXTERNAL_REFERENCES_PARAMETER);
-
-        if (array_is_list($references)) {
-            return [];
-        }
-
-        return array_keys(array_filter($references));
+        return $this->container->getParameter(SymfonyContainerImplementation::EXTERNAL_REFERENCES_PARAMETER);
     }
 
     /**

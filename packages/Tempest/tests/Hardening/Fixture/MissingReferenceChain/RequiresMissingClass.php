@@ -2,12 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Hardening\Fixture\BootValidationChain;
+namespace Test\Ecotone\Tempest\Hardening\Fixture\MissingReferenceChain;
 
 /**
  * Instantiable on the surface — but its constructor requires a class that
- * does not exist. Boot validation must catch this transitively, without
- * constructing anything.
+ * does not exist, so no container can provide it at dispatch time.
  *
  * licence Apache-2.0
  */

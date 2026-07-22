@@ -161,7 +161,7 @@ return [
         /*
          * Package Service Providers...
          */
-        App\BootValidation\Laravel\FactoryRegistrationProvider::class,
+        App\MissingReference\Laravel\FactoryRegistrationProvider::class,
         Ecotone\Laravel\EcotoneProvider::class,
     ],
 

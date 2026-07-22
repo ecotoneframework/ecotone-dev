@@ -12,7 +12,6 @@ use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
-use Ecotone\SymfonyContainer\ExternalReferenceBootValidator;
 use Tempest\Container\Container;
 use Tempest\Container\Initializer;
 use Tempest\Container\Singleton;
@@ -79,14 +78,6 @@ final class MessagingSystemInitializer implements Initializer
         self::$proxyDirectory = $cacheDirectory . DIRECTORY_SEPARATOR . 'console_proxies';
 
         EcotoneServiceInitializer::markCompiled($ecotoneContainer->getDefinedServiceIds());
-
-        if (! $config->test) {
-            ExternalReferenceBootValidator::validate(
-                $ecotoneContainer,
-                new TempestServiceAvailabilityProbe($container),
-                'Register the missing service in Tempest (a config file or an Initializer), or wrap it in a concrete application class.',
-            );
-        }
 
         return $ecotoneContainer->get(ConfiguredMessagingSystem::class);
     }

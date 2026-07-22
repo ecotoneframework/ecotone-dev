@@ -6,12 +6,11 @@ namespace Test\Ecotone\Tempest\Hardening;
 
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
+use Ecotone\Messaging\Config\ModulePackageList;
 use PHPUnit\Framework\TestCase;
 use Tempest\Core\FrameworkKernel;
 use Tempest\Core\KernelEvent;
@@ -24,16 +23,16 @@ use Test\Ecotone\Tempest\TempestTestPaths;
 use Throwable;
 
 /**
- * Boot validation exercised through a REAL Tempest kernel boot (the RealBootTest
- * harness): registerKernel -> loadComposer -> discovery -> BOOTED. During
- * bootDiscovery, EcotoneConsoleCommandDiscovery compiles the messaging system —
- * so a missing external reference must fail THE KERNEL BOOT itself, with the
- * honest aggregate error, and booting again must report the same error.
+ * Runtime failures exercised through a REAL Tempest kernel boot: registerKernel
+ * -> loadComposer -> discovery -> BOOTED. Boot must stay lazy — a handler with
+ * a missing dependency must NOT fail the kernel boot; dispatching through the
+ * booted kernel must fail with an error naming the missing service, and
+ * dispatching again must report the very same error.
  *
  * licence Apache-2.0
  * @internal
  */
-final class RealBootValidationTest extends TestCase
+final class RealBootRuntimeFailureTest extends TestCase
 {
     private string $cacheDirectory;
 
@@ -57,17 +56,28 @@ final class RealBootValidationTest extends TestCase
         $this->wipeCacheDirectory();
     }
 
-    public function test_missing_handler_dependency_fails_the_tempest_kernel_boot(): void
+    public function test_kernel_boots_despite_missing_handler_dependency_and_dispatch_fails_honestly(): void
     {
-        try {
-            $this->bootTempestKernel(
-                'Test\\Ecotone\\Tempest\\Hardening\\Fixture\\BootValidation\\',
-            );
+        $kernel = $this->bootTempestKernel(
+            'Test\\Ecotone\\Tempest\\Hardening\\Fixture\\MissingReference\\',
+        );
 
-            $this->fail('The kernel boot must fail: ReportGenerator references MissingServiceContract which nothing provides');
-        } catch (ConfigurationException $exception) {
-            $this->assertStringContainsString('MissingServiceContract', $exception->getMessage());
-        }
+        $commandBus = $kernel->container->get(CommandBus::class);
+
+        $firstException = $this->dispatchAndCaptureFailure($commandBus);
+        $this->assertStringContainsString(
+            'MissingServiceContract',
+            $firstException->getMessage(),
+            'The dispatch error must name the unresolvable reference',
+        );
+
+        $secondException = $this->dispatchAndCaptureFailure($commandBus);
+        $this->assertSame($firstException::class, $secondException::class);
+        $this->assertSame(
+            $firstException->getMessage(),
+            $secondException->getMessage(),
+            'A failed dispatch must not leave half-built services behind that change the error on the next attempt',
+        );
     }
 
     public function test_kernel_boots_and_handler_executes_when_service_is_provided_by_initializer(): void
@@ -84,53 +94,20 @@ final class RealBootValidationTest extends TestCase
         $this->assertSame('Hello real-boot', $commandBus->sendWithRouting('hardening.greet', 'real-boot'));
     }
 
-    public function test_failed_kernel_boot_is_idempotent_and_reports_the_same_error(): void
-    {
-        $firstException = $this->bootAndCaptureFailure();
-
-        restore_exception_handler();
-        restore_error_handler();
-        EcotoneServiceInitializer::clearCache();
-        MessagingSystemInitializer::clearDefinitionHolder();
-
-        $secondException = $this->bootAndCaptureFailure();
-
-        $this->assertSame($firstException::class, $secondException::class);
-        $this->assertSame(
-            $firstException->getMessage(),
-            $secondException->getMessage(),
-            'A failed kernel boot must not leave state behind that changes the error on the next boot',
-        );
-    }
-
-    public function test_kernel_boots_despite_missing_dependency_in_test_mode(): void
-    {
-        $kernel = $this->bootTempestKernel(
-            'Test\\Ecotone\\Tempest\\Hardening\\Fixture\\BootValidation\\',
-            testMode: true,
-        );
-
-        $this->assertNotNull(
-            $kernel->container->get(CommandBus::class),
-            'Test-mode setups boot intentionally partial configurations - validation must not apply to them; this also proves the boot failure in the other tests comes from validation',
-        );
-    }
-
-    private function bootAndCaptureFailure(): Throwable
+    private function dispatchAndCaptureFailure(CommandBus $commandBus): Throwable
     {
         try {
-            $this->bootTempestKernel('Test\\Ecotone\\Tempest\\Hardening\\Fixture\\BootValidation\\');
+            $commandBus->sendWithRouting('missing_reference.generate', 'monthly');
         } catch (Throwable $exception) {
             return $exception;
         }
 
-        $this->fail('The kernel boot was expected to fail');
+        $this->fail('Dispatch was expected to fail');
     }
 
     private function bootTempestKernel(
         string $fixtureNamespace,
         ?callable $configureContainer = null,
-        bool $testMode = false,
     ): FrameworkKernel {
         $internalStorage = sys_get_temp_dir() . '/ecotone_hardening_real_boot_' . getmypid();
 
@@ -159,7 +136,6 @@ final class RealBootValidationTest extends TestCase
         $kernel->container->config(new EcotoneConfig(
             namespaces: [$fixtureNamespace],
             skippedModulePackageNames: ModulePackageList::allPackages(),
-            test: $testMode,
         ));
 
         if ($configureContainer !== null) {

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\BootValidation\Laravel\Chain;
+namespace App\MissingReference\Laravel\Chain;
 
 use Ecotone\Modelling\Attribute\CommandHandler;
 
@@ -11,7 +11,7 @@ use Ecotone\Modelling\Attribute\CommandHandler;
  */
 final class ChainedHandler
 {
-    #[CommandHandler('boot.chain')]
+    #[CommandHandler('missing_reference.chain')]
     public function handle(string $payload, RequiresMissingClass $collaborator): string
     {
         return $payload;

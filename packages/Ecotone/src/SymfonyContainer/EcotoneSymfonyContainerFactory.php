@@ -67,7 +67,7 @@ final class EcotoneSymfonyContainerFactory
         array $runtimeServices = [],
         ?string $configHash = null,
     ): EcotoneContainer {
-        $symfonyBuilder = new SymfonyContainerBuilder();
+        $symfonyBuilder = new ResilientContainerBuilder();
         $implementation = new SymfonyContainerImplementation(
             $symfonyBuilder,
             array_keys($runtimeServices),
@@ -155,7 +155,10 @@ final class EcotoneSymfonyContainerFactory
         }
         $dumper = new PhpDumper($symfonyBuilder);
         $placeholderClassName = 'EcotoneCachedContainerPlaceholder';
-        $containerCode = $dumper->dump(['class' => $placeholderClassName]);
+        $containerCode = $dumper->dump([
+            'class' => $placeholderClassName,
+            'base_class' => '\\' . ResilientDumpedContainer::class,
+        ]);
         $className = 'EcotoneCachedContainer_' . md5($containerCode);
         $containerCode = str_replace($placeholderClassName, $className, $containerCode);
 

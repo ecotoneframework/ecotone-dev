@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Hardening\Fixture\BootValidation;
+namespace App\MissingReference\Laravel\Shared;
 
 use Ecotone\Modelling\Attribute\CommandHandler;
 
@@ -11,7 +11,7 @@ use Ecotone\Modelling\Attribute\CommandHandler;
  */
 final class ReportGenerator
 {
-    #[CommandHandler('boot.generate')]
+    #[CommandHandler('missing_reference.generate')]
     public function generate(string $reportName, MissingServiceContract $renderer): string
     {
         return $reportName;

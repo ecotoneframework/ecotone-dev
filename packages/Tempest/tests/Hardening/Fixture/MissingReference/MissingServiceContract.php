@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\BootValidation\Laravel\Shared;
+namespace Test\Ecotone\Tempest\Hardening\Fixture\MissingReference;
 
 /**
  * licence Apache-2.0

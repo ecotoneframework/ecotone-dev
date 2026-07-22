@@ -376,7 +376,6 @@ final class ModellingBehatMigrationTest extends TestCase
             'Test\Ecotone\Modelling\Fixture\MetadataPropagating',
             [
                 new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService(),
-                new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\FakeLoggingService(),
             ]
         );
 
@@ -395,7 +394,6 @@ final class ModellingBehatMigrationTest extends TestCase
             'Test\Ecotone\Modelling\Fixture\MetadataPropagating',
             [
                 new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService(),
-                new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\FakeLoggingService(),
             ]
         );
 
@@ -414,7 +412,6 @@ final class ModellingBehatMigrationTest extends TestCase
             'Test\Ecotone\Modelling\Fixture\MetadataPropagating',
             [
                 new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService(),
-                new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\FakeLoggingService(),
             ]
         );
 
@@ -434,7 +431,6 @@ final class ModellingBehatMigrationTest extends TestCase
             'Test\Ecotone\Modelling\Fixture\MetadataPropagating',
             [
                 new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService(),
-                new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\FakeLoggingService(),
             ]
         );
 

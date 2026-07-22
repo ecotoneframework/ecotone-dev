@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Test\Ecotone\Tempest\Hardening\Fixture\BootValidation;
+namespace App\MissingReference\Laravel\Shared;
 
 /**
  * licence Apache-2.0

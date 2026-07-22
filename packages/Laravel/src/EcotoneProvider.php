@@ -17,7 +17,6 @@ use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
-use Ecotone\SymfonyContainer\ExternalReferenceBootValidator;
 use Illuminate\Console\Events\CommandFinished;
 use Illuminate\Foundation\Console\ClosureCommand;
 use Illuminate\Support\Facades\App;
@@ -99,16 +98,6 @@ class EcotoneProvider extends ServiceProvider
         $applicationConfiguration = MessagingSystemConfiguration::addCorePackage($applicationConfiguration, $enableTesting);
 
         [$serviceCacheConfiguration, $container] = $this->prepareFromCache($useProductionCache, $rootCatalog, $applicationConfiguration, $enableTesting, $cacheDirectory);
-
-        if (! $enableTesting) {
-            $this->app->booted(function () use ($container): void {
-                ExternalReferenceBootValidator::validate(
-                    $container,
-                    new LaravelServiceAvailabilityProbe($this->app),
-                    'Bind the missing service in a Laravel service provider, or ensure the class is autoloadable and instantiable.',
-                );
-            });
-        }
 
         $container->registerBridgesInto(
             fn (string $referenceName, string $interfaceName, callable $factory) => $this->app->singleton($referenceName, fn () => $factory()),

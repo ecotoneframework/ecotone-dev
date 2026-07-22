@@ -13,18 +13,19 @@ use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
 use PHPUnit\Framework\TestCase;
 use Tempest\Container\GenericContainer;
-use Throwable;
 
 /**
- * Reproduces two production-cache defects:
+ * Production-cache contract:
  *
- * 1. The cached compiled container is loaded without validating its config
- *    hash against the current configuration — after code or config changes the
- *    app keeps running the stale messaging system until ecotone:cache:clear.
+ * 1. The cached compiled container is TRUSTED — a warm production boot never
+ *    rescans or hashes application files (that cost is exactly what the cache
+ *    exists to avoid). A configuration change therefore takes effect only
+ *    after the cache is cleared; staleness that breaks class loading is
+ *    attributed honestly at dispatch (see StaleCacheFailureAttributionTest in
+ *    core).
  *
- * 2. The environment is read exclusively from APP_ENV
- *    (getenv('APP_ENV') ?: 'production'), while Tempest's own convention is
- *    ENVIRONMENT — a fresh Tempest app sets ENVIRONMENT=local and still gets
+ * 2. The environment is read from APP_ENV or Tempest's own ENVIRONMENT
+ *    convention — a fresh Tempest app sets ENVIRONMENT=local and must not get
  *    production caching (which is also how PHPUnit runs silently reuse the
  *    live app's cache).
  *
@@ -35,10 +36,17 @@ final class ProductionCacheInvalidationTest extends TestCase
 {
     private string $cacheDirectory;
 
+    private string|false $originalAppEnv = false;
+
+    private string|false $originalEnvironment = false;
+
     protected function setUp(): void
     {
         $this->cacheDirectory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone_tempest';
         $this->wipeCacheDirectory();
+
+        $this->originalAppEnv = getenv('APP_ENV');
+        $this->originalEnvironment = getenv('ENVIRONMENT');
 
         EcotoneServiceInitializer::clearCache();
         MessagingSystemInitializer::clearDefinitionHolder();
@@ -46,8 +54,8 @@ final class ProductionCacheInvalidationTest extends TestCase
 
     protected function tearDown(): void
     {
-        putenv('APP_ENV');
-        putenv('ENVIRONMENT');
+        putenv($this->originalAppEnv === false ? 'APP_ENV' : 'APP_ENV=' . $this->originalAppEnv);
+        putenv($this->originalEnvironment === false ? 'ENVIRONMENT' : 'ENVIRONMENT=' . $this->originalEnvironment);
 
         EcotoneServiceInitializer::clearCache();
         MessagingSystemInitializer::clearDefinitionHolder();
@@ -55,7 +63,7 @@ final class ProductionCacheInvalidationTest extends TestCase
         $this->wipeCacheDirectory();
     }
 
-    public function test_stale_production_cache_is_rebuilt_when_configuration_changes(): void
+    public function test_production_cache_is_trusted_until_cleared(): void
     {
         putenv('APP_ENV=production');
 
@@ -67,19 +75,33 @@ final class ProductionCacheInvalidationTest extends TestCase
         EcotoneServiceInitializer::clearCache();
         MessagingSystemInitializer::clearDefinitionHolder();
 
-        $secondSystem = (new MessagingSystemInitializer())->initialize(
+        $reusedCacheSystem = (new MessagingSystemInitializer())->initialize(
+            $this->containerWithNamespaces(['Test\\Ecotone\\Tempest\\Hardening\\Fixture\\NoHandlers\\']),
+        );
+
+        $this->assertSame(
+            'pong',
+            $reusedCacheSystem->getCommandBus()->sendWithRouting('hardening.cache.ping'),
+            'A warm production boot must trust the cache without rescanning files — the changed configuration takes effect only after the cache is cleared',
+        );
+
+        EcotoneServiceInitializer::clearCache();
+        MessagingSystemInitializer::clearDefinitionHolder();
+        $this->wipeCacheDirectory();
+
+        $rebuiltSystem = (new MessagingSystemInitializer())->initialize(
             $this->containerWithNamespaces(['Test\\Ecotone\\Tempest\\Hardening\\Fixture\\NoHandlers\\']),
         );
 
         try {
-            $secondSystem->getCommandBus()->sendWithRouting('hardening.cache.ping');
+            $rebuiltSystem->getCommandBus()->sendWithRouting('hardening.cache.ping');
         } catch (DestinationResolutionException) {
             $this->addToAssertionCount(1);
 
             return;
         }
 
-        $this->fail('The configuration no longer scans the CachePing namespace — a rebuilt messaging system must not know this routing. The stale production cache was reused.');
+        $this->fail('After clearing the cache the rebuilt messaging system must reflect the new configuration, which no longer knows this routing');
     }
 
     public function test_tempest_environment_variable_disables_production_caching(): void

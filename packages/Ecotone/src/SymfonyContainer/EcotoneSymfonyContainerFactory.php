@@ -134,7 +134,7 @@ final class EcotoneSymfonyContainerFactory
             return null;
         }
 
-        return self::wrapWithExternalFallback($container, $externalContainer, $runtimeServices);
+        return self::wrapWithExternalFallback($container, $externalContainer, $runtimeServices, $serviceCacheConfiguration->getPath());
     }
 
     /**
@@ -197,9 +197,10 @@ final class EcotoneSymfonyContainerFactory
         SymfonyContainerInterface $symfonyContainer,
         ?ContainerInterface $externalContainer,
         array $runtimeServices = [],
+        ?string $loadedFromCachePath = null,
     ): EcotoneContainer {
         $externalContainer ??= InMemoryPSRContainer::createEmpty();
-        $container = new EcotoneContainer($symfonyContainer, $externalContainer);
+        $container = new EcotoneContainer($symfonyContainer, $externalContainer, $loadedFromCachePath);
         $container->set(SymfonyContainerImplementation::EXTERNAL_CONTAINER_ID, $externalContainer);
         $container->set(ContainerInterface::class, $container);
         foreach ($runtimeServices as $id => $service) {

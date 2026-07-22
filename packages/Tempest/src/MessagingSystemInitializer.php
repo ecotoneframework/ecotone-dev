@@ -158,6 +158,17 @@ final class MessagingSystemInitializer implements Initializer
     ): array {
         $externalContainer = new TempestPsrContainerAdapter($container);
 
+        if ($useProductionCache && $cacheDirectory) {
+            $ecotoneContainer = EcotoneSymfonyContainerFactory::loadCachedWithDefaults(
+                new ServiceCacheConfiguration($cacheDirectory, true),
+                new TempestConfigurationVariableService(),
+                $externalContainer,
+            );
+            if ($ecotoneContainer !== null) {
+                return [$ecotoneContainer, $ecotoneContainer->getConfigHash()];
+            }
+        }
+
         $cacheLayout = ContainerCacheLayout::resolve(
             $rootCatalog,
             $applicationConfiguration,
@@ -166,22 +177,6 @@ final class MessagingSystemInitializer implements Initializer
             useHashSubDirectory: ! $useProductionCache,
             enableTesting: $enableTesting,
         );
-
-        if ($useProductionCache && $cacheDirectory) {
-            $ecotoneContainer = EcotoneSymfonyContainerFactory::loadCachedWithDefaults(
-                new ServiceCacheConfiguration($cacheDirectory, true),
-                new TempestConfigurationVariableService(),
-                $externalContainer,
-            );
-            if ($ecotoneContainer !== null) {
-                if ($ecotoneContainer->getConfigHash() === $cacheLayout->configHash) {
-                    return [$ecotoneContainer, $ecotoneContainer->getConfigHash()];
-                }
-
-                @unlink($cacheDirectory . DIRECTORY_SEPARATOR . 'ecotone_container.php');
-            }
-        }
-
         $annotationFinder = $cacheLayout->annotationFinder;
         $serviceCacheConfiguration = $cacheLayout->serviceCacheConfiguration;
         $cacheHash = $cacheLayout->configHash;

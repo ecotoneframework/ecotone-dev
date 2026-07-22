@@ -1,0 +1,151 @@
+packages/Laravel/tests/BootValidation/src/FactoryRegistrationProvider.php
+  s_f22ddb5ad3484a::t_aef7beb9c4ebd7 1-35
+packages/Ecotone/src/SymfonyContainer/SymfonyContainerImplementation.php
+  s_f22ddb5ad3484a::t_cd99ce78279fcc 46,79,146
+packages/Laravel/tests/BootValidation/config/view.php
+  s_f22ddb5ad3484a::t_2ccb5c194c43ef 1-36
+packages/Laravel/tests/BootValidation/config/queue.php
+  s_f22ddb5ad3484a::t_8ef9ba4a018669 1-93
+packages/Laravel/tests/BootValidation/storage/app/.gitignore
+  s_f22ddb5ad3484a::t_f48418b8e5f323 1-3
+packages/Tempest/tests/Hardening/Fixture/NoHandlers/NothingRegisteredHere.php
+  s_f22ddb5ad3484a::t_e9e7101265b560 1-12
+packages/Ecotone/src/SymfonyContainer/ReflectiveAvailabilityProbe.php
+  s_f22ddb5ad3484a::t_0d497c6f8b5766 1-91
+packages/Tempest/tests/Hardening/Fixture/BootValidation/ReportGenerator.php
+  s_f22ddb5ad3484a::t_4fa8542c60e8b3 1-19
+packages/Tempest/tests/Hardening/Fixture/BootValidation/MissingServiceContract.php
+  s_f22ddb5ad3484a::t_f2428809823466 1-12
+packages/Laravel/tests/BootValidation/storage/framework/.gitignore
+  s_f22ddb5ad3484a::t_87f03f0ca13dd1 1-9
+packages/Laravel/tests/BootValidation/src/Shared/MissingServiceContract.php
+  s_f22ddb5ad3484a::t_e65365b92ff327 1-12
+packages/Laravel/tests/BootValidation/config/cache.php
+  s_f22ddb5ad3484a::t_917ab1c35e169a 1-111
+packages/Laravel/tests/BootValidation/src/Chain/ChainedHandler.php
+  s_f22ddb5ad3484a::t_eae2feaebdeb96 1-19
+packages/Laravel/tests/BootValidation/src/Chain/RequiresMissingClass.php
+  s_f22ddb5ad3484a::t_d717060f71ea1e 1-19
+packages/PdoEventSourcing/composer.json
+  s_f22ddb5ad3484a::t_b90a5938406214 63
+packages/Tempest/src/TempestPsrContainerAdapter.php
+  s_f22ddb5ad3484a::t_fb8bfad14276fd 37-40,42-44
+packages/Ecotone/src/SymfonyContainer/PsrContainerAvailabilityProbe.php
+  s_f22ddb5ad3484a::t_930decf3255e6e 1-28
+packages/Tempest/tests/Hardening/DynamicDriverTransactionPinningTest.php
+  s_f22ddb5ad3484a::t_e1e6ba6c80f029 1-104
+packages/Dbal/composer.json
+  s_f22ddb5ad3484a::t_0bc1da228fa3e6 59
+packages/Ecotone/src/SymfonyContainer/ExternalReferenceBootValidator.php
+  s_f22ddb5ad3484a::t_798f015ad74b05 1-47
+packages/Tempest/tests/Hardening/RealBootValidationTest.php
+  s_f22ddb5ad3484a::t_9bdcedd8433aa9 1-211
+packages/Ecotone/tests/SymfonyContainer/ExternalReferenceBootValidationTest.php
+  s_f22ddb5ad3484a::t_faccb92051df47 1-182
+packages/Ecotone/src/SymfonyContainer/EcotoneContainer.php
+  s_f22ddb5ad3484a::t_921f9912416c92 84-105
+packages/Laravel/tests/BootValidation/storage/framework/views/.gitignore
+  s_f22ddb5ad3484a::t_8bfd637b2bd811 1-2
+packages/Laravel/src/EcotoneProvider.php
+  s_f22ddb5ad3484a::t_b36e4c9224a57e 20,103-112
+packages/Tempest/tests/Hardening/ConsoleProxyArgumentMappingTest.php
+  s_f22ddb5ad3484a::t_173ed239018750 1-140
+packages/Laravel/src/LaravelServiceAvailabilityProbe.php
+  s_f22ddb5ad3484a::t_9d8a2b4cc11901 1-30
+packages/Tempest/tests/Hardening/Fixture/InitializerService/GreetingServiceInitializer.php
+  s_f22ddb5ad3484a::t_c14745bd453433 1-27
+packages/Tempest/tests/Hardening/TempestPsrContainerAdapterInitializerServicesTest.php
+  s_f22ddb5ad3484a::t_7ee12ddf4b65bb 1-63
+packages/Laravel/tests/BootValidation/src/Shared/ReportGenerator.php
+  s_f22ddb5ad3484a::t_8136fff9185eec 1-19
+packages/Laravel/tests/BootValidation/storage/framework/testing/.gitignore
+  s_f22ddb5ad3484a::t_f6c6df643096f8 1-2
+packages/Ecotone/tests/Modelling/Unit/ModellingBehatMigrationTest.php
+  s_f22ddb5ad3484a::t_5538880494b6eb 379,398,417,437
+packages/Tempest/tests/Hardening/Fixture/InitializerService/GreetingHandler.php
+  s_f22ddb5ad3484a::t_c4edff106d6f04 1-19
+packages/Tempest/tests/Hardening/Fixture/BootValidation/ExplodingFactoryInitializer.php
+  s_f22ddb5ad3484a::t_de61ef8042a9a2 1-28
+packages/Tempest/src/Config/PDO/TempestDynamicDriverConnection.php
+  s_f22ddb5ad3484a::t_50e082e9df23e6 28-29,32-35
+  s_f22ddb5ad3484a::t_72ede0ba152950 69-71,76-80,85-89
+packages/Laravel/tests/BootValidation/storage/logs/.gitignore
+  s_f22ddb5ad3484a::t_f6075409a4dbf9 1-2
+packages/Tempest/src/MessagingSystemInitializer.php
+  s_f22ddb5ad3484a::t_6bebe9779526f3 63
+  s_f22ddb5ad3484a::t_3e3a1295e4ad52 83
+  s_f22ddb5ad3484a::t_90555e44db3312 84-86
+  s_f22ddb5ad3484a::t_e36dc65d233088 15
+  s_f22ddb5ad3484a::t_b5baeed600d873 87-90
+  s_f22ddb5ad3484a::t_c064f5e138ad0c 170-178
+  s_f22ddb5ad3484a::t_cda058f192ee9e 185-190
+packages/Ecotone/src/SymfonyContainer/ExternalServiceAvailabilityProbe.php
+  s_f22ddb5ad3484a::t_251c6c46169e0b 1-19
+packages/Tempest/tests/Hardening/ProductionCacheInvalidationTest.php
+  s_f22ddb5ad3484a::t_02312b289b2a42 1-75,80,83-128
+  s_f22ddb5ad3484a::t_54812bbf1ec391 76-79,81-82
+packages/Laravel/tests/BootValidation/config/ecotone.php
+  s_f22ddb5ad3484a::t_603403bccf9a72 1-13
+packages/Tempest/tests/Hardening/Fixture/InitializerService/GreetingService.php
+  s_f22ddb5ad3484a::t_15902b25750068 1-13
+packages/Laravel/tests/BootValidation/storage/framework/sessions/.gitignore
+  s_f22ddb5ad3484a::t_d6c209edac099d 1-2
+packages/Laravel/tests/BootValidation/config/database.php
+  s_f22ddb5ad3484a::t_0417c01fbfb1df 1-5
+packages/Tempest/src/TempestServiceAvailabilityProbe.php
+  s_f22ddb5ad3484a::t_843e41e31c3b31 81-82
+  s_f22ddb5ad3484a::t_883c13cdb82fc5 1-77,80,83,86
+  s_f22ddb5ad3484a::t_c871525f765f9b 78-79
+  s_f22ddb5ad3484a::t_0eadabe997e644 84-85
+packages/Laravel/tests/BootValidation/config/app.php
+  s_f22ddb5ad3484a::t_ac188aa9b6bc99 1-183
+packages/Tempest/tests/Hardening/CompiledContainerInitializerServiceTest.php
+  s_f22ddb5ad3484a::t_5157c366c5b86a 1-104
+packages/Laravel/tests/BootValidation/config/logging.php
+  s_f22ddb5ad3484a::t_fe13c2d22d7389 1-119
+packages/Tempest/src/ConsoleProxyArguments.php
+  s_f22ddb5ad3484a::t_e879901bfe4667 70
+  s_f22ddb5ad3484a::t_3d537f2264c4ae 1-69
+packages/Laravel/tests/BootValidation/config/filesystems.php
+  s_f22ddb5ad3484a::t_9d45948854a04b 1-76
+packages/Laravel/tests/BootValidation/BootValidationTest.php
+  s_f22ddb5ad3484a::t_486b2ba75af5d6 1-128
+packages/Tempest/tests/Hardening/Fixture/CachePing/CachePingHandler.php
+  s_f22ddb5ad3484a::t_b583e4913e7e05 1-19
+packages/Ecotone/src/Lite/EcotoneLite.php
+  s_f22ddb5ad3484a::t_741a93b1a50473 25-26,238-245
+packages/Laravel/tests/BootValidation/storage/app/public/.gitignore
+  s_f22ddb5ad3484a::t_165f8f8d0ed80d 1-2
+packages/Tempest/tests/Hardening/Fixture/BootValidationChain/ChainedHandler.php
+  s_f22ddb5ad3484a::t_5c297c6efdef54 1-19
+packages/Laravel/tests/BootValidation/config/services.php
+  s_f22ddb5ad3484a::t_19747734a20180 1-34
+packages/Laravel/composer.json
+  s_f22ddb5ad3484a::t_4cf531ac30a4d0 51-52
+packages/Tempest/tests/Hardening/BootValidationTest.php
+  s_f22ddb5ad3484a::t_10d1a21762228a 1-156
+packages/Laravel/tests/BootValidation/bootstrap/app.php
+  s_f22ddb5ad3484a::t_92bdbcb89af243 1-55
+packages/Tempest/src/ConsoleCommandProxyGenerator.php
+  s_f22ddb5ad3484a::t_7533ef4bffdf3b 84,89-108,112-113,152
+packages/Tempest/tests/Hardening/Fixture/BootValidationChain/RequiresMissingClass.php
+  s_f22ddb5ad3484a::t_0cdd282c4df0c1 1-19
+composer.json
+  s_f22ddb5ad3484a::t_bbbcae93452e64 137-138,146
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "4a004aaa528c82d49c9db6861485157ddb002401",
+  "prompts": {},
+  "sessions": {
+    "s_f22ddb5ad3484a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "40459e15-188d-4298-a7a2-e17d249f26e6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

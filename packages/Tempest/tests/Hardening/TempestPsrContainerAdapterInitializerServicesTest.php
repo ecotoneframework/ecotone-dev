@@ -44,6 +44,67 @@ final class TempestPsrContainerAdapterInitializerServicesTest extends TestCase
 
         $this->assertFalse($adapter->has(ServiceBehindInitializer::class));
     }
+
+    public function test_has_answers_from_the_initializer_registry_without_constructing_the_service(): void
+    {
+        ConnectionOpeningInitializer::$opened = false;
+        $container = new GenericContainer();
+        $container->addInitializer(ConnectionOpeningInitializer::class);
+
+        $adapter = new TempestPsrContainerAdapter($container);
+
+        $this->assertTrue($adapter->has(ExpensiveConnection::class));
+        $this->assertFalse(
+            ConnectionOpeningInitializer::$opened,
+            'has() is a capability question — it must never construct the service (imagine a database connection opened during compilation)',
+        );
+
+        $this->assertInstanceOf(ExpensiveConnection::class, $adapter->get(ExpensiveConnection::class));
+        $this->assertTrue(ConnectionOpeningInitializer::$opened, 'get() is the one that constructs');
+    }
+
+    public function test_has_reports_instantiable_class_without_constructing_it(): void
+    {
+        ConstructionRecordingService::$constructed = false;
+        $container = new GenericContainer();
+
+        $adapter = new TempestPsrContainerAdapter($container);
+
+        $this->assertTrue(
+            $adapter->has(ConstructionRecordingService::class),
+            'Tempest autowires concrete classes on demand — they are available without being registered',
+        );
+        $this->assertFalse(
+            ConstructionRecordingService::$constructed,
+            'has() must not autowire the class to prove it can be built — construction belongs to dispatch time',
+        );
+    }
+}
+
+final class ExpensiveConnection
+{
+}
+
+final class ConnectionOpeningInitializer implements Initializer
+{
+    public static bool $opened = false;
+
+    public function initialize(Container $container): ExpensiveConnection
+    {
+        self::$opened = true;
+
+        return new ExpensiveConnection();
+    }
+}
+
+final class ConstructionRecordingService
+{
+    public static bool $constructed = false;
+
+    public function __construct()
+    {
+        self::$constructed = true;
+    }
 }
 
 interface ServiceBehindInitializer

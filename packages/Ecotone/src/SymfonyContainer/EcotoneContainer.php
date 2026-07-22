@@ -55,7 +55,7 @@ final class EcotoneContainer implements ContainerInterface
 
         return ConfigurationException::createFromPreviousException(
             sprintf(
-                'Ecotone\'s cached container references "%s", which can no longer be loaded — the production cache at "%s" is stale. Clear the Ecotone cache (ecotone:cache:clear, or delete that directory) and boot again. Original error: %s',
+                'Ecotone\'s cached container references "%s", which can no longer be loaded. If it was removed or renamed since the cache was built, the production cache at "%s" is stale — clear the Ecotone cache (ecotone:cache:clear, or delete that directory) and boot again. If the error persists after clearing, the class is referenced by your own code. Original error: %s',
                 $match[1],
                 $this->loadedFromCachePath,
                 $failure->getMessage(),

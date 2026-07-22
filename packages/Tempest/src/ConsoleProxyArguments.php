@@ -55,6 +55,10 @@ final class ConsoleProxyArguments
             $mapped[$argumentName] = array_shift($positionalValues);
         }
 
+        // Surplus positional values are dropped deliberately, not rejected:
+        // when proxies run in-process (e.g. under PHPUnit) Tempest's argument
+        // bag carries the host process argv, so unknown positionals are not
+        // reliably user typos.
         return $mapped;
     }
 

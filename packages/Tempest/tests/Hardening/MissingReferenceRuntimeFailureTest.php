@@ -74,9 +74,9 @@ final class MissingReferenceRuntimeFailureTest extends TestCase
             $this->fail('Dispatch must fail: RequiresMissingClass needs NonExistingCollaborator in its constructor');
         } catch (Throwable $exception) {
             $this->assertStringContainsString(
-                'RequiresMissingClass',
+                'NonExistingCollaborator',
                 $exception->getMessage(),
-                'The dispatch error must name the transitively unresolvable reference',
+                'The dispatch error must name what could not be resolved',
             );
         }
     }

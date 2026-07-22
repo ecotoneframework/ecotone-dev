@@ -72,6 +72,11 @@ final class MissingReferenceRuntimeFailureTest extends TestCase
 
         $app = $this->bootApplication();
 
+        $this->assertFalse(
+            FactoryRegistrationProvider::$factoryInvoked,
+            'Boot must stay lazy — the factory binding must not be resolved before a dispatched message needs it',
+        );
+
         $this->assertSame(
             'monthly',
             $app->make(CommandBus::class)->sendWithRouting('missing_reference.generate', 'monthly'),

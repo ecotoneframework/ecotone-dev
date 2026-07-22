@@ -1,0 +1,31 @@
+packages/Ecotone/src/SymfonyContainer/EcotoneContainer.php
+  s_f22ddb5ad3484a::t_537500192ccd0e 7,10,13
+  s_f22ddb5ad3484a::t_29c1225386f0fd 23,31-35,41-64
+  s_f22ddb5ad3484a::t_2d2a1fc9cc1657 65-66
+packages/Ecotone/src/SymfonyContainer/EcotoneSymfonyContainerFactory.php
+  s_f22ddb5ad3484a::t_806128fb2947e4 137
+  s_f22ddb5ad3484a::t_28e8f421266f03 200,203
+packages/Tempest/src/MessagingSystemInitializer.php
+  s_f22ddb5ad3484a::t_4ad8323b062f81 168,172-179
+packages/Tempest/tests/Hardening/ProductionCacheInvalidationTest.php
+  s_f22ddb5ad3484a::t_ba47057d9aa801 18,20-25,27-28,66,78-92,97,104
+  s_f22ddb5ad3484a::t_c3f7ef4868b7eb 39-42,48-50,57-58
+packages/Ecotone/tests/SymfonyContainer/StaleCacheFailureAttributionTest.php
+  s_f22ddb5ad3484a::t_1195e461725995 1-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.15",
+  "base_commit_sha": "0cbd388961e480d76aeec39828502c90a548f6dc",
+  "prompts": {},
+  "sessions": {
+    "s_f22ddb5ad3484a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "40459e15-188d-4298-a7a2-e17d249f26e6",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

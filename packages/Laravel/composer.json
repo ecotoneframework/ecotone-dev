@@ -48,7 +48,8 @@
         "psr-4": {
             "Test\\Ecotone\\Laravel\\": "tests",
             "App\\MultiTenant\\": "tests/MultiTenant/app",
-            "App\\Licence\\Laravel\\": "tests/Licence/app"
+            "App\\Licence\\Laravel\\": "tests/Licence/app",
+            "App\\BootValidation\\Laravel\\": "tests/BootValidation/src"
         }
     },
     "require": {

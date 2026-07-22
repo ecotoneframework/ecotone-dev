@@ -6,8 +6,6 @@ namespace Ecotone\Tempest;
 
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
-use ReflectionClass;
-use ReflectionException;
 use Tempest\Container\Container;
 use Throwable;
 
@@ -32,23 +30,18 @@ final class TempestPsrContainerAdapter implements ContainerInterface
             return true;
         }
 
-        if ($id === LoggerInterface::class) {
-            try {
-                $this->container->get($id);
-                return true;
-            } catch (Throwable) {
-                return false;
-            }
-        }
-
         if (! class_exists($id) && ! interface_exists($id)) {
             return false;
         }
 
+        // Tempest's Container::has() does not account for services provided by
+        // Initializer / DynamicInitializer classes (e.g. Tempest\Mail\Mailer).
+        // Resolving is the only reliable answer; a resolved singleton is cached
+        // by the container, so the follow-up get() does no extra work.
         try {
-            $reflection = new ReflectionClass($id);
-            return $reflection->isInstantiable();
-        } catch (ReflectionException) {
+            $this->container->get($id);
+            return true;
+        } catch (Throwable) {
             return false;
         }
     }

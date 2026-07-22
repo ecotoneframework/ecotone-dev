@@ -1,0 +1,19 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\Tempest\Hardening\Fixture\BootValidationChain;
+
+use Ecotone\Modelling\Attribute\CommandHandler;
+
+/**
+ * licence Apache-2.0
+ */
+final class ChainedHandler
+{
+    #[CommandHandler('boot.chain')]
+    public function handle(string $payload, RequiresMissingClass $collaborator): string
+    {
+        return $payload;
+    }
+}

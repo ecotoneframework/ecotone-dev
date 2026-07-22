@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
+use Ecotone\SymfonyContainer\ExternalReferenceBootValidator;
 use Tempest\Container\Container;
 use Tempest\Container\Initializer;
 use Tempest\Container\Singleton;
@@ -59,7 +60,7 @@ final class MessagingSystemInitializer implements Initializer
         $config = $this->resolveEcotoneConfig($container);
         $rootPath = getcwd();
         $cacheDirectory = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'ecotone_tempest';
-        $environment = getenv('APP_ENV') ?: 'production';
+        $environment = getenv('APP_ENV') ?: (getenv('ENVIRONMENT') ?: 'production');
         $useProductionCache = in_array($environment, ['prod', 'production'], true) ? true : $config->cacheConfiguration;
 
         $applicationConfiguration = $this->buildServiceConfiguration($config, $environment, $cacheDirectory, $container);
@@ -78,6 +79,14 @@ final class MessagingSystemInitializer implements Initializer
         self::$proxyDirectory = $cacheDirectory . DIRECTORY_SEPARATOR . 'console_proxies';
 
         EcotoneServiceInitializer::markCompiled($ecotoneContainer->getDefinedServiceIds());
+
+        if (! $config->test) {
+            ExternalReferenceBootValidator::validate(
+                $ecotoneContainer,
+                new TempestServiceAvailabilityProbe($container),
+                'Register the missing service in Tempest (a config file or an Initializer), or wrap it in a concrete application class.',
+            );
+        }
 
         return $ecotoneContainer->get(ConfiguredMessagingSystem::class);
     }
@@ -158,17 +167,6 @@ final class MessagingSystemInitializer implements Initializer
     ): array {
         $externalContainer = new TempestPsrContainerAdapter($container);
 
-        if ($useProductionCache && $cacheDirectory) {
-            $ecotoneContainer = EcotoneSymfonyContainerFactory::loadCachedWithDefaults(
-                new ServiceCacheConfiguration($cacheDirectory, true),
-                new TempestConfigurationVariableService(),
-                $externalContainer,
-            );
-            if ($ecotoneContainer) {
-                return [$ecotoneContainer, $ecotoneContainer->getConfigHash()];
-            }
-        }
-
         $cacheLayout = ContainerCacheLayout::resolve(
             $rootCatalog,
             $applicationConfiguration,
@@ -177,6 +175,22 @@ final class MessagingSystemInitializer implements Initializer
             useHashSubDirectory: ! $useProductionCache,
             enableTesting: $enableTesting,
         );
+
+        if ($useProductionCache && $cacheDirectory) {
+            $ecotoneContainer = EcotoneSymfonyContainerFactory::loadCachedWithDefaults(
+                new ServiceCacheConfiguration($cacheDirectory, true),
+                new TempestConfigurationVariableService(),
+                $externalContainer,
+            );
+            if ($ecotoneContainer !== null) {
+                if ($ecotoneContainer->getConfigHash() === $cacheLayout->configHash) {
+                    return [$ecotoneContainer, $ecotoneContainer->getConfigHash()];
+                }
+
+                @unlink($cacheDirectory . DIRECTORY_SEPARATOR . 'ecotone_container.php');
+            }
+        }
+
         $annotationFinder = $cacheLayout->annotationFinder;
         $serviceCacheConfiguration = $cacheLayout->serviceCacheConfiguration;
         $cacheHash = $cacheLayout->configHash;

@@ -81,15 +81,36 @@ final class ConsoleCommandProxyGenerator
         $className = $this->buildClassName($commandName);
         $filePath = $outputDirectory . DIRECTORY_SEPARATOR . $className . '.php';
 
-        file_put_contents($filePath, $this->buildProxyClassCode($className, $commandName, $configuration->getDescription()));
+        file_put_contents($filePath, $this->buildProxyClassCode($className, $commandName, $configuration->getDescription(), ...$this->parameterNamesByKind($configuration)));
 
         return $filePath;
     }
 
-    private function buildProxyClassCode(string $className, string $commandName, string $description): string
+    /**
+     * @return array{0: string[], 1: string[]} positional argument names and option names
+     */
+    private function parameterNamesByKind(ConsoleCommandConfiguration $configuration): array
+    {
+        $argumentNames = [];
+        $optionNames = [];
+
+        foreach ($configuration->getParameters() as $parameter) {
+            if ($parameter->isOption()) {
+                $optionNames[] = $parameter->getName();
+            } else {
+                $argumentNames[] = $parameter->getName();
+            }
+        }
+
+        return [$argumentNames, $optionNames];
+    }
+
+    private function buildProxyClassCode(string $className, string $commandName, string $description, array $argumentNames, array $optionNames): string
     {
         $escapedCommandName = addslashes($commandName);
         $escapedDescription = addslashes($description);
+        $exportedArgumentNames = var_export($argumentNames, true);
+        $exportedOptionNames = var_export($optionNames, true);
 
         return <<<PHP
             <?php
@@ -128,10 +149,7 @@ final class ConsoleCommandProxyGenerator
                 public function __invoke(): ExitCode
                 {
                     \$runner = \$this->messagingSystem->getGatewayByName(ConsoleCommandRunner::class);
-                    \$allArgs = [];
-                    foreach (\$this->argumentBag->all() as \$arg) {
-                        \$allArgs[\$arg->name !== null ? \$arg->name : ''] = \$arg->value;
-                    }
+                    \$allArgs = \Ecotone\Tempest\ConsoleProxyArguments::map(\$this->argumentBag->all(), {$exportedArgumentNames}, {$exportedOptionNames});
                     /** @var DelegatingConsoleWriter \$delegatingWriter */
                     \$delegatingWriter = \$this->messagingSystem->getServiceFromContainer(ConsoleWriter::class);
                     \$writer = new TempestConsoleWriter(\$this->console);

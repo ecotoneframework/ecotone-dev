@@ -22,6 +22,8 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
+use Ecotone\SymfonyContainer\ExternalReferenceBootValidator;
+use Ecotone\SymfonyContainer\PsrContainerAvailabilityProbe;
 
 use function json_decode;
 
@@ -232,6 +234,14 @@ final class EcotoneLite
             },
             $cacheHash,
         );
+
+        if (! $enableTesting) {
+            ExternalReferenceBootValidator::validate(
+                $container,
+                new PsrContainerAvailabilityProbe($externalContainer),
+                'Register the missing service in the container passed to EcotoneLite.',
+            );
+        }
 
         $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
 

@@ -25,8 +25,14 @@ use Tempest\Database\Connection\Connection;
  */
 final class TempestDynamicDriverConnection implements DriverConnection
 {
+    private ?PDO $transactionPdo = null;
+
     private function pdo(): PDO
     {
+        if ($this->transactionPdo !== null) {
+            return $this->transactionPdo;
+        }
+
         $connection = GenericContainer::instance()->get(Connection::class);
         $property = new ReflectionProperty($connection, 'pdo');
         return $property->getValue($connection);
@@ -60,17 +66,27 @@ final class TempestDynamicDriverConnection implements DriverConnection
 
     public function beginTransaction(): void
     {
-        $this->pdo()->beginTransaction();
+        $pdo = $this->pdo();
+        $pdo->beginTransaction();
+        $this->transactionPdo = $pdo;
     }
 
     public function commit(): void
     {
-        $this->pdo()->commit();
+        try {
+            $this->pdo()->commit();
+        } finally {
+            $this->transactionPdo = null;
+        }
     }
 
     public function rollBack(): void
     {
-        $this->pdo()->rollBack();
+        try {
+            $this->pdo()->rollBack();
+        } finally {
+            $this->transactionPdo = null;
+        }
     }
 
     public function getNativeConnection(): PDO

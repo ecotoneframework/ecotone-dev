@@ -43,6 +43,7 @@ class SymfonyContainerImplementation implements ContainerImplementation
      */
     private array $definitions = [];
 
+    /** @var array<string, bool> external reference id => is required (false when only referenced with null-on-invalid behaviour) */
     private array $externalReferences = [];
 
     /**
@@ -75,7 +76,7 @@ class SymfonyContainerImplementation implements ContainerImplementation
                 $this->symfonyBuilder->setDefinition(ServiceIdNormalizer::normalize($id), $symfonyDefinition);
             }
         }
-        $this->symfonyBuilder->setParameter(self::EXTERNAL_REFERENCES_PARAMETER, array_values($this->externalReferences));
+        $this->symfonyBuilder->setParameter(self::EXTERNAL_REFERENCES_PARAMETER, $this->externalReferences);
     }
 
     private function registerSyntheticService(string $id, string $className): void
@@ -142,7 +143,7 @@ class SymfonyContainerImplementation implements ContainerImplementation
                     ->setPublic(true)
             );
         }
-        $this->externalReferences[$id] = $id;
+        $this->externalReferences[$id] = ($this->externalReferences[$id] ?? false) || $invalidBehavior !== self::NULL_ON_INVALID_REFERENCE;
 
         return $delegateId;
     }

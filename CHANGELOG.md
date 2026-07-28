@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.322.2] - 2026-07-28
+
+## What's Changed
+* fix: keep dumped container cache correct across relocation, upgrades and inline classes (fixes #690) by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/691
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.322.1...1.322.2
+
 ## [1.322.1] - 2026-07-28
 
 ## What's Changed

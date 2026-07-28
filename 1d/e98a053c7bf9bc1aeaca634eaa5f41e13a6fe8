@@ -1,0 +1,24 @@
+packages/Ecotone/tests/SymfonyContainer/EcotoneSymfonyContainerFactoryCacheTest.php
+  s_b6655bd13facb1::t_1c0f97591c0c69 145-172
+packages/Ecotone/src/SymfonyContainer/EcotoneSymfonyContainerFactory.php
+  s_b6655bd13facb1::t_6ca0cafc4e50f2 120-123,141
+  s_b6655bd13facb1::t_dca34a37d93811 142
+packages/Symfony/tests/phpunit/RelocatedContainerCacheTest.php
+  s_b6655bd13facb1::t_9b43c00679bd2b 1-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "1de98a053c7bf9bc1aeaca634eaa5f41e13a6fe8",
+  "prompts": {},
+  "sessions": {
+    "s_b6655bd13facb1": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "0f8f9ed2-aff1-43aa-b308-79e9ad969751",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

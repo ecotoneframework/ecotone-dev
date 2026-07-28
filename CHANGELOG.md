@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.322.1] - 2026-07-28
+
+## What's Changed
+* Fix scalar message header conversion to nullable enums by @lifinsky in https://github.com/ecotoneframework/ecotone-dev/pull/689
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.322.0...1.322.1
+
 ## [1.322.0] - 2026-07-23
 
 ## What's Changed

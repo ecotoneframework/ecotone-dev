@@ -1,0 +1,110 @@
+packages/Kafka/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 11,32,43
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapter.php
+  s_5b26a31f78adda::t_1ee675147f603f 213
+  s_5b26a31f78adda::t_28dade564ce21e 13
+packages/Sqs/tests/Integration/AsyncPublishingTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 12,87
+packages/Ecotone/tests/Messaging/Unit/Channel/AsyncPublishing/DeadLetterOfFailedBatchDeliveriesTest.php
+  s_5b26a31f78adda::t_2bd9d24f5320f1 1-69,76-113
+  s_5b26a31f78adda::t_d0166e0ed06052 70-75
+packages/Kafka/tests/Integration/AsyncPublishingTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 17,67
+packages/Ecotone/src/Messaging/Channel/PollableChannel/SendRetries/SendRetryChannelInterceptor.php
+  s_5b26a31f78adda::t_d0da9b68b7624c 119-125
+  s_5b26a31f78adda::t_4be44aa360971d 9
+  s_5b26a31f78adda::t_28dade564ce21e 10
+  s_5b26a31f78adda::t_1ee675147f603f 110
+  s_5b26a31f78adda::t_472b5ffcc895db 74-82,90-105
+  s_5b26a31f78adda::t_4623edf7ccd0b3 106-107
+packages/Ecotone/src/Messaging/Channel/Collector/CollectorSenderInterceptor.php
+  s_5b26a31f78adda::t_2925083ce8d7cb 86,91,97,100
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/PublishingFailedException.php
+  s_5b26a31f78adda::t_1ee675147f603f 1-24,26-52
+  s_5b26a31f78adda::t_1163b1285e6424 25
+packages/Ecotone/tests/Messaging/Unit/BatchMessageTest.php
+  s_5b26a31f78adda::t_bb86b8498f978a 39-64
+packages/Dbal/tests/Fixture/AsyncPublishing/AsyncPublishingTestChannel.php
+  s_5b26a31f78adda::t_28dade564ce21e 9
+  s_5b26a31f78adda::t_1ee675147f603f 50
+packages/Amqp/tests/Unit/AmqpPendingDeliveryStaleEpochTest.php
+  s_5b26a31f78adda::t_455a5db4e562a5 1-43
+packages/Ecotone/src/Messaging/BatchMessage.php
+  s_5b26a31f78adda::t_f19834a0d4ee4c 27-36,42-43,45
+  s_5b26a31f78adda::t_e2e0cfad9d0048 26
+packages/Sqs/src/SqsOutboundChannelAdapterBuilder.php
+  s_5b26a31f78adda::t_a330ccd28e4163 25
+packages/Amqp/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 11,34,49,93,103,119,135,154,173,194
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingGateway.php
+  s_5b26a31f78adda::t_1ee675147f603f 30,64
+packages/Ecotone/tests/Messaging/Unit/Channel/AsyncPublishing/MessagePublisherAsyncPublishTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 57,68
+  s_5b26a31f78adda::t_28dade564ce21e 10
+packages/Redis/src/RedisOutboundChannelAdapter.php
+  s_5b26a31f78adda::t_ac0f67dd7c6321 95,97,99-100,118,121
+  s_5b26a31f78adda::t_12c5c75f3b2b1f 33-36,41-44
+  s_5b26a31f78adda::t_16a15382cfbe54 149,155-165,170
+  s_5b26a31f78adda::t_b31e4a01c2cd6e 11-12
+packages/Amqp/src/AmqpOutboundChannelAdapter.php
+  s_5b26a31f78adda::t_c5dd08b7d25712 191,199,204
+  s_5b26a31f78adda::t_2669442fe04012 285,289-290,304,320-321
+  s_5b26a31f78adda::t_7dac36f1ab963f 86-90,93,98
+  s_5b26a31f78adda::t_ad14aec668d3c6 113,118,128,146,157
+  s_5b26a31f78adda::t_9ca3714d6fef40 92
+  s_5b26a31f78adda::t_1ee675147f603f 329
+  s_5b26a31f78adda::t_28dade564ce21e 12
+  s_5b26a31f78adda::t_53f1e832331f17 23,110,180,197,280,298
+packages/Dbal/tests/Integration/AsyncPublishingTransactionTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 10,53
+packages/Amqp/src/AmqpPendingDelivery.php
+  s_5b26a31f78adda::t_6940f88fd87d33 39
+  s_5b26a31f78adda::t_32f8c567f4948b 53,55-56,58,81-90
+  s_5b26a31f78adda::t_64dacde579ea63 91-92
+packages/Sqs/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 11,41,51,83
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/AsyncPublishingWaiterInterceptor.php
+  s_5b26a31f78adda::t_1ee675147f603f 48,79
+packages/Ecotone/tests/Messaging/Unit/Channel/AsyncPublishing/AsyncPublishingReliabilityTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 46,51,108,200,228
+  s_5b26a31f78adda::t_28dade564ce21e 12
+packages/Ecotone/tests/Messaging/Unit/Channel/AsyncPublishing/SendRetryOfFailedBatchDeliveriesTest.php
+  s_5b26a31f78adda::t_28dade564ce21e 9,91
+  s_5b26a31f78adda::t_1ee675147f603f 45,63
+packages/Redis/tests/Integration/AsyncPublishingTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 12,98
+packages/Amqp/tests/Integration/AsyncPublishingTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 14,103
+packages/Sqs/src/SqsOutboundChannelAdapter.php
+  s_5b26a31f78adda::t_1ee675147f603f 99
+  s_5b26a31f78adda::t_28dade564ce21e 11
+packages/Ecotone/src/Messaging/Channel/AsyncPublishing/DeliveryFuture.php
+  s_5b26a31f78adda::t_1ee675147f603f 17,62,64,70
+packages/Ecotone/tests/Messaging/Unit/Channel/AsyncPublishing/AsyncPublishingChannelTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 9,54,58
+packages/Redis/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_5b26a31f78adda::t_69e47646a6dfbc 59
+  s_5b26a31f78adda::t_144f65fb562040 84-88
+  s_5b26a31f78adda::t_1eb57f66cef33b 1-58,60-83,89-96
+packages/Dbal/tests/Integration/AsyncPublishingTest.php
+  s_5b26a31f78adda::t_1ee675147f603f 14,94
+packages/Ecotone/tests/Messaging/Fixture/AsyncPublishing/InMemoryAsyncPublishingChannel.php
+  s_5b26a31f78adda::t_28dade564ce21e 9
+  s_5b26a31f78adda::t_1ee675147f603f 62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "cf087691c5745fd38f421478d4c6a5ad15d2a61f",
+  "prompts": {},
+  "sessions": {
+    "s_5b26a31f78adda": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "13e75614-d9f6-4e26-a582-e86ff83479f1",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

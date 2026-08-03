@@ -14,14 +14,14 @@ class TestQueueChannel extends QueueChannel
 {
     private ?Message $lastSentMessage = null;
 
-    public function __construct(string $name = 'unknown')
+    public function __construct(string $name = 'unknown', bool $batchMessagesSupport = false)
     {
-        parent::__construct($name);
+        parent::__construct($name, $batchMessagesSupport);
     }
 
-    public static function create(string $name = 'unknown'): self
+    public static function create(string $name = 'unknown', bool $batchMessagesSupport = false): self
     {
-        return new self($name);
+        return new self($name, $batchMessagesSupport);
     }
 
     public function send(Message $message): void

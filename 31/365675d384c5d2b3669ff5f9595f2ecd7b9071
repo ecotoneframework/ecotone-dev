@@ -1,0 +1,27 @@
+packages/PdoEventSourcing/tests/InMemory/ProjectionMetadataPropagationTest.php
+  s_5b26a31f78adda::t_11193a7bf7acd0 65,83,89,95
+packages/Amqp/tests/Integration/AmqpChannelAdapterTest.php
+  s_5b26a31f78adda::t_5170b35d863103 726,732
+packages/PdoEventSourcing/tests/Projecting/Partitioned/AsynchronousEventDrivenProjectionTest.php
+  s_5b26a31f78adda::t_7ca6bbfb0f78c3 185-186
+packages/PdoEventSourcing/tests/Projecting/Global/MultiTenantProjectionTest.php
+  s_5b26a31f78adda::t_8dccc46cfe5da5 152
+packages/PdoEventSourcing/tests/Projecting/Partitioned/MultiTenantProjectionTest.php
+  s_5b26a31f78adda::t_8dccc46cfe5da5 151
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "31365675d384c5d2b3669ff5f9595f2ecd7b9071",
+  "prompts": {},
+  "sessions": {
+    "s_5b26a31f78adda": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "13e75614-d9f6-4e26-a582-e86ff83479f1",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -7,7 +7,7 @@ namespace Test\Ecotone\Dbal\Integration;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -50,7 +50,7 @@ final class AsyncPublishingTransactionTest extends DbalMessagingTestCase
         $deliveryFailed = false;
         try {
             $ecotoneLite->sendCommand(new RegisterPerson(100, 'Johny'));
-        } catch (AsyncPublishingFailedException) {
+        } catch (PublishingFailedException) {
             $deliveryFailed = true;
         }
         $this->assertTrue($deliveryFailed);

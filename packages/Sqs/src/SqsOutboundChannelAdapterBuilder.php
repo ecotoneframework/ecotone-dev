@@ -22,7 +22,7 @@ use Enqueue\Sqs\SqsConnectionFactory;
  */
 final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
-    public const DEFAULT_ASYNC_PUBLISHING_TIMEOUT = 12000;
+    public const DEFAULT_ASYNC_PUBLISHING_TIMEOUT = 25000;
 
     private bool $asyncPublishing = false;
     private int $asyncPublishingTimeout = self::DEFAULT_ASYNC_PUBLISHING_TIMEOUT;

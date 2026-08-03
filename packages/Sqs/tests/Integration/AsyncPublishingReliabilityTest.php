@@ -8,7 +8,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessagePublisher;
@@ -38,7 +38,7 @@ final class AsyncPublishingReliabilityTest extends ConnectionTestCase
                 ->append(str_repeat('x', 300_000))
         );
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $future->resolve();
     }
@@ -48,7 +48,7 @@ final class AsyncPublishingReliabilityTest extends ConnectionTestCase
         $queueName = Uuid::v7()->toRfc4122();
         $messaging = $this->bootstrapChannel($queueName);
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $messaging->getMessageChannel($queueName)->send(
             MessageBuilder::withPayload(
@@ -80,7 +80,7 @@ final class AsyncPublishingReliabilityTest extends ConnectionTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $messaging->sendCommandWithRoutingKey('order.placeAllBatches', 'espresso');
     }

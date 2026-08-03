@@ -7,9 +7,9 @@ namespace Test\Ecotone\Messaging\Unit\Channel\AsyncPublishing;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\AsyncPublishing\DeliveryFuture;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Logger\LoggingService;
@@ -43,12 +43,12 @@ final class AsyncPublishingReliabilityTest extends TestCase
         $firstResolveException = null;
         try {
             $future->resolve();
-        } catch (AsyncPublishingFailedException $exception) {
+        } catch (PublishingFailedException $exception) {
             $firstResolveException = $exception;
         }
         $this->assertNotNull($firstResolveException);
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $future->resolve();
     }
@@ -105,7 +105,7 @@ final class AsyncPublishingReliabilityTest extends TestCase
         }
         $this->assertGreaterThan(0, $outboundAdapter->awaitedDeliveriesCount());
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $firstFuture->resolve();
     }
@@ -197,7 +197,7 @@ final class AsyncPublishingReliabilityTest extends TestCase
 
         try {
             $future->resolve();
-        } catch (AsyncPublishingFailedException) {
+        } catch (PublishingFailedException) {
         }
 
         $this->assertTrue($followingDelivery->isAwaited());
@@ -225,7 +225,7 @@ final class AsyncPublishingReliabilityTest extends TestCase
         $commandFailed = false;
         try {
             $ecotoneLite->sendCommandWithRoutingKey('order.placeAllBatches', 'espresso');
-        } catch (AsyncPublishingFailedException) {
+        } catch (PublishingFailedException) {
             $commandFailed = true;
         }
 

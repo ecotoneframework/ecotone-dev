@@ -8,9 +8,9 @@ use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -210,7 +210,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             $deliveryResult = $this->kafkaAdmin->getDeliveryTracker($this->referenceName)->collectResult($deliveryIds, $this->referenceName);
             if (! $deliveryResult->isSuccessful()) {
                 if ($this->isAsyncPublishingEnabled()) {
-                    throw AsyncPublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
+                    throw PublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
                 }
 
                 throw MessagePublishingException::create(sprintf(

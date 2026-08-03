@@ -45,7 +45,7 @@ final class AsyncPublishingWaiterInterceptor
                 $errorChannelDeliveryResult = $this->asyncPublishingRegistry->awaitAll();
                 $remainingFailedDeliveries = array_merge($unroutedFailedDeliveries, $errorChannelDeliveryResult->getFailedDeliveries());
                 if ($remainingFailedDeliveries !== []) {
-                    throw AsyncPublishingFailedException::withFailedDeliveries($remainingFailedDeliveries);
+                    throw PublishingFailedException::withFailedDeliveries($remainingFailedDeliveries);
                 }
             }
         } finally {
@@ -76,7 +76,7 @@ final class AsyncPublishingWaiterInterceptor
             foreach ($this->unpackFailedMessages($failedDelivery->getMessage()) as $failedMessage) {
                 $this->errorChannelService->handle(
                     $failedMessage,
-                    AsyncPublishingFailedException::withFailedDeliveries([$failedDelivery]),
+                    PublishingFailedException::withFailedDeliveries([$failedDelivery]),
                     $this->configuredMessagingSystem->getMessageChannelByName($errorChannelName),
                     $failedDelivery->getChannelName(),
                 );

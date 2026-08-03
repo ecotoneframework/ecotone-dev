@@ -14,7 +14,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -64,7 +64,7 @@ final class AsyncPublishingTest extends TestCase
             asyncPublishingTimeout: 500,
         );
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $messaging->sendCommandWithRoutingKey('order.place', 'espresso');
     }

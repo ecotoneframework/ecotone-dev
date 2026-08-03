@@ -8,7 +8,7 @@ use Ecotone\Amqp\AmqpPublisherConfirmations;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessagePublisher;
@@ -31,7 +31,7 @@ final class AsyncPublishingReliabilityTest extends AmqpMessagingTestCase
         $queueName = $this->declareQueueRejectingOverflow($libConnectionFactory);
         $publisher = $this->bootstrapPublisher($libConnectionFactory, $queueName);
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $publisher->asyncPublish(
             BatchMessage::constructEmpty()
@@ -46,7 +46,7 @@ final class AsyncPublishingReliabilityTest extends AmqpMessagingTestCase
         $queueName = $this->declareQueueRejectingOverflow($extConnectionFactory);
         $publisher = $this->bootstrapPublisher($extConnectionFactory, $queueName);
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $publisher->asyncPublish(
             BatchMessage::constructEmpty()
@@ -90,7 +90,7 @@ final class AsyncPublishingReliabilityTest extends AmqpMessagingTestCase
         $libConnectionFactory = new AmqpLibConnection(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f']);
         $publisher = $this->bootstrapPublisher($libConnectionFactory, Uuid::v7()->toRfc4122());
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $publisher->asyncPublish('order that routes nowhere')->resolve();
     }
@@ -100,7 +100,7 @@ final class AsyncPublishingReliabilityTest extends AmqpMessagingTestCase
         $extConnectionFactory = new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f']);
         $publisher = $this->bootstrapPublisher($extConnectionFactory, Uuid::v7()->toRfc4122());
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $publisher->asyncPublish('order that routes nowhere')->resolve();
     }
@@ -116,7 +116,7 @@ final class AsyncPublishingReliabilityTest extends AmqpMessagingTestCase
 
         $routableFuture->resolve();
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $unroutableFuture->resolve();
     }
@@ -132,7 +132,7 @@ final class AsyncPublishingReliabilityTest extends AmqpMessagingTestCase
 
         $routableFuture->resolve();
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $unroutableFuture->resolve();
     }
@@ -151,7 +151,7 @@ final class AsyncPublishingReliabilityTest extends AmqpMessagingTestCase
 
         $deliveredFuture->resolve();
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $nackedFuture->resolve();
     }
@@ -170,7 +170,7 @@ final class AsyncPublishingReliabilityTest extends AmqpMessagingTestCase
 
         $deliveredFuture->resolve();
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $nackedFuture->resolve();
     }
@@ -191,7 +191,7 @@ final class AsyncPublishingReliabilityTest extends AmqpMessagingTestCase
         try {
             $future->resolve();
             $this->fail('Expected unroutable batch entry to fail the delivery');
-        } catch (AsyncPublishingFailedException $exception) {
+        } catch (PublishingFailedException $exception) {
             $failedDeliveries = $exception->getFailedDeliveries();
             $this->assertCount(1, $failedDeliveries);
             $this->assertSame('order that routes nowhere', $failedDeliveries[0]->getMessage()->getPayload());

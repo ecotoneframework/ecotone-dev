@@ -14,7 +14,7 @@ final class DeliveryFuture implements Future
 {
     private bool $resolved = false;
 
-    private ?AsyncPublishingFailedException $failure = null;
+    private ?PublishingFailedException $failure = null;
 
     /**
      * @param PendingDelivery[] $pendingDeliveries
@@ -59,15 +59,15 @@ final class DeliveryFuture implements Future
         }
 
         if ($awaitFailure !== null) {
-            $this->failure = $awaitFailure instanceof AsyncPublishingFailedException && $failedDeliveries === []
+            $this->failure = $awaitFailure instanceof PublishingFailedException && $failedDeliveries === []
                 ? $awaitFailure
-                : new AsyncPublishingFailedException(sprintf('Awaiting delivery confirmation failed: %s', $awaitFailure->getMessage()), 0, $awaitFailure);
+                : new PublishingFailedException(sprintf('Awaiting delivery confirmation failed: %s', $awaitFailure->getMessage()), 0, $awaitFailure);
 
             throw $this->failure;
         }
 
         if ($failedDeliveries !== []) {
-            $this->failure = AsyncPublishingFailedException::withFailedDeliveries($failedDeliveries);
+            $this->failure = PublishingFailedException::withFailedDeliveries($failedDeliveries);
 
             throw $this->failure;
         }

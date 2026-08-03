@@ -8,6 +8,8 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
+use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
@@ -28,12 +30,18 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         local pushed = 0
         local immediateAmount = tonumber(ARGV[1])
         for argumentIndex = 2, immediateAmount + 1 do
-            redis.call("lpush", KEYS[1], ARGV[argumentIndex])
+            local result = redis.pcall("lpush", KEYS[1], ARGV[argumentIndex])
+            if type(result) == "table" and result.err then
+                return {pushed, result.err}
+            end
             pushed = pushed + 1
         end
         local argumentIndex = immediateAmount + 2
         while argumentIndex <= #ARGV do
-            redis.call("zadd", KEYS[2], ARGV[argumentIndex], ARGV[argumentIndex + 1])
+            local result = redis.pcall("zadd", KEYS[2], ARGV[argumentIndex], ARGV[argumentIndex + 1])
+            if type(result) == "table" and result.err then
+                return {pushed, result.err}
+            end
             pushed = pushed + 1
             argumentIndex = argumentIndex + 2
         end
@@ -84,9 +92,12 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
         /** @var RedisContext $context */
         $immediatePayloads = [];
+        $immediateMessages = [];
         $delayedEntries = [];
+        $delayedMessages = [];
         foreach ($batchMessage->getEntries() as $entry) {
-            $outboundMessage = $this->prepareOutboundMessage($this->convertBatchEntryToMessage($entry));
+            $originalMessage = $this->convertBatchEntryToMessage($entry);
+            $outboundMessage = $this->prepareOutboundMessage($originalMessage);
             $headers = $outboundMessage->getHeaders();
             $headers[MessageHeaders::CONTENT_TYPE] = $outboundMessage->getContentType();
 
@@ -104,8 +115,10 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
             if ($outboundMessage->getDeliveryDelay()) {
                 $delayedEntries[] = ['score' => time() + $outboundMessage->getDeliveryDelay() / 1000, 'payload' => $payload];
+                $delayedMessages[] = $originalMessage;
             } else {
                 $immediatePayloads[] = $payload;
+                $immediateMessages[] = $originalMessage;
             }
         }
 
@@ -133,18 +146,28 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             $arguments[] = $delayedEntry['payload'];
         }
 
-        $pushedMessages = $context->getRedis()->eval(
+        $batchPublishResult = $context->getRedis()->eval(
             self::BATCH_PUBLISH_SCRIPT,
             [$this->queueName, $this->queueName . ':delayed'],
             $arguments,
         );
 
-        if ($pushedMessages !== count($batchMessage)) {
+        if (is_array($batchPublishResult)) {
+            $pushedMessages = (int) ($batchPublishResult[0] ?? 0);
+            $failureReason = (string) ($batchPublishResult[1] ?? 'Redis rejected publishing');
+
+            throw PublishingFailedException::withFailedDeliveries(array_map(
+                fn (Message $unpublishedMessage): FailedDelivery => new FailedDelivery($unpublishedMessage, $failureReason, $this->queueName),
+                array_slice([...$immediateMessages, ...$delayedMessages], $pushedMessages),
+            ));
+        }
+
+        if ((int) $batchPublishResult !== count($batchMessage)) {
             throw new RuntimeException(sprintf(
                 'Redis did not confirm publishing whole batch to queue %s. Expected %d published messages, got %s.',
                 $this->queueName,
                 count($batchMessage),
-                var_export($pushedMessages, true),
+                var_export($batchPublishResult, true),
             ));
         }
     }

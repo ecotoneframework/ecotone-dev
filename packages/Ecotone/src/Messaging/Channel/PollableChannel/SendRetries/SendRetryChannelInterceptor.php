@@ -6,7 +6,8 @@ namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
+use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;
@@ -70,12 +71,15 @@ final class SendRetryChannelInterceptor extends AbstractChannelInterceptor imple
         ]);
 
         if ($this->deadLetterChannel !== null) {
-            $this->errorChannelService->handle(
-                $messageToRedeliver,
-                $exception,
-                $this->configuredMessagingSystem->getMessageChannelByName($this->deadLetterChannel),
-                $this->relatedChannel,
-            );
+            $deadLetterChannel = $this->configuredMessagingSystem->getMessageChannelByName($this->deadLetterChannel);
+            foreach ($this->unpackMessages($messageToRedeliver) as $failedMessage) {
+                $this->errorChannelService->handle(
+                    $failedMessage,
+                    $exception,
+                    $deadLetterChannel,
+                    $this->relatedChannel,
+                );
+            }
 
             return true;
         }
@@ -83,9 +87,27 @@ final class SendRetryChannelInterceptor extends AbstractChannelInterceptor imple
         return false;
     }
 
+    /**
+     * @return Message[]
+     */
+    private function unpackMessages(Message $message): array
+    {
+        $payload = $message->getPayload();
+        if (! $payload instanceof BatchMessage) {
+            return [$message];
+        }
+
+        return array_map(
+            static fn (array $entry): Message => MessageBuilder::withPayload($entry['payload'])
+                ->setMultipleHeaders($entry['headers'])
+                ->build(),
+            $payload->getEntries(),
+        );
+    }
+
     private function messageContainingOnlyFailedDeliveries(Message $message, Throwable $exception): Message
     {
-        if (! $exception instanceof AsyncPublishingFailedException || ! $message->getPayload() instanceof BatchMessage) {
+        if (! $exception instanceof PublishingFailedException || ! $message->getPayload() instanceof BatchMessage) {
             return $message;
         }
 
@@ -94,13 +116,13 @@ final class SendRetryChannelInterceptor extends AbstractChannelInterceptor imple
             return $message;
         }
 
-        $batchOfFailedDeliveries = BatchMessage::constructEmpty();
-        foreach ($failedDeliveries as $failedDelivery) {
-            $batchOfFailedDeliveries = $batchOfFailedDeliveries->append(
-                $failedDelivery->getMessage()->getPayload(),
-                $failedDelivery->getMessage()->getHeaders()->headers(),
-            );
-        }
+        $batchOfFailedDeliveries = BatchMessage::fromEntries(array_map(
+            static fn (FailedDelivery $failedDelivery): array => [
+                'payload' => $failedDelivery->getMessage()->getPayload(),
+                'headers' => $failedDelivery->getMessage()->getHeaders()->headers(),
+            ],
+            $failedDeliveries,
+        ));
 
         return MessageBuilder::fromMessage($message)
             ->setPayload($batchOfFailedDeliveries)

@@ -8,7 +8,7 @@ use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Outbound\MessagePublishingException;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessagePublisher;
@@ -29,7 +29,7 @@ final class AsyncPublishingReliabilityTest extends TestCase
     {
         $publisher = $this->bootstrapPublisher();
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $publisher->send(str_repeat('x', 2_000_000));
     }
@@ -40,7 +40,7 @@ final class AsyncPublishingReliabilityTest extends TestCase
 
         $future = $publisher->asyncPublish(str_repeat('x', 2_000_000));
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $future->resolve();
     }

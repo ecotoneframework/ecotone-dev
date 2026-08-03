@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Channel\AsyncPublishing;
 
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\SendRetries\SendRetryChannelInterceptor;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
@@ -42,7 +42,7 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
         $interceptor->afterSendCompletion(
             $batchMessage,
             $channel,
-            AsyncPublishingFailedException::withFailedDeliveries([
+            PublishingFailedException::withFailedDeliveries([
                 new FailedDelivery(MessageBuilder::withPayload('poison order')->build(), 'nacked by broker', 'orders'),
             ]),
         );
@@ -60,7 +60,7 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
         $interceptor->afterSendCompletion(
             $singleMessage,
             $channel,
-            AsyncPublishingFailedException::withFailedDeliveries([
+            PublishingFailedException::withFailedDeliveries([
                 new FailedDelivery($singleMessage, 'nacked by broker', 'orders'),
             ]),
         );
@@ -88,7 +88,7 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
 
     private function createRecordingChannel(): MessageChannel
     {
-        return new class implements MessageChannel {
+        return new class () implements MessageChannel {
             /** @var array<int, array<int, mixed>> */
             public array $sentBatchPayloads = [];
 

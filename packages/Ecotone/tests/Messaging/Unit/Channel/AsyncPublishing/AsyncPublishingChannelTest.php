@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Channel\AsyncPublishing;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\AsyncPublishing\AsyncOrderSubscriber;
@@ -51,11 +51,11 @@ final class AsyncPublishingChannelTest extends TestCase
         $commandException = null;
         try {
             $ecotoneLite->sendCommandWithRoutingKey('order.place', 'espresso');
-        } catch (AsyncPublishingFailedException $exception) {
+        } catch (PublishingFailedException $exception) {
             $commandException = $exception;
         }
 
-        $this->assertInstanceOf(AsyncPublishingFailedException::class, $commandException);
+        $this->assertInstanceOf(PublishingFailedException::class, $commandException);
         $this->assertStringContainsString('broker not available', $commandException->getMessage());
         $this->assertSame(
             [

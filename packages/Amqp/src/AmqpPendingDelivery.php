@@ -27,8 +27,6 @@ final class AmqpPendingDelivery implements PendingDelivery
 
     private ?DeliveryResult $deliveryResult = null;
 
-    private int $confirmationsEpoch;
-
     /**
      * @param array<int, array{message: Message, deliveryTag: int, correlationId: string}> $publishRecords
      */
@@ -38,8 +36,8 @@ final class AmqpPendingDelivery implements PendingDelivery
         private int $timeoutInMilliseconds,
         private string $channelName,
         private AmqpPublisherConfirmations $confirmations,
+        private int $confirmationsEpoch,
     ) {
-        $this->confirmationsEpoch = $confirmations->getEpoch();
     }
 
     public function awaitDelivery(): DeliveryResult
@@ -52,10 +50,12 @@ final class AmqpPendingDelivery implements PendingDelivery
         $deadline = microtime(true) + $this->timeoutInMilliseconds / 1000;
         $unsettledFailureReason = self::TIMED_OUT_FAILURE_REASON;
 
-        while (! $this->allRecordsSettled()) {
+        while (true) {
             if ($this->confirmations->getEpoch() !== $this->confirmationsEpoch) {
-                $unsettledFailureReason = self::CONNECTION_RESET_FAILURE_REASON;
+                return $this->deliveryResult = $this->failAllRecords(self::CONNECTION_RESET_FAILURE_REASON);
+            }
 
+            if ($this->allRecordsSettled()) {
                 break;
             }
 
@@ -76,6 +76,18 @@ final class AmqpPendingDelivery implements PendingDelivery
         }
 
         return $this->deliveryResult = $this->collectResult($unsettledFailureReason);
+    }
+
+    private function failAllRecords(string $failureReason): DeliveryResult
+    {
+        if ($this->publishRecords === []) {
+            return DeliveryResult::successful();
+        }
+
+        return DeliveryResult::withFailedDeliveries(array_map(
+            fn (array $publishRecord): FailedDelivery => new FailedDelivery($publishRecord['message'], $failureReason, $this->channelName),
+            $this->publishRecords,
+        ));
     }
 
     public function isAwaited(): bool

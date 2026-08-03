@@ -83,23 +83,20 @@ final class CollectorSenderInterceptor
      */
     private function combineIntoBatch(array $collectedMessages): BatchMessage
     {
-        $batchMessage = BatchMessage::constructEmpty();
+        $entries = [];
         foreach ($collectedMessages as $collectedMessage) {
             $payload = $collectedMessage->getPayload();
             if ($payload instanceof BatchMessage) {
                 foreach ($payload->getEntries() as $entry) {
-                    $batchMessage = $batchMessage->append($entry['payload'], $entry['headers']);
+                    $entries[] = $entry;
                 }
 
                 continue;
             }
 
-            $batchMessage = $batchMessage->append(
-                $payload,
-                $collectedMessage->getHeaders()->headers()
-            );
+            $entries[] = ['payload' => $payload, 'headers' => $collectedMessage->getHeaders()->headers()];
         }
 
-        return $batchMessage;
+        return BatchMessage::fromEntries($entries);
     }
 }

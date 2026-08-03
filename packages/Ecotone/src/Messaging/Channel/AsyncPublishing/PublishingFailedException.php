@@ -9,7 +9,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * licence Enterprise
  */
-final class AsyncPublishingFailedException extends MessagingException
+final class PublishingFailedException extends MessagingException
 {
     /**
      * @param FailedDelivery[] $failedDeliveries
@@ -22,7 +22,7 @@ final class AsyncPublishingFailedException extends MessagingException
         );
 
         $exception = new self(sprintf(
-            'Failed to deliver %d asynchronously published message(s): %s',
+            'Failed to deliver %d published message(s): %s',
             count($failedDeliveries),
             implode('; ', array_unique($failureReasons)),
         ));

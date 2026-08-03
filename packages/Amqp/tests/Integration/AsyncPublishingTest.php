@@ -11,7 +11,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -100,7 +100,7 @@ final class AsyncPublishingTest extends AmqpMessagingTestCase
         $publishFailed = false;
         try {
             $publisher->asyncPublish('order that must not be published');
-        } catch (AsyncPublishingFailedException) {
+        } catch (PublishingFailedException) {
             $publishFailed = true;
         }
 

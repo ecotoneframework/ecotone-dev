@@ -36,4 +36,30 @@ final class BatchMessageTest extends TestCase
         $this->assertCount(0, BatchMessage::constructEmpty());
         $this->assertCount(2, BatchMessage::constructEmpty()->append('one')->append('two'));
     }
+
+    public function test_appending_returns_new_instance_keeping_original_untouched(): void
+    {
+        $original = BatchMessage::constructEmpty()->append('first payload');
+
+        $extended = $original->append('second payload');
+
+        $this->assertCount(1, $original);
+        $this->assertCount(2, $extended);
+    }
+
+    public function test_constructing_from_entries(): void
+    {
+        $batch = BatchMessage::fromEntries([
+            ['payload' => 'first payload', 'headers' => []],
+            ['payload' => 'second payload', 'headers' => ['priority' => 5]],
+        ]);
+
+        $this->assertSame(
+            [
+                ['payload' => 'first payload', 'headers' => []],
+                ['payload' => 'second payload', 'headers' => ['priority' => 5]],
+            ],
+            $batch->getEntries(),
+        );
+    }
 }

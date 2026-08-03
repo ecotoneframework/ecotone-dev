@@ -11,7 +11,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -91,7 +91,7 @@ final class AsyncPublishingTest extends DbalMessagingTestCase
         $publishFailed = false;
         try {
             $publisher->asyncPublish('order that must not be published');
-        } catch (AsyncPublishingFailedException) {
+        } catch (PublishingFailedException) {
             $publishFailed = true;
         }
 

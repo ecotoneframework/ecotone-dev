@@ -24,13 +24,25 @@ final class BatchMessage implements Countable
     }
 
     /**
+     * @param array<int, array{payload: mixed, headers: array<string, mixed>}> $entries
+     */
+    public static function fromEntries(array $entries): self
+    {
+        $batchMessage = new self();
+        $batchMessage->entries = array_values($entries);
+
+        return $batchMessage;
+    }
+
+    /**
      * @param array<string, mixed> $headers
      */
     public function append(mixed $payload, array $headers = []): self
     {
-        $this->entries[] = ['payload' => $payload, 'headers' => $headers];
+        $appended = clone $this;
+        $appended->entries[] = ['payload' => $payload, 'headers' => $headers];
 
-        return $this;
+        return $appended;
     }
 
     /**

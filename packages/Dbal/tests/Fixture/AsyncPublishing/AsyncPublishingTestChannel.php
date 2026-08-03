@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\AsyncPublishing;
 
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
@@ -47,7 +47,7 @@ final class AsyncPublishingTestChannel implements PollableChannel, BatchSupporti
         if (! $this->asyncPublishingRegistry->isScopeActive()) {
             $deliveryResult = $pendingDelivery->awaitDelivery();
             if (! $deliveryResult->isSuccessful()) {
-                throw AsyncPublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
+                throw PublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
             }
 
             return;

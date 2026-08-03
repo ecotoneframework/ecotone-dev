@@ -7,8 +7,8 @@ namespace Ecotone\Sqs;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -96,7 +96,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
         $deliveryResult = $pendingDelivery->awaitDelivery();
         if (! $deliveryResult->isSuccessful()) {
-            throw AsyncPublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
+            throw PublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
         }
     }
 

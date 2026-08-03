@@ -27,7 +27,7 @@ final class AsyncPublishingGateway
     public function publish(Message $message): Future
     {
         if (! $this->asyncPublishingEnabled) {
-            throw AsyncPublishingFailedException::publisherNotConfiguredForAsyncPublishing($this->publisherReference);
+            throw PublishingFailedException::publisherNotConfiguredForAsyncPublishing($this->publisherReference);
         }
 
         $payload = $message->getPayload();
@@ -61,7 +61,7 @@ final class AsyncPublishingGateway
         }
 
         if ($pendingDeliveries === []) {
-            throw AsyncPublishingFailedException::publisherNotConfiguredForAsyncPublishing($this->publisherReference);
+            throw PublishingFailedException::publisherNotConfiguredForAsyncPublishing($this->publisherReference);
         }
 
         return DeliveryFuture::forPendingDeliveries($pendingDeliveries);

@@ -6,8 +6,8 @@ namespace Test\Ecotone\Messaging\Unit\Channel\AsyncPublishing;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
+use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
 use Ecotone\Messaging\MessagePublisher;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\AsyncPublishing\InMemoryAsyncOutboundAdapter;
@@ -54,7 +54,7 @@ final class MessagePublisherAsyncPublishTest extends TestCase
 
         $future = $publisher->asyncPublish('order was placed');
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
 
         $future->resolve();
     }
@@ -65,7 +65,7 @@ final class MessagePublisherAsyncPublishTest extends TestCase
         $outboundAdapter->actAsSynchronousPublisher();
         $publisher = $this->bootstrapPublisher($outboundAdapter);
 
-        $this->expectException(AsyncPublishingFailedException::class);
+        $this->expectException(PublishingFailedException::class);
         $this->expectExceptionMessageMatches('/not configured for asynchronous publishing/');
 
         $publisher->asyncPublish('order was placed');

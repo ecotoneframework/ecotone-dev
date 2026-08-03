@@ -12,6 +12,7 @@ use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
@@ -44,6 +45,10 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
      */
     public function handle(Message $message): void
     {
+        if ($message->getPayload() instanceof BatchMessage && ! $this->isAsyncPublishingEnabled()) {
+            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires async publishing to be enabled. Enable it with withAsyncPublishing(), available as part of Ecotone Enterprise.', $this->referenceName));
+        }
+
         $producer = $this->kafkaAdmin->getProducer($this->referenceName);
         $topic = $this->kafkaAdmin->getTopicForProducer($this->referenceName);
 

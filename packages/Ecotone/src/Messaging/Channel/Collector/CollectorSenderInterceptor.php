@@ -7,6 +7,8 @@ namespace Ecotone\Messaging\Channel\Collector;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Attribute\WithoutMessageCollector;
 use Ecotone\Messaging\BatchMessage;
+use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
+use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -43,9 +45,17 @@ final class CollectorSenderInterceptor
             $result = $methodInvocation->proceed();
             $collectedMessages = $this->collectorStorage->releaseMessages($logger, $message);
             if ($collectedMessages !== []) {
-                $this->getTargetChannel($configuredMessagingSystem)->send(
-                    MessageBuilder::withPayload($this->combineIntoBatch($collectedMessages))->build()
-                );
+                $messageChannel = $this->getTargetChannel($configuredMessagingSystem);
+
+                if ($this->supportsBatchMessages($messageChannel)) {
+                    $messageChannel->send(
+                        MessageBuilder::withPayload($this->combineIntoBatch($collectedMessages))->build()
+                    );
+                } else {
+                    foreach ($collectedMessages as $collectedMessage) {
+                        $messageChannel->send($collectedMessage);
+                    }
+                }
             }
         } finally {
             $this->collectorStorage->disable();
@@ -59,6 +69,15 @@ final class CollectorSenderInterceptor
         return $configuredMessagingSystem->getMessageChannelByName($this->targetChannel);
     }
 
+    private function supportsBatchMessages(MessageChannel $messageChannel): bool
+    {
+        if ($messageChannel instanceof MessageChannelInterceptorAdapter) {
+            $messageChannel = $messageChannel->getInternalMessageChannel();
+        }
+
+        return $messageChannel instanceof BatchSupportingMessageChannel && $messageChannel->supportsBatchMessages();
+    }
+
     /**
      * @param Message[] $collectedMessages
      */
@@ -66,8 +85,17 @@ final class CollectorSenderInterceptor
     {
         $batchMessage = BatchMessage::constructEmpty();
         foreach ($collectedMessages as $collectedMessage) {
+            $payload = $collectedMessage->getPayload();
+            if ($payload instanceof BatchMessage) {
+                foreach ($payload->getEntries() as $entry) {
+                    $batchMessage = $batchMessage->append($entry['payload'], $entry['headers']);
+                }
+
+                continue;
+            }
+
             $batchMessage = $batchMessage->append(
-                $collectedMessage->getPayload(),
+                $payload,
                 $collectedMessage->getHeaders()->headers()
             );
         }

@@ -12,6 +12,7 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -21,6 +22,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -119,6 +121,29 @@ final class AsyncPublishingTest extends DbalMessagingTestCase
         }
         sort($receivedPayloads);
         $this->assertSame(['first order', 'second order', 'single order'], $receivedPayloads);
+    }
+
+    public function test_sending_batch_message_over_channel_without_async_publishing_throws(): void
+    {
+        $queueName = Uuid::v7()->toRfc4122();
+        $messaging = $this->bootstrapPublisher($queueName, asyncPublishing: false);
+
+        $this->expectException(ConfigurationException::class);
+
+        $messaging->getMessageChannel($queueName)->send(
+            MessageBuilder::withPayload(BatchMessage::constructEmpty()->append('first order'))->build()
+        );
+    }
+
+    public function test_sending_batch_message_via_publisher_without_async_publishing_throws(): void
+    {
+        $queueName = Uuid::v7()->toRfc4122();
+        $messaging = $this->bootstrapPublisher($queueName, asyncPublishing: false);
+        $publisher = $messaging->getGateway(MessagePublisher::class);
+
+        $this->expectException(ConfigurationException::class);
+
+        $publisher->convertAndSend(BatchMessage::constructEmpty()->append('first order'));
     }
 
     public function test_batch_message_published_synchronously_from_command_handler_is_delivered(): void

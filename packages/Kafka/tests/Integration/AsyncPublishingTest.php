@@ -85,6 +85,25 @@ final class AsyncPublishingTest extends TestCase
         );
     }
 
+    public function test_async_publishing_via_message_channel_requires_enterprise_licence(): void
+    {
+        $this->expectException(LicensingException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            [],
+            [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+                ->withExtensionObjects([
+                    KafkaMessageChannelBuilder::create(
+                        'async_orders',
+                        topicName: $uniqueId = Uuid::v7()->toRfc4122(),
+                        messageGroupId: $uniqueId,
+                    )->withAsyncPublishing(),
+                ]),
+        );
+    }
+
     public function test_message_publisher_async_publish_confirms_delivery_on_future_resolve(): void
     {
         $messaging = EcotoneLite::bootstrapFlowTesting(

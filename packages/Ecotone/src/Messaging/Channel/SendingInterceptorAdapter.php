@@ -4,11 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
-use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Throwable;
 
 /**
@@ -50,12 +48,6 @@ abstract class SendingInterceptorAdapter implements MessageChannelInterceptorAda
      */
     public function send(Message $message): void
     {
-        if ($message->getPayload() instanceof BatchMessage && ! $this->targetChannelSupportsBatchMessages()) {
-            $this->sendEachMessageFromBatch($message->getPayload());
-
-            return;
-        }
-
         $messageToSend = $message;
         $executedInterceptors = [];
         $isMessageDropped = false;
@@ -108,24 +100,6 @@ abstract class SendingInterceptorAdapter implements MessageChannelInterceptorAda
         }
 
         $this->executePostSend($messageToSend, $executedInterceptors, $firstCleanupFailure);
-    }
-
-    private function targetChannelSupportsBatchMessages(): bool
-    {
-        $targetChannel = $this->getInternalMessageChannel();
-
-        return $targetChannel instanceof BatchSupportingMessageChannel && $targetChannel->supportsBatchMessages();
-    }
-
-    private function sendEachMessageFromBatch(BatchMessage $batchMessage): void
-    {
-        foreach ($batchMessage->getEntries() as $entry) {
-            $this->send(
-                MessageBuilder::withPayload($entry['payload'])
-                    ->setMultipleHeaders($entry['headers'])
-                    ->build()
-            );
-        }
     }
 
     /**

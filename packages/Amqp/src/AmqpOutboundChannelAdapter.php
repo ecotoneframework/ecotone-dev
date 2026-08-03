@@ -11,6 +11,7 @@ use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
@@ -66,6 +67,10 @@ class AmqpOutboundChannelAdapter implements MessageHandler
     public function handle(Message $message): void
     {
         $payload = $message->getPayload();
+        if ($payload instanceof BatchMessage && ! $this->asyncPublishing) {
+            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires async publishing to be enabled. Enable it with withAsyncPublishing(), available as part of Ecotone Enterprise.', $this->channelName !== '' ? $this->channelName : $this->exchangeName));
+        }
+
         $messagesToPublish = $payload instanceof BatchMessage
             ? array_map(
                 fn (array $entry): Message => MessageBuilder::withPayload($entry['payload'])->setMultipleHeaders($entry['headers'])->build(),

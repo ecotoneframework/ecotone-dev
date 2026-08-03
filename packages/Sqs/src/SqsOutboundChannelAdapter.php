@@ -10,6 +10,7 @@ use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingFailedException;
 use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
@@ -60,6 +61,10 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
     public function handle(Message $message): void
     {
+        if ($message->getPayload() instanceof BatchMessage && ! $this->asyncPublishing) {
+            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires async publishing to be enabled. Enable it with withAsyncPublishing(), available as part of Ecotone Enterprise.', $this->queueName));
+        }
+
         /** @var SqsContext $context */
         $context = $this->createOutboundContext();
 

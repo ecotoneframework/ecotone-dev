@@ -1,0 +1,19 @@
+packages/Amqp/tests/Integration/AmqpStreamChannelTest.php
+  s_5b26a31f78adda::t_115e9649899e90 1366-1367
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "c2b220a568068b0b959bba568edd1202a7e59821",
+  "prompts": {},
+  "sessions": {
+    "s_5b26a31f78adda": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "13e75614-d9f6-4e26-a582-e86ff83479f1",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

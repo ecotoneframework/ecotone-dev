@@ -1,0 +1,21 @@
+packages/DataProtection/tests/TestQueueChannel.php
+  s_5b26a31f78adda::t_b2968a568c81fd 17,19,22,24
+quickstart-examples/RefactorToReactiveSystem/run_example.php
+  s_5b26a31f78adda::t_1a7136f29fa53a 37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "aab4ae1c4288bac81a6814d6350870531c2188aa",
+  "prompts": {},
+  "sessions": {
+    "s_5b26a31f78adda": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "13e75614-d9f6-4e26-a582-e86ff83479f1",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

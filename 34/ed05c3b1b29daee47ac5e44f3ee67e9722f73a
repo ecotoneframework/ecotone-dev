@@ -1,0 +1,54 @@
+packages/Kafka/tests/Integration/AsyncPublishingTest.php
+  s_41df1041e4b702::t_3e90a963d9c9d1 88-106
+packages/Ecotone/tests/Messaging/Unit/Channel/TestQueueChannel.php
+  s_41df1041e4b702::t_e7a1fdbefb501d 27
+packages/Ecotone/tests/Messaging/Unit/Channel/BatchMessageSendingTest.php
+  s_41df1041e4b702::t_851b9928e7b749 105
+  s_41df1041e4b702::t_1be97bdbc4e507 28
+  s_41df1041e4b702::t_d089f448dfd54b 48-98
+  s_41df1041e4b702::t_bec3048300cc6c 10,12-13
+packages/Enqueue/src/EnqueueOutboundChannelAdapter.php
+  s_41df1041e4b702::t_ef237ef6930c3d 12
+  s_41df1041e4b702::t_ef9540c1d72975 46-49
+packages/Dbal/tests/Integration/AsyncPublishingTest.php
+  s_41df1041e4b702::t_a69eb9c28cad1b 25
+  s_41df1041e4b702::t_fd690b5fa05bbd 126-148
+  s_41df1041e4b702::t_62ec6a379ba652 15
+packages/Ecotone/src/Messaging/Channel/DelayableQueueChannel.php
+  s_41df1041e4b702::t_7e0af89fe7faa2 8,17,28,32,34-39,47-61
+  s_41df1041e4b702::t_b7f59072759e72 122
+packages/Sqs/src/SqsOutboundChannelAdapter.php
+  s_41df1041e4b702::t_5e6211163ed0e4 13
+  s_41df1041e4b702::t_3b3d85e15cc15c 64-67
+packages/Amqp/src/AmqpOutboundChannelAdapter.php
+  s_41df1041e4b702::t_b6d78b647ae8da 70-73
+  s_41df1041e4b702::t_6c4af6456e7a88 14
+packages/Ecotone/src/Messaging/Channel/Collector/CollectorSenderInterceptor.php
+  s_41df1041e4b702::t_02bfc63ec59834 48-58
+  s_41df1041e4b702::t_af8e7f205eca41 72-80
+  s_41df1041e4b702::t_814c2592245762 88-96,98
+  s_41df1041e4b702::t_81a7acb9d790bd 10-11
+packages/Ecotone/src/Messaging/Channel/SimpleMessageChannelBuilder.php
+  s_41df1041e4b702::t_f803645dc5cc80 166-172
+packages/Ecotone/src/Messaging/Channel/QueueChannel.php
+  s_41df1041e4b702::t_e960637ab91255 5,11-12,24,28,30-35,43-57,94
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapter.php
+  s_41df1041e4b702::t_6fe0d1eb77f607 48-51
+  s_41df1041e4b702::t_d5695535582c0d 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "34ed05c3b1b29daee47ac5e44f3ee67e9722f73a",
+  "prompts": {},
+  "sessions": {
+    "s_41df1041e4b702": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "45804514-6e87-45c6-9f87-e4f28ea2cc36",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

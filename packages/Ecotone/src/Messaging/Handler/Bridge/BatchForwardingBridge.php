@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Handler\Bridge;
 
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
+use Ecotone\Messaging\Channel\CombinedChannelForwardingConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
@@ -28,7 +29,8 @@ final class BatchForwardingBridge
         private ChannelResolver $channelResolver,
         private LoggingGateway $logger,
         private bool $batchForwardingEnabled,
-        private int $maxBatchSize,
+        private string $sourceChannelName,
+        private CombinedChannelForwardingConfiguration $forwardingConfiguration,
     ) {
     }
 
@@ -40,6 +42,11 @@ final class BatchForwardingBridge
 
         $targetChannelName = $this->nextRoutingSlipChannel($message);
         if ($targetChannelName === null || ! $this->isPollable($this->channelResolver->resolve($targetChannelName))) {
+            return $message;
+        }
+
+        $acknowledgementCallback = $this->acknowledgementCallbackOf($message);
+        if ($acknowledgementCallback !== null && ! $acknowledgementCallback->isAutoAcked()) {
             return $message;
         }
 
@@ -60,8 +67,9 @@ final class BatchForwardingBridge
      */
     private function drainSourceChannel(): array
     {
+        $maxBatchSize = $this->forwardingConfiguration->getMaxForwardingBatchSizeFor($this->sourceChannelName);
         $drainedMessages = [];
-        while (count($drainedMessages) < $this->maxBatchSize - 1) {
+        while (count($drainedMessages) < $maxBatchSize - 1) {
             $nextMessage = $this->sourceChannel->receive();
             if ($nextMessage === null) {
                 break;

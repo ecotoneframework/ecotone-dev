@@ -9,6 +9,7 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
+use Ecotone\Messaging\Channel\CombinedChannelForwardingConfiguration;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -16,6 +17,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -139,6 +141,7 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $endpointChannels = $this->resolveChannels($extensionObjects);
+        $this->registerCombinedChannelForwardingConfiguration($messagingConfiguration, $extensionObjects);
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $pollingMetadata = ExtensionObjectResolver::resolve(PollingMetadata::class, $extensionObjects);
         $polingChannelBuilders = ExtensionObjectResolver::resolve(SimpleMessageChannelBuilder::class, $extensionObjects);
@@ -238,6 +241,28 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
         }
 
         return $endpointChannels;
+    }
+
+    private function registerCombinedChannelForwardingConfiguration(Configuration $messagingConfiguration, array $extensionObjects): void
+    {
+        $maxForwardingBatchSizes = [];
+        /** @var CombinedMessageChannel $combinedMessageChannel */
+        foreach (ExtensionObjectResolver::resolve(CombinedMessageChannel::class, $extensionObjects) as $combinedMessageChannel) {
+            $maxForwardingBatchSize = $combinedMessageChannel->getMaxForwardingBatchSize();
+            if ($maxForwardingBatchSize === null) {
+                continue;
+            }
+
+            $relaySourceChannel = $combinedMessageChannel->getCombinedChannels()[0];
+            $maxForwardingBatchSizes[$relaySourceChannel] = isset($maxForwardingBatchSizes[$relaySourceChannel])
+                ? min($maxForwardingBatchSizes[$relaySourceChannel], $maxForwardingBatchSize)
+                : $maxForwardingBatchSize;
+        }
+
+        $messagingConfiguration->registerServiceDefinition(
+            CombinedChannelForwardingConfiguration::class,
+            new Definition(CombinedChannelForwardingConfiguration::class, [$maxForwardingBatchSizes])
+        );
     }
 
     public function handleRoutingEvent(RoutingEvent $event): void

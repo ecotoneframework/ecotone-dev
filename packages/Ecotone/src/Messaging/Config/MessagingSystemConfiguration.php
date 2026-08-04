@@ -13,7 +13,7 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
-use Ecotone\Messaging\Channel\ForwardingBatchSizeAware;
+use Ecotone\Messaging\Channel\CombinedChannelForwardingConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -46,6 +46,7 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Bridge\BatchForwardingBridge;
+use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
@@ -87,8 +88,6 @@ use Symfony\Component\Uid\Uuid;
  */
 final class MessagingSystemConfiguration implements Configuration
 {
-    public const DEFAULT_FORWARDING_BATCH_SIZE = 100;
-
     /**
      * @var MessageChannelBuilder[]
      */
@@ -534,6 +533,19 @@ final class MessagingSystemConfiguration implements Configuration
             )
         );
 
+        $relaySourceChannels = [];
+        foreach ($this->asynchronousEndpoints as $asynchronousMessageChannels) {
+            foreach (array_slice($asynchronousMessageChannels, 0, -1) as $relaySourceChannel) {
+                $relaySourceChannels[$relaySourceChannel] = true;
+            }
+        }
+        if ($relaySourceChannels !== []) {
+            $this->registerServiceDefinition(
+                CombinedChannelForwardingConfiguration::class,
+                new Definition(CombinedChannelForwardingConfiguration::class, [[]])
+            );
+        }
+
         foreach ($asynchronousChannels as $asynchronousChannel) {
             Assert::isTrue($this->channelBuilders[$asynchronousChannel]->isPollable(), "Asynchronous Message Channel {$asynchronousChannel} must be Pollable");
             //        needed for correct around intercepting, otherwise requestReply is outside of around interceptor scope
@@ -541,17 +553,25 @@ final class MessagingSystemConfiguration implements Configuration
              * This is Bridge that will fetch the message and make use of routing_slip to target it
              * message handler.
              */
-            $channelBuilder = $this->channelBuilders[$asynchronousChannel];
-            $this->messageHandlerBuilders[$asynchronousChannel] = ServiceActivatorBuilder::createWithDefinition(
-                new Definition(BatchForwardingBridge::class, [
-                    new ChannelReference($asynchronousChannel),
-                    new Reference(ChannelResolver::class),
-                    new Reference(LoggingGateway::class),
-                    $this->isRunningForEnterpriseLicence,
-                    $channelBuilder instanceof ForwardingBatchSizeAware ? $channelBuilder->getMaxForwardingBatchSize() : self::DEFAULT_FORWARDING_BATCH_SIZE,
-                ]),
-                'handle',
-            )
+            if (isset($relaySourceChannels[$asynchronousChannel])) {
+                $this->messageHandlerBuilders[$asynchronousChannel] = ServiceActivatorBuilder::createWithDefinition(
+                    new Definition(BatchForwardingBridge::class, [
+                        new ChannelReference($asynchronousChannel),
+                        new Reference(ChannelResolver::class),
+                        new Reference(LoggingGateway::class),
+                        $this->isRunningForEnterpriseLicence,
+                        $asynchronousChannel,
+                        new Reference(CombinedChannelForwardingConfiguration::class),
+                    ]),
+                    'handle',
+                )
+                    ->withInputChannelName($asynchronousChannel)
+                    ->withEndpointId($asynchronousChannel);
+
+                continue;
+            }
+
+            $this->messageHandlerBuilders[$asynchronousChannel] = BridgeBuilder::create()
                 ->withInputChannelName($asynchronousChannel)
                 ->withEndpointId($asynchronousChannel);
         }

@@ -15,6 +15,7 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
@@ -24,6 +25,7 @@ use Ecotone\Test\LicenceTesting;
 use Enqueue\Dbal\DbalConnectionFactory;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\BatchForwarding\AlwaysFailOnPayloadChannelInterceptor;
 use Test\Ecotone\Dbal\Fixture\BatchForwarding\FailingPollableChannel;
 use Test\Ecotone\Dbal\Fixture\BatchForwarding\FailOnceOnPayloadChannelInterceptor;
 use Test\Ecotone\Dbal\Fixture\BatchForwarding\FailOnceOnPayloadPollableChannel;
@@ -339,6 +341,123 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('failingProcessing'))));
         $this->assertNull($messaging->getMessageChannel('outbox')->receive());
+    }
+
+    public function test_single_message_is_forwarded_without_waiting_for_source_receive_timeout(): void
+    {
+        $orderService = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+            public function register(string $order): void
+            {
+            }
+        };
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                    DbalBackedMessageChannelBuilder::create('outbox')
+                        ->withReceiveTimeout(3000),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+
+        $startedAt = microtime(true);
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 10000));
+        $elapsedInMilliseconds = (microtime(true) - $startedAt) * 1000;
+
+        $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
+        $this->assertLessThan(3000, $elapsedInMilliseconds);
+    }
+
+    public function test_drained_message_honours_ignore_final_failure_strategy(): void
+    {
+        $orderService = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+            public function register(string $order): void
+            {
+            }
+        };
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+                $orderService,
+                'alwaysFailingDelivery' => new AlwaysFailOnPayloadChannelInterceptor('cappuccino'),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                    DbalBackedMessageChannelBuilder::create('outbox')
+                        ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                    SimpleChannelInterceptorBuilder::create('orderProcessing', 'alwaysFailingDelivery'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+
+        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
+        $this->assertNull($messaging->getMessageChannel('outbox')->receive());
+    }
+
+    public function test_drained_message_with_stop_failure_strategy_stops_consumer_without_message_loss(): void
+    {
+        $orderService = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+            public function register(string $order): void
+            {
+            }
+        };
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+                $orderService,
+                'alwaysFailingDelivery' => new AlwaysFailOnPayloadChannelInterceptor('cappuccino'),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                    DbalBackedMessageChannelBuilder::create('outbox')
+                        ->withFinalFailureStrategy(FinalFailureStrategy::STOP),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                    SimpleChannelInterceptorBuilder::create('orderProcessing', 'alwaysFailingDelivery'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+
+        $consumerStopped = false;
+        try {
+            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        } catch (RuntimeException) {
+            $consumerStopped = true;
+        }
+
+        $this->assertTrue($consumerStopped);
+        $this->assertCount(3, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
     }
 
     public function test_failed_forwarding_keeps_all_messages_available_on_outbox(): void

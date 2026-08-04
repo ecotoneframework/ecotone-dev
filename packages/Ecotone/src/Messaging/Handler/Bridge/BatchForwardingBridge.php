@@ -9,7 +9,9 @@ use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Channel\CombinedChannelForwardingConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
@@ -68,9 +70,11 @@ final class BatchForwardingBridge
     private function drainSourceChannel(): array
     {
         $maxBatchSize = $this->forwardingConfiguration->getMaxForwardingBatchSizeFor($this->sourceChannelName);
+        $withoutWaitingPollingMetadata = PollingMetadata::create($this->sourceChannelName)
+            ->setExecutionTimeLimitInMilliseconds(1);
         $drainedMessages = [];
         while (count($drainedMessages) < $maxBatchSize - 1) {
-            $nextMessage = $this->sourceChannel->receive();
+            $nextMessage = $this->sourceChannel->receiveWithTimeout($withoutWaitingPollingMetadata);
             if ($nextMessage === null) {
                 break;
             }
@@ -156,13 +160,30 @@ final class BatchForwardingBridge
             throw $exception;
         }
 
+        $shouldStopConsumer = false;
         foreach ($failedMessages as $failedMessage) {
-            $this->acknowledgementCallbackOf($failedMessage)?->release();
+            $acknowledgementCallback = $this->acknowledgementCallbackOf($failedMessage);
+            if ($acknowledgementCallback === null) {
+                continue;
+            }
+
+            $failureStrategy = $acknowledgementCallback->getFailureStrategy();
+            match ($failureStrategy) {
+                FinalFailureStrategy::STOP => $acknowledgementCallback->release(),
+                FinalFailureStrategy::IGNORE => $acknowledgementCallback->reject(),
+                FinalFailureStrategy::RELEASE => $acknowledgementCallback->release(),
+                FinalFailureStrategy::RESEND => $acknowledgementCallback->resend(),
+            };
+            $shouldStopConsumer = $shouldStopConsumer || $failureStrategy === FinalFailureStrategy::STOP;
             $this->logger->info(
-                sprintf('Message with id `%s` released back to source channel, as delivery to `%s` failed. Due to %s', $failedMessage->getHeaders()->getMessageId(), $targetChannelName, $exception->getMessage()),
+                sprintf('Message with id `%s` handled with `%s` failure strategy, as delivery to `%s` failed. Due to %s', $failedMessage->getHeaders()->getMessageId(), $failureStrategy->value, $targetChannelName, $exception->getMessage()),
                 $failedMessage,
                 ['exception' => $exception],
             );
+        }
+
+        if ($shouldStopConsumer) {
+            throw $exception;
         }
     }
 

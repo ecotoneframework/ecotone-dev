@@ -11,7 +11,6 @@ use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\WithoutMessageCollector;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\ForwardingBatchSizeAware;
@@ -553,7 +552,6 @@ final class MessagingSystemConfiguration implements Configuration
                 ]),
                 'handle',
             )
-                ->withEndpointAnnotations([AttributeDefinition::fromObject(new WithoutMessageCollector())])
                 ->withInputChannelName($asynchronousChannel)
                 ->withEndpointId($asynchronousChannel);
         }

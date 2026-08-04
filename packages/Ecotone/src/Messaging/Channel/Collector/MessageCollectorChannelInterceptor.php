@@ -9,6 +9,8 @@ use Ecotone\Messaging\Channel\ChannelInterceptor;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
+use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\MessageBuilder;
 
 /**
  * licence Apache-2.0
@@ -23,6 +25,12 @@ final class MessageCollectorChannelInterceptor extends AbstractChannelIntercepto
 
     public function preSend(Message $message, MessageChannel $messageChannel): ?Message
     {
+        if ($message->getHeaders()->containsKey(MessageHeaders::COLLECTOR_BYPASS)) {
+            return MessageBuilder::fromMessage($message)
+                ->removeHeader(MessageHeaders::COLLECTOR_BYPASS)
+                ->build();
+        }
+
         if ($this->collectorStorage->isEnabled()) {
             $this->collectorStorage->collect($message, $this->logger);
 

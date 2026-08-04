@@ -52,7 +52,7 @@ class OutboxRelayBenchmark
     {
         $this->messaging = $this->bootstrapOutboxWithTarget(
             ModulePackageList::AMQP_PACKAGE,
-            AmqpBackedMessageChannelBuilder::create(uniqid('benchmark_relay_'))->withBatchedNonBlockingDelivery(),
+            AmqpBackedMessageChannelBuilder::create(uniqid('benchmark_relay_'))->withHighThroughputPublishing(),
             [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f'])],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -76,7 +76,7 @@ class OutboxRelayBenchmark
         $uniqueId = uniqid('benchmark_relay_');
         $this->messaging = $this->bootstrapOutboxWithTarget(
             ModulePackageList::KAFKA_PACKAGE,
-            KafkaMessageChannelBuilder::create($uniqueId, topicName: $uniqueId, messageGroupId: $uniqueId)->withBatchedNonBlockingDelivery(),
+            KafkaMessageChannelBuilder::create($uniqueId, topicName: $uniqueId, messageGroupId: $uniqueId)->withHighThroughputPublishing(),
             [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([getenv('KAFKA_DSN') ?: 'localhost:9094'])],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

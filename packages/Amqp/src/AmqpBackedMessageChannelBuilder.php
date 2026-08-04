@@ -72,7 +72,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return $this;
     }
 
-    public function withBatchedNonBlockingDelivery(bool $enabled = true, ?int $timeoutInMilliseconds = null): self
+    public function withHighThroughputPublishing(bool $enabled = true, ?int $timeoutInMilliseconds = null): self
     {
         $this->getAmqpOutboundChannelAdapter()->withAsyncPublishing($enabled, $timeoutInMilliseconds);
 

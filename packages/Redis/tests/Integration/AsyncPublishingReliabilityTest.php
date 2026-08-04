@@ -75,7 +75,7 @@ final class AsyncPublishingReliabilityTest extends ConnectionTestCase
                     PollableChannelConfiguration::create(self::CHANNEL_NAME, RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build()),
                 ]),
             enableAsynchronousProcessing: [
-                RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withBatchedNonBlockingDelivery(),
+                RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withHighThroughputPublishing(),
             ],
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

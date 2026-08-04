@@ -119,7 +119,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         return $this;
     }
 
-    public function withBatchedNonBlockingDelivery(bool $enabled = true, ?int $timeoutInMilliseconds = null): self
+    public function withHighThroughputPublishing(bool $enabled = true, ?int $timeoutInMilliseconds = null): self
     {
         Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
         $this->asyncPublishing = $enabled;
@@ -130,7 +130,7 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         return $this;
     }
 
-    public function isBatchedNonBlockingDeliveryEnabled(): bool
+    public function isHighThroughputPublishingEnabled(): bool
     {
         return $this->asyncPublishing;
     }

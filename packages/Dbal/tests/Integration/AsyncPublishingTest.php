@@ -286,7 +286,7 @@ final class AsyncPublishingTest extends DbalMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('asyncOrdersChannel')
-                        ->withBatchedNonBlockingDelivery(),
+                        ->withHighThroughputPublishing(),
                 ]),
             licenceKey: $licenceKey,
         );

@@ -74,7 +74,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->assertNull($messaging->getMessageChannel('outbox')->receive());
     }
 
-    public function test_forwarding_as_single_batch_to_target_with_batched_non_blocking_delivery_delivers_all_messages(): void
+    public function test_forwarding_as_single_batch_to_target_with_high_throughput_publishing_delivers_all_messages(): void
     {
         $orderService = new class () {
             /** @var string[] */
@@ -103,7 +103,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                     CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing')
-                        ->withBatchedNonBlockingDelivery(),
+                        ->withHighThroughputPublishing(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

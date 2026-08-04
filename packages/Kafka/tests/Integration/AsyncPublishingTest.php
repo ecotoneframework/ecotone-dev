@@ -99,7 +99,7 @@ final class AsyncPublishingTest extends TestCase
                         'async_orders',
                         topicName: $uniqueId = Uuid::v7()->toRfc4122(),
                         messageGroupId: $uniqueId,
-                    )->withAsyncPublishing(),
+                    )->withBatchedNonBlockingDelivery(),
                 ]),
         );
     }

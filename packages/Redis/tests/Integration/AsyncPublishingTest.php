@@ -293,7 +293,7 @@ final class AsyncPublishingTest extends ConnectionTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::REDIS_PACKAGE]))
                 ->withExtensionObjects([
                     RedisBackedMessageChannelBuilder::create('asyncOrdersChannel')
-                        ->withAsyncPublishing(),
+                        ->withBatchedNonBlockingDelivery(),
                 ]),
             licenceKey: $licenceKey,
         );

@@ -72,7 +72,7 @@ class AsyncPublishingBenchmark
     {
         $this->batchChannel = $this->bootstrapBatchChannel(
             ModulePackageList::AMQP_PACKAGE,
-            AmqpBackedMessageChannelBuilder::create(uniqid('benchmark_orders_'))->withAsyncPublishing(),
+            AmqpBackedMessageChannelBuilder::create(uniqid('benchmark_orders_'))->withBatchedNonBlockingDelivery(),
             [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f'])],
         );
         $this->warmUpBatchChannel();
@@ -95,7 +95,7 @@ class AsyncPublishingBenchmark
         $uniqueId = uniqid('benchmark_orders_');
         $this->batchChannel = $this->bootstrapBatchChannel(
             ModulePackageList::KAFKA_PACKAGE,
-            KafkaMessageChannelBuilder::create($uniqueId, topicName: $uniqueId, messageGroupId: $uniqueId)->withAsyncPublishing(),
+            KafkaMessageChannelBuilder::create($uniqueId, topicName: $uniqueId, messageGroupId: $uniqueId)->withBatchedNonBlockingDelivery(),
             [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([getenv('KAFKA_DSN') ?: 'localhost:9094'])],
         );
         $this->warmUpBatchChannel();
@@ -111,7 +111,7 @@ class AsyncPublishingBenchmark
     {
         $this->batchChannel = $this->bootstrapBatchChannel(
             ModulePackageList::DBAL_PACKAGE,
-            DbalBackedMessageChannelBuilder::create(uniqid('benchmark_orders_'))->withAsyncPublishing(),
+            DbalBackedMessageChannelBuilder::create(uniqid('benchmark_orders_'))->withBatchedNonBlockingDelivery(),
             [DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone')],
         );
         $this->warmUpBatchChannel();
@@ -127,7 +127,7 @@ class AsyncPublishingBenchmark
     {
         $this->batchChannel = $this->bootstrapBatchChannel(
             ModulePackageList::REDIS_PACKAGE,
-            RedisBackedMessageChannelBuilder::create(uniqid('benchmark_orders_'))->withAsyncPublishing(),
+            RedisBackedMessageChannelBuilder::create(uniqid('benchmark_orders_'))->withBatchedNonBlockingDelivery(),
             [RedisConnectionFactory::class => new RedisConnectionFactory(getenv('REDIS_DSN') ?: 'redis://localhost:6379')],
         );
         $this->warmUpBatchChannel();
@@ -149,7 +149,7 @@ class AsyncPublishingBenchmark
     {
         $this->batchChannel = $this->bootstrapBatchChannel(
             ModulePackageList::SQS_PACKAGE,
-            SqsBackedMessageChannelBuilder::create(uniqid('benchmark_orders_'))->withAsyncPublishing(),
+            SqsBackedMessageChannelBuilder::create(uniqid('benchmark_orders_'))->withBatchedNonBlockingDelivery(),
             [SqsConnectionFactory::class => new SqsConnectionFactory(getenv('SQS_DSN') ?: 'sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4566&version=latest')],
         );
         $this->warmUpBatchChannel();

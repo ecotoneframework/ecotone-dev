@@ -220,10 +220,10 @@ final class AsyncPublishingTest extends TestCase
             $channelName,
             topicName: $uniqueId = Uuid::v7()->toRfc4122(),
             messageGroupId: $uniqueId,
-        )->withAsyncPublishing();
+        )->withBatchedNonBlockingDelivery();
 
         if ($asyncPublishingTimeout !== null) {
-            $channelBuilder = $channelBuilder->withAsyncPublishing(timeoutInMilliseconds: $asyncPublishingTimeout);
+            $channelBuilder = $channelBuilder->withBatchedNonBlockingDelivery(timeoutInMilliseconds: $asyncPublishingTimeout);
         }
 
         return EcotoneLite::bootstrapFlowTesting(

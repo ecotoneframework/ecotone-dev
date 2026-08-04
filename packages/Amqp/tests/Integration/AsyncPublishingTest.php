@@ -220,7 +220,7 @@ final class AsyncPublishingTest extends AmqpMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create('asyncOrdersChannel', queueName: $channelName)
-                        ->withAsyncPublishing(),
+                        ->withBatchedNonBlockingDelivery(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -309,7 +309,7 @@ final class AsyncPublishingTest extends AmqpMessagingTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create('asyncOrdersChannel', queueName: $channelName)
-                        ->withAsyncPublishing(),
+                        ->withBatchedNonBlockingDelivery(),
                 ]),
             licenceKey: $licenceKey,
         );

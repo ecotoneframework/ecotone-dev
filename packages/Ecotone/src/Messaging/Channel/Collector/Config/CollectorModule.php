@@ -9,6 +9,7 @@ use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\Collector\CollectorSenderInterceptor;
 use Ecotone\Messaging\Channel\Collector\CollectorStorage;
+use Ecotone\Messaging\Channel\CombinedMessageChannel;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
@@ -41,6 +42,14 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
         $pollableMessageChannels = ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects);
         $pollableChannelConfigurations = ExtensionObjectResolver::resolve(PollableChannelConfiguration::class, $extensionObjects);
 
+        $combinedChannelRelayTargets = [];
+        /** @var CombinedMessageChannel $combinedMessageChannel */
+        foreach (ExtensionObjectResolver::resolve(CombinedMessageChannel::class, $extensionObjects) as $combinedMessageChannel) {
+            foreach (array_slice($combinedMessageChannel->getCombinedChannels(), 1) as $relayTargetChannel) {
+                $combinedChannelRelayTargets[$relayTargetChannel] = true;
+            }
+        }
+
         $takenChannelNames = [];
         foreach ($pollableChannelConfigurations as $pollableChannelConfiguration) {
             if (in_array($pollableChannelConfiguration->getChannelName(), $takenChannelNames)) {
@@ -52,6 +61,10 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
 
 
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
+            if (isset($combinedChannelRelayTargets[$pollableMessageChannel->getMessageChannelName()])) {
+                continue;
+            }
+
             $channelConfiguration = $globalPollableChannelConfiguration;
 
             foreach ($pollableChannelConfigurations as $pollableChannelConfiguration) {
@@ -103,6 +116,7 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
         return
             $extensionObject instanceof PollableChannelConfiguration
             || $extensionObject instanceof GlobalPollableChannelConfiguration
+            || $extensionObject instanceof CombinedMessageChannel
             /** Dynamic and RoundRobin are proxies, therefore should not be intercepted */
             || ($extensionObject instanceof MessageChannelBuilder && $extensionObject->isPollable() && ! ($extensionObject instanceof DynamicMessageChannelBuilder));
     }

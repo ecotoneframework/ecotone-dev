@@ -11,6 +11,7 @@ use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Channel\BatchForwardingSourceChannel;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\CombinedChannelForwardingConfiguration;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
@@ -553,7 +554,7 @@ final class MessagingSystemConfiguration implements Configuration
              * This is Bridge that will fetch the message and make use of routing_slip to target it
              * message handler.
              */
-            if (isset($relaySourceChannels[$asynchronousChannel])) {
+            if (isset($relaySourceChannels[$asynchronousChannel]) && $this->channelBuilders[$asynchronousChannel] instanceof BatchForwardingSourceChannel) {
                 $this->messageHandlerBuilders[$asynchronousChannel] = ServiceActivatorBuilder::createWithDefinition(
                     new Definition(BatchForwardingBridge::class, [
                         new ChannelReference($asynchronousChannel),

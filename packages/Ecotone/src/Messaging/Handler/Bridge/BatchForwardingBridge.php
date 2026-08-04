@@ -115,11 +115,7 @@ final class BatchForwardingBridge
 
         if ($this->supportsBatchMessages($targetChannel)) {
             try {
-                $targetChannel->send(
-                    MessageBuilder::withPayload($this->combineIntoBatch($messagesToForward))
-                        ->setHeader(MessageHeaders::COLLECTOR_BYPASS, true)
-                        ->build()
-                );
+                $targetChannel->send(MessageBuilder::withPayload($this->combineIntoBatch($messagesToForward))->build());
             } catch (Throwable $exception) {
                 $this->releaseFailedDelivery($groupedMessages, $polledMessage, $targetChannelName, $exception);
 
@@ -130,14 +126,8 @@ final class BatchForwardingBridge
             return;
         }
 
-        $bypassCollector = $this->isPollable($targetChannel);
         foreach ($messagesToForward as $messageIndex => $messageToForward) {
             $groupedMessage = $groupedMessages[$messageIndex];
-            if ($bypassCollector) {
-                $messageToForward = MessageBuilder::fromMessage($messageToForward)
-                    ->setHeader(MessageHeaders::COLLECTOR_BYPASS, true)
-                    ->build();
-            }
             try {
                 $targetChannel->send($messageToForward);
             } catch (Throwable $exception) {

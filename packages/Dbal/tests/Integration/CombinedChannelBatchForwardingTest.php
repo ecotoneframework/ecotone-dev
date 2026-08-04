@@ -9,6 +9,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
+use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -458,6 +459,77 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $this->assertTrue($consumerStopped);
         $this->assertCount(3, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+    }
+
+    public function test_batched_forwarding_does_not_apply_to_in_memory_source_channels(): void
+    {
+        $orderService = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+            public function register(string $order): void
+            {
+            }
+        };
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [$orderService],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withExtensionObjects([
+                    CombinedMessageChannel::create('orders', ['inMemoryOutbox', 'inMemoryProcessing']),
+                    SimpleMessageChannelBuilder::createQueueChannel('inMemoryOutbox'),
+                    SimpleMessageChannelBuilder::createQueueChannel('inMemoryProcessing'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+
+        $messaging->run('inMemoryOutbox', ExecutionPollingMetadata::createWithTestingSetup());
+
+        $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('inMemoryProcessing')));
+        $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('inMemoryOutbox')));
+    }
+
+    public function test_forwarded_message_does_not_carry_internal_collector_header(): void
+    {
+        foreach ([true, false] as $collectorEnabled) {
+            $orderService = new class () {
+                #[Asynchronous('orders')]
+                #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+                public function register(string $order): void
+                {
+                }
+            };
+
+            $messaging = EcotoneLite::bootstrapFlowTesting(
+                [$orderService::class],
+                [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
+                ServiceConfiguration::createWithDefaults()
+                    ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                    ->withExtensionObjects([
+                        CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                        DbalBackedMessageChannelBuilder::create('outbox'),
+                        DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                        GlobalPollableChannelConfiguration::createWithDefaults()->withCollector($collectorEnabled),
+                    ]),
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+
+            $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+            $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+
+            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+
+            $forwardedMessages = $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'));
+            $this->assertCount(2, $forwardedMessages);
+            foreach ($forwardedMessages as $forwardedMessage) {
+                $this->assertFalse($forwardedMessage->getHeaders()->containsKey('collectorBypass'));
+            }
+        }
     }
 
     public function test_failed_forwarding_keeps_all_messages_available_on_outbox(): void

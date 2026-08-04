@@ -97,10 +97,6 @@ final class MessageHeaders
      */
     public const POLLED_CHANNEL_NAME = 'polledChannelName';
     /**
-     * Marks a Message forwarded directly between Message Channels, so it skips the Message Collector buffering
-     */
-    public const COLLECTOR_BYPASS = 'collectorBypass';
-    /**
      * Inbound Channel Adapter request channel name (set when the Message originates from an Inbound Channel Adapter
      * such as #[KafkaConsumer], AMQP inbound, #[Scheduled]). Carries the user-facing request channel where the Message
      * is dispatched after polling, so it can be replayed back to the same handler.

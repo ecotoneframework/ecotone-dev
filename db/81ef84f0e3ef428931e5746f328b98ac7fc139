@@ -1,0 +1,24 @@
+packages/Ecotone/src/Messaging/Handler/Bridge/BatchForwardingBridge.php
+  s_2515a1cc82548a::t_1d7f47a5a0f7e0 1-216
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_2515a1cc82548a::t_015d099c546f5c 544-552
+  s_2515a1cc82548a::t_af0d8100b80662 62
+  s_2515a1cc82548a::t_1bdc06e891aa98 47,49
+  s_2515a1cc82548a::t_bfaacc21ef6012 90-91
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "db81ef84f0e3ef428931e5746f328b98ac7fc139",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

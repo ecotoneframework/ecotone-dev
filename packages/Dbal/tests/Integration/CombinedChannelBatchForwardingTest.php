@@ -67,6 +67,52 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->assertNull($messaging->getMessageChannel('outbox')->receive());
     }
 
+    public function test_forwarding_as_single_batch_to_target_with_batched_non_blocking_delivery_delivers_all_messages(): void
+    {
+        $orderService = new class () {
+            /** @var string[] */
+            private array $orders = [];
+
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+            public function register(string $order): void
+            {
+                $this->orders[] = $order;
+            }
+
+            #[QueryHandler('order.getRegistered')]
+            public function getRegistered(): array
+            {
+                return $this->orders;
+            }
+        };
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                    DbalBackedMessageChannelBuilder::create('outbox'),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing')
+                        ->withBatchedNonBlockingDelivery(),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $this->assertNull($messaging->getMessageChannel('outbox')->receive());
+
+        $messaging->run('orderProcessing', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 10000));
+
+        $this->assertSame(['espresso', 'latte', 'cappuccino'], $messaging->sendQueryWithRouting('order.getRegistered'));
+    }
+
     public function test_single_run_moves_no_more_messages_than_configured_forwarding_batch_size(): void
     {
         $orderService = new class () {

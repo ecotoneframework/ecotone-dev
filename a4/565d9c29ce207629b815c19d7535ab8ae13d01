@@ -1,0 +1,37 @@
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_d456577e49acc8 9
+  s_2515a1cc82548a::t_878a6abe606d9d 270-305,307-343
+  s_2515a1cc82548a::t_7233984a68ac24 306
+  s_2515a1cc82548a::t_2a968fde4116a2 17
+  s_2515a1cc82548a::t_762b169a0f96e1 12
+  s_2515a1cc82548a::t_b0094324c7a9bb 26
+packages/Ecotone/src/Messaging/Endpoint/PollingConsumer/InterceptedPollingConsumerBuilder.php
+  s_2515a1cc82548a::t_c8decd09aeb0f7 6
+  s_2515a1cc82548a::t_25d1562a86875b 100
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_2515a1cc82548a::t_6a7dc6b7192872 556
+  s_2515a1cc82548a::t_b8db932b773f09 550
+  s_2515a1cc82548a::t_a550c3fa20d520 14
+  s_2515a1cc82548a::t_533111f28ba7b8 17
+packages/Dbal/tests/Fixture/BatchForwarding/FailOnceOnPayloadChannelInterceptor.php
+  s_2515a1cc82548a::t_4edf57b0d0c519 1-32
+packages/Ecotone/src/Messaging/Handler/Bridge/BatchForwardingBridge.php
+  s_2515a1cc82548a::t_2de5e9bbc5741b 11,13,19,29
+  s_2515a1cc82548a::t_474ba7e5e33831 105-119,121-127,130-149,151-155
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "a4565d9c29ce207629b815c19d7535ab8ae13d01",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

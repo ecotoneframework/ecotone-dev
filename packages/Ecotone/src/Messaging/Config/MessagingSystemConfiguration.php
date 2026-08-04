@@ -11,8 +11,10 @@ use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Attribute\WithoutMessageCollector;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
+use Ecotone\Messaging\Channel\ForwardingBatchSizeAware;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
@@ -44,9 +46,7 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncEndpointAnnotationContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Ecotone\Messaging\Channel\ForwardingBatchSizeAware;
 use Ecotone\Messaging\Handler\Bridge\BatchForwardingBridge;
-use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
@@ -547,11 +547,13 @@ final class MessagingSystemConfiguration implements Configuration
                 new Definition(BatchForwardingBridge::class, [
                     new ChannelReference($asynchronousChannel),
                     new Reference(ChannelResolver::class),
+                    new Reference(LoggingGateway::class),
                     $this->isRunningForEnterpriseLicence,
                     $channelBuilder instanceof ForwardingBatchSizeAware ? $channelBuilder->getMaxForwardingBatchSize() : self::DEFAULT_FORWARDING_BATCH_SIZE,
                 ]),
                 'handle',
             )
+                ->withEndpointAnnotations([AttributeDefinition::fromObject(new WithoutMessageCollector())])
                 ->withInputChannelName($asynchronousChannel)
                 ->withEndpointId($asynchronousChannel);
         }

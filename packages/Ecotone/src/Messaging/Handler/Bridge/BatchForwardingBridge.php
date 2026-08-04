@@ -8,12 +8,15 @@ use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
+use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\ChannelResolver;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -23,6 +26,7 @@ final class BatchForwardingBridge
     public function __construct(
         private PollableChannel $sourceChannel,
         private ChannelResolver $channelResolver,
+        private LoggingGateway $logger,
         private bool $batchForwardingEnabled,
         private int $maxBatchSize,
     ) {
@@ -86,10 +90,6 @@ final class BatchForwardingBridge
             $groups[$targetChannelName][] = $drainedMessage;
         }
 
-        $polledMessageGroup = $groups[$polledMessageTargetChannelName];
-        unset($groups[$polledMessageTargetChannelName]);
-        $groups[$polledMessageTargetChannelName] = $polledMessageGroup;
-
         return $groups;
     }
 
@@ -102,13 +102,57 @@ final class BatchForwardingBridge
         $messagesToForward = array_map(fn (Message $groupedMessage) => $this->advanceRoutingSlip($groupedMessage), $groupedMessages);
 
         if ($this->supportsBatchMessages($targetChannel)) {
-            $targetChannel->send(MessageBuilder::withPayload($this->combineIntoBatch($messagesToForward))->build());
-        } else {
-            foreach ($messagesToForward as $messageToForward) {
-                $targetChannel->send($messageToForward);
+            try {
+                $targetChannel->send(MessageBuilder::withPayload($this->combineIntoBatch($messagesToForward))->build());
+            } catch (Throwable $exception) {
+                $this->releaseFailedDelivery($groupedMessages, $polledMessage, $targetChannelName, $exception);
+
+                return;
             }
+            $this->acknowledgeAllExcept($groupedMessages, $polledMessage);
+
+            return;
         }
 
+        foreach ($messagesToForward as $messageIndex => $messageToForward) {
+            $groupedMessage = $groupedMessages[$messageIndex];
+            try {
+                $targetChannel->send($messageToForward);
+            } catch (Throwable $exception) {
+                $this->releaseFailedDelivery([$groupedMessage], $polledMessage, $targetChannelName, $exception);
+
+                continue;
+            }
+            if ($groupedMessage !== $polledMessage) {
+                $this->acknowledge($groupedMessage);
+            }
+        }
+    }
+
+    /**
+     * @param Message[] $failedMessages
+     */
+    private function releaseFailedDelivery(array $failedMessages, Message $polledMessage, string $targetChannelName, Throwable $exception): void
+    {
+        if ($exception instanceof ConnectionException || in_array($polledMessage, $failedMessages, true)) {
+            throw $exception;
+        }
+
+        foreach ($failedMessages as $failedMessage) {
+            $this->acknowledgementCallbackOf($failedMessage)?->release();
+            $this->logger->info(
+                sprintf('Message with id `%s` released back to source channel, as delivery to `%s` failed. Due to %s', $failedMessage->getHeaders()->getMessageId(), $targetChannelName, $exception->getMessage()),
+                $failedMessage,
+                ['exception' => $exception],
+            );
+        }
+    }
+
+    /**
+     * @param Message[] $groupedMessages
+     */
+    private function acknowledgeAllExcept(array $groupedMessages, Message $polledMessage): void
+    {
         foreach ($groupedMessages as $groupedMessage) {
             if ($groupedMessage !== $polledMessage) {
                 $this->acknowledge($groupedMessage);

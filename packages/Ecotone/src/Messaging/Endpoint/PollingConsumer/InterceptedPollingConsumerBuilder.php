@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
+use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
@@ -96,6 +97,7 @@ abstract class InterceptedPollingConsumerBuilder implements MessageHandlerConsum
         );
         $gatewayBuilder->withEndpointAnnotations(array_merge(
             $this->endpointAnnotations,
+            $messageHandlerBuilder instanceof InterceptedEndpoint ? $messageHandlerBuilder->getEndpointAnnotations() : [],
             [new AttributeDefinition(AsynchronousRunningEndpoint::class, [$endpointId])]
         ));
         $gatewayBuilder

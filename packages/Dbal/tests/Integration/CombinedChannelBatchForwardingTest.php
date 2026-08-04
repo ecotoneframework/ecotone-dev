@@ -6,12 +6,15 @@ namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
+use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -20,6 +23,7 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\BatchForwarding\FailingPollableChannel;
+use Test\Ecotone\Dbal\Fixture\BatchForwarding\FailOnceOnPayloadChannelInterceptor;
 
 /**
  * licence Apache-2.0
@@ -261,6 +265,80 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $this->assertTrue($forwardingFailed);
         $this->assertCount(3, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+    }
+
+    public function test_failed_delivery_of_single_message_releases_only_that_message_without_duplicates(): void
+    {
+        $messaging = $this->bootstrapWithFailingTargetInterceptor(RuntimeException::class);
+
+        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+
+        $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
+
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+
+        $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
+        $this->assertNull($messaging->getMessageChannel('outbox')->receive());
+    }
+
+    public function test_connection_failure_during_delivery_is_recovered_without_duplicates(): void
+    {
+        $messaging = $this->bootstrapWithFailingTargetInterceptor(ConnectionException::class);
+
+        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+
+        try {
+            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        } catch (ConnectionException) {
+        }
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+
+        $this->assertSame(['espresso', 'latte', 'cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
+        $this->assertNull($messaging->getMessageChannel('outbox')->receive());
+    }
+
+    private function bootstrapWithFailingTargetInterceptor(string $exceptionClass): FlowTestSupport
+    {
+        $orderService = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+            public function register(string $order): void
+            {
+            }
+        };
+
+        return EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [
+                DbalConnectionFactory::class => $this->getConnectionFactory(),
+                $orderService,
+                'failingDeliveryInterceptor' => new FailOnceOnPayloadChannelInterceptor('cappuccino', $exceptionClass),
+            ],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                    DbalBackedMessageChannelBuilder::create('outbox'),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                    SimpleChannelInterceptorBuilder::create('orderProcessing', 'failingDeliveryInterceptor'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    /**
+     * @param \Ecotone\Messaging\Message[] $messages
+     * @return string[]
+     */
+    private function payloadsOf(array $messages): array
+    {
+        return array_map(fn ($message) => $message->getPayload(), $messages);
     }
 
     private function receiveAllFrom(PollableChannel $channel): array

@@ -1,0 +1,36 @@
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_06e402dc50a6ad 12
+  s_2515a1cc82548a::t_808f7fb983e009 464-534
+packages/Ecotone/src/Messaging/Channel/BatchForwardingSourceChannel.php
+  s_2515a1cc82548a::t_753a2f82a6400d 1-15
+packages/Dbal/src/DbalBackedMessageChannelBuilder.php
+  s_2515a1cc82548a::t_d1a4d20c7c7f26 6,12
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_2515a1cc82548a::t_d1c90fd1294790 14
+  s_2515a1cc82548a::t_2a75faeb24acd1 557
+packages/Ecotone/src/Messaging/Handler/Bridge/BatchForwardingBridge.php
+  s_2515a1cc82548a::t_0d1adadc9d6a54 118
+packages/Kafka/tests/Integration/CombinedChannelForwardingTest.php
+  s_2515a1cc82548a::t_3b8ccf7d7cd0f3 1-77
+packages/Ecotone/src/Messaging/Channel/Collector/Config/CollectorModule.php
+  s_2515a1cc82548a::t_4c93ecd32645f3 45-52
+  s_2515a1cc82548a::t_f247b37318f1c0 64-67
+  s_2515a1cc82548a::t_145249247a4e8a 12
+  s_2515a1cc82548a::t_a9cc49c4100d63 119
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "ac9cdfd5d2c976703a0193155edb37ffcca54b56",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

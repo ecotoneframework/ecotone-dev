@@ -1,0 +1,50 @@
+Monorepo/Benchmark/AsyncPublishingBenchmark.php
+  s_2515a1cc82548a::t_e5e42023dc7576 75,98,114,130,152
+packages/Kafka/src/Configuration/KafkaModule.php
+  s_2515a1cc82548a::t_2a4ba901e2d0ff 116
+packages/Amqp/tests/Integration/AsyncPublishingTest.php
+  s_2515a1cc82548a::t_e5e42023dc7576 223,312
+packages/Redis/tests/Integration/AsyncPublishingTest.php
+  s_2515a1cc82548a::t_e5e42023dc7576 296
+packages/Amqp/src/AmqpBackedMessageChannelBuilder.php
+  s_2515a1cc82548a::t_d34f6ae0ccd7ee 75
+packages/Kafka/src/Channel/KafkaMessageChannelBuilder.php
+  s_2515a1cc82548a::t_de5b46f33729e6 122
+  s_2515a1cc82548a::t_15e233617e13f0 133
+packages/Sqs/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_2515a1cc82548a::t_e5e42023dc7576 112
+packages/Dbal/tests/Integration/AsyncPublishingTest.php
+  s_2515a1cc82548a::t_e5e42023dc7576 289
+packages/Sqs/tests/Integration/AsyncPublishingTest.php
+  s_2515a1cc82548a::t_e5e42023dc7576 243
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_3f5fc53552f75a 14
+  s_2515a1cc82548a::t_021a2a740cf3db 1-13,15-69,71-79
+  s_2515a1cc82548a::t_a4c83284a5feec 70
+packages/Redis/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_2515a1cc82548a::t_e5e42023dc7576 78
+packages/Kafka/tests/Integration/AsyncPublishingTest.php
+  s_2515a1cc82548a::t_e5e42023dc7576 223,226
+packages/Redis/src/RedisBackedMessageChannelBuilder.php
+  s_2515a1cc82548a::t_5aea836174e539 36,38
+packages/Sqs/src/SqsBackedMessageChannelBuilder.php
+  s_2515a1cc82548a::t_0c9fc46f5f9c15 36,38
+packages/Dbal/src/DbalBackedMessageChannelBuilder.php
+  s_2515a1cc82548a::t_7bbc773ca6fed5 34,36
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "6b30acdc48cdd96841d01944bec21620fae6ea94",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

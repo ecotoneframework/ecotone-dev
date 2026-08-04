@@ -66,7 +66,7 @@ class OutboxRelayBenchmark
             ModulePackageList::KAFKA_PACKAGE,
             KafkaMessageChannelBuilder::create($uniqueId, topicName: $uniqueId, messageGroupId: $uniqueId),
             [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([getenv('KAFKA_DSN') ?: 'localhost:9094'])],
-            licenceKey: null,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
         $this->fillOutbox();
     }

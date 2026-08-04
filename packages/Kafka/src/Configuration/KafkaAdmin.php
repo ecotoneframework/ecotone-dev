@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Kafka\Configuration;
 
 use Ecotone\Kafka\Attribute\KafkaConsumer as KafkaConsumerAttribute;
+use Ecotone\Kafka\Outbound\KafkaDeliveryTracker;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Exception;
@@ -27,6 +28,11 @@ final class KafkaAdmin
      * @var KafkaConsumer[]
      */
     private array $initializedConsumers = [];
+
+    /**
+     * @var KafkaDeliveryTracker[]
+     */
+    private array $deliveryTrackers = [];
 
     /**
      * @param KafkaConsumerAttribute[] $consumerConfigurations
@@ -121,6 +127,12 @@ final class KafkaAdmin
             $conf = $configuration->getAsKafkaConfig();
             $conf->set('metadata.broker.list', implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
             $this->setLoggerCallbacks($conf, $referenceName);
+            $deliveryTracker = $this->getDeliveryTracker($referenceName);
+            $conf->setDrMsgCb(
+                function ($producer, $kafkaMessage) use ($deliveryTracker): void {
+                    $deliveryTracker->recordDeliveryReport($kafkaMessage);
+                }
+            );
             $producer = new Producer($conf);
             $producer->addBrokers(implode(',', $this->kafkaBrokerConfigurations[$configuration->getBrokerConfigurationReference()]->getBootstrapServers()));
 
@@ -128,6 +140,11 @@ final class KafkaAdmin
         }
 
         return $this->initializedProducers[$referenceName];
+    }
+
+    public function getDeliveryTracker(string $referenceName): KafkaDeliveryTracker
+    {
+        return $this->deliveryTrackers[$referenceName] ??= new KafkaDeliveryTracker();
     }
 
     public function getTopicForProducer(string $referenceName): ProducerTopic

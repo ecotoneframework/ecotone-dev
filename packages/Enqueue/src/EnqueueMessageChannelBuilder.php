@@ -121,6 +121,12 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
         return new Definition(EnqueueMessageChannel::class, [
             $this->inboundChannelAdapter->compile($builder),
             $this->outboundChannelAdapter->compile($builder),
+            $this->supportsBatchMessages(),
         ]);
+    }
+
+    protected function supportsBatchMessages(): bool
+    {
+        return false;
     }
 }

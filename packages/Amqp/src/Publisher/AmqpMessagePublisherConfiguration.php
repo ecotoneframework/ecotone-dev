@@ -3,6 +3,7 @@
 namespace Ecotone\Amqp\Publisher;
 
 use Ecotone\Messaging\MessagePublisher;
+use Ecotone\Messaging\Support\Assert;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 /**
@@ -51,6 +52,10 @@ class AmqpMessagePublisherConfiguration
      * @var bool
      */
     private $defaultPersistentDelivery = true;
+
+    private bool $asyncPublishing = false;
+
+    private ?int $asyncPublishingTimeout = null;
 
     private function __construct(string $connectionReference, string $exchangeName, ?string $outputDefaultConversionMediaType, string $referenceName)
     {
@@ -148,6 +153,27 @@ class AmqpMessagePublisherConfiguration
     public function getDefaultPersistentDelivery(): bool
     {
         return $this->defaultPersistentDelivery;
+    }
+
+    public function withAsyncPublishing(bool $enabled = true, ?int $timeoutInMilliseconds = null): AmqpMessagePublisherConfiguration
+    {
+        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
+        $this->asyncPublishing = $enabled;
+        if ($timeoutInMilliseconds !== null) {
+            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        }
+
+        return $this;
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
+    }
+
+    public function getAsyncPublishingTimeout(): ?int
+    {
+        return $this->asyncPublishingTimeout;
     }
 
     /**

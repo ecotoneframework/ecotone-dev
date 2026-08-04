@@ -7,6 +7,7 @@ namespace Ecotone\Kafka\Channel;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapter;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapter;
+use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
@@ -14,13 +15,18 @@ use Ecotone\Messaging\PollableChannel;
 /**
  * licence Enterprise
  */
-final class KafkaMessageChannel implements PollableChannel
+final class KafkaMessageChannel implements PollableChannel, BatchSupportingMessageChannel
 {
     public function __construct(
         private KafkaInboundChannelAdapter $inboundChannelAdapter,
         private KafkaOutboundChannelAdapter $outboundChannelAdapter,
     ) {
 
+    }
+
+    public function supportsBatchMessages(): bool
+    {
+        return $this->outboundChannelAdapter->isAsyncPublishingEnabled();
     }
 
     public function send(Message $message): void

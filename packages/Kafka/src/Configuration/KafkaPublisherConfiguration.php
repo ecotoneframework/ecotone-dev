@@ -9,6 +9,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessagePublisher;
+use Ecotone\Messaging\Support\Assert;
 use RdKafka\Conf;
 
 /**
@@ -20,6 +21,8 @@ final class KafkaPublisherConfiguration implements DefinedObject
 {
     public const ACKNOWLEDGE_TIMEOUT = '8000';
 
+    public const DEFAULT_ASYNC_PUBLISHING_TIMEOUT = 12000;
+
     /**
      * @param array<string, string> $configuration
      */
@@ -30,6 +33,8 @@ final class KafkaPublisherConfiguration implements DefinedObject
         private string $brokerConfigurationReference,
         private HeaderMapper $headerMapper,
         private ?string $outputDefaultConversionMediaType = null,
+        private bool $asyncPublishing = false,
+        private int $asyncPublishingTimeout = self::DEFAULT_ASYNC_PUBLISHING_TIMEOUT,
     ) {
     }
 
@@ -58,6 +63,8 @@ final class KafkaPublisherConfiguration implements DefinedObject
                 'retries' => '5',
                 // Backoff time between retries in milliseconds
                 'retry.backoff.ms' => '300',
+                // Disables Nagle algorithm (TCP_NODELAY) so small produce requests are not delayed. Default in librdkafka only since v2.1
+                'socket.nagle.disable' => 'true',
             ],
             $brokerConfigurationReference,
             DefaultHeaderMapper::createAllHeadersMapping(),
@@ -99,6 +106,27 @@ final class KafkaPublisherConfiguration implements DefinedObject
         return $this->headerMapper;
     }
 
+    public function withAsyncPublishing(bool $asyncPublishing = true, ?int $timeoutInMilliseconds = null): self
+    {
+        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
+        $this->asyncPublishing = $asyncPublishing;
+        if ($timeoutInMilliseconds !== null) {
+            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        }
+
+        return $this;
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
+    }
+
+    public function getAsyncPublishingTimeout(): int
+    {
+        return $this->asyncPublishingTimeout;
+    }
+
     public function getOutputDefaultConversionMediaType(): ?string
     {
         return $this->outputDefaultConversionMediaType;
@@ -111,8 +139,13 @@ final class KafkaPublisherConfiguration implements DefinedObject
 
     public function getAsKafkaConfig(): Conf
     {
+        $configuration = $this->configuration;
+        if ($this->asyncPublishing && ! isset($configuration['linger.ms']) && ! isset($configuration['queue.buffering.max.ms'])) {
+            $configuration['linger.ms'] = '20';
+        }
+
         $conf = new Conf();
-        foreach ($this->configuration as $key => $value) {
+        foreach ($configuration as $key => $value) {
             $conf->set($key, $value);
         }
 
@@ -138,6 +171,8 @@ final class KafkaPublisherConfiguration implements DefinedObject
             $this->brokerConfigurationReference,
             $this->headerMapper->getDefinition(),
             $this->outputDefaultConversionMediaType,
+            $this->asyncPublishing,
+            $this->asyncPublishingTimeout,
         ]);
     }
 }

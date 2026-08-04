@@ -7,11 +7,13 @@ namespace Ecotone\Redis;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
+use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Support\LicensingException;
 use Enqueue\Redis\RedisConnectionFactory;
 
 /**
@@ -19,6 +21,8 @@ use Enqueue\Redis\RedisConnectionFactory;
  */
 final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
+    private bool $asyncPublishing = false;
+
     private function __construct(private string $queueName, private string $connectionFactoryReferenceName)
     {
         $this->initialize($connectionFactoryReferenceName);
@@ -32,8 +36,24 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
         );
     }
 
+    public function withAsyncPublishing(bool $asyncPublishing = true): self
+    {
+        $this->asyncPublishing = $asyncPublishing;
+
+        return $this;
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
+    }
+
     public function compile(MessagingContainerBuilder $builder): Definition
     {
+        if ($this->asyncPublishing && ! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
+            throw LicensingException::create('Asynchronous publishing is available only with Ecotone Enterprise licence.');
+        }
+
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(HttpReconnectableConnectionFactory::class, [
                 new Reference($this->connectionFactoryReferenceName),
@@ -55,6 +75,8 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
             $this->autoDeclare,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
+            new Reference(AsyncPublishingRegistry::class),
+            $this->asyncPublishing,
         ]);
     }
 }

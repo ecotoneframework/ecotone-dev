@@ -2,11 +2,9 @@
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
-use Monorepo\ExampleApp\Symfony\Kernel;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;

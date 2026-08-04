@@ -11,6 +11,7 @@ use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapterBuilder;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapterBuilder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Channel\AsyncPublishing\Config\AsyncPublishGatewayRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -111,7 +112,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                     $extensionObject->topicName,
                     MessagePublisher::class . '::' . $extensionObject->getMessageChannelName(),
                 )
-                    ->withHeaderMapper($extensionObject->getHeaderMapper());
+                    ->withHeaderMapper($extensionObject->getHeaderMapper())
+                    ->withAsyncPublishing($extensionObject->isAsyncPublishingEnabled(), $extensionObject->getAsyncPublishingTimeout());
             }
         }
 
@@ -224,6 +226,8 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
                     ->withHeaderMapper($extensionObject->getHeaderMapper())
                     ->withDefaultConversionMediaType($mediaType)
             );
+
+        AsyncPublishGatewayRegistration::registerFor($messagingConfiguration, $extensionObject->getReferenceName(), $extensionObject->isAsyncPublishingEnabled());
     }
 
     private function getPublisherEndpointId(string $referenceName): string

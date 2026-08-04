@@ -30,6 +30,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
                 ->withDefaultRoutingKey($queueName)
                 ->withAutoDeclareOnSend(true)
                 ->withDefaultPersistentMode(true)
+                ->withAsyncPublishingChannelName($channelName)
         );
     }
 
@@ -71,6 +72,13 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return $this;
     }
 
+    public function withAsyncPublishing(bool $enabled = true, ?int $timeoutInMilliseconds = null): self
+    {
+        $this->getAmqpOutboundChannelAdapter()->withAsyncPublishing($enabled, $timeoutInMilliseconds);
+
+        return $this;
+    }
+
     public function withDelayStrategy(string $delayStrategyReferenceName): self
     {
         $this->getAmqpOutboundChannelAdapter()->withDelayStrategy($delayStrategyReferenceName);
@@ -81,6 +89,11 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
     public function getMessageChannelName(): string
     {
         return $this->channelName;
+    }
+
+    protected function supportsBatchMessages(): bool
+    {
+        return $this->getAmqpOutboundChannelAdapter()->isAsyncPublishingEnabled();
     }
 
     public function getQueueName()

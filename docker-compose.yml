@@ -81,10 +81,12 @@ services:
       - '${RABBITMQ_PORT:-0}:5672'
       - '${RABBITMQ_MGMT_PORT:-0}:15672'
   localstack:
-    image: localstack/localstack:3.0.0
+    image: localstack/localstack:3.8
     environment:
       LOCALSTACK_HOST: 'localstack'
       SERVICES: 'sqs,sns'
+      SQS_DISABLE_CLOUDWATCH_METRICS: '1'
+      EAGER_SERVICE_LOADING: '1'
     ports:
       - "${LOCALSTACK_PORT:-0}:4566"            # LocalStack Gateway
 #      - "4510-4559:4510-4559"  # external services port range

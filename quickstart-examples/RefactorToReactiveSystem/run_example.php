@@ -34,5 +34,5 @@ $orderController->placeOrder(new Request(content: json_encode([
 ])));
 
 if ($stageToRun !== 'Stage_1') {
-    $messagingSystem->run("asynchronous", ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(2));
+    $messagingSystem->run("asynchronous", ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(amountOfMessagesToHandle: 2, maxExecutionTimeInMilliseconds: 60000));
 }

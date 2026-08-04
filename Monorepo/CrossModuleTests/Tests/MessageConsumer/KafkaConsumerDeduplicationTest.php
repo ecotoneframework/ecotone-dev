@@ -150,7 +150,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
         
         // Run consumer
-        $ecotoneLite->run('kafka_default_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneLite->run('kafka_default_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000));
         
         // Verify message processed
         $this->assertEquals(['test-payload-1'], $ecotoneLite->sendQueryWithRouting('kafka.getDefaultProcessedMessages'));
@@ -163,7 +163,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
         
         // Run consumer again
-        $ecotoneLite->run('kafka_default_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneLite->run('kafka_default_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000));
         
         // Verify message NOT processed again (still only one message)
         $this->assertEquals(['test-payload-1'], $ecotoneLite->sendQueryWithRouting('kafka.getDefaultProcessedMessages'));
@@ -176,7 +176,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
         
         // Run consumer
-        $ecotoneLite->run('kafka_default_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneLite->run('kafka_default_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000));
         
         // Verify new message IS processed
         $this->assertEquals(['test-payload-1', 'test-payload-2'], $ecotoneLite->sendQueryWithRouting('kafka.getDefaultProcessedMessages'));
@@ -227,13 +227,13 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
 
         // Run consumer to process first message
-        $ecotoneLite->run('kafka_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withHandledMessageLimit(1));
+        $ecotoneLite->run('kafka_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000)->withHandledMessageLimit(1));
 
         // Verify first message processed
         $this->assertEquals(['test-payload-1'], $ecotoneLite->sendQueryWithRouting('kafka.getProcessedMessages'));
 
         // Run consumer to process second message
-        $ecotoneLite->run('kafka_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withHandledMessageLimit(1));
+        $ecotoneLite->run('kafka_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000)->withHandledMessageLimit(1));
 
         // Verify both messages processed (different custom header values)
         $this->assertEquals(['test-payload-1', 'test-payload-2'], $ecotoneLite->sendQueryWithRouting('kafka.getProcessedMessages'));
@@ -252,7 +252,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
         );
 
         // Run consumer again
-        $ecotoneLite->run('kafka_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withHandledMessageLimit(2));
+        $ecotoneLite->run('kafka_deduplication_consumer', ExecutionPollingMetadata::createWithTestingSetup()->withExecutionTimeLimitInMilliseconds(10_000)->withHandledMessageLimit(2));
 
         // Verify no duplicate processing occurred (still only 2 messages)
         $this->assertEquals(['test-payload-1', 'test-payload-2'], $ecotoneLite->sendQueryWithRouting('kafka.getProcessedMessages'));

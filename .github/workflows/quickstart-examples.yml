@@ -75,9 +75,11 @@ jobs:
         ports:
           - 5432:5432
       localstack:
-        image: localstack/localstack:3.0.0
+        image: localstack/localstack:3.8
         env:
           SERVICES: 'sqs,sns'
+          SQS_DISABLE_CLOUDWATCH_METRICS: '1'
+          EAGER_SERVICE_LOADING: '1'
         ports:
           - "4566:4566"
           - "4510-4559:4510-4559"

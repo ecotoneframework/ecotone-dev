@@ -14,6 +14,7 @@ final class RedisMessagePublisherConfiguration
 {
     private bool $autoDeclareOnSend = true;
     private string $headerMapper = '';
+    private bool $asyncPublishing = false;
 
     private function __construct(private string $connectionReference, private string $queueName, private ?string $outputDefaultConversionMediaType, private string $referenceName)
     {
@@ -70,5 +71,17 @@ final class RedisMessagePublisherConfiguration
     public function getReferenceName(): string
     {
         return $this->referenceName;
+    }
+
+    public function withAsyncPublishing(bool $asyncPublishing = true): self
+    {
+        $this->asyncPublishing = $asyncPublishing;
+
+        return $this;
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
     }
 }

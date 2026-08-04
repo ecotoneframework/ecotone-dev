@@ -35,6 +35,8 @@ class DbalMessagePublisherConfiguration
      */
     private $queueName;
 
+    private bool $asyncPublishing = false;
+
     private function __construct(string $connectionReference, string $queueName, ?string $outputDefaultConversionMediaType, string $referenceName)
     {
         $this->connectionReference = $connectionReference;
@@ -118,5 +120,17 @@ class DbalMessagePublisherConfiguration
     public function getReferenceName(): string
     {
         return $this->referenceName;
+    }
+
+    public function withAsyncPublishing(bool $asyncPublishing = true): self
+    {
+        $this->asyncPublishing = $asyncPublishing;
+
+        return $this;
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
     }
 }

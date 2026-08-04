@@ -20,6 +20,23 @@ use Symfony\Component\Uid\Uuid;
  */
 class DbalProducer implements Producer
 {
+    private const BATCH_INSERT_CHUNK_SIZE = 250;
+
+    private const COLUMN_TYPES = [
+        'id' => DbalType::GUID,
+        'published_at' => DbalType::INTEGER,
+        'body' => DbalType::TEXT,
+        'headers' => DbalType::TEXT,
+        'properties' => DbalType::TEXT,
+        'priority' => DbalType::SMALLINT,
+        'queue' => DbalType::STRING,
+        'redelivered' => DbalType::SMALLINT,
+        'delivery_id' => DbalType::STRING,
+        'redeliver_after' => DbalType::BIGINT,
+        'delayed_until' => DbalType::INTEGER,
+        'time_to_live' => DbalType::INTEGER,
+    ];
+
     /**
      * @var int|null
      */
@@ -51,9 +68,67 @@ class DbalProducer implements Producer
      */
     public function send(Destination $destination, Message $message): void
     {
-        InvalidDestinationException::assertDestinationInstanceOf($destination, DbalDestination::class);
-        InvalidMessageException::assertMessageInstanceOf($message, DbalMessage::class);
+        $this->sendBatch($destination, [$message]);
+    }
 
+    /**
+     * @param DbalMessage[] $messages
+     */
+    public function sendBatch(Destination $destination, array $messages): void
+    {
+        InvalidDestinationException::assertDestinationInstanceOf($destination, DbalDestination::class);
+
+        if ([] === $messages) {
+            return;
+        }
+
+        $records = [];
+        foreach ($messages as $message) {
+            InvalidMessageException::assertMessageInstanceOf($message, DbalMessage::class);
+            $this->applyProducerDefaults($message);
+            $records[] = $this->createRecord($destination, $message);
+        }
+
+        try {
+            $rowsAffected = 0;
+            foreach (array_chunk($records, self::BATCH_INSERT_CHUNK_SIZE) as $recordsChunk) {
+                $rowsAffected += $this->insertRecords($recordsChunk);
+            }
+        } catch (\Exception $e) {
+            throw new Exception('The transport fails to send the message due to some internal error.', 0, $e);
+        }
+
+        if (count($records) !== $rowsAffected) {
+            throw new Exception('The batch was not enqueued. Dbal did not confirm that all records are inserted.');
+        }
+    }
+
+    private function insertRecords(array $records): int
+    {
+        $columns = array_keys(self::COLUMN_TYPES);
+        $rowPlaceholders = '(' . implode(', ', array_fill(0, count($columns), '?')) . ')';
+
+        $sql = sprintf(
+            'INSERT INTO %s (%s) VALUES %s',
+            $this->context->getTableName(),
+            implode(', ', $columns),
+            implode(', ', array_fill(0, count($records), $rowPlaceholders)),
+        );
+
+        $parameters = [];
+        $types = [];
+        foreach ($records as $record) {
+            foreach ($columns as $column) {
+                $parameters[] = $record[$column];
+                $types[] = self::COLUMN_TYPES[$column];
+            }
+        }
+
+        return (int) $this->context->getDbalConnection()->executeStatement($sql, $parameters, $types);
+    }
+
+    private function applyProducerDefaults(DbalMessage $message): void
+    {
         if (null !== $this->priority && null === $message->getPriority()) {
             $message->setPriority($this->priority);
         }
@@ -63,16 +138,17 @@ class DbalProducer implements Producer
         if (null !== $this->timeToLive && null === $message->getTimeToLive()) {
             $message->setTimeToLive($this->timeToLive);
         }
+    }
 
-        $body = $message->getBody();
-
+    private function createRecord(DbalDestination $destination, DbalMessage $message): array
+    {
         $publishedAt = $message->getPublishedAt()
             ?? (int) ($this->context->getClock()->now()->unixTime()->toFloat() * 10_000); // x 10_000 ?!?!!??
 
-        $dbalMessage = [
+        $record = [
             'id' => Uuid::v7()->toRfc4122(),
             'published_at' => $publishedAt,
-            'body' => $body,
+            'body' => $message->getBody(),
             'headers' => JSON::encode($message->getHeaders()),
             'properties' => JSON::encode($message->getProperties()),
             'priority' => -1 * $message->getPriority(),
@@ -80,6 +156,8 @@ class DbalProducer implements Producer
             'redelivered' => false,
             'delivery_id' => null,
             'redeliver_after' => null,
+            'delayed_until' => null,
+            'time_to_live' => null,
         ];
 
         $delay = $message->getDeliveryDelay();
@@ -92,7 +170,7 @@ class DbalProducer implements Producer
                 throw new LogicException(sprintf('Delay must be positive integer but got: "%s"', $delay));
             }
 
-            $dbalMessage['delayed_until'] = $this->context->getClock()->now()->add(Duration::milliseconds($delay))->unixTime()->inSeconds();
+            $record['delayed_until'] = $this->context->getClock()->now()->add(Duration::milliseconds($delay))->unixTime()->inSeconds();
         }
 
         $timeToLive = $message->getTimeToLive();
@@ -105,31 +183,10 @@ class DbalProducer implements Producer
                 throw new LogicException(sprintf('TimeToLive must be positive integer but got: "%s"', $timeToLive));
             }
 
-            $dbalMessage['time_to_live'] = $this->context->getClock()->now()->add(Duration::milliseconds($timeToLive))->unixTime()->inSeconds();
+            $record['time_to_live'] = $this->context->getClock()->now()->add(Duration::milliseconds($timeToLive))->unixTime()->inSeconds();
         }
 
-        try {
-            $rowsAffected = $this->context->getDbalConnection()->insert($this->context->getTableName(), $dbalMessage, [
-                'id' => DbalType::GUID,
-                'published_at' => DbalType::INTEGER,
-                'body' => DbalType::TEXT,
-                'headers' => DbalType::TEXT,
-                'properties' => DbalType::TEXT,
-                'priority' => DbalType::SMALLINT,
-                'queue' => DbalType::STRING,
-                'time_to_live' => DbalType::INTEGER,
-                'delayed_until' => DbalType::INTEGER,
-                'redelivered' => DbalType::SMALLINT,
-                'delivery_id' => DbalType::STRING,
-                'redeliver_after' => DbalType::BIGINT,
-            ]);
-
-            if (1 !== $rowsAffected) {
-                throw new Exception('The message was not enqueued. Dbal did not confirm that the record is inserted.');
-            }
-        } catch (\Exception $e) {
-            throw new Exception('The transport fails to send the message due to some internal error.', 0, $e);
-        }
+        return $record;
     }
 
     public function setDeliveryDelay(?int $deliveryDelay = null): Producer

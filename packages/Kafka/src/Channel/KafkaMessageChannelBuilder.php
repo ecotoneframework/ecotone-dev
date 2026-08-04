@@ -15,6 +15,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Support\Assert;
 
 /**
  * licence Enterprise
@@ -25,6 +26,8 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
     private KafkaOutboundChannelAdapterBuilder $outboundChannelAdapterBuilder;
     private string $headerMapper;
     private ?MediaType $conversionMediaType = null;
+    private bool $asyncPublishing = false;
+    private ?int $asyncPublishingTimeout = null;
 
     private function __construct(
         private string         $channelName,
@@ -114,6 +117,27 @@ final class KafkaMessageChannelBuilder implements MessageChannelWithSerializatio
         $this->conversionMediaType = MediaType::parseMediaType($mediaType);
 
         return $this;
+    }
+
+    public function withAsyncPublishing(bool $enabled = true, ?int $timeoutInMilliseconds = null): self
+    {
+        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
+        $this->asyncPublishing = $enabled;
+        if ($timeoutInMilliseconds !== null) {
+            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        }
+
+        return $this;
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
+    }
+
+    public function getAsyncPublishingTimeout(): ?int
+    {
+        return $this->asyncPublishingTimeout;
     }
 
     /**

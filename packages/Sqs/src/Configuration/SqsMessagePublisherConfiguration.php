@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Sqs\Configuration;
 
 use Ecotone\Messaging\MessagePublisher;
+use Ecotone\Messaging\Support\Assert;
 use Enqueue\Sqs\SqsConnectionFactory;
 
 /**
@@ -14,6 +15,8 @@ final class SqsMessagePublisherConfiguration
 {
     private bool $autoDeclareOnSend = true;
     private string $headerMapper = '';
+    private bool $asyncPublishing = false;
+    private ?int $asyncPublishingTimeout = null;
 
     private function __construct(private string $connectionReference, private string $queueName, private ?string $outputDefaultConversionMediaType, private string $referenceName)
     {
@@ -70,5 +73,26 @@ final class SqsMessagePublisherConfiguration
     public function getReferenceName(): string
     {
         return $this->referenceName;
+    }
+
+    public function withAsyncPublishing(bool $asyncPublishing = true, ?int $timeoutInMilliseconds = null): self
+    {
+        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
+        $this->asyncPublishing = $asyncPublishing;
+        if ($timeoutInMilliseconds !== null) {
+            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        }
+
+        return $this;
+    }
+
+    public function isAsyncPublishingEnabled(): bool
+    {
+        return $this->asyncPublishing;
+    }
+
+    public function getAsyncPublishingTimeout(): ?int
+    {
+        return $this->asyncPublishingTimeout;
     }
 }

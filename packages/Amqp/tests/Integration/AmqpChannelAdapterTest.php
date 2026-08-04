@@ -723,13 +723,13 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $messageChannel = $ecotoneLite->getMessageChannelByName($queueName);
         $messageChannel->send(
             MessageBuilder::withPayload('some')
-                ->setHeader(MessageHeaders::DELIVERY_DELAY, 250)
+                ->setHeader(MessageHeaders::DELIVERY_DELAY, 1000)
                 ->build()
         );
 
         $this->assertNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(200)));
 
-        $this->assertNotNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(1000)));
+        $this->assertNotNull($messageChannel->receiveWithTimeout(PollingMetadata::create('test')->setExecutionTimeLimitInMilliseconds(5000)));
     }
 
     public function test_receiving_from_dead_letter_queue()

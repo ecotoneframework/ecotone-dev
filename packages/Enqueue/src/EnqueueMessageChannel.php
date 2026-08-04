@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHandler;
@@ -12,10 +13,15 @@ use Ecotone\Messaging\PollableChannel;
 /**
  * licence Apache-2.0
  */
-final class EnqueueMessageChannel implements PollableChannel
+final class EnqueueMessageChannel implements PollableChannel, BatchSupportingMessageChannel
 {
-    public function __construct(private EnqueueInboundChannelAdapter $inboundChannelAdapter, private MessageHandler $outboundChannelAdapter)
+    public function __construct(private EnqueueInboundChannelAdapter $inboundChannelAdapter, private MessageHandler $outboundChannelAdapter, private bool $supportsBatchMessages = false)
     {
+    }
+
+    public function supportsBatchMessages(): bool
+    {
+        return $this->supportsBatchMessages;
     }
 
     public function send(Message $message): void

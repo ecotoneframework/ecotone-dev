@@ -8,9 +8,15 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Illuminate\Support\Facades\Artisan;
+
+use function json_encode;
+
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
+
+use function putenv;
+
 use Symfony\Bundle\FrameworkBundle\Console\Application as SymfonyConsoleApplication;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Output\NullOutput;
@@ -168,39 +174,39 @@ abstract class FullAppBenchmarkCase extends TestCase
         }
     }
 
-    public abstract function executeForSymfony(
+    abstract public function executeForSymfony(
         ContainerInterface $container,
         SymfonyKernel $kernel
     ): void;
 
-    public abstract function executeForLaravel(
+    abstract public function executeForLaravel(
         ContainerInterface $container,
         LaravelKernel $kernel
     ): void;
 
-    public abstract function executeForLiteApplication(
+    abstract public function executeForLiteApplication(
         ContainerInterface $container
     ): void;
 
-    public abstract function executeForLite(
+    abstract public function executeForLite(
         ConfiguredMessagingSystem $messagingSystem
     ): void;
 
-    protected abstract static function getSymfonyKernelClass(): string;
-    protected abstract static function getProjectDir(): string;
+    abstract protected static function getSymfonyKernelClass(): string;
+    abstract protected static function getProjectDir(): string;
 
     private static function productionEnvironments(): void
     {
-        \putenv('APP_ENV=prod');
-        \putenv('APP_DEBUG=false');
-        \putenv(sprintf('APP_SKIPPED_PACKAGES=%s', \json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
+        putenv('APP_ENV=prod');
+        putenv('APP_DEBUG=false');
+        putenv(sprintf('APP_SKIPPED_PACKAGES=%s', json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
     }
 
     private static function developmentEnvironments(): void
     {
-        \putenv('APP_ENV=dev');
-        \putenv('APP_DEBUG=true');
-        \putenv(sprintf("APP_SKIPPED_PACKAGES=%s", \json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
+        putenv('APP_ENV=dev');
+        putenv('APP_DEBUG=true');
+        putenv(sprintf('APP_SKIPPED_PACKAGES=%s', json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
     }
 
     public static function skippedPackages(): array

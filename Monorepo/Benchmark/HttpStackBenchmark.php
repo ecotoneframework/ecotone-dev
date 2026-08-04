@@ -10,7 +10,6 @@ use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\Common\UI\OrderController;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
-use Monorepo\ExampleApp\Symfony\Kernel as SymfonyKernel;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;
@@ -27,7 +26,8 @@ class HttpStackBenchmark extends FullAppBenchmarkCase
     {
         $configuration = $container->get(Configuration::class);
         $response = $kernel->handle(
-            SymfonyRequest::create('/place-order',
+            SymfonyRequest::create(
+                '/place-order',
                 'POST',
                 content: json_encode([
                     'orderId' => Uuid::uuid4()->toString(),
@@ -35,7 +35,7 @@ class HttpStackBenchmark extends FullAppBenchmarkCase
                         'street' => 'Washington',
                         'houseNumber' => '15',
                         'postCode' => '81-221',
-                        'country' => 'Netherlands'
+                        'country' => 'Netherlands',
                     ],
                     'productId' => $configuration->productId(),
                 ])
@@ -58,7 +58,7 @@ class HttpStackBenchmark extends FullAppBenchmarkCase
                         'street' => 'Washington',
                         'houseNumber' => '15',
                         'postCode' => '81-221',
-                        'country' => 'Netherlands'
+                        'country' => 'Netherlands',
                     ],
                     'productId' => $configuration->productId(),
                 ])
@@ -79,7 +79,7 @@ class HttpStackBenchmark extends FullAppBenchmarkCase
                 'street' => 'Washington',
                 'houseNumber' => '15',
                 'postCode' => '81-221',
-                'country' => 'Netherlands'
+                'country' => 'Netherlands',
             ],
             'productId' => $configuration->productId(),
         ])));

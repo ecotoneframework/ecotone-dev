@@ -1,0 +1,34 @@
+packages/Dbal/tests/Fixture/BatchForwarding/AlwaysFailOnPayloadChannelInterceptor.php
+  s_2515a1cc82548a::t_83610b25c67f13 1-29
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_5bdd3a3e4c88ea 346-462
+  s_2515a1cc82548a::t_fe3d4d7d3d39c5 28
+  s_2515a1cc82548a::t_0c1c8eb3669430 18
+packages/Dbal/src/DbalInboundChannelAdapterBuilder.php
+  s_2515a1cc82548a::t_32d4dc9cbcb9d2 41
+packages/Sqs/src/SqsInboundChannelAdapterBuilder.php
+  s_2515a1cc82548a::t_964557c5265025 43
+packages/Redis/src/RedisInboundChannelAdapterBuilder.php
+  s_2515a1cc82548a::t_e68e218bbbcb48 43
+packages/Ecotone/src/Messaging/Handler/Bridge/BatchForwardingBridge.php
+  s_2515a1cc82548a::t_d14ed2cd811f4e 73-74,77
+  s_2515a1cc82548a::t_06774551d6e3a7 163,165-177,179,184-186
+  s_2515a1cc82548a::t_b80e39263510f9 12,14
+  s_2515a1cc82548a::t_0461915448abea 187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "5b9b6ffb39d29ed71e7f762fe8e90c928a04cea8",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

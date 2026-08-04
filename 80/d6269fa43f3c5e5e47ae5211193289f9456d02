@@ -1,0 +1,19 @@
+Monorepo/Benchmark/OutboxRelayBenchmark.php
+  s_2515a1cc82548a::t_12969e7afa9e4c 1-148
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "80d6269fa43f3c5e5e47ae5211193289f9456d02",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

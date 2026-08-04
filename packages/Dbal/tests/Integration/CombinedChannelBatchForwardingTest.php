@@ -179,6 +179,49 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
     }
 
+    public function test_messages_for_different_targets_on_shared_outbox_reach_their_own_channels(): void
+    {
+        $orderService = new class () {
+            #[Asynchronous('standardOrders')]
+            #[CommandHandler('order.registerStandard', endpointId: 'standardOrderEndpoint')]
+            public function registerStandard(string $order): void
+            {
+            }
+
+            #[Asynchronous('priorityOrders')]
+            #[CommandHandler('order.registerPriority', endpointId: 'priorityOrderEndpoint')]
+            public function registerPriority(string $order): void
+            {
+            }
+        };
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    CombinedMessageChannel::create('standardOrders', ['outbox', 'standardProcessing']),
+                    CombinedMessageChannel::create('priorityOrders', ['outbox', 'priorityProcessing']),
+                    DbalBackedMessageChannelBuilder::create('outbox'),
+                    DbalBackedMessageChannelBuilder::create('standardProcessing'),
+                    DbalBackedMessageChannelBuilder::create('priorityProcessing'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.registerStandard', 'espresso');
+        $messaging->sendCommandWithRoutingKey('order.registerPriority', 'flat white');
+        $messaging->sendCommandWithRoutingKey('order.registerStandard', 'latte');
+        $messaging->sendCommandWithRoutingKey('order.registerPriority', 'cortado');
+
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+
+        $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('standardProcessing')));
+        $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('priorityProcessing')));
+        $this->assertNull($messaging->getMessageChannel('outbox')->receive());
+    }
+
     private function receiveAllFrom(PollableChannel $channel): array
     {
         $messages = [];

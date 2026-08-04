@@ -1,0 +1,19 @@
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_187832a912ee07 182-224
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "8e0587d543b371323c4d488752bd6f06507a6f34",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

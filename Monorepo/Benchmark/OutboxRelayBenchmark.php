@@ -67,6 +67,7 @@ class OutboxRelayBenchmark
             KafkaMessageChannelBuilder::create($uniqueId, topicName: $uniqueId, messageGroupId: $uniqueId),
             [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([getenv('KAFKA_DSN') ?: 'localhost:9094'])],
             licenceKey: LicenceTesting::VALID_LICENCE,
+            maxForwardingBatchSize: 1,
         );
         $this->fillOutbox();
     }
@@ -119,7 +120,7 @@ class OutboxRelayBenchmark
         }
     }
 
-    private function bootstrapOutboxWithTarget(string $modulePackage, object $targetChannelBuilder, array $services, ?string $licenceKey): FlowTestSupport
+    private function bootstrapOutboxWithTarget(string $modulePackage, object $targetChannelBuilder, array $services, ?string $licenceKey, ?int $maxForwardingBatchSize = null): FlowTestSupport
     {
         $orderService = new class () {
             #[Asynchronous('benchmark_relay_orders')]
@@ -128,6 +129,11 @@ class OutboxRelayBenchmark
             {
             }
         };
+
+        $combinedMessageChannel = CombinedMessageChannel::create('benchmark_relay_orders', ['benchmark_outbox', $targetChannelBuilder->getMessageChannelName()]);
+        if ($maxForwardingBatchSize !== null) {
+            $combinedMessageChannel = $combinedMessageChannel->withMaxForwardingBatchSize($maxForwardingBatchSize);
+        }
 
         return EcotoneLite::bootstrapFlowTesting(
             [$orderService::class],
@@ -138,7 +144,7 @@ class OutboxRelayBenchmark
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE, $modulePackage]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('benchmark_relay_orders', ['benchmark_outbox', $targetChannelBuilder->getMessageChannelName()]),
+                    $combinedMessageChannel,
                     DbalBackedMessageChannelBuilder::create('benchmark_outbox'),
                     $targetChannelBuilder,
                 ]),

@@ -44,6 +44,7 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncEndpointAnnotationContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
+use Ecotone\Messaging\Channel\ForwardingBatchSizeAware;
 use Ecotone\Messaging\Handler\Bridge\BatchForwardingBridge;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ChannelResolver;
@@ -541,12 +542,13 @@ final class MessagingSystemConfiguration implements Configuration
              * This is Bridge that will fetch the message and make use of routing_slip to target it
              * message handler.
              */
+            $channelBuilder = $this->channelBuilders[$asynchronousChannel];
             $this->messageHandlerBuilders[$asynchronousChannel] = ServiceActivatorBuilder::createWithDefinition(
                 new Definition(BatchForwardingBridge::class, [
                     new ChannelReference($asynchronousChannel),
                     new Reference(ChannelResolver::class),
                     $this->isRunningForEnterpriseLicence,
-                    self::DEFAULT_FORWARDING_BATCH_SIZE,
+                    $channelBuilder instanceof ForwardingBatchSizeAware ? $channelBuilder->getMaxForwardingBatchSize() : self::DEFAULT_FORWARDING_BATCH_SIZE,
                 ]),
                 'handle',
             )

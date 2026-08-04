@@ -67,6 +67,40 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->assertNull($messaging->getMessageChannel('outbox')->receive());
     }
 
+    public function test_single_run_moves_no_more_messages_than_configured_forwarding_batch_size(): void
+    {
+        $orderService = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+            public function register(string $order): void
+            {
+            }
+        };
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                    DbalBackedMessageChannelBuilder::create('outbox')
+                        ->withMaxForwardingBatchSize(2),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+
+        $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
+        $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+    }
+
     private function receiveAllFrom(PollableChannel $channel): array
     {
         $messages = [];

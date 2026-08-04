@@ -2,20 +2,24 @@
 
 namespace Ecotone\Enqueue;
 
+use Ecotone\Messaging\Channel\ForwardingBatchSizeAware;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
+use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Support\Assert;
 
 /**
  * licence Apache-2.0
  */
-abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder
+abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSerializationBuilder, ForwardingBatchSizeAware
 {
     protected EnqueueInboundChannelAdapterBuilder $inboundChannelAdapter;
     protected EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapter;
+    protected int $maxForwardingBatchSize = MessagingSystemConfiguration::DEFAULT_FORWARDING_BATCH_SIZE;
 
     public function __construct(EnqueueInboundChannelAdapterBuilder $inboundChannelAdapterBuilder, EnqueueOutboundChannelAdapterBuilder $outboundChannelAdapterBuilder)
     {
@@ -43,6 +47,19 @@ abstract class EnqueueMessageChannelBuilder implements MessageChannelWithSeriali
     public function isStreamingChannel(): bool
     {
         return false;
+    }
+
+    public function withMaxForwardingBatchSize(int $maxForwardingBatchSize): self
+    {
+        Assert::isTrue($maxForwardingBatchSize > 0, 'Max forwarding batch size must be a positive number.');
+        $this->maxForwardingBatchSize = $maxForwardingBatchSize;
+
+        return $this;
+    }
+
+    public function getMaxForwardingBatchSize(): int
+    {
+        return $this->maxForwardingBatchSize;
     }
 
     public function withHeaderMapping(string $headerMapper): self

@@ -1,0 +1,25 @@
+packages/Dbal/tests/Fixture/BatchForwarding/FailingPollableChannel.php
+  s_2515a1cc82548a::t_8662b7edee15a3 23,25-26
+  s_2515a1cc82548a::t_fb8615f0fbf2f7 1-6,8-14,16,18,20-21,27-31
+  s_2515a1cc82548a::t_b60038ac4d5602 7,15,17,19,22,24
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_1cdb90eaac9f8b 11
+  s_2515a1cc82548a::t_5ed204ce95582d 228-265
+  s_2515a1cc82548a::t_4b49ef50640993 20,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "ec532b864a6bf1ac7c5b86a0c9de6b683a217d5d",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

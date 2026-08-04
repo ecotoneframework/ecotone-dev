@@ -147,6 +147,38 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
     }
 
+    public function test_single_run_without_enterprise_licence_moves_one_message_only(): void
+    {
+        $orderService = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+            public function register(string $order): void
+            {
+            }
+        };
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                    DbalBackedMessageChannelBuilder::create('outbox'),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                ]),
+        );
+
+        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+
+        $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
+        $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+    }
+
     private function receiveAllFrom(PollableChannel $channel): array
     {
         $messages = [];

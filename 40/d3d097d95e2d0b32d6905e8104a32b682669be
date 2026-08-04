@@ -1,0 +1,48 @@
+packages/Dbal/tests/Fixture/BatchForwarding/FailOnceOnPayloadPollableChannel.php
+  s_2515a1cc82548a::t_88a248fd65b286 1-16,18-23,26-34,36-37
+  s_2515a1cc82548a::t_df962430978900 17,24-25,35
+packages/Ecotone/src/Messaging/Channel/CombinedChannelForwardingConfiguration.php
+  s_2515a1cc82548a::t_2cc546d7a0cd76 1-25
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_2515a1cc82548a::t_7d6d403e977c7c 16
+  s_2515a1cc82548a::t_015f998819bf12 536-548,556-574
+  s_2515a1cc82548a::t_cc81260646d441 49
+packages/Ecotone/src/Messaging/Handler/Bridge/BatchForwardingBridge.php
+  s_2515a1cc82548a::t_e7eadef46bb23b 70,72
+  s_2515a1cc82548a::t_d8a3a8169963b3 9
+  s_2515a1cc82548a::t_7ad6e6d935c40d 32-33,48-49
+  s_2515a1cc82548a::t_fc6cc0dbdd8254 50-52
+packages/Ecotone/src/Messaging/Config/Annotation/ModuleConfiguration/AsynchronousModule.php
+  s_2515a1cc82548a::t_00e75d87e13104 20
+  s_2515a1cc82548a::t_601fb8c7facf04 144
+  s_2515a1cc82548a::t_a257fa4d88829a 246-267
+  s_2515a1cc82548a::t_e7deae0a6ce979 12
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_b9f77e4d8d143c 325
+  s_2515a1cc82548a::t_9ceb327047ed76 12
+  s_2515a1cc82548a::t_92092fbdd84e10 235-324,326-343
+  s_2515a1cc82548a::t_ef5c47ec76f9a7 29
+  s_2515a1cc82548a::t_d94553f7f97fee 19
+  s_2515a1cc82548a::t_116ede0cb62479 142,144
+packages/Enqueue/src/EnqueueMessageChannelBuilder.php
+  s_2515a1cc82548a::t_f6bb15b8f01bf5 15
+packages/Ecotone/src/Messaging/Channel/CombinedMessageChannel.php
+  s_2515a1cc82548a::t_66287842382344 14-15
+  s_2515a1cc82548a::t_7ec37435ffd4b1 30-42
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "40d3d097d95e2d0b32d6905e8104a32b682669be",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

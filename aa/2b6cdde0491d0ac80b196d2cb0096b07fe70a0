@@ -1,0 +1,50 @@
+packages/Redis/tests/Integration/AsyncPublishingTest.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 296
+packages/Redis/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 78
+packages/Dbal/tests/Integration/AsyncPublishingTest.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 289
+packages/Redis/src/RedisBackedMessageChannelBuilder.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 36
+packages/Dbal/src/DbalBackedMessageChannelBuilder.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 34
+Monorepo/Benchmark/AsyncPublishingBenchmark.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 75,98,114,130,152
+packages/Sqs/src/SqsBackedMessageChannelBuilder.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 36
+packages/Amqp/tests/Integration/AsyncPublishingTest.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 223,312
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 106
+  s_2515a1cc82548a::t_8ba3f83370def0 77
+packages/Kafka/src/Channel/KafkaMessageChannelBuilder.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 122,133
+packages/Amqp/src/AmqpBackedMessageChannelBuilder.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 75
+packages/Sqs/tests/Integration/AsyncPublishingTest.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 243
+packages/Kafka/tests/Integration/AsyncPublishingTest.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 102,223,226
+Monorepo/Benchmark/OutboxRelayBenchmark.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 55,79
+packages/Kafka/src/Configuration/KafkaModule.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 116
+packages/Sqs/tests/Integration/AsyncPublishingReliabilityTest.php
+  s_2515a1cc82548a::t_35d10d53cdbc03 112
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "aa2b6cdde0491d0ac80b196d2cb0096b07fe70a0",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

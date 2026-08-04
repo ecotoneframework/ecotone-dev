@@ -44,7 +44,9 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncEndpointAnnotationContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
+use Ecotone\Messaging\Handler\Bridge\BatchForwardingBridge;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
+use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -57,6 +59,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
 use Ecotone\Messaging\Handler\Transformer\RoutingSlipPrepender;
 use Ecotone\Messaging\Handler\Type;
@@ -84,6 +87,8 @@ use Symfony\Component\Uid\Uuid;
  */
 final class MessagingSystemConfiguration implements Configuration
 {
+    public const DEFAULT_FORWARDING_BATCH_SIZE = 100;
+
     /**
      * @var MessageChannelBuilder[]
      */
@@ -536,7 +541,15 @@ final class MessagingSystemConfiguration implements Configuration
              * This is Bridge that will fetch the message and make use of routing_slip to target it
              * message handler.
              */
-            $this->messageHandlerBuilders[$asynchronousChannel] = BridgeBuilder::create()
+            $this->messageHandlerBuilders[$asynchronousChannel] = ServiceActivatorBuilder::createWithDefinition(
+                new Definition(BatchForwardingBridge::class, [
+                    new ChannelReference($asynchronousChannel),
+                    new Reference(ChannelResolver::class),
+                    $this->isRunningForEnterpriseLicence,
+                    self::DEFAULT_FORWARDING_BATCH_SIZE,
+                ]),
+                'handle',
+            )
                 ->withInputChannelName($asynchronousChannel)
                 ->withEndpointId($asynchronousChannel);
         }

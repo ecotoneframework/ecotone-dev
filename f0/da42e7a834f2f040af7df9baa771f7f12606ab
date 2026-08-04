@@ -1,0 +1,19 @@
+Monorepo/CrossModuleTests/Tests/MessageConsumer/KafkaConsumerDeduplicationTest.php
+  s_5b26a31f78adda::t_2e49c25a4c0b40 153,166,179,230,236,255
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "f0da42e7a834f2f040af7df9baa771f7f12606ab",
+  "prompts": {},
+  "sessions": {
+    "s_5b26a31f78adda": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "13e75614-d9f6-4e26-a582-e86ff83479f1",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -9,6 +9,7 @@ use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Messaging\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Messaging\Attribute\WithoutMessageCollector;
 use Ecotone\Messaging\Channel\BatchForwardingConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -71,7 +72,7 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
                 )
                     ->withEndpointId((string) $endpointId)
                     ->withContinuousPolling()
-                    ->withEndpointAnnotations([new AttributeDefinition(WithoutMessageCollector::class)]),
+                    ->withEndpointAnnotations([new AttributeDefinition(WithoutMessageCollector::class), new AttributeDefinition(WithoutDatabaseTransaction::class)]),
             );
         }
     }
@@ -102,7 +103,7 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
             new Reference(LoggingGateway::class),
             new Reference(EcotoneClockInterface::class),
             $batchForwardingConfiguration->getMaxForwardingBatchSize(),
-            $inboundChannelAdapter->getFinalFailureStrategy(),
+            $batchForwardingConfiguration->getFinalFailureStrategy() ?? $inboundChannelAdapter->getFinalFailureStrategy(),
         ]);
     }
 }

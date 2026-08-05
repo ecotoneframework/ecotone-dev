@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel;
 
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Support\Assert;
 
 /**
@@ -19,6 +20,7 @@ final class BatchForwardingConfiguration
     private int $maxForwardingBatchSize = self::DEFAULT_MAX_FORWARDING_BATCH_SIZE;
     private bool $enabled = true;
     private ?string $endpointId = null;
+    private ?FinalFailureStrategy $finalFailureStrategy = null;
 
     private function __construct(private string $channelName)
     {
@@ -48,6 +50,18 @@ final class BatchForwardingConfiguration
     public function getEndpointId(): string
     {
         return $this->endpointId ?? $this->channelName;
+    }
+
+    public function withFinalFailureStrategy(FinalFailureStrategy $finalFailureStrategy): self
+    {
+        $this->finalFailureStrategy = $finalFailureStrategy;
+
+        return $this;
+    }
+
+    public function getFinalFailureStrategy(): ?FinalFailureStrategy
+    {
+        return $this->finalFailureStrategy;
     }
 
     public function isEnabled(): bool

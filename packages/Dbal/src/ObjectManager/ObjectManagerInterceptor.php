@@ -7,6 +7,7 @@ use Doctrine\Persistence\ManagerRegistry;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Messaging\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
@@ -27,8 +28,12 @@ class ObjectManagerInterceptor
     {
     }
 
-    public function transactional(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $logger)
+    public function transactional(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $logger, ?WithoutDatabaseTransaction $withoutDatabaseTransaction = null)
     {
+        if ($withoutDatabaseTransaction !== null) {
+            return $methodInvocation->proceed();
+        }
+
         /** @var ManagerRegistry[] $managerRegistries */
         $managerRegistries = [];
 

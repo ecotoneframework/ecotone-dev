@@ -4,20 +4,18 @@ declare(strict_types=1);
 
 namespace Monorepo\Benchmark;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Messaging\Channel\BatchForwardingConfiguration;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PhpBench\Attributes\BeforeMethods;
 use PhpBench\Attributes\Iterations;
@@ -25,92 +23,91 @@ use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;
 
 /**
- * Compares outbox relay throughput over a combined channel (DBAL outbox in front of a broker channel):
- * message-by-message forwarding (no enterprise licence) against batched drain-and-group forwarding (enterprise).
+ * Measures how fast the whole DBAL outbox is drained and handed over to the next channel of a combined channel:
+ * message-by-message forwarding (no enterprise licence) against batched SQL drain-and-forward (enterprise).
+ * The consumer is warmed up on an empty outbox before messages are published, so only steady-state relay work is measured.
+ * The in-memory target subjects isolate the producing side of the relay; the high throughput target subject shows
+ * the full path into a Dbal backed channel receiving whole batches at once.
  */
 #[Warmup(0), Revs(1), Iterations(5)]
 class OutboxRelayBenchmark
 {
-    private const AMOUNT_OF_RELAYED_MESSAGES = 200;
+    private const AMOUNT_OF_RELAYED_MESSAGES = 10_000;
 
     private const MESSAGE_PAYLOAD = 'benchmark order payload for outbox relay comparison';
 
     private FlowTestSupport $messaging;
 
-    public function setUpAmqpRelayMessageByMessage(): void
+    public function setUpRelayMessageByMessage(): void
     {
-        $this->messaging = $this->bootstrapOutboxWithTarget(
-            ModulePackageList::AMQP_PACKAGE,
-            AmqpBackedMessageChannelBuilder::create(uniqid('benchmark_relay_')),
-            [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f'])],
-            licenceKey: null,
-        );
+        $this->messaging = $this->bootstrapOutbox(licenceKey: null);
+        $this->warmUpConsumerOnEmptyOutbox();
         $this->fillOutbox();
     }
 
-    public function setUpAmqpRelayBatched(): void
+    public function setUpRelayBatched(): void
     {
-        $this->messaging = $this->bootstrapOutboxWithTarget(
-            ModulePackageList::AMQP_PACKAGE,
-            AmqpBackedMessageChannelBuilder::create(uniqid('benchmark_relay_'))->withHighThroughputPublishing(),
-            [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ?: 'amqp://guest:guest@localhost:5672/%2f'])],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $this->messaging = $this->bootstrapOutbox(licenceKey: LicenceTesting::VALID_LICENCE);
+        $this->warmUpConsumerOnEmptyOutbox();
         $this->fillOutbox();
     }
 
-    public function setUpKafkaRelayMessageByMessage(): void
+    public function setUpRelaySingleBatch(): void
     {
-        $uniqueId = uniqid('benchmark_relay_');
-        $this->messaging = $this->bootstrapOutboxWithTarget(
-            ModulePackageList::KAFKA_PACKAGE,
-            KafkaMessageChannelBuilder::create($uniqueId, topicName: $uniqueId, messageGroupId: $uniqueId),
-            [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([getenv('KAFKA_DSN') ?: 'localhost:9094'])],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-            maxForwardingBatchSize: 1,
-        );
+        $this->messaging = $this->bootstrapOutbox(licenceKey: LicenceTesting::VALID_LICENCE, maxForwardingBatchSize: self::AMOUNT_OF_RELAYED_MESSAGES);
+        $this->warmUpConsumerOnEmptyOutbox();
         $this->fillOutbox();
     }
 
-    public function setUpKafkaRelayBatched(): void
+    public function setUpRelayBatchedIntoHighThroughputTarget(): void
     {
-        $uniqueId = uniqid('benchmark_relay_');
-        $this->messaging = $this->bootstrapOutboxWithTarget(
-            ModulePackageList::KAFKA_PACKAGE,
-            KafkaMessageChannelBuilder::create($uniqueId, topicName: $uniqueId, messageGroupId: $uniqueId)->withHighThroughputPublishing(),
-            [KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([getenv('KAFKA_DSN') ?: 'localhost:9094'])],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $this->messaging = $this->bootstrapOutbox(licenceKey: LicenceTesting::VALID_LICENCE, highThroughputTarget: true);
+        $this->warmUpConsumerOnEmptyOutbox();
         $this->fillOutbox();
     }
 
-    #[BeforeMethods('setUpAmqpRelayMessageByMessage')]
-    public function bench_amqp_outbox_relay_message_by_message(): void
+    #[BeforeMethods('setUpRelayMessageByMessage')]
+    public function bench_dbal_outbox_drain_message_by_message(): void
     {
-        $this->relayWholeOutbox();
+        $this->drainWholeOutbox();
     }
 
-    #[BeforeMethods('setUpAmqpRelayBatched')]
-    public function bench_amqp_outbox_relay_batched(): void
+    #[BeforeMethods('setUpRelayBatched')]
+    public function bench_dbal_outbox_drain_batched(): void
     {
-        $this->relayWholeOutbox();
+        $this->drainWholeOutbox();
     }
 
-    #[BeforeMethods('setUpKafkaRelayMessageByMessage')]
-    public function bench_kafka_outbox_relay_message_by_message(): void
+    #[BeforeMethods('setUpRelaySingleBatch')]
+    public function bench_dbal_outbox_drain_as_single_batch(): void
     {
-        $this->relayWholeOutbox();
+        $this->drainWholeOutbox();
     }
 
-    #[BeforeMethods('setUpKafkaRelayBatched')]
-    public function bench_kafka_outbox_relay_batched(): void
+    #[BeforeMethods('setUpRelayBatchedIntoHighThroughputTarget')]
+    public function bench_dbal_outbox_drain_batched_into_high_throughput_dbal_target(): void
     {
-        $this->relayWholeOutbox();
+        $this->drainWholeOutbox();
     }
 
-    private function relayWholeOutbox(): void
+    private function warmUpConsumerOnEmptyOutbox(): void
+    {
+        $context = (new DbalConnectionFactory(self::databaseDsn()))->createContext();
+        $context->createDataBaseTable();
+        $context->purgeQueue($context->createQueue('benchmark_outbox'));
+        $context->purgeQueue($context->createQueue('benchmark_target'));
+
+        $this->messaging->run('benchmark_outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+    }
+
+    private function drainWholeOutbox(): void
     {
         $this->messaging->run('benchmark_outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
+    }
+
+    private static function databaseDsn(): string
+    {
+        return getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone';
     }
 
     private function fillOutbox(): void
@@ -120,8 +117,21 @@ class OutboxRelayBenchmark
         }
     }
 
-    private function bootstrapOutboxWithTarget(string $modulePackage, object $targetChannelBuilder, array $services, ?string $licenceKey, ?int $maxForwardingBatchSize = null): FlowTestSupport
+    private function bootstrapOutbox(?string $licenceKey, ?int $maxForwardingBatchSize = null, bool $highThroughputTarget = false): FlowTestSupport
     {
+        $batchForwardingExtensions = [];
+        if ($licenceKey !== null) {
+            $batchForwardingConfiguration = BatchForwardingConfiguration::create('benchmark_outbox');
+            if ($maxForwardingBatchSize !== null) {
+                $batchForwardingConfiguration = $batchForwardingConfiguration->withMaxForwardingBatchSize($maxForwardingBatchSize);
+            }
+            $batchForwardingExtensions[] = $batchForwardingConfiguration;
+        }
+
+        $targetChannel = $highThroughputTarget
+            ? DbalBackedMessageChannelBuilder::create('benchmark_target')->withHighThroughputPublishing()
+            : SimpleMessageChannelBuilder::createQueueChannel('benchmark_target');
+
         $orderService = new class () {
             #[Asynchronous('benchmark_relay_orders')]
             #[CommandHandler('benchmark.relayOrder', endpointId: 'benchmarkRelayOrderEndpoint')]
@@ -130,24 +140,20 @@ class OutboxRelayBenchmark
             }
         };
 
-        $combinedMessageChannel = CombinedMessageChannel::create('benchmark_relay_orders', ['benchmark_outbox', $targetChannelBuilder->getMessageChannelName()]);
-        if ($maxForwardingBatchSize !== null) {
-            $combinedMessageChannel = $combinedMessageChannel->withMaxForwardingBatchSize($maxForwardingBatchSize);
-        }
-
         return EcotoneLite::bootstrapFlowTesting(
             [$orderService::class],
-            array_merge($services, [
-                DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
+            [
+                DbalConnectionFactory::class => new DbalConnectionFactory(self::databaseDsn()),
                 $orderService,
-            ]),
+            ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE, $modulePackage]))
-                ->withExtensionObjects([
-                    $combinedMessageChannel,
-                    DbalBackedMessageChannelBuilder::create('benchmark_outbox'),
-                    $targetChannelBuilder,
-                ]),
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects(array_merge([
+                    CombinedMessageChannel::create('benchmark_relay_orders', ['benchmark_outbox', 'benchmark_target']),
+                    DbalBackedMessageChannelBuilder::create('benchmark_outbox')
+                        ->withReceiveTimeout(20),
+                    $targetChannel,
+                ], $batchForwardingExtensions)),
             licenceKey: $licenceKey,
         );
     }

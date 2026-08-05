@@ -9,6 +9,7 @@ use Ecotone\Amqp\Configuration\RabbitConsumerModule;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherModule;
 use Ecotone\Amqp\Transaction\AmqpTransactionModule;
 use Ecotone\DataProtection\Configuration\DataProtectionModule;
+use Ecotone\Dbal\BatchForwarding\DbalBatchForwardingModule;
 use Ecotone\Dbal\Configuration\DbalConnectionModule;
 use Ecotone\Dbal\Configuration\DbalPublisherModule;
 use Ecotone\Dbal\Database\DatabaseSetupModule;
@@ -155,6 +156,7 @@ class ModuleClassList
     ];
 
     public const DBAL_MODULES = [
+        DbalBatchForwardingModule::class,
         DbalConnectionModule::class,
         DbalDeadLetterModule::class,
         ObjectManagerModule::class,

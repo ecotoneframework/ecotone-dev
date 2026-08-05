@@ -11,8 +11,6 @@ use Ecotone\Messaging\Support\Assert;
  */
 final class CombinedMessageChannel
 {
-    private ?int $maxForwardingBatchSize = null;
-
     private function __construct(private string $referenceName, private array $combinedChannels)
     {
         Assert::notNull($referenceName, 'Reference name can not be null');
@@ -25,19 +23,6 @@ final class CombinedMessageChannel
     public static function create(string $referenceName, array $combinedChannels): self
     {
         return new self($referenceName, $combinedChannels);
-    }
-
-    public function withMaxForwardingBatchSize(int $maxForwardingBatchSize): self
-    {
-        Assert::isTrue($maxForwardingBatchSize > 0, 'Max forwarding batch size must be a positive number.');
-        $this->maxForwardingBatchSize = $maxForwardingBatchSize;
-
-        return $this;
-    }
-
-    public function getMaxForwardingBatchSize(): ?int
-    {
-        return $this->maxForwardingBatchSize;
     }
 
     public function getReferenceName(): string

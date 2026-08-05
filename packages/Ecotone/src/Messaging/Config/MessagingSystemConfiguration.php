@@ -11,9 +11,8 @@ use Ecotone\AnnotationFinder\AnnotationFinderFactory;
 use Ecotone\Lite\Test\TestConfiguration;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Channel\BatchForwardingSourceChannel;
+use Ecotone\Messaging\Channel\BatchForwardingConfiguration;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
-use Ecotone\Messaging\Channel\CombinedChannelForwardingConfiguration;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
@@ -46,9 +45,7 @@ use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncEndpointAnnotationContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Ecotone\Messaging\Handler\Bridge\BatchForwardingBridge;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
-use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\InterceptedEndpoint;
 use Ecotone\Messaging\Handler\InterfaceToCall;
@@ -61,7 +58,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\InterceptorWithPointCut;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\UninterruptibleServiceActivator;
 use Ecotone\Messaging\Handler\Transformer\RoutingSlipPrepender;
 use Ecotone\Messaging\Handler\Type;
@@ -146,6 +142,14 @@ final class MessagingSystemConfiguration implements Configuration
     private array $messageConverterReferenceNames = [];
     private ?ModuleReferenceSearchService $moduleReferenceSearchService;
     private array $asynchronousEndpoints = [];
+    /**
+     * @var array<string, bool>
+     */
+    private array $batchForwardingSourceChannels = [];
+    /**
+     * @var string[]
+     */
+    private array $declaredBatchForwardingChannels = [];
     private ServiceConfiguration $applicationConfiguration;
     /**
      * @var string[]
@@ -223,6 +227,12 @@ final class MessagingSystemConfiguration implements Configuration
         );
 
         $this->isRunningForTest = ExtensionObjectResolver::contains(TestConfiguration::class, $extensionObjects);
+
+        foreach (ExtensionObjectResolver::resolve(BatchForwardingConfiguration::class, $extensionObjects) as $batchForwardingConfiguration) {
+            if ($batchForwardingConfiguration->isEnabled()) {
+                $this->declaredBatchForwardingChannels[] = $batchForwardingConfiguration->getChannelName();
+            }
+        }
 
         $extensionObjects[] = $serviceConfiguration;
 
@@ -414,6 +424,16 @@ final class MessagingSystemConfiguration implements Configuration
         /** @var array<string, AttributeDefinition[]> $asyncHandlerAnnotations */
         $asyncHandlerAnnotations = [];
 
+        if ($this->batchForwardingSourceChannels !== [] && ! $this->isRunningForEnterpriseLicence) {
+            throw LicensingException::create(sprintf('Batch forwarding for Message Channel `%s` is available only with Ecotone Enterprise licence.', array_key_first($this->batchForwardingSourceChannels)));
+        }
+        foreach ($this->declaredBatchForwardingChannels as $declaredBatchForwardingChannel) {
+            if (! isset($this->batchForwardingSourceChannels[$declaredBatchForwardingChannel])) {
+                throw ConfigurationException::create("Batch forwarding was configured for Message Channel `{$declaredBatchForwardingChannel}`, yet no module enabled it for that channel. Batch forwarding requires a Dbal backed Message Channel with matching name and the Dbal package enabled.");
+            }
+        }
+        $this->verifyBatchForwardingSourceChannelsAreNotUsedForExecution($this->batchForwardingSourceChannels);
+
         foreach ($this->asynchronousEndpoints as $targetEndpointId => $asynchronousMessageChannels) {
             $asynchronousMessageChannel = array_shift($asynchronousMessageChannels);
             if (! isset($this->channelBuilders[$asynchronousMessageChannel]) && ! isset($this->defaultChannelBuilders[$asynchronousMessageChannel])) {
@@ -534,19 +554,6 @@ final class MessagingSystemConfiguration implements Configuration
             )
         );
 
-        $relaySourceChannels = [];
-        foreach ($this->asynchronousEndpoints as $asynchronousMessageChannels) {
-            foreach (array_slice($asynchronousMessageChannels, 0, -1) as $relaySourceChannel) {
-                $relaySourceChannels[$relaySourceChannel] = true;
-            }
-        }
-        if ($relaySourceChannels !== []) {
-            $this->registerServiceDefinition(
-                CombinedChannelForwardingConfiguration::class,
-                new Definition(CombinedChannelForwardingConfiguration::class, [[]])
-            );
-        }
-
         foreach ($asynchronousChannels as $asynchronousChannel) {
             Assert::isTrue($this->channelBuilders[$asynchronousChannel]->isPollable(), "Asynchronous Message Channel {$asynchronousChannel} must be Pollable");
             //        needed for correct around intercepting, otherwise requestReply is outside of around interceptor scope
@@ -554,20 +561,10 @@ final class MessagingSystemConfiguration implements Configuration
              * This is Bridge that will fetch the message and make use of routing_slip to target it
              * message handler.
              */
-            if (isset($relaySourceChannels[$asynchronousChannel]) && $this->channelBuilders[$asynchronousChannel] instanceof BatchForwardingSourceChannel) {
-                $this->messageHandlerBuilders[$asynchronousChannel] = ServiceActivatorBuilder::createWithDefinition(
-                    new Definition(BatchForwardingBridge::class, [
-                        new ChannelReference($asynchronousChannel),
-                        new Reference(ChannelResolver::class),
-                        new Reference(LoggingGateway::class),
-                        $this->isRunningForEnterpriseLicence,
-                        $asynchronousChannel,
-                        new Reference(CombinedChannelForwardingConfiguration::class),
-                    ]),
-                    'handle',
-                )
-                    ->withInputChannelName($asynchronousChannel)
-                    ->withEndpointId($asynchronousChannel);
+            if (isset($this->batchForwardingSourceChannels[$asynchronousChannel])) {
+                if (! isset($this->channelAdapters[$asynchronousChannel])) {
+                    unset($this->pollingMetadata[$asynchronousChannel]);
+                }
 
                 continue;
             }
@@ -578,6 +575,29 @@ final class MessagingSystemConfiguration implements Configuration
         }
 
         $this->asynchronousEndpoints = [];
+    }
+
+    /**
+     * @param array<string, bool> $batchForwardingSourceChannels
+     */
+    private function verifyBatchForwardingSourceChannelsAreNotUsedForExecution(array $batchForwardingSourceChannels): void
+    {
+        if ($batchForwardingSourceChannels === []) {
+            return;
+        }
+
+        foreach ($this->asynchronousEndpoints as $targetEndpointId => $asynchronousMessageChannels) {
+            $executionChannel = $asynchronousMessageChannels[array_key_last($asynchronousMessageChannels)];
+            if (isset($batchForwardingSourceChannels[$executionChannel])) {
+                throw ConfigurationException::create("Channel `{$executionChannel}` is a batched forwarding outbox, which only pushes messages forward to the next channel. It can not be used as execution channel for endpoint `{$targetEndpointId}`. Point the endpoint at the Combined Message Channel instead.");
+            }
+        }
+
+        foreach ($this->messageHandlerBuilders as $messageHandlerBuilder) {
+            if ($messageHandlerBuilder instanceof MessageHandlerBuilderWithOutputChannel && isset($batchForwardingSourceChannels[$messageHandlerBuilder->getOutputMessageChannelName()])) {
+                throw ConfigurationException::create("Channel `{$messageHandlerBuilder->getOutputMessageChannelName()}` is a batched forwarding outbox, which only pushes messages forward to the next channel. It can not be used as output channel of {$messageHandlerBuilder}. Point the output at the Combined Message Channel instead.");
+            }
+        }
     }
 
     /**
@@ -792,6 +812,14 @@ final class MessagingSystemConfiguration implements Configuration
     /**
      * @inheritDoc
      */
+    public function registerBatchForwardingSourceChannel(string $channelName): Configuration
+    {
+        Assert::isTrue(! isset($this->batchForwardingSourceChannels[$channelName]), "Batch forwarding for Message Channel `{$channelName}` is already registered.");
+        $this->batchForwardingSourceChannels[$channelName] = true;
+
+        return $this;
+    }
+
     public function registerAsynchronousEndpoint(array|string $asynchronousChannelNames, string $targetEndpointId): Configuration
     {
         $this->asynchronousEndpoints[$targetEndpointId] = is_string($asynchronousChannelNames) ? [$asynchronousChannelNames] : $asynchronousChannelNames;

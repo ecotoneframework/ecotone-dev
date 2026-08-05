@@ -1,0 +1,39 @@
+packages/Dbal/src/DbalOutboundChannelAdapter.php
+  s_2515a1cc82548a::t_7748f08c79cd49 73
+packages/Ecotone/src/Messaging/Channel/PollableChannel/Serialization/OutboundMessageConverter.php
+  s_2515a1cc82548a::t_be275e46fd534a 33-77,151,153,155,159
+  s_2515a1cc82548a::t_13b4576b4a8946 161-162,164,179
+  s_2515a1cc82548a::t_df41ca23c8f868 146-149,158
+  s_2515a1cc82548a::t_800fb1d87c7406 16
+  s_2515a1cc82548a::t_c6eb39f6baf289 152
+  s_2515a1cc82548a::t_4fd0cbe10c1b44 154
+  s_2515a1cc82548a::t_688f08be5cafc2 156-157
+  s_2515a1cc82548a::t_93333cd5dc41fd 160
+packages/Dbal/src/EnqueueDbal/DbalProducer.php
+  s_2515a1cc82548a::t_456299e6d0bd6e 39
+  s_2515a1cc82548a::t_b3cdcd10d44750 26-35,38
+  s_2515a1cc82548a::t_ca92d7a09a9dbb 109-110,113,115-116,123,125
+  s_2515a1cc82548a::t_beb79612ec0cf4 7
+  s_2515a1cc82548a::t_8ddc724961c680 40
+packages/Enqueue/src/EnqueueOutboundChannelAdapter.php
+  s_2515a1cc82548a::t_bf457ca3606aab 104-111
+packages/Ecotone/src/Messaging/MessageConverter/DefaultHeaderMapper.php
+  s_2515a1cc82548a::t_cda95ddd5e6726 123-130
+  s_2515a1cc82548a::t_c722ed66dbc20d 149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "9ac7b73b9ee2a3d75514ab17c0c96a31cfd19687",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

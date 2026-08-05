@@ -166,6 +166,41 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
     }
 
+    public function test_execution_limit_of_two_moves_exactly_two_batches(): void
+    {
+        $orderService = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+            public function register(string $order): void
+            {
+            }
+        };
+
+        $messaging = EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
+                    BatchForwardingConfiguration::create('outbox')
+                        ->withMaxForwardingBatchSize(100),
+                    DbalBackedMessageChannelBuilder::create('outbox'),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        for ($messageNumber = 0; $messageNumber < 300; $messageNumber++) {
+            $messaging->sendCommandWithRoutingKey('order.register', 'order-' . $messageNumber);
+        }
+
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, maxExecutionTimeInMilliseconds: 30000));
+
+        $this->assertCount(200, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
+        $this->assertCount(100, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
+    }
+
     public function test_batch_forwarding_configuration_requires_enterprise_licence(): void
     {
         $orderService = new class () {

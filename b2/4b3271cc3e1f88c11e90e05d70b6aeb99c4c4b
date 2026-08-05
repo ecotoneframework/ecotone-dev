@@ -1,0 +1,39 @@
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_8e08aa70861347 83-84
+  s_2515a1cc82548a::t_fd48dc4b85404e 434-435,440
+  s_2515a1cc82548a::t_f90d2cf3c797f9 299,302,304-310,312
+  s_2515a1cc82548a::t_a3080b9f0625b5 200-203
+  s_2515a1cc82548a::t_1bf1273d62cf84 311
+  s_2515a1cc82548a::t_9d1a9b50ad074f 396-399
+  s_2515a1cc82548a::t_74aa1be34a279a 499,501
+  s_2515a1cc82548a::t_b2ee0800b5b857 165-166
+  s_2515a1cc82548a::t_f4bf19b54a873b 1042-1046
+  s_2515a1cc82548a::t_7c18c6066106db 992-995,999
+  s_2515a1cc82548a::t_2f5d4522b2b631 1032-1041,1047-1057
+  s_2515a1cc82548a::t_34e5630b4a9fc6 288-289
+  s_2515a1cc82548a::t_e6c6755a00ef4c 539,541
+packages/Dbal/src/BatchForwarding/DbalBatchForwardingModule.php
+  s_2515a1cc82548a::t_2d863441f8d883 106
+  s_2515a1cc82548a::t_8603e2e2ce12bf 12
+  s_2515a1cc82548a::t_86492c06ba08d3 75
+packages/Ecotone/src/Messaging/Channel/BatchForwardingConfiguration.php
+  s_2515a1cc82548a::t_a13912f371b9cb 55-66
+  s_2515a1cc82548a::t_75a85ae3dec59d 23
+  s_2515a1cc82548a::t_ed2788b8fe7a59 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "b24b3271cc3e1f88c11e90e05d70b6aeb99c4c4b",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

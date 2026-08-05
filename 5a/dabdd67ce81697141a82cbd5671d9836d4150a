@@ -1,0 +1,94 @@
+packages/Kafka/tests/Integration/CombinedChannelForwardingTest.php
+  s_2515a1cc82548a::t_9abe8328ff08aa 14,31,41-42,44
+  s_2515a1cc82548a::t_e3af12129ea3cf 11
+  s_2515a1cc82548a::t_9eba381e2ed456 51
+packages/Dbal/src/DbalBackedMessageChannelBuilder.php
+  s_2515a1cc82548a::t_5174babb1e7e63 11
+packages/Dbal/src/BatchForwarding/DbalOutboxPublisher.php
+  s_2515a1cc82548a::t_ec6f1caf0f5c71 27-30,102,124,132-156,231,233,239,243,255,265-272,285,287-291,302,319
+  s_2515a1cc82548a::t_84f5267081146f 1-7,9-26,31-56,61-101,103-107,181-190,193-204,206-209,213,215-222,224,228-230,232,234-238,240-242,244-254,256-264,273-284,286,292-301,303-318,320-374
+  s_2515a1cc82548a::t_b933af3db1c0a6 8
+  s_2515a1cc82548a::t_b84bce6344099d 57-60
+  s_2515a1cc82548a::t_0fda94492ed269 108-123,125-131,157-180,191-192,205,210-212,214,223,225-227
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_2515a1cc82548a::t_e2a32939cccdd7 815,817-818
+  s_2515a1cc82548a::t_3bfafbd77e6ef8 429,436
+  s_2515a1cc82548a::t_d77aeec429b278 146,148-152,580
+  s_2515a1cc82548a::t_ef333593444c83 565-567
+  s_2515a1cc82548a::t_dd5f341cc2073d 14
+  s_2515a1cc82548a::t_fcb142c67f6ed0 145,147
+  s_2515a1cc82548a::t_c2fffc098a3807 564
+  s_2515a1cc82548a::t_f7fdff422bf90f 582-602
+  s_2515a1cc82548a::t_9ffedd46c15bac 816,819-822
+  s_2515a1cc82548a::t_51c713e3547db6 432
+  s_2515a1cc82548a::t_5cb1b8878d14c4 231-236
+  s_2515a1cc82548a::t_4c88a095b647df 427-428,430-431,433-435
+  s_2515a1cc82548a::t_2dbe126c8cdc82 581
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_f6ab1a19d4d8cf 11
+  s_2515a1cc82548a::t_42894182b704c0 17
+  s_2515a1cc82548a::t_4dda02bcf2b91c 150-151
+  s_2515a1cc82548a::t_80768f35f93d51 310,313-321,332-341,346-348,350,352-355
+  s_2515a1cc82548a::t_c6b6b043609f79 643-667
+  s_2515a1cc82548a::t_f595211d01d4c2 25
+  s_2515a1cc82548a::t_61f8e97094f910 701-733
+  s_2515a1cc82548a::t_f64e4bd8834f15 517,527-529,542,544-552,554,556-568
+  s_2515a1cc82548a::t_1961a309a2b502 182-187,734,762-847,851,854-913
+  s_2515a1cc82548a::t_cd8e521144c338 610-634,636-642,668-692,694-700
+  s_2515a1cc82548a::t_d8befed0f203b9 70,114,188,251,375,414,453,493,536,589,635,693,751,973
+  s_2515a1cc82548a::t_1f7f94730404ba 169-181,189-195
+packages/Ecotone/src/Messaging/Endpoint/InterceptedChannelAdapterBuilder.php
+  s_2515a1cc82548a::t_b342a53861b5f4 79
+  s_2515a1cc82548a::t_1531d0e24f76f8 47
+packages/Ecotone/src/Messaging/Channel/BatchForwardingConfiguration.php
+  s_2515a1cc82548a::t_32175ddffcb773 20
+  s_2515a1cc82548a::t_1ea23ee34d84f6 53-57
+  s_2515a1cc82548a::t_a33e2617fdb6f6 1-19,22-37,51-52,58-67
+  s_2515a1cc82548a::t_fc99a9678ffdae 21,38-50
+packages/Ecotone/src/Messaging/Config/Configuration.php
+  s_2515a1cc82548a::t_1d26da5e268e6c 71-72,74
+  s_2515a1cc82548a::t_8e3bb18bb33779 73,75
+  s_2515a1cc82548a::t_e718732c1c015c 70
+packages/Dbal/src/BatchForwarding/DbalBatchPublisher.php
+  s_2515a1cc82548a::t_39ee27fc0dfd18 12-15,28-37,39,41
+  s_2515a1cc82548a::t_c24ea259b94db8 5,10,16-27,38,40,42
+Monorepo/Benchmark/OutboxRelayBenchmark.php
+  s_2515a1cc82548a::t_3dc7a70fd72dec 11
+  s_2515a1cc82548a::t_f8b7f860ec34e0 13,26-27,41,43,48,50,69-70,72,75-76,90,103,145,148,150,152
+  s_2515a1cc82548a::t_976ace51ca9c7c 44,51
+  s_2515a1cc82548a::t_cc8d368b55e935 146
+  s_2515a1cc82548a::t_7a9ebdcadc4bf6 35
+  s_2515a1cc82548a::t_719f366cbe10f2 108-112
+  s_2515a1cc82548a::t_3b97d2a9a14719 28-30,55,57-58,62,64-65,78,81-82,84,87-88,91-100,120,122-134,155
+  s_2515a1cc82548a::t_45161bfe0f09fd 151,156
+  s_2515a1cc82548a::t_452593cd0cb78d 153
+  s_2515a1cc82548a::t_89b6a90ee31d2a 154
+packages/Enqueue/src/EnqueueInboundChannelAdapterBuilder.php
+  s_2515a1cc82548a::t_bcaaa8b9f53fc0 171-175
+packages/Dbal/src/BatchForwarding/DbalBatchForwardingModule.php
+  s_2515a1cc82548a::t_0b38fcd5635326 12,18,23,27,48,56-64,66-72,74-75,90,94-97,99-106
+  s_2515a1cc82548a::t_8e3b1a394d745d 1-11,13-17,19-22,24-26,28-47,49-55,65,76-89,91-93,98,107-108
+  s_2515a1cc82548a::t_756a2a985ffe80 73
+packages/Ecotone/src/Messaging/Config/ModuleClassList.php
+  s_2515a1cc82548a::t_52b88f5ecfb78b 12
+  s_2515a1cc82548a::t_50a346ade68653 159
+packages/Ecotone/src/Messaging/Endpoint/InboundChannelAdapter/InboundChannelAdapterBuilder.php
+  s_2515a1cc82548a::t_c278acd30f4504 33
+  s_2515a1cc82548a::t_0a46967149ef2f 119-125,128
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "5adabdd67ce81697141a82cbd5671d9836d4150a",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

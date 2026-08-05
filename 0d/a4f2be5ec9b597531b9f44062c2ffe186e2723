@@ -1,0 +1,25 @@
+packages/Dbal/tests/Integration/MultiTenant/BatchForwardingMultiTenantTest.php
+  s_2515a1cc82548a::t_8fe6c9324b58d9 1-107
+packages/Dbal/src/ObjectManager/ObjectManagerInterceptor.php
+  s_2515a1cc82548a::t_27003cd5a17507 10
+  s_2515a1cc82548a::t_fe05c9d09bd8c8 31,33-36
+packages/Dbal/src/Deduplication/DeduplicationInterceptor.php
+  s_2515a1cc82548a::t_492980162f2b07 14
+  s_2515a1cc82548a::t_c15848fa771543 54,56-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.20",
+  "base_commit_sha": "0da4f2be5ec9b597531b9f44062c2ffe186e2723",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -70,7 +70,7 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
     {
         $messagesToSend = [];
         foreach ($batchMessage->getEntries() as $entry) {
-            $outboundMessage = $this->prepareOutboundMessage($this->convertBatchEntryToMessage($entry));
+            $outboundMessage = $this->prepareOutboundMessageFromBatchEntry($entry);
             $headers = $outboundMessage->getHeaders();
             $headers[MessageHeaders::CONTENT_TYPE] = $outboundMessage->getContentType();
 

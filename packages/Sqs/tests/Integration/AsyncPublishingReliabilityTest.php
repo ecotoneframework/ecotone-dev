@@ -109,7 +109,7 @@ final class AsyncPublishingReliabilityTest extends ConnectionTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::SQS_PACKAGE]))
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create($channelName)
-                        ->withAsyncPublishing(),
+                        ->withHighThroughputPublishing(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

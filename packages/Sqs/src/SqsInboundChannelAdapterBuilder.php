@@ -40,6 +40,7 @@ final class SqsInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapter
             DefaultHeaderMapper::createWith($this->headerMapper, []),
             EnqueueHeader::HEADER_ACKNOWLEDGE,
             Reference::to(LoggingGateway::class),
+            $this->finalFailureStrategy,
         ]);
 
         return new Definition(SqsInboundChannelAdapter::class, [

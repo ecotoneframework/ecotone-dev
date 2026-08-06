@@ -240,7 +240,7 @@ final class AsyncPublishingTest extends ConnectionTestCase
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::SQS_PACKAGE]))
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create('asyncOrdersChannel')
-                        ->withAsyncPublishing(),
+                        ->withHighThroughputPublishing(),
                 ]),
             licenceKey: $licenceKey,
         );

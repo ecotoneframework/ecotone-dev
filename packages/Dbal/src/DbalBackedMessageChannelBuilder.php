@@ -31,9 +31,9 @@ class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return new self($channelName, $connectionReferenceName);
     }
 
-    public function withAsyncPublishing(bool $asyncPublishing = true): self
+    public function withHighThroughputPublishing(bool $enabled = true): self
     {
-        $this->getDbalOutboundChannelAdapter()->withAsyncPublishing($asyncPublishing);
+        $this->getDbalOutboundChannelAdapter()->withAsyncPublishing($enabled);
 
         return $this;
     }

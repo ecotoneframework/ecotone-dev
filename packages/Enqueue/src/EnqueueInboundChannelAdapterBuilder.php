@@ -168,6 +168,11 @@ abstract class EnqueueInboundChannelAdapterBuilder extends InterceptedChannelAda
         return $this;
     }
 
+    public function getFinalFailureStrategy(): FinalFailureStrategy
+    {
+        return $this->finalFailureStrategy;
+    }
+
     /**
      * @return string
      */

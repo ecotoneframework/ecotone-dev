@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Enqueue\Dbal;
 
+use Doctrine\DBAL\ParameterType;
 use Ecotone\Messaging\Scheduling\Duration;
 use Interop\Queue\Destination;
 use Interop\Queue\Exception\Exception;
@@ -22,20 +23,20 @@ class DbalProducer implements Producer
 {
     private const BATCH_INSERT_CHUNK_SIZE = 250;
 
-    private const COLUMN_TYPES = [
-        'id' => DbalType::GUID,
-        'published_at' => DbalType::INTEGER,
-        'body' => DbalType::TEXT,
-        'headers' => DbalType::TEXT,
-        'properties' => DbalType::TEXT,
-        'priority' => DbalType::SMALLINT,
-        'queue' => DbalType::STRING,
-        'redelivered' => DbalType::SMALLINT,
-        'delivery_id' => DbalType::STRING,
-        'redeliver_after' => DbalType::BIGINT,
-        'delayed_until' => DbalType::INTEGER,
-        'time_to_live' => DbalType::INTEGER,
+    private const PARAMETERIZED_COLUMN_BINDINGS = [
+        'id' => ParameterType::STRING,
+        'published_at' => ParameterType::INTEGER,
+        'body' => ParameterType::STRING,
+        'headers' => ParameterType::STRING,
+        'properties' => ParameterType::STRING,
+        'priority' => ParameterType::INTEGER,
+        'queue' => ParameterType::STRING,
+        'delayed_until' => ParameterType::INTEGER,
+        'time_to_live' => ParameterType::INTEGER,
     ];
+
+    private const CONSTANT_COLUMNS = 'redelivered, delivery_id, redeliver_after';
+    private const CONSTANT_COLUMN_VALUES = 'FALSE, NULL, NULL';
 
     /**
      * @var int|null
@@ -105,22 +106,23 @@ class DbalProducer implements Producer
 
     private function insertRecords(array $records): int
     {
-        $columns = array_keys(self::COLUMN_TYPES);
-        $rowPlaceholders = '(' . implode(', ', array_fill(0, count($columns), '?')) . ')';
+        $parameterizedColumns = array_keys(self::PARAMETERIZED_COLUMN_BINDINGS);
+        $rowPlaceholders = '(' . implode(', ', array_fill(0, count($parameterizedColumns), '?')) . ', ' . self::CONSTANT_COLUMN_VALUES . ')';
 
         $sql = sprintf(
-            'INSERT INTO %s (%s) VALUES %s',
+            'INSERT INTO %s (%s, %s) VALUES %s',
             $this->context->getTableName(),
-            implode(', ', $columns),
+            implode(', ', $parameterizedColumns),
+            self::CONSTANT_COLUMNS,
             implode(', ', array_fill(0, count($records), $rowPlaceholders)),
         );
 
         $parameters = [];
         $types = [];
         foreach ($records as $record) {
-            foreach ($columns as $column) {
+            foreach (self::PARAMETERIZED_COLUMN_BINDINGS as $column => $bindingType) {
                 $parameters[] = $record[$column];
-                $types[] = self::COLUMN_TYPES[$column];
+                $types[] = $record[$column] === null ? ParameterType::NULL : $bindingType;
             }
         }
 

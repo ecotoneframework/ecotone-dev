@@ -99,7 +99,7 @@ final class AsyncPublishingTest extends TestCase
                         'async_orders',
                         topicName: $uniqueId = Uuid::v7()->toRfc4122(),
                         messageGroupId: $uniqueId,
-                    )->withAsyncPublishing(),
+                    )->withHighThroughputPublishing(),
                 ]),
         );
     }
@@ -220,10 +220,10 @@ final class AsyncPublishingTest extends TestCase
             $channelName,
             topicName: $uniqueId = Uuid::v7()->toRfc4122(),
             messageGroupId: $uniqueId,
-        )->withAsyncPublishing();
+        )->withHighThroughputPublishing();
 
         if ($asyncPublishingTimeout !== null) {
-            $channelBuilder = $channelBuilder->withAsyncPublishing(timeoutInMilliseconds: $asyncPublishingTimeout);
+            $channelBuilder = $channelBuilder->withHighThroughputPublishing(timeoutInMilliseconds: $asyncPublishingTimeout);
         }
 
         return EcotoneLite::bootstrapFlowTesting(

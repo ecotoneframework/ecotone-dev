@@ -33,9 +33,9 @@ final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilde
         return new self($channelName, $connectionReferenceName);
     }
 
-    public function withAsyncPublishing(bool $asyncPublishing = true): self
+    public function withHighThroughputPublishing(bool $enabled = true): self
     {
-        $this->getRedisOutboundChannelAdapter()->withAsyncPublishing($asyncPublishing);
+        $this->getRedisOutboundChannelAdapter()->withAsyncPublishing($enabled);
 
         return $this;
     }

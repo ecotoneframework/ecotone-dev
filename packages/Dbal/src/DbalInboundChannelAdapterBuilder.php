@@ -38,6 +38,7 @@ class DbalInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuild
             DefaultHeaderMapper::createWith($this->headerMapper, []),
             EnqueueHeader::HEADER_ACKNOWLEDGE,
             Reference::to(LoggingGateway::class),
+            $this->finalFailureStrategy,
         ]);
 
         return new Definition(DbalInboundChannelAdapter::class, [

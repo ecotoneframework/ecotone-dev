@@ -1,0 +1,52 @@
+Monorepo/Benchmark/OutboxRelayBenchmark.php
+  s_2515a1cc82548a::t_86f2e00fa30ca7 183,185,187,189-190
+  s_2515a1cc82548a::t_f162a46256bbf0 239-240,244
+packages/Dbal/src/OutboxForwardingMessageChannel.php
+  s_2515a1cc82548a::t_e6205f888a6ba1 1-101
+packages/Dbal/src/BatchForwarding/DbalBatchForwardingModule.php
+  s_2515a1cc82548a::t_403be6b774a2f0 50-67,69-71,75-76
+  s_2515a1cc82548a::t_9ea5da1646fa06 100
+  s_2515a1cc82548a::t_521cdd23ab0bd0 109,123-124
+  s_2515a1cc82548a::t_daa466e909bffb 30
+packages/Ecotone/src/Messaging/Channel/OutboxForwardingChannel.php
+  s_2515a1cc82548a::t_ffc7fa09b4086e 1-21
+packages/Dbal/tests/Integration/CombinedChannelBatchForwardingTest.php
+  s_2515a1cc82548a::t_a8f84a9421b7ee 314-316
+  s_2515a1cc82548a::t_2646eca94d7eb2 725,727
+  s_2515a1cc82548a::t_1964505a0dc332 629
+  s_2515a1cc82548a::t_9578e7677e9569 404,406
+  s_2515a1cc82548a::t_44a6b502af4f87 111,147,181,253,444,484,522,561,603,654,699,757,814,852,895,936,1036
+  s_2515a1cc82548a::t_b3764afe3fc635 69
+  s_2515a1cc82548a::t_c3e173ac96ad1b 201-234
+packages/Kafka/tests/Integration/CombinedChannelForwardingTest.php
+  s_2515a1cc82548a::t_44a6b502af4f87 49
+packages/Dbal/tests/Integration/MultiTenant/BatchForwardingMultiTenantTest.php
+  s_2515a1cc82548a::t_44a6b502af4f87 51
+packages/Ecotone/src/Messaging/Channel/CombinedMessageChannel.php
+  s_2515a1cc82548a::t_295e977b10997a 12,14
+packages/Ecotone/src/Messaging/Config/MessagingSystemConfiguration.php
+  s_2515a1cc82548a::t_ed8d2b2b3680b8 237,239-241
+  s_2515a1cc82548a::t_c0b03f3bb0fc7a 236,238,242-243
+  s_2515a1cc82548a::t_463f0af4bd42d8 15
+  s_2515a1cc82548a::t_4aaafc052f9e9e 444-447
+  s_2515a1cc82548a::t_9101c9bef8d7ef 442
+  s_2515a1cc82548a::t_49ecb63bfb8c55 154-157
+  s_2515a1cc82548a::t_c25f12550945b0 18
+  s_2515a1cc82548a::t_63729ad45ca4b4 443
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "c67415463fd0a5845ff1cd33dd48714c2ebd96c6",
+  "prompts": {},
+  "sessions": {
+    "s_2515a1cc82548a": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "961400fc-15fe-4d4b-8979-2f4cf5afca66",
+        "model": "claude-fable-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

@@ -6,12 +6,12 @@ namespace Monorepo\Benchmark;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\OutboxForwardingMessageChannel;
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\BatchForwardingConfiguration;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -180,16 +180,15 @@ class OutboxRelayBenchmark
 
     private function bootstrapOutbox(?string $licenceKey, ?int $maxForwardingBatchSize = null, string $targetProvider = 'in_memory'): FlowTestSupport
     {
-        $batchForwardingExtensions = [];
-        if ($licenceKey !== null) {
-            $batchForwardingConfiguration = BatchForwardingConfiguration::create('benchmark_outbox');
-            if ($maxForwardingBatchSize !== null) {
-                $batchForwardingConfiguration = $batchForwardingConfiguration->withMaxForwardingBatchSize($maxForwardingBatchSize);
-            }
-            $batchForwardingExtensions[] = $batchForwardingConfiguration;
-        }
-
         $targetName = in_array($targetProvider, ['in_memory', 'dbal'], true) ? 'benchmark_target' : uniqid('benchmark_target_');
+        if ($licenceKey !== null) {
+            $relayChannel = OutboxForwardingMessageChannel::create('benchmark_relay_orders', 'benchmark_outbox', $targetName);
+            if ($maxForwardingBatchSize !== null) {
+                $relayChannel = $relayChannel->withMaxForwardingBatchSize($maxForwardingBatchSize);
+            }
+        } else {
+            $relayChannel = CombinedMessageChannel::create('benchmark_relay_orders', ['benchmark_outbox', $targetName]);
+        }
         [$targetChannel, $targetServices, $targetPackage] = match ($targetProvider) {
             'in_memory' => [SimpleMessageChannelBuilder::createQueueChannel($targetName), [], null],
             'dbal' => [DbalBackedMessageChannelBuilder::create($targetName)->withHighThroughputPublishing(), [], null],
@@ -237,12 +236,12 @@ class OutboxRelayBenchmark
                     [ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE],
                     $targetPackage !== null ? [$targetPackage] : [],
                 )))
-                ->withExtensionObjects(array_merge([
-                    CombinedMessageChannel::create('benchmark_relay_orders', ['benchmark_outbox', $targetName]),
+                ->withExtensionObjects([
+                    $relayChannel,
                     DbalBackedMessageChannelBuilder::create('benchmark_outbox')
                         ->withReceiveTimeout(20),
                     $targetChannel,
-                ], $batchForwardingExtensions)),
+                ]),
             licenceKey: $licenceKey,
         );
     }

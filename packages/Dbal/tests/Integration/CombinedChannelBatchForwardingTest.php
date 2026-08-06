@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\OutboxForwardingMessageChannel;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\BatchForwardingConfiguration;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
@@ -66,9 +66,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
-                    DbalBackedMessageChannelBuilder::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', DbalBackedMessageChannelBuilder::create('outbox'), 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -110,8 +108,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing')
                         ->withHighThroughputPublishing(),
@@ -147,8 +144,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox')
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
                         ->withMaxForwardingBatchSize(2),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
@@ -182,8 +178,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox')
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
                         ->withMaxForwardingBatchSize(100),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
@@ -201,6 +196,40 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $expectedRemaining = array_map(fn (int $messageNumber) => 'order-' . $messageNumber, range(200, 299));
         $this->assertSame($expectedMoved, $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertSame($expectedRemaining, $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('outbox'))));
+    }
+
+    public function test_plain_combined_channel_reusing_outbox_forwarding_source_fails_at_compile_time(): void
+    {
+        $orderService = new class () {
+            #[Asynchronous('orders')]
+            #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]
+            public function register(string $order): void
+            {
+            }
+
+            #[Asynchronous('otherOrders')]
+            #[CommandHandler('order.registerOther', endpointId: 'orderRegisterOtherEndpoint')]
+            public function registerOther(string $order): void
+            {
+            }
+        };
+
+        $this->expectException(ConfigurationException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            [$orderService::class],
+            [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
+            ServiceConfiguration::createWithDefaults()
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withExtensionObjects([
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
+                    CombinedMessageChannel::create('otherOrders', ['outbox', 'otherProcessing']),
+                    DbalBackedMessageChannelBuilder::create('outbox'),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
+                    DbalBackedMessageChannelBuilder::create('otherProcessing'),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 
     public function test_batch_forwarding_configuration_requires_enterprise_licence(): void
@@ -221,8 +250,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
                 ]),
@@ -283,9 +311,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('standardOrders', ['outbox', 'standardProcessing']),
-                    CombinedMessageChannel::create('priorityOrders', ['outbox', 'priorityProcessing']),
-                    BatchForwardingConfiguration::create('outbox')
+                    OutboxForwardingMessageChannel::create('standardOrders', 'outbox', 'standardProcessing')
+                        ->withMaxForwardingBatchSize(2),
+                    OutboxForwardingMessageChannel::create('priorityOrders', 'outbox', 'priorityProcessing')
                         ->withMaxForwardingBatchSize(2),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('standardProcessing'),
@@ -373,11 +401,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('standardOrders', ['standardOutbox', 'standardProcessing']),
-                    CombinedMessageChannel::create('priorityOrders', ['priorityOutbox', 'priorityProcessing']),
-                    BatchForwardingConfiguration::create('standardOutbox')
+                    OutboxForwardingMessageChannel::create('standardOrders', 'standardOutbox', 'standardProcessing')
                         ->withEndpointId('sharedOutboxPublisher'),
-                    BatchForwardingConfiguration::create('priorityOutbox')
+                    OutboxForwardingMessageChannel::create('priorityOrders', 'priorityOutbox', 'priorityProcessing')
                         ->withEndpointId('sharedOutboxPublisher'),
                     DbalBackedMessageChannelBuilder::create('standardOutbox'),
                     DbalBackedMessageChannelBuilder::create('priorityOutbox'),
@@ -415,8 +441,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'failingProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'failingProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     SimpleMessageChannelBuilder::create('failingProcessing', new FailOnceOnPayloadPollableChannel('cappuccino')),
                     PollableChannelConfiguration::create('failingProcessing', RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build()),
@@ -456,8 +481,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox')
                         ->withReceiveTimeout(3000),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
@@ -495,8 +519,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox')
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
@@ -535,8 +558,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox')
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
                         ->withFinalFailureStrategy(FinalFailureStrategy::STOP),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
@@ -578,8 +600,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['inMemoryOutbox', 'inMemoryProcessing']),
-                    BatchForwardingConfiguration::create('inMemoryOutbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'inMemoryOutbox', 'inMemoryProcessing'),
                     SimpleMessageChannelBuilder::createQueueChannel('inMemoryOutbox'),
                     SimpleMessageChannelBuilder::createQueueChannel('inMemoryProcessing'),
                 ]),
@@ -605,8 +626,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('misspelled_outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'misspelled_outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
                 ]),
@@ -631,8 +651,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 ServiceConfiguration::createWithDefaults()
                     ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                     ->withExtensionObjects([
-                        CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                        BatchForwardingConfiguration::create('outbox'),
+                        OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                         DbalBackedMessageChannelBuilder::create('outbox'),
                         DbalBackedMessageChannelBuilder::create('orderProcessing'),
                         GlobalPollableChannelConfiguration::createWithDefaults()->withCollector($collectorEnabled),
@@ -677,8 +696,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
                 ]),
@@ -704,8 +722,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
+                    DbalBackedMessageChannelBuilder::create('orderProcessing'),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -735,8 +754,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
                 ]),
@@ -793,8 +811,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'failingProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'failingProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     SimpleMessageChannelBuilder::create('failingProcessing', new FailingPollableChannel()),
                 ]),
@@ -832,8 +849,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                     ->withDefaultErrorChannel('customErrorChannel')
                     ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                     ->withExtensionObjects([
-                        CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                        BatchForwardingConfiguration::create('outbox'),
+                        OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                         DbalBackedMessageChannelBuilder::create('outbox')
                             ->withFinalFailureStrategy($finalFailureStrategy),
                         DbalBackedMessageChannelBuilder::create('orderProcessing'),
@@ -876,8 +892,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 ->withDefaultErrorChannel('customErrorChannel')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox')
                         ->withFinalFailureStrategy(FinalFailureStrategy::STOP),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
@@ -918,8 +933,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
                 ]),
@@ -1019,8 +1033,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
                     SimpleChannelInterceptorBuilder::create('orderProcessing', 'failingDeliveryInterceptor'),

@@ -6,10 +6,9 @@ namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
+use Ecotone\Dbal\OutboxForwardingMessageChannel;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\BatchForwardingConfiguration;
-use Ecotone\Messaging\Channel\CombinedMessageChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
@@ -49,8 +48,7 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
                         'tenant',
                         ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'],
                     ),
-                    CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('outbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     SimpleMessageChannelBuilder::createQueueChannel('orderProcessing'),
                 ]),

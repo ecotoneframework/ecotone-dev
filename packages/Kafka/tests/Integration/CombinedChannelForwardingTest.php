@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
+use Ecotone\Dbal\OutboxForwardingMessageChannel;
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\BatchForwardingConfiguration;
-use Ecotone\Messaging\Channel\CombinedMessageChannel;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -47,8 +46,7 @@ final class CombinedChannelForwardingTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
                 ->withExtensionObjects([
-                    CombinedMessageChannel::create('orders', ['kafkaOutbox', 'orderProcessing']),
-                    BatchForwardingConfiguration::create('kafkaOutbox'),
+                    OutboxForwardingMessageChannel::create('orders', 'kafkaOutbox', 'orderProcessing'),
                     KafkaMessageChannelBuilder::create('kafkaOutbox', topicName: $uniqueId, messageGroupId: $uniqueId),
                     SimpleMessageChannelBuilder::createQueueChannel('orderProcessing'),
                 ]),

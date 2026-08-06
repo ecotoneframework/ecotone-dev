@@ -7,11 +7,11 @@ namespace Ecotone\Dbal\BatchForwarding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\OutboxForwardingMessageChannel;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Messaging\Attribute\WithoutMessageCollector;
-use Ecotone\Messaging\Channel\BatchForwardingConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -27,6 +27,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
+use Ecotone\Messaging\Support\Assert;
 
 #[ModuleAnnotation]
 /**
@@ -46,16 +47,33 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
             $channelBuilders[$channelBuilder->getMessageChannelName()] = $channelBuilder;
         }
 
+        $forwardingChannelsPerSource = [];
+        /** @var OutboxForwardingMessageChannel $outboxForwardingChannel */
+        foreach (ExtensionObjectResolver::resolve(OutboxForwardingMessageChannel::class, $extensionObjects) as $outboxForwardingChannel) {
+            $sourceChannelName = $outboxForwardingChannel->getSourceChannelName();
+            if (isset($forwardingChannelsPerSource[$sourceChannelName])) {
+                $alreadyRegistered = $forwardingChannelsPerSource[$sourceChannelName];
+                Assert::isTrue(
+                    $alreadyRegistered->getMaxForwardingBatchSize() === $outboxForwardingChannel->getMaxForwardingBatchSize()
+                    && $alreadyRegistered->getEndpointId() === $outboxForwardingChannel->getEndpointId()
+                    && $alreadyRegistered->getFinalFailureStrategy() === $outboxForwardingChannel->getFinalFailureStrategy(),
+                    "Outbox forwarding Message Channels sharing source `{$sourceChannelName}` must configure the same batch size, endpoint id and failure strategy.",
+                );
+
+                continue;
+            }
+            $forwardingChannelsPerSource[$sourceChannelName] = $outboxForwardingChannel;
+        }
+
         $outboxesPerEndpointId = [];
-        /** @var BatchForwardingConfiguration $batchForwardingConfiguration */
-        foreach (ExtensionObjectResolver::resolve(BatchForwardingConfiguration::class, $extensionObjects) as $batchForwardingConfiguration) {
-            $channelBuilder = $channelBuilders[$batchForwardingConfiguration->getChannelName()] ?? null;
-            if (! $batchForwardingConfiguration->isEnabled() || $channelBuilder === null) {
+        foreach ($forwardingChannelsPerSource as $sourceChannelName => $outboxForwardingChannel) {
+            $channelBuilder = $channelBuilders[$sourceChannelName] ?? null;
+            if ($channelBuilder === null) {
                 continue;
             }
 
-            $messagingConfiguration->registerBatchForwardingSourceChannel($channelBuilder->getMessageChannelName());
-            $outboxesPerEndpointId[$batchForwardingConfiguration->getEndpointId()][] = $this->createOutboxPublisherDefinition($channelBuilder, $batchForwardingConfiguration);
+            $messagingConfiguration->registerBatchForwardingSourceChannel($sourceChannelName);
+            $outboxesPerEndpointId[$outboxForwardingChannel->getEndpointId()][] = $this->createOutboxPublisherDefinition($channelBuilder, $outboxForwardingChannel);
         }
 
         foreach ($outboxesPerEndpointId as $endpointId => $outboxPublishers) {
@@ -79,7 +97,7 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
 
     public function canHandle($extensionObject): bool
     {
-        return $extensionObject instanceof BatchForwardingConfiguration
+        return $extensionObject instanceof OutboxForwardingMessageChannel
             || $extensionObject instanceof DbalBackedMessageChannelBuilder;
     }
 
@@ -88,7 +106,7 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
         return ModulePackageList::DBAL_PACKAGE;
     }
 
-    private function createOutboxPublisherDefinition(DbalBackedMessageChannelBuilder $channelBuilder, BatchForwardingConfiguration $batchForwardingConfiguration): Definition
+    private function createOutboxPublisherDefinition(DbalBackedMessageChannelBuilder $channelBuilder, OutboxForwardingMessageChannel $outboxForwardingChannel): Definition
     {
         $inboundChannelAdapter = $channelBuilder->getInboundChannelAdapter();
 
@@ -102,8 +120,8 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
             new Reference(ChannelResolver::class),
             new Reference(LoggingGateway::class),
             new Reference(EcotoneClockInterface::class),
-            $batchForwardingConfiguration->getMaxForwardingBatchSize(),
-            $batchForwardingConfiguration->getFinalFailureStrategy() ?? $inboundChannelAdapter->getFinalFailureStrategy(),
+            $outboxForwardingChannel->getMaxForwardingBatchSize(),
+            $outboxForwardingChannel->getFinalFailureStrategy() ?? $inboundChannelAdapter->getFinalFailureStrategy(),
         ]);
     }
 }

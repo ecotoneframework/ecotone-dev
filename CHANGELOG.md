@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.324.0] - 2026-08-07
+
+## What's Changed
+* feat: support union type identifiers for aggregates and sagas by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/683
+* feat: batched outbox forwarding for combined message channels (Enterprise) by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/692
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.323.0...1.324.0
+
 ## [1.322.2] - 2026-07-28
 
 ## What's Changed

@@ -7,9 +7,9 @@ namespace Ecotone\Amqp;
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
-use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
-use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -54,10 +54,11 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         private OutboundMessageConverter   $outboundMessageConverter,
         private ConversionService          $conversionService,
         private AmqpTransactionInterceptor $amqpTransactionInterceptor,
-        private AsyncPublishingRegistry    $asyncPublishingRegistry,
+        private PendingDeliveryRegistry    $pendingDeliveryRegistry,
         private ?DelayStrategy             $delayStrategy = null,
-        private bool                       $asyncPublishing = false,
-        private int                        $asyncPublishingTimeout = AmqpOutboundChannelAdapterBuilder::DEFAULT_ASYNC_PUBLISHING_TIMEOUT,
+        private bool                       $batchPublishing = false,
+        private bool                       $nonBlockingConfirmation = false,
+        private int                        $confirmationTimeout = AmqpOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
         private string                     $channelName = '',
     ) {
     }
@@ -68,8 +69,8 @@ class AmqpOutboundChannelAdapter implements MessageHandler
     public function handle(Message $message): void
     {
         $payload = $message->getPayload();
-        if ($payload instanceof BatchMessage && ! $this->asyncPublishing) {
-            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires async publishing to be enabled. Enable it with withAsyncPublishing(), available as part of Ecotone Enterprise.', $this->channelName !== '' ? $this->channelName : $this->exchangeName));
+        if ($payload instanceof BatchMessage && ! $this->batchPublishing) {
+            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires batch publishing to be enabled. Enable it with withHighThroughputPublishing(), available as part of Ecotone Enterprise.', $this->channelName !== '' ? $this->channelName : $this->exchangeName));
         }
 
         $messagesToPublish = $payload instanceof BatchMessage
@@ -89,7 +90,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
 
         $publishRecords = $this->publishMessages($messagesToPublish, $context, $confirmations);
 
-        if ($publishRecords !== [] && $confirmations !== null && $this->canPublishAsynchronously()) {
+        if ($publishRecords !== [] && $confirmations !== null && $this->canDeferConfirmation()) {
             $this->registerPendingDelivery($publishRecords, $context, $confirmations, $prePublishConfirmationsEpoch);
 
             return;
@@ -98,9 +99,9 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $this->awaitPublisherConfirmsSynchronously($publishRecords, $context, $confirmations, $prePublishConfirmationsEpoch);
     }
 
-    public function isAsyncPublishingEnabled(): bool
+    public function isNonBlockingConfirmationEnabled(): bool
     {
-        return $this->asyncPublishing;
+        return $this->nonBlockingConfirmation;
     }
 
     /**
@@ -267,11 +268,11 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         return [$messageToSend, $exchangeName, $outboundMessage->getDeliveryDelay(), $timeToLive];
     }
 
-    private function canPublishAsynchronously(): bool
+    private function canDeferConfirmation(): bool
     {
-        return $this->asyncPublishing
+        return $this->nonBlockingConfirmation
             && $this->publisherConfirms
-            && $this->asyncPublishingRegistry->isScopeActive();
+            && $this->pendingDeliveryRegistry->isScopeActive();
     }
 
     /**
@@ -279,12 +280,12 @@ class AmqpOutboundChannelAdapter implements MessageHandler
      */
     private function registerPendingDelivery(array $publishRecords, InteropAmqpContext $context, AmqpPublisherConfirmations $confirmations, int $prePublishConfirmationsEpoch): void
     {
-        $this->asyncPublishingRegistry->register(
+        $this->pendingDeliveryRegistry->register(
             $this->channelName,
             new AmqpPendingDelivery(
                 $context,
                 $publishRecords,
-                $this->asyncPublishingTimeout,
+                $this->confirmationTimeout,
                 $this->channelName,
                 $confirmations,
                 $prePublishConfirmationsEpoch,
@@ -302,7 +303,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         }
 
         if ($publishRecords === [] || $confirmations === null) {
-            $timeoutInSeconds = $this->asyncPublishingTimeout / 1000;
+            $timeoutInSeconds = $this->confirmationTimeout / 1000;
             if ($context instanceof AmqpLibContext) {
                 $context->getLibChannel()->wait_for_pending_acks_returns($timeoutInSeconds);
             } elseif ($context instanceof AmqpExtContext) {
@@ -315,7 +316,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
         $deliveryResult = (new AmqpPendingDelivery(
             $context,
             $publishRecords,
-            $this->asyncPublishingTimeout,
+            $this->confirmationTimeout,
             $this->channelName,
             $confirmations,
             $prePublishConfirmationsEpoch,
@@ -325,7 +326,7 @@ class AmqpOutboundChannelAdapter implements MessageHandler
             return;
         }
 
-        if ($this->asyncPublishing) {
+        if ($this->nonBlockingConfirmation) {
             throw PublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
         }
 

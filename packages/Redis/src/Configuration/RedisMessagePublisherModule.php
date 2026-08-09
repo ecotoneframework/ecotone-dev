@@ -6,7 +6,7 @@ namespace Ecotone\Redis\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Channel\AsyncPublishing\Config\AsyncPublishGatewayRegistration;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\Config\DeferredPublishingGatewayRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -82,10 +82,10 @@ final class RedisMessagePublisherModule extends NoExternalConfigurationModule im
                         ->withAutoDeclareOnSend($messagePublisher->isAutoDeclareOnSend())
                         ->withHeaderMapper($messagePublisher->getHeaderMapper())
                         ->withDefaultConversionMediaType($mediaType)
-                        ->withAsyncPublishing($messagePublisher->isAsyncPublishingEnabled())
+                        ->withBatchPublishing($messagePublisher->isBatchPublishingEnabled())
                 );
 
-            AsyncPublishGatewayRegistration::registerFor($messagingConfiguration, $messagePublisher->getReferenceName(), $messagePublisher->isAsyncPublishingEnabled());
+            DeferredPublishingGatewayRegistration::registerFor($messagingConfiguration, $messagePublisher->getReferenceName(), nonBlockingConfirmationEnabled: false);
         }
     }
 

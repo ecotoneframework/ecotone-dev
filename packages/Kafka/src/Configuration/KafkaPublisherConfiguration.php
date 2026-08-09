@@ -21,7 +21,7 @@ final class KafkaPublisherConfiguration implements DefinedObject
 {
     public const ACKNOWLEDGE_TIMEOUT = '8000';
 
-    public const DEFAULT_ASYNC_PUBLISHING_TIMEOUT = 12000;
+    public const DEFAULT_CONFIRMATION_TIMEOUT = 12000;
 
     /**
      * @param array<string, string> $configuration
@@ -33,8 +33,9 @@ final class KafkaPublisherConfiguration implements DefinedObject
         private string $brokerConfigurationReference,
         private HeaderMapper $headerMapper,
         private ?string $outputDefaultConversionMediaType = null,
-        private bool $asyncPublishing = false,
-        private int $asyncPublishingTimeout = self::DEFAULT_ASYNC_PUBLISHING_TIMEOUT,
+        private bool $batchPublishing = false,
+        private bool $nonBlockingConfirmation = false,
+        private int $confirmationTimeout = self::DEFAULT_CONFIRMATION_TIMEOUT,
     ) {
     }
 
@@ -106,25 +107,36 @@ final class KafkaPublisherConfiguration implements DefinedObject
         return $this->headerMapper;
     }
 
-    public function withAsyncPublishing(bool $asyncPublishing = true, ?int $timeoutInMilliseconds = null): self
+    /**
+     * @param bool $batchPublishing coalesces produced Messages into broker side batches by enabling producer lingering
+     * @param bool $nonBlockingConfirmation produces without flushing, delivery reports are awaited on Future::resolve() or before the surrounding Command Bus or asynchronous endpoint finishes
+     * @param int|null $confirmationTimeoutInMilliseconds how long to await delivery reports before treating the delivery as failed
+     */
+    public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {
-        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
-        $this->asyncPublishing = $asyncPublishing;
-        if ($timeoutInMilliseconds !== null) {
-            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        Assert::isTrue($confirmationTimeoutInMilliseconds === null || $confirmationTimeoutInMilliseconds > 0, 'Confirmation timeout must be a positive amount of milliseconds.');
+        $this->batchPublishing = $batchPublishing;
+        $this->nonBlockingConfirmation = $nonBlockingConfirmation;
+        if ($confirmationTimeoutInMilliseconds !== null) {
+            $this->confirmationTimeout = $confirmationTimeoutInMilliseconds;
         }
 
         return $this;
     }
 
-    public function isAsyncPublishingEnabled(): bool
+    public function isBatchPublishingEnabled(): bool
     {
-        return $this->asyncPublishing;
+        return $this->batchPublishing;
     }
 
-    public function getAsyncPublishingTimeout(): int
+    public function isNonBlockingConfirmationEnabled(): bool
     {
-        return $this->asyncPublishingTimeout;
+        return $this->nonBlockingConfirmation;
+    }
+
+    public function getConfirmationTimeout(): int
+    {
+        return $this->confirmationTimeout;
     }
 
     public function getOutputDefaultConversionMediaType(): ?string
@@ -140,7 +152,7 @@ final class KafkaPublisherConfiguration implements DefinedObject
     public function getAsKafkaConfig(): Conf
     {
         $configuration = $this->configuration;
-        if ($this->asyncPublishing && ! isset($configuration['linger.ms']) && ! isset($configuration['queue.buffering.max.ms'])) {
+        if ($this->batchPublishing && ! isset($configuration['linger.ms']) && ! isset($configuration['queue.buffering.max.ms'])) {
             $configuration['linger.ms'] = '20';
         }
 
@@ -171,8 +183,9 @@ final class KafkaPublisherConfiguration implements DefinedObject
             $this->brokerConfigurationReference,
             $this->headerMapper->getDefinition(),
             $this->outputDefaultConversionMediaType,
-            $this->asyncPublishing,
-            $this->asyncPublishingTimeout,
+            $this->batchPublishing,
+            $this->nonBlockingConfirmation,
+            $this->confirmationTimeout,
         ]);
     }
 }

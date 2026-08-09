@@ -7,9 +7,8 @@ namespace Ecotone\Redis;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
-use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
-use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
@@ -54,8 +53,7 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         bool $autoDeclare,
         OutboundMessageConverter $outboundMessageConverter,
         ConversionService $conversionService,
-        AsyncPublishingRegistry $asyncPublishingRegistry,
-        bool $asyncPublishing = false,
+        bool $batchPublishing = false,
     ) {
         parent::__construct(
             $connectionFactory,
@@ -63,8 +61,7 @@ final class RedisOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             $autoDeclare,
             $outboundMessageConverter,
             $conversionService,
-            $asyncPublishingRegistry,
-            $asyncPublishing,
+            $batchPublishing,
             $queueName,
         );
     }

@@ -8,7 +8,6 @@ use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
@@ -30,8 +29,7 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         OutboundMessageConverter $outboundMessageConverter,
         ConversionService $conversionService,
         private EnqueueTableManager $tableManager,
-        AsyncPublishingRegistry $asyncPublishingRegistry,
-        bool $asyncPublishing = false,
+        bool $batchPublishing = false,
     ) {
         parent::__construct(
             $connectionFactory,
@@ -39,8 +37,7 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             $autoDeclare,
             $outboundMessageConverter,
             $conversionService,
-            $asyncPublishingRegistry,
-            $asyncPublishing,
+            $batchPublishing,
             $this->queueName,
         );
     }

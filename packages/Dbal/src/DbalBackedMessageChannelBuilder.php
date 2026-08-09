@@ -31,16 +31,20 @@ class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return new self($channelName, $connectionReferenceName);
     }
 
-    public function withHighThroughputPublishing(bool $enabled = true): self
+    /**
+     * Coalesces published Messages into a single multi row insert.
+     * Non blocking confirmation is not offered here, as the insert blocks until the database confirms it.
+     */
+    public function withHighThroughputPublishing(): self
     {
-        $this->getDbalOutboundChannelAdapter()->withAsyncPublishing($enabled);
+        $this->getDbalOutboundChannelAdapter()->withBatchPublishing();
 
         return $this;
     }
 
     protected function supportsBatchMessages(): bool
     {
-        return $this->getDbalOutboundChannelAdapter()->isAsyncPublishingEnabled();
+        return $this->getDbalOutboundChannelAdapter()->isBatchPublishingEnabled();
     }
 
     private function getDbalOutboundChannelAdapter(): DbalOutboundChannelAdapterBuilder

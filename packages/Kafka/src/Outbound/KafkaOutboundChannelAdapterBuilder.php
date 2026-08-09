@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Kafka\Outbound;
 
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -100,7 +100,7 @@ class KafkaOutboundChannelAdapterBuilder implements MessageHandlerBuilder
             new Reference(KafkaAdmin::class),
             new Reference(ConversionService::REFERENCE_NAME),
             $outboundMessageConverter,
-            new Reference(AsyncPublishingRegistry::class),
+            new Reference(PendingDeliveryRegistry::class),
         ]);
     }
 

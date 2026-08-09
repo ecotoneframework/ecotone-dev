@@ -35,7 +35,7 @@ class DbalMessagePublisherConfiguration
      */
     private $queueName;
 
-    private bool $asyncPublishing = false;
+    private bool $batchPublishing = false;
 
     private function __construct(string $connectionReference, string $queueName, ?string $outputDefaultConversionMediaType, string $referenceName)
     {
@@ -122,15 +122,19 @@ class DbalMessagePublisherConfiguration
         return $this->referenceName;
     }
 
-    public function withAsyncPublishing(bool $asyncPublishing = true): self
+    /**
+     * Coalesces published Messages into a single multi row insert.
+     * Non blocking confirmation is not offered here, as the insert blocks until the database confirms it.
+     */
+    public function withHighThroughputPublishing(): self
     {
-        $this->asyncPublishing = $asyncPublishing;
+        $this->batchPublishing = true;
 
         return $this;
     }
 
-    public function isAsyncPublishingEnabled(): bool
+    public function isBatchPublishingEnabled(): bool
     {
-        return $this->asyncPublishing;
+        return $this->batchPublishing;
     }
 }

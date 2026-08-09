@@ -5,7 +5,7 @@ namespace Ecotone\Amqp\Publisher;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Channel\AsyncPublishing\Config\AsyncPublishGatewayRegistration;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\Config\DeferredPublishingGatewayRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -89,11 +89,11 @@ class AmqpMessagePublisherModule implements AnnotationModule
                         ->withDefaultRoutingKey($amqpPublisher->getDefaultRoutingKey())
                         ->withRoutingKeyFromHeader($amqpPublisher->getRoutingKeyFromHeader())
                         ->withDefaultConversionMediaType($mediaType)
-                        ->withAsyncPublishing($amqpPublisher->isAsyncPublishingEnabled(), $amqpPublisher->getAsyncPublishingTimeout())
-                        ->withAsyncPublishingChannelName($amqpPublisher->getReferenceName())
+                        ->withHighThroughputPublishing($amqpPublisher->isBatchPublishingEnabled(), $amqpPublisher->isNonBlockingConfirmationEnabled(), $amqpPublisher->getConfirmationTimeout())
+                        ->withPublishingChannelName($amqpPublisher->getReferenceName())
                 );
 
-            AsyncPublishGatewayRegistration::registerFor($messagingConfiguration, $amqpPublisher->getReferenceName(), $amqpPublisher->isAsyncPublishingEnabled());
+            DeferredPublishingGatewayRegistration::registerFor($messagingConfiguration, $amqpPublisher->getReferenceName(), $amqpPublisher->isNonBlockingConfirmationEnabled());
         }
     }
 

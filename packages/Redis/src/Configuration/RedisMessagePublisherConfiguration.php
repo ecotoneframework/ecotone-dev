@@ -14,7 +14,7 @@ final class RedisMessagePublisherConfiguration
 {
     private bool $autoDeclareOnSend = true;
     private string $headerMapper = '';
-    private bool $asyncPublishing = false;
+    private bool $batchPublishing = false;
 
     private function __construct(private string $connectionReference, private string $queueName, private ?string $outputDefaultConversionMediaType, private string $referenceName)
     {
@@ -73,15 +73,19 @@ final class RedisMessagePublisherConfiguration
         return $this->referenceName;
     }
 
-    public function withAsyncPublishing(bool $asyncPublishing = true): self
+    /**
+     * Coalesces published Messages into a single scripted round trip.
+     * Non blocking confirmation is not offered here, as the round trip blocks until Redis confirms it.
+     */
+    public function withHighThroughputPublishing(): self
     {
-        $this->asyncPublishing = $asyncPublishing;
+        $this->batchPublishing = true;
 
         return $this;
     }
 
-    public function isAsyncPublishingEnabled(): bool
+    public function isBatchPublishingEnabled(): bool
     {
-        return $this->asyncPublishing;
+        return $this->batchPublishing;
     }
 }

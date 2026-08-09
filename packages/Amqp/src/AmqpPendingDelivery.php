@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
-use Ecotone\Messaging\Channel\AsyncPublishing\DeliveryResult;
-use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
-use Ecotone\Messaging\Channel\AsyncPublishing\PendingDelivery;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\DeliveryResult;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDelivery;
 use Ecotone\Messaging\Message;
 use Enqueue\AmqpExt\AmqpContext as AmqpExtContext;
 use Enqueue\AmqpLib\AmqpContext as AmqpLibContext;

@@ -68,7 +68,7 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
             Assert::notNull($connectionReference, "Lack of context about tenant in Message Headers. Please add `{$this->tenantHeaderName}` header metadata to your message.");
         }
 
-        $connectionFactory = $this->getConnectionFactory();
+        $connectionFactory = $this->getConnectionFactory($tenant);
         Assert::isTrue($connectionFactory instanceof EcotoneManagerRegistryConnectionFactory, 'Connection factory was not registered by `DbalConnection::createForManagerRegistry()`');
 
         /** @var ManagerRegistry $managerRegistry */
@@ -94,17 +94,17 @@ final class HeaderBasedMultiTenantConnectionFactory implements MultiTenantConnec
         return $dbalConnection->getDbalConnection();
     }
 
-    public function getConnectionFactory(): ConnectionFactory
+    public function getConnectionFactory(?string $tenant = null): ConnectionFactory
     {
-        $connectionReference = $this->getCurrentConnectionReferenceOrNull();
+        $connectionReference = $this->getCurrentConnectionReferenceOrNull($tenant);
 
         if ($connectionReference === null) {
-            $tenant = $this->getCurrentTenantOrNull();
+            $resolvedTenant = $tenant ?? $this->getCurrentTenantOrNull();
 
-            if ($tenant === null) {
+            if ($resolvedTenant === null) {
                 throw new InvalidArgumentException("Lack of context about tenant in Message Headers. Please add `{$this->tenantHeaderName}` header metadata to your message.");
             } else {
-                throw new InvalidArgumentException("Lack of mapping for tenant `{$tenant}`. Please provide mapping for this tenant or default connection name.");
+                throw new InvalidArgumentException("Lack of mapping for tenant `{$resolvedTenant}`. Please provide mapping for this tenant or default connection name.");
             }
         }
 

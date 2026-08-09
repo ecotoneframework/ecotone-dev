@@ -15,8 +15,9 @@ final class SqsMessagePublisherConfiguration
 {
     private bool $autoDeclareOnSend = true;
     private string $headerMapper = '';
-    private bool $asyncPublishing = false;
-    private ?int $asyncPublishingTimeout = null;
+    private bool $batchPublishing = false;
+    private bool $nonBlockingConfirmation = false;
+    private ?int $confirmationTimeout = null;
 
     private function __construct(private string $connectionReference, private string $queueName, private ?string $outputDefaultConversionMediaType, private string $referenceName)
     {
@@ -75,24 +76,35 @@ final class SqsMessagePublisherConfiguration
         return $this->referenceName;
     }
 
-    public function withAsyncPublishing(bool $asyncPublishing = true, ?int $timeoutInMilliseconds = null): self
+    /**
+     * @param bool $batchPublishing coalesces published Messages into SQS batch send requests
+     * @param bool $nonBlockingConfirmation dispatches send requests without waiting on their responses, which are awaited on Future::resolve() or before the surrounding Command Bus or asynchronous endpoint finishes
+     * @param int|null $confirmationTimeoutInMilliseconds how long to await a send response before treating the delivery as failed
+     */
+    public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {
-        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
-        $this->asyncPublishing = $asyncPublishing;
-        if ($timeoutInMilliseconds !== null) {
-            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        Assert::isTrue($confirmationTimeoutInMilliseconds === null || $confirmationTimeoutInMilliseconds > 0, 'Confirmation timeout must be a positive amount of milliseconds.');
+        $this->batchPublishing = $batchPublishing;
+        $this->nonBlockingConfirmation = $nonBlockingConfirmation;
+        if ($confirmationTimeoutInMilliseconds !== null) {
+            $this->confirmationTimeout = $confirmationTimeoutInMilliseconds;
         }
 
         return $this;
     }
 
-    public function isAsyncPublishingEnabled(): bool
+    public function isBatchPublishingEnabled(): bool
     {
-        return $this->asyncPublishing;
+        return $this->batchPublishing;
     }
 
-    public function getAsyncPublishingTimeout(): ?int
+    public function isNonBlockingConfirmationEnabled(): bool
     {
-        return $this->asyncPublishingTimeout;
+        return $this->nonBlockingConfirmation;
+    }
+
+    public function getConfirmationTimeout(): ?int
+    {
+        return $this->confirmationTimeout;
     }
 }

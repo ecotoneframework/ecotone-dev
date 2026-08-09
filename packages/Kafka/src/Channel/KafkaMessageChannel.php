@@ -26,7 +26,7 @@ final class KafkaMessageChannel implements PollableChannel, BatchSupportingMessa
 
     public function supportsBatchMessages(): bool
     {
-        return $this->outboundChannelAdapter->isAsyncPublishingEnabled();
+        return $this->outboundChannelAdapter->isBatchPublishingEnabled();
     }
 
     public function send(Message $message): void

@@ -33,16 +33,21 @@ final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return new self($channelName, $connectionReferenceName);
     }
 
-    public function withHighThroughputPublishing(bool $enabled = true, ?int $timeoutInMilliseconds = null): self
+    /**
+     * @param bool $batchPublishing coalesces published Messages into SQS batch send requests
+     * @param bool $nonBlockingConfirmation dispatches send requests without waiting on their responses, which are awaited before the surrounding Command Bus or asynchronous endpoint finishes
+     * @param int|null $confirmationTimeoutInMilliseconds how long to await a send response before treating the delivery as failed
+     */
+    public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {
-        $this->getSqsOutboundChannelAdapter()->withAsyncPublishing($enabled, $timeoutInMilliseconds);
+        $this->getSqsOutboundChannelAdapter()->withHighThroughputPublishing($batchPublishing, $nonBlockingConfirmation, $confirmationTimeoutInMilliseconds);
 
         return $this;
     }
 
     protected function supportsBatchMessages(): bool
     {
-        return $this->getSqsOutboundChannelAdapter()->isAsyncPublishingEnabled();
+        return $this->getSqsOutboundChannelAdapter()->isBatchPublishingEnabled();
     }
 
     private function getSqsOutboundChannelAdapter(): SqsOutboundChannelAdapterBuilder

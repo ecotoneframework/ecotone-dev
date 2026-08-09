@@ -5,7 +5,6 @@ namespace Ecotone\Dbal;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -28,7 +27,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
      */
     private $connectionFactoryReferenceName;
 
-    private bool $asyncPublishing = false;
+    private bool $batchPublishing = false;
 
     private function __construct(string $queueName, string $connectionFactoryReferenceName)
     {
@@ -42,22 +41,22 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         return new self($queueName, $connectionFactoryReferenceName);
     }
 
-    public function withAsyncPublishing(bool $asyncPublishing = true): self
+    public function withBatchPublishing(bool $batchPublishing = true): self
     {
-        $this->asyncPublishing = $asyncPublishing;
+        $this->batchPublishing = $batchPublishing;
 
         return $this;
     }
 
-    public function isAsyncPublishingEnabled(): bool
+    public function isBatchPublishingEnabled(): bool
     {
-        return $this->asyncPublishing;
+        return $this->batchPublishing;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        if ($this->asyncPublishing && ! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
-            throw LicensingException::create('Asynchronous publishing is available only with Ecotone Enterprise licence.');
+        if ($this->batchPublishing && ! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
+            throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence.');
         }
 
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
@@ -82,8 +81,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
             new Reference(EnqueueTableManager::class),
-            new Reference(AsyncPublishingRegistry::class),
-            $this->asyncPublishing,
+            $this->batchPublishing,
         ]);
     }
 }

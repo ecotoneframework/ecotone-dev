@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Enqueue;
 
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
-use Ecotone\Messaging\Channel\AsyncPublishing\ConfirmedDelivery;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -33,9 +31,8 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         protected bool                     $autoDeclare,
         protected OutboundMessageConverter $outboundMessageConverter,
         private ConversionService $conversionService,
-        private AsyncPublishingRegistry $asyncPublishingRegistry,
-        private bool $asyncPublishing = false,
-        private string $asyncPublishingChannelName = '',
+        private bool $batchPublishing = false,
+        private string $channelName = '',
     ) {
     }
 
@@ -43,8 +40,8 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
 
     public function handle(Message $message): void
     {
-        if ($message->getPayload() instanceof BatchMessage && ! $this->asyncPublishing) {
-            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires async publishing to be enabled. Enable it with withAsyncPublishing(), available as part of Ecotone Enterprise.', $this->asyncPublishingChannelName));
+        if ($message->getPayload() instanceof BatchMessage && ! $this->batchPublishing) {
+            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires batch publishing to be enabled. Enable it with withHighThroughputPublishing(), available as part of Ecotone Enterprise.', $this->channelName));
         }
 
         $context = $this->createOutboundContext();
@@ -54,8 +51,6 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         } else {
             $this->sendSingleMessage($message, $context);
         }
-
-        $this->registerSynchronouslyConfirmedDelivery();
     }
 
     protected function createOutboundContext(): Context
@@ -71,15 +66,6 @@ abstract class EnqueueOutboundChannelAdapter implements MessageHandler
         }
 
         return $context;
-    }
-
-    protected function registerSynchronouslyConfirmedDelivery(): void
-    {
-        if (! $this->asyncPublishing || ! $this->asyncPublishingRegistry->isScopeActive()) {
-            return;
-        }
-
-        $this->asyncPublishingRegistry->register($this->asyncPublishingChannelName, new ConfirmedDelivery());
     }
 
     protected function handleBatch(BatchMessage $batchMessage, Context $context): void

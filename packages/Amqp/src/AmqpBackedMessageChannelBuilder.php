@@ -30,7 +30,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
                 ->withDefaultRoutingKey($queueName)
                 ->withAutoDeclareOnSend(true)
                 ->withDefaultPersistentMode(true)
-                ->withAsyncPublishingChannelName($channelName)
+                ->withPublishingChannelName($channelName)
         );
     }
 
@@ -72,9 +72,14 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return $this;
     }
 
-    public function withHighThroughputPublishing(bool $enabled = true, ?int $timeoutInMilliseconds = null): self
+    /**
+     * @param bool $batchPublishing coalesces published Messages into a single publisher confirms round trip
+     * @param bool $nonBlockingConfirmation publishes without waiting for publisher confirms, which are awaited before the surrounding Command Bus or asynchronous endpoint finishes
+     * @param int|null $confirmationTimeoutInMilliseconds how long to await publisher confirms before treating the delivery as failed
+     */
+    public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {
-        $this->getAmqpOutboundChannelAdapter()->withAsyncPublishing($enabled, $timeoutInMilliseconds);
+        $this->getAmqpOutboundChannelAdapter()->withHighThroughputPublishing($batchPublishing, $nonBlockingConfirmation, $confirmationTimeoutInMilliseconds);
 
         return $this;
     }
@@ -93,7 +98,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
 
     protected function supportsBatchMessages(): bool
     {
-        return $this->getAmqpOutboundChannelAdapter()->isAsyncPublishingEnabled();
+        return $this->getAmqpOutboundChannelAdapter()->isBatchPublishingEnabled();
     }
 
     public function getQueueName()

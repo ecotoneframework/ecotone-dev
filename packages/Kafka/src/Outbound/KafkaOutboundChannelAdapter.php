@@ -8,9 +8,9 @@ use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
-use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
-use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -36,7 +36,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         private KafkaAdmin                  $kafkaAdmin,
         private ConversionService           $conversionService,
         private OutboundMessageConverter $outboundMessageConverter,
-        private AsyncPublishingRegistry $asyncPublishingRegistry,
+        private PendingDeliveryRegistry $pendingDeliveryRegistry,
     ) {
     }
 
@@ -45,8 +45,8 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
      */
     public function handle(Message $message): void
     {
-        if ($message->getPayload() instanceof BatchMessage && ! $this->isAsyncPublishingEnabled()) {
-            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires async publishing to be enabled. Enable it with withAsyncPublishing(), available as part of Ecotone Enterprise.', $this->referenceName));
+        if ($message->getPayload() instanceof BatchMessage && ! $this->isBatchPublishingEnabled()) {
+            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires batch publishing to be enabled. Enable it with withHighThroughputPublishing(), available as part of Ecotone Enterprise.', $this->referenceName));
         }
 
         $producer = $this->kafkaAdmin->getProducer($this->referenceName);
@@ -61,7 +61,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         $deliveryId = $this->produce($message, $topic, trackDelivery: true);
         $producer->poll(0);
 
-        if ($this->canPublishAsynchronously()) {
+        if ($this->canDeferConfirmation()) {
             $this->registerPendingDelivery($producer, [$deliveryId]);
 
             return;
@@ -70,9 +70,14 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         $this->flushSynchronously($producer, [$deliveryId]);
     }
 
-    public function isAsyncPublishingEnabled(): bool
+    public function isBatchPublishingEnabled(): bool
     {
-        return $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->isAsyncPublishingEnabled();
+        return $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->isBatchPublishingEnabled();
+    }
+
+    public function isNonBlockingConfirmationEnabled(): bool
+    {
+        return $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->isNonBlockingConfirmationEnabled();
     }
 
     private function handleBatch(BatchMessage $batchMessage, Producer $producer, ProducerTopic $topic): void
@@ -99,7 +104,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             throw $exception;
         }
 
-        if ($this->canPublishAsynchronously()) {
+        if ($this->canDeferConfirmation()) {
             $this->registerPendingDelivery($producer, $deliveryIds);
 
             return;
@@ -130,7 +135,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
             : null;
 
         try {
-            $retryDeadline = microtime(true) + ($this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->getAsyncPublishingTimeout() / 1000);
+            $retryDeadline = microtime(true) + ($this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->getConfirmationTimeout() / 1000);
             while (true) {
                 try {
                     $this->produceTracked($topic, $outboundMessage, $partitionKey, $headers, $deliveryId);
@@ -173,9 +178,9 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         );
     }
 
-    private function canPublishAsynchronously(): bool
+    private function canDeferConfirmation(): bool
     {
-        return $this->isAsyncPublishingEnabled() && $this->asyncPublishingRegistry->isScopeActive();
+        return $this->isNonBlockingConfirmationEnabled() && $this->pendingDeliveryRegistry->isScopeActive();
     }
 
     /**
@@ -183,13 +188,13 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
      */
     private function registerPendingDelivery(Producer $producer, array $deliveryIds): void
     {
-        $this->asyncPublishingRegistry->register(
+        $this->pendingDeliveryRegistry->register(
             $this->referenceName,
             new KafkaPendingDelivery(
                 $producer,
                 $this->kafkaAdmin->getDeliveryTracker($this->referenceName),
                 $deliveryIds,
-                $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->getAsyncPublishingTimeout(),
+                $this->kafkaAdmin->getConfigurationForPublisher($this->referenceName)->getConfirmationTimeout(),
                 $this->referenceName,
             ),
         );
@@ -209,7 +214,7 @@ final class KafkaOutboundChannelAdapter implements MessageHandler
         if ($deliveryIds !== []) {
             $deliveryResult = $this->kafkaAdmin->getDeliveryTracker($this->referenceName)->collectResult($deliveryIds, $this->referenceName);
             if (! $deliveryResult->isSuccessful()) {
-                if ($this->isAsyncPublishingEnabled()) {
+                if ($this->isNonBlockingConfirmationEnabled()) {
                     throw PublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
                 }
 

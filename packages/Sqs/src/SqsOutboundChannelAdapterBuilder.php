@@ -7,7 +7,7 @@ namespace Ecotone\Sqs;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -22,10 +22,11 @@ use Enqueue\Sqs\SqsConnectionFactory;
  */
 final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBuilder
 {
-    public const DEFAULT_ASYNC_PUBLISHING_TIMEOUT = 25000;
+    public const DEFAULT_CONFIRMATION_TIMEOUT = 25000;
 
-    private bool $asyncPublishing = false;
-    private int $asyncPublishingTimeout = self::DEFAULT_ASYNC_PUBLISHING_TIMEOUT;
+    private bool $batchPublishing = false;
+    private bool $nonBlockingConfirmation = false;
+    private int $confirmationTimeout = self::DEFAULT_CONFIRMATION_TIMEOUT;
 
     private function __construct(private string $queueName, private string $connectionFactoryReferenceName)
     {
@@ -37,26 +38,32 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         return new self($queueName, $connectionFactoryReferenceName);
     }
 
-    public function withAsyncPublishing(bool $asyncPublishing = true, ?int $timeoutInMilliseconds = null): self
+    public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {
-        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
-        $this->asyncPublishing = $asyncPublishing;
-        if ($timeoutInMilliseconds !== null) {
-            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        Assert::isTrue($confirmationTimeoutInMilliseconds === null || $confirmationTimeoutInMilliseconds > 0, 'Confirmation timeout must be a positive amount of milliseconds.');
+        $this->batchPublishing = $batchPublishing;
+        $this->nonBlockingConfirmation = $nonBlockingConfirmation;
+        if ($confirmationTimeoutInMilliseconds !== null) {
+            $this->confirmationTimeout = $confirmationTimeoutInMilliseconds;
         }
 
         return $this;
     }
 
-    public function isAsyncPublishingEnabled(): bool
+    public function isBatchPublishingEnabled(): bool
     {
-        return $this->asyncPublishing;
+        return $this->batchPublishing;
+    }
+
+    public function isNonBlockingConfirmationEnabled(): bool
+    {
+        return $this->nonBlockingConfirmation;
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        if ($this->asyncPublishing && ! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
-            throw LicensingException::create('Asynchronous publishing is available only with Ecotone Enterprise licence.');
+        if (($this->batchPublishing || $this->nonBlockingConfirmation) && ! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
+            throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence.');
         }
 
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
@@ -80,9 +87,10 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
             $this->autoDeclare,
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
-            new Reference(AsyncPublishingRegistry::class),
-            $this->asyncPublishing,
-            $this->asyncPublishingTimeout,
+            new Reference(PendingDeliveryRegistry::class),
+            $this->batchPublishing,
+            $this->nonBlockingConfirmation,
+            $this->confirmationTimeout,
         ]);
     }
 }

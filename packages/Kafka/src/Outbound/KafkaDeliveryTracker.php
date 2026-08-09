@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Outbound;
 
-use Ecotone\Messaging\Channel\AsyncPublishing\DeliveryResult;
-use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\DeliveryResult;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Message;
 use RdKafka\Message as KafkaMessage;
 

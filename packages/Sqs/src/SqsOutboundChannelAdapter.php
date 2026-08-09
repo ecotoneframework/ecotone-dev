@@ -7,8 +7,8 @@ namespace Ecotone\Sqs;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\BatchMessage;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
-use Ecotone\Messaging\Channel\AsyncPublishing\PublishingFailedException;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -34,9 +34,10 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         bool $autoDeclare,
         OutboundMessageConverter $outboundMessageConverter,
         ConversionService $conversionService,
-        private AsyncPublishingRegistry $asyncPublishingRegistry,
-        private bool $asyncPublishing = false,
-        private int $asyncPublishingTimeout = SqsOutboundChannelAdapterBuilder::DEFAULT_ASYNC_PUBLISHING_TIMEOUT,
+        private PendingDeliveryRegistry $pendingDeliveryRegistry,
+        private bool $batchPublishing = false,
+        private bool $nonBlockingConfirmation = false,
+        private int $confirmationTimeout = SqsOutboundChannelAdapterBuilder::DEFAULT_CONFIRMATION_TIMEOUT,
     ) {
         $this->requestDispatchPool = new SqsRequestDispatchPool();
         parent::__construct(
@@ -45,8 +46,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             $autoDeclare,
             $outboundMessageConverter,
             $conversionService,
-            $asyncPublishingRegistry,
-            $asyncPublishing,
+            $batchPublishing,
             $queueName,
         );
     }
@@ -61,8 +61,8 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
     public function handle(Message $message): void
     {
-        if ($message->getPayload() instanceof BatchMessage && ! $this->asyncPublishing) {
-            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires async publishing to be enabled. Enable it with withAsyncPublishing(), available as part of Ecotone Enterprise.', $this->queueName));
+        if ($message->getPayload() instanceof BatchMessage && ! $this->batchPublishing) {
+            throw ConfigurationException::create(sprintf('Sending BatchMessage over `%s` requires batch publishing to be enabled. Enable it with withHighThroughputPublishing(), available as part of Ecotone Enterprise.', $this->queueName));
         }
 
         /** @var SqsContext $context */
@@ -88,8 +88,8 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
 
         $pendingDelivery = new SqsPendingDelivery($sendRequestPromises, $trackedMessagesPerRequest, $this->queueName);
 
-        if ($this->asyncPublishing && $this->asyncPublishingRegistry->isScopeActive()) {
-            $this->asyncPublishingRegistry->register($this->queueName, $pendingDelivery);
+        if ($this->nonBlockingConfirmation && $this->pendingDeliveryRegistry->isScopeActive()) {
+            $this->pendingDeliveryRegistry->register($this->queueName, $pendingDelivery);
 
             return;
         }
@@ -181,7 +181,7 @@ final class SqsOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             'Entries' => $entries,
         ];
 
-        $arguments['@http'] = ['timeout' => $this->asyncPublishingTimeout / 1000];
+        $arguments['@http'] = ['timeout' => $this->confirmationTimeout / 1000];
 
         return ['arguments' => $arguments, 'trackedMessages' => $trackedMessages];
     }

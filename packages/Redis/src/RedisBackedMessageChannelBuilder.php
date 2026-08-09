@@ -33,16 +33,20 @@ final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilde
         return new self($channelName, $connectionReferenceName);
     }
 
-    public function withHighThroughputPublishing(bool $enabled = true): self
+    /**
+     * Coalesces published Messages into a single scripted round trip.
+     * Non blocking confirmation is not offered here, as the round trip blocks until Redis confirms it.
+     */
+    public function withHighThroughputPublishing(): self
     {
-        $this->getRedisOutboundChannelAdapter()->withAsyncPublishing($enabled);
+        $this->getRedisOutboundChannelAdapter()->withBatchPublishing();
 
         return $this;
     }
 
     protected function supportsBatchMessages(): bool
     {
-        return $this->getRedisOutboundChannelAdapter()->isAsyncPublishingEnabled();
+        return $this->getRedisOutboundChannelAdapter()->isBatchPublishingEnabled();
     }
 
     private function getRedisOutboundChannelAdapter(): RedisOutboundChannelAdapterBuilder

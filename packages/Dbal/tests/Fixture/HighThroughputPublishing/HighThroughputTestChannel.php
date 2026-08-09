@@ -1,0 +1,77 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Test\Ecotone\Dbal\Fixture\HighThroughputPublishing;
+
+use Ecotone\Messaging\BatchMessage;
+use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
+use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Messaging\Message;
+use Ecotone\Messaging\PollableChannel;
+use Ecotone\Messaging\Support\MessageBuilder;
+
+/**
+ * licence Apache-2.0
+ */
+final class HighThroughputTestChannel implements PollableChannel, BatchSupportingMessageChannel
+{
+    /** @var Message[] */
+    private array $queue = [];
+
+    public function __construct(
+        private string $channelName,
+        private PendingDeliveryRegistry $pendingDeliveryRegistry,
+        private ?string $deliveryFailureReason = null,
+    ) {
+    }
+
+    public function send(Message $message): void
+    {
+        $payload = $message->getPayload();
+
+        if ($payload instanceof BatchMessage) {
+            foreach ($payload->getEntries() as $entry) {
+                $this->queue[] = MessageBuilder::withPayload($entry['payload'])
+                    ->setMultipleHeaders($entry['headers'])
+                    ->build();
+            }
+        } else {
+            $this->queue[] = $message;
+        }
+
+        $pendingDelivery = new TestPendingDelivery($message, $this->channelName, $this->deliveryFailureReason);
+
+        if (! $this->pendingDeliveryRegistry->isScopeActive()) {
+            $deliveryResult = $pendingDelivery->awaitDelivery();
+            if (! $deliveryResult->isSuccessful()) {
+                throw PublishingFailedException::withFailedDeliveries($deliveryResult->getFailedDeliveries());
+            }
+
+            return;
+        }
+
+        $this->pendingDeliveryRegistry->register($this->channelName, $pendingDelivery);
+    }
+
+    public function receive(): ?Message
+    {
+        return array_shift($this->queue) ?: null;
+    }
+
+    public function receiveWithTimeout(PollingMetadata $pollingMetadata): ?Message
+    {
+        return $this->receive();
+    }
+
+    public function onConsumerStop(): void
+    {
+    }
+
+    public function supportsBatchMessages(): bool
+    {
+        return true;
+    }
+}

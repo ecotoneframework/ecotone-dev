@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Sqs;
 
 use Aws\Result;
-use Ecotone\Messaging\Channel\AsyncPublishing\DeliveryResult;
-use Ecotone\Messaging\Channel\AsyncPublishing\FailedDelivery;
-use Ecotone\Messaging\Channel\AsyncPublishing\PendingDelivery;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\DeliveryResult;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDelivery;
 use Ecotone\Messaging\Message;
 use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\Promise\Utils;

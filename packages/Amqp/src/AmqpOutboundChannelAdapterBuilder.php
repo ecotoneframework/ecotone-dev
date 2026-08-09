@@ -7,7 +7,7 @@ namespace Ecotone\Amqp;
 use Ecotone\Amqp\Transaction\AmqpTransactionInterceptor;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
-use Ecotone\Messaging\Channel\AsyncPublishing\AsyncPublishingRegistry;
+use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -23,7 +23,7 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
 {
     private const DEFAULT_PERSISTENT_MODE = true;
 
-    public const DEFAULT_ASYNC_PUBLISHING_TIMEOUT = 12000;
+    public const DEFAULT_CONFIRMATION_TIMEOUT = 12000;
 
     private string $amqpConnectionFactoryReferenceName;
     private string $defaultRoutingKey = '';
@@ -34,9 +34,10 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
     private array $staticHeadersToAdd = [];
     private bool $publisherConfirms = true;
     private ?string $delayStrategyReferenceName = null;
-    private bool $asyncPublishing = false;
-    private int $asyncPublishingTimeout = self::DEFAULT_ASYNC_PUBLISHING_TIMEOUT;
-    private ?string $asyncPublishingChannelName = null;
+    private bool $batchPublishing = false;
+    private bool $nonBlockingConfirmation = false;
+    private int $confirmationTimeout = self::DEFAULT_CONFIRMATION_TIMEOUT;
+    private ?string $publishingChannelName = null;
 
     private function __construct(string $exchangeName, string $amqpConnectionFactoryReferenceName)
     {
@@ -74,25 +75,31 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         return $this;
     }
 
-    public function withAsyncPublishing(bool $enabled = true, ?int $timeoutInMilliseconds = null): self
+    public function withHighThroughputPublishing(bool $batchPublishing = true, bool $nonBlockingConfirmation = true, ?int $confirmationTimeoutInMilliseconds = null): self
     {
-        Assert::isTrue($timeoutInMilliseconds === null || $timeoutInMilliseconds > 0, 'Async publishing timeout must be a positive amount of milliseconds.');
-        $this->asyncPublishing = $enabled;
-        if ($timeoutInMilliseconds !== null) {
-            $this->asyncPublishingTimeout = $timeoutInMilliseconds;
+        Assert::isTrue($confirmationTimeoutInMilliseconds === null || $confirmationTimeoutInMilliseconds > 0, 'Confirmation timeout must be a positive amount of milliseconds.');
+        $this->batchPublishing = $batchPublishing;
+        $this->nonBlockingConfirmation = $nonBlockingConfirmation;
+        if ($confirmationTimeoutInMilliseconds !== null) {
+            $this->confirmationTimeout = $confirmationTimeoutInMilliseconds;
         }
 
         return $this;
     }
 
-    public function isAsyncPublishingEnabled(): bool
+    public function isBatchPublishingEnabled(): bool
     {
-        return $this->asyncPublishing;
+        return $this->batchPublishing;
     }
 
-    public function withAsyncPublishingChannelName(string $channelName): self
+    public function isNonBlockingConfirmationEnabled(): bool
     {
-        $this->asyncPublishingChannelName = $channelName;
+        return $this->nonBlockingConfirmation;
+    }
+
+    public function withPublishingChannelName(string $channelName): self
+    {
+        $this->publishingChannelName = $channelName;
 
         return $this;
     }
@@ -149,11 +156,13 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        if ($this->asyncPublishing) {
+        if ($this->batchPublishing || $this->nonBlockingConfirmation) {
             if (! $builder->getServiceConfiguration()->isRunningForEnterprise()) {
-                throw LicensingException::create('Asynchronous publishing is available only with Ecotone Enterprise licence.');
+                throw LicensingException::create('High Throughput Publishing is available only with Ecotone Enterprise licence.');
             }
-            Assert::isTrue($this->publisherConfirms, 'Asynchronous publishing requires publisher confirms to be enabled.');
+        }
+        if ($this->nonBlockingConfirmation) {
+            Assert::isTrue($this->publisherConfirms, 'Non blocking confirmation requires publisher confirms to be enabled.');
         }
 
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
@@ -186,11 +195,12 @@ class AmqpOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
             $outboundMessageConverter,
             new Reference(ConversionService::REFERENCE_NAME),
             Reference::to(AmqpTransactionInterceptor::class),
-            new Reference(AsyncPublishingRegistry::class),
+            new Reference(PendingDeliveryRegistry::class),
             $this->delayStrategyReferenceName ? new Reference($this->delayStrategyReferenceName) : null,
-            $this->asyncPublishing,
-            $this->asyncPublishingTimeout,
-            $this->asyncPublishingChannelName ?? $this->exchangeName,
+            $this->batchPublishing,
+            $this->nonBlockingConfirmation,
+            $this->confirmationTimeout,
+            $this->publishingChannelName ?? $this->exchangeName,
         ]);
     }
 }

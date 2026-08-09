@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.325.0] - 2026-08-09
+
+## What's Changed
+* refactor: split High Throughput Publishing into batching and non blocking confirmation (Enterprise) by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/694
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.324.0...1.325.0
+
 ## [1.324.0] - 2026-08-07
 
 ## What's Changed

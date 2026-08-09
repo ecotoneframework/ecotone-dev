@@ -1,0 +1,246 @@
+packages/Dbal/src/DbalOutboundChannelAdapterBuilder.php
+  s_efead80618f361::t_e1b04a90f64064 30,44,46,51,53,58-59,84
+packages/Ecotone/src/Messaging/Channel/DeliveryConfirmation/DeliveryConfirmationInterceptor.php
+  s_efead80618f361::t_8cbb08c599d6f0 1-22,24-32,34-36,38-40,42-44,46-51,53-106
+  s_efead80618f361::t_b30174d96815eb 23,33,37,41,45,52
+packages/Sqs/src/Configuration/SqsMessagePublisherModule.php
+  s_efead80618f361::t_cf4afaaf8b7921 85,88
+  s_efead80618f361::t_4b403deb30ab62 9
+packages/Redis/src/RedisOutboundChannelAdapter.php
+  s_efead80618f361::t_7ffe4d297b04e4 56,64
+  s_efead80618f361::t_4b403deb30ab62 10-11
+packages/Dbal/tests/Integration/HighThroughputPublishingTransactionTest.php
+  s_efead80618f361::t_2b3b45bc1e4f62 10,19,28,33,46,67
+packages/Redis/src/Configuration/RedisMessagePublisherConfiguration.php
+  s_efead80618f361::t_0cb5c1ebe97bad 17
+  s_efead80618f361::t_35604d185f92fb 76-80,82,87,89
+packages/Amqp/src/AmqpOutboundChannelAdapter.php
+  s_efead80618f361::t_b30174d96815eb 57,61,93,271,275,283,288,306,319
+  s_efead80618f361::t_8cbb08c599d6f0 10,12
+  s_efead80618f361::t_6877f0e33846fd 11
+  s_efead80618f361::t_3ed7e15d16185c 59-60,72-73,102,104,273,329
+packages/Ecotone/src/Messaging/Config/Container/Compiler/RegisterSingletonMessagingServices.php
+  s_efead80618f361::t_8cbb08c599d6f0 6,70
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapter.php
+  s_efead80618f361::t_d20a321bb81d5c 39,48-49,64,73,75-80,107,138,181,183,191,197,217
+  s_efead80618f361::t_4b403deb30ab62 11,13
+  s_efead80618f361::t_6877f0e33846fd 12
+packages/Redis/src/RedisOutboundChannelAdapterBuilder.php
+  s_efead80618f361::t_e1b04a90f64064 23,38,40,45,47,52-53,77
+packages/Amqp/src/AmqpOutboundChannelAdapterBuilder.php
+  s_efead80618f361::t_8b09a9de52a587 37-38,40,78,80-84,90,92,95,97-102,159,161,163-165,200-201,203
+  s_efead80618f361::t_b30174d96815eb 26,39,202
+  s_efead80618f361::t_8cbb08c599d6f0 10,198
+packages/Ecotone/src/Messaging/Channel/DeliveryConfirmation/PublishingFailedException.php
+  s_efead80618f361::t_2b3b45bc1e4f62 37
+  s_efead80618f361::t_8cbb08c599d6f0 1-36,38-39,41-52
+  s_efead80618f361::t_d3395775b846cb 40
+packages/Amqp/tests/Integration/HighThroughputPublishingReliabilityTest.php
+  s_efead80618f361::t_2b3b45bc1e4f62 11,26
+  s_efead80618f361::t_5b21ac752f85bb 243,276
+  s_efead80618f361::t_7d91b75336e782 36,51,95,105,114-115,130-131,147,149-150,166,168-169,184
+packages/Dbal/tests/Fixture/HighThroughputPublishing/HighThroughputTestChannel.php
+  s_efead80618f361::t_2b3b45bc1e4f62 5,9-10,19
+  s_efead80618f361::t_7c634b001a8492 26,47,56
+packages/Dbal/tests/Fixture/HighThroughputPublishing/OrderWasPlaced.php
+  s_efead80618f361::t_2b3b45bc1e4f62 1-15
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/OrderRequestReceived.php
+  s_efead80618f361::t_8bb83dc0f2e2a5 1-15
+packages/Ecotone/tests/Messaging/Unit/Channel/DeliveryConfirmation/HighThroughputPublishingReliabilityTest.php
+  s_efead80618f361::t_6877f0e33846fd 11
+  s_efead80618f361::t_8bb83dc0f2e2a5 1-10,12-254
+packages/Amqp/src/Publisher/AmqpMessagePublisherModule.php
+  s_efead80618f361::t_8cbb08c599d6f0 8
+  s_efead80618f361::t_d64a808b6d9503 92-93,96
+packages/Ecotone/src/Messaging/Channel/PollableChannel/SendRetries/SendRetryChannelInterceptor.php
+  s_efead80618f361::t_8cbb08c599d6f0 10-11
+packages/Amqp/src/AmqpPendingDelivery.php
+  s_efead80618f361::t_8cbb08c599d6f0 7-9
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/OrderWasPlaced.php
+  s_efead80618f361::t_8bb83dc0f2e2a5 1-15
+Monorepo/Benchmark/HighThroughputPublishingBenchmark.php
+  s_efead80618f361::t_7d91b75336e782 301,317,333
+  s_efead80618f361::t_5b21ac752f85bb 61,67,83,89,138,144,378,388-389,438,441-442,459,462-463
+  s_efead80618f361::t_85522928a29fc0 1-60,62-66,68-82,84-88,90-137,139-143,145-300,302-316,318-332,334-377,379-387,390-437,439-440,443-458,460-461,464-479
+packages/Ecotone/tests/Messaging/Unit/Channel/DeliveryConfirmation/HighThroughputPublishingChannelTest.php
+  s_efead80618f361::t_8bb83dc0f2e2a5 1-82
+packages/Amqp/src/Publisher/AmqpMessagePublisherConfiguration.php
+  s_efead80618f361::t_d64a808b6d9503 56,58-59,160-165,167-171,177-182,184
+  s_efead80618f361::t_b30174d96815eb 60,187,189
+packages/Dbal/src/DbalBackedMessageChannelBuilder.php
+  s_efead80618f361::t_d22dfc59c548ff 34-38,40,47
+packages/Kafka/src/Configuration/KafkaModule.php
+  s_efead80618f361::t_d20a321bb81d5c 116,230
+  s_efead80618f361::t_4e180e52daaf6b 14
+packages/Ecotone/src/Messaging/Channel/DeliveryConfirmation/PendingDelivery.php
+  s_efead80618f361::t_8cbb08c599d6f0 1-15
+packages/Redis/src/RedisBackedMessageChannelBuilder.php
+  s_efead80618f361::t_afe64bd8353693 36-40,42,49
+packages/Kafka/tests/Integration/HighThroughputPublishingReliabilityTest.php
+  s_efead80618f361::t_5b21ac752f85bb 77
+  s_efead80618f361::t_0efa5fb7b4adc9 11,26,41
+packages/Ecotone/src/Messaging/Channel/DeliveryConfirmation/DeferredPublishingGateway.php
+  s_efead80618f361::t_b30174d96815eb 23,38,40,44,53,55,59
+  s_efead80618f361::t_2b3b45bc1e4f62 30,64
+  s_efead80618f361::t_33bafa0f491c1b 21,29
+  s_efead80618f361::t_8cbb08c599d6f0 1-20,22,24-28,31-37,39,41-43,45-52,54,56-58,60-63,65-69
+packages/Sqs/tests/Fixture/HighThroughputPublishing/OrderWasPlaced.php
+  s_efead80618f361::t_5b21ac752f85bb 1-15
+packages/Kafka/src/Configuration/KafkaPublisherConfiguration.php
+  s_efead80618f361::t_d20a321bb81d5c 24,36-38,110-115,117-121,127-132,134,137,139,155,186-188
+packages/Kafka/src/Outbound/KafkaPendingDelivery.php
+  s_efead80618f361::t_4b403deb30ab62 7-8
+packages/Ecotone/src/Messaging/Channel/DeliveryConfirmation/PendingDeliveryRegistry.php
+  s_efead80618f361::t_8cbb08c599d6f0 1-195
+packages/Ecotone/src/Messaging/Channel/DeliveryConfirmation/DeliveryResult.php
+  s_efead80618f361::t_8cbb08c599d6f0 1-44
+packages/Redis/src/Configuration/RedisMessagePublisherModule.php
+  s_efead80618f361::t_4b403deb30ab62 9
+  s_efead80618f361::t_fd468fa210c6df 85,88
+packages/Dbal/tests/Integration/HighThroughputPublishingTest.php
+  s_efead80618f361::t_3b285b1a0dc066 85,88,91-92,94,97
+  s_efead80618f361::t_2b3b45bc1e4f62 14,35,41
+  s_efead80618f361::t_72365a6ebad949 43,60,69,80,100,104,118,121,130,133,162,181,184,200,203,219,287,290-291
+  s_efead80618f361::t_75bc59520b8e6e 103,188,207,221,227
+packages/Ecotone/src/Messaging/Precedence.php
+  s_efead80618f361::t_b30174d96815eb 64,69
+packages/Kafka/src/Channel/KafkaMessageChannelBuilder.php
+  s_efead80618f361::t_26fb29f7ba276f 29-31,123-128,130-134,140-145,147,150,152
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/InMemoryHighThroughputPublishingChannel.php
+  s_efead80618f361::t_8bb83dc0f2e2a5 30-68
+  s_efead80618f361::t_6877f0e33846fd 8
+  s_efead80618f361::t_5e50373dfc33d7 5,9-10,19
+packages/Kafka/src/Outbound/KafkaDeliveryTracker.php
+  s_efead80618f361::t_4b403deb30ab62 7-8
+packages/Dbal/tests/Fixture/HighThroughputPublishing/HighThroughputTestChannelBuilder.php
+  s_efead80618f361::t_2b3b45bc1e4f62 5,7,16,44,46
+packages/Enqueue/src/EnqueueOutboundChannelAdapter.php
+  s_efead80618f361::t_7740c11384721e 34-35,43-44
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/InMemoryHighThroughputOutboundAdapter.php
+  s_efead80618f361::t_8bb83dc0f2e2a5 1-126
+packages/Ecotone/src/Messaging/Channel/DeliveryConfirmation/Config/DeferredPublishingGatewayRegistration.php
+  s_efead80618f361::t_8cbb08c599d6f0 1-26,28,30,34-38,41-44,46-50,53-55
+  s_efead80618f361::t_9dac0be21c237e 31-33,39
+  s_efead80618f361::t_c237181ba9a70d 27,29,40,45,51-52
+packages/Ecotone/tests/Messaging/Unit/Channel/DeliveryConfirmation/MessagePublisherPublishDeferredTest.php
+  s_efead80618f361::t_9aac189f96f2ed 74
+  s_efead80618f361::t_a30cfbfd424339 22
+  s_efead80618f361::t_14486af6f89d2d 1-21,23-73,75-112
+packages/Sqs/src/SqsPendingDelivery.php
+  s_efead80618f361::t_4b403deb30ab62 8-10
+packages/Amqp/tests/Fixture/HighThroughputPublishing/OrderWasPlaced.php
+  s_efead80618f361::t_2b3b45bc1e4f62 1-15
+packages/Sqs/src/Configuration/SqsMessagePublisherConfiguration.php
+  s_efead80618f361::t_9a7fb15eb23e22 18-20,79-84,86-90,96-101,103
+  s_efead80618f361::t_b4a860491f73ca 106,108
+packages/Sqs/src/SqsOutboundChannelAdapter.php
+  s_efead80618f361::t_4b403deb30ab62 10-11
+  s_efead80618f361::t_210b0c0ab5bc2f 37-40,64-65,91-92,184
+  s_efead80618f361::t_ec64c156923771 49
+packages/Sqs/tests/Integration/HighThroughputPublishingTest.php
+  s_efead80618f361::t_5b21ac752f85bb 73-253
+  s_efead80618f361::t_e0ca188906117f 12,29,35,37,53,62
+packages/Ecotone/src/Messaging/Config/ModuleClassList.php
+  s_efead80618f361::t_6877f0e33846fd 31
+  s_efead80618f361::t_8cbb08c599d6f0 113
+packages/Dbal/tests/Fixture/HighThroughputPublishing/TestPendingDelivery.php
+  s_efead80618f361::t_2b3b45bc1e4f62 5,7-9
+packages/Dbal/src/Configuration/DbalMessagePublisherConfiguration.php
+  s_efead80618f361::t_9d5265f2366339 38
+  s_efead80618f361::t_d630c169ca8bbf 125-129,131,136,138
+packages/Dbal/src/Configuration/DbalPublisherModule.php
+  s_efead80618f361::t_fd468fa210c6df 120,123
+  s_efead80618f361::t_8cbb08c599d6f0 11
+packages/Sqs/src/SqsOutboundChannelAdapterBuilder.php
+  s_efead80618f361::t_7b4086711a4865 25,27-29,41,43-47,53,55-60,65-66,90-93
+  s_efead80618f361::t_4763a5d9425066 10
+packages/Ecotone/src/Messaging/Channel/DeliveryConfirmation/Config/DeliveryConfirmationModule.php
+  s_efead80618f361::t_8cbb08c599d6f0 1-10,12-78
+  s_efead80618f361::t_6877f0e33846fd 11
+packages/Sqs/src/SqsBackedMessageChannelBuilder.php
+  s_efead80618f361::t_9a7fb15eb23e22 36-41,43,50
+packages/Ecotone/src/Messaging/Channel/DeliveryConfirmation/FailedDelivery.php
+  s_efead80618f361::t_8cbb08c599d6f0 1-35
+packages/Ecotone/src/Messaging/Channel/DeliveryConfirmation/DeliveryFuture.php
+  s_efead80618f361::t_8cbb08c599d6f0 1-75
+packages/Ecotone/src/Messaging/MessagePublisher.php
+  s_efead80618f361::t_4fd26b8db6b2d6 22-27
+packages/Kafka/src/Channel/KafkaMessageChannel.php
+  s_efead80618f361::t_b1501b55ef1c9d 29
+packages/Kafka/tests/Integration/HighThroughputPublishingTest.php
+  s_efead80618f361::t_2156b25b6e99d7 64,217-226
+  s_efead80618f361::t_5b21ac752f85bb 83-169
+  s_efead80618f361::t_2f80d456672a25 17,39,41,72
+packages/Sqs/tests/Integration/HighThroughputPublishingReliabilityTest.php
+  s_efead80618f361::t_5b21ac752f85bb 11,28,35,66-68,78,97
+packages/Amqp/tests/Integration/HighThroughputPublishingTest.php
+  s_efead80618f361::t_7888f15ed30457 340,342-347,356
+  s_efead80618f361::t_3770c6a0a09994 15
+  s_efead80618f361::t_2b3b45bc1e4f62 14,34,40
+  s_efead80618f361::t_5b21ac752f85bb 79,126
+  s_efead80618f361::t_7d91b75336e782 103,132-133,176,195
+  s_efead80618f361::t_6877f0e33846fd 42,57,67,84,112,244,268,282,298
+  s_efead80618f361::t_434f07742870b3 239-243,245-267,269-281,283-297,299-306
+packages/Dbal/src/DbalOutboundChannelAdapter.php
+  s_efead80618f361::t_c20438ff663483 32,40
+packages/Kafka/src/Outbound/KafkaOutboundChannelAdapterBuilder.php
+  s_efead80618f361::t_4b403deb30ab62 8,103
+packages/Redis/tests/Integration/HighThroughputPublishingTest.php
+  s_efead80618f361::t_72365a6ebad949 47,64,73,84,104,108,143,162,165,185,188,204,212,227,235,294,297-298
+  s_efead80618f361::t_75bc59520b8e6e 107,169,192
+  s_efead80618f361::t_3b285b1a0dc066 89,92,95-96,98,101
+  s_efead80618f361::t_5066dec209af22 12,30,37
+packages/Ecotone/tests/Messaging/Unit/Channel/DeliveryConfirmation/MessagePublisherPublishDeferredBatchTest.php
+  s_efead80618f361::t_8bb83dc0f2e2a5 1-68
+packages/Amqp/src/AmqpBackedMessageChannelBuilder.php
+  s_efead80618f361::t_416905a26bc267 75-80,82
+  s_efead80618f361::t_ac95d4707fd16c 33,101
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/AsyncOrderForwarder.php
+  s_efead80618f361::t_ae08280b869b4e 5
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/AsyncOrderSubscriber.php
+  s_efead80618f361::t_9899cda25de75c 5
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/FakeTransactionInterceptor.php
+  s_efead80618f361::t_1eb4d6a0aa71cf 5
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/FakeTransactionModule.php
+  s_efead80618f361::t_c91c835928f016 5
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/InMemoryHighThroughputPublisherModule.php
+  s_efead80618f361::t_1b540fc06fbda0 5,9,23,25,36,41
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/InMemoryHighThroughputPublishingChannelBuilder.php
+  s_efead80618f361::t_68eb5f85598a36 5,7,16,44,46
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/InMemoryPendingDelivery.php
+  s_efead80618f361::t_8bfc7b30f8d678 5,7-9
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/OperationsLog.php
+  s_efead80618f361::t_c5cb4f8ea3183d 5
+packages/Ecotone/tests/Messaging/Fixture/HighThroughputPublishing/OrderService.php
+  s_efead80618f361::t_c637fd1f321e75 5
+packages/Ecotone/tests/Messaging/Unit/Channel/DeliveryConfirmation/DeadLetterOfFailedBatchDeliveriesTest.php
+  s_efead80618f361::t_07fd30b8c9e745 5,18-21,60,90
+packages/Ecotone/tests/Messaging/Unit/Channel/DeliveryConfirmation/HighThroughputPublishingCollectorMatrixTest.php
+  s_efead80618f361::t_4322d831406a96 5,12-17,23,73
+packages/Ecotone/tests/Messaging/Unit/Channel/DeliveryConfirmation/HighThroughputPublishingScenariosTest.php
+  s_efead80618f361::t_49f79abe2e86d1 5,18-25,31,110,142,171
+packages/Ecotone/tests/Messaging/Unit/Channel/DeliveryConfirmation/SendRetryOfFailedBatchDeliveriesTest.php
+  s_efead80618f361::t_54bfb9d4763512 5,8-9
+packages/Ecotone/tests/Messaging/Unit/PrecedenceTest.php
+  s_efead80618f361::t_b5485b2de5aa10 18-19
+packages/Redis/tests/Fixture/HighThroughputPublishing/OrderWasPlaced.php
+  s_efead80618f361::t_6c259257bd7257 5
+packages/Redis/tests/Integration/HighThroughputPublishingReliabilityTest.php
+  s_efead80618f361::t_1ec6bd0532ef58 10,28
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "3b42c3c6336563d7433972b496e2fe544016e6f5",
+  "prompts": {},
+  "sessions": {
+    "s_efead80618f361": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "1f26b7e0-786f-4555-b7b2-6be80e4c6089",
+        "model": "claude-opus-5"
+      },
+      "human_author": "Dariusz Gafka <dariuszgafka@gmail.com>"
+    }
+  }
+}

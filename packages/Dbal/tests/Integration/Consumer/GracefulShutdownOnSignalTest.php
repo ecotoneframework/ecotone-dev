@@ -37,7 +37,7 @@ final class GracefulShutdownOnSignalTest extends DbalMessagingTestCase
         // this PHP process would duplicate the already-open DB connection's socket fd
         // (opened in DbalMessagingTestCase::setUp()) into the child and corrupt it.
         $parentPid = posix_getpid();
-        exec(sprintf('(sleep 0.3 && kill -TERM %d) > /dev/null 2>&1 &', $parentPid));
+        exec(sprintf('(sleep 1 && kill -TERM %d) > /dev/null 2>&1 &', $parentPid));
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [

@@ -36,12 +36,12 @@ class SymfonyMessengerMessageChannelUnitTest extends TestCase
     public function setUp(): void
     {
         $this->messageConverter = new SymfonyMessageConverter(
-            $this->createMock(HeaderMapper::class),
+            $this->createStub(HeaderMapper::class),
             'mode',
-            $this->createMock(ConversionService::class)
+            $this->createStub(ConversionService::class)
         );
         $this->envelope = new Envelope(
-            $this->createMock(stdClass::class),
+            $this->createStub(stdClass::class),
             [
                 new MetadataStamp([]),
             ],
@@ -50,7 +50,7 @@ class SymfonyMessengerMessageChannelUnitTest extends TestCase
 
     public function test_symfony_envelope_returns_array(): void
     {
-        $transport = $this->createMock(DoctrineTransport::class);
+        $transport = $this->createStub(DoctrineTransport::class);
         $transport->method('get')->willReturn([$this->envelope]);
         $transport->method('getMessageCount')->willReturn(1);
         $messageChannel = new SymfonyMessengerMessageChannel($transport, $this->messageConverter);
@@ -65,7 +65,7 @@ class SymfonyMessengerMessageChannelUnitTest extends TestCase
 
     public function test_symfony_envelope_returns_generator(): void
     {
-        $transport = $this->createMock(AmqpTransport::class);
+        $transport = $this->createStub(AmqpTransport::class);
         $transport->method('get')->willReturn($this->singleMessageGenerator());
         $transport->method('getMessageCount')->willReturn(1);
         $messageChannel = new SymfonyMessengerMessageChannel($transport, $this->messageConverter);

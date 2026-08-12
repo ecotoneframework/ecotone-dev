@@ -51,7 +51,7 @@
         "ecotone/ecotone": "~1.325.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^10.5|^11.0",
+        "phpunit/phpunit": "^10.5|^11.0|^12.0",
         "phpstan/phpstan": "^1.8|^2.0",
         "psr/container": "^1.1.1|^2.0.1",
         "kwn/php-rdkafka-stubs": "^2.2|^3.0",

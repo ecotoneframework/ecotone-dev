@@ -54,7 +54,7 @@
         "ext-rdkafka": "*",
         "monolog/monolog": "^2.9|^3.3.1",
         "phpstan/phpstan": "^1.8|^2.0",
-        "phpunit/phpunit": "^10.5|^11.0",
+        "phpunit/phpunit": "^10.5|^11.0|^12.0",
         "symfony/amqp-messenger": "^6.4|^7.0|^8.0",
         "symfony/doctrine-messenger": "^6.4|^7.0|^8.0",
         "symfony/expression-language": "^6.4|^7.0|^8.0",

@@ -32,7 +32,7 @@ use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
  * licence Enterprise
  * @internal
  */
-#[RequiresPhp('>= 8.5')]
+#[RequiresPhp('>= 8.5.0')]
 final class ClosureExpressionDbalTest extends DbalMessagingTestCase
 {
     public function test_deduplication_with_closure_expression(): void

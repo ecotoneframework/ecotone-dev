@@ -178,7 +178,7 @@
         "phpunit/phpunit": "^11.0",
         "predis/predis": "^1.1.10",
         "symfony/expression-language": "^6.4|^7.0|^8.0",
-        "symplify/monorepo-builder": "11.1.21",
+        "symplify/monorepo-builder": "^12.0",
         "aws/aws-sdk-php": ">=3.340.5",
         "symfony/messenger": "^6.4|^7.0|^8.0",
         "symfony/amqp-messenger": "^6.4|^7.0|^8.0",

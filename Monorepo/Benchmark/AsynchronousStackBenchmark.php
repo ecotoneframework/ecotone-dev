@@ -12,12 +12,14 @@ use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Configuration;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
+use PHPUnit\Framework\Assert;
 use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 
 #[Warmup(1), Revs(10), Iterations(5)]
-final class AsynchronousStackBenchmark extends FullAppBenchmarkCase
+final class AsynchronousStackBenchmark extends Assert
 {
+    use FullAppBenchmarkCaseTrait;
     use ExampleAppCaseTrait;
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void

@@ -19,8 +19,9 @@ use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 
 #[Warmup(1), Revs(10), Iterations(5)]
-class HttpStackBenchmark extends FullAppBenchmarkCase
+class HttpStackBenchmark extends Assert
 {
+    use FullAppBenchmarkCaseTrait;
     use ExampleAppCaseTrait;
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {

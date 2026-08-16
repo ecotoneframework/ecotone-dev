@@ -19,8 +19,9 @@ use Psr\Container\ContainerInterface;
 use Ramsey\Uuid\Uuid;
 
 #[Warmup(1), Revs(10), Iterations(5)]
-class EventSourcingBenchmark extends FullAppBenchmarkCase
+class EventSourcingBenchmark extends Assert
 {
+    use FullAppBenchmarkCaseTrait;
     use ExampleAppEventSourcingCaseTrait;
 
     public static function skippedPackages(): array

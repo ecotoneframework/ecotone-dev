@@ -29,10 +29,10 @@ return static function (MBConfig $containerConfigurator): void {
             "behat/behat" => "^3.10",
             "friendsofphp/php-cs-fixer" => "^3.9",
             "php-coveralls/php-coveralls" => "^2.5",
-            "phpstan/phpstan" => "^1.8",
-            "phpunit/phpunit" => "^9.6|^10.5|^11.0",
+            "phpstan/phpstan" => "^1.8|^2.0",
+            "phpunit/phpunit" => "^9.6|^10.5|^11.0|^12.0",
             "symfony/expression-language" => "^6.0|^7.0",
-            "symplify/monorepo-builder" => "11.1.21"
+            "symplify/monorepo-builder" => "^12.0"
         ],
     ]);
     $containerConfigurator->defaultBranch('main');

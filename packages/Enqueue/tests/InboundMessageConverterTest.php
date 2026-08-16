@@ -45,7 +45,7 @@ final class InboundMessageConverterTest extends TestCase
             ),
             new NullConsumer(new NullQueue('some')),
             InMemoryConversionService::createWithoutConversion(),
-            $this->createMock(CachedConnectionFactory::class),
+            $this->createStub(CachedConnectionFactory::class),
         )
         ->build();
 

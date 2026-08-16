@@ -8,11 +8,13 @@ use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;
+use PHPUnit\Framework\Assert;
 use Psr\Container\ContainerInterface;
 
 #[Warmup(1), Revs(10), Iterations(5)]
-class KernelBootBenchmark extends FullAppBenchmarkCase
+class KernelBootBenchmark extends Assert
 {
+    use FullAppBenchmarkCaseTrait;
     use ExampleAppCaseTrait;
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void

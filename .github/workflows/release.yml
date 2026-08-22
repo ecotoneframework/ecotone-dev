@@ -50,10 +50,10 @@ jobs:
 
       - name: Checkout branch related to tag
         run: |
-          raw=$(git branch -r --contains ${{ github.ref }})
+          raw=$(git branch -r --contains ${{ github.ref }} | head -n1)
           branch=${raw##*/}
           echo "checking out branch $branch for tag ${GITHUB_REF#refs/tags/}"
-          git checkout $branch
+          git checkout "$branch"
 
       - name: Install PHP-CS-Fixer
         run: |
@@ -160,11 +160,13 @@ jobs:
           fetch-depth: '0'
 
       - name: Checkout branch related to tag
+        id: release_branch
         run: |
-          raw=$(git branch -r --contains ${{ github.ref }})
+          raw=$(git branch -r --contains ${{ github.ref }} | head -n1)
           branch=${raw##*/}
           echo "checking out branch $branch for tag ${GITHUB_REF#refs/tags/}"
-          git checkout $branch
+          git checkout "$branch"
+          echo "name=$branch" >> "$GITHUB_OUTPUT"
 
       - name: Replace key.pem with ECOTONE_ENTERPRISE_PUBLIC_KEY
         if: ${{ matrix.package.name == 'ecotone' }}
@@ -175,10 +177,14 @@ jobs:
         run: php bin/strip-monorepo-repositories.php "${{ matrix.package.directory }}"
 
       -
-        uses: "danharrin/monorepo-split-github-action@v2.4.0"
+        uses: "danharrin/monorepo-split-github-action@v2.4.5"
         if: "startsWith(github.ref, 'refs/tags/')"
         with:
           tag: ${GITHUB_REF#refs/tags/}
+
+          # ↓ split commits land on the same branch the tag was created from,
+          # so stable releases from main and pre-releases from other branches do not overwrite each other
+          branch: '${{ steps.release_branch.outputs.name }}'
 
           # ↓ split "packages/easy-coding-standard" directory
           package_directory: '${{ matrix.package.directory }}'

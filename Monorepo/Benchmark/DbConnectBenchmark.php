@@ -10,7 +10,7 @@ class DbConnectBenchmark
 {
     public function bench_db_connect(): void
     {
-        $connectionFactory = new DbalConnectionFactory('pgsql://ecotone:secret@localhost:5432/ecotone');
+        $connectionFactory = new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone');
         $connection = $connectionFactory->createContext()->getDbalConnection();
 
         $connection->executeQuery('SELECT 1');

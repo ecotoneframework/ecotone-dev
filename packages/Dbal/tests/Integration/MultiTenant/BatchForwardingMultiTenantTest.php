@@ -42,6 +42,7 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(

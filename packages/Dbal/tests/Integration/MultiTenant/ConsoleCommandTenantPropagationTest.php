@@ -18,6 +18,7 @@ use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\CommandBus;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * Proves that a tenant header can be propagated into a `#[ConsoleCommand]` call
@@ -122,6 +123,7 @@ final class ConsoleCommandTenantPropagationTest extends DbalMessagingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(

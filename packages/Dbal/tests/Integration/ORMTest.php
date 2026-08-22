@@ -28,6 +28,7 @@ use Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler\PersonQueryService;
 use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\ORMPersonRepository;
 use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\RegisterPersonService;
 use Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler\SaveMultipleEntitiesHandler;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -147,6 +148,7 @@ final class ORMTest extends DbalMessagingTestCase
                 PersonQueryService::class => new PersonQueryService(),
             ], $services),
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects(array_merge([
                     DbalConfiguration::createWithDefaults()
@@ -221,6 +223,7 @@ final class ORMTest extends DbalMessagingTestCase
                 PersonQueryService::class => new PersonQueryService(),
             ], $services),
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
@@ -263,6 +266,7 @@ final class ORMTest extends DbalMessagingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withNamespaces($namespaces)
                 ->withExtensionObjects([
@@ -294,6 +298,7 @@ final class ORMTest extends DbalMessagingTestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
@@ -318,6 +323,7 @@ final class ORMTest extends DbalMessagingTestCase
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => DbalConnection::create($this->getConnection())],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withDoctrineORMRepositories(true),
@@ -340,6 +346,7 @@ final class ORMTest extends DbalMessagingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withNamespaces($namespaces)

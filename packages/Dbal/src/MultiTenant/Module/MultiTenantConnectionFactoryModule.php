@@ -5,6 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\MultiTenant\Module;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Dbal\Attribute\MultiTenantConnection;
+use Ecotone\Dbal\Attribute\MultiTenantObjectManager;
+use Ecotone\Dbal\Attribute\OnTenantActivation;
+use Ecotone\Dbal\Attribute\OnTenantDeactivation;
 use Ecotone\Dbal\Attribute\WithTenantResolver;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
@@ -39,6 +43,7 @@ use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\QueryBus;
 use Psr\Container\ContainerInterface;
+use ReflectionClass;
 
 #[ModuleAnnotation]
 /**
@@ -49,10 +54,12 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
     /**
      * @param array<int, string> $tenantResolverPlacements
      * @param array<int, string> $invalidTenantResolverPlacements
+     * @param array<int, string> $multiTenantAttributePlacements
      */
     private function __construct(
         private array $tenantResolverPlacements,
         private array $invalidTenantResolverPlacements,
+        private array $multiTenantAttributePlacements,
     ) {
     }
 
@@ -60,6 +67,7 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
     {
         $allPlacements = [];
         $invalid = [];
+        $multiTenantAttributePlacements = [];
         foreach ($annotationRegistrationService->findAnnotatedMethods(WithTenantResolver::class) as $annotatedMethod) {
             $location = $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName();
             $allPlacements[] = $location;
@@ -76,7 +84,26 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
             }
         }
 
-        return new self($allPlacements, $invalid);
+        foreach ([OnTenantActivation::class, OnTenantDeactivation::class] as $attributeClassName) {
+            foreach ($annotationRegistrationService->findAnnotatedMethods($attributeClassName) as $annotatedMethod) {
+                $multiTenantAttributePlacements[] = $attributeClassName . ' on ' . $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName();
+            }
+        }
+
+        foreach ($annotationRegistrationService->findAnnotatedClasses('*') as $className) {
+            $reflectionClass = new ReflectionClass($className);
+            foreach ($reflectionClass->getMethods() as $method) {
+                foreach ($method->getParameters() as $parameter) {
+                    foreach ([MultiTenantConnection::class, MultiTenantObjectManager::class] as $attributeClassName) {
+                        if ($parameter->getAttributes($attributeClassName) !== []) {
+                            $multiTenantAttributePlacements[] = $attributeClassName . ' on ' . $className . '::' . $method->getName() . '($' . $parameter->getName() . ')';
+                        }
+                    }
+                }
+            }
+        }
+
+        return new self($allPlacements, $invalid, array_values(array_unique($multiTenantAttributePlacements)));
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -90,8 +117,17 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
 
         if ($this->tenantResolverPlacements !== [] && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             throw LicensingException::create(sprintf(
-                'WithTenantResolver attribute on %s requires Ecotone Enterprise licence.',
+                'WithTenantResolver attribute on %s requires Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise.',
                 implode(', ', $this->tenantResolverPlacements)
+            ));
+        }
+
+        $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
+
+        if (($multiTenantConfigurations !== [] || $this->multiTenantAttributePlacements !== []) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw LicensingException::create(sprintf(
+                'Multi-tenancy requires Ecotone Enterprise licence when using MultiTenantConfiguration or multi-tenant attributes (%s). See https://docs.ecotone.tech/enterprise.',
+                $this->multiTenantAttributePlacements === [] ? 'configuration present' : implode(', ', $this->multiTenantAttributePlacements)
             ));
         }
 
@@ -101,8 +137,6 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
         $messagingConfiguration->registerMessageChannel(
             SimpleMessageChannelBuilder::createPublishSubscribeChannel(HeaderBasedMultiTenantConnectionFactory::TENANT_DEACTIVATED_CHANNEL_NAME)
         );
-
-        $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
 
         foreach ($multiTenantConfigurations as $multiTenantConfig) {
             $messagingConfiguration->registerServiceDefinition(

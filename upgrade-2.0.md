@@ -53,7 +53,9 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
 without a licence. Only `#[WithTenantResolver]` and multi-tenant projections were gated.
 
 **Now:** Any multi-tenant configuration or attribute requires a valid Enterprise licence key. Without it bootstrap
-throws `LicensingException` pointing to the licensing docs.
+throws `LicensingException` ("Multi-tenancy requires Ecotone Enterprise licence … See https://docs.ecotone.tech/enterprise") naming
+the offending `MultiTenantConfiguration` or attribute placement. Laravel's tenant database switching is registered only when a
+Laravel-backed `MultiTenantConfiguration` exists and is licensed; Symfony and Tempest rely on the same core gate.
 
 **How to adapt:** Provide the licence key (`ServiceConfiguration::withLicenceKey()`, `ecotone.licenceKey` in Symfony,
 `ECOTONE_LICENCE_KEY` / `config/ecotone.php` in Laravel, `licenceKey:` argument of `EcotoneLite`). If you are not
@@ -158,6 +160,13 @@ AmqpBackedMessageChannelBuilder::create('ticket_service.events'),
 
 Consumers subscribe by having a channel with the mapped name; `#[Distributed]` handlers stay unchanged. Distributed event
 routing wildcards are unchanged (`*` matches a single dotted segment).
+
+- The AMQP bus declared a `ecotone.distributed` exchange and per-service queues automatically. Service Map has no exchange
+  convention: each mapped channel is an ordinary channel you declare (`AmqpBackedMessageChannelBuilder::create('ticket_service.events')`
+  creates the queue on first use; `AmqpStreamChannelBuilder` for RabbitMQ streams when several services consume the same events).
+- To receive *all* events on a channel use `->withEventMapping('ticket_service.events', subscriptionKeys: ['*'])`; an empty key list
+  subscribes to nothing, so the former "subscribe to everything by default" behaviour of `withServiceMapping()` must be made explicit.
+- `DistributedServiceMap` is an Enterprise feature, as the AMQP Distributed Bus was; the licence key is still required.
 
 ## 7. Deprecated API removed
 

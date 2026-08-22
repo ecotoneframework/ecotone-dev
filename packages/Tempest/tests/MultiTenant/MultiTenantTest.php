@@ -10,6 +10,7 @@ use Ecotone\Modelling\QueryBus;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
+use Ecotone\Test\LicenceTesting;
 use PDO;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\Fixture\MultiTenant\RegisterCustomer;
@@ -33,6 +34,7 @@ final class MultiTenantTest extends EcotoneIntegrationTestCase
                 ModulePackageList::DBAL_PACKAGE,
             ]),
             test: false,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

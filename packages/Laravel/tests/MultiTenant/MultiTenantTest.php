@@ -9,6 +9,7 @@ use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
+use Ecotone\Test\LicenceTesting;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Artisan;
@@ -17,7 +18,7 @@ use Illuminate\Support\Facades\File;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
-require __DIR__ . '/boostrap.php';
+require_once __DIR__ . '/boostrap.php';
 
 /**
  * @internal
@@ -34,6 +35,7 @@ final class MultiTenantTest extends TestCase
 
     public function setUp(): void
     {
+        putenv('LARAVEL_LICENCE_KEY=' . LicenceTesting::VALID_LICENCE);
         $app = require __DIR__ . '/bootstrap/app.php';
         $app->make(Kernel::class)->bootstrap();
         runMigrationForTenants(DB::connection('tenant_a_connection'), DB::connection('tenant_b_connection'));
@@ -72,8 +74,11 @@ final class MultiTenantTest extends TestCase
 
     public function tearDown(): void
     {
+        putenv('LARAVEL_LICENCE_KEY');
         DB::connection('tenant_a_connection')->disconnect();
         DB::connection('tenant_b_connection')->disconnect();
+        restore_exception_handler();
+        restore_error_handler();
     }
 
     public function test_run_message_handlers_for_multi_tenant_connection(): void

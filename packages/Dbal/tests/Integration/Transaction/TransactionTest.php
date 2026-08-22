@@ -19,6 +19,7 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -80,6 +81,7 @@ final class TransactionTest extends DbalMessagingTestCase
                 ),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withNamespaces([
@@ -174,6 +176,7 @@ final class TransactionTest extends DbalMessagingTestCase
             [$consoleCommands::class],
             [$consoleCommands, DbalConnectionFactory::class => $dbalConnectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
         );
@@ -211,6 +214,7 @@ final class TransactionTest extends DbalMessagingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderService(), DbalConnectionFactory::class => DbalConnection::fromConnectionFactory($dbalConnectionFactory), 'managerRegistry' => $dbalConnectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withNamespaces([
@@ -229,6 +233,7 @@ final class TransactionTest extends DbalMessagingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([

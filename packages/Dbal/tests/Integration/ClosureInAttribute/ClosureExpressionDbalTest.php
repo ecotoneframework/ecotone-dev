@@ -42,6 +42,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             classesToResolve: [ClosureDeduplicatedHandler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE])),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -61,6 +62,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             classesToResolve: [PolicyDrivenDeduplicatedHandler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE])),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -151,6 +153,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             [TenantClosurePoller::class, $receiver::class],
             [$poller, $receiver, 'tenant_a_connection' => new FakeConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     PollingMetadata::create('externalEventPoller')
@@ -195,6 +198,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE])),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

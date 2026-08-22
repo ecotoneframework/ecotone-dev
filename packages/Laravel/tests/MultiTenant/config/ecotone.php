@@ -8,4 +8,5 @@ return [
         ModulePackageList::DBAL_PACKAGE,
         ModulePackageList::ASYNCHRONOUS_PACKAGE,
     ]),
+    'licenceKey' => env('LARAVEL_LICENCE_KEY'),
 ];

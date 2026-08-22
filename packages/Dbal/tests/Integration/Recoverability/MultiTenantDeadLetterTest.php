@@ -16,6 +16,7 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Interop\Queue\ConnectionFactory;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * licence Apache-2.0
@@ -42,6 +43,7 @@ final class MultiTenantDeadLetterTest extends DbalMessagingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withDefaultErrorChannel('dbal_dead_letter')
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('async'),

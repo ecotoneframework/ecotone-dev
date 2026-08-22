@@ -16,6 +16,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjectionMultiTenant\InProgressTicketList;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -35,6 +36,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
@@ -112,6 +114,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
@@ -180,6 +183,7 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',

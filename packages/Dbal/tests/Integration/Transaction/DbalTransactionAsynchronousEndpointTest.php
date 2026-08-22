@@ -25,6 +25,7 @@ use Test\Ecotone\Dbal\Fixture\ConnectionBreakingModule;
 use Test\Ecotone\Dbal\Fixture\InstantRetryTransaction\CommandDispatchingAsyncHandler;
 use Test\Ecotone\Dbal\Fixture\ORM\FailureMode\MultipleInternalCommandsService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -47,6 +48,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
@@ -100,6 +102,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 //                "logger" => new EchoLogger()
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
@@ -148,6 +151,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withDefaultErrorChannel('dbal_dead_letter')
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
@@ -173,6 +177,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 'logger' => new EchoLogger(),
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withDefaultErrorChannel('dbal_dead_letter')
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
@@ -208,8 +213,10 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 'tenant_a_connection' => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                         ->withDefaultErrorChannel('nullChannel'),
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
@@ -270,6 +277,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->connectionForTenantA()],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
@@ -319,8 +327,10 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                         ->withDefaultErrorChannel('nullChannel'),
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
@@ -404,6 +414,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withoutTransactionOnAsynchronousEndpoints(['async'])
@@ -459,6 +470,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 DbalConnectionFactory::class => $connectionFactory,
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
@@ -503,6 +515,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 DbalConnectionFactory::class => $connectionFactory,
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)

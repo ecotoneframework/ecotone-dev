@@ -18,6 +18,7 @@ use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler\PersonCommandService;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler\RegisterPerson;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -72,6 +73,7 @@ final class MultiTenantTest extends DbalMessagingTestCase
                     PersonCommandService::class => new PersonCommandService(),
                 ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\DbalBusinessInterface',

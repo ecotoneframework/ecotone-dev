@@ -9,6 +9,7 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
+use Ecotone\Test\LicenceTesting;
 use PDO;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\Fixture\TenantAggregate\RegisterTenantProduct;
@@ -32,6 +33,7 @@ final class TenantAggregatePersistenceTest extends EcotoneIntegrationTestCase
                 ModulePackageList::DBAL_PACKAGE,
             ]),
             test: false,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

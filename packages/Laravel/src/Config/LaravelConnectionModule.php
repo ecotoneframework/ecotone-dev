@@ -17,6 +17,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
+use Ecotone\Messaging\Support\LicensingException;
 use Interop\Queue\ConnectionFactory;
 
 #[ModuleAnnotation]
@@ -64,6 +65,14 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
                     ]
                 )
             );
+        }
+
+        if ($laravelRelatedMultiTenantConfigurations === []) {
+            return;
+        }
+
+        if (! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw LicensingException::create('Laravel multi-tenant database switching requires Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise.');
         }
 
         $messagingConfiguration->registerServiceDefinition(

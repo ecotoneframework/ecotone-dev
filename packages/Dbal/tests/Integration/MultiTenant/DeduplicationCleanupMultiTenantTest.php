@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeduplicationCommandHandler\EmailCommandHandler;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -84,6 +85,7 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(

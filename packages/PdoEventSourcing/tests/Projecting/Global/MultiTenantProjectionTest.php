@@ -61,6 +61,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
                     ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
@@ -132,6 +133,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
                     ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::ASYNCHRONOUS_PACKAGE,
@@ -211,6 +213,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
                     ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::ASYNCHRONOUS_PACKAGE,

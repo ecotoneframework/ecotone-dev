@@ -14,6 +14,7 @@ use Enqueue\Dbal\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderRegisteringGateway;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderService;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -91,6 +92,7 @@ final class ReconnectTest extends DbalMessagingTestCase
             [OrderService::class, OrderRegisteringGateway::class],
             containerOrAvailableServices: array_merge($services, [new OrderService()]),
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects(array_merge([

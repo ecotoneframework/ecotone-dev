@@ -18,6 +18,7 @@ use Test\Ecotone\Dbal\Fixture\Betting\BetService;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeContextWithMessages;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeMessageChannelWithConnectionFactoryBuilder;
+use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -174,6 +175,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
             [BetService::class],
             array_merge([new BetService()], $connections),
             ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
                 ->withExtensionObjects([
                     PollingMetadata::create('bets')

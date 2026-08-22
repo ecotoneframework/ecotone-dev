@@ -11,7 +11,6 @@ use Ecotone\Amqp\AmqpExchange;
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\AmqpStreamChannelBuilder;
 use Ecotone\Amqp\Attribute\RabbitConsumer;
-use Ecotone\Amqp\Distribution\AmqpDistributionModule;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -30,14 +29,11 @@ use Ecotone\Messaging\Support\LicensingException;
  */
 class AmqpModule implements AnnotationModule
 {
-    private AmqpDistributionModule $amqpDistributionModule;
-
     /**
      * @param AmqpQueue[] $amqpQueuesFromMessageConsumers
      */
-    private function __construct(AmqpDistributionModule $amqpDistributionModule, private array $amqpQueuesFromMessageConsumers)
+    private function __construct(private array $amqpQueuesFromMessageConsumers)
     {
-        $this->amqpDistributionModule = $amqpDistributionModule;
     }
 
     /**
@@ -54,7 +50,6 @@ class AmqpModule implements AnnotationModule
         }
 
         return new self(
-            AmqpDistributionModule::create(),
             $amqpQueues,
         );
     }
@@ -64,8 +59,6 @@ class AmqpModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $extensionObjects = array_merge($this->amqpDistributionModule->getAmqpConfiguration($extensionObjects), $extensionObjects);
-
         $amqpExchanges = [];
         $amqpQueues = [];
         $amqpBindings = [];
@@ -130,7 +123,6 @@ class AmqpModule implements AnnotationModule
             $amqpQueues[] = $amqpQueue;
         }
 
-        $this->amqpDistributionModule->prepare($messagingConfiguration, $extensionObjects);
         $messagingConfiguration->registerServiceDefinition(AmqpAdmin::REFERENCE_NAME, DefinitionHelper::buildDefinitionFromInstance(
             AmqpAdmin::createWith(
                 $amqpExchanges,
@@ -150,8 +142,7 @@ class AmqpModule implements AnnotationModule
             || $extensionObject instanceof AmqpStreamChannelBuilder
             || $extensionObject instanceof AmqpExchange
             || $extensionObject instanceof AmqpQueue
-            || $extensionObject instanceof AmqpBinding
-            || $this->amqpDistributionModule->canHandle($extensionObject);
+            || $extensionObject instanceof AmqpBinding;
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array

@@ -1307,7 +1307,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         queueName: $queueName,
                     ),
                     \Ecotone\Modelling\Api\Distribution\DistributedServiceMap::initialize()
-                        ->withServiceMapping(serviceName: 'distributed_events_channel', channelName: $channelName),
+                        ->withEventMapping(channelName: $channelName, subscriptionKeys: ['*']),
                 ])
         );
 

@@ -34,11 +34,7 @@ final class DistributedOutboundRouter
         $routingKey,
     ): array {
         if ($payloadType === 'event') {
-            if ($this->distributedServiceMap->isLegacyMode()) {
-                return $this->distributedServiceMap->getAllChannelNamesBesides($this->thisServiceName, $routingKey);
-            } else {
-                return $this->distributedServiceMap->getAllSubscriptionChannels($this->thisServiceName, $routingKey);
-            }
+            return $this->distributedServiceMap->getAllSubscriptionChannels($this->thisServiceName, $routingKey);
         } elseif (in_array($payloadType, ['command', 'message'])) {
             Assert::isTrue($targetedServiceName !== null, sprintf('
                 Cannot send commands to shared channel - `%s`. Commands follow point-to-point semantics, and shared channels are reserved for events only.

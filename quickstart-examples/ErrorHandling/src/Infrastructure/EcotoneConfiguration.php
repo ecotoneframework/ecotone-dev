@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Infrastructure;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Amqp\Configuration\AmqpConfiguration;
-use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
-use Ecotone\Amqp\Distribution\AmqpDistributedBusConfiguration;
+use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
@@ -37,8 +35,9 @@ final class EcotoneConfiguration
     public function distributed(): array
     {
         return [
-            AmqpDistributedBusConfiguration::createConsumer(),
-            AmqpDistributedBusConfiguration::createPublisher(),
+            DistributedServiceMap::initialize()
+                ->withCommandMapping('example_service', 'example_service'),
+            AmqpBackedMessageChannelBuilder::create('example_service'),
         ];
     }
 

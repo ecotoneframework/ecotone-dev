@@ -252,7 +252,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
                 new \Test\Ecotone\Amqp\Fixture\DeadLetter\OrderService(),
                 ...array_merge([
                     AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => 'amqp://guest:guest@localhost:1000/%2f']),
-                    AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => 'amqp://guest:guest@localhost:1000/%2f']),
+                    \Interop\Amqp\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => 'amqp://guest:guest@localhost:1000/%2f']),
                     \Enqueue\AmqpLib\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => 'amqp://guest:guest@localhost:1000/%2f']),
                 ]),
                 'logger' => $loggerExample,

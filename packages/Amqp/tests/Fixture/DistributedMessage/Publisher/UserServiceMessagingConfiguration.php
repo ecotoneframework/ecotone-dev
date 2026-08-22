@@ -2,8 +2,10 @@
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedMessage\Publisher;
 
-use Ecotone\Amqp\Distribution\AmqpDistributedBusConfiguration;
+use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
 use Ecotone\Messaging\Attribute\ServiceContext;
+use Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver\TicketServiceMessagingConfiguration;
 
 /**
  * licence Apache-2.0
@@ -13,6 +15,10 @@ class UserServiceMessagingConfiguration
     #[ServiceContext]
     public function registerPublisher()
     {
-        return AmqpDistributedBusConfiguration::createPublisher();
+        return [
+            DistributedServiceMap::initialize()
+                ->withCommandMapping(TicketServiceMessagingConfiguration::SERVICE_NAME, TicketServiceMessagingConfiguration::SERVICE_NAME),
+            AmqpBackedMessageChannelBuilder::create(TicketServiceMessagingConfiguration::SERVICE_NAME),
+        ];
     }
 }

@@ -7,6 +7,7 @@ namespace Test\Ecotone\Amqp\Integration;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedMessage\Publisher\UserService;
 use Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver\TicketServiceReceiver;
@@ -41,7 +42,8 @@ final class DistributedMessageTest extends AmqpMessagingTestCase
                 ->withServiceName($serviceName)
                 ->withEnvironment('prod')
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withNamespaces($namespaces),
+                ->withNamespaces($namespaces)
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE),
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }

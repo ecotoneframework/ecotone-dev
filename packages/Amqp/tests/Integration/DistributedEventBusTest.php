@@ -10,6 +10,7 @@ use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\AsynchronousEventHandler\TicketNotificationSubscriber;
 use Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher\UserService;
@@ -142,7 +143,8 @@ final class DistributedEventBusTest extends AmqpMessagingTestCase
                 ->withServiceName($serviceName)
                 ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
                 ->withNamespaces($namespaces)
-                ->withExtensionObjects($extensionObjects),
+                ->withExtensionObjects($extensionObjects)
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE),
             pathToRootCatalog: __DIR__ . '/../../',
         );
     }

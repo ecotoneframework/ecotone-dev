@@ -593,7 +593,7 @@ final class KafkaMessageChannelTest extends TestCase
                     )
                         ->withCommitInterval(1),
                     \Ecotone\Modelling\Api\Distribution\DistributedServiceMap::initialize()
-                        ->withServiceMapping(serviceName: 'distributed_events_channel', channelName: $channelName),
+                        ->withEventMapping(channelName: $channelName, subscriptionKeys: ['*']),
                     TestConfiguration::createWithDefaults(),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,

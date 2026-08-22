@@ -2,9 +2,10 @@
 
 namespace App\Microservices\Publisher;
 
-use Ecotone\Amqp\Distribution\AmqpDistributedBusConfiguration;
+use App\Microservices\Receiver\MessagingConfiguration as ReceiverMessagingConfiguration;
+use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 
 class MessagingConfiguration
 {
@@ -14,7 +15,10 @@ class MessagingConfiguration
     public function configure()
     {
         return [
-            AmqpDistributedBusConfiguration::createPublisher()
+            DistributedServiceMap::initialize()
+                ->withCommandMapping(ReceiverMessagingConfiguration::SERVICE_NAME, ReceiverMessagingConfiguration::SERVICE_NAME)
+                ->withEventMapping(ReceiverMessagingConfiguration::SERVICE_NAME, ["*"]),
+            AmqpBackedMessageChannelBuilder::create(ReceiverMessagingConfiguration::SERVICE_NAME)
         ];
     }
 }

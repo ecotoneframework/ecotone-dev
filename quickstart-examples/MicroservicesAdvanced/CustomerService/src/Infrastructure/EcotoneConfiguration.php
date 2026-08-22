@@ -3,8 +3,8 @@
 namespace App\Microservices\CustomerService\Infrastructure;
 
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Amqp\Distribution\AmqpDistributedBusConfiguration;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
@@ -35,7 +35,9 @@ class EcotoneConfiguration
     public function distributedPublisher()
     {
         return [
-            AmqpDistributedBusConfiguration::createPublisher()
+            DistributedServiceMap::initialize()
+                ->withCommandMapping("backoffice_service", "backoffice_service"),
+            AmqpBackedMessageChannelBuilder::create("backoffice_service")
         ];
     }
 }

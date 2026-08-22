@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\Api\Distribution;
 
 use function array_key_exists;
+use function in_array;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -16,8 +17,6 @@ use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\MessageHandling\Distribution\UnknownDistributedDestination;
 
-use function in_array;
-
 /**
  * licence Enterprise
  */
@@ -25,16 +24,14 @@ final class DistributedServiceMap implements DefinedObject
 {
     /**
      * @param array<string, string> $commandMapping - service name -> channel name (for command routing)
-     * @param array<string, array{keys: ?array<string>, exclude: array<string>, include: array<string>}> $eventSubscriptions - channel name -> ['keys' => [...] or null, 'exclude' => [...], 'include' => [...]]
+     * @param array<string, array{keys: array<string>, exclude: array<string>, include: array<string>}> $eventSubscriptions - channel name -> ['keys' => [...] or null, 'exclude' => [...], 'include' => [...]]
      * @param array<object> $distributedBusAnnotations
-     * @param bool|null $legacyMode - null = not set, true = legacy (withServiceMapping), false = new API (withCommandMapping/withEventMapping)
      */
     public function __construct(
         private string $referenceName,
         private array $commandMapping = [],
         private array $eventSubscriptions = [],
         private array $distributedBusAnnotations = [],
-        private ?bool $legacyMode = null,
     ) {
         Assert::allObjects($this->distributedBusAnnotations, 'Annotations passed to DistributedServiceMap, must all be objects');
     }
@@ -44,36 +41,9 @@ final class DistributedServiceMap implements DefinedObject
         return new self($referenceName);
     }
 
-    /**
-     * @deprecated Use withCommandMapping() and withEventMapping() instead
-     * @param array|null $subscriptionRoutingKeys If null subscribing to all events, if empty array to none, if non empty array then keys will be used to match the name
-     */
-    public function withServiceMapping(string $serviceName, string $channelName, ?array $subscriptionRoutingKeys = null): self
-    {
-        $self = clone $this;
-        $self->assertNotInNewMode('withServiceMapping');
-        $self->legacyMode = true;
-
-        $self->commandMapping[$serviceName] = $channelName;
-        $self->eventSubscriptions[$channelName] = [
-            'keys' => $subscriptionRoutingKeys,
-            'exclude' => [],
-            'include' => [],
-        ];
-
-        return $self;
-    }
-
-    /**
-     * Maps a service to a channel for command routing only.
-     * Does NOT create any event subscription.
-     */
     public function withCommandMapping(string $targetServiceName, string $channelName): self
     {
         $self = clone $this;
-        $self->assertNotInLegacyMode('withCommandMapping');
-        $self->legacyMode = false;
-
         $self->commandMapping[$targetServiceName] = $channelName;
 
         return $self;
@@ -97,9 +67,6 @@ final class DistributedServiceMap implements DefinedObject
         }
 
         $self = clone $this;
-        $self->assertNotInLegacyMode('withEventMapping');
-        $self->legacyMode = false;
-
         $self->eventSubscriptions[$channelName] = [
             'keys' => $subscriptionKeys,
             'exclude' => $excludePublishingServices,
@@ -126,45 +93,6 @@ final class DistributedServiceMap implements DefinedObject
     }
 
     /**
-     * LEGACY MODE ONLY - Get all channels except the one belonging to the given service.
-     * Uses service name to channel mapping for exclusion.
-     *
-     * @deprecated For new mode, use getAllSubscriptionChannels() instead
-     */
-    public function getAllChannelNamesBesides(string $serviceName, string $routingKey): array
-    {
-        $filteredChannels = [];
-        $excludeChannel = $this->commandMapping[$serviceName] ?? null;
-
-        foreach ($this->eventSubscriptions as $channel => $config) {
-            if ($channel === $excludeChannel) {
-                continue;
-            }
-
-            $keys = $config['keys'];
-
-            if ($keys === null) {
-                $filteredChannels[] = $channel;
-
-                continue;
-            }
-
-            foreach ($keys as $subscriptionEventFilter) {
-                if (BusRoutingMap::globMatch($subscriptionEventFilter, $routingKey)) {
-                    $filteredChannels[] = $channel;
-
-                    break;
-                }
-            }
-        }
-
-        return $filteredChannels;
-    }
-
-    /**
-     * NEW MODE ONLY - Get all subscription channels for an event.
-     * Uses explicit exclude/include list from eventSubscriptions config.
-     *
      * @param string $sourceServiceName The service publishing the event
      * @param string $routingKey The event routing key
      * @return array<string>
@@ -220,11 +148,6 @@ final class DistributedServiceMap implements DefinedObject
         return $this->distributedBusAnnotations;
     }
 
-    public function isLegacyMode(): bool
-    {
-        return $this->legacyMode === true;
-    }
-
     public function getDefinition(): Definition
     {
         return Definition::createFor(
@@ -234,28 +157,7 @@ final class DistributedServiceMap implements DefinedObject
                 $this->commandMapping,
                 $this->eventSubscriptions,
                 $this->distributedBusAnnotations,
-                $this->legacyMode,
             ]
         );
-    }
-
-    private function assertNotInLegacyMode(string $methodName): void
-    {
-        if ($this->legacyMode === true) {
-            throw ConfigurationException::create(
-                "Cannot use {$methodName}() after withServiceMapping(). " .
-                'Use either legacy API (withServiceMapping) or new API (withCommandMapping/withEventMapping), not both.'
-            );
-        }
-    }
-
-    private function assertNotInNewMode(string $methodName): void
-    {
-        if ($this->legacyMode === false) {
-            throw ConfigurationException::create(
-                "Cannot use {$methodName}() after withCommandMapping() or withEventMapping(). " .
-                'Use either legacy API (withServiceMapping) or new API (withCommandMapping/withEventMapping), not both.'
-            );
-        }
     }
 }

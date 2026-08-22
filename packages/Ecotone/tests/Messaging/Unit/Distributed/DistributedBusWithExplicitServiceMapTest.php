@@ -812,45 +812,6 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
         $this->assertNull($consumerService2->getMessageChannel($service2Name)->receive());
     }
 
-    public function test_cannot_use_legacy_with_service_mapping_after_with_command_mapping(): void
-    {
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Cannot use withServiceMapping() after withCommandMapping() or withEventMapping()');
-
-        DistributedServiceMap::initialize()
-            ->withCommandMapping('service1', 'channel1')
-            ->withServiceMapping('service2', 'channel2');
-    }
-
-    public function test_cannot_use_legacy_with_service_mapping_after_with_event_mapping(): void
-    {
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Cannot use withServiceMapping() after withCommandMapping() or withEventMapping()');
-
-        DistributedServiceMap::initialize()
-            ->withEventMapping('channel1', ['*'])
-            ->withServiceMapping('service2', 'channel2');
-    }
-
-    public function test_cannot_use_with_command_mapping_after_legacy_with_service_mapping(): void
-    {
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Cannot use withCommandMapping() after withServiceMapping()');
-
-        DistributedServiceMap::initialize()
-            ->withServiceMapping('service1', 'channel1')
-            ->withCommandMapping('service2', 'channel2');
-    }
-
-    public function test_cannot_use_with_event_mapping_after_legacy_with_service_mapping(): void
-    {
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage('Cannot use withEventMapping() after withServiceMapping()');
-
-        DistributedServiceMap::initialize()
-            ->withServiceMapping('service1', 'channel1')
-            ->withEventMapping('channel2', ['*']);
-    }
 
     public function test_it_publishes_event_only_to_channel_when_source_service_is_in_include_list(): void
     {

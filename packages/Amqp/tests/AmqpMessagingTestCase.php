@@ -3,14 +3,12 @@
 namespace Test\Ecotone\Amqp;
 
 use AMQPQueueException;
-use Ecotone\Amqp\Distribution\AmqpDistributionModule;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnection;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use PHPUnit\Framework\TestCase;
-use Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver\TicketServiceMessagingConfiguration;
 use Test\Ecotone\Amqp\Fixture\ErrorChannel\ErrorConfigurationContext;
 use Test\Ecotone\Amqp\Fixture\FailureTransactionWithFatalError\ChannelConfiguration;
 use Test\Ecotone\Amqp\Fixture\Shop\MessagingConfiguration;
@@ -93,8 +91,7 @@ abstract class AmqpMessagingTestCase extends TestCase
         $this->deleteQueue(new AmqpQueue(ErrorConfigurationContext::INPUT_CHANNEL));
         $this->deleteQueue(new AmqpQueue(Fixture\DeadLetter\ErrorConfigurationContext::INPUT_CHANNEL));
         $this->deleteQueue(new AmqpQueue(Fixture\DeadLetter\ErrorConfigurationContext::DEAD_LETTER_CHANNEL));
-        $this->deleteQueue(new AmqpQueue('distributed_ticket_service'));
-        $this->deleteQueue(new AmqpQueue(AmqpDistributionModule::CHANNEL_PREFIX . TicketServiceMessagingConfiguration::SERVICE_NAME));
+        $this->deleteQueue(new AmqpQueue('ticket_service'));
         $this->deleteQueue(new AmqpQueue('ecotone_1_delay'));
         $this->deleteQueue(new AmqpQueue('async'));
         $this->deleteQueue(new AmqpQueue('notification_channel'));

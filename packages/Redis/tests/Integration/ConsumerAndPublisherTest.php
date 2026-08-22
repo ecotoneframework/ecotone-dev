@@ -28,7 +28,7 @@ final class ConsumerAndPublisherTest extends ConnectionTestCase
     {
         $endpointId = 'redis_consumer';
         $queueName = Uuid::v7()->toRfc4122();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RedisConsumerExample::class],
             [
                 new RedisConsumerExample(),

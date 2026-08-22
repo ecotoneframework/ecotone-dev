@@ -10,20 +10,20 @@ namespace Ecotone\Modelling\Repository;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Modelling\StateStoredRepository;
 
 use function is_a;
 
-class StandardRepositoryAdapterBuilder implements AggregateRepositoryBuilder
+class StateStoredRepositoryAdapterBuilder implements AggregateRepositoryBuilder
 {
     public function canHandle(string $repositoryClassName): bool
     {
-        return is_a($repositoryClassName, StandardRepository::class, true);
+        return is_a($repositoryClassName, StateStoredRepository::class, true);
     }
 
     public function compile(string $referenceId, bool $isDefault): Definition|Reference
     {
-        return new Definition(StandardRepositoryAdapter::class, [
+        return new Definition(StateStoredRepositoryAdapter::class, [
             new Reference($referenceId),
             new Reference(AggregateDefinitionRegistry::class),
             $isDefault,

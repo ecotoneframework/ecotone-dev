@@ -98,15 +98,6 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
         return new self();
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof PollableChannelConfiguration
-            || $extensionObject instanceof GlobalPollableChannelConfiguration
-            /** Dynamic and RoundRobin are proxies, therefore should not be intercepted */
-            || ($extensionObject instanceof MessageChannelBuilder && $extensionObject->isPollable() && ! ($extensionObject instanceof DynamicMessageChannelBuilder));
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

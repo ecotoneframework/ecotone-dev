@@ -54,22 +54,6 @@ final class AsynchronousStackBenchmark extends Assert
         $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $configuration = $container->get(Configuration::class);
-        /** @var QueryBus $queryBus */
-        $queryBus = $container->get(QueryBus::class);
-        /** @var ConfiguredMessagingSystem $messagingSystem */
-        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
-
-        $this->placeOrder($messagingSystem->getCommandBus(), $configuration);
-
-        $this->assertCount(0, $queryBus->sendWithRouting('getMessages'));
-
-        self::runConsumerForMessaging('notifications', $messagingSystem);
-
-        $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

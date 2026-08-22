@@ -18,7 +18,7 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\GenericMessage;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\ResolvedAggregate;
-use Ecotone\Modelling\Attribute\AggregateVersion;
+use Ecotone\Modelling\Attribute\Version;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
@@ -141,7 +141,7 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
     private function getAggregateVersion(object|array|string $aggregate): mixed
     {
         $propertyReader = new PropertyReaderAccessor();
-        $versionAnnotation = Type::attribute(AggregateVersion::class);
+        $versionAnnotation = Type::attribute(Version::class);
         $aggregateVersionPropertyName = null;
         foreach (ClassDefinition::createFor(Type::createFromVariable($aggregate))->getProperties() as $property) {
             if ($property->hasAnnotation($versionAnnotation)) {

@@ -18,13 +18,13 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\Saga;
 use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\WithAggregateEvents;
+use Ecotone\Modelling\WithEvents;
 use Ramsey\Uuid\UuidInterface;
 
 #[Saga]
 final class VerificationProcess
 {
-    use WithAggregateEvents;
+    use WithEvents;
 
     private function __construct(
         #[Identifier]

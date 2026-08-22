@@ -10,7 +10,7 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Messaging\BaseEcotoneTestCase;
-use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
+use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStateStoredRepository;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\EventSourcing\Comment;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\Article;
 use Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard\ArticleRepository;
@@ -113,7 +113,7 @@ final class CustomRepositoriesTest extends BaseEcotoneTestCase
         $this->assertNotNull($ecotoneLite->getAggregate(Comment::class, '123'));
     }
 
-    private function verify(object $expectedAggregate, FlowTestSupport $ecotoneLite, string $creationMethod, string $className, ?InMemoryStandardRepository $customRepository): void
+    private function verify(object $expectedAggregate, FlowTestSupport $ecotoneLite, string $creationMethod, string $className, ?InMemoryStateStoredRepository $customRepository): void
     {
         $this->assertEquals(
             $expectedAggregate,

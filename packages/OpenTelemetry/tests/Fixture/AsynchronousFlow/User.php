@@ -6,7 +6,7 @@ namespace Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow;
 
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
@@ -20,7 +20,7 @@ final class User
 {
     use WithEvents;
 
-    #[AggregateIdentifier]
+    #[Identifier]
     private string $userId;
 
     #[Asynchronous('async_channel')]

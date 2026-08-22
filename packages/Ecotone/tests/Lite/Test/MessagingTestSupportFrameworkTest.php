@@ -44,7 +44,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 {
     public function test_bootstraping_with_given_set_of_classes()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -84,7 +84,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_bootstraping_with_given_set_of_classes_and_asynchronous_module()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -101,7 +101,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_sending_command_which_requires_serialization()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             ServiceConfiguration::createWithDefaults()
@@ -120,7 +120,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_sending_command_which_requires_serialization_with_converter_by_class()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, ChannelConfiguration::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             ServiceConfiguration::createWithDefaults()
@@ -139,7 +139,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_failing_serializing_command_message_due_to_lack_of_converter()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -180,7 +180,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_serializing_command_and_event_before_sending_to_asynchronous_channel()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             ServiceConfiguration::createWithDefaults()
@@ -189,9 +189,9 @@ final class MessagingTestSupportFrameworkTest extends TestCase
                     SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()),
                     PollingMetadata::create('orders')
                         ->withTestingSetup(2),
-                    TestConfiguration::createWithDefaults()
-                        ->withSpyOnChannel('orders'),
                 ]),
+            testConfiguration: TestConfiguration::createWithDefaults()
+                ->withSpyOnChannel('orders'),
         );
 
         $orderId = 'someId';
@@ -217,7 +217,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_collecting_published_events()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -239,7 +239,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_collecting_published_event_messages()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -261,7 +261,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_resetting_collected_messages()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -283,16 +283,14 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_collecting_sent_query_messages()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([])
                 ->withEnvironment('test')
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withExtensionObjects([
-                    TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(false),
-                ]),
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
+            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(false),
         );
 
         $ecotoneTestSupport->getQueryBus()->sendWithRouting('basket.getItem', new stdClass());
@@ -302,7 +300,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_collecting_sent_commands()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -319,7 +317,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_collecting_sent_command_messages()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
@@ -336,16 +334,14 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_command_bus_not_failing_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([])
                 ->withEnvironment('test')
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withExtensionObjects([
-                    TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false),
-                ]),
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
+            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false),
         );
 
         $command = new PlaceOrder('someId');
@@ -356,16 +352,14 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_failing_command_bus_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([])
                 ->withEnvironment('test')
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withExtensionObjects([
-                    TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(true),
-                ]),
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
+            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(true),
         );
 
         $this->expectException(DestinationResolutionException::class);
@@ -375,16 +369,14 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_query_bus_not_failing_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([])
                 ->withEnvironment('test')
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withExtensionObjects([
-                    TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(false),
-                ]),
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
+            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(false),
         );
 
         $ecotoneTestSupport->getQueryBus()->sendWithRouting('basket.getItem', new stdClass());
@@ -394,16 +386,14 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_failing_query_bus_in_test_mode_when_no_routing_command_found()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([])
                 ->withEnvironment('test')
-                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
-                ->withExtensionObjects([
-                    TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(true),
-                ]),
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
+            testConfiguration: TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(true),
         );
 
         $this->expectException(DestinationResolutionException::class);
@@ -413,7 +403,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_registering_in_memory_state_stored_repository()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [Order::class],
             [],
             ServiceConfiguration::createWithDefaults()
@@ -440,7 +430,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         $inMemoryPSRContainer = InMemoryPSRContainer::createFromAssociativeArray([
             OrderService::class => new OrderService(),
         ]);
-        $ecotoneTestSupport = EcotoneLite::bootstrapForTesting(
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             $inMemoryPSRContainer,
             ServiceConfiguration::createWithDefaults()

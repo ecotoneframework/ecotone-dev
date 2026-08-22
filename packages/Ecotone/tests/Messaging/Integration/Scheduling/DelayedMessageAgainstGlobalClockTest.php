@@ -7,7 +7,6 @@ namespace Test\Ecotone\Messaging\Integration\Scheduling;
 use DateTimeImmutable;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Test\StaticPsrClock;
@@ -54,7 +53,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         $clock->sleep(Duration::minutes(1));
 
         // 2. Releasing messages awaiting for 60 seconds
-        $ecotoneTestSupport->run('notifications', releaseAwaitingFor: Clock::get()->now());
+        $ecotoneTestSupport->run('notifications', releaseAwaitingFor: $clock->now());
 
         $this->assertEquals(
             1,

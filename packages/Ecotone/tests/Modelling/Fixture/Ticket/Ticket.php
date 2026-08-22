@@ -59,7 +59,7 @@ class Ticket
         return $this->ticketId;
     }
 
-    public function getVersion(): int
+    public function getAggregateVersion(): int
     {
         return $this->version;
     }

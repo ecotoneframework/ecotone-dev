@@ -5,7 +5,7 @@ namespace Ecotone\Modelling;
 use Ecotone\Modelling\Attribute\AggregateEvents;
 
 /**
- * Class WithAggregateEvents
+ * Class WithEvents
  * @package Ecotone\Modelling
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */

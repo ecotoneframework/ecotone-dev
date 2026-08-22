@@ -135,16 +135,6 @@ class AmqpModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof AmqpBackedMessageChannelBuilder
-            || $extensionObject instanceof AmqpStreamChannelBuilder
-            || $extensionObject instanceof AmqpExchange
-            || $extensionObject instanceof AmqpQueue
-            || $extensionObject instanceof AmqpBinding;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [];

@@ -224,11 +224,6 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof MultiTenantConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::DBAL_PACKAGE;

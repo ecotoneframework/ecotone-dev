@@ -137,7 +137,6 @@ class EnrichmentInterceptor
     {
         $args = $invocation->getArguments();
         // Modify arguments before handler runs
-        $invocation->replaceArgument('timestamp', time());
         return $invocation->proceed();
     }
 }

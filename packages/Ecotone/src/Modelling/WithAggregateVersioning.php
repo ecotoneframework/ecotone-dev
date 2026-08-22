@@ -2,13 +2,13 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Modelling\Attribute\AggregateVersion;
+use Ecotone\Modelling\Attribute\Version;
 
 /**
  * licence Apache-2.0
  */
 trait WithAggregateVersioning
 {
-    #[AggregateVersion]
+    #[Version]
     private int $version = 0;
 }

@@ -52,9 +52,9 @@ class ConversionServiceTest extends TestCase
 
         $result = $conversionService->convert(
             $serializedObject,
-            Type::create(Type::OBJECT),
+            Type::create('object'),
             MediaType::createApplicationXPHP(),
-            Type::create(Type::STRING),
+            Type::create('string'),
             MediaType::createApplicationXPHPSerialized()
         );
 
@@ -62,7 +62,7 @@ class ConversionServiceTest extends TestCase
             $serializedObject,
             $conversionService->convert(
                 $result,
-                Type::create(Type::STRING),
+                Type::create('string'),
                 MediaType::createApplicationXPHPSerialized(),
                 Type::create(stdClass::class),
                 MediaType::createApplicationXPHP()
@@ -78,9 +78,9 @@ class ConversionServiceTest extends TestCase
             null,
             $conversionService->convert(
                 null,
-                Type::create(Type::OBJECT),
+                Type::create('object'),
                 MediaType::createApplicationXPHP(),
-                Type::create(Type::STRING),
+                Type::create('string'),
                 MediaType::createApplicationXPHPSerialized()
             )
         );

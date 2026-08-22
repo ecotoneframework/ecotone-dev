@@ -27,10 +27,6 @@ class KernelBootBenchmark extends Assert
         // do nothing
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        // do nothing
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

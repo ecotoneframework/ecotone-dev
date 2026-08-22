@@ -25,11 +25,6 @@ final class _PackageTemplateModule extends NoExternalConfigurationModule impleme
 
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
     public function getModulePackageName(): string
     {
         return "_PackageTemplate";

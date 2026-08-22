@@ -140,29 +140,4 @@ abstract class AmqpMessagingTestCase extends TestCase
         );
     }
 
-    /**
-     * Bootstrap Ecotone for testing with writable cache directory
-     * This is a wrapper around EcotoneLite::bootstrapForTesting that automatically sets the cache directory
-     */
-    protected function bootstrapForTesting(
-        array $classesToResolve = [],
-        array $containerOrAvailableServices = [],
-        ?\Ecotone\Messaging\Config\ServiceConfiguration $configuration = null,
-        array $configurationVariables = [],
-        string $pathToRootCatalog = '',
-        bool $useCachedVersion = false
-    ): \Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport {
-        if ($configuration === null) {
-            $configuration = \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults();
-        }
-
-        return \Ecotone\Lite\EcotoneLite::bootstrapForTesting(
-            $classesToResolve,
-            $containerOrAvailableServices,
-            $configuration,
-            $configurationVariables,
-            $pathToRootCatalog,
-            $useCachedVersion
-        );
-    }
 }

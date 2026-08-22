@@ -7,6 +7,7 @@ namespace Ecotone\Sqs\Configuration;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -27,8 +28,7 @@ final class SqsMessageConsumerModule extends NoExternalConfigurationModule imple
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        /** @var SqsMessageConsumerConfiguration $extensionObject */
-        foreach ($extensionObjects as $extensionObject) {
+        foreach (ExtensionObjectResolver::resolve(SqsMessageConsumerConfiguration::class, $extensionObjects) as $extensionObject) {
             $messagingConfiguration->registerConsumer(
                 SqsInboundChannelAdapterBuilder::createWith(
                     $extensionObject->getEndpointId(),
@@ -41,11 +41,6 @@ final class SqsMessageConsumerModule extends NoExternalConfigurationModule imple
                     ->withReceiveTimeout($extensionObject->getReceiveTimeoutInMilliseconds())
             );
         }
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof SqsMessageConsumerConfiguration;
     }
 
     public function getModulePackageName(): string

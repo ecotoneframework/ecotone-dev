@@ -97,7 +97,7 @@ public function test_saga_retries_payment_after_delay(): void
 
     $ecotone
         ->publishEvent(new OrderWasPlaced('123'))
-        ->releaseAwaitingMessagesAndRunConsumer('async', new TimeSpan(hours: 1));
+        ->run('async', new TimeSpan(hours: 1));
 
     $saga = $ecotone->getSaga(OrderProcess::class, '123');
     $this->assertEquals(2, $saga->getPaymentAttempt());
@@ -143,7 +143,7 @@ $ecotone = EcotoneLite::bootstrapFlowTesting(
 
 $ecotone
     ->publishEvent(new OrderWasPlaced('123'))
-    ->releaseAwaitingMessagesAndRunConsumer('async', new TimeSpan(hours: 1));
+    ->run('async', new TimeSpan(hours: 1));
 ```
 
 ## Testing Stateless Workflow Chains

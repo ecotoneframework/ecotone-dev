@@ -42,12 +42,12 @@ public static function bootstrapFlowTestingWithEventStore(
 ): FlowTestSupport
 ```
 
-### `EcotoneLite::bootstrapForTesting()`
+### `EcotoneLite::bootstrapFlowTesting()`
 
 Low-level bootstrap with full control. Does not skip any packages automatically.
 
 ```php
-public static function bootstrapForTesting(
+public static function bootstrapFlowTesting(
     array                    $classesToResolve = [],
     ContainerInterface|array $containerOrAvailableServices = [],
     ?ServiceConfiguration    $configuration = null,

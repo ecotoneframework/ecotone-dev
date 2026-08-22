@@ -6,7 +6,7 @@ use App\EventProjecting\PartitionedProjection\Domain\Command\CreateWallet;
 use App\EventProjecting\PartitionedProjection\Domain\Command\DebitWallet;
 use App\EventProjecting\PartitionedProjection\Domain\Command\CreditWallet;
 use App\EventProjecting\PartitionedProjection\ReadModel\WalletBalanceProjection;
-use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
@@ -58,7 +58,7 @@ $dsn = getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'
 $connectionFactory = new DbalConnectionFactory($dsn);
 $connection = $connectionFactory->establishConnection();
 
-$messagingSystem = EcotoneLiteApplication::bootstrap(
+$messagingSystem = EcotoneLite::bootstrap(
     objectsToRegister: [
         DbalConnectionFactory::class => $connectionFactory,
         \Doctrine\DBAL\Connection::class => $connection

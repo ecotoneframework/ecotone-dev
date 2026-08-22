@@ -14,7 +14,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Metadata\RevisionMetadataEnricher;
-use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -134,10 +134,10 @@ class SaveAggregateServiceTemplate
     /**
      * @return Event[]
      */
-    public static function buildEcotoneEvents(mixed $events, string $calledInterface, Message $message, HeaderMapper $headerMapper, ConversionService $conversionService, EventMapper $eventMapper): array
+    public static function buildEcotoneEvents(mixed $events, string $calledInterface, Message $message, HeaderMapper $headerMapper, ConversionService $conversionService, EventMapper $eventMapper, EcotoneClockInterface $clock): array
     {
         Assert::isIterable($events, "Return value Event Sourced Aggregate {$calledInterface} must return array of events");
-        return array_map(static function ($event) use ($message, $calledInterface, $headerMapper, $conversionService, $eventMapper): Event {
+        return array_map(static function ($event) use ($message, $calledInterface, $headerMapper, $conversionService, $eventMapper, $clock): Event {
             if (! is_object($event)) {
                 $typeDescriptor = Type::createFromVariable($event);
                 throw InvalidArgumentException::create("Events return by after calling {$calledInterface} must all be objects, {$typeDescriptor->toString()} given");
@@ -154,7 +154,7 @@ class SaveAggregateServiceTemplate
 
             $eventMetadata = RevisionMetadataEnricher::enrich($eventMetadata, $event);
             $eventMetadata[MessageHeaders::MESSAGE_ID] ??= Uuid::v7()->toRfc4122();
-            $eventMetadata[MessageHeaders::TIMESTAMP] ??= Clock::get()->now()->unixTime()->inSeconds();
+            $eventMetadata[MessageHeaders::TIMESTAMP] ??= $clock->now()->unixTime()->inSeconds();
             $eventMetadata = MessageHeaders::propagateContextHeaders([
                 MessageHeaders::MESSAGE_ID => $message->getHeaders()->getMessageId(),
                 MessageHeaders::MESSAGE_CORRELATION_ID => $message->getHeaders()->getCorrelationId(),

@@ -167,7 +167,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
                     ModulePackageList::EVENT_SOURCING_PACKAGE,])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
-                        ->withSnapshots([Ticket::class, Basket::class], 1),
+                        ->withSnapshotsFor([Ticket::class, Basket::class], 1),
                 ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,

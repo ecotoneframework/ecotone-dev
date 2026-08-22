@@ -71,11 +71,6 @@ final class DistributedBusWithServiceMapModule extends NoExternalConfigurationMo
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof TestConfiguration || $extensionObject instanceof ServiceConfiguration || $extensionObject instanceof DistributedServiceMap || $extensionObject instanceof MessageChannelBuilder;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

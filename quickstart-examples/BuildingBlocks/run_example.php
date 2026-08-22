@@ -9,7 +9,7 @@ use App\Domain\Order\OrderStatus;
 use App\Domain\OrderSaga\ProductReservationService;
 use App\Domain\Product\Command\CreateProduct;
 use Assert\Assert;
-use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Money\Money;
@@ -18,7 +18,7 @@ use Ramsey\Uuid\Uuid;
 /** This is production usage, which stores everything in the database */
 
 require __DIR__ . "/vendor/autoload.php";
-$ecotoneLite = EcotoneLiteApplication::bootstrap([
+$ecotoneLite = EcotoneLite::bootstrap([
     DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'),
     ProductReservationService::class => new ProductReservationService(true)
 ], pathToRootCatalog: __DIR__);

@@ -170,16 +170,6 @@ final class KafkaModule extends NoExternalConfigurationModule implements Annotat
         );
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof KafkaConsumerConfiguration
-            || $extensionObject instanceof TopicConfiguration
-            || $extensionObject instanceof KafkaPublisherConfiguration
-            || $extensionObject instanceof KafkaMessageChannelBuilder
-            || $extensionObject instanceof ServiceConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return 'kafka';

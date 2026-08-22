@@ -8,13 +8,13 @@ use Doctrine\Persistence\ObjectManager;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Modelling\StateStoredRepository;
 use Interop\Queue\ConnectionFactory;
 
 /**
  * licence Apache-2.0
  */
-class ManagerRegistryRepository implements StandardRepository
+class ManagerRegistryRepository implements StateStoredRepository
 {
     public function __construct(
         private ConnectionFactory $connectionFactory,

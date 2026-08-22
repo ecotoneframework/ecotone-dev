@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate;
 
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
+use Ecotone\Modelling\Attribute\IdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\WithEvents;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\CreateNoIdDefinedAggregate;
@@ -27,7 +27,7 @@ class PublicIdentifierGetMethodForEventSourcedAggregate
         return $self;
     }
 
-    #[AggregateIdentifierMethod('id')]
+    #[IdentifierMethod('id')]
     public function getId()
     {
         return $this->internalId;

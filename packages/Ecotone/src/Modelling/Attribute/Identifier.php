@@ -3,11 +3,21 @@
 namespace Ecotone\Modelling\Attribute;
 
 use Attribute;
+use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Modelling\AggregateMessage;
 
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
 /**
  * licence Apache-2.0
  */
-class Identifier extends AggregateIdentifier
+class Identifier extends Header
 {
+    public function __construct()
+    {
+    }
+
+    public function getHeaderName(): string
+    {
+        return AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER;
+    }
 }

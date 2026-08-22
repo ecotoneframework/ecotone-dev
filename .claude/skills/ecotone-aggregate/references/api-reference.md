@@ -50,13 +50,13 @@ class EventSourcingHandler {}
 
 Method-level attribute. Marks a method that applies an event to rebuild aggregate state. These methods must have NO side effects -- only state assignment.
 
-## AggregateVersion Attribute
+## Version Attribute
 
-Source: `Ecotone\Modelling\Attribute\AggregateVersion`
+Source: `Ecotone\Modelling\Attribute\Version`
 
 ```php
 #[Attribute(Attribute::TARGET_PROPERTY)]
-class AggregateVersion {}
+class Version {}
 ```
 
 Property-level attribute. Marks the version property used for optimistic concurrency control. Typically used via the `WithAggregateVersioning` trait instead.
@@ -65,7 +65,7 @@ Property-level attribute. Marks the version property used for optimistic concurr
 
 Source: `Ecotone\Modelling\WithAggregateVersioning`
 
-Provides automatic version tracking for event-sourced aggregates. Adds a version property with `#[AggregateVersion]`.
+Provides automatic version tracking for event-sourced aggregates. Adds a version property with `#[Version]`.
 
 ```php
 #[EventSourcingAggregate]

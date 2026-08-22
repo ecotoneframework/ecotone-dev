@@ -12,7 +12,7 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\WithAggregateEvents;
+use Ecotone\Modelling\WithEvents;
 use Ecotone\Modelling\WithEvents;
 use Money\Money;
 use Ramsey\Uuid\UuidInterface;

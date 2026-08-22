@@ -28,14 +28,6 @@ class Clock implements EcotoneClockInterface
         return new self($clock);
     }
 
-    /**
-     * @deprecated inject Clock interface instead
-     */
-    public static function get(): EcotoneClockInterface
-    {
-        return self::$globalClock ?? new self(self::defaultClock());
-    }
-
     public function internalClock(): PsrClockInterface
     {
         return $this->clock;

@@ -14,7 +14,7 @@ use Ecotone\Modelling\Attribute\Saga;
  * licence Apache-2.0
  */
 #[Repository]
-class InMemoryStandardRepository implements StandardRepository
+class InMemoryStateStoredRepository implements StateStoredRepository
 {
     /**
      * @var object[]

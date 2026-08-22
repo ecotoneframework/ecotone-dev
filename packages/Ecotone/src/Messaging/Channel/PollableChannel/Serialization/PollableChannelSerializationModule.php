@@ -41,11 +41,6 @@ final class PollableChannelSerializationModule extends NoExternalConfigurationMo
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof MessageChannelWithSerializationBuilder && $extensionObject->isPollable();
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

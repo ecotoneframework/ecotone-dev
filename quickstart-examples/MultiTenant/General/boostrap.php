@@ -3,14 +3,14 @@
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
-use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 
 /** Setup */
 function bootstrapEcotone(string $rootDirectory): ConfiguredMessagingSystem
 {
-    return EcotoneLiteApplication::bootstrap(
+    return EcotoneLite::bootstrap(
         /**
          * In your application you will register Services inside your Dependency Container
          */

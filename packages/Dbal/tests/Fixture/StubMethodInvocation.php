@@ -80,13 +80,4 @@ class StubMethodInvocation implements MethodInvocation
     {
         return 'getInterceptedInterface';
     }
-
-    public function getInterfaceToCall(): InterfaceToCall
-    {
-        return InterfaceToCall::create(self::class, 'getInterceptedInterface');
-    }
-
-    public function replaceArgument(string $parameterName, $value): void
-    {
-    }
 }

@@ -123,11 +123,6 @@ class DistributedHandlerModule implements AnnotationModule
         );
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof ServiceConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

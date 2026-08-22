@@ -6,6 +6,8 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
+use Ecotone\Messaging\Scheduling\NativeClock;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
@@ -19,10 +21,12 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
     public const CONNECTION_PROPERTIES = ['connection', '_conn'];
 
     private ConnectionFactory $connectionFactory;
+    private EcotoneClockInterface $clock;
 
-    public function __construct(ConnectionFactory $dbalConnectionFactory)
+    public function __construct(ConnectionFactory $dbalConnectionFactory, ?EcotoneClockInterface $clock = null)
     {
         $this->connectionFactory = $dbalConnectionFactory;
+        $this->clock = $clock ?? new NativeClock();
     }
 
     public function createContext(): Context
@@ -30,6 +34,10 @@ class DbalReconnectableConnectionFactory implements ReconnectableConnectionFacto
         $context = $this->connectionFactory->createContext();
         if ($this->isDisconnected($context)) {
             $this->reconnect();
+        }
+
+        if ($context instanceof DbalContext) {
+            $context->withClock($this->clock);
         }
 
         return $context;

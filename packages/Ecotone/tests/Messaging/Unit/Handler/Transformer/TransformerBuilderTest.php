@@ -210,7 +210,7 @@ class TransformerBuilderTest extends MessagingTestCase
             ->build();
 
         $this->assertEquals(
-            MediaType::createApplicationXPHPWithTypeParameter(Type::STRING),
+            MediaType::createApplicationXPHPWithTypeParameter('string'),
             $messaging->sendDirectToChannelWithMessageReply('input', 'johny')->getHeaders()->getContentType()
         );
     }

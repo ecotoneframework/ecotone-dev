@@ -12,7 +12,7 @@ namespace Ecotone\Modelling;
 /**
  * licence Apache-2.0
  */
-interface StandardRepository
+interface StateStoredRepository
 {
     /**
      * @param string $aggregateClassName

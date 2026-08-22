@@ -21,7 +21,7 @@ use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\ChangeShippingAddres
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\GetOrderAmountQuery;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\GetShippingAddressQuery;
-use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
+use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStateStoredRepository;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\OrderNotificator;
 use Test\Ecotone\Modelling\Fixture\DistributedCommandHandler\ShoppingCenter;
 use Test\Ecotone\Modelling\Fixture\DistributedEventHandler\ShoppingRecord;
@@ -56,7 +56,7 @@ use Test\Ecotone\Modelling\Fixture\OrderAggregate\AddUserId\AddUserIdService;
 use Test\Ecotone\Modelling\Fixture\OrderAggregate\LoggingService;
 use Test\Ecotone\Modelling\Fixture\OrderAggregate\OrderErrorHandler;
 use Test\Ecotone\Modelling\Fixture\OrderAggregate\OrderRepository;
-use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStandardRepository;
+use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStateStoredRepository;
 use Test\Ecotone\Modelling\Fixture\Renter\CreateAppointmentCommand;
 use Test\Ecotone\Modelling\Fixture\Renter\RentCalendar;
 use Test\Ecotone\Modelling\Fixture\RepositoryShortcut\Twitter;
@@ -85,7 +85,7 @@ final class ModellingBehatMigrationTest extends TestCase
             'Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate',
             [
                 OrderNotificator::class => new OrderNotificator(),
-                InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty(),
+                InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty(),
             ]
         );
 
@@ -112,7 +112,7 @@ final class ModellingBehatMigrationTest extends TestCase
             'Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate',
             [
                 OrderNotificator::class => new OrderNotificator(),
-                InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty(),
+                InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty(),
             ]
         );
 
@@ -134,7 +134,7 @@ final class ModellingBehatMigrationTest extends TestCase
             'Test\Ecotone\Modelling\Fixture\Renter',
             [
                 RentCalendar::class => new RentCalendar(),
-                AppointmentStandardRepository::class => AppointmentStandardRepository::createEmpty(),
+                AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createEmpty(),
             ]
         );
 

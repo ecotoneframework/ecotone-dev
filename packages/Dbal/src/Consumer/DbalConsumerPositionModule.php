@@ -48,11 +48,6 @@ class DbalConsumerPositionModule extends NoExternalConfigurationModule implement
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof DbalConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::DBAL_PACKAGE;

@@ -254,6 +254,7 @@ final class InMemoryEventStoreReadModelProjector implements MetadataAwareReadMod
         }
 
         $this->streamPositions = [];
+        $this->status = ProjectionStatus::IDLE(); // @phpstan-ignore-line
     }
 
     public function run(bool $keepRunning = true): void

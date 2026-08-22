@@ -10,6 +10,7 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Gateway\SerializerGateway;
 use Ecotone\Messaging\Handler\InputOutputMessageHandlerBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -44,7 +45,7 @@ class SerializerHandlerBuilder extends InputOutputMessageHandlerBuilder implemen
      */
     public function getInterceptedInterface(InterfaceToCallRegistry $interfaceToCallRegistry): InterfaceToCall
     {
-        return $interfaceToCallRegistry->getFor(Serializer::class, $this->methodName);
+        return $interfaceToCallRegistry->getFor(SerializerGateway::class, $this->methodName);
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition

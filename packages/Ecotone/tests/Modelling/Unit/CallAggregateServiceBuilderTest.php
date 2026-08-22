@@ -15,7 +15,7 @@ use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\StateBasedAggregateWi
 use Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate\AggregateWithoutMessageClassesExample;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\CreateOrderCommand;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\GetOrderAmountQuery;
-use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStandardRepository;
+use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStateStoredRepository;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\Order;
 use Test\Ecotone\Modelling\Fixture\QueryHandlerAggregate\BigBox;
 use Test\Ecotone\Modelling\Fixture\QueryHandlerAggregate\Box;
@@ -40,8 +40,8 @@ class CallAggregateServiceBuilderTest extends TestCase
     public function test_calling_existing_aggregate_method_with_command_class(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [AggregateWithoutMessageClassesExample::class, InMemoryStandardRepository::class],
-            [InMemoryStandardRepository::createWith([AggregateWithoutMessageClassesExample::create($id = 1)])],
+            [AggregateWithoutMessageClassesExample::class, InMemoryStateStoredRepository::class],
+            [InMemoryStateStoredRepository::createWith([AggregateWithoutMessageClassesExample::create($id = 1)])],
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         )

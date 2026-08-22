@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Gateway\Converter\Serializer;
+use Ecotone\Messaging\Gateway\SerializerGateway;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessagingException;
 use ReflectionException;
@@ -37,7 +37,7 @@ final class SerializerModuleTest extends AnnotationConfigurationTestCase
     {
         $messagingSystem = EcotoneLite::bootstrapFlowTesting([ExampleSingleConverterService::class], [new ExampleSingleConverterService()]);
         /** @var Serializer $gateway */
-        $gateway = $messagingSystem->getGateway(Serializer::class);
+        $gateway = $messagingSystem->getGateway(SerializerGateway::class);
 
         $this->assertEquals(
             new stdClass(),
@@ -50,7 +50,7 @@ final class SerializerModuleTest extends AnnotationConfigurationTestCase
         $messagingSystem = EcotoneLite::bootstrapFlowTesting([ExampleSingleConverterService::class], [new ExampleSingleConverterService()]);
 
         /** @var Serializer $gateway */
-        $gateway = $messagingSystem->getGateway(Serializer::class);
+        $gateway = $messagingSystem->getGateway(SerializerGateway::class);
 
         $this->assertEquals(
             new stdClass(),

@@ -97,12 +97,6 @@ class JMSConverterConfigurationModule extends NoExternalConfigurationModule impl
         $messagingConfiguration->registerConverter(new JMSConverterBuilder($this->jmsHandlerAdapters, $jmsConverterConfiguration));
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof ServiceConfiguration
-               || $extensionObject instanceof JMSConverterConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::JMS_CONVERTER_PACKAGE;

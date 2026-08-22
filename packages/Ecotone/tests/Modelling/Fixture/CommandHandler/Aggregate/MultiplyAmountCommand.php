@@ -59,7 +59,7 @@ class MultiplyAmountCommand
     /**
      * @return int
      */
-    public function getVersion(): ?int
+    public function getAggregateVersion(): ?int
     {
         return $this->version;
     }

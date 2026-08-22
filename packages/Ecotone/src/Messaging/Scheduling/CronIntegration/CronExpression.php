@@ -63,7 +63,6 @@ class CronExpression
      * @var array Order in which to test of cron parts
      */
     private static $order = [
-        self::YEAR,
         self::MONTH,
         self::DAY,
         self::WEEKDAY,

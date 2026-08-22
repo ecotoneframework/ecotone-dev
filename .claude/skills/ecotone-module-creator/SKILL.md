@@ -46,10 +46,6 @@ final class MyModule extends NoExternalConfigurationModule implements Annotation
         // Register handlers, converters, channels, etc.
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
 
     public function getModulePackageName(): string
     {
@@ -83,11 +79,6 @@ $methods = $annotationRegistrationService->findAnnotatedMethods(MyHandler::class
 When your module accepts external configuration:
 
 ```php
-public function canHandle($extensionObject): bool
-{
-    return $extensionObject instanceof MyModuleConfig;
-}
-
 public function prepare(
     Configuration $messagingConfiguration,
     array $extensionObjects,

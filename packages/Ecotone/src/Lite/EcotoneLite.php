@@ -62,37 +62,6 @@ final class EcotoneLite
     }
 
     /**
-     * This should be used in cases we want to test stateless services.
-     * It will not register any repositories for aggregates.
-     *
-     * In case you want to test flows or stateful classes like Aggregates and Sagas, use "bootstrapFlowTesting" instead
-     *
-     * @param string[] $classesToResolve
-     * @param array<string,mixed> $configurationVariables
-     * @param ContainerInterface|object[] $containerOrAvailableServices
-     * @deprecated Ecotone 2.0 will drop this method, use "bootstrapFlowTesting" instead
-     */
-    public static function bootstrapForTesting(
-        array                    $classesToResolve = [],
-        ContainerInterface|array $containerOrAvailableServices = [],
-        ?ServiceConfiguration    $configuration = null,
-        array                    $configurationVariables = [],
-        ?string                  $pathToRootCatalog = null,
-        bool                     $allowGatewaysToBeRegisteredInContainer = false
-    ): ConfiguredMessagingSystemWithTestSupport {
-        if (! $configuration) {
-            $configuration = ServiceConfiguration::createWithDefaults();
-        }
-
-        if (! $configuration->areSkippedPackagesDefined()) {
-            $configuration = $configuration
-                ->withModulePackages([]);
-        }
-
-        return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false);
-    }
-
-    /**
      * Provides default configuration for testing flows
      * Skips all module package names and registers repositories for aggregates
      *
@@ -115,7 +84,7 @@ final class EcotoneLite
     ): FlowTestSupport {
         $configuration = self::prepareForFlowTesting($configuration, [], $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey);
 
-        if ($addInMemoryEventSourcedRepository) {
+        if ($addInMemoryEventSourcedRepository && ! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class)) {
             $configuration = $configuration->addExtensionObject(InMemoryRepositoryBuilder::createDefaultEventSourcedRepository());
         }
 

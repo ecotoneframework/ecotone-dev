@@ -3,11 +3,11 @@
 require __DIR__ . "/vendor/autoload.php";
 
 use App\Domain\Command\RegisterNewTicket;
-use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ramsey\Uuid\Uuid;
 
-$messagingSystem = EcotoneLiteApplication::boostrap([DbalConnectionFactory::class =>  new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')], pathToRootCatalog: __DIR__);
+$messagingSystem = EcotoneLite::bootstrap([DbalConnectionFactory::class =>  new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')], pathToRootCatalog: __DIR__);
 $commandBus = $messagingSystem->getCommandBus();
 $queryBus = $messagingSystem->getQueryBus();
 

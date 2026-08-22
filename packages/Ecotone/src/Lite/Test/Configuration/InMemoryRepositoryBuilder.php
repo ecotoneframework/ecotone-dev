@@ -7,7 +7,7 @@ namespace Ecotone\Lite\Test\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
-use Ecotone\Modelling\InMemoryStandardRepository;
+use Ecotone\Modelling\InMemoryStateStoredRepository;
 use Ecotone\Modelling\RepositoryBuilder;
 
 /**
@@ -26,7 +26,7 @@ final class InMemoryRepositoryBuilder implements RepositoryBuilder
 
     public static function createDefaultStateStoredRepository(): self
     {
-        return new self(null, false);
+        return new self([], false);
     }
 
     public static function createForSetOfStateStoredAggregates(array $aggregateClassNames)
@@ -41,7 +41,7 @@ final class InMemoryRepositoryBuilder implements RepositoryBuilder
 
     public static function createDefaultEventSourcedRepository()
     {
-        return new self(null, true);
+        return new self([], true);
     }
 
     public function canHandle(string $aggregateClassName): bool
@@ -64,7 +64,7 @@ final class InMemoryRepositoryBuilder implements RepositoryBuilder
                 ]
             ),
             false => new Definition(
-                InMemoryStandardRepository::class,
+                InMemoryStateStoredRepository::class,
                 [
                     [],
                     $this->aggregateClassNames,

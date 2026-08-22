@@ -45,11 +45,6 @@ final class ServiceHandlerModule implements AnnotationModule, RoutingEventHandle
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [$this];

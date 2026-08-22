@@ -30,11 +30,6 @@ class EventSourcedRepositoryModule implements AnnotationModule
     {
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         $baseEventSourcingConfiguration = BaseEventSourcingConfiguration::withDefaults();

@@ -65,12 +65,6 @@ final class DeliveryConfirmationModule extends NoExternalConfigurationModule imp
         );
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof PollableChannelConfiguration
-            || $extensionObject instanceof GlobalPollableChannelConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

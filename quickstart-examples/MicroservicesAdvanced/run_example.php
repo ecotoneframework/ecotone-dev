@@ -4,7 +4,7 @@ use App\Microservices\BackofficeService\ReadModel\TicketsProjection;
 use App\Microservices\CustomerService\Domain\Issue;
 use App\Microservices\CustomerService\Domain\IssueRepository;
 use App\Microservices\CustomerService\Infrastructure\EcotoneConfiguration;
-use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -16,7 +16,7 @@ require __DIR__ . "/vendor/autoload.php";
 const BACKOFFICE_SERVICE = "backoffice_service";
 const CUSTOMER_SERVICE = "customer_service";
 
-$customerService = EcotoneLiteApplication::boostrap(
+$customerService = EcotoneLite::bootstrap(
     [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]), DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')],
     serviceConfiguration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(CUSTOMER_SERVICE)
@@ -25,7 +25,7 @@ $customerService = EcotoneLiteApplication::boostrap(
     pathToRootCatalog: __DIR__
 );
 
-$backofficeService = EcotoneLiteApplication::boostrap(
+$backofficeService = EcotoneLite::bootstrap(
     [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"]), DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')],
     serviceConfiguration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(BACKOFFICE_SERVICE)

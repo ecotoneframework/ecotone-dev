@@ -70,11 +70,6 @@ final class RabbitConsumerModule extends NoExternalConfigurationModule implement
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::AMQP_PACKAGE;

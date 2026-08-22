@@ -99,11 +99,6 @@ class PartitionProviderRegistryModule extends NoExternalConfigurationModule impl
         );
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof PartitionProviderReference;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

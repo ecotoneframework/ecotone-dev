@@ -144,16 +144,6 @@ final class DataProtectionModule extends NoExternalConfigurationModule
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof DataProtectionConfiguration
-            || $extensionObject instanceof ChannelProtectionConfiguration
-            || $extensionObject instanceof JMSConverterConfiguration
-            || ($extensionObject instanceof MessageChannelWithSerializationBuilder && $extensionObject->isPollable())
-        ;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::DATA_PROTECTION_PACKAGE;

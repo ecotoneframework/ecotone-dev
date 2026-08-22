@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Gateway\Converter;
+namespace Ecotone\Messaging\Gateway;
 
 /**
- * Interface Serializer
+ * Interface SerializerGateway
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *
  * @TODO 2.0 change namespace and name to SerializerGateway
@@ -13,7 +13,7 @@ namespace Ecotone\Messaging\Gateway\Converter;
 /**
  * licence Apache-2.0
  */
-interface Serializer
+interface SerializerGateway
 {
     public function convertFromPHP($data, string $targetMediaType);
 

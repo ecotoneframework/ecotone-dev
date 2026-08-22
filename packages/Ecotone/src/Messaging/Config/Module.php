@@ -26,12 +26,6 @@ interface Module
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void;
 
-    /**
-     * @param $extensionObject
-     *
-     * @return bool
-     */
-    public function canHandle($extensionObject): bool;
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions /* , InterfaceToCallRegistry $interfaceToCallRegistry  */): array;
 

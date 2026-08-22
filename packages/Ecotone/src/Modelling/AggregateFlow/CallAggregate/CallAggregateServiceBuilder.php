@@ -16,7 +16,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerAggregateObje
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\Attribute\AggregateVersion;
+use Ecotone\Modelling\Attribute\Version;
 use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingSaga;
 use Ecotone\Modelling\WithAggregateVersioning;
@@ -59,7 +59,7 @@ class CallAggregateServiceBuilder implements InterceptedMessageProcessorBuilder
         }
 
         $aggregateVersionPropertyName = null;
-        $versionAnnotation             = Type::attribute(AggregateVersion::class);
+        $versionAnnotation             = Type::attribute(Version::class);
         foreach ($aggregateClassDefinition->getProperties() as $property) {
             if ($property->hasAnnotation($versionAnnotation)) {
                 $aggregateVersionPropertyName = $property->getName();

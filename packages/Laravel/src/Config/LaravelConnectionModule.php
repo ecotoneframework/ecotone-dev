@@ -96,11 +96,6 @@ final class LaravelConnectionModule extends NoExternalConfigurationModule implem
         );
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof LaravelConnectionReference || $extensionObject instanceof MultiTenantConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::LARAVEL_PACKAGE;

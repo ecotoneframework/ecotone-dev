@@ -65,7 +65,7 @@ use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 use Ecotone\Modelling\EventSourcingExecutor\OpenCoreAggregateMethodInvoker;
 use Ecotone\Modelling\FetchAggregate;
 use Ecotone\Modelling\Repository\AggregateRepositoryBuilder;
-use Ecotone\Modelling\Repository\StandardRepositoryAdapterBuilder;
+use Ecotone\Modelling\Repository\StateStoredRepositoryAdapterBuilder;
 use Ecotone\Modelling\RepositoryBuilder;
 use Symfony\Component\Uid\Uuid;
 
@@ -230,18 +230,10 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof RepositoryBuilder
-            ||
-            $extensionObject instanceof AggregateRepositoryBuilder;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
 
-        return [new StandardRepositoryAdapterBuilder(), $this];
+        return [new StateStoredRepositoryAdapterBuilder(), $this];
     }
 
     /**
@@ -389,6 +381,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
                 Reference::to(ConversionService::REFERENCE_NAME),
                 DefaultHeaderMapper::createAllHeadersMapping()->getDefinition(),
                 Reference::to(EventMapper::class),
+                Reference::to(\Ecotone\Messaging\Scheduling\EcotoneClockInterface::class),
             ])
         );
     }
@@ -574,7 +567,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         $aggregateIdentifierHandlerPreCheck = MessageProcessorActivatorBuilder::create()
             ->withInputChannelName($destinationChannel)
             ->withOutputMessageChannel($connectionChannel = $destinationChannel . '-connection')
-            ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getIdentifierMapping(), $handledPayloadTypeDefinitions, $this->interfaceToCallRegistry))
+            ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getAggregateIdentifierMapping(), $handledPayloadTypeDefinitions, $this->interfaceToCallRegistry))
         ;
         $messagingConfiguration->registerMessageHandler($aggregateIdentifierHandlerPreCheck);
 
@@ -592,7 +585,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
         if (! $isFactoryMethod) {
             $serviceActivatorHandler
                 /** @TODO Ecotone 2.0 (remove) this. For backward compatibility when messages without AggregateMessage::AGGREGATE_ID is not available*/
-                ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getIdentifierMapping(), $handledPayloadTypeDefinitions, $this->interfaceToCallRegistry))
+                ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getAggregateIdentifierMapping(), $handledPayloadTypeDefinitions, $this->interfaceToCallRegistry))
                 ->chain(
                     LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $handledPayloadType, $dropMessageOnNotFound ? LoadAggregateMode::createDropMessageOnNotFound() : LoadAggregateMode::createThrowOnNotFound())
                 );

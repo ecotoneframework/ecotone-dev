@@ -3,7 +3,7 @@
 namespace App\Conversion;
 
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Gateway\Converter\Serializer;
+use Ecotone\Messaging\Gateway\SerializerGateway;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 

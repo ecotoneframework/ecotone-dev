@@ -143,7 +143,7 @@ class EnricherBuilderTest extends MessagingTestCase
         );
         $this->assertEquals(
             MediaType::parseMediaType(MediaType::APPLICATION_X_PHP)
-                ->addParameter('type', Type::ARRAY)->toString(),
+                ->addParameter('type', 'array')->toString(),
             $transformedMessage->getHeaders()->get(MessageHeaders::CONTENT_TYPE)
         );
     }
@@ -183,12 +183,12 @@ class EnricherBuilderTest extends MessagingTestCase
 
         $this->createEnricherWithConvertersAndHandle(
             MessageBuilder::withPayload(['name' => 'Franco'])
-                ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(Type::OBJECT)),
+                ->setContentType(MediaType::createApplicationXPHPWithTypeParameter('object')),
             $outputChannel,
             [
                 EnrichPayloadWithValueBuilder::createWith('token', '123'),
             ],
-            [FakeConverterService::create(['wrong' => 12], Type::OBJECT, MediaType::APPLICATION_X_PHP)]
+            [FakeConverterService::create(['wrong' => 12], 'object', MediaType::APPLICATION_X_PHP)]
         );
 
         $this->assertEquals(

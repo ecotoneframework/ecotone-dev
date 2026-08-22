@@ -8,6 +8,6 @@ use Attribute;
 /**
  * licence Apache-2.0
  */
-class TargetVersion extends TargetAggregateVersion
+class TargetVersion
 {
 }

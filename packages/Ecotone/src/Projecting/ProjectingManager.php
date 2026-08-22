@@ -163,14 +163,6 @@ class ProjectingManager
         $this->preparePartitionBatches($this->backfillPartitionBatchSize, $this->backfillAsyncChannelName, false);
     }
 
-    /**
-     * @deprecated Use prepareBackfill() instead. This method is kept for backward compatibility.
-     */
-    public function backfill(): void
-    {
-        $this->prepareBackfill();
-    }
-
     public function executeWithReset(?string $partitionKeyValue = null): void
     {
         $this->messagingEntrypoint->sendWithHeaders(

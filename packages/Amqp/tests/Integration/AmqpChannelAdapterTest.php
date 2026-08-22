@@ -707,7 +707,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     public function test_delaying_the_message()
     {
         $queueName = Uuid::v7()->toRfc4122();
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [],
             [
                 ...$this->getConnectionFactoryReferences(),
@@ -739,7 +739,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $queueName = Uuid::v7()->toRfc4122();
         $deadLetterQueueName = Uuid::v7()->toRfc4122();
         $deadLetterQueue = AmqpQueue::createWith($deadLetterQueueName);
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExceptionalMessageHandler::class, AmqpConsumerExample::class],
             [
                 ExceptionalMessageHandler::createWithRejectException(),
@@ -900,7 +900,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
         $queueName = Uuid::v7()->toRfc4122();
         $customDelayStrategy = new SpyDelayStrategy();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [],
             array_merge($this->getConnectionFactoryReferences(), ['customDelayStrategy' => $customDelayStrategy]),
             ServiceConfiguration::createWithDefaults()

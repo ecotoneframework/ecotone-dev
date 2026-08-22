@@ -12,7 +12,7 @@ use Test\Ecotone\Messaging\Fixture\Behat\Presend\MultiplyCoins;
 use Test\Ecotone\Messaging\Fixture\Behat\Presend\Shop;
 
 /**
- * Class EcotoneLiteConfigurationTest
+ * Class MessagingConfigurationTest
  * @package Test\Ecotone\Lite
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  *

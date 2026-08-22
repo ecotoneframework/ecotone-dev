@@ -133,7 +133,7 @@ class InternalEnrichingService
                     MediaType::createApplicationXPHP()
                 )) {
                     $enrichedMessage = $enrichedMessage
-                        ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(Type::ARRAY))
+                        ->setContentType(MediaType::createApplicationXPHPWithTypeParameter('array'))
                         ->setPayload(
                             $this->conversionService->convert(
                                 $message->getPayload(),

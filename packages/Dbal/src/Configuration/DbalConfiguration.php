@@ -48,7 +48,7 @@ class DbalConfiguration
     private bool $inMemoryDocumentStore = false;
     private ?array $documentStoreRelatedAggregates = null;
 
-    private bool $enableDocumentStoreStandardRepository = false;
+    private bool $enableDocumentStoreStateStoredRepository = false;
     private int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS;
     private int $deduplicationRemovalBatchSize = 1000;
 
@@ -165,14 +165,6 @@ class DbalConfiguration
      * @TODO Ecotone 2.0 rename to withClearAndFlushObjectManagerOnAsynchronousEndpoints
      * @deprecated use withClearAndFlushObjectManagerOnAsynchronousEndpoints
      */
-    public function withCleanObjectManagerOnAsynchronousEndpoints(bool $isEnabled): self
-    {
-        $self                                     = clone $this;
-        $self->clearObjectManagerOnAsynchronousEndpoints = $isEnabled;
-
-        return $self;
-    }
-
     public function withClearAndFlushObjectManagerOnAsynchronousEndpoints(bool $isEnabled): self
     {
         $self                                     = clone $this;
@@ -251,7 +243,7 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreStandardRepository = false, string $connectionReference = DbalConnectionReference::DEFAULT, ?array $documentStoreRelatedAggregates = null): self
+    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreStateStoredRepository = false, string $connectionReference = DbalConnectionReference::DEFAULT, ?array $documentStoreRelatedAggregates = null): self
     {
         $self = clone $this;
         $self->enableDbalDocumentStore = $isDocumentStoreEnabled;
@@ -259,7 +251,7 @@ class DbalConfiguration
         $self->dbalDocumentStoreReference = $reference;
         $self->initializeDbalDocumentStore = $initializeDatabaseTable;
         $self->documentStoreConnectionReference = $connectionReference;
-        $self->enableDocumentStoreStandardRepository = $enableDocumentStoreStandardRepository;
+        $self->enableDocumentStoreStateStoredRepository = $enableDocumentStoreStateStoredRepository;
         $self->documentStoreRelatedAggregates = $documentStoreRelatedAggregates;
 
         return $self;
@@ -350,9 +342,9 @@ class DbalConfiguration
         return $this->inMemoryDocumentStore;
     }
 
-    public function isEnableDocumentStoreStandardRepository(): bool
+    public function isEnableDocumentStoreStateStoredRepository(): bool
     {
-        return $this->enableDocumentStoreStandardRepository;
+        return $this->enableDocumentStoreStateStoredRepository;
     }
 
     public function getDocumentStoreRelatedAggregates(): ?array

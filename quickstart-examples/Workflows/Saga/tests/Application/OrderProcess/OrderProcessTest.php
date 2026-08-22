@@ -80,7 +80,7 @@ final class OrderProcessTest extends TestCase
             OrderProcessStatus::CANCELLED,
             $ecotoneLite
                 ->publishEvent(new OrderWasPlaced($orderId))
-                ->releaseAwaitingMessagesAndRunConsumer('async', new TimeSpan(hours: 1))
+                ->run('async', new TimeSpan(hours: 1))
                 ->sendQueryWithRouting('orderProcess.getStatus', metadata: ['aggregate.id' => $orderId])
         );
     }

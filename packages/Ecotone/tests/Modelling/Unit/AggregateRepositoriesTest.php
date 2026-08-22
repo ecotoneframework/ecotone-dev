@@ -7,10 +7,10 @@ use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
-use Ecotone\Modelling\InMemoryStandardRepository;
+use Ecotone\Modelling\InMemoryStateStoredRepository;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Blog\Article;
-use Test\Ecotone\Modelling\Fixture\Blog\InMemoryArticleStandardRepository;
+use Test\Ecotone\Modelling\Fixture\Blog\InMemoryArticleStateStoredRepository;
 use Test\Ecotone\Modelling\Fixture\Blog\PublishArticleCommand;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\Job;
 use Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder\StartJob;
@@ -18,7 +18,7 @@ use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
 use Test\Ecotone\Modelling\Fixture\OrderAggregate\Order;
 use Test\Ecotone\Modelling\Fixture\Renter\Appointment;
 use Test\Ecotone\Modelling\Fixture\Renter\AppointmentRepositoryBuilder;
-use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStandardRepository;
+use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStateStoredRepository;
 use Test\Ecotone\Modelling\Fixture\Renter\CreateAppointmentCommand;
 
 /**
@@ -34,8 +34,8 @@ class AggregateRepositoriesTest extends TestCase
     {
         self::assertNotNull(
             EcotoneLite::bootstrapFlowTesting(
-                [Order::class, InMemoryStandardRepository::class],
-                [InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty()],
+                [Order::class, InMemoryStateStoredRepository::class],
+                [InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty()],
                 self::ordersChannelConfiguration(),
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
@@ -63,8 +63,8 @@ class AggregateRepositoriesTest extends TestCase
     public function test_throwing_if_no_event_sourced_repository_available_and_multiple_state_based_repositories_are(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [Job::class, InMemoryStandardRepository::class],
-            [InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty()],
+            [Job::class, InMemoryStateStoredRepository::class],
+            [InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty()],
             addInMemoryEventSourcedRepository: false,
         );
 
@@ -109,8 +109,8 @@ class AggregateRepositoriesTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [Job::class, InMemoryStandardRepository::class],
-            [InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty()],
+            [Job::class, InMemoryStateStoredRepository::class],
+            [InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty()],
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         )
@@ -121,9 +121,9 @@ class AggregateRepositoriesTest extends TestCase
     {
         self::assertNotNull(
             EcotoneLite::bootstrapFlowTesting(
-                [Order::class, InMemoryStandardRepository::class, InMemoryEventSourcedRepository::class],
+                [Order::class, InMemoryStateStoredRepository::class, InMemoryEventSourcedRepository::class],
                 [
-                    InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty(),
+                    InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty(),
                     InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty(),
                 ],
                 self::ordersChannelConfiguration(),
@@ -140,9 +140,9 @@ class AggregateRepositoriesTest extends TestCase
     {
         self::assertNotNull(
             EcotoneLite::bootstrapFlowTesting(
-                [Order::class, InMemoryStandardRepository::class, InMemoryEventSourcedRepository::class],
+                [Order::class, InMemoryStateStoredRepository::class, InMemoryEventSourcedRepository::class],
                 [
-                    InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty(),
+                    InMemoryStateStoredRepository::class => InMemoryStateStoredRepository::createEmpty(),
                     InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty(),
                 ],
                 self::ordersChannelConfiguration(),
@@ -157,13 +157,13 @@ class AggregateRepositoriesTest extends TestCase
 
     public function test_retrieving_correct_repository_according_to_handled_aggregates()
     {
-        $articleRepository = InMemoryArticleStandardRepository::createWith([Article::createWith(PublishArticleCommand::createWith('test', 'title', 'test'))]);
+        $articleRepository = InMemoryArticleStateStoredRepository::createWith([Article::createWith(PublishArticleCommand::createWith('test', 'title', 'test'))]);
 
         EcotoneLite::bootstrapFlowTesting(
-            [Article::class, AppointmentStandardRepository::class, InMemoryArticleStandardRepository::class],
+            [Article::class, AppointmentStateStoredRepository::class, InMemoryArticleStateStoredRepository::class],
             [
-                AppointmentStandardRepository::class => AppointmentStandardRepository::createEmpty(),
-                InMemoryArticleStandardRepository::class => $articleRepository,
+                AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createEmpty(),
+                InMemoryArticleStateStoredRepository::class => $articleRepository,
             ],
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
@@ -180,10 +180,10 @@ class AggregateRepositoriesTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
 
         EcotoneLite::bootstrapFlowTesting(
-            [Order::class, AppointmentStandardRepository::class, InMemoryArticleStandardRepository::class],
+            [Order::class, AppointmentStateStoredRepository::class, InMemoryArticleStateStoredRepository::class],
             [
-                AppointmentStandardRepository::class => AppointmentStandardRepository::createEmpty(),
-                InMemoryArticleStandardRepository::class => InMemoryArticleStandardRepository::createEmpty(),
+                AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createEmpty(),
+                InMemoryArticleStateStoredRepository::class => InMemoryArticleStateStoredRepository::createEmpty(),
             ],
             self::ordersChannelConfiguration(),
             addInMemoryStateStoredRepository: false,

@@ -36,7 +36,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
         $queueName = Uuid::v7()->toRfc4122();
         $messagePayload = 'some';
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
@@ -65,7 +65,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
         $queueName = 'sqs';
         $messagePayload = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [SqsAsyncConsumerExample::class],
             containerOrAvailableServices: [
                 new SqsAsyncConsumerExample(),
@@ -96,7 +96,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
     public function test_failing_to_consume_due_to_connection_failure()
     {
         $loggerExample = StubLogger::create();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             containerOrAvailableServices: [
                 new OrderService(),

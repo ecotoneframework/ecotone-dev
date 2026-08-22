@@ -2,7 +2,7 @@
 
 use App\Microservices\Receiver\MessagingConfiguration;
 use App\Microservices\Receiver\OrderServiceReceiver;
-use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Modelling\DistributedBus;
@@ -13,7 +13,7 @@ use PHPUnit\Framework\Assert;
 require __DIR__ . "/vendor/autoload.php";
 
 // Receiver
-$receiver = EcotoneLiteApplication::boostrap(
+$receiver = EcotoneLite::bootstrap(
     [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
     serviceConfiguration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(MessagingConfiguration::SERVICE_NAME)
@@ -26,7 +26,7 @@ $receiver->run(MessagingConfiguration::SERVICE_NAME);
 $queryBus = $receiver->getQueryBus();
 
 // Publisher
-$publisher = EcotoneLiteApplication::boostrap(
+$publisher = EcotoneLite::bootstrap(
     [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
     serviceConfiguration: ServiceConfiguration::createWithDefaults()
             ->withServiceName(\App\Microservices\Publisher\MessagingConfiguration::SERVICE_NAME)

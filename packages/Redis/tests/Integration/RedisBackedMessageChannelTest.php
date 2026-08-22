@@ -36,7 +36,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
         $queueName = Uuid::v7()->toRfc4122();
         $messagePayload = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
@@ -65,7 +65,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
         $queueName = 'redis';
         $messagePayload = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [RedisAsyncConsumerExample::class],
             containerOrAvailableServices: [
                 new RedisAsyncConsumerExample(),
@@ -98,7 +98,7 @@ final class RedisBackedMessageChannelTest extends ConnectionTestCase
     public function test_failing_to_consume_due_to_connection_failure()
     {
         $loggerExample = StubLogger::create();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
             containerOrAvailableServices: [
                 new OrderService(),

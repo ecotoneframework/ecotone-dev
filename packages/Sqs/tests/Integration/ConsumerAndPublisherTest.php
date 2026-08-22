@@ -28,7 +28,7 @@ final class ConsumerAndPublisherTest extends ConnectionTestCase
     {
         $endpointId = 'sqs_consumer';
         $queueName = Uuid::v7()->toRfc4122();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [SqsConsumerExample::class],
             [
                 new SqsConsumerExample(),

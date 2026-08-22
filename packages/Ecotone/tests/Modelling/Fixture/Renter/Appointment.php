@@ -8,7 +8,7 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\WithAggregateEvents;
+use Ecotone\Modelling\WithEvents;
 
 #[Aggregate]
 /**
@@ -16,7 +16,7 @@ use Ecotone\Modelling\WithAggregateEvents;
  */
 class Appointment
 {
-    use WithAggregateEvents;
+    use WithEvents;
 
     #[Identifier]
     private $appointmentId;

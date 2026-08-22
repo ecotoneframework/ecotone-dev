@@ -3,13 +3,13 @@
 namespace Test\Ecotone\Messaging\Fixture\FetchAggregate;
 
 use Ecotone\Modelling\Attribute\Repository;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Modelling\StateStoredRepository;
 
 #[Repository]
 /**
  * licence Enterprise
  */
-class UserRepository implements StandardRepository
+class UserRepository implements StateStoredRepository
 {
     public function __construct(
         private array $users = []

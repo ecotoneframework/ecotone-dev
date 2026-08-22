@@ -3,13 +3,13 @@
 namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
 
 use Ecotone\Modelling\Attribute\Repository;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Modelling\StateStoredRepository;
 
 #[Repository]
 /**
  * licence Apache-2.0
  */
-class InMemoryStandardRepository implements StandardRepository
+class InMemoryStateStoredRepository implements StateStoredRepository
 {
     /**
      * @var array
@@ -40,7 +40,7 @@ class InMemoryStandardRepository implements StandardRepository
     /**
      * @param array $aggregates
      *
-     * @return InMemoryStandardRepository
+     * @return InMemoryStateStoredRepository
      */
     public static function createWith(array $aggregates): self
     {
@@ -48,7 +48,7 @@ class InMemoryStandardRepository implements StandardRepository
     }
 
     /**
-     * @return InMemoryStandardRepository
+     * @return InMemoryStateStoredRepository
      */
     public static function createEmpty(): self
     {

@@ -33,11 +33,6 @@ final class SqsModule extends NoExternalConfigurationModule implements Annotatio
         // Channel manager registration is handled by SqsChannelManagerModule
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof SqsBackedMessageChannelBuilder;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::SQS_PACKAGE;

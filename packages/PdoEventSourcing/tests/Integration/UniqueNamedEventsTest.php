@@ -25,7 +25,7 @@ final class UniqueNamedEventsTest extends TestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapForTesting(
+        EcotoneLite::bootstrapFlowTesting(
             [Ticket::class],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])

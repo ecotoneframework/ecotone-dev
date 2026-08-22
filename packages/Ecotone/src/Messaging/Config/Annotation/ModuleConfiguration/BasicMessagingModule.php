@@ -159,24 +159,6 @@ class BasicMessagingModule extends NoExternalConfigurationModule implements Anno
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof ChannelInterceptorBuilder
-            ||
-            $extensionObject instanceof MessageHandlerBuilder
-            ||
-            $extensionObject instanceof MessageChannelBuilder
-            ||
-            $extensionObject instanceof GatewayProxyBuilder
-            ||
-            $extensionObject instanceof ChannelAdapterConsumerBuilder
-            ||
-            $extensionObject instanceof PollingMetadata
-            ||
-            $extensionObject instanceof ServiceConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

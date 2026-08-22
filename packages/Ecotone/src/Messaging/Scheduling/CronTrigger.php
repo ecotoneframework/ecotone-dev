@@ -40,7 +40,7 @@ class CronTrigger implements Trigger
      */
     public function nextExecutionTime(EcotoneClockInterface $clock, TriggerContext $triggerContext): DatePoint
     {
-        $cron = CronExpression::factory($this->cronExpression);
+        $cron = new CronExpression($this->cronExpression);
 
         if (! $triggerContext->lastActualExecutionTime() && $triggerContext->lastScheduledTime()) {
             return $triggerContext->lastScheduledTime();

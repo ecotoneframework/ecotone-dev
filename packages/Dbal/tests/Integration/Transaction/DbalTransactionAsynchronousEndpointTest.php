@@ -221,7 +221,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
-                        ->withDocumentStore(true, enableDocumentStoreStandardRepository: true),
+                        ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
                     DbalBackedMessageChannelBuilder::create('async'),
                     MultiTenantConfiguration::create(
                         'tenant',
@@ -282,7 +282,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
-                        ->withDocumentStore(true, enableDocumentStoreStandardRepository: true),
+                        ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
@@ -335,7 +335,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
-                        ->withDocumentStore(true, enableDocumentStoreStandardRepository: true),
+                        ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
                     DbalBackedMessageChannelBuilder::create('async'),
                     MultiTenantConfiguration::create(
                         'tenant',

@@ -136,7 +136,7 @@ class DefaultHeaderMapperTest extends TestCase
                     MediaType::APPLICATION_X_PHP,
                     UuidInterface::class,
                     MediaType::APPLICATION_JSON,
-                    Type::STRING,
+                    'string',
                     $personId
                 )
             )
@@ -163,7 +163,7 @@ class DefaultHeaderMapperTest extends TestCase
                         MediaType::APPLICATION_X_PHP,
                         UuidInterface::class,
                         MediaType::APPLICATION_JSON,
-                        Type::STRING,
+                        'string',
                         $convertedData
                     )
             )

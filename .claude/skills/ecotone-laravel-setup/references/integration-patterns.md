@@ -7,7 +7,7 @@ Ecotone automatically registers `EloquentRepository` -- Eloquent models that ext
 ```php
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
+use Ecotone\Modelling\Attribute\IdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
@@ -40,7 +40,7 @@ class Order extends Model
         $this->save();
     }
 
-    #[AggregateIdentifierMethod('id')]
+    #[IdentifierMethod('id')]
     public function getId(): int
     {
         return $this->id;
@@ -56,7 +56,7 @@ class Order extends Model
 
 Key differences from regular aggregates:
 - Extends `Illuminate\Database\Eloquent\Model`
-- Use `#[AggregateIdentifierMethod('id')]` instead of `#[Identifier]` on properties (Eloquent manages properties dynamically)
+- Use `#[IdentifierMethod('id')]` instead of `#[Identifier]` on properties (Eloquent manages properties dynamically)
 - Call `$this->save()` in action handlers (Eloquent persistence)
 - Factory methods use `self::create([...])` (Eloquent pattern)
 - Use `WithEvents` trait for recording domain events

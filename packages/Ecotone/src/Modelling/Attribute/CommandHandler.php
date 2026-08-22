@@ -42,7 +42,7 @@ class CommandHandler extends InputOutputEndpointAnnotation
         return $this->identifierMetadataMapping;
     }
 
-    public function getIdentifierMapping(): array
+    public function getAggregateIdentifierMapping(): array
     {
         return $this->identifierMapping;
     }

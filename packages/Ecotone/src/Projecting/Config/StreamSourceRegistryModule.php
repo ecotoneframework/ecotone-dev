@@ -77,12 +77,6 @@ class StreamSourceRegistryModule extends NoExternalConfigurationModule implement
         );
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof StreamSourceReference
-            || ($extensionObject instanceof StreamSource && $extensionObject instanceof DefinedObject);
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

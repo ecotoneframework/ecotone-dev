@@ -70,13 +70,6 @@ class ChannelSetupModule extends NoExternalConfigurationModule implements Annota
         $this->registerConsoleCommand('delete', 'ecotone:migration:channel:delete', ChannelDeleteCommand::class, $messagingConfiguration, $interfaceToCallRegistry, 'Deletes infrastructure of registered message channels');
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof ChannelManagerReference
-            || $extensionObject instanceof ChannelInitializationConfiguration
-            || $extensionObject instanceof \Ecotone\Messaging\Channel\MessageChannelBuilder;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

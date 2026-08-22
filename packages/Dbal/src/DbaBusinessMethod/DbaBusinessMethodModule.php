@@ -172,11 +172,6 @@ final class DbaBusinessMethodModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
     private static function getGateway(AnnotatedMethod $businessMethod, DbalWrite|DbalQuery $attribute): GatewayProxyBuilder
     {
         return GatewayProxyBuilder::create(

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\Fixture\Order;
 
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
+use Ecotone\Modelling\Attribute\IdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
@@ -51,7 +51,7 @@ final class Order extends Model
         return $order;
     }
 
-    #[AggregateIdentifierMethod('id')]
+    #[IdentifierMethod('id')]
     public function getId(): int
     {
         return $this->id;

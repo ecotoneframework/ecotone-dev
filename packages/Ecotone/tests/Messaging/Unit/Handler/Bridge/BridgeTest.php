@@ -23,27 +23,27 @@ final class BridgeTest extends TestCase
 {
     public function test_intercepting_message_handler_should_happen_only_for_given_endpoint()
     {
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [BridgeExample::class],
             [new BridgeExample()]
         );
 
         $this->assertEquals(
             4,
-            $ecotoneLite->sendMessage('bridgeExample', 1)
+            $ecotoneLite->sendMessageDirectToChannel('bridgeExample', MessageBuilder::withPayload(1)->build())
         );
     }
 
     public function test_intercepting_asynchronous_endpoint_should_happen_for_whole_asynchronous_processing()
     {
         $asynchronousBridgeExample = new AsynchronousBridgeExample();
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [AsynchronousBridgeExample::class],
             [$asynchronousBridgeExample],
             ServiceConfiguration::createWithDefaults()->withModulePackages([])
         );
 
-        $ecotoneLite->sendMessage('bridgeExample', MessageBuilder::withPayload(1)->build());
+        $ecotoneLite->sendMessageDirectToChannel('bridgeExample', MessageBuilder::withPayload(1)->build());
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals(

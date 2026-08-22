@@ -95,12 +95,6 @@ final class DbalBatchForwardingModule extends NoExternalConfigurationModule impl
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof OutboxForwardingMessageChannel
-            || $extensionObject instanceof DbalBackedMessageChannelBuilder;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::DBAL_PACKAGE;

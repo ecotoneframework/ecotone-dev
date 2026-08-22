@@ -150,11 +150,6 @@ final class ConsoleCommandModule extends NoExternalConfigurationModule implement
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

@@ -9,12 +9,12 @@ namespace Ecotone\Modelling\Repository;
 
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\ResolvedAggregate;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Modelling\StateStoredRepository;
 
-class StandardRepositoryAdapter implements AggregateRepository
+class StateStoredRepositoryAdapter implements AggregateRepository
 {
     public function __construct(
-        private StandardRepository $standardRepository,
+        private StateStoredRepository $standardRepository,
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
         private bool $isDefaultRepository,
     ) {

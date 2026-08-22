@@ -169,7 +169,7 @@ final class MessageBusTest extends TestCase
 
     public function test_calling_command_handler_with_abstract_class()
     {
-        $ecotoneLite = EcotoneLite::bootstrapForTesting(
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [TestHandler::class, TestAbstractHandler::class],
             [
                 new TestHandler(),
@@ -180,7 +180,7 @@ final class MessageBusTest extends TestCase
 
         $this->assertEquals(
             1,
-            $ecotoneLite->getCommandBus()->send(new TestCommand(1))
+            $ecotoneLite->getGateway(CommandBus::class)->send(new TestCommand(1))
         );
     }
 

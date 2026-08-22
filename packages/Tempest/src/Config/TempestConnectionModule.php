@@ -91,12 +91,6 @@ final class TempestConnectionModule extends NoExternalConfigurationModule implem
         );
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof TempestConnectionReference
-            || $extensionObject instanceof MultiTenantConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::TEMPEST_PACKAGE;

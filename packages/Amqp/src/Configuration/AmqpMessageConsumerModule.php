@@ -6,6 +6,7 @@ use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -25,8 +26,7 @@ class AmqpMessageConsumerModule extends NoExternalConfigurationModule implements
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        /** @var AmqpMessageConsumerConfiguration $extensionObject */
-        foreach ($extensionObjects as $extensionObject) {
+        foreach (ExtensionObjectResolver::resolve(AmqpMessageConsumerConfiguration::class, $extensionObjects) as $extensionObject) {
             $messagingConfiguration->registerConsumer(
                 AmqpInboundChannelAdapterBuilder::createWith(
                     $extensionObject->getEndpointId(),
@@ -38,11 +38,6 @@ class AmqpMessageConsumerModule extends NoExternalConfigurationModule implements
                     ->withReceiveTimeout($extensionObject->getReceiveTimeoutInMilliseconds())
             );
         }
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof AmqpMessageConsumerConfiguration;
     }
 
     public function getModulePackageName(): string

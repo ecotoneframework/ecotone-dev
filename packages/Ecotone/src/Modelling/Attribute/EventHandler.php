@@ -63,7 +63,7 @@ class EventHandler extends IdentifiedAnnotation
         return $this->identifierMetadataMapping;
     }
 
-    public function getIdentifierMapping(): array
+    public function getAggregateIdentifierMapping(): array
     {
         return $this->identifierMapping;
     }

@@ -205,12 +205,6 @@ class ProjectingModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(ProjectingConsoleCommands::class, new Definition(ProjectingConsoleCommands::class, [new Reference(ProjectionRegistry::class)]));
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof ServiceConfiguration
-            || $extensionObject instanceof ProjectionExecutorBuilder;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions, ?InterfaceToCallRegistry $interfaceToCallRegistry = null): array
     {
         return [new ProjectingModuleRoutingExtension(self::inputChannelForProjectingManager(...))];

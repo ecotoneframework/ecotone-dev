@@ -101,7 +101,7 @@ $app->register('projection:backfill')
         $io = new SymfonyStyle($input, $output);
         $projection = $messagingSystem->getGatewayByName(ProjectionRegistry::class)->get(OrderListProjection::PROJECTION_NAME);
         $io->section('Triggering projection');
-        $projection->backfill();
+        $projection->prepareBackfill();
         $io->success('Projection backfilled');
     });
 

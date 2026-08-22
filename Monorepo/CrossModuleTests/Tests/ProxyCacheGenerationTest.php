@@ -33,15 +33,6 @@ class ProxyCacheGenerationTest extends FullAppBenchmarkCase
         $this->bench_laravel_prod();
     }
 
-    #[RunInSeparateProcess]
-    #[PreserveGlobalState(false)]
-    public function test_lite_application_prod()
-    {
-        $this->markTestSkipped('grpc warning to be solved: https://github.com/google-ai-edge/mediapipe/issues/5371#issuecomment-2219871932');
-
-        self::clearLiteApplicationCache();
-        $this->bench_lite_application_prod();
-    }
 
     #[RunInSeparateProcess]
     #[PreserveGlobalState(false)]
@@ -63,10 +54,6 @@ class ProxyCacheGenerationTest extends FullAppBenchmarkCase
         $this->execute($container->get(ConfiguredMessagingSystem::class));
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $this->execute($container->get(ConfiguredMessagingSystem::class));
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

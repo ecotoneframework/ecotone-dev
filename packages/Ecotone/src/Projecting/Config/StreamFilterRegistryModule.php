@@ -201,11 +201,6 @@ class StreamFilterRegistryModule implements AnnotationModule
         );
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof EventStreamingChannelAdapter;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions, ?InterfaceToCallRegistry $interfaceToCallRegistry = null): array
     {
         return [];

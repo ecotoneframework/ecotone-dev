@@ -34,8 +34,8 @@ final class EventMapper
 
     public function mapNameToEventType(string $name): string
     {
-        if ($name === Type::ARRAY) {
-            return Type::ARRAY;
+        if ($name === 'array') {
+            return 'array';
         }
 
         if (array_key_exists($name, $this->nameToEventMapping)) {

@@ -60,21 +60,6 @@ trait FullAppBenchmarkCaseTrait
         $this->executeForLaravel($app, $app->get(LaravelKernel::class));
     }
 
-    public function bench_lite_application_prod()
-    {
-        self::productionEnvironments();
-        $bootstrap = require static::getProjectDir() . '/LiteApplication/app.php';
-        $messagingSystem =  $bootstrap(true);
-        $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
-    }
-
-    public function bench_lite_application_dev()
-    {
-        self::developmentEnvironments();
-        $bootstrap = require static::getProjectDir() . '/LiteApplication/app.php';
-        $messagingSystem =  $bootstrap(false);
-        $this->executeForLiteApplication(new LiteContainerAccessor($messagingSystem));
-    }
 
     public function bench_lite_prod()
     {
@@ -96,7 +81,6 @@ trait FullAppBenchmarkCaseTrait
     {
         self::clearLaravelCache();
         self::clearSymfonyCache();
-        self::clearLiteApplicationCache();
         self::clearLiteCache();
     }
 
@@ -108,13 +92,6 @@ trait FullAppBenchmarkCaseTrait
         );
     }
 
-    public static function clearLiteApplicationCache(): void
-    {
-        self::deleteFiles(
-            static::getProjectDir() . '/LiteApplication/var/cache',
-            false
-        );
-    }
 
     /**
      * Calling config:cache always dumps the cache,
@@ -177,10 +154,6 @@ trait FullAppBenchmarkCaseTrait
     abstract public function executeForLaravel(
         ContainerInterface $container,
         LaravelKernel $kernel
-    ): void;
-
-    abstract public function executeForLiteApplication(
-        ContainerInterface $container
     ): void;
 
     abstract public function executeForLite(

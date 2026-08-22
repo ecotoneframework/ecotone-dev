@@ -89,13 +89,6 @@ final class SqsMessagePublisherModule extends NoExternalConfigurationModule impl
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof SqsMessagePublisherConfiguration
-            || $extensionObject instanceof ServiceConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::SQS_PACKAGE;

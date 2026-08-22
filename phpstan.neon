@@ -8,7 +8,6 @@ parameters:
 		- packages/JmsConverter/src
 		- packages/PdoEventSourcing/src
 		- packages/Laravel/src
-		- packages/LiteApplication/src
 		- packages/Symfony/DependencyInjection
 		- packages/OpenTelemetry/src
 		- packages/Kafka/src

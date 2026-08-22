@@ -14,9 +14,9 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
-use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
-use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
+use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Modelling\Attribute\IdentifierMethod;
+use Ecotone\Modelling\Attribute\TargetIdentifier;
 
 use function is_null;
 
@@ -84,17 +84,17 @@ class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
     private function hasAccordingIdentifier(InterfaceToCallRegistry $interfaceToCallRegistry, ClassDefinition $aggregateClassName, $propertyName): bool
     {
         foreach ($aggregateClassName->getProperties() as $property) {
-            if ($property->hasAnnotation(Type::attribute(AggregateIdentifier::class)) && ($propertyName === $property->getName())) {
+            if ($property->hasAnnotation(Type::attribute(Identifier::class)) && ($propertyName === $property->getName())) {
                 return true;
             }
         }
-        $aggregateIdentifierMethod = Type::attribute(AggregateIdentifierMethod::class);
+        $aggregateIdentifierMethod = Type::attribute(IdentifierMethod::class);
 
         foreach ($aggregateClassName->getPublicMethodNames() as $method) {
             $methodToCheck = $interfaceToCallRegistry->getFor($aggregateClassName->getClassType()->toString(), $method);
 
             if ($methodToCheck->hasMethodAnnotation($aggregateIdentifierMethod)) {
-                /** @var AggregateIdentifierMethod $attribute */
+                /** @var IdentifierMethod $attribute */
                 $attribute = $methodToCheck->getSingleMethodAnnotationOf($aggregateIdentifierMethod);
 
                 if ($attribute->getIdentifierPropertyName() === $propertyName) {
@@ -116,8 +116,8 @@ class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
         array $metadataIdentifierMapping,
         array $identifierMapping
     ): void {
-        $aggregateIdentifierAnnotation = Type::attribute(AggregateIdentifier::class);
-        $aggregateIdentifierMethod = Type::attribute(AggregateIdentifierMethod::class);
+        $aggregateIdentifierAnnotation = Type::attribute(Identifier::class);
+        $aggregateIdentifierMethod = Type::attribute(IdentifierMethod::class);
 
         $baseMessageIdentifiersMapping = [];
         foreach ($aggregateClassDefinition->getProperties() as $property) {
@@ -129,7 +129,7 @@ class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
             $methodToCheck = $interfaceToCallRegistry->getFor($aggregateClassDefinition->getClassType()->toString(), $method);
 
             if ($methodToCheck->hasMethodAnnotation($aggregateIdentifierMethod)) {
-                /** @var AggregateIdentifierMethod $attribute */
+                /** @var IdentifierMethod $attribute */
                 $attribute = $methodToCheck->getSingleMethodAnnotationOf($aggregateIdentifierMethod);
                 $baseMessageIdentifiersMapping[$attribute->getIdentifierPropertyName()] = null;
             }
@@ -186,11 +186,11 @@ class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
         $messageProperties = [];
 
         if ($handledMessageClassDefinition) {
-            $targetAggregateIdentifierAnnotation = Type::attribute(TargetAggregateIdentifier::class);
+            $targetIdentifierAnnotation = Type::attribute(TargetIdentifier::class);
             foreach ($handledMessageClassDefinition->getProperties() as $property) {
-                if ($property->hasAnnotation($targetAggregateIdentifierAnnotation)) {
-                    /** @var TargetAggregateIdentifier $annotation */
-                    $annotation  = $property->getAnnotation($targetAggregateIdentifierAnnotation);
+                if ($property->hasAnnotation($targetIdentifierAnnotation)) {
+                    /** @var TargetIdentifier $annotation */
+                    $annotation  = $property->getAnnotation($targetIdentifierAnnotation);
                     $mappingName = $annotation->identifierName ? $annotation->identifierName : $property->getName();
 
                     if ($aggregateClassDefinition->hasProperty($mappingName) && $aggregateClassDefinition->getProperty($mappingName)->hasAnnotation($aggregateIdentifierAnnotation)) {

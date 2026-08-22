@@ -4,7 +4,7 @@ namespace Test\Ecotone\Modelling\Fixture\Blog;
 
 use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Modelling\Attribute\Repository;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Modelling\StateStoredRepository;
 
 /**
  * Class InMemoryArticleRepository
@@ -15,7 +15,7 @@ use Ecotone\Modelling\StandardRepository;
  * licence Apache-2.0
  */
 #[Repository]
-class InMemoryArticleStandardRepository implements StandardRepository
+class InMemoryArticleStateStoredRepository implements StateStoredRepository
 {
     /**
      * @var Article[]
@@ -34,7 +34,7 @@ class InMemoryArticleStandardRepository implements StandardRepository
     }
 
     /**
-     * @return InMemoryArticleStandardRepository
+     * @return InMemoryArticleStateStoredRepository
      */
     public static function createEmpty(): self
     {
@@ -43,7 +43,7 @@ class InMemoryArticleStandardRepository implements StandardRepository
 
     /**
      * @param array $articles
-     * @return InMemoryArticleStandardRepository
+     * @return InMemoryArticleStateStoredRepository
      */
     public static function createWith(array $articles): self
     {

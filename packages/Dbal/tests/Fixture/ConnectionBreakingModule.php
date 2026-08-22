@@ -112,11 +112,6 @@ class ConnectionBreakingModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof ConnectionBreakingConfiguration;
-    }
-
     /**
      * Find the configuration in the extension objects
      */

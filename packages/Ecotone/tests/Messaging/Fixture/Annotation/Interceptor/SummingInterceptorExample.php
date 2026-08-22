@@ -39,7 +39,6 @@ class SummingInterceptorExample
     {
         $result = $amount + $this->secondValueForMathOperations;
 
-        $methodInvocation->replaceArgument('amount', $result);
-        return $methodInvocation->proceed();
+        return $result;
     }
 }

@@ -48,7 +48,7 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
         $queue1 = 'queue1-' . Uuid::v7()->toRfc4122();
         $queue2 = 'queue2-' . Uuid::v7()->toRfc4122();
 
-        $this->bootstrapForTesting(
+        $this->bootstrapFlowTesting(
             [$handler::class],
             [
                 $handler,
@@ -98,7 +98,7 @@ final class StreamingChannelValidationTest extends AmqpMessagingTestCase
         $queue2 = 'queue2-' . Uuid::v7()->toRfc4122();
 
         // This should work fine - different group IDs
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [$handler::class],
             [
                 $handler,

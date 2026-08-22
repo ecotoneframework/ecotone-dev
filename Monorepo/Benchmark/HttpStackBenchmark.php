@@ -69,22 +69,6 @@ class HttpStackBenchmark extends Assert
         Assert::assertSame(200, $response->getStatusCode(), $response->getContent());
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $orderController = $container->get(OrderController::class);
-        $configuration = $container->get(Configuration::class);
-
-        $orderController->placeOrder(new SymfonyRequest(content: json_encode([
-            'orderId' => Uuid::uuid4()->toString(),
-            'address' => [
-                'street' => 'Washington',
-                'houseNumber' => '15',
-                'postCode' => '81-221',
-                'country' => 'Netherlands',
-            ],
-            'productId' => $configuration->productId(),
-        ])));
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

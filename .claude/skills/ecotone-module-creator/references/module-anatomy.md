@@ -33,10 +33,6 @@ final class _PackageTemplateModule extends NoExternalConfigurationModule impleme
     ): void {
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
 
     public function getModulePackageName(): string
     {
@@ -96,8 +92,6 @@ interface AnnotationModule
         ModuleReferenceSearchService $moduleReferenceSearchService,
         InterfaceToCallRegistry $interfaceToCallRegistry
     ): void;
-
-    public function canHandle($extensionObject): bool;
 
     public function getModulePackageName(): string;
 }
@@ -261,10 +255,6 @@ final class MyPackageModule implements AnnotationModule
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof MyPackageConfiguration;
-    }
 
     public function getModulePackageName(): string
     {

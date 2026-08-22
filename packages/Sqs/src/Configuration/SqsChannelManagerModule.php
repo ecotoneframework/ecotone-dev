@@ -71,13 +71,6 @@ final class SqsChannelManagerModule extends NoExternalConfigurationModule implem
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof SqsBackedMessageChannelBuilder
-            || $extensionObject instanceof ChannelInitializationConfiguration;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         $channelManagerReferences = [];

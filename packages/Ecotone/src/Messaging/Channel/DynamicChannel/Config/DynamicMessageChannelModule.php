@@ -8,6 +8,7 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -28,14 +29,11 @@ final class DynamicMessageChannelModule extends NoExternalConfigurationModule im
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (! $messagingConfiguration->isRunningForEnterpriseLicence() && ! empty($extensionObjects)) {
+        $dynamicMessageChannelBuilders = ExtensionObjectResolver::resolve(DynamicMessageChannelBuilder::class, $extensionObjects);
+
+        if (! $messagingConfiguration->isRunningForEnterpriseLicence() && ! empty($dynamicMessageChannelBuilders)) {
             throw LicensingException::create('Dynamic message channels are available only as part of Ecotone Enterprise.');
         }
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof DynamicMessageChannelBuilder;
     }
 
     public function getModulePackageName(): string

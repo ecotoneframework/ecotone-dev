@@ -98,19 +98,6 @@ class AroundMethodInvocation implements MethodInvocation
         return $this->interceptedMethodInvocation->getMethodName();
     }
 
-    public function getInterfaceToCall(): InterfaceToCall
-    {
-        return InterfaceToCall::create($this->getObjectToInvokeOn(), $this->getMethodName());
-    }
-
-    public function replaceArgument(string $parameterName, mixed $value): void
-    {
-        if (! isset($this->arguments[$parameterName])) {
-            throw InvalidArgumentException::create("Parameter with name `{$parameterName}` does not exist");
-        }
-        $this->arguments[$parameterName] = $value;
-    }
-
     public function getName(): string
     {
         $object = $this->getObjectToInvokeOn();

@@ -117,11 +117,6 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof TracingConfiguration || $extensionObject instanceof MessageChannelBuilder;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::TRACING_PACKAGE;

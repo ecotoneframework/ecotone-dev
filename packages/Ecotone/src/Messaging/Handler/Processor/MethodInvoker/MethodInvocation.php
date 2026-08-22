@@ -4,16 +4,6 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Messaging\Handler\InterfaceToCall;
-
-/**
- * Interface MethodInvocation
- * @package Ecotone\Messaging\MethodInterceptor
- * @author Dariusz Gafka <support@simplycodedsoftware.com>
- */
-/**
- * licence Apache-2.0
- */
 interface MethodInvocation
 {
     /**
@@ -27,11 +17,6 @@ interface MethodInvocation
 
     public function getMethodName(): string;
 
-    /**
-     * @TODO remove in Ecotone 2.0
-     * @deprecated Do not use. Will be removed in Ecotone 2.0
-     */
-    public function getInterfaceToCall(): InterfaceToCall;
 
     public function getName(): string;
 
@@ -40,12 +25,4 @@ interface MethodInvocation
      */
     public function getArguments(): array;
 
-    /**
-     * @TODO remove in Ecotone 2.0
-     * @deprecated Do not use. Will be removed in Ecotone 2.0
-     * @param string $parameterName
-     * @param mixed $value
-     * @return void
-     */
-    public function replaceArgument(string $parameterName, $value): void;
 }

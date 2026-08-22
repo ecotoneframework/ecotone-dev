@@ -96,14 +96,6 @@ final class AmqpChannelManagerModule extends NoExternalConfigurationModule imple
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof AmqpBackedMessageChannelBuilder
-            || $extensionObject instanceof AmqpStreamChannelBuilder
-            || $extensionObject instanceof ChannelInitializationConfiguration;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         $channelManagerReferences = [];

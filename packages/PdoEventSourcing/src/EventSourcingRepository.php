@@ -36,10 +36,10 @@ class EventSourcingRepository implements EventSourcedRepository
         return in_array($aggregateClassName, $this->handledAggregateClassNames);
     }
 
-    public function findBy(string $aggregateClassName, array $identifiers, int $fromAggregateVersion = 1): EventStream
+    public function findBy(string $aggregateClassName, array $identifiers, int $fromVersion = 1): EventStream
     {
         $aggregateId = reset($identifiers);
-        $aggregateVersion = $fromAggregateVersion;
+        $aggregateVersion = $fromVersion;
         $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
         $aggregateType = $this->getAggregateType($aggregateClassName);
 

@@ -9,7 +9,7 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\WithAggregateEvents;
+use Ecotone\Modelling\WithEvents;
 use Illuminate\Database\Eloquent\Model;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
@@ -17,7 +17,7 @@ use Ramsey\Uuid\UuidInterface;
 #[Aggregate]
 final class Issue
 {
-    use WithAggregateEvents;
+    use WithEvents;
 
     const REPORT_ISSUE = "issue.report";
     const CLOSE_ISSUE = "issue.close";

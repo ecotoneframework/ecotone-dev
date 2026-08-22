@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Fixture\Renter;
 
 use Ecotone\Modelling\Attribute\Repository;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Modelling\StateStoredRepository;
 
 #[Repository]
 /**
  * licence Apache-2.0
  */
-class AppointmentStandardRepository implements StandardRepository
+class AppointmentStateStoredRepository implements StateStoredRepository
 {
     /**
      * @var Appointment[]

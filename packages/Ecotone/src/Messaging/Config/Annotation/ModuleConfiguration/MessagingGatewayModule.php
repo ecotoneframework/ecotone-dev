@@ -116,11 +116,6 @@ class MessagingGatewayModule extends NoExternalConfigurationModule implements An
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
     /**
      * @inheritDoc
      */

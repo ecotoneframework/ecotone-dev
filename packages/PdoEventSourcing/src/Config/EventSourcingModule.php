@@ -322,14 +322,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $this->registerProjectionManager($messagingConfiguration, $eventSourcingConfiguration);
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof EventSourcingConfiguration
-            || $extensionObject instanceof ProjectionRunningConfiguration
-            || $extensionObject instanceof ServiceConfiguration;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         $pollingProjectionNames = [];

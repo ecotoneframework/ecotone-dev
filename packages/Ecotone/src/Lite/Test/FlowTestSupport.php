@@ -17,6 +17,7 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\Clock;
@@ -107,17 +108,6 @@ final class FlowTestSupport
         return $this;
     }
 
-    /**
-     * @param int $time Time in milliseconds or TimeSpan object
-     *
-     * @deprecated use run instead
-     */
-    public function releaseAwaitingMessagesAndRunConsumer(string $channelName, int|TimeSpan|DateTimeInterface $time, ?ExecutionPollingMetadata $executionPollingMetadata = null): self
-    {
-        $this->run($channelName, $executionPollingMetadata, is_int($time) ? TimeSpan::withMilliseconds($time) : $time);
-
-        return $this;
-    }
 
     /**
      * @return mixed[]
@@ -140,6 +130,16 @@ final class FlowTestSupport
         return $this->configuredMessagingSystem->getMessageChannelByName($channelName);
     }
 
+    public function getMessageChannelByName(string $channelName): MessageChannel|PollableChannel
+    {
+        return $this->getMessageChannel($channelName);
+    }
+
+    public function getMessagePublisher(string $referenceName = MessagePublisher::class): MessagePublisher
+    {
+        return $this->configuredMessagingSystem->getMessagePublisher($referenceName);
+    }
+
     public function receiveMessageFrom(string $channelName): ?Message
     {
         $messageChannel = $this->getMessageChannel($channelName);
@@ -153,7 +153,7 @@ final class FlowTestSupport
      */
     public function run(string $name, ?ExecutionPollingMetadata $executionPollingMetadata = null, TimeSpan|DateTimeInterface|null $releaseAwaitingFor = null): self
     {
-        $this->testSupportGateway->releaseMessagesAwaitingFor($name, $releaseAwaitingFor ?? Clock::get()->now());
+        $this->testSupportGateway->releaseMessagesAwaitingFor($name, $releaseAwaitingFor ?? $this->clock->now());
         $this->configuredMessagingSystem->run($name, $executionPollingMetadata);
 
         return $this;
@@ -510,6 +510,31 @@ final class FlowTestSupport
     public function getGateway(string $referenceName): object
     {
         return $this->configuredMessagingSystem->getGatewayByName($referenceName);
+    }
+
+    public function getGatewayByName(string $referenceName): object
+    {
+        return $this->getGateway($referenceName);
+    }
+
+    public function getCommandBus(): CommandBus
+    {
+        return $this->commandBus;
+    }
+
+    public function getEventBus(): EventBus
+    {
+        return $this->eventBus;
+    }
+
+    public function getQueryBus(): QueryBus
+    {
+        return $this->queryBus;
+    }
+
+    public function getMessagingTestSupport(): MessagingTestSupport
+    {
+        return $this->testSupportGateway;
     }
 
     public function getDistributedBus(string $referenceName = DistributedBus::class): DistributedBus

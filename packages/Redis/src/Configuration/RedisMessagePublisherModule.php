@@ -89,13 +89,6 @@ final class RedisMessagePublisherModule extends NoExternalConfigurationModule im
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof RedisMessagePublisherConfiguration
-            || $extensionObject instanceof ServiceConfiguration;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::REDIS_PACKAGE;

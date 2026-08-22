@@ -50,11 +50,6 @@ class EndpointHeadersInterceptorModule extends NoExternalConfigurationModule imp
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

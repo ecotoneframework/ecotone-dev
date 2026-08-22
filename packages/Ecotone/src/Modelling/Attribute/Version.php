@@ -10,6 +10,17 @@ use Attribute;
 /**
  * licence Apache-2.0
  */
-class Version extends AggregateVersion
+class Version
 {
+    private bool $autoIncrease;
+
+    public function __construct(bool $autoIncrease = true)
+    {
+        $this->autoIncrease = $autoIncrease;
+    }
+
+    public function isAutoIncreased(): bool
+    {
+        return $this->autoIncrease;
+    }
 }

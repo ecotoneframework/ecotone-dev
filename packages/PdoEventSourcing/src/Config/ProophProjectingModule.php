@@ -379,14 +379,6 @@ class ProophProjectingModule implements AnnotationModule
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof DbalConfiguration
-            || $extensionObject instanceof EventSourcingConfiguration
-            || $extensionObject instanceof EventStreamingChannelAdapter
-            || $extensionObject instanceof MultiTenantConfiguration;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $serviceExtensions, EventSourcingConfiguration::createWithDefaults());

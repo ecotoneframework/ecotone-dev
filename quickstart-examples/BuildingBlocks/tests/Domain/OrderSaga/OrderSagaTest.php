@@ -52,14 +52,14 @@ final class OrderSagaTest extends TestCase
             $ecotoneLite
                 ->sendCommand(new CreateProduct($productTableId, 'Table', Money::EUR(150)))
                 ->sendCommand(new PlaceOrder($orderId, [$productTableId]), metadata: ['executorId' => $customerId])
-                ->releaseAwaitingMessagesAndRunConsumer('orders', 0, ExecutionPollingMetadata::createWithTestingSetup())
+                ->run('orders', 0, ExecutionPollingMetadata::createWithTestingSetup())
                 ->sendQueryWithRouting('order.get_status', metadata: ['aggregate.id' => $orderId])
         );
 
         $this->assertEquals(
             OrderStatus::CANCELLED,
             $ecotoneLite
-                ->releaseAwaitingMessagesAndRunConsumer('orders', 1000 * 60, ExecutionPollingMetadata::createWithTestingSetup())
+                ->run('orders', 1000 * 60, ExecutionPollingMetadata::createWithTestingSetup())
                 ->sendQueryWithRouting('order.get_status', metadata: ['aggregate.id' => $orderId])
         );
     }
@@ -77,7 +77,7 @@ final class OrderSagaTest extends TestCase
             $ecotoneLite
                 ->sendCommand(new CreateProduct($productTableId, 'Table', Money::EUR(150)))
                 ->sendCommand(new PlaceOrder($orderId, [$productTableId]), metadata: ['executorId' => $customerId])
-                ->releaseAwaitingMessagesAndRunConsumer('orders', 0, ExecutionPollingMetadata::createWithTestingSetup())
+                ->run('orders', 0, ExecutionPollingMetadata::createWithTestingSetup())
                 ->sendQueryWithRouting('order.get_status', metadata: ['aggregate.id' => $orderId])
         );
 
@@ -85,7 +85,7 @@ final class OrderSagaTest extends TestCase
             OrderStatus::COMPLETED,
             $ecotoneLite
                 ->sendCommandWithRoutingKey('allow_product_reservation')
-                ->releaseAwaitingMessagesAndRunConsumer('orders', 1000 * 60, ExecutionPollingMetadata::createWithTestingSetup())
+                ->run('orders', 1000 * 60, ExecutionPollingMetadata::createWithTestingSetup())
                 ->sendQueryWithRouting('order.get_status', metadata: ['aggregate.id' => $orderId])
         );
     }

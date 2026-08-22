@@ -51,7 +51,7 @@ Use `LicenceTesting::VALID_LICENCE` for test environments:
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\LicenceTesting;
 
-$ecotoneLite = EcotoneLite::bootstrapForTesting(
+$ecotoneLite = EcotoneLite::bootstrapFlowTesting(
     [OrderFulfillmentOrchestrator::class],
     licenceKey: LicenceTesting::VALID_LICENCE,
 );

@@ -123,15 +123,6 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof CombinedMessageChannel
-            || ($extensionObject instanceof SimpleMessageChannelBuilder && $extensionObject->isPollable())
-            || $extensionObject instanceof ServiceConfiguration
-            || $extensionObject instanceof PollingMetadata;
-    }
-
     /**
      * @inheritDoc
      */

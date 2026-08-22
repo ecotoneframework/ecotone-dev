@@ -39,7 +39,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
     {
         $this->expectException(LicensingException::class);
 
-        $this->bootstrapForTesting(
+        $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -64,7 +64,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_first_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -108,7 +108,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_last_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -155,7 +155,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_offset_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -202,7 +202,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_empty_next_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -249,7 +249,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_empty_first_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -287,7 +287,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_large_batch_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -332,7 +332,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_next_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -374,7 +374,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_single_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -408,7 +408,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_offset_beyond_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -451,7 +451,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_order_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -491,7 +491,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_offset_zero_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -529,7 +529,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_replay_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -572,7 +572,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_short_timeout_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -616,7 +616,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $queueName = 'stream_queue_release_retry_' . Uuid::v7()->toRfc4122();
 
         $orderService = new OrderServiceWithFailures();
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderServiceWithFailures::class],
             [
                 $orderService,
@@ -657,7 +657,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $queueName = 'stream_queue_release_multiple_' . Uuid::v7()->toRfc4122();
 
         $orderService = new OrderServiceWithFailures();
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderServiceWithFailures::class],
             [
                 $orderService,
@@ -702,7 +702,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $queueName = 'stream_queue_release_offset_' . Uuid::v7()->toRfc4122();
 
         $orderService = new OrderServiceWithFailures();
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderServiceWithFailures::class],
             [
                 $orderService,
@@ -752,7 +752,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $queueName = 'stream_queue_resend_' . Uuid::v7()->toRfc4122();
 
         $orderService = new OrderServiceWithFailures();
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderServiceWithFailures::class],
             [
                 $orderService,
@@ -798,7 +798,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_queue_prefetch_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -869,7 +869,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -922,7 +922,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -974,7 +974,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -1043,7 +1043,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -1093,7 +1093,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         $sharedPositionTracker = new \Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -1175,7 +1175,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             }
         };
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [$handler1::class, $handler2::class],
             [
                 $handler1,
@@ -1287,7 +1287,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'distributed_events';
 
         // Publisher service
-        $publisherService = $this->bootstrapForTesting(
+        $publisherService = $this->bootstrapFlowTesting(
             [$publisher::class],
             [
                 $publisher,
@@ -1312,7 +1312,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         );
 
         // Consumer service 1
-        $consumerService1 = $this->bootstrapForTesting(
+        $consumerService1 = $this->bootstrapFlowTesting(
             [$consumer1::class],
             [
                 $consumer1,
@@ -1335,7 +1335,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         );
 
         // Consumer service 2
-        $consumerService2 = $this->bootstrapForTesting(
+        $consumerService2 = $this->bootstrapFlowTesting(
             [$consumer2::class],
             [
                 $consumer2,
@@ -1375,7 +1375,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_retention_amqp_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),
@@ -1427,7 +1427,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channelName = 'orders';
         $queueName = 'stream_retention_arg_' . Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 new OrderService(),

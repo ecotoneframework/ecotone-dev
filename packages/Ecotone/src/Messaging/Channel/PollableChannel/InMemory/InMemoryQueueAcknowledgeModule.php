@@ -33,6 +33,10 @@ final class InMemoryQueueAcknowledgeModule extends NoExternalConfigurationModule
 
         /** @var SimpleMessageChannelBuilder $pollableMessageChannel */
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
+            if (! method_exists($pollableMessageChannel, 'getFinalFailureStrategy') || ! method_exists($pollableMessageChannel, 'isAutoAcked')) {
+                continue;
+            }
+
             $messagingConfiguration->registerChannelInterceptor(
                 new InMemoryQueueAcknowledgeInterceptorBuilder(
                     $pollableMessageChannel->getMessageChannelName(),
@@ -41,11 +45,6 @@ final class InMemoryQueueAcknowledgeModule extends NoExternalConfigurationModule
                 )
             );
         }
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof SimpleMessageChannelBuilder && $extensionObject->isPollable();
     }
 
     public function getModulePackageName(): string

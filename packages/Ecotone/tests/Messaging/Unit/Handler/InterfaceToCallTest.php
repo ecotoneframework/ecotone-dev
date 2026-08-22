@@ -57,7 +57,7 @@ class InterfaceToCallTest extends TestCase
         );
 
         $this->assertEquals(
-            InterfaceParameter::createNotNullable('name', Type::create(Type::STRING)),
+            InterfaceParameter::createNotNullable('name', Type::create('string')),
             $interfaceToCall->getParameterWithName('name')
         );
     }

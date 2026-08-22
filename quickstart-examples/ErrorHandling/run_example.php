@@ -5,7 +5,7 @@ use App\Domain\ShippingService;
 use App\Infrastructure\NetworkFailingShippingService;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Dbal\Recoverability\DeadLetterGateway;
-use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
@@ -18,7 +18,7 @@ require __DIR__ . "/vendor/autoload.php";
 
 $serviceName = 'example_service';
 $shippingService = new NetworkFailingShippingService();
-$ecotoneLite = EcotoneLiteApplication::bootstrap([ShippingService::class => $shippingService, NetworkFailingShippingService::class => $shippingService, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'), AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f'])], serviceConfiguration: ServiceConfiguration::createWithDefaults()->withServiceName($serviceName)->withDefaultErrorChannel('errorChannel'), pathToRootCatalog: __DIR__);
+$ecotoneLite = EcotoneLite::bootstrap([ShippingService::class => $shippingService, NetworkFailingShippingService::class => $shippingService, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'), AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f'])], serviceConfiguration: ServiceConfiguration::createWithDefaults()->withServiceName($serviceName)->withDefaultErrorChannel('errorChannel'), pathToRootCatalog: __DIR__);
 /** @var AmqpConnectionFactory $amqpConnectionFactory */
 $amqpConnectionFactory = $ecotoneLite->getServiceFromContainer(AmqpConnectionFactory::class);
 $amqpConnectionFactory->createContext()->deleteQueue(new \Interop\Amqp\Impl\AmqpQueue('orders'));

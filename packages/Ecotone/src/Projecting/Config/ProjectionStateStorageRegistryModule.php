@@ -92,11 +92,6 @@ class ProjectionStateStorageRegistryModule extends NoExternalConfigurationModule
         );
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof ProjectionStateStorageReference;
-    }
-
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;

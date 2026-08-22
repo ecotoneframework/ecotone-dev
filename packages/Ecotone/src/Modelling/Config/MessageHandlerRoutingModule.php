@@ -99,7 +99,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
         $interfaceToCall = $interfaceToCallRegistry->getFor($registration->getClassName(), $registration->getMethodName());
 
         if ($interfaceToCall->hasMethodAnnotation(Type::attribute(IgnorePayload::class)) || $interfaceToCall->hasNoParameters()) {
-            return Type::ARRAY;
+            return 'array';
         }
 
         $firstParameterType = $interfaceToCall->getFirstParameter()->getTypeDescriptor();
@@ -109,14 +109,14 @@ class MessageHandlerRoutingModule implements AnnotationModule
 
             foreach ($reflectionParameter->getAttributes() as $attribute) {
                 if (in_array($attribute->getName(), [ConfigurationVariable::class, Header::class, Headers::class, \Ecotone\Messaging\Attribute\Parameter\Reference::class])) {
-                    return Type::ARRAY;
+                    return 'array';
                 }
             }
 
             return $firstParameterType;
         }
 
-        return Type::ARRAY;
+        return 'array';
     }
 
     /**
@@ -249,11 +249,6 @@ class MessageHandlerRoutingModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof RoutingEventHandler;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [];

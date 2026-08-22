@@ -59,13 +59,6 @@ final class EventSourcingStackTest extends FullAppTestCase
         );
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $this->executeTestScenario(
-            $container->get(CommandBus::class),
-            $container->get(QueryBus::class)
-        );
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

@@ -95,7 +95,7 @@ class HeaderBuilderTest extends TestCase
                     ->registerConversion(
                         $data,
                         MediaType::APPLICATION_JSON,
-                        Type::ARRAY,
+                        'array',
                         MediaType::APPLICATION_X_PHP,
                         stdClass::class,
                         '{"name":"johny"}'
@@ -103,7 +103,7 @@ class HeaderBuilderTest extends TestCase
                     ->registerConversion(
                         $data,
                         MediaType::APPLICATION_X_PHP_ARRAY,
-                        Type::ARRAY,
+                        'array',
                         MediaType::APPLICATION_X_PHP,
                         stdClass::class,
                         new stdClass()
@@ -130,7 +130,7 @@ class HeaderBuilderTest extends TestCase
                 InMemoryConversionService::createWithConversion(
                     $data,
                     MediaType::APPLICATION_X_PHP,
-                    Type::STRING,
+                    'string',
                     MediaType::APPLICATION_X_PHP,
                     Uuid::class,
                     Uuid::fromString($data)

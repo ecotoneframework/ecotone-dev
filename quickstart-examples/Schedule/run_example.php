@@ -6,12 +6,12 @@ use App\Schedule\Messaging\PeriodSchedules\UserWasRegistered;
 use App\Schedule\Messaging\StaticSchedules\MessagingConfiguration as StaticMessagingConfiguration;
 use App\Schedule\ScheduledJob\ScheduledCommandHandler\InvoiceService;
 use App\Schedule\ScheduledJob\ScheduledJob\NotificationService;
-use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 
 require __DIR__ . "/vendor/autoload.php";
-$messagingSystem = EcotoneLiteApplication::boostrap([DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')], pathToRootCatalog: __DIR__);
+$messagingSystem = EcotoneLite::bootstrap([DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')], pathToRootCatalog: __DIR__);
 
 echo "Generating invoices using Scheduled Job. Waiting for cron execution...\n";
 $messagingSystem->run(InvoiceService::NAME, ExecutionPollingMetadata::createWithDefaults()->withHandledMessageLimit(1));

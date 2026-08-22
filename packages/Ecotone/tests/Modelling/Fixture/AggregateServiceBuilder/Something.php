@@ -25,7 +25,7 @@ final class Something
         $this->recordThat(new SomethingWasCreatedPrivateEvent($int));
     }
 
-    public function getVersion(): int
+    public function getAggregateVersion(): int
     {
         return $this->version;
     }

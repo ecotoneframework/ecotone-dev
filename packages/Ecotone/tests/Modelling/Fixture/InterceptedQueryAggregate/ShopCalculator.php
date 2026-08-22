@@ -6,7 +6,7 @@ use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\WithAggregateEvents;
+use Ecotone\Modelling\WithEvents;
 use Test\Ecotone\Modelling\Fixture\InterceptedQueryAggregate\AddFranchiseMargin\AddFranchise;
 use Test\Ecotone\Modelling\Fixture\InterceptedQueryAggregate\ProductToPriceExchange\ExchangeProductForPrice;
 
@@ -16,7 +16,7 @@ use Test\Ecotone\Modelling\Fixture\InterceptedQueryAggregate\ProductToPriceExcha
  */
 class ShopCalculator
 {
-    use WithAggregateEvents;
+    use WithEvents;
 
     #[Identifier]
     private string $shopId;

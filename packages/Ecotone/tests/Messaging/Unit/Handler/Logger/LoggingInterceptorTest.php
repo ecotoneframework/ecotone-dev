@@ -87,7 +87,7 @@ class LoggingInterceptorTest extends TestCase
 
         $payload = ['some'];
         $message = MessageBuilder::withPayload($payload)
-                    ->setContentType(MediaType::createApplicationXPHPWithTypeParameter(Type::ARRAY))
+                    ->setContentType(MediaType::createApplicationXPHPWithTypeParameter('array'))
                     ->build();
 
         $loggingInterceptor->log($message, new LogAfter(LogLevel::DEBUG, false));

@@ -249,11 +249,6 @@ class ProjectingAttributeModule implements AnnotationModule
         }
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         // Filter out event streaming projections - they don't need ProjectingManager

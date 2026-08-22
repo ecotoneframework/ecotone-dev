@@ -11,6 +11,7 @@ use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
@@ -30,6 +31,7 @@ final class SaveAggregateTestSetupService implements MessageProcessor
         private HeaderMapper $headerMapper,
         private EventMapper $eventMapper,
         private AggregateRepository $aggregateRepository,
+        private EcotoneClockInterface $clock,
     ) {
     }
 
@@ -85,6 +87,7 @@ final class SaveAggregateTestSetupService implements MessageProcessor
             $this->headerMapper,
             $this->conversionService,
             $this->eventMapper,
+            $this->clock,
         );
 
         $enrichedEvents = SaveAggregateServiceTemplate::enrichAggregateEvents(

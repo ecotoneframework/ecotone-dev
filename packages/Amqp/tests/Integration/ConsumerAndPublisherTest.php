@@ -27,7 +27,7 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTestCase
     {
         $endpointId = 'asynchronous_endpoint';
         $queueName = Uuid::v7()->toRfc4122();
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [AmqpConsumerExample::class],
             [
                 new AmqpConsumerExample(),

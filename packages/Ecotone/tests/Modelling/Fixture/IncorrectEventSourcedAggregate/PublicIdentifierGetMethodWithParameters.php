@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate;
 
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
+use Ecotone\Modelling\Attribute\IdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use stdClass;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\CreateNoIdDefinedAggregate;
@@ -22,7 +22,7 @@ class PublicIdentifierGetMethodWithParameters
         return [new stdClass()];
     }
 
-    #[AggregateIdentifierMethod('id')]
+    #[IdentifierMethod('id')]
     public function getId(stdClass $param)
     {
         return $this->internalId;

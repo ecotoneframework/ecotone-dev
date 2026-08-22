@@ -8,7 +8,7 @@ use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\Attribute\EventSourcingHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\WithAggregateEvents;
+use Ecotone\Modelling\WithEvents;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate(true)]
@@ -17,7 +17,7 @@ use Ecotone\Modelling\WithAggregateVersioning;
  */
 class Job
 {
-    use WithAggregateEvents;
+    use WithEvents;
     use WithAggregateVersioning;
 
     #[Identifier]

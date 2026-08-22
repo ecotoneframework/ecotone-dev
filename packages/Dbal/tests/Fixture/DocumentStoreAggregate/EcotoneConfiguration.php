@@ -16,6 +16,6 @@ class EcotoneConfiguration
     public function getDbalConfiguration(): DbalConfiguration
     {
         return DbalConfiguration::createWithDefaults()
-                ->withDocumentStore(enableDocumentStoreStandardRepository: true);
+                ->withDocumentStore(enableDocumentStoreStateStoredRepository: true);
     }
 }

@@ -1052,9 +1052,9 @@ class GatewayProxyBuilderTest extends MessagingTestCase
                 InMemoryConversionService::createWithConversion(
                     [1, 2, 3],
                     MediaType::APPLICATION_X_PHP,
-                    Type::ARRAY,
+                    'array',
                     MediaType::APPLICATION_JSON,
-                    Type::STRING,
+                    'string',
                     '[1,2,3]'
                 )
             )
@@ -1118,7 +1118,7 @@ class GatewayProxyBuilderTest extends MessagingTestCase
                     MediaType::APPLICATION_X_PHP,
                     Type::createCollection(stdClass::class)->toString(),
                     MediaType::APPLICATION_X_PHP_ARRAY,
-                    Type::ARRAY,
+                    'array',
                     $replyData = [1, 1]
                 )
             )

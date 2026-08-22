@@ -12,6 +12,7 @@ use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;
@@ -32,6 +33,7 @@ final class AggregateResolver
         private ConversionService $conversionService,
         private HeaderMapper $headerMapper,
         private EventMapper $eventMapper,
+        private EcotoneClockInterface $clock,
     ) {
 
     }
@@ -142,6 +144,7 @@ final class AggregateResolver
             $this->headerMapper,
             $this->conversionService,
             $this->eventMapper,
+            $this->clock,
         );
 
         if ($this->hasReturnedNoEvents($aggregateDefinition, $events)) {

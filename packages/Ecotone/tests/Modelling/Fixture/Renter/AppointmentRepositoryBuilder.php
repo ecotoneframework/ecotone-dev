@@ -6,7 +6,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\LazyRepositoryBuilder;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Modelling\StateStoredRepository;
 
 /**
  * licence Apache-2.0
@@ -41,13 +41,13 @@ class AppointmentRepositoryBuilder implements LazyRepositoryBuilder
         return $aggregateClassName === Appointment::class;
     }
 
-    public function build(): EventSourcedRepository|StandardRepository
+    public function build(): EventSourcedRepository|StateStoredRepository
     {
-        return AppointmentStandardRepository::createWith($this->appointments);
+        return AppointmentStateStoredRepository::createWith($this->appointments);
     }
 
     public function compile(MessagingContainerBuilder $builder): Definition
     {
-        return new Definition(AppointmentStandardRepository::class, [$this->appointments], 'createWith');
+        return new Definition(AppointmentStateStoredRepository::class, [$this->appointments], 'createWith');
     }
 }

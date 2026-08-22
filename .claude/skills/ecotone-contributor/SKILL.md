@@ -17,7 +17,7 @@ Tests use inline anonymous classes with PHP 8.1+ attributes, snake_case method n
 
 ## 0. Test-First Rule (MANDATORY)
 
-Every new feature or bug fix **MUST** start with a test written using **Ecotone Lite** (`EcotoneLite::bootstrapFlowTesting()` or `EcotoneLite::bootstrapForTesting()`). This is a blocking requirement — do not write production code before the test exists.
+Every new feature or bug fix **MUST** start with a test written using **Ecotone Lite** (`EcotoneLite::bootstrapFlowTesting()` or `EcotoneLite::bootstrapFlowTesting()`). This is a blocking requirement — do not write production code before the test exists.
 
 **Tests must follow the userland perspective.** Each test should read like an example of how an Ecotone end-user would use the feature in their application. The test sets up real handler classes (inline anonymous classes with attributes), sends commands/events/queries through the bus, and asserts on the outcome — exactly as a user would interact with the framework. Never test framework internals directly; instead, demonstrate the feature through its public API as seen by the user.
 

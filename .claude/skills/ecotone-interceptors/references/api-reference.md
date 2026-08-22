@@ -97,7 +97,7 @@ interface MethodInvocation
 {
     public function proceed(): mixed;
     public function getArguments(): array;
-    public function replaceArgument(string $parameterName, mixed $value): void;
+    public function 
     public function getObjectToInvokeOn(): object;
 }
 ```
@@ -106,7 +106,6 @@ interface MethodInvocation
 |--------|---------|-------------|
 | `proceed()` | `mixed` | Continue to next interceptor or handler. **Must be called.** |
 | `getArguments()` | `array` | Get handler method arguments as named array |
-| `replaceArgument(string $name, $value)` | `void` | Replace a handler argument before proceeding |
 | `getObjectToInvokeOn()` | `object` | Get the handler instance being invoked |
 
 ## Precedence Constants

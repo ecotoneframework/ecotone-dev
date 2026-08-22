@@ -9,6 +9,7 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Dbal\DbalConnectionReference;
@@ -62,6 +63,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         $connectionFactory = new Definition(CachedConnectionFactory::class, [
             new Definition(DbalReconnectableConnectionFactory::class, [
                 new Reference($this->connectionFactoryReferenceName),
+                new Reference(EcotoneClockInterface::class),
             ]),
         ], 'createFor');
 

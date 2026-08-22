@@ -124,14 +124,6 @@ class ServiceConfiguration
         return $clone;
     }
 
-    public function withCacheDirectoryPath(string $cacheDirectoryPath): self
-    {
-        $clone                     = clone $this;
-        $clone->cacheDirectoryPath = rtrim($cacheDirectoryPath, '/');
-
-        return $clone;
-    }
-
     /**
      * @param string $environment
      */
@@ -349,6 +341,14 @@ class ServiceConfiguration
     {
         return $this->cacheDirectoryPath;
     }
+    public function withCacheDirectoryPath(string $cacheDirectoryPath): self
+    {
+        $clone                     = clone $this;
+        $clone->cacheDirectoryPath = rtrim($cacheDirectoryPath, '/');
+
+        return $clone;
+    }
+
 
     /**
      * @return string

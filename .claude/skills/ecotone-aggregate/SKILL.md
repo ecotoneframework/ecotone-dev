@@ -1,7 +1,7 @@
 ---
 name: ecotone-aggregate
 description: >-
-  Creates DDD aggregates with #[Aggregate] and #[AggregateIdentifier]:
+  Creates DDD aggregates with #[Aggregate] and #[Identifier]:
   state-stored and event-sourced variants, static factory methods for
   creation, command handler wiring on aggregates, and aggregate repository
   access. Use when creating aggregates, domain entities with command
@@ -158,6 +158,6 @@ public function cancel(CancelOrder $command): void { }
 
 ## Additional resources
 
-- [API Reference](references/api-reference.md) -- Attribute definitions for `#[Aggregate]`, `#[EventSourcingAggregate]`, `#[Identifier]`, `#[EventSourcingHandler]`, and `#[AggregateVersion]` with constructor signatures and parameter details. Load when you need exact attribute definitions or parameter types.
+- [API Reference](references/api-reference.md) -- Attribute definitions for `#[Aggregate]`, `#[EventSourcingAggregate]`, `#[Identifier]`, `#[EventSourcingHandler]`, and `#[Version]` with constructor signatures and parameter details. Load when you need exact attribute definitions or parameter types.
 - [Usage Examples](references/usage-examples.md) -- Complete aggregate implementations: full state-stored Customer aggregate with multiple commands and queries, full event-sourced Product aggregate with multiple event handlers, multiple identifiers (ShelfItem), state-stored aggregate with `WithEvents` trait for event publishing. Load when you need complete, copy-paste-ready aggregate class definitions.
 - [Testing Patterns](references/testing-patterns.md) -- EcotoneLite test patterns for aggregates: state-stored testing with `getAggregate()`, event-sourced testing with `withEventsFor()` and `getRecordedEvents()`, event store testing with `bootstrapFlowTestingWithEventStore()`, and multiple identifier testing. Load when writing tests for aggregates.

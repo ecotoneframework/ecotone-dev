@@ -100,13 +100,6 @@ class AmqpMessagePublisherModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof AmqpMessagePublisherConfiguration
-            || $extensionObject instanceof ServiceConfiguration;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [];

@@ -174,13 +174,13 @@ class SaveAggregateServiceBuilderTest extends TestCase
         /** @var Ticket $ticketOne */
         $ticketOne = $ecotoneLite->getAggregate(Ticket::class, ['ticketId' => $ticketOneId]);
         $this->assertEquals(1, $ticketOne->id());
-        $this->assertEquals(1, $ticketOne->getVersion());
+        $this->assertEquals(1, $ticketOne->getAggregateVersion());
         $this->assertEquals($ticketOne, $inMemoryDocumentStore->getDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), 1));
 
         /** @var Ticket $ticketTwo */
         $ticketTwo = $ecotoneLite->getAggregate(Ticket::class, ['ticketId' => $ticketTwoId]);
         $this->assertEquals(2, $ticketTwo->id());
-        $this->assertEquals(1, $ticketTwo->getVersion());
+        $this->assertEquals(1, $ticketTwo->getAggregateVersion());
         $this->assertEquals($ticketTwo, $inMemoryDocumentStore->getDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), 2));
     }
 
@@ -200,7 +200,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ->sendCommand(new AssignWorkerCommand($ticketId, 'johny'))
             ->getAggregate(Ticket::class, ['ticketId' => $ticketId]);
 
-        $this->assertEquals(2, $ticket->getVersion());
+        $this->assertEquals(2, $ticket->getAggregateVersion());
         $this->assertEquals(
             $ticket,
             $inMemoryDocumentStore->getDocument(SaveAggregateService::getSnapshotCollectionName(Ticket::class), 1)
@@ -316,7 +316,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ->sendCommand(CreateOrderCommand::createWith(1, 1, 'Poland'))
             ->getAggregate(Order::class, ['orderId' => 1]);
 
-        $this->assertEquals(1, $aggregate->getVersion());
+        $this->assertEquals(1, $aggregate->getAggregateVersion());
     }
 
     public function test_calling_save_method_with_manual_increasing_version()
@@ -329,7 +329,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             ->sendCommandWithRoutingKey('order.create', CreateOrderCommand::createWith(1, 1, 'Poland'))
             ->getAggregate(OrderWithManualVersioning::class, ['orderId' => 1]);
 
-        $this->assertEquals(0, $aggregate->getVersion());
+        $this->assertEquals(0, $aggregate->getAggregateVersion());
     }
 
     public function test_throwing_exception_if_aggregate_before_saving_has_no_nullable_identifier()
@@ -387,14 +387,14 @@ class SaveAggregateServiceBuilderTest extends TestCase
             2,
             $ecotoneLite
                 ->getAggregate(EventSourcingAggregateWithInternalRecorder::class, ['id' => $id])
-                ->getVersion()
+                ->getAggregateVersion()
         );
 
         $this->assertEquals(
             1,
             $ecotoneLite
                 ->getAggregate(Something::class, ['id' => $somethingId])
-                ->getVersion()
+                ->getAggregateVersion()
         );
     }
 

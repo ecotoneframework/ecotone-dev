@@ -1,6 +1,6 @@
 <?php
 
-use Ecotone\Lite\EcotoneLiteApplication;
+use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
@@ -30,7 +30,7 @@ function getConfiguredMessagingSystem(mixed $stageToRun, UuidInterface $userId, 
         DbalConnectionFactory::class =>  new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')
     ];
 
-    return EcotoneLiteApplication::bootstrap(
+    return EcotoneLite::bootstrap(
         serviceConfiguration: ServiceConfiguration::createWithDefaults()
             ->doNotLoadCatalog()
             ->withNamespaces(["App\ReactiveSystem\\" . $stageToRun]),

@@ -6,7 +6,7 @@ namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
-use Ecotone\Messaging\Scheduling\Clock;
+use Ecotone\Messaging\Scheduling\NativeClock;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
@@ -47,7 +47,7 @@ class DbalContext implements Context
      *
      * @param Connection|callable $connection
      */
-    public function __construct($connection, array $config = [])
+    public function __construct($connection, array $config = [], private ?EcotoneClockInterface $clock = null)
     {
         $this->config = array_replace([
             'table_name' => 'enqueue',
@@ -62,6 +62,13 @@ class DbalContext implements Context
         } else {
             throw new InvalidArgumentException(sprintf('The connection argument must be either %s or callable that returns %s.', Connection::class, Connection::class));
         }
+    }
+
+    public function withClock(EcotoneClockInterface $clock): self
+    {
+        $this->clock = $clock;
+
+        return $this;
     }
 
     /**
@@ -254,6 +261,6 @@ class DbalContext implements Context
 
     public function getClock(): EcotoneClockInterface
     {
-        return Clock::get();
+        return $this->clock ??= new NativeClock();
     }
 }

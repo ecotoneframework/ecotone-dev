@@ -70,15 +70,15 @@ class InMemoryEventSourcedRepository implements EventSourcedRepository
     /**
      * @inheritDoc
      */
-    public function findBy(string $aggregateClassName, array $identifiers, int $fromAggregateVersion = 1): EventStream
+    public function findBy(string $aggregateClassName, array $identifiers, int $fromVersion = 1): EventStream
     {
         $key = $this->getKey($identifiers);
 
         if (isset($this->eventsPerAggregate[$aggregateClassName][$key])) {
             $events = $this->eventsPerAggregate[$aggregateClassName][$key];
 
-            if ($fromAggregateVersion > 1) {
-                $events = array_slice($events, $fromAggregateVersion - 1);
+            if ($fromVersion > 1) {
+                $events = array_slice($events, $fromVersion - 1);
             }
 
             return EventStream::createWith(count($events), $events);

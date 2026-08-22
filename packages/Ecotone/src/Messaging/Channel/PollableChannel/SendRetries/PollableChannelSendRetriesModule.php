@@ -36,6 +36,10 @@ final class PollableChannelSendRetriesModule extends NoExternalConfigurationModu
         $pollableChannelConfigurations = ExtensionObjectResolver::resolve(PollableChannelConfiguration::class, $extensionObjects);
 
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
+            if ($pollableMessageChannel instanceof DynamicMessageChannelBuilder) {
+                continue;
+            }
+
             $channelConfiguration = $globalPollableChannelConfiguration;
 
             foreach ($pollableChannelConfigurations as $pollableChannelConfiguration) {
@@ -52,13 +56,6 @@ final class PollableChannelSendRetriesModule extends NoExternalConfigurationModu
                 )
             );
         }
-    }
-
-    public function canHandle($extensionObject): bool
-    {
-        return $extensionObject instanceof PollableChannelConfiguration
-            || $extensionObject instanceof GlobalPollableChannelConfiguration
-            || ($extensionObject instanceof MessageChannelBuilder && $extensionObject->isPollable() && ! ($extensionObject instanceof DynamicMessageChannelBuilder));
     }
 
     public function getModulePackageName(): string

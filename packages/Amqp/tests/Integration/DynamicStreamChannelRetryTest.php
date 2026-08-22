@@ -37,7 +37,7 @@ final class DynamicStreamChannelRetryTest extends AmqpMessagingTestCase
         $queueTenantB = 'stream_queue_tenant_b_' . Uuid::v7()->toRfc4122();
         $handler = new DynamicStreamRetryHandler();
 
-        $ecotoneLite = $this->bootstrapForTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [DynamicStreamRetryHandler::class],
             [
                 $handler,

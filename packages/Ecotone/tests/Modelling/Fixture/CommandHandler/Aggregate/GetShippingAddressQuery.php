@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
 
-use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
+use Ecotone\Modelling\Attribute\TargetIdentifier;
 
 /**
  * Class GetShippingAddressQuery
@@ -14,7 +14,7 @@ use Ecotone\Modelling\Attribute\TargetAggregateIdentifier;
  */
 class GetShippingAddressQuery
 {
-    #[TargetAggregateIdentifier]
+    #[TargetIdentifier]
     private $orderId;
 
     /**

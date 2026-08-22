@@ -64,10 +64,7 @@
             "Ecotone\\Sqs\\": "packages/Sqs/src",
             "Ecotone\\Laravel\\": "packages/Laravel/src",
             "Ecotone\\Tempest\\": "packages/Tempest/src",
-            "Ecotone\\Lite\\": [
-                "packages/Ecotone/src/Lite/",
-                "packages/LiteApplication/src"
-            ],
+            "Ecotone\\Lite\\": "packages/Ecotone/src/Lite/",
             "Ecotone\\Messaging\\": "packages/Ecotone/src/Messaging/",
             "Ecotone\\Modelling\\": "packages/Ecotone/src/Modelling/",
             "Ecotone\\OpenTelemetry\\": "packages/OpenTelemetry/src",
@@ -100,9 +97,6 @@
             ],
             "Test\\Ecotone\\Dbal\\": [
                 "packages/Dbal/tests"
-            ],
-            "Test\\Ecotone\\Lite\\": [
-                "packages/LiteApplication/tests"
             ],
             "Test\\Ecotone\\EventSourcing\\": [
                 "packages/EventSourcing/tests",

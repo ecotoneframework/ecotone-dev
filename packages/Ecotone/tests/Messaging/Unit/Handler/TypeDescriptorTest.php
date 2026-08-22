@@ -219,8 +219,8 @@ class TypeDescriptorTest extends TestCase
     public function test_checking_equality()
     {
         $this->assertTrue(
-            Type::create(Type::STRING)
-                ->equals(Type::create(Type::STRING))
+            Type::create('string')
+                ->equals(Type::create('string'))
         );
 
         $this->assertTrue(

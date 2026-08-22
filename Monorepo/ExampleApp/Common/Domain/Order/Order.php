@@ -15,13 +15,13 @@ use Ecotone\Messaging\Attribute\Deduplicated;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\WithAggregateEvents;
+use Ecotone\Modelling\WithEvents;
 use Ramsey\Uuid\UuidInterface;
 
 #[Aggregate]
 final class Order
 {
-    use WithAggregateEvents;
+    use WithEvents;
 
     private function __construct(#[Identifier] private UuidInterface $orderId, private UuidInterface $userId, private ShippingAddress $shippingAddress, private ProductDetails $productDetails, private \DateTimeImmutable $orderAt)
     {

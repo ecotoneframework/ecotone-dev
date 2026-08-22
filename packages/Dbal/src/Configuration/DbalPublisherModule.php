@@ -127,15 +127,6 @@ class DbalPublisherModule implements AnnotationModule
     /**
      * @inheritDoc
      */
-    public function canHandle($extensionObject): bool
-    {
-        return
-            $extensionObject instanceof DbalMessagePublisherConfiguration
-            || $extensionObject instanceof ServiceConfiguration
-            || $extensionObject instanceof DbalBackedMessageChannelBuilder
-            || $extensionObject instanceof DbalConfiguration;
-    }
-
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
         return [

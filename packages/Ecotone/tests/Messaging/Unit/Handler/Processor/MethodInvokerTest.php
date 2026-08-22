@@ -325,9 +325,9 @@ class MethodInvokerTest extends MessagingTestCase
                 InMemoryConversionService::createWithConversion(
                     $data = '["893a660c-0208-4140-8be6-95fb2dcd2fdd"]',
                     MediaType::createApplicationJson(),
-                    Type::STRING,
+                    'string',
                     MediaType::createApplicationXPHP(),
-                    Type::ARRAY,
+                    'array',
                     $result = ['893a660c-0208-4140-8be6-95fb2dcd2fdd']
                 )
             )
@@ -343,7 +343,7 @@ class MethodInvokerTest extends MessagingTestCase
                 $inputChannel,
                 $data,
                 metadata: [
-                    MessageHeaders::TYPE_ID => Type::ARRAY,
+                    MessageHeaders::TYPE_ID => 'array',
                     MessageHeaders::CONTENT_TYPE => MediaType::createApplicationJson()->toString(),
                 ]
             )
@@ -357,7 +357,7 @@ class MethodInvokerTest extends MessagingTestCase
                 InMemoryConversionService::createWithConversion(
                     $data = '893a660c-0208-4140-8be6-95fb2dcd2fdd',
                     MediaType::createApplicationJson(),
-                    Type::STRING,
+                    'string',
                     MediaType::createApplicationXPHP(),
                     stdClass::class,
                     $result = new stdClass()
@@ -389,9 +389,9 @@ class MethodInvokerTest extends MessagingTestCase
                 InMemoryConversionService::createWithConversion(
                     $data = '["893a660c-0208-4140-8be6-95fb2dcd2fdd"]',
                     MediaType::createApplicationJson(),
-                    Type::STRING,
+                    'string',
                     MediaType::createApplicationXPHP(),
-                    Type::ARRAY,
+                    'array',
                     $result = ['893a660c-0208-4140-8be6-95fb2dcd2fdd']
                 )
             )

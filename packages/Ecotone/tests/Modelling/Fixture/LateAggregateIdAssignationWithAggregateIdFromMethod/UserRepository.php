@@ -3,14 +3,14 @@
 namespace Test\Ecotone\Modelling\Fixture\LateAggregateIdAssignationWithAggregateIdFromMethod;
 
 use Ecotone\Modelling\Attribute\Repository;
-use Ecotone\Modelling\StandardRepository;
+use Ecotone\Modelling\StateStoredRepository;
 use Symfony\Component\Uid\Uuid;
 
 #[Repository]
 /**
  * licence Apache-2.0
  */
-class UserRepository implements StandardRepository
+class UserRepository implements StateStoredRepository
 {
     private array $users;
 

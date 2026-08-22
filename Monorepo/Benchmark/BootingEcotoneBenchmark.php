@@ -27,10 +27,6 @@ class BootingEcotoneBenchmark extends Assert
         $container->get(ConfiguredMessagingSystem::class)->list();
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $container->get(ConfiguredMessagingSystem::class)->list();
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

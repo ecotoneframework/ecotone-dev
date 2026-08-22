@@ -48,11 +48,6 @@ class MessagingCommandsModule extends NoExternalConfigurationModule implements A
         $this->registerConsoleCommand('listAsynchronousEndpointsCommand', 'ecotone:list', $messagingConfiguration, $interfaceToCallRegistry, 'Lists all registered asynchronous message consumers');
     }
 
-    public function canHandle($extensionObject): bool
-    {
-        return false;
-    }
-
     private function registerConsoleCommand(string $methodName, string $commandName, Configuration $configuration, InterfaceToCallRegistry $interfaceToCallRegistry, string $description = ''): void
     {
         [$messageHandlerBuilder, $oneTimeCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForReference(

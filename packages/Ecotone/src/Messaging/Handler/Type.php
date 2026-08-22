@@ -30,14 +30,6 @@ abstract class Type implements Stringable
 {
     use TypeFactory;
 
-    //    scalar types
-    /** @deprecated  */
-    public const         STRING = 'string';
-    /** @deprecated  */
-    public const ARRAY = 'array';
-    /** @deprecated  */
-    public const         OBJECT = 'object';
-
     private static array $cachedTypes = [];
 
     abstract public function isIdentifiedBy(string ...$typeIdentifiers): bool;

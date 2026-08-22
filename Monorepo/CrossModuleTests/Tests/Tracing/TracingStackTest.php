@@ -65,22 +65,6 @@ final class TracingStackTest extends FullAppTestCase
         $this->assertTracing($exporter);
     }
 
-    public function executeForLiteApplication(ContainerInterface $container): void
-    {
-        $configuration = $container->get(Configuration::class);
-        /** @var QueryBus $queryBus */
-        $queryBus = $container->get(QueryBus::class);
-        /** @var ConfiguredMessagingSystem $messagingSystem */
-        $messagingSystem = $container->get(ConfiguredMessagingSystem::class);
-        /** @var InMemoryExporter $exporter */
-        $exporter = $messagingSystem->getServiceFromContainer(InMemoryExporter::class);
-
-        $this->placeOrder($messagingSystem->getCommandBus(), $configuration);
-        self::runConsumerForMessaging('notifications', $messagingSystem);
-        $this->assertCount(1, $queryBus->sendWithRouting('getMessages'));
-
-        $this->assertTracing($exporter);
-    }
 
     public function executeForLite(ConfiguredMessagingSystem $messagingSystem): void
     {

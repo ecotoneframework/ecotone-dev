@@ -64,7 +64,7 @@ final class EventSourcingAggregateWithInternalRecorder
         return $this->id;
     }
 
-    public function getVersion(): int
+    public function getAggregateVersion(): int
     {
         return $this->version;
     }

@@ -191,13 +191,10 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `StandardRepository` interface | `StateStoredRepository` (same methods) |
 | `EcotoneLite::bootstrapForTesting()`, `EcotoneLiteConfiguration`, `ecotone/lite-application` package | `EcotoneLite::bootstrapFlowTesting()` / `EcotoneLite::bootstrap()` |
 | `MethodInvocation::getInterfaceToCall()`, `MethodInvocation::replaceArgument()` | `getObjectToInvokeOn()` / `getMethodName()`; pass changed values by returning a new message or header from `#[Before]` / `#[Presend]` |
-| `ServiceActivatorBuilder` | `MessageProcessorActivatorBuilder` |
 | `Ecotone\Messaging\Gateway\Converter\Serializer` | `Ecotone\Api\Gateway\SerializerGateway` |
 | `Type::STRING`, `Type::ARRAY`, `Type::OBJECT` | `Type::string()`, `Type::array()`, `Type::object()` |
 | `Clock::get()` static access | inject `EcotoneClockInterface` |
 | `FlowTestSupport::releaseAwaitingMessagesAndRunConsumer()` | `run()` |
-| `ServiceConfiguration::getCacheDirectoryPath()` / `withCacheDirectoryPath()` | `ServiceCacheDirectory` |
-| `MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()` | `prepare()` + container compile |
 | `BaseEventSourcingConfiguration::withSnapshots()` | `withSnapshotsFor()` |
 | `ProjectingManager::backfill()` | `prepareBackfill()` |
 | `AmqpBackedMessageChannelBuilder::withPublisherAcknowledgments()` | `withPublisherConfirms()` |
@@ -205,6 +202,9 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `ProjectionRunningConfiguration::with*()` / `get*()` typed helpers | removed with projection v1 (§3) |
 | `Module::canHandle()` | removed from the `Module` interface; modules receive every extension object and filter by `instanceof` inside `prepare()` |
 | `CronExpression::factory()` | `new CronExpression()` |
+
+Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` (use `MessageProcessorActivatorBuilder` in new modules),
+`ServiceConfiguration::withCacheDirectoryPath()`, `MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()`.
 
 If you implemented a custom `Module` / `AnnotationModule`, delete the `canHandle()` method and filter extension objects
 with `ExtensionObjectResolver::resolve(MyConfig::class, $extensionObjects)` inside `prepare()`.

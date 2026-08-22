@@ -508,7 +508,7 @@ class JMSConverterTest extends TestCase
     {
         $serialized = $this->serializeToJson($toSerialize, $jmsHandlerAdapters, $configuration);
         $this->assertEquals($expectedSerializationString, $serialized);
-        $this->assertEquals($toSerialize, $this->deserialize($serialized, is_array($toSerialize) ? Type::ARRAY : get_class($toSerialize), $jmsHandlerAdapters, $configuration));
+        $this->assertEquals($toSerialize, $this->deserialize($serialized, is_array($toSerialize) ? 'array' : get_class($toSerialize), $jmsHandlerAdapters, $configuration));
     }
 
     private function serializeToJson($data, array $jmsHandlerAdapters, ?JMSConverterConfiguration $configuration = null)

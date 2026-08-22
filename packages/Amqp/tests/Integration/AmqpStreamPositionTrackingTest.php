@@ -44,7 +44,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
         $orderService = new OrderService();
 
         // First application instance - process some messages
-        $ecotoneLite1 = $this->bootstrapForTesting(
+        $ecotoneLite1 = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 $orderService,
@@ -87,7 +87,7 @@ final class AmqpStreamPositionTrackingTest extends AmqpMessagingTestCase
         $this->assertNotNull($committedPosition, 'Position should be committed after processing messages');
 
         // Second application instance - should resume from where first left off
-        $ecotoneLite2 = $this->bootstrapForTesting(
+        $ecotoneLite2 = $this->bootstrapFlowTesting(
             [OrderService::class],
             [
                 $orderService,

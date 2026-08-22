@@ -23,7 +23,7 @@ use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\WithPrivateCon
 use Test\Ecotone\Modelling\Fixture\NoIdentifierAggregate\Product;
 use Test\Ecotone\Modelling\Fixture\Renter\Appointment;
 use Test\Ecotone\Modelling\Fixture\Renter\AppointmentRepositoryInterface;
-use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStandardRepository;
+use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStateStoredRepository;
 use Test\Ecotone\Modelling\Fixture\Renter\CreateAppointmentCommand;
 use Test\Ecotone\Modelling\Fixture\Saga\AsynchronousOrderFulfilment;
 use Test\Ecotone\Modelling\Fixture\Saga\BeforeFinishOrder;
@@ -171,9 +171,9 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     {
         $appointment = Appointment::create(new CreateAppointmentCommand(123, 1000));
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Appointment::class, AppointmentStandardRepository::class, AppointmentRepositoryInterface::class],
+            [Appointment::class, AppointmentStateStoredRepository::class, AppointmentRepositoryInterface::class],
             [
-                AppointmentStandardRepository::class => AppointmentStandardRepository::createWith([$appointment]),
+                AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createWith([$appointment]),
             ]
         );
 
@@ -188,9 +188,9 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     public function test_fetch_aggregate_via_business_repository_with_nulls()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Appointment::class, AppointmentStandardRepository::class, AppointmentRepositoryInterface::class],
+            [Appointment::class, AppointmentStateStoredRepository::class, AppointmentRepositoryInterface::class],
             [
-                AppointmentStandardRepository::class => AppointmentStandardRepository::createEmpty(),
+                AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createEmpty(),
             ]
         );
 
@@ -202,9 +202,9 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     public function test_fetch_nulls_on_non_null_business_repository()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Appointment::class, AppointmentStandardRepository::class, AppointmentRepositoryInterface::class],
+            [Appointment::class, AppointmentStateStoredRepository::class, AppointmentRepositoryInterface::class],
             [
-                AppointmentStandardRepository::class => AppointmentStandardRepository::createEmpty(),
+                AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createEmpty(),
             ]
         );
 
@@ -218,9 +218,9 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     public function test_storing_standard_aggregate_via_business_repository(): void
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [Appointment::class, AppointmentStandardRepository::class, AppointmentRepositoryInterface::class],
+            [Appointment::class, AppointmentStateStoredRepository::class, AppointmentRepositoryInterface::class],
             [
-                AppointmentStandardRepository::class => AppointmentStandardRepository::createEmpty(),
+                AppointmentStateStoredRepository::class => AppointmentStateStoredRepository::createEmpty(),
             ]
         );
 

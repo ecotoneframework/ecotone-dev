@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.326.1] - 2026-08-22
+
+## What's Changed
+* fix: support pre-release tags in release pipeline and keep PR benchmarks under 10 minutes by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/697
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.326.0...1.326.1
+
 ## [1.326.0] - 2026-08-22
 
 ## What's Changed

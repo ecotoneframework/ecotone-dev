@@ -16,7 +16,7 @@ use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamSt
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Enqueue\Dbal\DbalContext;
+use Ecotone\Dbal\Connection\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Iterator;
 use PDO;

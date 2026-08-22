@@ -9,7 +9,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\CommandBus;
-use Enqueue\Dbal\DbalContext;
+use Ecotone\Dbal\Connection\DbalContext;
 use Interop\Queue\ConnectionFactory;
 
 /**

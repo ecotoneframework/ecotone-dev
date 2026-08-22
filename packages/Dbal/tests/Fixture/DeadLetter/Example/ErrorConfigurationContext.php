@@ -8,7 +8,7 @@ use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 
 /**
  * licence Apache-2.0

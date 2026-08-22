@@ -19,7 +19,7 @@ final class DbalConnectionRequirementWithoutConnectionTest extends TestCase
     public function test_throws_configuration_exception_when_dbal_connection_factory_is_not_configured(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessageMatches("/Dbal module requires 'Enqueue\\\\Dbal\\\\DbalConnectionFactory' to be configured/");
+        $this->expectExceptionMessageMatches("/Dbal module requires 'Ecotone\\\\Dbal\\\\Connection\\\\DbalConnectionFactory' to be configured/");
 
         EcotoneLite::bootstrap(
             classesToResolve: [],

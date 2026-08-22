@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test;
 
 use Ecotone\Messaging\Config\ConfigurationException;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\DbalConnectionRequirement\Kernel;
@@ -22,7 +22,7 @@ final class DbalConnectionRequirementTest extends TestCase
         require_once __DIR__ . '/DbalConnectionRequirement/src/Kernel.php';
 
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Dbal module requires 'Enqueue\Dbal\DbalConnectionFactory' to be configured");
+        $this->expectExceptionMessage("Dbal module requires 'Ecotone\Dbal\Connection\DbalConnectionFactory' to be configured");
 
         $kernel = new Kernel('test', true);
         $kernel->boot();

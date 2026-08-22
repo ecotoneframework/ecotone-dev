@@ -17,8 +17,8 @@ use Ecotone\Projecting\ProjectionInitializationStatus;
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Ecotone\Projecting\Transaction;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 
 use function in_array;
 use function json_decode;

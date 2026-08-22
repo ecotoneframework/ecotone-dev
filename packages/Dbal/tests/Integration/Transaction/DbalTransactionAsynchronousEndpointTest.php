@@ -16,7 +16,7 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Exception;
 use PHPUnit\Framework\Attributes\Group;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;

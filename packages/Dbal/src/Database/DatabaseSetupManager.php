@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Enqueue\Dbal\DbalContext;
+use Ecotone\Dbal\Connection\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 

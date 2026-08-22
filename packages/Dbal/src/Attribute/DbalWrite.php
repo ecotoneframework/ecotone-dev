@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Attribute;
 
 use Attribute;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 /**
@@ -15,7 +15,7 @@ class DbalWrite
 {
     public function __construct(
         private string $sql,
-        private string $connectionReferenceName = DbalConnectionFactory::class
+        private string $connectionReferenceName = DbalConnectionReference::DEFAULT
     ) {
 
     }

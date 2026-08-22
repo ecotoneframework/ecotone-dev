@@ -3,7 +3,7 @@
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 
 require __DIR__ . "/vendor/autoload.php";

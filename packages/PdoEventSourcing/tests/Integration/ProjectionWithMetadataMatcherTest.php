@@ -7,7 +7,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionWithMetadataMatcher\EventDrivenProjectionWithMetadataMatcherConfig;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionWithMetadataMatcher\PollingProjectionWithMetadataMatcherConfig;

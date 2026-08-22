@@ -6,7 +6,7 @@ use App\WorkingWithAggregateDirectly\Product;
 use App\WorkingWithAggregateDirectly\ProductRepository;
 use App\WorkingWithAggregateDirectly\ProductService;
 use Ecotone\Lite\EcotoneLiteApplication;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 

@@ -23,7 +23,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 

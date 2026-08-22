@@ -9,7 +9,7 @@ use Ecotone\Modelling\CommandBus;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use RuntimeException;
 use Tempest\Database\Database;
 use Tempest\Database\Query;

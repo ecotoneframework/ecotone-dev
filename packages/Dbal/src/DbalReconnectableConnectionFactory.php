@@ -5,7 +5,7 @@ namespace Ecotone\Dbal;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
-use Enqueue\Dbal\DbalContext;
+use Ecotone\Dbal\Connection\DbalContext;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;

@@ -17,7 +17,7 @@ use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;

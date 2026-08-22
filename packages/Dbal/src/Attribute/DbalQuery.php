@@ -6,7 +6,7 @@ namespace Ecotone\Dbal\Attribute;
 
 use Attribute;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 /**
@@ -18,7 +18,7 @@ class DbalQuery
         private string  $sql,
         private int     $fetchMode = FetchMode::ASSOCIATIVE,
         private ?string $replyContentType = null,
-        private string  $connectionReferenceName = DbalConnectionFactory::class
+        private string  $connectionReferenceName = DbalConnectionReference::DEFAULT
     ) {
 
     }

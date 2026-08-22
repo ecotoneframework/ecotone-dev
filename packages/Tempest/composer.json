@@ -55,8 +55,7 @@
         "tempest/framework": "^3.11"
     },
     "suggest": {
-        "ecotone/dbal": "Enables DBAL integration, database repositories, multi-tenant connections via TempestConnectionReference, and the DbalModule for transactional outbox, sagas, and event sourcing backed by relational databases.",
-        "enqueue/dbal": "DBAL-backed message queue transport; required if you want durable async messaging over a relational database using ecotone/dbal."
+        "ecotone/dbal": "Enables DBAL integration, database repositories, multi-tenant connections via TempestConnectionReference, and the DbalModule for transactional outbox, sagas, and event sourcing backed by relational databases."
     },
     "require-dev": {
         "phpunit/phpunit": "^11.0|^12.0",

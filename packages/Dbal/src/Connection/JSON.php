@@ -1,6 +1,6 @@
 <?php
 
-namespace Enqueue\Dbal;
+namespace Ecotone\Dbal\Connection;
 
 use InvalidArgumentException;
 

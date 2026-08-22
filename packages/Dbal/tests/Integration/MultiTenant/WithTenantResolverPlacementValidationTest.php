@@ -19,7 +19,7 @@ use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;

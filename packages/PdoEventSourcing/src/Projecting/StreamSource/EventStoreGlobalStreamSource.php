@@ -24,8 +24,8 @@ use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
-use Enqueue\Dbal\DbalConnectionFactory;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 
 use function in_array;
 use function strlen;

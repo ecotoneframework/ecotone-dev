@@ -10,7 +10,7 @@ namespace Workflows {
     use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
     use Ecotone\Messaging\Handler\Logger\EchoLogger;
     use Ecotone\Dbal\DbalConnection;
-    use Enqueue\Dbal\DbalConnectionFactory;
+    use Ecotone\Dbal\Connection\DbalConnectionFactory;
     use Intervention\Image\Drivers\Gd\Driver;
     use Intervention\Image\ImageManager;
 

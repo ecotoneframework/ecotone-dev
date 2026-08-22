@@ -10,7 +10,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\EventsConverter;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\OrderListProjection;
 use Test\Ecotone\EventSourcing\Projecting\App\Tooling\CommitOnUserInputInterceptor;

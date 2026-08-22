@@ -9,7 +9,7 @@ use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Calendar\Meeting;
@@ -22,7 +22,7 @@ final class DbalConnectionRequirementTest extends TestCase
     public function test_throws_configuration_exception_when_dbal_connection_factory_is_not_configured(): void
     {
         $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessage("Dbal module requires 'Enqueue\Dbal\DbalConnectionFactory' to be configured");
+        $this->expectExceptionMessage("Dbal module requires 'Ecotone\Dbal\Connection\DbalConnectionFactory' to be configured");
 
         EcotoneLite::bootstrap(
             classesToResolve: [Meeting::class],

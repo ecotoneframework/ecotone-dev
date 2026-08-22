@@ -51,7 +51,6 @@
                 "packages/Ecotone/src/Dbal/",
                 "packages/Dbal/src"
             ],
-            "Enqueue\\Dbal\\": "packages/Dbal/src/EnqueueDbal",
             "Ecotone\\Enqueue\\": [
                 "packages/Ecotone/src/Enqueue/",
                 "packages/Enqueue/src"
@@ -203,8 +202,7 @@
         "ext-simplexml": "Required if application/xml is used as serialization media type"
     },
     "conflict": {
-        "symfony/doctrine-messenger": ">7.0.5 < 7.1.0",
-        "enqueue/dbal": "*"
+        "symfony/doctrine-messenger": ">7.0.5 < 7.1.0"
     },
     "extra": {
         "laravel": {

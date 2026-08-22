@@ -10,7 +10,7 @@ use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Test\ComponentTestBuilder;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;

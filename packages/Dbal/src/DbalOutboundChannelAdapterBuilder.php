@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\LicensingException;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 /**
  * licence Apache-2.0
@@ -36,7 +36,7 @@ class DbalOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapterBui
         $this->connectionFactoryReferenceName = $connectionFactoryReferenceName;
     }
 
-    public static function create(string $queueName, string $connectionFactoryReferenceName = DbalConnectionFactory::class): self
+    public static function create(string $queueName, string $connectionFactoryReferenceName = DbalConnectionReference::DEFAULT): self
     {
         return new self($queueName, $connectionFactoryReferenceName);
     }

@@ -12,9 +12,9 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Enqueue\Dbal\DbalContext;
-use Enqueue\Dbal\DbalDestination;
-use Enqueue\Dbal\DbalProducer;
+use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Dbal\Connection\DbalDestination;
+use Ecotone\Dbal\Connection\DbalProducer;
 use Interop\Queue\Context;
 
 /**

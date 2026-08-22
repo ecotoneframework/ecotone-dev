@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\MultiTenant;
 
 use Ecotone\Messaging\Config\ConnectionReference;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 /**
  * licence Apache-2.0
@@ -27,7 +27,7 @@ final class MultiTenantConfiguration
     /**
      * @param array<string, string|ConnectionReference> $tenantToConnectionMapping
      */
-    public static function create(string $tenantHeaderName, array $tenantToConnectionMapping, string $referenceName = DbalConnectionFactory::class): self
+    public static function create(string $tenantHeaderName, array $tenantToConnectionMapping, string $referenceName = DbalConnectionReference::DEFAULT): self
     {
         return new self($tenantHeaderName, $tenantToConnectionMapping, $referenceName);
     }
@@ -35,7 +35,7 @@ final class MultiTenantConfiguration
     /**
      * @param array<string, string|ConnectionReference> $tenantToConnectionMapping
      */
-    public static function createWithDefaultConnection(string $tenantHeaderName, array $tenantToConnectionMapping, string|ConnectionReference $defaultConnectionName, string $referenceName = DbalConnectionFactory::class): self
+    public static function createWithDefaultConnection(string $tenantHeaderName, array $tenantToConnectionMapping, string|ConnectionReference $defaultConnectionName, string $referenceName = DbalConnectionReference::DEFAULT): self
     {
         return new self($tenantHeaderName, $tenantToConnectionMapping, $referenceName, $defaultConnectionName);
     }

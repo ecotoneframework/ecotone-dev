@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Tempest\Dbal;
 
 use Ecotone\Tempest\Config\TempestConnectionReference;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -18,8 +18,8 @@ use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Enqueue\Dbal\DbalContext;
-use Enqueue\Dbal\DbalType;
+use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Dbal\Connection\DbalType;
 use Symfony\Component\Uid\Uuid;
 use Throwable;
 

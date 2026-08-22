@@ -9,7 +9,7 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\ProjectionRegistry;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;

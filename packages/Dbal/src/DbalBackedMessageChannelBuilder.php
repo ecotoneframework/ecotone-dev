@@ -3,7 +3,7 @@
 namespace Ecotone\Dbal;
 
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 /**
  * licence Apache-2.0
@@ -26,7 +26,7 @@ class DbalBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         );
     }
 
-    public static function create(string $channelName, string $connectionReferenceName = DbalConnectionFactory::class): self
+    public static function create(string $channelName, string $connectionReferenceName = DbalConnectionReference::DEFAULT): self
     {
         return new self($channelName, $connectionReferenceName);
     }

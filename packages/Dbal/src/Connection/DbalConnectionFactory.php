@@ -2,11 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Enqueue\Dbal;
+namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
-use Enqueue\Dsn\Dsn;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
@@ -86,8 +85,6 @@ class DbalConnectionFactory implements ConnectionFactory
     public function close(): void
     {
         if ($this->connection) {
-            // In DBAL 3.x, close() is public, but in DBAL 4.x, it's protected
-            // Try to call close() if it's available, otherwise just set to null
             try {
                 if (method_exists($this->connection, 'close') && is_callable([$this->connection, 'close'])) {
                     $reflection = new ReflectionMethod($this->connection, 'close');
@@ -96,10 +93,8 @@ class DbalConnectionFactory implements ConnectionFactory
                     }
                 }
             } catch (Throwable $e) {
-                // Ignore any errors, we'll set the connection to null anyway
             }
 
-            // The connection will be closed automatically when the object is destroyed
             $this->connection = null;
         }
     }
@@ -107,26 +102,20 @@ class DbalConnectionFactory implements ConnectionFactory
     public function establishConnection(): Connection
     {
         if (false == $this->connection) {
-            // Create the connection
             $this->connection = DriverManager::getConnection($this->config['connection']);
 
-            // Ensure the connection is established
             try {
-                // In DBAL 3.x, connect() is public
                 if (method_exists($this->connection, 'connect') && is_callable([$this->connection, 'connect'])) {
                     $reflection = new ReflectionMethod($this->connection, 'connect');
                     if ($reflection->isPublic()) {
                         $this->connection->connect();
                     } else {
-                        // In DBAL 4.x, connect() is protected, so we'll use a different approach
                         $this->connection->getNativeConnection();
                     }
                 } else {
-                    // Fallback for any other case
                     $this->connection->getNativeConnection();
                 }
             } catch (Exception $e) {
-                // Connection failed, but we've already tried our best
             }
         }
 
@@ -135,7 +124,7 @@ class DbalConnectionFactory implements ConnectionFactory
 
     private function parseDsn(string $dsn, ?array $config = null): array
     {
-        $parsedDsn = Dsn::parseFirst($dsn);
+        $parsedDsn = $this->parseDsnComponents($dsn);
 
         $supported = [
             'db2' => 'ibm_db2',
@@ -153,17 +142,17 @@ class DbalConnectionFactory implements ConnectionFactory
             'sqlite+pdo' => 'pdo_sqlite',
         ];
 
-        if ($parsedDsn && false == isset($supported[$parsedDsn->getScheme()])) {
-            throw new LogicException(sprintf('The given DSN schema "%s" is not supported. There are supported schemes: "%s".', $parsedDsn->getScheme(), implode('", "', array_keys($supported))));
+        if (false == isset($supported[$parsedDsn['scheme']])) {
+            throw new LogicException(sprintf('The given DSN schema "%s" is not supported. There are supported schemes: "%s".', $parsedDsn['scheme'], implode('", "', array_keys($supported))));
         }
 
-        $doctrineScheme = $supported[$parsedDsn->getScheme()];
+        $doctrineScheme = $supported[$parsedDsn['scheme']];
 
         if ($doctrineScheme === 'pdo_sqlite') {
             return $this->buildSqliteConfig($parsedDsn, $dsn, $config);
         }
 
-        $dsnHasProtocolOnly = $parsedDsn->getScheme().':' === $dsn;
+        $dsnHasProtocolOnly = $parsedDsn['scheme'].':' === $dsn;
         if ($dsnHasProtocolOnly && is_array($config) && array_key_exists('connection', $config)) {
             $default = [
                 'driver' => $doctrineScheme,
@@ -183,18 +172,36 @@ class DbalConnectionFactory implements ConnectionFactory
             'lazy' => true,
             'connection' => [
                 'driver' => $doctrineScheme,
-                'host' => $parsedDsn->getHost() ?: 'localhost',
-                'port' => $parsedDsn->getPort() ?: ($doctrineScheme === 'pdo_pgsql' ? 5432 : 3306),
-                'user' => $parsedDsn->getUser() ?: 'root',
-                'password' => $parsedDsn->getPassword() ?: '',
-                'dbname' => ltrim($parsedDsn->getPath() ?: '', '/') ?: '',
+                'host' => $parsedDsn['host'] ?: 'localhost',
+                'port' => $parsedDsn['port'] ?: ($doctrineScheme === 'pdo_pgsql' ? 5432 : 3306),
+                'user' => $parsedDsn['user'] ?: 'root',
+                'password' => $parsedDsn['password'] ?: '',
+                'dbname' => ltrim($parsedDsn['path'] ?: '', '/') ?: '',
             ],
         ];
     }
 
-    private function buildSqliteConfig(Dsn $parsedDsn, string $originalDsn, ?array $config = null): array
+    private function parseDsnComponents(string $dsn): array
     {
-        $path = $parsedDsn->getPath();
+        $parsedDsn = parse_url($dsn);
+
+        if ($parsedDsn === false || ! isset($parsedDsn['scheme'])) {
+            throw new LogicException(sprintf('The given DSN "%s" is invalid.', $dsn));
+        }
+
+        return [
+            'scheme' => $parsedDsn['scheme'],
+            'host' => isset($parsedDsn['host']) ? rawurldecode($parsedDsn['host']) : null,
+            'port' => $parsedDsn['port'] ?? null,
+            'user' => isset($parsedDsn['user']) ? rawurldecode($parsedDsn['user']) : null,
+            'password' => isset($parsedDsn['pass']) ? rawurldecode($parsedDsn['pass']) : null,
+            'path' => isset($parsedDsn['path']) ? rawurldecode($parsedDsn['path']) : null,
+        ];
+    }
+
+    private function buildSqliteConfig(array $parsedDsn, string $originalDsn, ?array $config = null): array
+    {
+        $path = $parsedDsn['path'];
 
         if ($path === null || $path === '') {
             $path = $this->extractSqlitePathFromDsn($originalDsn);

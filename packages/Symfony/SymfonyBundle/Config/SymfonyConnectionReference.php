@@ -8,7 +8,7 @@ use Ecotone\Messaging\Config\ConnectionReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\Assert;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -52,14 +52,14 @@ final class SymfonyConnectionReference extends ConnectionReference implements De
         return self::createForManagerRegistry(
             $connectionName,
             $managerRegistryReference,
-            DbalConnectionFactory::class,
+            DbalConnectionReference::DEFAULT,
         );
     }
 
     public static function defaultConnection(string $connectionName)
     {
         return new self(
-            DbalConnectionFactory::class,
+            DbalConnectionReference::DEFAULT,
             null,
             $connectionName,
         );

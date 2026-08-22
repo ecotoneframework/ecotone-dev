@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Enqueue\Dbal;
+namespace Ecotone\Dbal\Connection;
 
 use Interop\Queue\Message;
 

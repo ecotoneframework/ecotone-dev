@@ -24,7 +24,7 @@ use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Psr\Clock\ClockInterface;
 
 use function sha1;

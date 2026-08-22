@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Enqueue\Dbal\DbalContext;
+use Ecotone\Dbal\Connection\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 

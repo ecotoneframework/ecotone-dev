@@ -18,7 +18,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Projecting\Attribute\ProjectionFlush;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 #[ModuleAnnotation]
 /**
@@ -57,7 +57,7 @@ class ObjectManagerModule implements AnnotationModule
         }
 
         if ($pointcut !== []) {
-            $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionFactory::class];
+            $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionReference::DEFAULT];
             $connectionFactoriesReferences = [];
             foreach ($connectionFactories as $connectionFactory) {
                 $connectionFactoriesReferences[$connectionFactory] = new Reference($connectionFactory);

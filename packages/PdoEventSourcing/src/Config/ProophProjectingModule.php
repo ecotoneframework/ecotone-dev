@@ -51,7 +51,7 @@ use Ecotone\Projecting\ProjectionV2StateHandler;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamSourceReference;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 use function in_array;
 
@@ -248,7 +248,7 @@ class ProophProjectingModule implements AnnotationModule
             $messagingConfiguration->registerServiceDefinition(
                 AggregateIdPartitionProvider::class,
                 new Definition(AggregateIdPartitionProvider::class, [
-                    new Reference(DbalConnectionFactory::class),
+                    new Reference(DbalConnectionReference::DEFAULT),
                     new Reference(PdoStreamTableNameProvider::class),
                     $this->partitionedProjectionNames,
                 ])
@@ -274,7 +274,7 @@ class ProophProjectingModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(
             DbalProjectionStateStorage::class,
             new Definition(DbalProjectionStateStorage::class, [
-                new Reference(DbalConnectionFactory::class),
+                new Reference(DbalConnectionReference::DEFAULT),
                 new Reference(ProjectionStateTableManager::class),
             ])
         );
@@ -289,7 +289,7 @@ class ProophProjectingModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(
             EventStoreGlobalStreamSource::class,
             new Definition(EventStoreGlobalStreamSource::class, [
-                new Reference(DbalConnectionFactory::class),
+                new Reference(DbalConnectionReference::DEFAULT),
                 new Reference(EcotoneClockInterface::class),
                 new Reference(PdoStreamTableNameProvider::class),
                 new Reference(StreamFilterRegistry::class),

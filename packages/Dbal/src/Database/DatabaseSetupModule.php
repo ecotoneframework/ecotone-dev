@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\Database;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\DbalConnectionReference;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -43,7 +44,7 @@ class DatabaseSetupModule implements AnnotationModule
 
         $tableManagerReferences = ExtensionObjectResolver::resolve(DbalTableManagerReference::class, $extensionObjects);
 
-        $connectionReference = $dbalConfiguration->getDefaultConnectionReferenceNames()[0] ?? \Enqueue\Dbal\DbalConnectionFactory::class;
+        $connectionReference = $dbalConfiguration->getDefaultConnectionReferenceNames()[0] ?? DbalConnectionReference::DEFAULT;
 
         $tableManagerRefs = array_map(
             fn (DbalTableManagerReference $ref) => new Reference($ref->getReferenceName()),

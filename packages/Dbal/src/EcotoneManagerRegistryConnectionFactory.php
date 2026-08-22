@@ -6,7 +6,7 @@ namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
+use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 
 /**
  * licence Apache-2.0

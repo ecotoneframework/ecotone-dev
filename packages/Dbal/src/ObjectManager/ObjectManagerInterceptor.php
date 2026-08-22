@@ -11,7 +11,7 @@ use Ecotone\Messaging\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
-use Enqueue\Dbal\ManagerRegistryConnectionFactory;
+use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 use Throwable;
 
 /**

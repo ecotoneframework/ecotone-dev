@@ -11,7 +11,7 @@ use App\Domain\Product\Command\CreateProduct;
 use Assert\Assert;
 use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Money\Money;
 use Ramsey\Uuid\Uuid;
 

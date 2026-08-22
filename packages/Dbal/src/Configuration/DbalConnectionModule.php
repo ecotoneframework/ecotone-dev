@@ -13,7 +13,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 #[ModuleAnnotation]
 /**
@@ -41,7 +41,7 @@ class DbalConnectionModule implements AnnotationModule
             DbalConfiguration::createWithDefaults()
         );
 
-        $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionFactory::class];
+        $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionReference::DEFAULT];
 
         foreach ($connectionFactories as $connectionFactory) {
             $messagingConfiguration->requireReference(

@@ -5,7 +5,7 @@ namespace Ecotone\Dbal\Configuration;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Store\Document\DocumentStore;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 /**
  * licence Apache-2.0
@@ -27,7 +27,7 @@ class DbalConfiguration
     private bool $clearAndFlushObjectManagerOnCommandBus = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
     private bool $clearAndFlushObjectManagerOnProjectionBatch = self::DEFAULT_CLEAR_AND_FLUSH_OBJECT_MANAGER;
     private bool $flushDuringPersisting = true;
-    private array $defaultConnectionReferenceNames = [DbalConnectionFactory::class];
+    private array $defaultConnectionReferenceNames = [DbalConnectionReference::DEFAULT];
 
     private bool $deduplicatedEnabled = self::DEFAULT_DEDUPLICATION_ENABLED;
     private bool $deadLetterEnabled = self::DEFAULT_DEAD_LETTER_ENABLED;
@@ -36,7 +36,7 @@ class DbalConfiguration
     private ?string $deadLetterConnectionReference = null;
 
     private bool $consumerPositionTrackingEnabled = true;
-    private string $consumerPositionTrackingConnectionReference = DbalConnectionFactory::class;
+    private string $consumerPositionTrackingConnectionReference = DbalConnectionReference::DEFAULT;
 
     private bool $enableDoctrineORMRepositories = false;
     private ?string $doctrineORMRepositoryConnectionReference = null;
@@ -44,7 +44,7 @@ class DbalConfiguration
     private bool $enableDbalDocumentStore = true;
     private string $dbalDocumentStoreReference = DocumentStore::class;
     private bool $initializeDbalDocumentStore = true;
-    private string $documentStoreConnectionReference = DbalConnectionFactory::class;
+    private string $documentStoreConnectionReference = DbalConnectionReference::DEFAULT;
     private bool $inMemoryDocumentStore = false;
     private ?array $documentStoreRelatedAggregates = null;
 
@@ -94,7 +94,7 @@ class DbalConfiguration
         }
 
         if (empty($this->defaultConnectionReferenceNames)) {
-            return DbalConnectionFactory::class;
+            return DbalConnectionReference::DEFAULT;
         }
 
         if (count($this->defaultConnectionReferenceNames) !== 1) {
@@ -143,7 +143,7 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDoctrineORMRepositories(bool $isORMEnabled, ?array $relatedClasses = null, string $connectionReferenceName = DbalConnectionFactory::class): self
+    public function withDoctrineORMRepositories(bool $isORMEnabled, ?array $relatedClasses = null, string $connectionReferenceName = DbalConnectionReference::DEFAULT): self
     {
         $self = clone $this;
         $self->enableDoctrineORMRepositories = $isORMEnabled;
@@ -208,7 +208,7 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDefaultConnectionReferenceNames(array $connectionReferenceNames = [DbalConnectionFactory::class]): self
+    public function withDefaultConnectionReferenceNames(array $connectionReferenceNames = [DbalConnectionReference::DEFAULT]): self
     {
         $self = clone $this;
         $self->defaultConnectionReferenceNames = $connectionReferenceNames;
@@ -220,7 +220,7 @@ class DbalConfiguration
      * @param int $expirationTime time in milliseconds that has to pass in order to remove message
      * @param int $removalBatchSize batch size for removing messages (Ecotone does not remove all at once, to avoid database locks)
      */
-    public function withDeduplication(bool $isDeduplicatedEnabled = true, string $connectionReference = DbalConnectionFactory::class, int $expirationTime = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS, int $removalBatchSize = 1000): self
+    public function withDeduplication(bool $isDeduplicatedEnabled = true, string $connectionReference = DbalConnectionReference::DEFAULT, int $expirationTime = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS, int $removalBatchSize = 1000): self
     {
         $self = clone $this;
         $self->deduplicatedEnabled = $isDeduplicatedEnabled;
@@ -231,7 +231,7 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDeadLetter(bool $isDeadLetterEnabled, string $connectionReference = DbalConnectionFactory::class): self
+    public function withDeadLetter(bool $isDeadLetterEnabled, string $connectionReference = DbalConnectionReference::DEFAULT): self
     {
         $self = clone $this;
         $self->deadLetterEnabled = $isDeadLetterEnabled;
@@ -242,7 +242,7 @@ class DbalConfiguration
 
     public function withConsumerPositionTracking(
         bool $enabled = true,
-        string $connectionReference = DbalConnectionFactory::class
+        string $connectionReference = DbalConnectionReference::DEFAULT
     ): self {
         $self = clone $this;
         $self->consumerPositionTrackingEnabled = $enabled;
@@ -251,7 +251,7 @@ class DbalConfiguration
         return $self;
     }
 
-    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreStandardRepository = false, string $connectionReference = DbalConnectionFactory::class, ?array $documentStoreRelatedAggregates = null): self
+    public function withDocumentStore(bool $isDocumentStoreEnabled = true, bool $inMemoryDocumentStore = false, string $reference = DocumentStore::class, bool $initializeDatabaseTable = true, bool $enableDocumentStoreStandardRepository = false, string $connectionReference = DbalConnectionReference::DEFAULT, ?array $documentStoreRelatedAggregates = null): self
     {
         $self = clone $this;
         $self->enableDbalDocumentStore = $isDocumentStoreEnabled;

@@ -8,7 +8,7 @@ use App\Schedule\ScheduledJob\ScheduledCommandHandler\InvoiceService;
 use App\Schedule\ScheduledJob\ScheduledJob\NotificationService;
 use Ecotone\Lite\EcotoneLiteApplication;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 
 require __DIR__ . "/vendor/autoload.php";
 $messagingSystem = EcotoneLiteApplication::boostrap([DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone')], pathToRootCatalog: __DIR__);

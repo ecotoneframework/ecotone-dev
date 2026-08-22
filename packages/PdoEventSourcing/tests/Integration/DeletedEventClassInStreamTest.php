@@ -26,7 +26,7 @@ use Ecotone\Modelling\Event;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**

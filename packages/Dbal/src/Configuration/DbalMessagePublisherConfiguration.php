@@ -3,7 +3,7 @@
 namespace Ecotone\Dbal\Configuration;
 
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 /**
  * licence Apache-2.0
@@ -45,7 +45,7 @@ class DbalMessagePublisherConfiguration
         $this->referenceName = $referenceName;
     }
 
-    public static function create(string $publisherReferenceName, string $queueName, ?string $outputDefaultConversionMediaType = null, string $connectionReference = DbalConnectionFactory::class): self
+    public static function create(string $publisherReferenceName, string $queueName, ?string $outputDefaultConversionMediaType = null, string $connectionReference = DbalConnectionReference::DEFAULT): self
     {
         return new self($connectionReference, $queueName, $outputDefaultConversionMediaType, $publisherReferenceName);
     }

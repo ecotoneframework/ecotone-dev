@@ -15,7 +15,7 @@ use Ecotone\Messaging\Attribute\Parameter\Header;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 
 #[Projection("tickets_projection", Ticket::class)]

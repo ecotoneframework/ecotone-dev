@@ -7,7 +7,7 @@ namespace Ecotone\Tempest\Config;
 use Ecotone\Messaging\Config\ConnectionReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 /**
  * licence Apache-2.0
@@ -41,7 +41,7 @@ final class TempestConnectionReference extends ConnectionReference implements De
      */
     public static function defaultConnection(): self
     {
-        return new self(DbalConnectionFactory::class, null);
+        return new self(DbalConnectionReference::DEFAULT, null);
     }
 
     public function getConfigTag(): ?string

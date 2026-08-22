@@ -22,7 +22,7 @@ use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Ecotone\Projecting\Config\ProjectingConsoleCommands;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 
 #[ModuleAnnotation]
 /**
@@ -61,7 +61,7 @@ class DbalTransactionModule implements AnnotationModule
             $pointcut .= '||(' . ConsoleCommand::class . ')';
         }
         $pointcut .= '&&not('. ProjectingConsoleCommands::class . '::backfillProjection)';
-        $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionFactory::class];
+        $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionReference::DEFAULT];
 
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
             array_map(fn (string $id) => new Reference($id), $connectionFactories),

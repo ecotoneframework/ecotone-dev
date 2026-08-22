@@ -14,7 +14,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Modelling\AggregateNotFoundException;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\HighThroughputPublishing\HighThroughputTestChannelBuilder;
 use Test\Ecotone\Dbal\Fixture\ORM\AsynchronousEventHandler\NotificationService;

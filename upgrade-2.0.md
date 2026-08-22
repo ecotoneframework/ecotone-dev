@@ -127,16 +127,21 @@ Prooph classes (`Prooph\EventStore\*`, `MetadataMatcher`, `FieldType`, `Operator
 **Before:** Connections were referenced by `Enqueue\Dbal\DbalConnectionFactory::class` (a vendored copy of
 `enqueue/dbal`, exposed through composer `replace`). `DbalConnection::fromDsn()` returned an Enqueue factory.
 
-**Now:** Everything lives in `Ecotone\Dbal`: `DbalConnectionFactory`, `DbalContext`, `ManagerRegistryConnectionFactory`.
-The default connection reference name is `Ecotone\Dbal\Api\DbalConnectionReference::DEFAULT` and framework references
-build on it: `SymfonyConnectionReference::createForManagerRegistry('default')`, `LaravelConnectionReference::defaultConnection()`,
-`TempestConnectionReference::default()`. The `enqueue/dbal` replacement and the `enqueue/dsn` dependency are removed.
+**Now:** The queue transport classes live in `Ecotone\Dbal\Connection` (`DbalConnectionFactory`, `DbalContext`, `DbalProducer`,
+`DbalConsumer`, `ManagerRegistryConnectionFactory`, …) and still implement the `queue-interop` interfaces. The default connection
+reference name is `Ecotone\Dbal\DbalConnectionReference::DEFAULT` (which equals `Ecotone\Dbal\Connection\DbalConnectionFactory::class`);
+`DbalConnectionReference::defaultConnection()` returns the reference object. Framework references keep their factories
+(`SymfonyConnectionReference::createForManagerRegistry('default')`, `LaravelConnectionReference::defaultConnection()`,
+`TempestConnectionReference::default()`) and resolve to the new default. The `enqueue/dbal` composer replacement/conflict and the
+`enqueue/dsn` dependency of `ecotone/dbal` are removed.
 
 **How to adapt:**
-- Replace `use Enqueue\Dbal\DbalConnectionFactory;` with `use Ecotone\Dbal\DbalConnectionFactory;` in service definitions
-  (Symfony `services.yaml`, Laravel providers, `EcotoneLite` service arrays).
-- Any explicit reference name `DbalConnectionFactory::class` keeps working only if it is the Ecotone class; `Enqueue\Dbal\DbalConnectionFactory::class`
-  strings no longer resolve.
+- Replace `use Enqueue\Dbal\DbalConnectionFactory;` with `use Ecotone\Dbal\Connection\DbalConnectionFactory;` in service definitions
+  (Symfony `services.yaml`, Laravel providers, `EcotoneLite` service arrays), e.g.
+  `[DbalConnectionReference::DEFAULT => DbalConnection::fromDsn(getenv('DATABASE_DSN'))]` or `DbalConnectionFactory::class => ...`.
+- Container service ids / reference names that were the literal string `Enqueue\Dbal\DbalConnectionFactory` must be renamed to
+  `DbalConnectionReference::DEFAULT`; Ecotone no longer looks up the old id.
+- `DbalConnection::fromDsn()` / `fromConnectionFactory()` return the Ecotone classes; type-hints on `Enqueue\Dbal\*` must be updated.
 - Custom code relying on `Interop\Queue\Context` from the DBAL connection should use `Ecotone\Dbal\DbalContext`.
 - AMQP, SQS and Redis packages still use `queue-interop` / `enqueue/*`; nothing changes there.
 

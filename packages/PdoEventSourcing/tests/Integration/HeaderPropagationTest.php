@@ -6,7 +6,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\MessageHeaders;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;

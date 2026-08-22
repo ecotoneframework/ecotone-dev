@@ -4,7 +4,7 @@ use App\EventSourcing\Command\ChangePrice;
 use App\EventSourcing\Command\RegisterProduct;
 use App\EventSourcing\PriceChange;
 use Ecotone\Lite\EcotoneLiteApplication;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 
 require __DIR__ . "/vendor/autoload.php";

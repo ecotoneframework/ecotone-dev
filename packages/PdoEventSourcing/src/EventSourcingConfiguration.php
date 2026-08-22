@@ -9,7 +9,7 @@ use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\ProophInMemoryEventStoreAdapter;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnectionReference;
 use Prooph\EventStore\Pdo\PersistenceStrategy;
 use Prooph\EventStore\StreamName;
 
@@ -37,7 +37,7 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     /** @var array<string> */
     private array $persistenceStrategies = [];
 
-    private function __construct(string $connectionReferenceName = DbalConnectionFactory::class, string $eventStoreReferenceName = EventStore::class, string $projectManagerReferenceName = ProjectionManager::class)
+    private function __construct(string $connectionReferenceName = DbalConnectionReference::DEFAULT, string $eventStoreReferenceName = EventStore::class, string $projectManagerReferenceName = ProjectionManager::class)
     {
         $this->eventStoreReferenceName = $eventStoreReferenceName;
         $this->projectManagerReferenceName = $projectManagerReferenceName;
@@ -46,7 +46,7 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         parent::__construct();
     }
 
-    public static function create(string $connectionReferenceName = DbalConnectionFactory::class, string $eventStoreReferenceName = EventStore::class, string $projectManagerReferenceName = ProjectionManager::class): static
+    public static function create(string $connectionReferenceName = DbalConnectionReference::DEFAULT, string $eventStoreReferenceName = EventStore::class, string $projectManagerReferenceName = ProjectionManager::class): static
     {
         return new self($connectionReferenceName, $eventStoreReferenceName, $projectManagerReferenceName);
     }

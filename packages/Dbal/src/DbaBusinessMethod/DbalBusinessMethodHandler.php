@@ -15,7 +15,7 @@ use Ecotone\Messaging\Handler\Type\GenericType;
 use Ecotone\Messaging\Handler\Type\UnionType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Enqueue\Dbal\DbalContext;
+use Ecotone\Dbal\Connection\DbalContext;
 use Generator;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;

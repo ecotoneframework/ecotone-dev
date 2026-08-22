@@ -75,7 +75,7 @@ class SymfonyExpressionEvaluationAdapterTest extends TestCase
             [get_class($handler)],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
             configurationVariables: [
                 'multiplier' => 10,
             ]

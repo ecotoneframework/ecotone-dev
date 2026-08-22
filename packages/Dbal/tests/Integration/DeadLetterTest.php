@@ -249,7 +249,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
             classesToResolve: [$handler::class],
             pathToRootCatalog: __DIR__ . '/../../',
@@ -325,7 +325,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
             ]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withExtensionObjects($extensionObjects)
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',

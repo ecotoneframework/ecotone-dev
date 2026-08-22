@@ -171,12 +171,11 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         array $tenantConnectionMapping = [],
         ?string $defaultConnectionName = null,
     ): \Ecotone\Lite\Test\FlowTestSupport {
-        return EcotoneLite::bootstrapFlowTesting(
-            [BetService::class],
+        return EcotoneLite::bootstrapFlowTesting([BetService::class],
             array_merge([new BetService()], $connections),
-            ServiceConfiguration::createWithDefaults()
+            (ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withExtensionObjects([
                     PollingMetadata::create('bets')
                         ->setExecutionAmountLimit(1),
@@ -187,11 +186,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
                         ->withTransactionOnCommandBus(false)
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withDeduplication(false),
-                ]),
-            allowGatewaysToBeRegisteredInContainer: true,
-            enableAsynchronousProcessing: [
-                FakeMessageChannelWithConnectionFactoryBuilder::create('bets', DbalConnectionFactory::class),
-            ],
-        );
+                ]))->addExtensionObject(FakeMessageChannelWithConnectionFactoryBuilder::create('bets', DbalConnectionFactory::class)),
+            allowGatewaysToBeRegisteredInContainer: true);
     }
 }

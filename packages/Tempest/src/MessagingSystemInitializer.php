@@ -124,7 +124,7 @@ final class MessagingSystemInitializer implements Initializer
             ->withLoadCatalog('')
             ->withFailFast(false)
             ->withNamespaces($namespaces)
-            ->withSkippedModulePackageNames($config->skippedModulePackageNames)
+            ->withModulePackages($config->modulePackages)
             ->withCacheDirectoryPath($cacheDirectory);
 
         if ($config->serviceName !== '') {

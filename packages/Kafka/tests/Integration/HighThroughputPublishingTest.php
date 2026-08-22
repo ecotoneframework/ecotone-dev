@@ -77,7 +77,7 @@ final class HighThroughputPublishingTest extends TestCase
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
                         ->withHighThroughputPublishing(),
@@ -93,7 +93,7 @@ final class HighThroughputPublishingTest extends TestCase
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         'async_orders',
@@ -110,7 +110,7 @@ final class HighThroughputPublishingTest extends TestCase
             [],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults(topicName: Uuid::v7()->toRfc4122())
                         ->withHighThroughputPublishing(),
@@ -163,7 +163,7 @@ final class HighThroughputPublishingTest extends TestCase
             [$commandHandler::class],
             [KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), $commandHandler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults(topicName: $topicName)
                         ->withHighThroughputPublishing(),
@@ -229,8 +229,8 @@ final class HighThroughputPublishingTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             [$orderService::class],
             [KafkaBrokerConfiguration::class => $brokerConfiguration, $orderService],
-            ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([$channelBuilder]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

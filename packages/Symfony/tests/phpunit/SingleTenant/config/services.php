@@ -10,11 +10,8 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->parameters()->set('app.env_multiplier', '%env(int:APP_MULTIPLIER)%');
 
     $containerConfigurator->extension('ecotone', [
-        'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([
-            ModulePackageList::SYMFONY_PACKAGE,
-            ModulePackageList::DBAL_PACKAGE,
-            ModulePackageList::ASYNCHRONOUS_PACKAGE,
-        ]),
+        'modulePackages' => [ModulePackageList::SYMFONY_PACKAGE,
+            ModulePackageList::DBAL_PACKAGE,],
     ]);
 
     $services = $containerConfigurator->services();

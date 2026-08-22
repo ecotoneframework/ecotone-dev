@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -86,7 +87,7 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(
                         tenantHeaderName: 'tenant',
@@ -97,6 +98,7 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
                     ),
                     DbalConfiguration::createWithDefaults()
                         ->withDeduplication(true, expirationTime: 1),
+                    DbalBackedMessageChannelBuilder::create('email'),
                 ]),
         );
     }

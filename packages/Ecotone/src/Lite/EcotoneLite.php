@@ -12,7 +12,6 @@ use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -87,7 +86,7 @@ final class EcotoneLite
 
         if (! $configuration->areSkippedPackagesDefined()) {
             $configuration = $configuration
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages());
+                ->withModulePackages([]);
         }
 
         return self::prepareConfiguration($containerOrAvailableServices, $configuration, $classesToResolve, $configurationVariables, $pathToRootCatalog, true, $allowGatewaysToBeRegisteredInContainer, false);
@@ -100,7 +99,6 @@ final class EcotoneLite
      * @param string[] $classesToResolve
      * @param array<string,mixed> $configurationVariables
      * @param ContainerInterface|object[] $containerOrAvailableServices
-     * @param MessageChannelBuilder[] $enableAsynchronousProcessing
      * @param string|null $licenceKey licence key for enterprise version
      */
     public static function bootstrapFlowTesting(
@@ -112,11 +110,10 @@ final class EcotoneLite
         bool                     $allowGatewaysToBeRegisteredInContainer = false,
         bool                     $addInMemoryStateStoredRepository = true,
         bool                     $addInMemoryEventSourcedRepository = true,
-        array|bool|null          $enableAsynchronousProcessing = null,
         ?TestConfiguration        $testConfiguration = null,
         ?string                  $licenceKey = null
     ): FlowTestSupport {
-        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackages(), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $licenceKey);
+        $configuration = self::prepareForFlowTesting($configuration, [], $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey);
 
         if ($addInMemoryEventSourcedRepository) {
             $configuration = $configuration->addExtensionObject(InMemoryRepositoryBuilder::createDefaultEventSourcedRepository());
@@ -144,13 +141,12 @@ final class EcotoneLite
         bool                     $allowGatewaysToBeRegisteredInContainer = false,
         bool                     $addInMemoryStateStoredRepository = true,
         bool                     $runForProductionEventStore = false,
-        array|bool|null          $enableAsynchronousProcessing = null,
         ?TestConfiguration        $testConfiguration = null,
         ?string                  $licenceKey = null,
     ): FlowTestSupport {
         $modulePackageNames = [ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE];
 
-        $configuration = self::prepareForFlowTesting($configuration, ModulePackageList::allPackagesExcept($modulePackageNames), $classesToResolve, $addInMemoryStateStoredRepository, $enableAsynchronousProcessing, $testConfiguration, $licenceKey);
+        $configuration = self::prepareForFlowTesting($configuration, $modulePackageNames, $classesToResolve, $addInMemoryStateStoredRepository, $testConfiguration, $licenceKey);
 
         if (! $configuration->hasExtensionObject(BaseEventSourcingConfiguration::class) && ! $runForProductionEventStore) {
             Assert::isTrue(class_exists(EventSourcingConfiguration::class), 'To use Flow Testing with Event Store you need to add event sourcing module.');
@@ -169,7 +165,7 @@ final class EcotoneLite
     }
 
     /**
-     * @param string[] $packagesToEnable
+     * @param string[] $packagesToLoad
      * @param ContainerInterface|object[] $containerOrAvailableServices
      * @param string[] $classesToResolve
      * @param array<string,mixed> $configurationVariables
@@ -271,36 +267,18 @@ final class EcotoneLite
 
     private static function prepareForFlowTesting(
         ?ServiceConfiguration $configuration,
-        array                 $packagesToSkip,
+        array                 $packagesToLoad,
         array                 $classesToResolve,
         bool                  $addInMemoryStateStoredRepository,
-        array|bool|null       $enableAsynchronousProcessing,
         ?TestConfiguration    $testConfiguration,
         ?string               $enterpriseLicenceKey,
     ): ServiceConfiguration {
-        if (is_array($enableAsynchronousProcessing)) {
-            if ($configuration !== null && in_array(ModulePackageList::ASYNCHRONOUS_PACKAGE, $configuration->getSkippedModulesPackages())) {
-                Assert::isFalse($configuration->areSkippedPackagesDefined(), 'If you use `enableAsynchronousProcessing` configuration, you can\'t use `skippedPackages` with skip `Asynchronous Package`. Please allows asynchronous package.');
-            }
-            Assert::isTrue($enableAsynchronousProcessing !== [], 'For enabled asynchronous processing you must provide Message Channel. If you want to rely completely on default channels, use `true` instead of `array`.');
-        }
-        if ($enableAsynchronousProcessing) {
-            $packagesToSkip = array_diff($packagesToSkip, [ModulePackageList::ASYNCHRONOUS_PACKAGE]);
-        }
-
         $configuration = $configuration ?: ServiceConfiguration::createWithDefaults();
         $testConfiguration ??= TestConfiguration::createWithDefaults();
 
         if (! $configuration->areSkippedPackagesDefined()) {
             $configuration = $configuration
-                ->withSkippedModulePackageNames($packagesToSkip);
-        }
-
-        if (is_array($enableAsynchronousProcessing)) {
-            foreach ($enableAsynchronousProcessing as $channelBuilder) {
-                Assert::isTrue($channelBuilder instanceof MessageChannelBuilder, 'You can only provide MessageChannelBuilder as asynchronous processing channel, under `enableAsynchronousProcessing`');
-                $configuration = $configuration->addExtensionObject($channelBuilder);
-            }
+                ->withModulePackages($packagesToLoad);
         }
 
         $configuration = $configuration

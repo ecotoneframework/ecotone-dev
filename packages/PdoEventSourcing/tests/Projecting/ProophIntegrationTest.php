@@ -87,15 +87,11 @@ class ProophIntegrationTest extends ProjectingTestCase
             public const NAME = 'async_dbal_tickets_projection';
             public const ASYNC_CHANNEL = 'async_projection';
         };
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore([$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL),
-            ],
             licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL)));
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
             ->deleteProjection($projection::NAME)

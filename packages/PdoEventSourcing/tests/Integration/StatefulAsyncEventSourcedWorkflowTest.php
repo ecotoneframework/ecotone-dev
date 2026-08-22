@@ -93,8 +93,7 @@ class StatefulAsyncEventSourcedWorkflowTest extends EventSourcingMessagingTestCa
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [
+        return EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: [
                 AsyncCycle::class,
                 AsyncCycleGateway::class,
                 EventsConverters::class,
@@ -103,12 +102,10 @@ class StatefulAsyncEventSourcedWorkflowTest extends EventSourcingMessagingTestCa
                 new EventsConverters(),
                 self::getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow']),
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE,])
+                ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('cycle')),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true,
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('cycle')],
-        );
+            runForProductionEventStore: true);
     }
 }

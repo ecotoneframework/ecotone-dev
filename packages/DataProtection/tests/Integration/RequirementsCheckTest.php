@@ -26,7 +26,7 @@ class RequirementsCheckTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DATA_PROTECTION_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DATA_PROTECTION_PACKAGE])
                 ->withExtensionObjects([
                     DataProtectionConfiguration::create('primary', Key::createNewRandomKey()),
                 ])
@@ -41,7 +41,7 @@ class RequirementsCheckTest extends TestCase
             classesToResolve: [AnnotatedClassWithAnnotatedProperty::class],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DATA_PROTECTION_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DATA_PROTECTION_PACKAGE])
                 ->withExtensionObjects([
                     DataProtectionConfiguration::create('primary', Key::createNewRandomKey()),
                 ])

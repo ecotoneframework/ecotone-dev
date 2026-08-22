@@ -35,16 +35,18 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
+                    SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections'),
                 ]),
         );
 
         $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
 
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
+        $ecotoneTestSupport->run('asynchronous_projections');
 
         $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
     }
@@ -55,7 +57,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class, ProjectionConfiguration::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
@@ -79,7 +81,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
@@ -117,7 +119,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withEnvironment('test'),
         );
 
@@ -149,7 +151,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
@@ -193,7 +195,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connection), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withEnvironment('test'),
         );
 

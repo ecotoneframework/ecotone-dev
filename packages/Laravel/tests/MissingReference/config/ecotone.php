@@ -7,7 +7,5 @@ return [
     'namespaces' => [
         env('ECOTONE_MISSING_REF_NS', 'App\MissingReference\Laravel\Shared'),
     ],
-    'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([
-        ModulePackageList::LARAVEL_PACKAGE,
-    ]),
+    'modulePackages' => [ModulePackageList::LARAVEL_PACKAGE,],
 ];

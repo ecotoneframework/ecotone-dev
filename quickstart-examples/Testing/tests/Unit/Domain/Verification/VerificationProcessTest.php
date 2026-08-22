@@ -100,7 +100,7 @@ final class VerificationProcessTest extends TestCase
             [TokenGenerator::class => $tokenGenerator],
             ServiceConfiguration::createWithDefaults()
                 /** We want to enable asynchronous package to test delays */
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
                     PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup(),

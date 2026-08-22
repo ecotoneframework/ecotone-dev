@@ -66,7 +66,7 @@ final class AppNamespaceAutoDiscoveryTest extends IntegrationTest
         $this->injectDiscoveryConfig($kernel, $allLocations);
 
         $kernel->container->config(new EcotoneConfig(
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
         ));
 

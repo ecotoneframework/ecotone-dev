@@ -683,7 +683,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 );
             }
 
-            if ($serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE) && $projectionSetupConfiguration->isAsynchronous()) {
+            if ($projectionSetupConfiguration->isAsynchronous()) {
                 $messagingConfiguration->registerAsynchronousEndpoint(
                     $projectionSetupConfiguration->getAsynchronousChannelName(),
                     $projectionSetupConfiguration->getProjectionEndpointId()

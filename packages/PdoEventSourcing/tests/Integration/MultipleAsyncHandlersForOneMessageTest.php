@@ -7,6 +7,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
@@ -30,11 +31,12 @@ final class MultipleAsyncHandlersForOneMessageTest extends EventSourcingMessagin
                 DbalConnectionFactory::class => self::getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,])
                 ->withNamespaces(['Test\Ecotone\Modelling\Fixture\MultipleAsyncHandlersForOneMessage'])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults(),
                     EventSourcingConfiguration::createWithDefaults(),
+                    SimpleMessageChannelBuilder::createQueueChannel('testAggregate'),
                 ]),
             runForProductionEventStore: true
         );

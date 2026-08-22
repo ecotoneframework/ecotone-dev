@@ -69,7 +69,7 @@ final class CachedBootstrapIsolationTest extends TestCase
             [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone_cached_bootstrap_isolation'),
             useCachedVersion: true,
         );

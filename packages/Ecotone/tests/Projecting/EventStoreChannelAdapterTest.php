@@ -55,7 +55,7 @@ final class EventStoreChannelAdapterTest extends TestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
@@ -115,7 +115,7 @@ final class EventStoreChannelAdapterTest extends TestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
@@ -205,7 +205,7 @@ final class EventStoreChannelAdapterTest extends TestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),

@@ -12,6 +12,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Messaging\MessageHeaders;
@@ -47,12 +48,15 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
-                ->withEnvironment('test'),
+                ->withModulePackages([])
+                ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
 
         $orderId = 'someId';
         $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', new PlaceOrder($orderId));
+
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertNotEmpty($ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getOrders'));
     }
@@ -63,14 +67,17 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
                 ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
                 ->withNamespaces(["Test\Ecotone\Modelling\Fixture\Order"]),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId));
+
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertNotEmpty($ecotoneTestSupport->sendQueryWithRouting('order.getOrders'));
     }
@@ -81,14 +88,14 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
         );
 
         $orderId = 'someId';
         $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', new PlaceOrder($orderId));
         $this->assertEmpty($ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getOrders'));
 
-        $ecotoneTestSupport->run('orders');
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertNotEmpty($ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getOrders'));
     }
 
@@ -98,12 +105,15 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
-                ->withEnvironment('test'),
+                ->withModulePackages([])
+                ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
 
         $orderId = 'someId';
         $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', ['orderId' => $orderId]);
+
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertNotEmpty($ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getOrders'));
     }
@@ -114,12 +124,15 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
-                ->withEnvironment('test'),
+                ->withModulePackages([])
+                ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
 
         $orderId = 'someId';
         $ecotoneTestSupport->getCommandBus()->sendWithRouting(PlaceOrder::class, ['orderId' => $orderId]);
+
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertNotEmpty($ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getOrders'));
     }
@@ -130,7 +143,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()),
                     PollingMetadata::create('orders')
@@ -146,15 +159,11 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_failing_serializing_event_message_due_to_lack_of_converter()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, PlaceOrderConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()),
-            ],
             testConfiguration: TestConfiguration::createWithDefaults()
-                ->withSpyOnChannel('orders')
-        );
+                ->withSpyOnChannel('orders'),
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray())));
 
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder('someId'));
 
@@ -166,7 +175,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         /** Failing on event serialization */
         $this->expectException(ConversionException::class);
 
-        $ecotoneTestSupport->run('orders');
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
     }
 
     public function test_serializing_command_and_event_before_sending_to_asynchronous_channel()
@@ -175,7 +184,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()),
                     PollingMetadata::create('orders')
@@ -194,12 +203,14 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             $ecotoneTestSupport->getMessagingTestSupport()->getRecordedEcotoneMessagesFrom('orders')
         );
 
-        $ecotoneTestSupport->run('orders');
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals(
             ['orderId' => 'someId'],
             $ecotoneTestSupport->getMessagingTestSupport()->getRecordedEcotoneMessagesFrom('orders')[0]->getPayload()
         );
+
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals([$orderId], $ecotoneTestSupport->getQueryBus()->sendWithRouting('order.getNotifiedOrders'));
     }
@@ -210,12 +221,15 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
-                ->withEnvironment('test'),
+                ->withModulePackages([])
+                ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
 
         $orderId = 'someId';
         $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', new PlaceOrder($orderId));
+
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $testSupportGateway = $ecotoneTestSupport->getMessagingTestSupport();
 
@@ -229,12 +243,15 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
-                ->withEnvironment('test'),
+                ->withModulePackages([])
+                ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
 
         $orderId = 'someId';
         $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', new PlaceOrder($orderId));
+
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $testSupportGateway = $ecotoneTestSupport->getMessagingTestSupport();
 
@@ -248,12 +265,15 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class, ChannelConfiguration::class],
             [new OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
-                ->withEnvironment('test'),
+                ->withModulePackages([])
+                ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
         );
 
         $orderId = 'someId';
         $ecotoneTestSupport->getCommandBus()->sendWithRouting('order.register', new PlaceOrder($orderId));
+
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $testSupportGateway = $ecotoneTestSupport->getMessagingTestSupport();
         $testSupportGateway->discardRecordedMessages();
@@ -267,8 +287,9 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
                 ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(false),
                 ]),
@@ -285,7 +306,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $ecotoneTestSupport->getEventBus()->publish(new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderWasPlaced());
@@ -302,7 +323,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $ecotoneTestSupport->getEventBus()->publish(new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderWasPlaced());
@@ -319,8 +340,9 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
                 ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(false),
                 ]),
@@ -338,8 +360,9 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
                 ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()->withFailOnCommandHandlerNotFound(true),
                 ]),
@@ -356,8 +379,9 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
                 ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(false),
                 ]),
@@ -374,8 +398,9 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [\Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService::class],
             [new \Test\Ecotone\Modelling\Fixture\MetadataPropagating\OrderService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
                 ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
                 ->withExtensionObjects([
                     TestConfiguration::createWithDefaults()->withFailOnQueryHandlerNotFound(true),
                 ]),
@@ -392,8 +417,9 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [Order::class],
             [],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
                 ->withEnvironment('test')
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
                 ]),
@@ -418,12 +444,15 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             [OrderService::class],
             $inMemoryPSRContainer,
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([])
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             allowGatewaysToBeRegisteredInContainer: true
         );
 
         $orderId = '123';
         $inMemoryPSRContainer->get(CommandBus::class)->sendWithRouting('order.register', new PlaceOrder($orderId));
+
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $testSupportGateway = $ecotoneTestSupport->getMessagingTestSupport();
 
@@ -438,91 +467,85 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             OrderService::class => new OrderService(),
         ]);
 
-        //        cache
         EcotoneLite::bootstrap(
             [OrderService::class],
             $inMemoryPSRContainer,
             ServiceConfiguration::createWithDefaults()
                 ->withCacheDirectoryPath($cacheDirectoryPath)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([])
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             useCachedVersion: true
         );
 
-        //        resolve cache
         $ecotoneLite = EcotoneLite::bootstrap(
             [OrderService::class],
             $inMemoryPSRContainer,
             ServiceConfiguration::createWithDefaults()
                 ->withCacheDirectoryPath($cacheDirectoryPath)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([])
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')),
             useCachedVersion: true
         );
 
         $orderId = '123';
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', new PlaceOrder($orderId));
 
+        $ecotoneLite->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+
         $this->assertNotEmpty($ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
     }
 
     public function test_releasing_delayed_message_time_time_span_object()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray())));
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
             MessageHeaders::DELIVERY_DELAY => TimeSpan::withHours(1),
         ]);
 
-        $ecotoneTestSupport->run('orders');
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
         $ecotoneTestSupport->run('orders', releaseAwaitingFor: TimeSpan::withMinutes(59));
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
         $ecotoneTestSupport->run('orders', releaseAwaitingFor: TimeSpan::withHours(1));
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+
         $this->assertEquals([$orderId], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
     }
 
     public function test_delaying_till_specific_moment_in_time()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()),
-            ],
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray())));
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
             MessageHeaders::DELIVERY_DELAY => $delayTime = new DateTimeImmutable('+1 hour'),
         ]);
 
-        $ecotoneTestSupport->run('orders');
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
         $ecotoneTestSupport->run('orders', releaseAwaitingFor: $delayTime->modify('-1 seconds'));
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
         $ecotoneTestSupport->run('orders', releaseAwaitingFor: $delayTime);
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+
         $this->assertEquals([$orderId], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
     }
 
     public function test_delaying_with_past_date_make_it_available_right_away(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()),
-            ],
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray())));
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
@@ -530,50 +553,49 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             MessageHeaders::DELIVERY_DELAY => $time->modify('-1 hour'),
         ]);
 
-        $ecotoneTestSupport->run('orders');
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+
         $this->assertEquals([$orderId], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
     }
 
-    public function test_when_asynchronous_processing_enabled_defaults_channel_to_in_memory_delayable(): void
+    public function test_configured_queue_channel_is_in_memory_delayable(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
-            enableAsynchronousProcessing: true,
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray())));
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
             MessageHeaders::DELIVERY_DELAY => $delayTime = new DateTimeImmutable('+1 hour'),
         ]);
 
-        $ecotoneTestSupport->run('orders');
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
         $ecotoneTestSupport->run('orders', releaseAwaitingFor: $delayTime->modify('-1 seconds'));
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
         $ecotoneTestSupport->run('orders', releaseAwaitingFor: $delayTime);
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+
         $this->assertEquals([$orderId], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
     }
 
     public function test_channel_provided_default_channel_is_not_used(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders', false),
-            ],
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', false)));
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
             MessageHeaders::DELIVERY_DELAY => new DateTimeImmutable('+1 hour'),
         ]);
 
-        // the default channel is with delay, so if it would be used, the message would be available
-        $ecotoneTestSupport->run('orders');
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+
         $this->assertEquals([$orderId], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
     }
 }

@@ -56,7 +56,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -113,7 +113,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     // First two commits should succeed, third should fail but recover
                     ConnectionBreakingConfiguration::createWithBreakBeforeCommit([false, false, false, true]),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -160,7 +160,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -188,7 +188,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     // Configure to break connection during dead letter storage
                     ConnectionBreakingConfiguration::createWithBreakBeforeCommit([true, false]),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -228,7 +228,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ['tenant_a' => 'tenant_a_connection'],
                     ),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -285,7 +285,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDocumentStore(true, enableDocumentStoreStandardRepository: true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -342,7 +342,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ['tenant_a' => 'tenant_a_connection', 'tenant_b' => 'tenant_b_connection'],
                     ),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -422,7 +422,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -479,10 +479,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 3),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,]),
         );
 
         $ecotoneLite->sendCommandWithRoutingKey('dispatch.sql.command', 'test');
@@ -524,10 +521,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     InstantRetryConfiguration::createWithDefaults()
                         ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,
-                ])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,]),
         );
 
         $ecotoneLite->sendCommandWithRoutingKey('dispatch.sql.command', 'test');

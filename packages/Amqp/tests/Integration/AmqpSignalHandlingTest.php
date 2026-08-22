@@ -38,7 +38,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
                     AmqpQueue::createWith($queueName),
@@ -73,7 +73,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(
                         'async_commands_unique',
@@ -108,7 +108,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(
                         'async_commands_unique',
@@ -143,7 +143,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
     //                ...$this->getConnectionFactoryReferences(),
     //            ],
     //            ServiceConfiguration::createWithDefaults()
-    //                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+    //                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
     //                ->withExtensionObjects([
     //                    AmqpBackedMessageChannelBuilder::create('async_commands_unique_empty', queueName: Uuid::v7()->toRfc4122()),
     //                ])

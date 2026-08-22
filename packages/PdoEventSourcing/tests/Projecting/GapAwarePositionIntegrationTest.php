@@ -76,7 +76,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
                 ]),

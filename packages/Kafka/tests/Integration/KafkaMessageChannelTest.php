@@ -153,8 +153,8 @@ final class KafkaMessageChannelTest extends TestCase
                     'wronghost:9092',
                 ]), new KafkaAsyncCommandHandler(), 'logger' => $logger = StubLogger::create(),
             ],
-            ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
@@ -310,8 +310,8 @@ final class KafkaMessageChannelTest extends TestCase
                 ]), new KafkaAsyncCommandHandler(), new MeetingHistory(),
                 //'logger' => new EchoLogger(),
             ],
-            ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
@@ -331,8 +331,8 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(), new KafkaAsyncEventHandler(),
                 //                'logger' => new EchoLogger(),
             ],
-            ServiceConfiguration::createWithAsynchronicityOnly()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::KAFKA_PACKAGE]))
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         $channelName,
@@ -389,7 +389,7 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -456,7 +456,7 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -493,7 +493,7 @@ final class KafkaMessageChannelTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -585,7 +585,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('publisher-service')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -608,7 +608,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service1')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -630,7 +630,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service2')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,

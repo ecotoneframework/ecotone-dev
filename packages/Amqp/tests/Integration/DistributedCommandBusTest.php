@@ -99,7 +99,7 @@ final class DistributedCommandBusTest extends AmqpMessagingTestCase
             containerOrAvailableServices: array_merge($this->getConnectionFactoryReferences($amqpConfig), $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withNamespaces($namespaces)
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE),
             pathToRootCatalog: __DIR__ . '/../../',

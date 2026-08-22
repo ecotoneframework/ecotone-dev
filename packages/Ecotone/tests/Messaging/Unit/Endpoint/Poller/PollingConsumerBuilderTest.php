@@ -266,13 +266,9 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_acking_message_with_fully_running_ecotone()
     {
         $messageChannelName = 'async_channel';
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel($messageChannelName),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($messageChannelName)));
 
         $ecotoneTestSupport->sendDirectToChannel('handle_channel');
         $ecotoneTestSupport->run($messageChannelName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
@@ -290,8 +286,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
         $asyncChannelName = 'async';
         $errorChannelName = 'errorChannelName';
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
-            [ExampleFailureCommandHandler::class],
+        $messaging = EcotoneLite::bootstrapFlowTesting([ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), 'logger' => $logger = StubLogger::create()],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -301,9 +296,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                         ->setStopOnError(false)
                         ->setExecutionAmountLimit(1)
                         ->setErrorChannelName($errorChannelName),
-                ]),
-            enableAsynchronousProcessing: true,
-        );
+                ]));
 
         $messaging->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
 
@@ -318,8 +311,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     {
         $asyncChannelName = 'async';
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
-            [ExampleFailureCommandHandler::class, FailureErrorHandler::class],
+        $messaging = EcotoneLite::bootstrapFlowTesting([ExampleFailureCommandHandler::class, FailureErrorHandler::class],
             [new ExampleFailureCommandHandler(), $failureHandler = new FailureErrorHandler()],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -328,9 +320,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                         ->setStopOnError(false)
                         ->setExecutionAmountLimit(1)
                         ->setErrorChannelName('errorHandler'),
-                ]),
-            enableAsynchronousProcessing: true,
-        );
+                ]));
 
         $messaging->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
 
@@ -348,8 +338,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
         $asyncChannelName = 'async';
         $errorChannelName = 'errorChannelName';
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
-            [ExampleFailureCommandHandler::class],
+        $messaging = EcotoneLite::bootstrapFlowTesting([ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), 'logger' => $logger = StubLogger::create()],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -359,9 +348,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                         ->setStopOnError(false)
                         ->setExecutionAmountLimit(1)
                         ->setErrorChannelName($errorChannelName),
-                ]),
-            enableAsynchronousProcessing: true,
-        );
+                ]));
 
         $originalNessage = MessageBuilder::withPayload('some')->build();
         $messaging->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
@@ -377,13 +364,9 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_finish_when_no_messages(): void
     {
         $inputChannelName = 'async_channel';
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel($inputChannelName),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($inputChannelName)));
 
         $ecotoneTestSupport->sendDirectToChannel('handle_channel');
 
@@ -401,13 +384,9 @@ class PollingConsumerBuilderTest extends MessagingTestCase
     public function test_finish_when_no_messages_with_more_messages(): void
     {
         $inputChannelName = 'async_channel';
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SuccessServiceActivator::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel($inputChannelName),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($inputChannelName)));
 
         $ecotoneTestSupport->sendDirectToChannel('handle_channel');
         $ecotoneTestSupport->sendDirectToChannel('handle_channel');

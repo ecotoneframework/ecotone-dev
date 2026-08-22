@@ -217,7 +217,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             [$userService, TracerProviderInterface::class => TracingTestCase::prepareTracer(new InMemoryExporter())],
             ServiceConfiguration::createWithDefaults()
                 ->withDefaultErrorChannel('error_channel')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                     ExceptionalQueueChannel::createWithExceptionOnSend('error_channel'),
@@ -240,7 +240,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             [TracerProviderInterface::class => TracingTestCase::prepareTracer(new InMemoryExporter())],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('user_service')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
                 ->withExtensionObjects([
                     ExceptionalQueueChannel::createWithExceptionOnSend('distributed_channel'),
                     DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_channel'),
@@ -282,7 +282,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
                 $servicesToRegister,
             ),
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
                 ->withExtensionObjects($channelsToRegister)
         );
     }

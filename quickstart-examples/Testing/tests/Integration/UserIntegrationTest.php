@@ -23,19 +23,15 @@ final class UserIntegrationTest extends TestCase
     public function test_sending_command_as_json()
     {
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            // classes to resolve
             [User::class],
-            // available services, you may inject container instead
             [new EmailConverter(), new PhoneNumberConverter(), new UuidConverter()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                                // resolve all classes from Converter namespace
-                                ->withNamespaces(["App\Testing\Infrastructure\Converter"])
-                                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::JMS_CONVERTER_PACKAGE]))
-                                ->withExtensionObjects([
-                                    // register in memory repository for User
-                                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates()
-                                ]),
-            pathToRootCatalog: __DIR__ // can be ignored, needed for running inside ecotone-dev monorepo
+            ServiceConfiguration::createWithDefaults()
+                ->withNamespaces(["App\Testing\Infrastructure\Converter"])
+                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE])
+                ->withExtensionObjects([
+                    InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
+                ]),
+            pathToRootCatalog: __DIR__,
         );
 
         $ecotoneLite->sendCommandWithRoutingKey("user.register", \json_encode([

@@ -65,10 +65,8 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     {
         $this->assertEquals(
             'done',
-            EcotoneLite::bootstrapFlowTesting(
-                classesToResolve: [AsynchronousOrderFulfilment::class],
-                enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('async')]
-            )
+            EcotoneLite::bootstrapFlowTesting(classesToResolve: [AsynchronousOrderFulfilment::class],
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')))
                 ->sendCommandWithRoutingKey('order.start', $oderId = 100)
                 ->publishEvent(PaymentWasDoneEvent::create($oderId), metadata: ['paymentId' => $oderId])
                 ->run('async')
@@ -94,16 +92,14 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
 
     public function test_loading_aggregate_by_metadata_using_before_interceptor_async_scenario()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [
+        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [
                 AsynchronousOrderFulfilment::class,
                 BeforeFinishOrder::class,
             ],
             containerOrAvailableServices: [
                 new BeforeFinishOrder(),
             ],
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('async')]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
         $ecotone->sendCommandWithRoutingKey('order.start', $oderId = 100);
         $ecotone->publishEvent(PaymentWasDoneEvent::create($oderId));
         $ecotone->run('async');
@@ -128,16 +124,14 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
 
     public function test_loading_aggregate_by_metadata_using_presend_interceptor_async_scenario()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [
+        $ecotone = EcotoneLite::bootstrapFlowTesting(classesToResolve: [
                 AsynchronousOrderFulfilment::class,
                 PresendFinishOrder::class,
             ],
             containerOrAvailableServices: [
                 new PresendFinishOrder(),
             ],
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('async')]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
         $ecotone->sendCommandWithRoutingKey('order.start', $oderId = 100);
         $ecotone->publishEvent(PaymentWasDoneEvent::create($oderId));
         $ecotone->run('async');

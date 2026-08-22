@@ -43,7 +43,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($channelName)
                         ->withReceiveTimeout(1),
@@ -75,7 +75,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 'managerRegistry' => $this->getConnectionFactory(true),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($channelName, 'managerRegistry')
                         ->withReceiveTimeout(1),
@@ -109,7 +109,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($channelName)->withReceiveTimeout(1),
                 ])
@@ -143,7 +143,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $connectionFactory,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($queueName)
                         ->withReceiveTimeout(1),
@@ -173,7 +173,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $connectionFactory,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($channelName)
                         ->withReceiveTimeout(1),
@@ -204,7 +204,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 ClockInterface::class => $clock,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($channelName)
                         ->withReceiveTimeout(1),
@@ -236,7 +236,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($channelName)
                         ->withReceiveTimeout(1),
@@ -270,7 +270,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($channelName)
                         ->withReceiveTimeout(1),
@@ -307,7 +307,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -335,7 +335,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create($queueName)
                         ->withAutoDeclare(false),
@@ -361,7 +361,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
                 )

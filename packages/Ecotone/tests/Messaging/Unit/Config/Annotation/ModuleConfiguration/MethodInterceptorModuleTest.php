@@ -24,13 +24,9 @@ final class MethodInterceptorModuleTest extends AnnotationConfigurationTestCase
 {
     public function test_intercepting_with_around_message_endpoint(): void
     {
-        $ecootneLite = EcotoneLite::bootstrapFlowTesting(
-            [AroundInterceptorExample::class],
+        $ecootneLite = EcotoneLite::bootstrapFlowTesting([AroundInterceptorExample::class],
             [$service = new AroundInterceptorExample()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecootneLite->sendCommandWithRoutingKey('doSomethingAsync', new stdClass());
         $this->assertNull($service->payload);

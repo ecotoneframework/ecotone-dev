@@ -10,10 +10,6 @@ namespace Ecotone\Messaging\Config;
 final class ModulePackageList
 {
     public const CORE_PACKAGE = 'core';
-    /**
-     * @TODO Ecotone 2.0 add to Core package
-     */
-    public const ASYNCHRONOUS_PACKAGE = 'asynchronous';
     public const AMQP_PACKAGE = 'amqp';
     public const DATA_PROTECTION_PACKAGE = 'dataProtection';
     public const DBAL_PACKAGE = 'dbal';
@@ -32,7 +28,6 @@ final class ModulePackageList
     {
         return match ($packageName) {
             ModulePackageList::CORE_PACKAGE => ModuleClassList::CORE_MODULES,
-            ModulePackageList::ASYNCHRONOUS_PACKAGE => ModuleClassList::ASYNCHRONOUS_MODULE,
             ModulePackageList::AMQP_PACKAGE => ModuleClassList::AMQP_MODULES,
             ModulePackageList::DBAL_PACKAGE => ModuleClassList::DBAL_MODULES,
             ModulePackageList::REDIS_PACKAGE => ModuleClassList::REDIS_MODULES,
@@ -57,7 +52,6 @@ final class ModulePackageList
     {
         return [
             self::CORE_PACKAGE,
-            self::ASYNCHRONOUS_PACKAGE,
             self::AMQP_PACKAGE,
             self::REDIS_PACKAGE,
             self::SQS_PACKAGE,
@@ -73,8 +67,4 @@ final class ModulePackageList
         ];
     }
 
-    public static function allPackagesExcept(array $modulePackageNames): array
-    {
-        return array_diff(self::allPackages(), $modulePackageNames);
-    }
 }

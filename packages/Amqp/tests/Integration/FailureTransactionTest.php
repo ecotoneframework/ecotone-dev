@@ -65,7 +65,7 @@ final class FailureTransactionTest extends AmqpMessagingTestCase
             containerOrAvailableServices: array_merge([...$this->getConnectionFactoryReferences()], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         );

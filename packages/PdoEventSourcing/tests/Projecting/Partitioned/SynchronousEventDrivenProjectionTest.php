@@ -152,11 +152,8 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             classesToResolve: [$projection::class, Order::class, EventsConverter::class],
             containerOrAvailableServices: [$projection, new EventsConverter(), self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -370,11 +367,8 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -382,19 +376,13 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotoneWithAsyncChannel(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
+        return EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_channel')),
             runForProductionEventStore: true,
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('backfill_channel')],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_channel'),
-        );
+            testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_channel'));
     }
 }

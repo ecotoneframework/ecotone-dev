@@ -63,6 +63,6 @@ final class PollableChannelSendRetriesModule extends NoExternalConfigurationModu
 
     public function getModulePackageName(): string
     {
-        return ModulePackageList::ASYNCHRONOUS_PACKAGE;
+        return ModulePackageList::CORE_PACKAGE;
     }
 }

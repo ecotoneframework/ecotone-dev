@@ -112,7 +112,7 @@ final class WithTenantResolverPlacementValidationTest extends TestCase
             array_merge($services, ['tenant_a_connection' => new FakeConnectionFactory()]),
             ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::createWithDefaultConnection(
                         'tenant',

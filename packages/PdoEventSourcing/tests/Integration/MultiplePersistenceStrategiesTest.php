@@ -42,7 +42,7 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
                         ->withPersistenceStrategyFor(Logger::STREAM, LazyProophEventStore::SIMPLE_STREAM_PERSISTENCE)

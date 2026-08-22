@@ -72,7 +72,7 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
             [$commandHandler::class],
             [SqsConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsMessagePublisherConfiguration::create(queueName: Uuid::v7()->toRfc4122())
                         ->withHighThroughputPublishing(confirmationTimeoutInMilliseconds: 10000),
@@ -91,7 +91,7 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
             [],
             [SqsConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsMessagePublisherConfiguration::create(queueName: $queueName)
                         ->withHighThroughputPublishing(confirmationTimeoutInMilliseconds: 10000),
@@ -106,7 +106,7 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
             [],
             [SqsConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::SQS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create($channelName)
                         ->withHighThroughputPublishing(),

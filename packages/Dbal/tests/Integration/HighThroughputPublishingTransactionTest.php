@@ -87,7 +87,7 @@ final class HighThroughputPublishingTransactionTest extends DbalMessagingTestCas
             [Person::class, NotificationService::class],
             [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person'])],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withExtensionObjects(array_merge(
                     $extensionObjects,
                     $channelBuilders,

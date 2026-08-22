@@ -786,7 +786,7 @@ final class ModellingBehatMigrationTest extends TestCase
         return EcotoneLite::bootstrap(
             [],
             InMemoryPSRContainer::createFromObjects($objects),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withEnvironment('prod')
                 ->withFailFast(false)
                 ->withNamespaces([$namespace]),

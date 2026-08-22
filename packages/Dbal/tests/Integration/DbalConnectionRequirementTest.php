@@ -28,7 +28,7 @@ final class DbalConnectionRequirementTest extends TestCase
             classesToResolve: [Meeting::class],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -43,7 +43,7 @@ final class DbalConnectionRequirementTest extends TestCase
             containerOrAvailableServices: [DbalConnectionFactory::class => $connectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([]),
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -60,7 +60,7 @@ final class DbalConnectionRequirementTest extends TestCase
             containerOrAvailableServices: InMemoryPSRContainer::createFromAssociativeArray([DbalConnectionFactory::class => $connectionFactory]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([]),
             pathToRootCatalog: __DIR__ . '/../../',
         );

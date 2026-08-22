@@ -25,7 +25,7 @@ final class DbalConnectionRequirementWithoutConnectionTest extends TestCase
             classesToResolve: [],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces(['Test\\Ecotone\\Tempest\\Fixture\\Counter\\']),
             pathToRootCatalog: __DIR__ . '/../../',
         );

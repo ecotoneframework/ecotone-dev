@@ -20,7 +20,7 @@ final class LicenceKeyTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\User\\'],
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

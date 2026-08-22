@@ -66,19 +66,14 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
 
     private function bootstrapEcotoneWithRetryingChannel(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
-            [],
+        return EcotoneLite::bootstrapFlowTesting([],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+            (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::REDIS_PACKAGE,])
                 ->withExtensionObjects([
                     PollableChannelConfiguration::create(self::CHANNEL_NAME, RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build()),
-                ]),
-            enableAsynchronousProcessing: [
-                RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withHighThroughputPublishing(),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+                ]))->addExtensionObject(RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withHighThroughputPublishing()),
+            licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     private function queueLength(): int

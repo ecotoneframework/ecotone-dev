@@ -41,7 +41,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $topicName),
                 ]),
@@ -75,7 +75,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     TopicConfiguration::createWithReferenceName('literalOrdersTopic', $literalTopicName),
                     TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $dynamicTopicName),
@@ -112,7 +112,7 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
                 KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     TopicConfiguration::createWithReferenceName('dynamicOrdersTopic', $topicName),
                 ]),

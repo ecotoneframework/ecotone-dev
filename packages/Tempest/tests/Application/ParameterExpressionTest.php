@@ -20,7 +20,7 @@ final class ParameterExpressionTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\ExpressionLanguage\\'],
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
         );
     }

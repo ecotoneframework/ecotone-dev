@@ -39,11 +39,9 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::CORE_PACKAGE,
-                ]))
+                    ModulePackageList::CORE_PACKAGE,])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     \Ecotone\Dbal\Configuration\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
@@ -87,11 +85,9 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::CORE_PACKAGE,
-                ]))
+                    ModulePackageList::CORE_PACKAGE,])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     \Ecotone\Dbal\Configuration\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
@@ -148,11 +144,9 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::CORE_PACKAGE,
-                ]))
+                    ModulePackageList::CORE_PACKAGE,])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     \Ecotone\Dbal\Configuration\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),

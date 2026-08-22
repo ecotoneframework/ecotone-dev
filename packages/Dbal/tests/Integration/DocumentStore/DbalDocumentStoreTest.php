@@ -115,7 +115,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([]),
             pathToRootCatalog: __DIR__ . '/../../..',
             addInMemoryStateStoredRepository: false,
@@ -155,7 +155,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([]),
             pathToRootCatalog: __DIR__ . '/../../..',
             addInMemoryStateStoredRepository: false,
@@ -197,7 +197,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([]),
             pathToRootCatalog: __DIR__ . '/../../..',
             addInMemoryStateStoredRepository: false,
@@ -336,7 +336,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([]),
             pathToRootCatalog: __DIR__ . '/../../..',
             addInMemoryStateStoredRepository: false,
@@ -403,7 +403,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([]),
             pathToRootCatalog: __DIR__ . '/../../..',
             addInMemoryStateStoredRepository: false,

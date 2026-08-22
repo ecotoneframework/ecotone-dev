@@ -32,7 +32,7 @@ final class DistributedBusTest extends TestCase
                 new ShoppingCenter(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $distributionEntrypoint = $ecotoneTestSupport->getGateway(DistributionEntrypoint::class);
@@ -51,7 +51,7 @@ final class DistributedBusTest extends TestCase
                 new ShoppingRecord(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $distributionEntrypoint = $ecotoneTestSupport->getGateway(DistributionEntrypoint::class);
@@ -70,7 +70,7 @@ final class DistributedBusTest extends TestCase
                 new ShoppingRecord(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $distributionEntrypoint = $ecotoneTestSupport->getGateway(DistributionEntrypoint::class);
@@ -89,7 +89,7 @@ final class DistributedBusTest extends TestCase
                 new ShoppingCenter(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $distributionEntrypoint = $ecotoneTestSupport->getGateway(DistributionEntrypoint::class);

@@ -31,7 +31,7 @@ final class NestedDbalTransactionTest extends DbalMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::CORE_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::CORE_PACKAGE])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(true),

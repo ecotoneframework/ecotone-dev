@@ -29,7 +29,7 @@ class EcotoneLiteApplicationTest extends TestCase
             configurationVariables: ['currentExchange' => 2],
             serviceConfiguration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces(["Test\Ecotone\Lite\Fixture"])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
             pathToRootCatalog: __DIR__ . '/../../'
         );
 
@@ -68,7 +68,7 @@ class EcotoneLiteApplicationTest extends TestCase
         $ecotoneLite = EcotoneLiteApplication::bootstrap(
             serviceConfiguration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces(["Test\Ecotone\Lite\Fixture\Ticketing"])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
             pathToRootCatalog: __DIR__ . '/../../',
             classesToRegister: [TicketRepository::class => new InMemoryTicketRepository()],
         );
@@ -88,7 +88,7 @@ class EcotoneLiteApplicationTest extends TestCase
             serviceConfiguration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces(["Test\Ecotone\Lite\Fixture"])
                 ->withCacheDirectoryPath($cacheDirectory)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
             cacheConfiguration: true,
             pathToRootCatalog: __DIR__ . '/../../'
         );

@@ -293,7 +293,9 @@ final class MessagingSystemConfiguration implements Configuration
             $skippedPackages[] = ModulePackageList::TEST_PACKAGE;
         }
 
-        return $serviceConfiguration->withSkippedModulePackageNames(array_diff($skippedPackages, $requiredModules));
+        $availablePackages = array_merge(ModulePackageList::allPackages(), [ModulePackageList::TEST_PACKAGE]);
+
+        return $serviceConfiguration->withModulePackages(array_diff($availablePackages, array_diff($skippedPackages, $requiredModules)));
     }
 
     private function prepareAndOptimizeConfiguration(InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -452,7 +454,7 @@ final class MessagingSystemConfiguration implements Configuration
         foreach ($this->asynchronousEndpoints as $targetEndpointId => $asynchronousMessageChannels) {
             $asynchronousMessageChannel = array_shift($asynchronousMessageChannels);
             if (! isset($this->channelBuilders[$asynchronousMessageChannel]) && ! isset($this->defaultChannelBuilders[$asynchronousMessageChannel])) {
-                throw ConfigurationException::create("Registered asynchronous endpoint `{$targetEndpointId}`, however channel configuration for `{$asynchronousMessageChannel}` was not provided.");
+                throw ConfigurationException::create("Registered asynchronous endpoint `{$targetEndpointId}`, however channel configuration for `{$asynchronousMessageChannel}` was not provided. Register it with SimpleMessageChannelBuilder::createQueueChannel('{$asynchronousMessageChannel}') as a ServiceConfiguration extension object or from a #[ServiceContext] method.");
             }
 
             $foundEndpoint = false;
@@ -666,7 +668,7 @@ final class MessagingSystemConfiguration implements Configuration
         return self::prepare(
             __DIR__ .'/../../../',
             InMemoryConfigurationVariableService::createEmpty(),
-            $serviceConfiguration ?? ServiceConfiguration::createWithAsynchronicityOnly(),
+            $serviceConfiguration ?? ServiceConfiguration::createWithDefaults()->withModulePackages([]),
             $extensionObjects,
             true,
         );

@@ -48,7 +48,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
         );
     }
 
@@ -63,7 +63,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE])),
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
         $ecotoneLitePublisher = $this->bootstrapFlowTesting(
@@ -72,7 +72,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
@@ -106,7 +106,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
@@ -140,7 +140,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
@@ -175,7 +175,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
@@ -210,7 +210,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
@@ -248,7 +248,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
@@ -285,7 +285,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()

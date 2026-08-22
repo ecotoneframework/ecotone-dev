@@ -35,7 +35,7 @@ final class ConsumerAndPublisherTest extends ConnectionTestCase
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsMessageConsumerConfiguration::create($endpointId, $queueName),
                     SqsMessagePublisherConfiguration::create(queueName: $queueName),

@@ -78,7 +78,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisMessagePublisherConfiguration::create(queueName: Uuid::v7()->toRfc4122())
                         ->withHighThroughputPublishing(),
@@ -137,7 +137,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [$commandHandler::class],
             [RedisConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::REDIS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisMessagePublisherConfiguration::create(queueName: $queueName)
                         ->withHighThroughputPublishing(),
@@ -282,7 +282,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [$orderService::class],
             [RedisConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::REDIS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisBackedMessageChannelBuilder::create('asyncOrdersChannel')
                         ->withHighThroughputPublishing(),
@@ -302,7 +302,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::REDIS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     $publisherConfiguration,
                     RedisBackedMessageChannelBuilder::create($queueName),

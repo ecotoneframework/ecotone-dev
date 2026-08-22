@@ -26,13 +26,9 @@ final class LoggingModuleTest extends TestCase
     public function test_logging_critical_when_exception_occurred_on_message_consumer()
     {
         $loggerExample = StubLogger::create();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ExampleFailureCommandHandler::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), 'logger' => $loggerExample],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME)));
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('handler.fail', ['command' => 2])
@@ -44,16 +40,10 @@ final class LoggingModuleTest extends TestCase
     public function test_it_does_log_error_if_message_sent_to_error_channel()
     {
         $loggerExample = StubLogger::create();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ExampleFailureCommandHandler::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), 'logger' => $loggerExample],
-            ServiceConfiguration::createWithDefaults()
-                ->withDefaultErrorChannel('customErrorChannel'),
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME),
-                SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
-            ]
-        );
+            (ServiceConfiguration::createWithDefaults()
+                ->withDefaultErrorChannel('customErrorChannel'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel')));
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('handler.fail', ['command' => 2]);

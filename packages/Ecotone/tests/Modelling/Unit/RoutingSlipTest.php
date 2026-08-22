@@ -36,7 +36,7 @@ final class RoutingSlipTest extends TestCase
             [User::class, AuditLog::class],
             [new AuditLog()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
         );
 
         $ecotoneLite->sendDirectToChannel(
@@ -56,7 +56,7 @@ final class RoutingSlipTest extends TestCase
             [Merchant::class, MerchantSubscriber::class, AuditLog::class, User::class],
             [new MerchantSubscriber(), new AuditLog()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
         );
 
         $ecotoneLite->sendDirectToChannel(
@@ -82,7 +82,7 @@ final class RoutingSlipTest extends TestCase
             [Merchant::class, MerchantSubscriber::class, AuditLog::class, User::class],
             [new MerchantSubscriber(), new AuditLog()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
         );
 
         $ecotoneLite->sendCommand(
@@ -101,7 +101,7 @@ final class RoutingSlipTest extends TestCase
             [Merchant::class, MerchantSubscriber::class, AuditLog::class, User::class, ExtendedCommandBus::class],
             [new MerchantSubscriber(), new AuditLog()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
         );
 
         /** @var ExtendedCommandBus $commandBus */
@@ -122,7 +122,7 @@ final class RoutingSlipTest extends TestCase
             [Merchant::class, MerchantSubscriber::class, AuditLog::class, User::class],
             [new MerchantSubscriber(), new AuditLog()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
         );
 
         $ecotoneLite->sendQueryWithRouting(
@@ -141,7 +141,7 @@ final class RoutingSlipTest extends TestCase
             [CreateMerchantService::class, Merchant::class, MerchantSubscriber::class, AuditLog::class, User::class],
             [new MerchantSubscriber(), new AuditLog()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
         );
 
         /** @var CreateMerchantService $gateway */
@@ -162,7 +162,7 @@ final class RoutingSlipTest extends TestCase
             [MerchantSubscriber::class, AuditLog::class, User::class],
             [new MerchantSubscriber(), new AuditLog()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
         );
 
         $ecotoneLite->publishEvent(
@@ -182,7 +182,7 @@ final class RoutingSlipTest extends TestCase
             [Article::class, ArticleRepository::class, RepositoryBusinessInterface::class, Page::class, Author::class, AuditLog::class, ArticleService::class],
             [ArticleRepository::class => $articleRepository, new AuditLog(), new ArticleService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
             addInMemoryStateStoredRepository: false,
         );
 

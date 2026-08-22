@@ -38,7 +38,7 @@ final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
                 ->withExtensionObjects([
                     InMemoryRepositoryBuilder::createForAllStateStoredAggregates(),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $userId = '123';
@@ -57,7 +57,7 @@ final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
             $this->bootKernel()->getContainer(),
             ServiceConfiguration::createWithDefaults()
                 ->doNotLoadCatalog()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $amount = 123;

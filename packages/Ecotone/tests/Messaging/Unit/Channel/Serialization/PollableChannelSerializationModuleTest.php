@@ -52,12 +52,9 @@ final class PollableChannelSerializationModuleTest extends TestCase
      */
     private function bootstrapEcotone(array $classesToResolve, array $services, array $channelBuilders, array $extensionObjects = []): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
-            $classesToResolve,
+        return EcotoneLite::bootstrapFlowTesting($classesToResolve,
             $services,
-            ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects($extensionObjects),
-            enableAsynchronousProcessing: $channelBuilders
-        );
+            (ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects($extensionObjects))->withExtensionObjects($channelBuilders));
     }
 }

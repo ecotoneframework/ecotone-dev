@@ -5,11 +5,8 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $ecotoneConfiguration = [
-        'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([
-            ModulePackageList::SYMFONY_PACKAGE,
-            ModulePackageList::DBAL_PACKAGE,
-            ModulePackageList::ASYNCHRONOUS_PACKAGE,
-        ]),
+        'modulePackages' => [ModulePackageList::SYMFONY_PACKAGE,
+            ModulePackageList::DBAL_PACKAGE,],
     ];
 
     if (getenv('SYMFONY_LICENCE_KEY') !== false && getenv('SYMFONY_LICENCE_KEY') !== '') {

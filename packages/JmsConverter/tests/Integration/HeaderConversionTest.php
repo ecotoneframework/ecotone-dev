@@ -29,7 +29,9 @@ class HeaderConversionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [$playground],
             configuration: ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE,])
                 ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     JMSConverterConfiguration::createWithDefaults()
                         ->withDefaultNullSerialization(true)
                         ->withDefaultEnumSupport(true),
@@ -57,13 +59,15 @@ class HeaderConversionTest extends TestCase
             ]
         );
 
+        $ecotone->run('async');
+
         self::assertEquals(StringEnum::foo, $playground->typeHintedStringBackedEnum);
         ;
-        self::assertEquals(StringEnum::foo, $playground->nonTypeHintedStringBackedEnum);
+        self::assertEquals(StringEnum::foo->value, $playground->nonTypeHintedStringBackedEnum);
         self::assertEquals(NumericEnum::ONE, $playground->typeHintedIntBackedEnum);
-        self::assertEquals(NumericEnum::ONE, $playground->nonTypeHintedIntBackedEnum);
+        self::assertEquals(NumericEnum::ONE->value, $playground->nonTypeHintedIntBackedEnum);
         self::assertEquals(BasicEnum::ONE, $playground->typeHintedBasicEnum);
-        self::assertEquals(BasicEnum::ONE, $playground->nonTypeHintedBasicEnum);
+        self::assertEquals(BasicEnum::ONE->name, $playground->nonTypeHintedBasicEnum);
     }
 
     public function test_handling_enums_in_headers_async(): void
@@ -74,7 +78,7 @@ class HeaderConversionTest extends TestCase
             classesToResolve: [Playground::class],
             containerOrAvailableServices: [$playground],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::JMS_CONVERTER_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE,])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     JMSConverterConfiguration::createWithDefaults()

@@ -52,16 +52,12 @@ class QueueChannelTest extends TestCase
     {
         $failureService = $this->getFailureService();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$failureService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$failureService::class],
             [$failureService],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async',
                     finalFailureStrategy: FinalFailureStrategy::RESEND
-                ),
-            ]
-        );
+                )));
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('call.service', 'fail_1')
@@ -75,16 +71,12 @@ class QueueChannelTest extends TestCase
     {
         $failureService = $this->getFailureService();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$failureService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$failureService::class],
             [$failureService],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async',
                     finalFailureStrategy: FinalFailureStrategy::RELEASE
-                ),
-            ]
-        );
+                )));
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('call.service', 'fail_1')
@@ -98,16 +90,12 @@ class QueueChannelTest extends TestCase
     {
         $failureService = $this->getFailureService();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$failureService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$failureService::class],
             [$failureService],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async',
                     finalFailureStrategy: FinalFailureStrategy::IGNORE
-                ),
-            ]
-        );
+                )));
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('call.service', 'fail_1')
@@ -121,16 +109,12 @@ class QueueChannelTest extends TestCase
     {
         $failureService = $this->getFailureService();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$failureService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$failureService::class],
             [$failureService],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async',
                     finalFailureStrategy: FinalFailureStrategy::STOP
-                ),
-            ]
-        );
+                )));
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('call.service', 'fail_1')
@@ -163,16 +147,12 @@ class QueueChannelTest extends TestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$failureService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$failureService::class],
             [$failureService],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async',
                     finalFailureStrategy: FinalFailureStrategy::RESEND
-                ),
-            ]
-        );
+                )));
 
         $ecotoneLite->sendCommandWithRoutingKey('executionChannel', 'some_1');
         try {

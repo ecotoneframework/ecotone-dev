@@ -35,7 +35,7 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
         $this->messaging = EcotoneLite::bootstrapFlowTesting(
             [AmqpMessengerAsyncCommandHandler::class],
             self::bootKernel()->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($this->channelName),
                 ])

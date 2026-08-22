@@ -28,10 +28,8 @@ final class SharedConnectionTransactionTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\SharedConnection\\'],
-            skippedModulePackageNames: ModulePackageList::allPackagesExcept([
-                ModulePackageList::TEMPEST_PACKAGE,
-                ModulePackageList::DBAL_PACKAGE,
-            ]),
+            modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
+                ModulePackageList::DBAL_PACKAGE,],
             test: false,
         );
     }

@@ -266,12 +266,11 @@ final class ScheduledTenantResolverTest extends TestCase
      */
     private function bootstrap(array $services, array $classes): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
-            $classes,
+        return EcotoneLite::bootstrapFlowTesting($classes,
             array_merge($services, ['tenant_a_connection' => new FakeConnectionFactory()]),
-            ServiceConfiguration::createWithDefaults()
+            (ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withExtensionObjects([
                     PollingMetadata::create('externalEventPoller')
                         ->setExecutionAmountLimit(1)
@@ -290,12 +289,8 @@ final class ScheduledTenantResolverTest extends TestCase
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
                         ->withDeduplication(false),
-                ]),
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('external_processing'),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+                ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('external_processing')),
+            licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     private function pollOnce(FlowTestSupport $ecotone): void

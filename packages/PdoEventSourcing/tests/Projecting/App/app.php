@@ -38,5 +38,5 @@ return EcotoneLite::bootstrap(
         ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         ->withDefaultErrorChannel('errorChannel')
         ->withNamespaces(['Test\\Ecotone\\EventSourcing\\Projecting\\App'])
-        ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])),
+        ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
 );

@@ -79,19 +79,15 @@ class RoutingTest extends TestCase
     #[DataProvider('cases')]
     public function test_it_can_route_events_by_name_and_convert(mixed $event, bool $async, RoutingTestHandler $handler): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, GuestWasAddedToBook::class, GuestWasAddedToBookConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class, GuestWasAddedToBook::class, GuestWasAddedToBookConverter::class],
             containerOrAvailableServices: [$handler, new GuestWasAddedToBookConverter()],
-            enableAsynchronousProcessing:  $async ? [
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ] : null
-        );
+            ]));
 
         $ecotoneLite
             ->publishEventWithRoutingKey(GuestWasAddedToBook::EVENT_NAME, $event);
-        if ($async) {
-            $ecotoneLite->run('async');
-        }
+        $ecotoneLite->run('async');
         $this->assertCount(1, $handler->getMessages());
     }
 }

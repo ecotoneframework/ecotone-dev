@@ -19,7 +19,7 @@ final class CacheClearCommandTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\'],
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
         );
     }

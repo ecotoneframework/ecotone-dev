@@ -119,7 +119,6 @@ abstract class AmqpMessagingTestCase extends TestCase
         bool $allowGatewaysToBeRegisteredInContainer = false,
         bool $addInMemoryStateStoredRepository = true,
         bool $addInMemoryEventSourcedRepository = true,
-        array|bool|null $enableAsynchronousProcessing = null,
         ?\Ecotone\Lite\Test\TestConfiguration $testConfiguration = null,
         ?string $licenceKey = null
     ): \Ecotone\Lite\Test\FlowTestSupport {
@@ -136,7 +135,6 @@ abstract class AmqpMessagingTestCase extends TestCase
             $allowGatewaysToBeRegisteredInContainer,
             $addInMemoryStateStoredRepository,
             $addInMemoryEventSourcedRepository,
-            $enableAsynchronousProcessing,
             $testConfiguration,
             $licenceKey
         );

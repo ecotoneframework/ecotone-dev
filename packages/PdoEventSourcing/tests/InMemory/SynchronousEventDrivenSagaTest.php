@@ -32,7 +32,7 @@ final class SynchronousEventDrivenSagaTest extends TestCase
         $testSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new SagaProjection(), new SynchronousBasketList(), new SagaEventConverter(), new BasketEventConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Basket',
                     'Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga',

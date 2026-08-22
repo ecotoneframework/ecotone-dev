@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -174,11 +175,12 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Dbal\Configuration\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(true)
                         ->withDeduplication(true),
+                    DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
@@ -192,11 +194,12 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Dbal\Configuration\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(true)
                         ->withDeduplication(true),
+                    DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
@@ -249,11 +252,12 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Dbal\Configuration\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(false)
                         ->withDeduplication(true),
+                    DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
@@ -267,11 +271,12 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Dbal\Configuration\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(false)
                         ->withDeduplication(true),
+                    DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
@@ -309,7 +314,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\Deduplication',
                 ])

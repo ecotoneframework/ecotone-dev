@@ -149,7 +149,7 @@ final class ORMTest extends DbalMessagingTestCase
             ], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withExtensionObjects(array_merge([
                     DbalConfiguration::createWithDefaults()
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
@@ -224,7 +224,7 @@ final class ORMTest extends DbalMessagingTestCase
             ], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
@@ -267,7 +267,7 @@ final class ORMTest extends DbalMessagingTestCase
             containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withNamespaces($namespaces)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
@@ -299,7 +299,7 @@ final class ORMTest extends DbalMessagingTestCase
             containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
@@ -329,7 +329,7 @@ final class ORMTest extends DbalMessagingTestCase
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE]),
             addInMemoryStateStoredRepository: false
         );
 
@@ -348,7 +348,7 @@ final class ORMTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withNamespaces($namespaces)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()

@@ -32,7 +32,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
                 $this->getConnectionFactoryReferences()
             ),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
@@ -56,7 +56,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
                 $this->getConnectionFactoryReferences()
             ),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RESEND)
@@ -81,7 +81,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
                 $this->getConnectionFactoryReferences()
             ),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)

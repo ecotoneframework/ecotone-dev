@@ -204,7 +204,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     private function prepareMessaging(string $amqpConnectionReferenceName, array $amqpExchanges, array $amqpQueues, array $amqpBindings, array $converters): ComponentTestBuilder
     {
         $builder = ComponentTestBuilder::create(
-            configuration: ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+            configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects(array_merge(
                     $amqpExchanges,
                     $amqpQueues,
@@ -713,7 +713,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -747,7 +747,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($normalQueueEndpointId, $queueName),
                     AmqpMessageConsumerConfiguration::create($deadLetterQueueEndpointId, $deadLetterQueueName),
@@ -904,7 +904,7 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
             [],
             array_merge($this->getConnectionFactoryReferences(), ['customDelayStrategy' => $customDelayStrategy]),
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create($queueName)
                         ->withDelayStrategy('customDelayStrategy'),

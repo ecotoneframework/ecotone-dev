@@ -141,7 +141,7 @@ final class DistributedEventBusTest extends AmqpMessagingTestCase
             containerOrAvailableServices: array_merge([...$this->getConnectionFactoryReferences()], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withNamespaces($namespaces)
                 ->withExtensionObjects($extensionObjects)
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE),

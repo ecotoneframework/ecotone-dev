@@ -63,7 +63,7 @@ final class ScheduledModuleTest extends TestCase
             [$service::class, $counter::class],
             [$service, $counter],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([])),
+                ->withModulePackages([]),
         );
 
         $ecotone->run('scheduledWithMarker', ExecutionPollingMetadata::createWithTestingSetup(1, 1));

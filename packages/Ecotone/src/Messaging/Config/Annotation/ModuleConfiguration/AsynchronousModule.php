@@ -10,7 +10,6 @@ use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
 use Ecotone\Messaging\Channel\CombinedMessageChannel;
-use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -154,37 +153,12 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        $extensions = [$this];
-
-        if ($serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)) {
-            $polingChannelBuilders = array_map(
-                fn (MessageChannelBuilder $channelBuilder) => $channelBuilder->getMessageChannelName(),
-                ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $serviceExtensions)
-            );
-            $endpointChannels = array_reduce(
-                $this->resolveChannels($serviceExtensions),
-                fn (array $carry, array $item) => array_unique(array_merge($carry, $item)),
-                []
-            );
-
-            foreach ($endpointChannels as $endpointChannel) {
-                if (in_array($endpointChannel, $polingChannelBuilders)) {
-                    continue;
-                }
-
-                $extensions[] = SimpleMessageChannelBuilder::createQueueChannel(
-                    $endpointChannel,
-                    true,
-                );
-            }
-        }
-
-        return $extensions;
+        return [$this];
     }
 
     public function getModulePackageName(): string
     {
-        return ModulePackageList::ASYNCHRONOUS_PACKAGE;
+        return ModulePackageList::CORE_PACKAGE;
     }
 
     private function hasPollingMetadata(array $pollingMetadata, string $asyncEndpoint): bool

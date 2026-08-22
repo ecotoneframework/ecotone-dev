@@ -4,6 +4,7 @@ namespace Test\Ecotone\Dbal\Integration;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -27,6 +28,7 @@ class StatefulWorkflowTest extends DbalMessagingTestCase
         $cycleGateway = $ecotone->getGateway(CycleGateway::class);
 
         $cycleGateway->submitAnAudit(cycleId: 'foo', audit: new Audit('123', new Certificate('234')));
+        $ecotone->run('cycle');
 
         self::assertEquals(
             [
@@ -53,7 +55,10 @@ class StatefulWorkflowTest extends DbalMessagingTestCase
                 $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('cycle'),
+                ])
                 ->withNamespaces(['Test\Ecotone\Dbal\Fixture\StatefulWorkflow']),
             pathToRootCatalog: __DIR__ . '/../../',
         );

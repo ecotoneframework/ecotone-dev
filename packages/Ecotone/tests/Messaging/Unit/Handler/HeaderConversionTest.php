@@ -29,16 +29,11 @@ final class HeaderConversionTest extends TestCase
     public function test_using_scalar_in_metadata_for_conversion(ServiceConfiguration $serviceConfiguration): void
     {
         $convertedHeaderEndpoint = new ConvertedHeaderEndpoint();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConvertedHeaderEndpoint::class, JsonConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([ConvertedHeaderEndpoint::class, JsonConverter::class],
             [$convertedHeaderEndpoint, new JsonConverter()],
-            $serviceConfiguration,
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(
+            ($serviceConfiguration)->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async'
-                ),
-            ]
-        );
+                )));
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('withScalarConversion', metadata: [
@@ -56,16 +51,11 @@ final class HeaderConversionTest extends TestCase
     public function test_using_object_in_metadata_for_conversion(ServiceConfiguration $serviceConfiguration): void
     {
         $convertedHeaderEndpoint = new ConvertedHeaderEndpoint();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConvertedHeaderEndpoint::class, JsonConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([ConvertedHeaderEndpoint::class, JsonConverter::class],
             [$convertedHeaderEndpoint, new JsonConverter()],
-            $serviceConfiguration,
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(
+            ($serviceConfiguration)->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async'
-                ),
-            ]
-        );
+                )));
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('withScalarConversion', metadata: [
@@ -83,16 +73,11 @@ final class HeaderConversionTest extends TestCase
     public function test_using_fallback_conversion_to_json(ServiceConfiguration $serviceConfiguration): void
     {
         $convertedHeaderEndpoint = new ConvertedHeaderEndpoint();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConvertedHeaderEndpoint::class, JsonConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([ConvertedHeaderEndpoint::class, JsonConverter::class],
             [$convertedHeaderEndpoint, new JsonConverter()],
-            $serviceConfiguration,
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(
+            ($serviceConfiguration)->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async'
-                ),
-            ]
-        );
+                )));
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('withFallbackConversion', metadata: [
@@ -138,11 +123,11 @@ final class HeaderConversionTest extends TestCase
     public static function differentDefaultSerializations(): iterable
     {
         yield [
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withDefaultSerializationMediaType(MediaType::APPLICATION_X_PHP_SERIALIZED),
         ];
         yield [
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withDefaultSerializationMediaType(MediaType::APPLICATION_JSON),
         ];
     }

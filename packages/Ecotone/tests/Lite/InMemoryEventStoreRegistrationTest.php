@@ -55,7 +55,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
             [$projection::class, $testEvent::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 
@@ -123,7 +123,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
             [$projection::class, $testEvent::class, $customStreamSource::class],
             [$projection, $customStreamSource],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         );
 

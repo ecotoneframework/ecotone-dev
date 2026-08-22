@@ -97,7 +97,7 @@ final class InbuiltConvertersTest extends DbalMessagingTestCase
                 $services
             ),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
             pathToRootCatalog: __DIR__ . '/../../',
             addInMemoryStateStoredRepository: false
         );

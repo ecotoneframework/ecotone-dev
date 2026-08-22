@@ -23,7 +23,7 @@ final class CoverageParityTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\User\\'],
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
             cacheConfiguration: true,
         );

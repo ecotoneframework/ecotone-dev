@@ -81,15 +81,11 @@ final class ClosureExpressionTest extends TestCase
 
     public function test_delayed_endpoint_attribute_with_closure_expression(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [DelayedClosureService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([DelayedClosureService::class],
             [new DelayedClosureService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
             licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $headers = $ecotoneLite
             ->sendCommandWithRoutingKey('notification.delayed', new DelayCommand(1234))
@@ -102,13 +98,9 @@ final class ClosureExpressionTest extends TestCase
     {
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
-            [DelayedClosureService::class],
+        EcotoneLite::bootstrapFlowTesting([DelayedClosureService::class],
             [new DelayedClosureService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ],
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
     }
 
     public function test_fetch_closure_expression_loads_aggregate(): void
@@ -138,7 +130,7 @@ final class ClosureExpressionTest extends TestCase
         $configuration = ServiceConfiguration::createWithDefaults()
             ->withCacheDirectoryPath($cacheDirectory)
             ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]));
+            ->withModulePackages([ModulePackageList::CORE_PACKAGE]);
         $service = new ClosureExpressionService();
         $availableServices = [
             ClosureExpressionService::class => $service,

@@ -89,7 +89,7 @@ final class ListingBasketProductsScenarioTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 // Loading converters, so they can be used for events
                 ->withNamespaces(["App\Testing\Infrastructure\Converter"])
-                ->withSkippedModulePackageNames([])
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, true),
                     PollingMetadata::create(MessagingConfiguration::ASYNCHRONOUS_MESSAGES)->withTestingSetup()

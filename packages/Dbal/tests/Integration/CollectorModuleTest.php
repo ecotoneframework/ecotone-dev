@@ -150,7 +150,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             $classesToResolve,
             $services,
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withExtensionObjects(array_merge(
                     $extensionObjects,
                     $channelBuilders,

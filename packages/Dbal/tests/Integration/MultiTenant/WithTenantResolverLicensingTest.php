@@ -62,11 +62,10 @@ final class WithTenantResolverLicensingTest extends TestCase
 
     private function bootstrap(object $service, ?string $licenceKey): void
     {
-        EcotoneLite::bootstrapFlowTesting(
-            [$service::class],
+        EcotoneLite::bootstrapFlowTesting([$service::class],
             [$service, 'tenant_a_connection' => new FakeConnectionFactory()],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+            (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::createWithDefaultConnection(
                         'tenant',
@@ -79,11 +78,7 @@ final class WithTenantResolverLicensingTest extends TestCase
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
                         ->withDeduplication(false),
-                ]),
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('external_processing'),
-            ],
-            licenceKey: $licenceKey,
-        );
+                ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('external_processing')),
+            licenceKey: $licenceKey);
     }
 }

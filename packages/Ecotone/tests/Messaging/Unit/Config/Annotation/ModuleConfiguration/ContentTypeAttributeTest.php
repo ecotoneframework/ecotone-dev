@@ -35,13 +35,9 @@ final class ContentTypeAttributeTest extends TestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [get_class($orderService), JsonConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([get_class($orderService), JsonConverter::class],
             [$orderService, new JsonConverter()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ],
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite->sendMessageDirectToChannel(
             'order.place',
@@ -66,13 +62,9 @@ final class ContentTypeAttributeTest extends TestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [get_class($orderService), JsonConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([get_class($orderService), JsonConverter::class],
             [$orderService, new JsonConverter()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ],
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite->sendMessageDirectToChannel(
             'order.place',
@@ -99,13 +91,9 @@ final class ContentTypeAttributeTest extends TestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [get_class($orderService), JsonConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([get_class($orderService), JsonConverter::class],
             [$orderService, new JsonConverter()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ],
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite->sendMessageDirectToChannel(
             'order.place',

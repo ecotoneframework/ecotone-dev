@@ -157,11 +157,7 @@ class ProjectingModule implements AnnotationModule
                     ->withEndpointAnnotations([AttributeDefinition::fromObject(new ProjectionFlush())])
             );
 
-            // Should the projection be triggered asynchronously?
-            if (
-                $serviceConfiguration->isModulePackageEnabled(ModulePackageList::ASYNCHRONOUS_PACKAGE)
-                && $projectionBuilder->asyncChannelName() !== null
-            ) {
+            if ($projectionBuilder->asyncChannelName() !== null) {
                 $messagingConfiguration->registerAsynchronousEndpoint(
                     $projectionBuilder->asyncChannelName(),
                     self::endpointIdForProjection($projectionName),

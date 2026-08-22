@@ -31,7 +31,7 @@ class MessagingConfigurationTest extends TestCase
         ]);
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
                                 ->withNamespaces(["Test\Ecotone\Messaging\Fixture\Behat\Presend"])
-                                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]));
+                                ->withModulePackages([]);
 
         $ecotone = EcotoneLite::bootstrap(
             containerOrAvailableServices: $container,

@@ -40,7 +40,7 @@ final class BridgeTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapForTesting(
             [AsynchronousBridgeExample::class],
             [$asynchronousBridgeExample],
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
         );
 
         $ecotoneLite->sendMessage('bridgeExample', MessageBuilder::withPayload(1)->build());

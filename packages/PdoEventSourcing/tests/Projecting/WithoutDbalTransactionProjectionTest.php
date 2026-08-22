@@ -279,25 +279,16 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: array_merge([$projection::class, $notificationHandler::class], [Ticket::class, TicketEventConverter::class]),
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: array_merge([$projection::class, $notificationHandler::class], [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: [$projection, $notificationHandler, new TicketEventConverter(), self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ]))
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,])
                 ->withExtensionObjects([
                     PollableChannelConfiguration::neverRetry('notifications')->withCollector(true),
-                ]),
+                ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($projection::CHANNEL))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('notifications')),
             runForProductionEventStore: true,
-            enableAsynchronousProcessing: [
-                DbalBackedMessageChannelBuilder::create($projection::CHANNEL),
-                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+            licenceKey: LicenceTesting::VALID_LICENCE);
 
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
@@ -317,20 +308,12 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services, string $channel): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
+        return EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel)),
             runForProductionEventStore: true,
-            enableAsynchronousProcessing: [
-                DbalBackedMessageChannelBuilder::create($channel),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+            licenceKey: LicenceTesting::VALID_LICENCE);
     }
 }

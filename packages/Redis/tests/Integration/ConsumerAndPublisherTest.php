@@ -35,7 +35,7 @@ final class ConsumerAndPublisherTest extends ConnectionTestCase
                 RedisConnectionFactory::class => $this->getConnectionFactory(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([
                     RedisMessageConsumerConfiguration::create($endpointId, $queueName),
                     RedisMessagePublisherConfiguration::create(queueName: $queueName),

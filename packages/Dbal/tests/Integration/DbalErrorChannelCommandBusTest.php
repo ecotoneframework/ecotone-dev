@@ -258,9 +258,9 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
                 DbalConnectionFactory::class => $connectionFactory,
                 'managerRegistry' => $connectionFactory,
             ]),
-            configuration: ServiceConfiguration::createWithAsynchronicityOnly()
+            configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,

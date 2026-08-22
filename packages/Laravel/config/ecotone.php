@@ -100,7 +100,7 @@ return [
     | command handlers, aggregates, projections, etc.
     |
     */
-    'skippedModulePackageNames' => [],
+    'modulePackages' => [],
 
     /*
     |--------------------------------------------------------------------------

@@ -21,13 +21,9 @@ final class MessageConsumerSignalHandlingTest extends TestCase
     {
         $messageHandler = new TestMessageHandler();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TestMessageHandler::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([TestMessageHandler::class],
             [$messageHandler],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite->sendDirectToChannel('handle_channel', 'test-message');
 
@@ -46,13 +42,9 @@ final class MessageConsumerSignalHandlingTest extends TestCase
     {
         $messageHandler = new TestMessageHandler();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TestMessageHandler::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([TestMessageHandler::class],
             [$messageHandler],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-1');
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-2');
@@ -74,13 +66,9 @@ final class MessageConsumerSignalHandlingTest extends TestCase
     {
         $messageHandler = new TestMessageHandler();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [TestMessageHandler::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([TestMessageHandler::class],
             [$messageHandler],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-1');
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-2');
@@ -101,13 +89,9 @@ final class MessageConsumerSignalHandlingTest extends TestCase
     {
         $signalHandler = new SignalSendingMessageHandler();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SignalSendingMessageHandler::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([SignalSendingMessageHandler::class],
             [$signalHandler],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-1');
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-2');
@@ -128,13 +112,9 @@ final class MessageConsumerSignalHandlingTest extends TestCase
     {
         $signalHandler = new SignalSendingMessageHandler();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [SignalSendingMessageHandler::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([SignalSendingMessageHandler::class],
             [$signalHandler],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-1');
         $ecotoneLite->sendDirectToChannel('handle_channel', 'message-2');

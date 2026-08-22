@@ -28,10 +28,8 @@ final class MultiTenantLicensingTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\MultiTenant\\'],
-            skippedModulePackageNames: ModulePackageList::allPackagesExcept([
-                ModulePackageList::TEMPEST_PACKAGE,
-                ModulePackageList::DBAL_PACKAGE,
-            ]),
+            modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
+                ModulePackageList::DBAL_PACKAGE,],
             test: false,
         );
     }

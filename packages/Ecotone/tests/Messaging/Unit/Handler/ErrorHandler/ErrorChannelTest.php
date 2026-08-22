@@ -31,17 +31,12 @@ final class ErrorChannelTest extends TestCase
 {
     public function test_exception_handling_with_retries_without_dead_letter_uses_final_failure_strategy(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+        $ecotone = EcotoneLite::bootstrapFlowTesting([OrderService::class],
             [new OrderService()],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel']),
-            pathToRootCatalog: __DIR__ . '/../../../../',
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::RESEND),
-            ]
-        );
+            (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([])
+                ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::RESEND)),
+            pathToRootCatalog: __DIR__ . '/../../../../');
 
         $ecotone
             ->sendCommandWithRoutingKey('order.register', 'coffee')
@@ -75,17 +70,12 @@ final class ErrorChannelTest extends TestCase
 
     public function test_exception_handling_with_retries_without_dead_letter_uses_final_failure_strategy_with_ignore(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+        $ecotone = EcotoneLite::bootstrapFlowTesting([OrderService::class],
             [new OrderService()],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel']),
-            pathToRootCatalog: __DIR__ . '/../../../../',
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::IGNORE),
-            ]
-        );
+            (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([])
+                ->withNamespaces(['Test\Ecotone\Messaging\Fixture\Handler\ErrorChannel']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::IGNORE)),
+            pathToRootCatalog: __DIR__ . '/../../../../');
 
         $ecotone
             ->sendCommandWithRoutingKey('order.register', 'coffee')
@@ -116,11 +106,10 @@ final class ErrorChannelTest extends TestCase
 
     public function test_using_custom_channel_for_error_handling(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class],
+        $ecotone = EcotoneLite::bootstrapFlowTesting([OrderService::class],
             [new OrderService()],
-            ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+            (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     ErrorHandlerConfiguration::create(
                         $errorChannelName = 'failureOrders',
@@ -128,13 +117,8 @@ final class ErrorChannelTest extends TestCase
                             ->maxRetryAttempts(2)
                     ),
                 ])
-                ->withDefaultErrorChannel($errorChannelName),
-            pathToRootCatalog: __DIR__ . '/../../../../',
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::IGNORE),
-                SimpleMessageChannelBuilder::createQueueChannel($errorChannelName, finalFailureStrategy: FinalFailureStrategy::RESEND),
-            ]
-        );
+                ->withDefaultErrorChannel($errorChannelName))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('correctOrders', finalFailureStrategy: FinalFailureStrategy::IGNORE))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($errorChannelName, finalFailureStrategy: FinalFailureStrategy::RESEND)),
+            pathToRootCatalog: __DIR__ . '/../../../../');
 
         $ecotone
             ->sendCommandWithRoutingKey('order.register', 'coffee')
@@ -171,7 +155,7 @@ final class ErrorChannelTest extends TestCase
             [FailingScheduledExample::class],
             [new FailingScheduledExample()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withDefaultErrorChannel('customErrorChannel')
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
@@ -206,7 +190,7 @@ final class ErrorChannelTest extends TestCase
             [FailingScheduledExample::class],
             [new FailingScheduledExample()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withDefaultErrorChannel('retryErrorChannel')
                 ->withExtensionObjects([
                     ErrorHandlerConfiguration::create(
@@ -231,7 +215,7 @@ final class ErrorChannelTest extends TestCase
             [AsyncFailingHandler::class],
             [new AsyncFailingHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(AsyncFailingHandler::SHARED_ASYNC_CHANNEL),
                     SimpleMessageChannelBuilder::createQueueChannel(AsyncFailingHandler::ERROR_CHANNEL_A),
@@ -261,7 +245,7 @@ final class ErrorChannelTest extends TestCase
             [AsyncFailingHandler::class],
             [new AsyncFailingHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(AsyncFailingHandler::SHARED_ASYNC_CHANNEL),
                     SimpleMessageChannelBuilder::createQueueChannel(AsyncFailingHandler::ERROR_CHANNEL_A),
@@ -298,7 +282,7 @@ final class ErrorChannelTest extends TestCase
             [AsyncFailingHandler::class],
             [new AsyncFailingHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withDefaultErrorChannel('globalDefaultErrorChannel')
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(AsyncFailingHandler::SHARED_ASYNC_CHANNEL),
@@ -330,7 +314,7 @@ final class ErrorChannelTest extends TestCase
             [DelayedRetryHandler::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(DelayedRetryHandler::ASYNC_CHANNEL),
                 ]),
@@ -361,7 +345,7 @@ final class ErrorChannelTest extends TestCase
             [DelayedRetryHandler::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(DelayedRetryHandler::ASYNC_CHANNEL),
                     SimpleMessageChannelBuilder::createQueueChannel(DelayedRetryHandler::DEAD_LETTER_CHANNEL),
@@ -393,7 +377,7 @@ final class ErrorChannelTest extends TestCase
             [DelayedRetryHandler::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withDefaultErrorChannel('globalDefaultErrorChannel')
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(DelayedRetryHandler::ASYNC_CHANNEL),
@@ -442,7 +426,7 @@ final class ErrorChannelTest extends TestCase
             [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('asyncMisplacedErrorChannel'),
                     SimpleMessageChannelBuilder::createQueueChannel('someErrorChannel'),
@@ -470,7 +454,7 @@ final class ErrorChannelTest extends TestCase
             [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('asyncMisplacedDelayedRetry'),
                 ]),
@@ -499,7 +483,7 @@ final class ErrorChannelTest extends TestCase
             [$service::class],
             [$service],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE])),
+                ->withModulePackages([]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -513,7 +497,7 @@ final class ErrorChannelTest extends TestCase
             [InboundChannelAdapterWithInstantRetryAndErrorChannel::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL),
                 ]),
@@ -541,7 +525,7 @@ final class ErrorChannelTest extends TestCase
             [InboundChannelAdapterWithInstantRetryAndErrorChannel::class],
             [new InboundChannelAdapterWithInstantRetryAndErrorChannel()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL),
                 ]),
@@ -557,7 +541,7 @@ final class ErrorChannelTest extends TestCase
             [InboundChannelAdapterWithInstantRetryAndErrorChannel::class],
             [$handler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel(InboundChannelAdapterWithInstantRetryAndErrorChannel::ERROR_CHANNEL),
                 ]),

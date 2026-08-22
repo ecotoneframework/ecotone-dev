@@ -52,8 +52,7 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [
+        return EcotoneLite::bootstrapFlowTesting(classesToResolve: [
                 AsyncCycle::class,
                 AsyncCycleGateway::class,
                 EventsConverters::class,
@@ -62,11 +61,9 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
                 new EventsConverters(),
                 $this->getConnectionFactory(),
             ],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withNamespaces(['Test\Ecotone\Dbal\Fixture\StatefulWorkflow']),
-            pathToRootCatalog: __DIR__ . '/../../',
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('cycle')]
-        );
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withNamespaces(['Test\Ecotone\Dbal\Fixture\StatefulWorkflow']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('cycle')),
+            pathToRootCatalog: __DIR__ . '/../../');
     }
 }

@@ -21,13 +21,9 @@ final class OnConsumerStopTest extends TestCase
 {
     public function test_on_consumer_stop_is_triggered_when_async_endpoint_stops(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [ConsumerStopHandler::class, AsyncCommandHandler::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([ConsumerStopHandler::class, AsyncCommandHandler::class],
             [new ConsumerStopHandler(), new AsyncCommandHandler()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async_channel')));
 
         // Send a command to async channel
         $ecotoneLite->sendCommandWithRoutingKey('async.command', 'test');

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\ServiceConfiguration;
 use Enqueue\Dbal\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
@@ -181,12 +183,17 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections'),
+                ]),
         );
 
         $this->assertCount(
             1,
             $ecotoneTestSupport
                 ->sendCommand(new RegisterTicket('1', 'johny', 'alert'))
+                ->run('asynchronous_projections')
                 ->discardRecordedMessages()
                 ->sendQueryWithRouting('getInProgressTickets')
         );

@@ -51,7 +51,7 @@ class EventStreamingProjectionTest extends TestCase
             [$projection::class, UserCreated::class],
             [$projection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withNamespaces(['Test\Ecotone\Projecting'])
                 ->withExtensionObjects([
@@ -108,7 +108,7 @@ class EventStreamingProjectionTest extends TestCase
             [$projection::class],
             [$projection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withNamespaces(['Test\Ecotone\Projecting'])
                 ->withExtensionObjects([
@@ -171,7 +171,7 @@ class EventStreamingProjectionTest extends TestCase
             classesToResolve: [$projection::class, ProductRegistered::class, ProductPriceChanged::class],
             containerOrAvailableServices: [$projection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withNamespaces(['Test\Ecotone\Projecting'])
                 ->withExtensionObjects([
@@ -242,7 +242,7 @@ class EventStreamingProjectionTest extends TestCase
             classesToResolve: [$productListProjection::class, $productPriceProjection::class, ProductRegistered::class, ProductPriceChanged::class],
             containerOrAvailableServices: [$productListProjection, $productPriceProjection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withNamespaces(['Test\Ecotone\Projecting'])
                 ->withExtensionObjects([
@@ -319,7 +319,7 @@ class EventStreamingProjectionTest extends TestCase
             classesToResolve: [$eventDrivenProjection::class, $eventStreamingProjection::class, ProductRegistered::class],
             containerOrAvailableServices: [$eventDrivenProjection, $eventStreamingProjection, ConsumerPositionTracker::class => $positionTracker],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withNamespaces(['Test\Ecotone\Projecting'])
                 ->withExtensionObjects([

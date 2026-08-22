@@ -44,6 +44,12 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
   `ServiceConfiguration::createWithAsynchronicityOnly()`.
 - `withSkippedModulePackageNames([...])` is replaced by `withModulePackages([...])` listing the packages to **load**;
   Core and Asynchronous are always loaded. Example: `->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::AMQP_PACKAGE])`.
+- Symfony `ecotone.yaml`, Laravel `config/ecotone.php` and Tempest config: the `skippedModulePackageNames` key is renamed to
+  `modulePackages` and now lists packages to load (Core and Asynchronous are implicit).
+- A handler referencing an unregistered channel fails at bootstrap with
+  `ConfigurationException: Message Channel "orders" used by #[Asynchronous] … is not registered. Register it with
+  SimpleMessageChannelBuilder::createQueueChannel('orders') (or a broker-backed builder) as an extension object or from #[ServiceContext]`.
+  Previously test bootstrap silently created an in-memory channel.
 - Default queue channels are delayable (see §9); nothing to change unless you relied on delays being ignored.
 
 ## 2. Multi-tenancy requires Ecotone Enterprise

@@ -101,11 +101,9 @@ final class SingleTenantTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Customer::class, EcotoneConfiguration::class],
             $this->kernel->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(
-                ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::SYMFONY_PACKAGE,
-                ])
+            ServiceConfiguration::createWithDefaults()->withModulePackages(
+                [ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::SYMFONY_PACKAGE,]
             ),
             addInMemoryStateStoredRepository: false
         );
@@ -128,11 +126,9 @@ final class SingleTenantTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Customer::class, EcotoneConfiguration::class],
             $this->kernel->getContainer(),
-            ServiceConfiguration::createWithDefaults()->withSkippedModulePackageNames(
-                ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::SYMFONY_PACKAGE,
-                ])
+            ServiceConfiguration::createWithDefaults()->withModulePackages(
+                [ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::SYMFONY_PACKAGE,]
             ),
             addInMemoryStateStoredRepository: false
         );

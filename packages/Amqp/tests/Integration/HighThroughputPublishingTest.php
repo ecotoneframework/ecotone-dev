@@ -72,7 +72,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
             [],
             [...$this->getConnectionFactoryReferences()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpMessagePublisherConfiguration::create()
                         ->withDefaultRoutingKey(Uuid::v7()->toRfc4122())
@@ -88,7 +88,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
             [],
             [...$this->getConnectionFactoryReferences()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpMessagePublisherConfiguration::create()
                         ->withDefaultRoutingKey($queueName),
@@ -118,7 +118,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
             [],
             [...$this->getConnectionFactoryReferences()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -218,7 +218,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
                 $orderService,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create('asyncOrdersChannel', queueName: $channelName)
                         ->withHighThroughputPublishing(),
@@ -351,7 +351,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
                 ? [...$this->getConnectionFactoryReferences()]
                 : [...$this->getConnectionFactoryReferences(), $commandHandler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     $publisherConfiguration,
                     AmqpBackedMessageChannelBuilder::create('verificationChannel', queueName: $queueName),
@@ -379,7 +379,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
             [$orderService::class],
             [...$this->getConnectionFactoryReferences(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create('asyncOrdersChannel', queueName: $channelName)
                         ->withHighThroughputPublishing(),

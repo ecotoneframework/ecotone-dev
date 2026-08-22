@@ -52,7 +52,7 @@ final class TracingTreeTest extends TracingTestCase
             [User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
             ->sendCommand(new RegisterUser('1'));
 
@@ -80,7 +80,7 @@ final class TracingTreeTest extends TracingTestCase
             [ExampleMessageHandler::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), ExampleMessageHandler::class => new ExampleMessageHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
             ->sendCommandWithRoutingKey('handleCommand');
 
@@ -112,7 +112,7 @@ final class TracingTreeTest extends TracingTestCase
             [ScheduledHandler::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), ScheduledHandler::class => new ScheduledHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
             ->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(2));
 
@@ -139,7 +139,7 @@ final class TracingTreeTest extends TracingTestCase
             [WorkflowScheduledHandler::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), WorkflowScheduledHandler::class => new WorkflowScheduledHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
             ->run('scheduled_handler', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(2));
 
@@ -176,7 +176,7 @@ final class TracingTreeTest extends TracingTestCase
             [WorkflowScheduledHandler::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), WorkflowScheduledHandler::class => new WorkflowScheduledHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
             ->run('scheduled_handler_without_result', ExecutionPollingMetadata::createWithDefaults()->withExecutionAmountLimit(1));
 
@@ -199,7 +199,7 @@ final class TracingTreeTest extends TracingTestCase
                 )
             )],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
                 ->withExtensionObjects(
                     [
                         TracingConfiguration::createWithDefaults()
@@ -229,7 +229,7 @@ final class TracingTreeTest extends TracingTestCase
                 )
             )],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
                 ->withExtensionObjects(
                     [
                         TracingConfiguration::createWithDefaults()
@@ -269,7 +269,7 @@ final class TracingTreeTest extends TracingTestCase
                 )
             )],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
                 ->withExtensionObjects(
                     [
                         TracingConfiguration::createWithDefaults()
@@ -316,7 +316,7 @@ final class TracingTreeTest extends TracingTestCase
             [User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
             ->sendCommand(new RegisterUser('1'), ['flowId' => '1'])
             ->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
@@ -354,7 +354,7 @@ final class TracingTreeTest extends TracingTestCase
             [User::class, MerchantSubscriberOne::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
             ->publishEvent(new MerchantCreated('1'));
 
@@ -392,7 +392,7 @@ final class TracingTreeTest extends TracingTestCase
             [User::class, MerchantSubscriberOne::class, MerchantSubscriberTwo::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne(), new MerchantSubscriberTwo()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
             ->publishEvent(new MerchantCreated('1'));
 
@@ -444,7 +444,7 @@ final class TracingTreeTest extends TracingTestCase
             [Merchant::class, User::class, MerchantSubscriberOne::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter), new MerchantSubscriberOne()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
             ->sendCommand(new CreateMerchant('1'));
 
@@ -492,7 +492,7 @@ final class TracingTreeTest extends TracingTestCase
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -541,7 +541,7 @@ final class TracingTreeTest extends TracingTestCase
                 TracerProviderInterface::class => self::prepareTracer($exporter),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -586,7 +586,7 @@ final class TracingTreeTest extends TracingTestCase
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -650,7 +650,7 @@ final class TracingTreeTest extends TracingTestCase
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -710,7 +710,7 @@ final class TracingTreeTest extends TracingTestCase
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::TRACING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -784,10 +784,7 @@ final class TracingTreeTest extends TracingTestCase
                 TracerProviderInterface::class => $tracerProvider,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::TRACING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ]))
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
                 ->withExtensionObjects([
                     TracingConfiguration::createWithDefaults(),
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),

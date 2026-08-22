@@ -52,14 +52,14 @@ class EcotoneProvider extends ServiceProvider
 
         $errorChannel = Config::get('ecotone.defaultErrorChannel');
 
-        $skippedModules = Config::get('ecotone.skippedModulePackageNames') ?? [];
+        $modulePackages = Config::get('ecotone.modulePackages') ?? [];
         /** @TODO Ecotone 2.0 use ServiceContext to configure Laravel */
         $applicationConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($environment)
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
             ->withFailFast(false)
             ->withNamespaces(Config::get('ecotone.namespaces') ?? [])
-            ->withSkippedModulePackageNames($skippedModules)
+            ->withModulePackages($modulePackages)
             ->withCacheDirectoryPath($cacheDirectory);
 
         if (Config::get('ecotone.licenceKey') !== null) {

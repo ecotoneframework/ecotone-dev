@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Lite\Test;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
 use Test\Ecotone\Modelling\Fixture\Order\PlaceOrder;
@@ -23,7 +26,8 @@ final class FlowTestSupportFrameworkTest extends TestCase
     {
         $flowSupport = EcotoneLite::bootstrapFlowTesting(
             [OrderService::class],
-            [new OrderService()]
+            [new OrderService()],
+            configuration: self::ordersChannelConfiguration()
         );
 
         $this->assertEquals(
@@ -38,15 +42,15 @@ final class FlowTestSupportFrameworkTest extends TestCase
 
     public function test_providing_initial_state_in_form_of_state_stored_aggregate(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Order::class]);
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Order::class], configuration: self::ordersChannelConfiguration());
 
         $orderId = '1';
 
-        /** Setting up initial state for state stored aggregate */
         $this->assertTrue(
             $ecotoneTestSupport
                 ->withStateFor(Order::register(new PlaceOrder($orderId)))
                 ->sendCommandWithRoutingKey('order.cancel', metadata: ['aggregate.id' => $orderId])
+                ->run('orders', ExecutionPollingMetadata::createWithTestingSetup())
                 ->getAggregate(Order::class, $orderId)
                 ->isCancelled()
         );
@@ -54,14 +58,22 @@ final class FlowTestSupportFrameworkTest extends TestCase
 
     public function test_state_stored_aggregate(): void
     {
-        $flowSupport = EcotoneLite::bootstrapFlowTesting([Order::class]);
+        $flowSupport = EcotoneLite::bootstrapFlowTesting([Order::class], configuration: self::ordersChannelConfiguration());
 
         $this->assertEquals(
             1,
             $flowSupport
                 ->sendCommandWithRoutingKey('order.register', new PlaceOrder('1'))
+                ->run('orders', ExecutionPollingMetadata::createWithTestingSetup())
+                ->run('orders', ExecutionPollingMetadata::createWithTestingSetup())
                 ->getAggregate(Order::class, '1')
                 ->getIsNotifiedCount()
         );
+    }
+
+    private static function ordersChannelConfiguration(): ServiceConfiguration
+    {
+        return ServiceConfiguration::createWithDefaults()
+            ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'));
     }
 }

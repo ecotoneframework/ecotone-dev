@@ -140,7 +140,7 @@ return new EcotoneConfig(
 | `cacheConfiguration` | `bool` | `false` (from `ECOTONE_CACHE_CONFIGURATION` env) | Cache the messaging system definition for production |
 | `defaultSerializationMediaType` | `string` | `''` | Override the default message serialization format |
 | `defaultErrorChannel` | `string` | `''` | Channel name for unhandled async exceptions |
-| `skippedModulePackageNames` | `array` | `[]` | Module packages to skip loading (useful for testing) |
+| `modulePackages` | `array` | `[]` | Module packages to load in addition to Core |
 | `licenceKey` | `string` | `''` | Enterprise licence key |
 
 ## Console Commands

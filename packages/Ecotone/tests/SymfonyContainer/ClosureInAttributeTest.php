@@ -40,7 +40,7 @@ final class ClosureInAttributeTest extends TestCase
         $cacheDirectory = sys_get_temp_dir() . '/ecotone_policy_driven_closure/' . uniqid('', true);
         $configuration = ServiceConfiguration::createWithDefaults()
             ->withCacheDirectoryPath($cacheDirectory)
-            ->withSkippedModulePackageNames(ModulePackageList::allPackages());
+            ->withModulePackages([]);
         $tokenService = new PolicyDrivenTokenService();
         $availableServices = [PolicyDrivenTokenService::class => $tokenService];
 
@@ -74,7 +74,7 @@ final class ClosureInAttributeTest extends TestCase
         $cacheDirectory = sys_get_temp_dir() . '/ecotone_closure_in_attribute/' . uniqid('', true);
         $configuration = ServiceConfiguration::createWithDefaults()
             ->withCacheDirectoryPath($cacheDirectory)
-            ->withSkippedModulePackageNames(ModulePackageList::allPackages());
+            ->withModulePackages([]);
         $lockingInterceptor = new LockingInterceptor();
         $availableServices = [
             OrderService::class => new OrderService(),

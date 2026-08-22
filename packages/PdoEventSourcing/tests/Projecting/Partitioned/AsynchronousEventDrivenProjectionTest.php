@@ -124,21 +124,13 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $projection = $this->createAsyncProjection();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($projection::CHANNEL, true)),
             runForProductionEventStore: true,
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel($projection::CHANNEL, true),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+            licenceKey: LicenceTesting::VALID_LICENCE);
 
         $ecotone->deleteProjection($projection::NAME);
 
@@ -158,21 +150,13 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $projection = $this->createAsyncProjection();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [$projection, new TicketEventConverter(), self::getConnectionFactory()],
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($projection::CHANNEL)),
             runForProductionEventStore: true,
-            enableAsynchronousProcessing: [
-                DbalBackedMessageChannelBuilder::create($projection::CHANNEL),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+            licenceKey: LicenceTesting::VALID_LICENCE);
 
         $ecotone->deleteProjection($projection::NAME);
 
@@ -294,20 +278,12 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
+        return EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
-            configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ])),
+            configuration: (ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async_projection_partitioned')),
             runForProductionEventStore: true,
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('async_projection_partitioned'),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+            licenceKey: LicenceTesting::VALID_LICENCE);
     }
 }

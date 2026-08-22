@@ -64,7 +64,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', DbalBackedMessageChannelBuilder::create('outbox'), 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('orderProcessing'),
@@ -106,7 +106,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -142,7 +142,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
                         ->withMaxForwardingBatchSize(2),
@@ -176,7 +176,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
                         ->withMaxForwardingBatchSize(100),
@@ -220,7 +220,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     CombinedMessageChannel::create('otherOrders', ['outbox', 'otherProcessing']),
@@ -248,7 +248,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -271,7 +271,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -309,7 +309,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('standardOrders', 'outbox', 'standardProcessing')
                         ->withMaxForwardingBatchSize(2),
@@ -364,7 +364,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     DbalBackedMessageChannelBuilder::create('orders'),
                 ]),
@@ -399,7 +399,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('standardOrders', 'standardOutbox', 'standardProcessing')
                         ->withEndpointId('sharedOutboxPublisher'),
@@ -439,7 +439,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'failingProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -479,7 +479,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox')
@@ -517,7 +517,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 'alwaysFailingDelivery' => new AlwaysFailOnPayloadChannelInterceptor('cappuccino'),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
@@ -556,7 +556,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 'alwaysFailingDelivery' => new AlwaysFailOnPayloadChannelInterceptor('cappuccino'),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing')
                         ->withFinalFailureStrategy(FinalFailureStrategy::STOP),
@@ -598,7 +598,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [$orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'inMemoryOutbox', 'inMemoryProcessing'),
                     SimpleMessageChannelBuilder::createQueueChannel('inMemoryOutbox'),
@@ -624,7 +624,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'misspelled_outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -649,7 +649,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 [$orderService::class],
                 [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
                 ServiceConfiguration::createWithDefaults()
-                    ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                    ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                     ->withExtensionObjects([
                         OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                         DbalBackedMessageChannelBuilder::create('outbox'),
@@ -694,7 +694,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -720,7 +720,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -752,7 +752,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -776,7 +776,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     CombinedMessageChannel::create('orders', ['outbox', 'orderProcessing']),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -809,7 +809,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'failingProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -847,7 +847,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 ],
                 ServiceConfiguration::createWithDefaults()
                     ->withDefaultErrorChannel('customErrorChannel')
-                    ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                    ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                     ->withExtensionObjects([
                         OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                         DbalBackedMessageChannelBuilder::create('outbox')
@@ -890,7 +890,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withDefaultErrorChannel('customErrorChannel')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox')
@@ -931,7 +931,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
@@ -1031,7 +1031,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 'failingDeliveryInterceptor' => new FailOnceOnPayloadChannelInterceptor('cappuccino', $exceptionClass),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'orderProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),

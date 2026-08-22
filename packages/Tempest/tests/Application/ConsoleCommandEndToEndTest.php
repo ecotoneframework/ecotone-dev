@@ -18,7 +18,7 @@ final class ConsoleCommandEndToEndTest extends EcotoneIntegrationTestCase
     {
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\'],
-            skippedModulePackageNames: ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]),
+            modulePackages: [],
             test: true,
         );
     }

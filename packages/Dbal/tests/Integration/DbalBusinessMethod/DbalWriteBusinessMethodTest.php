@@ -203,7 +203,7 @@ final class DbalWriteBusinessMethodTest extends DbalMessagingTestCase
                 ],
             ),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\DbalBusinessInterface',
                     'Test\Ecotone\Dbal\Fixture\ORM\Person',

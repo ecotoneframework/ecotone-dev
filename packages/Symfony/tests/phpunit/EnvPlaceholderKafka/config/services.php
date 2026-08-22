@@ -7,12 +7,9 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
-        'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([
-            ModulePackageList::SYMFONY_PACKAGE,
-            ModulePackageList::ASYNCHRONOUS_PACKAGE,
+        'modulePackages' => [ModulePackageList::SYMFONY_PACKAGE,
             ModulePackageList::KAFKA_PACKAGE,
-            ModulePackageList::DBAL_PACKAGE,
-        ]),
+            ModulePackageList::DBAL_PACKAGE,],
         'licenceKey' => '%env(SYMFONY_LICENCE_KEY)%',
     ]);
 

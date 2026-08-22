@@ -57,13 +57,6 @@ class ServiceConfiguration
         return (new self());
     }
 
-    /**
-     * @TODO Ecotone 2.0 make async part of core package
-     */
-    public static function createWithAsynchronicityOnly(): self
-    {
-        return self::createWithDefaults()->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]));
-    }
 
     /**
      * @param self[] $applicationConfigurations
@@ -245,15 +238,14 @@ class ServiceConfiguration
     }
 
     /**
-     * List which packages should be skipped. The core package can't be skipped.
-     * @TODO Ecotone 2.0 change to which packages should be loaded
-     *
      * @link ModulePackageList list of available packages
-     * @param string[] $modulePackageNames
+     * @param string[] $packagesToLoad
      */
-    public function withSkippedModulePackageNames(array $modulePackageNames): self
+    public function withModulePackages(array $packagesToLoad): self
     {
-        $this->skippedModulesPackages = $modulePackageNames;
+        $availablePackages = array_merge(ModulePackageList::allPackages(), [ModulePackageList::TEST_PACKAGE]);
+        $packagesToLoad[] = ModulePackageList::CORE_PACKAGE;
+        $this->skippedModulesPackages = array_values(array_diff($availablePackages, array_unique($packagesToLoad)));
         $this->areSkippedPackagesDefined = true;
 
         return $this;
@@ -351,7 +343,6 @@ class ServiceConfiguration
     }
 
     /**
-     * @TODO Ecotone 2.0 Rethink if it should still be here, if ServiceCacheDirectory can be used instead
      * @deprecated use ServiceCacheDirectory
      */
     public function getCacheDirectoryPath(): string

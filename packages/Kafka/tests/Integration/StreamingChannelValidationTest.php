@@ -53,7 +53,7 @@ final class StreamingChannelValidationTest extends TestCase
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'channel1',
@@ -97,7 +97,7 @@ final class StreamingChannelValidationTest extends TestCase
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'channel1',

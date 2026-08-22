@@ -5,10 +5,8 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
-        'skippedModulePackageNames' => ModulePackageList::allPackagesExcept([
-            ModulePackageList::SYMFONY_PACKAGE,
-            ModulePackageList::DBAL_PACKAGE,
-        ]),
+        'modulePackages' => [ModulePackageList::SYMFONY_PACKAGE,
+            ModulePackageList::DBAL_PACKAGE,],
     ]);
 
     $services = $containerConfigurator->services();

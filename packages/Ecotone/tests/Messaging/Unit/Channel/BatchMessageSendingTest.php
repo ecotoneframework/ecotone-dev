@@ -21,12 +21,8 @@ final class BatchMessageSendingTest extends TestCase
 {
     public function test_batch_message_sent_to_pollable_channel_is_delivered_as_individual_messages(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders'),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')));
 
         $batch = BatchMessage::constructEmpty()
             ->append('first order')
@@ -48,14 +44,10 @@ final class BatchMessageSendingTest extends TestCase
     public function test_batch_message_sent_to_handler_output_channel_is_split_into_individual_messages(): void
     {
         $orderProcessor = $this->createOrderProcessor();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$orderProcessor::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$orderProcessor::class],
             [$orderProcessor],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders'),
-            ],
             licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')));
 
         $ecotoneLite->sendCommandWithRoutingKey('order.placeAll', ['espresso', 'latte']);
 
@@ -67,13 +59,9 @@ final class BatchMessageSendingTest extends TestCase
     public function test_batch_message_sent_to_handler_output_channel_requires_enterprise_licence(): void
     {
         $orderProcessor = $this->createOrderProcessor();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [$orderProcessor::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$orderProcessor::class],
             [$orderProcessor],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders'),
-            ],
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')));
 
         $this->expectException(LicensingException::class);
 
@@ -98,12 +86,8 @@ final class BatchMessageSendingTest extends TestCase
 
     public function test_empty_batch_message_delivers_nothing(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel('orders'),
-            ],
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')));
 
         $ecotoneLite->getMessageChannel('orders')->send(
             MessageBuilder::withPayload(BatchMessage::constructEmpty())->build()

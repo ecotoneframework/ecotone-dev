@@ -31,7 +31,7 @@ final class ProjectionFromMultipleStreamsTest extends EventSourcingMessagingTest
             containerOrAvailableServices: [new MultipleStreamsProjection(), new BasketEventConverter(), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE,])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\ProjectionFromMultipleStreams',
                     'Test\Ecotone\EventSourcing\Fixture\Basket',

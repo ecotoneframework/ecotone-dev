@@ -164,8 +164,7 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
                 ->setHandledMessageLimit(1);
         }
 
-        return EcotoneLite::bootstrapFlowTesting(
-            array_map(static fn (object $service): string => $service::class, $services),
+        return EcotoneLite::bootstrapFlowTesting(array_map(static fn (object $service): string => $service::class, $services),
             array_merge(
                 $services,
                 [
@@ -173,15 +172,15 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
                     'tenant_b_connection' => $this->connectionForTenantB(),
                 ],
             ),
-            ServiceConfiguration::createWithDefaults()
+            (ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
-                ->withExtensionObjects($extensionObjects),
-            enableAsynchronousProcessing: $asynchronous
-                ? [SimpleMessageChannelBuilder::createQueueChannel('persons_processing')]
-                : true,
-            licenceKey: LicenceTesting::VALID_LICENCE,
-        );
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withExtensionObjects(
+                    $asynchronous
+                        ? [...$extensionObjects, SimpleMessageChannelBuilder::createQueueChannel('persons_processing')]
+                        : $extensionObjects
+                )),
+            licenceKey: LicenceTesting::VALID_LICENCE);
     }
 
     private function assertTenantTablesIsolated(Connection $tenantADbal, Connection $tenantBDbal): void

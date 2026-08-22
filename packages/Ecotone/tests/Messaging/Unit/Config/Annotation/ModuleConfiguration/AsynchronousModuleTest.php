@@ -112,12 +112,9 @@ final class AsynchronousModuleTest extends AnnotationConfigurationTestCase
      */
     private function bootstrapEcotone(array $classesToResolve, array $services, array $channelBuilders, array $collectorConfigurations): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
-            $classesToResolve,
+        return EcotoneLite::bootstrapFlowTesting($classesToResolve,
             $services,
-            ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects($collectorConfigurations),
-            enableAsynchronousProcessing: $channelBuilders
-        );
+            (ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects($collectorConfigurations))->withExtensionObjects($channelBuilders));
     }
 }

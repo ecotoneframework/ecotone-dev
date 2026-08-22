@@ -31,6 +31,7 @@ final class InstantRetryModuleTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3),
                 ])
@@ -53,6 +54,7 @@ final class InstantRetryModuleTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3),
                 ])
@@ -75,6 +77,7 @@ final class InstantRetryModuleTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 2),
                 ])
@@ -94,6 +97,7 @@ final class InstantRetryModuleTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3, [RuntimeException::class]),
                 ])
@@ -116,6 +120,7 @@ final class InstantRetryModuleTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3, [InvalidArgumentException::class]),
                 ])
@@ -144,7 +149,7 @@ final class InstantRetryModuleTest extends TestCase
                 new RetriedCommandHandler(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
@@ -169,7 +174,7 @@ final class InstantRetryModuleTest extends TestCase
                 new RetriedCommandHandler(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
@@ -195,7 +200,7 @@ final class InstantRetryModuleTest extends TestCase
                 new RetriedCommandHandler(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
@@ -219,15 +224,14 @@ final class InstantRetryModuleTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(true, 3),
                 ])
         );
 
-        // Send command that will fail 3 times before succeeding (4 total attempts)
         $ecotoneLite->sendCommandWithRoutingKey('interceptor.after.retry', 3);
 
-        // Verify command was called 4 times
         $this->assertEquals(
             [
                 'preRetryInterceptor',
@@ -252,7 +256,7 @@ final class InstantRetryModuleTest extends TestCase
                 new InterceptorAfterRetryHandler(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     InstantRetryConfiguration::createWithDefaults()
@@ -264,7 +268,6 @@ final class InstantRetryModuleTest extends TestCase
             ->sendCommandWithRoutingKey('interceptor.after.retry.async', 3)
             ->run('async', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
 
-        // Verify command was called 4 times
         $this->assertEquals(
             [
                 'preRetryInterceptor',

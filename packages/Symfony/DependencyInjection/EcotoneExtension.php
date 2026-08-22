@@ -35,15 +35,14 @@ class EcotoneExtension extends Extension
         $config = $this->processConfiguration($configuration, $configs);
         $config = $container->resolveEnvPlaceholders($config, true);
 
-        $skippedModules = $config['skippedModulePackageNames'] ?? [];
+        $modulePackages = $config['modulePackages'] ?? [];
 
-        /** @TODO Ecotone 2.0 use ServiceContext to configure Symfony */
-        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
+                $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))
             ->withFailFast(in_array($container->getParameter('kernel.environment'), ['prod', 'production']) ? false : $config['failFast'])
             ->withLoadCatalog($config['loadSrcNamespaces'] ? 'src' : '')
             ->withNamespaces($config['namespaces'])
-            ->withSkippedModulePackageNames($skippedModules)
+            ->withModulePackages($modulePackages)
         ;
 
         if ($config['licenceKey'] !== null) {

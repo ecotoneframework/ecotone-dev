@@ -288,13 +288,10 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
      */
     private function bootstrapEcotone(array $classesToResolve, array $services, array $channelBuilders, array $extensionObjects = [], bool $withEnterpriseLicence = false): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
-            $classesToResolve,
+        return EcotoneLite::bootstrapFlowTesting($classesToResolve,
             $services,
             ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects($extensionObjects),
-            enableAsynchronousProcessing: $channelBuilders,
-            licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null
-        );
+                ->withExtensionObjects(array_merge($extensionObjects, $channelBuilders)),
+            licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null);
     }
 }

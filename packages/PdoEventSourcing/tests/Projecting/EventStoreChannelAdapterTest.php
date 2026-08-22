@@ -64,11 +64,8 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
                     EventStreamingChannelAdapter::create(
@@ -222,7 +219,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),

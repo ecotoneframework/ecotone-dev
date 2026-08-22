@@ -48,6 +48,6 @@ final class PollableChannelSerializationModule extends NoExternalConfigurationMo
 
     public function getModulePackageName(): string
     {
-        return ModulePackageList::ASYNCHRONOUS_PACKAGE;
+        return ModulePackageList::CORE_PACKAGE;
     }
 }

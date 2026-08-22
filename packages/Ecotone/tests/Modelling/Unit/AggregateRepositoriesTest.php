@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
@@ -35,10 +36,12 @@ class AggregateRepositoriesTest extends TestCase
             EcotoneLite::bootstrapFlowTesting(
                 [Order::class, InMemoryStandardRepository::class],
                 [InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty()],
+                self::ordersChannelConfiguration(),
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
             )
             ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+            ->run('orders')
             ->getAggregate(Order::class, '123')
         );
     }
@@ -75,12 +78,15 @@ class AggregateRepositoriesTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             [Order::class, InMemoryEventSourcedRepository::class],
             [InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty()],
+            self::ordersChannelConfiguration(),
             addInMemoryStateStoredRepository: false,
         );
 
         self::expectException(InvalidArgumentException::class);
 
-        $ecotone->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'));
+        $ecotone
+            ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+            ->run('orders');
     }
 
     public function test_throwing_exception_if_only_event_soured_repository_available_for_standard_aggregate()
@@ -90,10 +96,12 @@ class AggregateRepositoriesTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [Order::class, InMemoryEventSourcedRepository::class],
             [InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty()],
+            self::ordersChannelConfiguration(),
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         )
-            ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'));
+            ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+            ->run('orders');
     }
 
     public function test_throwing_exception_if_only_standard_repository_available_for_event_sourced_aggregate()
@@ -118,10 +126,12 @@ class AggregateRepositoriesTest extends TestCase
                     InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty(),
                     InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty(),
                 ],
+                self::ordersChannelConfiguration(),
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
             )
                 ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+                ->run('orders')
                 ->getAggregate(Order::class, '123')
         );
     }
@@ -135,10 +145,12 @@ class AggregateRepositoriesTest extends TestCase
                     InMemoryStandardRepository::class => InMemoryStandardRepository::createEmpty(),
                     InMemoryEventSourcedRepository::class => InMemoryEventSourcedRepository::createEmpty(),
                 ],
+                self::ordersChannelConfiguration(),
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
             )
                 ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+                ->run('orders')
                 ->getAggregate(Order::class, '123')
         );
     }
@@ -173,10 +185,12 @@ class AggregateRepositoriesTest extends TestCase
                 AppointmentStandardRepository::class => AppointmentStandardRepository::createEmpty(),
                 InMemoryArticleStandardRepository::class => InMemoryArticleStandardRepository::createEmpty(),
             ],
+            self::ordersChannelConfiguration(),
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         )
             ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+            ->run('orders')
         ;
     }
 
@@ -193,5 +207,11 @@ class AggregateRepositoriesTest extends TestCase
                 ->sendCommand(new CreateAppointmentCommand('123', 1))
                 ->getAggregate(Appointment::class, '123')
         );
+    }
+
+    private static function ordersChannelConfiguration(): ServiceConfiguration
+    {
+        return ServiceConfiguration::createWithDefaults()
+            ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'));
     }
 }

@@ -326,7 +326,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [CalculatingServiceForAsynchronousScenario::class],
             [$calculatingService],
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('asyncOne'),
                     SimpleMessageChannelBuilder::createQueueChannel('asyncTwo'),
@@ -1090,7 +1090,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
 
     public function test_registering_endpoint_with_default_error_channel()
     {
-        $applicationConfiguration = ServiceConfiguration::createWithAsynchronicityOnly()
+        $applicationConfiguration = ServiceConfiguration::createWithDefaults()->withModulePackages([])
                                         ->withDefaultErrorChannel('error');
         $messagingSystemConfiguration = MessagingSystemConfiguration::prepareWithDefaultsForTesting(serviceConfiguration: $applicationConfiguration);
 
@@ -2137,7 +2137,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             [SomeTestCommandHandler::class],
             [new SomeTestCommandHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('input'),
                 ])
@@ -2153,7 +2153,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
             [SomeTestEventHandler::class],
             [new SomeTestEventHandler()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('input'),
                 ])

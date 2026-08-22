@@ -263,10 +263,8 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(\Ecotone\Messaging\Config\ModulePackageList::allPackagesExcept([
-                    \Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,
-                ]))
+                ->withModulePackages([\Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
                     $config,
                     AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME)
@@ -281,10 +279,8 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(\Ecotone\Messaging\Config\ModulePackageList::allPackagesExcept([
-                    \Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,
-                ]))
+                ->withModulePackages([\Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
+                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
                     $config,
                     AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),
@@ -299,11 +295,9 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
         return $this->bootstrapFlowTesting(
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(\Ecotone\Messaging\Config\ModulePackageList::allPackagesExcept([
-                    \Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
+                ->withModulePackages([\Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
                     \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::ASYNCHRONOUS_PACKAGE,
-                ]))
+                ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     $config,

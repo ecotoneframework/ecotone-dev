@@ -26,7 +26,7 @@ class EcotoneLiteCachedContainerTest extends TestCase
         $cacheDirectory = sys_get_temp_dir() . '/ecotone_lite_dumped_container/' . uniqid('', true);
         $configuration = ServiceConfiguration::createWithDefaults()
             ->withCacheDirectoryPath($cacheDirectory)
-            ->withSkippedModulePackageNames(ModulePackageList::allPackages());
+            ->withModulePackages([]);
         $handler = new CachedCommandHandlerService();
 
         $messagingSystem = EcotoneLite::bootstrap(
@@ -56,7 +56,7 @@ class EcotoneLiteCachedContainerTest extends TestCase
             [OneTimeWithResultExample::class],
             [OneTimeWithResultExample::class => new OneTimeWithResultExample()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
         );
 
         $container = $messagingSystem->getServiceFromContainer(ContainerInterface::class);
@@ -71,7 +71,7 @@ class EcotoneLiteCachedContainerTest extends TestCase
             [CachedCommandHandlerService::class],
             [CachedCommandHandlerService::class => new CachedCommandHandlerService()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages()),
+                ->withModulePackages([]),
         );
         $container = $messagingSystem->getServiceFromContainer(ContainerInterface::class);
 

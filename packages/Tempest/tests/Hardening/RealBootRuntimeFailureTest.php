@@ -138,7 +138,7 @@ final class RealBootRuntimeFailureTest extends TestCase
 
         $kernel->container->config(new EcotoneConfig(
             namespaces: [$fixtureNamespace],
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
         ));
 
         if ($configureContainer !== null) {

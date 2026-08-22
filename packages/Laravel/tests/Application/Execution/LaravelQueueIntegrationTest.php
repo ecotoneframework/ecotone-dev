@@ -57,7 +57,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName, 'database'),
                 ])
@@ -79,7 +79,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName),
                 ])
@@ -114,7 +114,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create(
                         $channelName,
@@ -152,7 +152,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName),
                 ])
@@ -175,7 +175,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName),
                 ])
@@ -197,7 +197,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
@@ -219,7 +219,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName),
                 ])
@@ -241,7 +241,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName),
                 ])
@@ -264,7 +264,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName),
                 ])
@@ -289,7 +289,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName),
                 ])
@@ -312,7 +312,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncEventHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName),
                 ])
@@ -346,7 +346,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging = EcotoneLite::bootstrapFlowTesting(
             [AsyncCommandHandler::class],
             $this->getContainer(),
-            ServiceConfiguration::createWithAsynchronicityOnly()
+            ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName),
                 ])

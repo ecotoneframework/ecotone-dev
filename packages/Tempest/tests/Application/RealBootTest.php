@@ -69,7 +69,7 @@ final class RealBootTest extends TestCase
         $kernel->container->singleton(
             EcotoneConfig::class,
             new EcotoneConfig(
-                skippedModulePackageNames: ModulePackageList::allPackages(),
+                modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
                 test: true,
             ),
         );
@@ -113,7 +113,7 @@ final class RealBootTest extends TestCase
         $this->injectDiscoveryConfig($kernel, $ecotoneLocation, $appLocation);
 
         $kernel->container->config(new EcotoneConfig(
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
             test: true,
         ));
 

@@ -78,7 +78,7 @@ class Configuration implements ConfigurationInterface
                         ->defaultNull()
                     ->end()
 
-                    ->arrayNode('skippedModulePackageNames')
+                    ->arrayNode('modulePackages')
                         ->scalarPrototype()
                     ->end()
                 ->end()

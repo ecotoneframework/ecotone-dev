@@ -129,6 +129,10 @@ class ModuleClassList
         StreamFilterRegistryModule::class,
         StreamSourceRegistryModule::class,
         EventStoreAdapterModule::class,
+        AsynchronousModule::class,
+        PollableChannelSerializationModule::class,
+        PollableChannelSendRetriesModule::class,
+        InMemoryQueueAcknowledgeModule::class,
 
         /** Attribute based configurations */
         MessageHeadersPropagatorInterceptor::class,
@@ -139,12 +143,6 @@ class ModuleClassList
         ProjectingConsoleCommands::class,
     ];
 
-    public const ASYNCHRONOUS_MODULE = [
-        AsynchronousModule::class,
-        PollableChannelSerializationModule::class,
-        PollableChannelSendRetriesModule::class,
-        InMemoryQueueAcknowledgeModule::class,
-    ];
 
     public const AMQP_MODULES = [
         AmqpTransactionModule::class,

@@ -115,7 +115,7 @@ final class MissingReferenceRuntimeFailureTest extends TestCase
         $container = new GenericContainer();
         $container->config(new EcotoneConfig(
             namespaces: [$namespace],
-            skippedModulePackageNames: ModulePackageList::allPackages(),
+            modulePackages: \Test\Ecotone\Tempest\TempestTestModulePackages::all(),
         ));
 
         return (new MessagingSystemInitializer())->initialize($container);

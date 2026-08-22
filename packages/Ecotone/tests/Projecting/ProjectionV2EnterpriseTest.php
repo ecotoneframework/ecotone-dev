@@ -61,7 +61,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $ecotone->withEvents([Event::createWithType('test-event', ['name' => 'Test'])]);
@@ -86,7 +86,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
@@ -109,7 +109,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $this->assertNotNull($ecotone);
@@ -159,7 +159,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $this->assertNotNull($ecotone);
@@ -181,7 +181,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $this->assertNotNull($ecotone);
@@ -202,7 +202,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
     }
 
@@ -221,7 +221,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([])
         );
     }
 
@@ -240,7 +240,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
     }
 
@@ -259,7 +259,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
     }
 
@@ -278,7 +278,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
     }
 
@@ -297,7 +297,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
     }
 
@@ -328,7 +328,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class, $customStreamSource::class],
             [$projection, $customStreamSource],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
     }
 
@@ -381,7 +381,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class, $customStateStorage::class],
             [$projection, $customStateStorage],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
     }
 
@@ -417,7 +417,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class, $customPartitionProvider::class],
             [$projection, $customPartitionProvider],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
     }
 
@@ -437,7 +437,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
 
         $ecotone->withEvents([Event::createWithType('test-event', ['name' => 'Test'], [MessageHeaders::EVENT_AGGREGATE_ID => '1'])]);
@@ -471,7 +471,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
         );
     }
 

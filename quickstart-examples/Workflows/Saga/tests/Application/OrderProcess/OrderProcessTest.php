@@ -24,13 +24,11 @@ final class OrderProcessTest extends TestCase
     {
         $orderId = '123';
         $totalPrice = Money::EUR(100);
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderProcess::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderProcess::class],
             [
                 OrderService::class => new StubOrderService($totalPrice)
             ],
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('async')]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite->publishEvent(new OrderWasPlaced($orderId));
 
@@ -50,14 +48,12 @@ final class OrderProcessTest extends TestCase
     {
         $orderId = '123';
         $totalPrice = Money::EUR(100);
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderProcess::class, PaymentService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderProcess::class, PaymentService::class],
             [
                 OrderService::class => new StubOrderService($totalPrice),
                 PaymentService::class => new PaymentService(new PaymentProcessor())
             ],
-            enableAsynchronousProcessing: [SimpleMessageChannelBuilder::createQueueChannel('async')]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $this->assertEquals(
             OrderProcessStatus::READY_TO_BE_SHIPPED,
@@ -72,17 +68,13 @@ final class OrderProcessTest extends TestCase
     {
         $orderId = '123';
         $totalPrice = Money::EUR(100);
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderProcess::class, PaymentService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderProcess::class, PaymentService::class],
             [
                 OrderService::class => new StubOrderService($totalPrice),
                 PaymentService::class => new PaymentService(new PaymentProcessor(successAfterAttempt: 3))
             ],
-            enableAsynchronousProcessing: [
-                // Make Message Channel aware of the delay
-                SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true)
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(// Make Message Channel aware of the delay
+                SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true)));
 
         $this->assertEquals(
             OrderProcessStatus::CANCELLED,

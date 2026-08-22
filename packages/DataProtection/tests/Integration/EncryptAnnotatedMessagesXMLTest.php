@@ -243,7 +243,7 @@ class EncryptAnnotatedMessagesXMLTest extends TestCase
             containerOrAvailableServices: $container,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]))
+                ->withModulePackages([ModulePackageList::CORE_PACKAGE, ModulePackageList::AMQP_PACKAGE, ModulePackageList::DATA_PROTECTION_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
                 ->withNamespaces(['Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages'])
                 ->withDefaultSerializationMediaType(MediaType::APPLICATION_XML)
                 ->withExtensionObjects(

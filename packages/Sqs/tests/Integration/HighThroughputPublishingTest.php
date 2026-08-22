@@ -67,7 +67,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [],
             [SqsConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsMessagePublisherConfiguration::create(queueName: Uuid::v7()->toRfc4122())
                         ->withHighThroughputPublishing(),
@@ -134,7 +134,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [$commandHandler::class],
             [SqsConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::SQS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsMessagePublisherConfiguration::create(queueName: $queueName)
                         ->withHighThroughputPublishing(confirmationTimeoutInMilliseconds: 10000),
@@ -237,7 +237,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [$orderService::class],
             [SqsConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::SQS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create('asyncOrdersChannel')
                         ->withHighThroughputPublishing(),
@@ -257,7 +257,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
             [],
             [SqsConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::SQS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([
                     $publisherConfiguration,
                     SqsBackedMessageChannelBuilder::create($queueName),

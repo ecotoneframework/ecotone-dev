@@ -4,6 +4,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -28,6 +29,7 @@ class StatefulEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
         $cycleGateway = $ecotone->getGateway(CycleGateway::class);
 
         $cycleGateway->submitAnAudit(cycleId: 'foo', audit: new Audit('123', new Certificate('234')));
+        $ecotone->run('cycle');
 
         self::assertEquals(
             [
@@ -59,6 +61,7 @@ class StatefulEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
         $cycleGateway = $ecotone->getGateway(CycleGateway::class);
 
         $cycleGateway->submitAnAudit(cycleId: 'foo', audit: new Audit('678', new Certificate('987')));
+        $ecotone->run('cycle');
 
         self::assertEquals(
             [
@@ -85,7 +88,10 @@ class StatefulEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
                 self::getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withExtensionObjects([
+                    SimpleMessageChannelBuilder::createQueueChannel('cycle'),
+                ])
                 ->withNamespaces(['Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow']),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,

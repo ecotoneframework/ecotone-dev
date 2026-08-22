@@ -350,14 +350,11 @@ final class CollectorModuleTest extends TestCase
      */
     private function bootstrapEcotone(array $classesToResolve, array $services, array $channelBuilders, array $collectorConfigurations, bool $withEnterpriseLicence = false): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
-            $classesToResolve,
+        return EcotoneLite::bootstrapFlowTesting($classesToResolve,
             $services,
             ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects($collectorConfigurations),
-            enableAsynchronousProcessing: $channelBuilders,
-            licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null
-        );
+                ->withExtensionObjects(array_merge($collectorConfigurations, $channelBuilders)),
+            licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null);
     }
 
     /**

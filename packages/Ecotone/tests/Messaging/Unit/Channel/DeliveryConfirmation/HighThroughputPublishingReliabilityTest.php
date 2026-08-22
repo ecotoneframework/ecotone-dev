@@ -66,17 +66,11 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
     public function test_failed_deliveries_routed_to_async_error_channel_are_awaited_before_commit(): void
     {
         $operationsLog = new OperationsLog();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
-            [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
-            ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+            (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 \Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration::createWithDefaults()->withErrorChannel('failure_channel'),
-            ]),
-            enableAsynchronousProcessing: [
-                InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'),
-                InMemoryHighThroughputPublishingChannelBuilder::create('failure_channel'),
-            ],
-        );
+            ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('failure_channel')));
         $ordersChannel = $ecotoneLite->getMessageChannel('async_orders');
         assert($ordersChannel instanceof MessageChannelInterceptorAdapter);
         $ordersChannel->getInternalMessageChannel()->failDeliveriesWith('broker not available');

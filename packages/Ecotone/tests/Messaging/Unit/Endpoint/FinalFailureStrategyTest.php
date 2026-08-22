@@ -31,13 +31,9 @@ final class FinalFailureStrategyTest extends TestCase
 {
     public function test_reject_failure_strategy_rejects_message_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [FailingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([FailingService::class],
             [$service = new FailingService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE)));
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
@@ -50,13 +46,9 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_requeue_failure_strategy_requeues_message_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [FailingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([FailingService::class],
             [$service = new FailingService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::RESEND),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::RESEND)));
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
@@ -69,13 +61,9 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_stop_failure_strategy_stops_consumer_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [FailingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([FailingService::class],
             [$service = new FailingService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::STOP),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::STOP)));
 
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('Service failed');
@@ -86,13 +74,9 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_successful_processing_always_acknowledges_message()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [SuccessService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([SuccessService::class],
             [$service = new SuccessService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE)));
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
@@ -105,13 +89,9 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_reject_message_exception_triggers_reject_strategy()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [RejectingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([RejectingService::class],
             [$service = new RejectingService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE)));
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
@@ -124,13 +104,9 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_setting_execution_metadata_to_stop_on_error()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [RejectingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([RejectingService::class],
             [$service = new RejectingService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE)));
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
@@ -143,13 +119,9 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_manual_ack_service_acknowledges_message_manually()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [ManualAckService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([ManualAckService::class],
             [$service = new ManualAckService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::STOP, isAutoAcked: false),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::STOP, isAutoAcked: false)));
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
@@ -162,13 +134,9 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_auto_ack_disabled_and_fails()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [FailingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([FailingService::class],
             [$service = new FailingService()],
-            enableAsynchronousProcessing: [
-                SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::RESEND, isAutoAcked: false),
-            ]
-        );
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::RESEND, isAutoAcked: false)));
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));

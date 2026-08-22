@@ -27,7 +27,7 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
             [TestEventConverter::class],
             [new TestEventConverter()],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackages())
+                ->withModulePackages([])
                 ->withEnvironment('test')
         );
 

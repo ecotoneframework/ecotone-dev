@@ -37,7 +37,7 @@ final class DynamicChannelRetryTest extends TestCase
             [DynamicChannelRetryHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'async_tenant_a',

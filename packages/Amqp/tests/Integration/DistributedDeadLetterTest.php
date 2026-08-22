@@ -45,7 +45,7 @@ final class DistributedDeadLetterTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withServiceName($serviceName)
                 ->withEnvironment('prod')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE, ModulePackageList::ASYNCHRONOUS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withNamespaces($namespaces)
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE),
             pathToRootCatalog: __DIR__ . '/../../',

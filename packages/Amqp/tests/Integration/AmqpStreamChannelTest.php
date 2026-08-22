@@ -1125,7 +1125,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $consumerId = $channelName;
 
         // Run consumer with message limit - should commit after each message
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5, maxExecutionTimeInMilliseconds: 5000));
 
         // Verify all messages were consumed
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');

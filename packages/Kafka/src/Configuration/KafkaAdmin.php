@@ -7,6 +7,7 @@ namespace Ecotone\Kafka\Configuration;
 use Ecotone\Kafka\Attribute\KafkaConsumer as KafkaConsumerAttribute;
 use Ecotone\Kafka\Outbound\KafkaDeliveryTracker;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Exception;
 use RdKafka\KafkaConsumer;
@@ -50,6 +51,7 @@ final class KafkaAdmin
         private array          $kafkaBrokerConfigurations,
         private array          $topicReferenceMapping,
         private LoggingGateway $loggingGateway,
+        private ExpressionEvaluationService $expressionEvaluationService,
     ) {
     }
 
@@ -89,7 +91,7 @@ final class KafkaAdmin
             $this->setLoggerCallbacks($conf, $endpointId);
             $consumer = new KafkaConsumer($conf);
 
-            $topics = $this->getMappedTopicNames($kafkaConsumerConfig->getTopics());
+            $topics = $this->getMappedTopicNames($this->resolveExpressions($kafkaConsumerConfig->getTopics()));
             $consumer->subscribe($topics);
 
             $this->initializedConsumers[$endpointId] = $consumer;
@@ -156,6 +158,25 @@ final class KafkaAdmin
             $topicName,
             $this->getConfigurationForTopic($topicName)
         );
+    }
+
+    /**
+     * @param string[] $topics
+     * @return string[]
+     */
+    private function resolveExpressions(array $topics): array
+    {
+        $resolved = [];
+        foreach ($topics as $topic) {
+            if (str_contains($topic, '(')) {
+                $result = $this->expressionEvaluationService->evaluateWithContext($topic, []);
+                $resolved = array_merge($resolved, is_array($result) ? $result : [$result]);
+            } else {
+                $resolved[] = $topic;
+            }
+        }
+
+        return $resolved;
     }
 
     private function getMappedTopicNames(string|array $topicName): string|array

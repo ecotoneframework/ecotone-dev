@@ -161,7 +161,7 @@ final class MessagingSystemInitializer implements Initializer
         if ($useProductionCache && $cacheDirectory) {
             $ecotoneContainer = EcotoneSymfonyContainerFactory::loadCachedWithDefaults(
                 new ServiceCacheConfiguration($cacheDirectory, true),
-                new TempestConfigurationVariableService(),
+                new TempestConfigurationVariableService($container),
                 $externalContainer,
             );
             if ($ecotoneContainer !== null) {
@@ -183,11 +183,11 @@ final class MessagingSystemInitializer implements Initializer
 
         $ecotoneContainer = EcotoneSymfonyContainerFactory::bootstrap(
             $serviceCacheConfiguration,
-            new TempestConfigurationVariableService(),
+            new TempestConfigurationVariableService($container),
             $externalContainer,
             fn () => MessagingSystemConfiguration::prepareWithAnnotationFinder(
                 $annotationFinder,
-                new TempestConfigurationVariableService(),
+                new TempestConfigurationVariableService($container),
                 $applicationConfiguration,
                 enableTestPackage: $enableTesting,
             ),

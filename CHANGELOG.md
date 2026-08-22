@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.326.0] - 2026-08-22
+
+## What's Changed
+* fix: clear PHP 8.5 deprecations and widen dependency constraints across packages by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/695
+* feat: resolve KafkaConsumer topics from expressions and config parameters (fixes #693) by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/696
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.325.0...1.326.0
+
 ## [1.325.0] - 2026-08-09
 
 ## What's Changed

@@ -41,7 +41,7 @@ use PhpBench\Attributes\Warmup;
  * DBAL and Redis confirm deliveries synchronously as part of the send call itself (database statement result
  * and command reply respectively), so the asynchronous scenarios are not supported for them and are not benchmarked.
  */
-#[Warmup(0), Revs(1), Iterations(10)]
+#[Warmup(0), Revs(1), Iterations(2)]
 class HighThroughputPublishingBenchmark
 {
     private const AMOUNT_OF_PUBLISHED_MESSAGES = 1000;

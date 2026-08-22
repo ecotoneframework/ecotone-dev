@@ -101,14 +101,29 @@ jobs:
         with:
           ref: main
 
+      - name: Resolve baseline cache key
+        id: baseline_key
+        run: echo "key=phpbench-baseline-$(git rev-parse HEAD)-${{ hashFiles('Monorepo/Benchmark/**', 'phpbench.json') }}" >> "$GITHUB_OUTPUT"
+
+      # Baseline results for a given main commit are identical across PRs, so they are benchmarked
+      # once and reused from cache to keep the workflow duration low
+      - name: Restore baseline benchmark results
+        id: baseline_cache
+        uses: actions/cache@v4
+        with:
+          path: .phpbench
+          key: ${{ steps.baseline_key.outputs.key }}
+
       - name: Install dependencies
+        if: steps.baseline_cache.outputs.cache-hit != 'true'
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --ignore-platform-reqs
 
       - name: Benchmark main as baseline
         id: baseline
+        if: steps.baseline_cache.outputs.cache-hit != 'true'
         continue-on-error: true
         run: |
-          vendor/bin/phpbench run --retry-threshold=5 --tag=main --report=github-report --profile=opcache_enabled
+          vendor/bin/phpbench run --tag=main --report=github-report --profile=opcache_enabled
 
       - uses: actions/checkout@v3
         with:
@@ -121,13 +136,17 @@ jobs:
       - name: Install dependencies
         run: composer update --${{ matrix.stability }} --prefer-dist --no-interaction --ignore-platform-reqs
 
+      - name: Check baseline availability
+        id: baseline_check
+        run: echo "available=$([ -d .phpbench/storage ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
       - name: Benchmark PR
         shell: bash
         env:
-          PHPBENCH_REF_OPTION: "${{ steps.baseline.outcome == 'success' && '--ref=main' || '' }}"
+          PHPBENCH_REF_OPTION: "${{ steps.baseline_check.outputs.available == 'true' && '--ref=main' || '' }}"
         run: |
           echo "Baseline: $PHPBENCH_REF_OPTION"
-          vendor/bin/phpbench run --retry-threshold=5 --report=github-report --profile=opcache_enabled $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > benchmark.md
+          vendor/bin/phpbench run --report=github-report --profile=opcache_enabled $PHPBENCH_REF_OPTION | bin/phpbench-to-md.sh > benchmark.md
           cat benchmark.md
           echo '## Benchmark' >> "$GITHUB_STEP_SUMMARY"
           cat benchmark.md >> "$GITHUB_STEP_SUMMARY"

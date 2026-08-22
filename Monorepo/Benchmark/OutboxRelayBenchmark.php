@@ -37,10 +37,10 @@ use PhpBench\Attributes\Warmup;
  * The in-memory target subjects isolate the producing side of the relay; the provider subjects show the full
  * path into real brokers receiving whole batches at once.
  */
-#[Warmup(0), Revs(1), Iterations(5)]
+#[Warmup(0), Revs(1), Iterations(2)]
 class OutboxRelayBenchmark
 {
-    private const AMOUNT_OF_RELAYED_MESSAGES = 10_000;
+    private const AMOUNT_OF_RELAYED_MESSAGES = 1_000;
 
     private const MESSAGE_PAYLOAD = 'benchmark order payload for outbox relay comparison';
 
@@ -126,25 +126,25 @@ class OutboxRelayBenchmark
         $this->drainWholeOutbox();
     }
 
-    #[BeforeMethods('setUpRelayBatchedIntoAmqpTarget'), Iterations(3)]
+    #[BeforeMethods('setUpRelayBatchedIntoAmqpTarget')]
     public function bench_dbal_outbox_drain_batched_into_rabbitmq_target(): void
     {
         $this->drainWholeOutbox();
     }
 
-    #[BeforeMethods('setUpRelayBatchedIntoKafkaTarget'), Iterations(3)]
+    #[BeforeMethods('setUpRelayBatchedIntoKafkaTarget')]
     public function bench_dbal_outbox_drain_batched_into_kafka_target(): void
     {
         $this->drainWholeOutbox();
     }
 
-    #[BeforeMethods('setUpRelayBatchedIntoRedisTarget'), Iterations(3)]
+    #[BeforeMethods('setUpRelayBatchedIntoRedisTarget')]
     public function bench_dbal_outbox_drain_batched_into_redis_target(): void
     {
         $this->drainWholeOutbox();
     }
 
-    #[BeforeMethods('setUpRelayBatchedIntoSqsTarget'), Iterations(3)]
+    #[BeforeMethods('setUpRelayBatchedIntoSqsTarget')]
     public function bench_dbal_outbox_drain_batched_into_sqs_target(): void
     {
         $this->drainWholeOutbox();

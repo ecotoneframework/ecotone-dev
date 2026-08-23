@@ -5,8 +5,8 @@ namespace Test\Ecotone\Amqp\Fixture\SuccessTransaction;
 use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 
 /**
  * licence Apache-2.0

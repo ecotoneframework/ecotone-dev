@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Amqp\Fixture\Shop;
 
-use Ecotone\Messaging\Attribute\MessageConsumer;
-use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Messaging\Attribute\MessageConsumer;
 
 /**
  * licence Apache-2.0

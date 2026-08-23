@@ -2,6 +2,8 @@
 
 namespace Ecotone\Amqp\Api\ExtensionObject;
 
+use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
+use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 

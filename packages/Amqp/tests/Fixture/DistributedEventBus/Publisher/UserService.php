@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher;
 
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Parameter\Header;
 use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Gateway\DistributedBus;
 
 /**

@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedEventBus\Receiver;
 
-use Ecotone\Api\Attribute\Parameter\Header;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Parameter\Header;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\EventBus;
 use RuntimeException;

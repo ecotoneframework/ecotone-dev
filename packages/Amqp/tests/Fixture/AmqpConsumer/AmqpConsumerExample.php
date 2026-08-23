@@ -3,9 +3,9 @@
 namespace Test\Ecotone\Amqp\Fixture\AmqpConsumer;
 
 use Ecotone\Api\Attribute\ClassReference;
-use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Api\Attribute\Parameter\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Messaging\Attribute\MessageConsumer;
 
 #[ClassReference(AmqpConsumerExample::class)]
 /**

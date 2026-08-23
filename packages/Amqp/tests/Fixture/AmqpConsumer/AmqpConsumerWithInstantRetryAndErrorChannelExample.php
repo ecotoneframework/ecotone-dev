@@ -6,11 +6,11 @@ namespace Test\Ecotone\Amqp\Fixture\AmqpConsumer;
 
 use Ecotone\Amqp\Api\Attribute\RabbitConsumer;
 use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\Parameter\Header;
 use Ecotone\Api\Attribute\Parameter\Payload;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use RuntimeException;
 
 /**

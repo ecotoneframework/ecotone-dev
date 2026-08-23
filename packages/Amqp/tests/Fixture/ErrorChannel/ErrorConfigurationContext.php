@@ -6,8 +6,8 @@ namespace Test\Ecotone\Amqp\Fixture\ErrorChannel;
 
 use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
 /**

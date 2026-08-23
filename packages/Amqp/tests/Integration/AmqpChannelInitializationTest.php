@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\AmqpStreamChannelBuilder;
-use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
+use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
@@ -264,7 +264,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([\Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,])
+                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
                     AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME)
@@ -280,7 +280,7 @@ final class AmqpChannelInitializationTest extends AmqpMessagingTestCase
             containerOrAvailableServices: $this->getConnectionFactoryReferences(),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([\Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE,])
+                    \Ecotone\Messaging\Config\ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
                     AmqpBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),

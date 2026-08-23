@@ -6,8 +6,8 @@ namespace Test\Ecotone\Amqp\Fixture\DistributedEventBus\AsynchronousEventHandler
 
 use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 
 /**
  * licence Apache-2.0

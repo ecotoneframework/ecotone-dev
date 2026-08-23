@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Amqp\Fixture\SuccessTransaction;
 
-use Ecotone\Api\Attribute\ServiceActivator;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\ServiceActivator;
 
 /**
  * licence Apache-2.0

@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace Ecotone\Amqp\Configuration;
 
 use Ecotone\Amqp\AmqpAdmin;
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\AmqpChannelManager;
 use Ecotone\Amqp\AmqpStreamChannelBuilder;
+use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
 use Ecotone\Messaging\Channel\Manager\ChannelManagerReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -20,7 +21,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
 #[ModuleAnnotation]

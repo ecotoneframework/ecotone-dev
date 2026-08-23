@@ -7,9 +7,9 @@ namespace Test\Ecotone\Amqp;
 use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\ServiceActivator;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
 use Exception;
@@ -32,7 +32,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
                 $this->getConnectionFactoryReferences()
             ),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
@@ -57,7 +57,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
                 $this->getConnectionFactoryReferences()
             ),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
@@ -83,7 +83,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
                 $this->getConnectionFactoryReferences()
             ),
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')

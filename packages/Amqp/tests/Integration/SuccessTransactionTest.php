@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\SuccessTransaction\OrderService;
 
@@ -24,7 +24,7 @@ final class SuccessTransactionTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [new OrderService(), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\Amqp\Fixture\SuccessTransaction']),
             pathToRootCatalog: __DIR__ . '/../../',
         );

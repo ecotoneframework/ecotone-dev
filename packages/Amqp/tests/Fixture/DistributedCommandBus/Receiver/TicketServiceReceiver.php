@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver;
 
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Distributed;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\Event\TicketCreated;
 

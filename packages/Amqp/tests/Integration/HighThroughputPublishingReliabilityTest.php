@@ -6,12 +6,12 @@ namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpPublisherConfirmations;
 use Ecotone\Amqp\Api\ExtensionObject\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;

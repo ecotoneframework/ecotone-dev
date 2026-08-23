@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Test;
 
 use DateTimeImmutable;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\SymfonyBundle\Api\ExtensionObject\SymfonyMessengerMessageChannelBuilder;
 use Exception;
 use Fixture\MessengerConsumer\ExampleCommand;

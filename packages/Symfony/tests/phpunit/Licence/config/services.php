@@ -5,7 +5,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
-        'modulePackages' => [ModulePackageList::SYMFONY_PACKAGE,],
+        'modulePackages' => [ModulePackageList::SYMFONY_PACKAGE, ],
         'licenceKey' => '%env(SYMFONY_LICENCE_KEY)%',
     ]);
 

@@ -13,6 +13,9 @@ use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\SymfonyBundle\Messenger\SymfonyAcknowledgementCallback;
+use Ecotone\SymfonyBundle\Messenger\SymfonyMessageConverter;
+use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannel;
 
 /**
  * Symfony Channel does not implement MessageChannelWithSerializationBuilder to avoid

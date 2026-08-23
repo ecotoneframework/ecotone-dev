@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Symfony\App\EnvPlaceholderKafka;
 
-use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
 use Ecotone\Api\Attribute\Parameter\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
 
 /**
  * licence Enterprise

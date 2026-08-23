@@ -11,7 +11,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
 
     $containerConfigurator->extension('ecotone', [
         'modulePackages' => [ModulePackageList::SYMFONY_PACKAGE,
-            ModulePackageList::DBAL_PACKAGE,],
+            ModulePackageList::DBAL_PACKAGE, ],
     ]);
 
     $services = $containerConfigurator->services();

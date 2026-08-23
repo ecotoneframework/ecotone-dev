@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\EnvPlaceholderKafka;
 
-use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\EnvPlaceholderKafka\Configuration\Kernel;

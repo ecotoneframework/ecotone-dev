@@ -6,13 +6,13 @@ namespace Symfony\App\MultiTenant\Application;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
-use Ecotone\Dbal\Api\Attribute\MultiTenantConnection;
-use Ecotone\Dbal\Api\Attribute\MultiTenantObjectManager;
 use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Parameter\Header;
 use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Dbal\Api\Attribute\MultiTenantConnection;
+use Ecotone\Dbal\Api\Attribute\MultiTenantObjectManager;
 use Symfony\App\MultiTenant\Application\Event\CustomerWasRegistered;
 
 /**

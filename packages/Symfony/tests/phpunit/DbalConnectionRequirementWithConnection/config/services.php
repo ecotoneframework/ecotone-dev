@@ -1,13 +1,13 @@
 <?php
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
         'modulePackages' => [ModulePackageList::SYMFONY_PACKAGE,
-            ModulePackageList::DBAL_PACKAGE,],
+            ModulePackageList::DBAL_PACKAGE, ],
     ]);
 
     $services = $containerConfigurator->services();

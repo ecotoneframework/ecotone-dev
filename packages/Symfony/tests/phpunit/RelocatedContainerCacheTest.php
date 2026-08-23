@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test;
 
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;
@@ -12,7 +13,6 @@ use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
-use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\SymfonyBundle\DependencyInjection\EcotoneContainerLoader;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use PHPUnit\Framework\TestCase;

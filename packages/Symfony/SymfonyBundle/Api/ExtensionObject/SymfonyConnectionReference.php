@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\SymfonyBundle\Api\ExtensionObject;
 
+use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
 use Ecotone\Messaging\Config\ConnectionReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
 use Symfony\Component\Uid\Uuid;
 
 /**

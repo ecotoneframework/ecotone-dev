@@ -8,6 +8,9 @@ use Ecotone\Messaging\Support\LicensingException;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\MultiTenant\Configuration\Kernel;
 
+/**
+ * @internal
+ */
 final class MultiTenantLicensingTest extends TestCase
 {
     protected function tearDown(): void

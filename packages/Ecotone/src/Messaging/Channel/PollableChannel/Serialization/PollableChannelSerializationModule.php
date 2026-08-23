@@ -31,6 +31,10 @@ final class PollableChannelSerializationModule extends NoExternalConfigurationMo
         $pollableMessageChannels = ExtensionObjectResolver::resolve(MessageChannelWithSerializationBuilder::class, $extensionObjects);
 
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
+            if (! $pollableMessageChannel->isPollable()) {
+                continue;
+            }
+
             $messagingConfiguration->registerChannelInterceptor(
                 new OutboundSerializationChannelBuilder(
                     $pollableMessageChannel->getMessageChannelName(),

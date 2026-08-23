@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests\MessageConsumer;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
@@ -16,7 +17,6 @@ use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\KafkaConsumerWithDeduplicationExample;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\KafkaConsumerWithDefaultDeduplicationExample;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\KafkaConsumerWithExpressionDeduplicationExample;
@@ -56,10 +56,10 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withModulePackages([
                     ModulePackageList::KAFKA_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE
-                ]))
+                    ModulePackageList::DBAL_PACKAGE,
+                ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     TopicConfiguration::createWithReferenceName('deduplication_topic', $topicName),
@@ -125,10 +125,10 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withModulePackages([
                     ModulePackageList::KAFKA_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE
-                ]))
+                    ModulePackageList::DBAL_PACKAGE,
+                ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     TopicConfiguration::createWithReferenceName('default_deduplication_topic', $topicName),
@@ -194,10 +194,10 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withModulePackages([
                     ModulePackageList::KAFKA_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE
-                ]))
+                    ModulePackageList::DBAL_PACKAGE,
+                ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     TopicConfiguration::createWithReferenceName('deduplication_topic', $topicName),

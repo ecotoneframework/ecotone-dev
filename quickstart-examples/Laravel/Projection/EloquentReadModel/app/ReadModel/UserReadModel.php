@@ -9,8 +9,8 @@ declare(strict_types=1);
 namespace App\ReadModel;
 
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Modelling\Attribute\IdentifierMethod;
 use Illuminate\Database\Eloquent\Model;
 
 #[Aggregate]
@@ -28,7 +28,7 @@ final class UserReadModel extends Model
 
     public $fillable = ['user_id', 'name', 'email', 'active'];
 
-    #[AggregateIdentifierMethod('user_id')]
+    #[IdentifierMethod('user_id')]
     public function getUserId(): string
     {
         return $this->user_id;

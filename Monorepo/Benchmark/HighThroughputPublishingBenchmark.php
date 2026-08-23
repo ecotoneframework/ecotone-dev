@@ -7,6 +7,7 @@ namespace Monorepo\Benchmark;
 use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Dbal\Configuration\DbalMessagePublisherConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
@@ -25,7 +26,6 @@ use Ecotone\Sqs\Configuration\SqsMessagePublisherConfiguration;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Sqs\SqsConnectionFactory;
 use PhpBench\Attributes\BeforeMethods;
@@ -367,7 +367,7 @@ class HighThroughputPublishingBenchmark
             [],
             $services,
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE, $modulePackage]))
+                ->withModulePackages([$modulePackage])
                 ->withExtensionObjects([$channelBuilder]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -395,7 +395,7 @@ class HighThroughputPublishingBenchmark
                 AmqpConnectionFactory::class => $connectionFactory,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::AMQP_PACKAGE]))
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([$publisherConfiguration]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -411,7 +411,7 @@ class HighThroughputPublishingBenchmark
                 DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::DBAL_PACKAGE]))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([DbalMessagePublisherConfiguration::create(MessagePublisher::class, uniqid('benchmark_orders_'))]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -427,7 +427,7 @@ class HighThroughputPublishingBenchmark
                 RedisConnectionFactory::class => new RedisConnectionFactory(getenv('REDIS_DSN') ?: 'redis://localhost:6379'),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::REDIS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::REDIS_PACKAGE])
                 ->withExtensionObjects([RedisMessagePublisherConfiguration::create(queueName: uniqid('benchmark_orders_'))]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -448,7 +448,7 @@ class HighThroughputPublishingBenchmark
                 SqsConnectionFactory::class => new SqsConnectionFactory(getenv('SQS_DSN') ?: 'sqs:?key=key&secret=secret&region=us-east-1&endpoint=http://localhost:4566&version=latest'),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::SQS_PACKAGE]))
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE])
                 ->withExtensionObjects([$publisherConfiguration]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -469,7 +469,7 @@ class HighThroughputPublishingBenchmark
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults([getenv('KAFKA_DSN') ?: 'localhost:9094']),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::KAFKA_PACKAGE]))
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([$publisherConfiguration]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

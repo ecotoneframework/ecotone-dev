@@ -18,7 +18,7 @@ class SymfonyEventSourcingIntegrationTest extends TestCase
     #[DoesNotPerformAssertions]
     public function test_symfony_in_test_mode_with_es_should_boot(): void
     {
-        \putenv(sprintf('APP_SKIPPED_PACKAGES=%s', \json_encode(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]), JSON_THROW_ON_ERROR)));
+        \putenv(sprintf('APP_MODULE_PACKAGES=%s', \json_encode([ModulePackageList::EVENT_SOURCING_PACKAGE], JSON_THROW_ON_ERROR)));
         $kernel = new \Monorepo\ExampleApp\Symfony\Kernel('test_es', false);
         $kernel->boot();
     }

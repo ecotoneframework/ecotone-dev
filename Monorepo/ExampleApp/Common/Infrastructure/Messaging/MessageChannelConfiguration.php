@@ -26,7 +26,8 @@ final class MessageChannelConfiguration
             InMemoryRepositoryBuilder::createForSetOfStateStoredAggregates([Order::class]),
             SimpleMessageChannelBuilder::createQueueChannel(
                 'notifications',
-                conversionMediaType: MediaType::createApplicationXPHP()
+                conversionMediaType: MediaType::createApplicationXPHP(),
+                delayable: false
             ),
             // 3 retries for notifications
             ErrorHandlerConfiguration::createWithDeadLetterChannel(

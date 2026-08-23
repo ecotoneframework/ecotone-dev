@@ -24,7 +24,7 @@ final class DistributedServiceMap implements DefinedObject
 {
     /**
      * @param array<string, string> $commandMapping - service name -> channel name (for command routing)
-     * @param array<string, array{keys: array<string>, exclude: array<string>, include: array<string>}> $eventSubscriptions - channel name -> ['keys' => [...] or null, 'exclude' => [...], 'include' => [...]]
+     * @param array<string, array{keys: array<string>, exclude: array<string>, include: array<string>}> $eventSubscriptions - channel name -> ['keys' => [...], 'exclude' => [...], 'include' => [...]]
      * @param array<object> $distributedBusAnnotations
      */
     public function __construct(

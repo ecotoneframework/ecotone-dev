@@ -3,7 +3,6 @@
 namespace Monorepo\ExampleApp\Common\Domain\Article;
 
 use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\Identifier;
 use Monorepo\ExampleApp\Common\Domain\Article\Command\ChangeContent;

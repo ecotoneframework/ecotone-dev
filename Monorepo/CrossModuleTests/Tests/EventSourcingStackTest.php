@@ -23,12 +23,12 @@ final class EventSourcingStackTest extends FullAppTestCase
 {
     use ExampleAppEventSourcingCaseTrait;
 
-    public static function skippedPackages(): array
+    public static function modulePackagesToLoad(): array
     {
-        return ModulePackageList::allPackagesExcept([
+        return [
             ModulePackageList::EVENT_SOURCING_PACKAGE,
-            ModulePackageList::JMS_CONVERTER_PACKAGE
-        ]);
+            ModulePackageList::JMS_CONVERTER_PACKAGE,
+        ];
     }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void

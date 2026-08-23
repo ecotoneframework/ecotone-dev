@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
@@ -22,6 +23,13 @@ use Illuminate\Http\Request as LaravelRequest;
 final class HttpStackTest extends FullAppTestCase
 {
     use ExampleAppCaseTrait;
+
+    public static function modulePackagesToLoad(): array
+    {
+        return [
+            ModulePackageList::TRACING_PACKAGE,
+        ];
+    }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {

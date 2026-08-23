@@ -36,7 +36,7 @@ final class PollableChannelSendRetriesModule extends NoExternalConfigurationModu
         $pollableChannelConfigurations = ExtensionObjectResolver::resolve(PollableChannelConfiguration::class, $extensionObjects);
 
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
-            if ($pollableMessageChannel instanceof DynamicMessageChannelBuilder) {
+            if (! $pollableMessageChannel->isPollable() || $pollableMessageChannel instanceof DynamicMessageChannelBuilder) {
                 continue;
             }
 

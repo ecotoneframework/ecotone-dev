@@ -59,8 +59,11 @@ class EcotoneProvider extends ServiceProvider
             ->withLoadCatalog(Config::get('ecotone.loadAppNamespaces') ? 'app' : '')
             ->withFailFast(false)
             ->withNamespaces(Config::get('ecotone.namespaces') ?? [])
-            ->withModulePackages($modulePackages)
             ->withCacheDirectoryPath($cacheDirectory);
+
+        if ($modulePackages !== []) {
+            $applicationConfiguration = $applicationConfiguration->withModulePackages($modulePackages);
+        }
 
         if (Config::get('ecotone.licenceKey') !== null) {
             $applicationConfiguration = $applicationConfiguration->withLicenceKey(Config::get('ecotone.licenceKey'));

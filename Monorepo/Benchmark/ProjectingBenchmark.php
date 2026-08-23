@@ -11,7 +11,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
 use Monorepo\ExampleAppEventSourcing\Common\PriceChange;
@@ -50,10 +50,10 @@ class ProjectingBenchmark
                 ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', ...$namespaces])
                 ->withCacheDirectoryPath(self::getProjectDir() . "/var/cache/$name")
                 ->withDefaultErrorChannel('errorChannel')
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withModulePackages([
                     ModulePackageList::EVENT_SOURCING_PACKAGE,
                     ModulePackageList::DBAL_PACKAGE,
-                ])),
+                ]),
             useCachedVersion: true,
             pathToRootCatalog: self::getProjectDir(),
         );

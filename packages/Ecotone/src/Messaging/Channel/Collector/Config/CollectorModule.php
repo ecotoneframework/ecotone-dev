@@ -52,6 +52,10 @@ final class CollectorModule extends NoExternalConfigurationModule implements Ann
 
 
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
+            if (! $pollableMessageChannel->isPollable() || $pollableMessageChannel instanceof DynamicMessageChannelBuilder) {
+                continue;
+            }
+
             $channelConfiguration = $globalPollableChannelConfiguration;
 
             foreach ($pollableChannelConfigurations as $pollableChannelConfiguration) {

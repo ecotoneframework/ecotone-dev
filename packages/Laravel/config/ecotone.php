@@ -93,14 +93,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Namespaces
+    | Module Packages
     |--------------------------------------------------------------------------
     |
-    | A list of namespaces that Ecotone should look in for configurations,
-    | command handlers, aggregates, projections, etc.
+    | A list of Ecotone module packages to load (e.g. ModulePackageList::DBAL_PACKAGE).
+    | Leave this key absent or empty to load every installed module package.
+    | Uncomment and provide an explicit list to load only the packages you name.
     |
     */
-    'modulePackages' => [],
+    // 'modulePackages' => [],
 
     /*
     |--------------------------------------------------------------------------

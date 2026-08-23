@@ -334,13 +334,11 @@ class ServiceConfiguration
         return $this->failFast;
     }
 
-    /**
-     * @deprecated use ServiceCacheDirectory
-     */
     public function getCacheDirectoryPath(): string
     {
         return $this->cacheDirectoryPath;
     }
+
     public function withCacheDirectoryPath(string $cacheDirectoryPath): self
     {
         $clone                     = clone $this;
@@ -348,7 +346,6 @@ class ServiceConfiguration
 
         return $clone;
     }
-
 
     /**
      * @return string

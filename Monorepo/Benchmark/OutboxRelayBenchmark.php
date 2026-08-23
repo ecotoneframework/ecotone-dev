@@ -21,8 +21,8 @@ use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Sqs\SqsConnectionFactory;
 use PhpBench\Attributes\BeforeMethods;
@@ -232,10 +232,10 @@ class OutboxRelayBenchmark
                 $targetServices,
             ),
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept(array_merge(
-                    [ModulePackageList::ASYNCHRONOUS_PACKAGE, ModulePackageList::DBAL_PACKAGE],
+                ->withModulePackages(array_merge(
+                    [ModulePackageList::DBAL_PACKAGE],
                     $targetPackage !== null ? [$targetPackage] : [],
-                )))
+                ))
                 ->withExtensionObjects([
                     $relayChannel,
                     DbalBackedMessageChannelBuilder::create('benchmark_outbox')

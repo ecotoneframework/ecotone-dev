@@ -8,10 +8,9 @@ use App\Domain\Order\Event\OrderWasPlaced;
 use App\Domain\OrderSaga\Event\OrderSagaStarted;
 use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Endpoint\Delayed;
-use Ecotone\Modelling\Attribute\AggregateIdentifier;
 use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Modelling\Attribute\Identifier;
 use Ecotone\Modelling\Attribute\Saga;
-use Ecotone\Modelling\Attribute\SagaIdentifier;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\WithEvents;
 use Ramsey\Uuid\UuidInterface;
@@ -30,7 +29,7 @@ final class OrderSaga
      * @param UuidInterface[] $productIds
      */
     public function __construct(
-        #[SagaIdentifier] private UuidInterface $orderId,
+        #[Identifier] private UuidInterface $orderId,
         private array $productIds,
         private bool $isSuccessful = false
     ) {

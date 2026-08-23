@@ -11,7 +11,12 @@ parameters:
 		- packages/Symfony/DependencyInjection
 		- packages/OpenTelemetry/src
 		- packages/Kafka/src
+		- Monorepo
 	excludePaths:
 		- packages/Laravel/src/Config/PDO/Connection.php
 		- packages/Laravel/src/Config/PDO/SqlServerConnection.php
 		- packages/OpenTelemetry/src/Support/OTelTracer.php
+		- Monorepo/*/Symfony/var/*
+		- Monorepo/*/Laravel/storage/*
+		- Monorepo/*/*/var/*
+		- Monorepo/*/*/storage/*

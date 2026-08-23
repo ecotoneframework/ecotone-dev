@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\MultiTenant\Module;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Dbal\Attribute\MultiTenantConnection;
-use Ecotone\Dbal\Attribute\MultiTenantObjectManager;
 use Ecotone\Dbal\Attribute\OnTenantActivation;
 use Ecotone\Dbal\Attribute\OnTenantDeactivation;
 use Ecotone\Dbal\Attribute\WithTenantResolver;
@@ -43,7 +41,6 @@ use Ecotone\Modelling\EventBus;
 use Ecotone\Modelling\MessageHandling\MetadataPropagator\MessageHeadersPropagatorInterceptor;
 use Ecotone\Modelling\QueryBus;
 use Psr\Container\ContainerInterface;
-use ReflectionClass;
 
 #[ModuleAnnotation]
 /**
@@ -87,19 +84,6 @@ final class MultiTenantConnectionFactoryModule extends NoExternalConfigurationMo
         foreach ([OnTenantActivation::class, OnTenantDeactivation::class] as $attributeClassName) {
             foreach ($annotationRegistrationService->findAnnotatedMethods($attributeClassName) as $annotatedMethod) {
                 $multiTenantAttributePlacements[] = $attributeClassName . ' on ' . $annotatedMethod->getClassName() . '::' . $annotatedMethod->getMethodName();
-            }
-        }
-
-        foreach ($annotationRegistrationService->findAnnotatedClasses('*') as $className) {
-            $reflectionClass = new ReflectionClass($className);
-            foreach ($reflectionClass->getMethods() as $method) {
-                foreach ($method->getParameters() as $parameter) {
-                    foreach ([MultiTenantConnection::class, MultiTenantObjectManager::class] as $attributeClassName) {
-                        if ($parameter->getAttributes($attributeClassName) !== []) {
-                            $multiTenantAttributePlacements[] = $attributeClassName . ' on ' . $className . '::' . $method->getName() . '($' . $parameter->getName() . ')';
-                        }
-                    }
-                }
             }
         }
 

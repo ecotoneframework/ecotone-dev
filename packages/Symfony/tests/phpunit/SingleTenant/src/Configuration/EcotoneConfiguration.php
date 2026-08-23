@@ -8,6 +8,7 @@ use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Messaging\Attribute\ServiceContext;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Ecotone\SymfonyBundle\Config\SymfonyConnectionReference;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
 
@@ -20,6 +21,12 @@ final class EcotoneConfiguration
     public function multiTenantConfiguration(): SymfonyConnectionReference
     {
         return SymfonyConnectionReference::defaultManagerRegistry('defined_connection');
+    }
+
+    #[ServiceContext]
+    public function instantRetryConfiguration(): InstantRetryConfiguration
+    {
+        return InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false);
     }
 
     #[ServiceContext]

@@ -66,5 +66,4 @@ final class ModulePackageList
             self::DATA_PROTECTION_PACKAGE,
         ];
     }
-
 }

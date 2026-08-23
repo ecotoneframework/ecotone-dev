@@ -143,7 +143,6 @@ class ModuleClassList
         ProjectingConsoleCommands::class,
     ];
 
-
     public const AMQP_MODULES = [
         AmqpTransactionModule::class,
         AmqpMessagePublisherModule::class,

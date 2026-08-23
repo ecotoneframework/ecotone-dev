@@ -23,14 +23,12 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\Config\Routing\RoutingEvent;
-use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
 
 #[ModuleAnnotation]
 /**
  * licence Apache-2.0
  */
-class AsynchronousModule implements AnnotationModule, RoutingEventHandler
+class AsynchronousModule implements AnnotationModule
 {
     /**
      * @param array<string, array<string>> $asyncEndpoints
@@ -202,10 +200,6 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
         }
 
         return $endpointChannels;
-    }
-
-    public function handleRoutingEvent(RoutingEvent $event): void
-    {
     }
 
     public function registerDefaultPollingMetadata(ServiceConfiguration $serviceConfiguration, array $asyncChannels, array $pollingMetadata, array $polingChannelBuilders, Configuration $messagingConfiguration): void

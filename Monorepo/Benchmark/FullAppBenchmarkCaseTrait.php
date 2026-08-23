@@ -138,7 +138,7 @@ trait FullAppBenchmarkCaseTrait
                 rmdir($target);
             }
         } elseif (is_file($target)) {
-            Assert::isTrue(
+            Assert::assertTrue(
                 is_writable($target),
                 "Not enough permissions to delete cache file {$target}"
             );
@@ -167,19 +167,19 @@ trait FullAppBenchmarkCaseTrait
     {
         putenv('APP_ENV=prod');
         putenv('APP_DEBUG=false');
-        putenv(sprintf('APP_SKIPPED_PACKAGES=%s', json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
+        putenv(sprintf('APP_MODULE_PACKAGES=%s', json_encode(static::modulePackagesToLoad(), JSON_THROW_ON_ERROR)));
     }
 
     private static function developmentEnvironments(): void
     {
         putenv('APP_ENV=dev');
         putenv('APP_DEBUG=true');
-        putenv(sprintf('APP_SKIPPED_PACKAGES=%s', json_encode(static::skippedPackages(), JSON_THROW_ON_ERROR)));
+        putenv(sprintf('APP_MODULE_PACKAGES=%s', json_encode(static::modulePackagesToLoad(), JSON_THROW_ON_ERROR)));
     }
 
-    public static function skippedPackages(): array
+    public static function modulePackagesToLoad(): array
     {
-        return ModulePackageList::allPackagesExcept([ModulePackageList::ASYNCHRONOUS_PACKAGE]);
+        return [];
     }
 
     private static function createLaravelApplication(): Application

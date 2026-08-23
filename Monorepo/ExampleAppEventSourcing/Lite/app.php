@@ -1,9 +1,9 @@
 <?php
 
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ServiceConfiguration;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Monorepo\ExampleAppEventSourcing\ProophProjection\PriceChangeOverTimeProjection;
 
 return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
@@ -18,7 +18,7 @@ return function (bool $useCachedVersion = true): ConfiguredMessagingSystem {
             ->withNamespaces(['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\ProophProjection\\'])
             ->withCacheDirectoryPath(__DIR__ . "/var/cache")
             ->withDefaultErrorChannel('errorChannel')
-            ->withSkippedModulePackageNames(\json_decode(\getenv('APP_SKIPPED_PACKAGES'), true)),
+            ->withModulePackages(\json_decode(\getenv('APP_MODULE_PACKAGES'), true) ?? []),
         useCachedVersion: $useCachedVersion,
         pathToRootCatalog: __DIR__,
     );

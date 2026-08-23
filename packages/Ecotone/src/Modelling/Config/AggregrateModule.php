@@ -584,6 +584,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
 
         if (! $isFactoryMethod) {
             $serviceActivatorHandler
+                ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getAggregateIdentifierMapping(), $handledPayloadTypeDefinitions, $this->interfaceToCallRegistry))
                 ->chain(
                     LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $handledPayloadType, $dropMessageOnNotFound ? LoadAggregateMode::createDropMessageOnNotFound() : LoadAggregateMode::createThrowOnNotFound())
                 );

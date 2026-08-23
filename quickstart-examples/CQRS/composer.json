@@ -22,7 +22,7 @@
         }
     },
     "require": {
-        "ecotone/lite-application-starter": "^1.0.1"
+        "ecotone/ecotone": "~1.326.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6|^10.5|^11.0"

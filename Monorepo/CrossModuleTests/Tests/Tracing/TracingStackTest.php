@@ -25,12 +25,11 @@ final class TracingStackTest extends FullAppTestCase
 {
     use ExampleAppCaseTrait;
 
-    public static function skippedPackages(): array
+    public static function modulePackagesToLoad(): array
     {
-        return ModulePackageList::allPackagesExcept([
-            ModulePackageList::ASYNCHRONOUS_PACKAGE,
-            ModulePackageList::TRACING_PACKAGE
-        ]);
+        return [
+            ModulePackageList::TRACING_PACKAGE,
+        ];
     }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void

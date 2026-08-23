@@ -7,6 +7,7 @@ namespace Monorepo\CrossModuleTests\Tests\MessageConsumer;
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -17,7 +18,6 @@ use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
-use Enqueue\Dbal\DbalConnectionFactory;
 use Interop\Amqp\AmqpConnectionFactory;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithCustomDeduplicationExample;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithDefaultDeduplicationExample2;
@@ -60,10 +60,10 @@ final class RabbitConsumerDeduplicationTest extends TestCase
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withModulePackages([
                     ModulePackageList::AMQP_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE
-                ]))
+                    ModulePackageList::DBAL_PACKAGE,
+                ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     AmqpQueue::createWith($queueName),
@@ -133,10 +133,10 @@ final class RabbitConsumerDeduplicationTest extends TestCase
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withModulePackages([
                     ModulePackageList::AMQP_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE
-                ]))
+                    ModulePackageList::DBAL_PACKAGE,
+                ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     AmqpQueue::createWith($queueName),
@@ -207,10 +207,10 @@ final class RabbitConsumerDeduplicationTest extends TestCase
                 DbalConnectionFactory::class => DbalMessagingTestCase::prepareConnection(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
+                ->withModulePackages([
                     ModulePackageList::AMQP_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE
-                ]))
+                    ModulePackageList::DBAL_PACKAGE,
+                ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withDeduplication(true),
                     AmqpQueue::createWith($queueName),

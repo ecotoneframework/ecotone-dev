@@ -1,7 +1,6 @@
 <?php
 
-use Ecotone\Messaging\Config\ModulePackageList;
-use Enqueue\Dbal\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Monorepo\ExampleApp\Common\Domain\Product\ProductRepository;
 use Monorepo\ExampleApp\Common\Domain\User\UserRepository;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;
@@ -17,7 +16,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         'namespaces' => ['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\ProophProjection\\'],
         'defaultErrorChannel' => 'errorChannel',
         'failFast' => false,
-        'skippedModulePackageNames' => \json_decode(\getenv('APP_SKIPPED_PACKAGES'), true),
+        'modulePackages' => \json_decode(\getenv('APP_MODULE_PACKAGES'), true) ?? [],
     ]);
 
     $services = $containerConfigurator->services();

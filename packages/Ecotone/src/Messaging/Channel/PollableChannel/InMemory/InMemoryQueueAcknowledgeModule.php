@@ -31,9 +31,8 @@ final class InMemoryQueueAcknowledgeModule extends NoExternalConfigurationModule
     {
         $pollableMessageChannels = ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects);
 
-        /** @var SimpleMessageChannelBuilder $pollableMessageChannel */
         foreach ($pollableMessageChannels as $pollableMessageChannel) {
-            if (! method_exists($pollableMessageChannel, 'getFinalFailureStrategy') || ! method_exists($pollableMessageChannel, 'isAutoAcked')) {
+            if (! $pollableMessageChannel instanceof SimpleMessageChannelBuilder || ! $pollableMessageChannel->isPollable()) {
                 continue;
             }
 

@@ -7,7 +7,6 @@ use App\Microservices\CustomerService\Domain\Event\IssueWasClosed;
 use App\Microservices\CustomerService\Domain\Event\IssueWasReported;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\AggregateIdentifierMethod;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\WithEvents;
 use Illuminate\Database\Eloquent\Model;

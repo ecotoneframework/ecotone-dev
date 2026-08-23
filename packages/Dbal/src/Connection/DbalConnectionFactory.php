@@ -181,21 +181,67 @@ class DbalConnectionFactory implements ConnectionFactory
         ];
     }
 
+    /**
+     * Ported from Enqueue\Dsn\Dsn::parse(), which parse_url() cannot replace: parse_url() returns false
+     * for DSNs such as "sqlite:///:memory:" or "sqlite:////tmp/x.db" because it tries (and fails) to
+     * interpret the part after "//" as a host. The scheme/host/port are therefore extracted manually,
+     * while user/password/path are still resolved with per-component parse_url() calls, which do not
+     * fail on those DSNs the way a whole-string parse_url() call does.
+     */
     private function parseDsnComponents(string $dsn): array
     {
-        $parsedDsn = parse_url($dsn);
-
-        if ($parsedDsn === false || ! isset($parsedDsn['scheme'])) {
+        if (! str_contains($dsn, ':')) {
             throw new LogicException(sprintf('The given DSN "%s" is invalid.', $dsn));
         }
 
+        [$scheme, $dsnWithoutScheme] = explode(':', $dsn, 2);
+        $scheme = strtolower($scheme);
+
+        if ($scheme === '' || ! preg_match('/^[a-z\d+\-.]*$/', $scheme)) {
+            throw new LogicException(sprintf('The given DSN "%s" is invalid.', $dsn));
+        }
+
+        $user = parse_url($dsn, PHP_URL_USER) ?: null;
+        if (is_string($user)) {
+            $user = rawurldecode($user);
+        }
+
+        $password = parse_url($dsn, PHP_URL_PASS) ?: null;
+        if (is_string($password)) {
+            $password = rawurldecode($password);
+        }
+
+        $path = parse_url($dsn, PHP_URL_PATH) ?: null;
+        if ($path) {
+            $path = rawurldecode($path);
+        }
+
+        $host = null;
+        $port = null;
+        if (str_starts_with($dsnWithoutScheme, '//')) {
+            $dsnWithoutScheme = substr($dsnWithoutScheme, 2);
+            $dsnWithoutUserPassword = explode('@', $dsnWithoutScheme, 2);
+            $dsnWithoutUserPassword = count($dsnWithoutUserPassword) === 2 ? $dsnWithoutUserPassword[1] : $dsnWithoutUserPassword[0];
+
+            [$hostsPorts] = explode('#', $dsnWithoutUserPassword, 2);
+            [$hostsPorts] = explode('?', $hostsPorts, 2);
+            [$hostsPorts] = explode('/', $hostsPorts, 2);
+
+            if (! empty($hostsPorts)) {
+                $hostParts = explode(',', $hostsPorts);
+                $firstHostPort = explode(':', $hostParts[0], 2);
+                $host = $firstHostPort[0] !== '' ? rawurldecode($firstHostPort[0]) : null;
+                $port = isset($firstHostPort[1]) ? (int) $firstHostPort[1] : null;
+            }
+        }
+
         return [
-            'scheme' => $parsedDsn['scheme'],
-            'host' => isset($parsedDsn['host']) ? rawurldecode($parsedDsn['host']) : null,
-            'port' => $parsedDsn['port'] ?? null,
-            'user' => isset($parsedDsn['user']) ? rawurldecode($parsedDsn['user']) : null,
-            'password' => isset($parsedDsn['pass']) ? rawurldecode($parsedDsn['pass']) : null,
-            'path' => isset($parsedDsn['path']) ? rawurldecode($parsedDsn['path']) : null,
+            'scheme' => $scheme,
+            'host' => $host,
+            'port' => $port,
+            'user' => $user,
+            'password' => $password,
+            'path' => $path,
         ];
     }
 

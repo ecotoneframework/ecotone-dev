@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Tests;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\QueryBus;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
@@ -18,6 +19,13 @@ use Psr\Container\ContainerInterface;
 final class ErrorChannelTest extends FullAppTestCase
 {
     use ExampleAppCaseTrait;
+
+    public static function modulePackagesToLoad(): array
+    {
+        return [
+            ModulePackageList::TRACING_PACKAGE,
+        ];
+    }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void
     {

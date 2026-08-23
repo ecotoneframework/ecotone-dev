@@ -37,13 +37,16 @@ class EcotoneExtension extends Extension
 
         $modulePackages = $config['modulePackages'] ?? [];
 
-                $serviceConfiguration = ServiceConfiguration::createWithDefaults()
+        $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))
             ->withFailFast(in_array($container->getParameter('kernel.environment'), ['prod', 'production']) ? false : $config['failFast'])
             ->withLoadCatalog($config['loadSrcNamespaces'] ? 'src' : '')
             ->withNamespaces($config['namespaces'])
-            ->withModulePackages($modulePackages)
         ;
+
+        if ($modulePackages !== []) {
+            $serviceConfiguration = $serviceConfiguration->withModulePackages($modulePackages);
+        }
 
         if ($config['licenceKey'] !== null) {
             $serviceConfiguration = $serviceConfiguration->withLicenceKey($config['licenceKey']);

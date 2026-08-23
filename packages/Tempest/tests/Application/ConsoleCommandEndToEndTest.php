@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Application;
 
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Tempest\EcotoneConfig;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 
 /**
@@ -14,15 +12,6 @@ use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
  */
 final class ConsoleCommandEndToEndTest extends EcotoneIntegrationTestCase
 {
-    protected function ecotoneConfig(): EcotoneConfig
-    {
-        return new EcotoneConfig(
-            namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\'],
-            modulePackages: [],
-            test: true,
-        );
-    }
-
     public function test_ecotone_list_shows_registered_async_consumer(): void
     {
         $this->console

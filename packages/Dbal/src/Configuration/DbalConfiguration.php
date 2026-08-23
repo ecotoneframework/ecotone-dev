@@ -161,10 +161,6 @@ class DbalConfiguration
         return $self;
     }
 
-    /**
-     * @TODO Ecotone 2.0 rename to withClearAndFlushObjectManagerOnAsynchronousEndpoints
-     * @deprecated use withClearAndFlushObjectManagerOnAsynchronousEndpoints
-     */
     public function withClearAndFlushObjectManagerOnAsynchronousEndpoints(bool $isEnabled): self
     {
         $self                                     = clone $this;

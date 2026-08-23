@@ -22,6 +22,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Ecotone\Modelling\EventBus;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionExecution;
@@ -286,7 +287,8 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
                     ModulePackageList::EVENT_SOURCING_PACKAGE,])
                 ->withExtensionObjects([
                     PollableChannelConfiguration::neverRetry('notifications')->withCollector(true),
-                ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($projection::CHANNEL))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('notifications')),
+                ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($projection::CHANNEL))
+                ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('notifications')),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE);
 
@@ -312,7 +314,8 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: (ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel)),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel))
+                ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE);
     }

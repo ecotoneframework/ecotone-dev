@@ -115,6 +115,6 @@ final class AsynchronousModuleTest extends AnnotationConfigurationTestCase
         return EcotoneLite::bootstrapFlowTesting($classesToResolve,
             $services,
             (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects($collectorConfigurations))->withExtensionObjects($channelBuilders));
+                ->withExtensionObjects($collectorConfigurations))->withExtensionObjects($channelBuilders)->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)));
     }
 }

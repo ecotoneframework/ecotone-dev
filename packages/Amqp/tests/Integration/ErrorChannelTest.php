@@ -30,6 +30,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces(['Test\Ecotone\Amqp\Fixture\DeadLetter']),
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -67,6 +68,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [new OrderService(1), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create($amqpDeadLetter = 'amqp_dead_letter')
                         ->withReceiveTimeout(1),
                     AmqpBackedMessageChannelBuilder::create(ErrorConfigurationContext::INPUT_CHANNEL)
@@ -98,6 +100,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
             containerOrAvailableServices: [new OrderService(1), ...$this->getConnectionFactoryReferences()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create(ErrorConfigurationContext::INPUT_CHANNEL)
                         ->withReceiveTimeout(1),
                     PollingMetadata::create(ErrorConfigurationContext::INPUT_CHANNEL)
@@ -115,6 +118,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces(['Test\Ecotone\Amqp\Fixture\ErrorChannel']),
             pathToRootCatalog: __DIR__ . '/../../',
         );

@@ -17,10 +17,8 @@ class JMSConverterConfiguration
 
     public function __construct(
         private string $namingStrategy = self::IDENTICAL_PROPERTY_NAMING_STRATEGY,
-        /** @TODO Ecotone 2.0 - make default yes */
-        private bool $defaultNullSerialization = false,
-        /** @TODO Ecotone 2.0 - make default yes */
-        private bool $enableEnumSupport = false,
+        private bool $defaultNullSerialization = true,
+        private bool $enableEnumSupport = true,
     ) {
     }
 

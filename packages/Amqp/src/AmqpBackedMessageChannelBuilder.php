@@ -54,10 +54,6 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         return $this->outboundChannelAdapter;
     }
 
-    /**
-     * @deprecated use withPublisherConfirms
-     * @TODO Ecotone 2.0 remove
-     */
     public function withPublisherConfirms(bool $enabled): self
     {
         $this->outboundChannelAdapter->withPublisherConfirms($enabled);

@@ -74,6 +74,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -108,6 +109,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -142,6 +144,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -155,7 +158,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertEquals([$payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
 
         // Test that message is not consumed again
@@ -177,6 +180,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -190,7 +194,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertEquals([$payload, $payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
 
         // Test that message is not consumed again
@@ -212,6 +216,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -226,7 +231,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertEquals([$payload, $payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
 
         // Test that message is not consumed again
@@ -250,6 +255,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -287,6 +293,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)

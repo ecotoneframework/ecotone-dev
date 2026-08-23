@@ -114,7 +114,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 0);
 
-        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(failAtError: false);
+        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false);
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, $pollingMetadata);
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
@@ -165,7 +165,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 0);
 
-        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(failAtError: false);
+        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false);
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, $pollingMetadata);
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
@@ -261,6 +261,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
+                ->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,

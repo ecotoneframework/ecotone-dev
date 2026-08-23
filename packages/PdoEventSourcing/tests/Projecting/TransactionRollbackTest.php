@@ -21,6 +21,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Ecotone\Projecting\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
@@ -422,7 +423,8 @@ final class TransactionRollbackTest extends ProjectingTestCase
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: (ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel)),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel))
+                ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE);
     }
@@ -437,7 +439,8 @@ final class TransactionRollbackTest extends ProjectingTestCase
             containerOrAvailableServices: array_merge($services, [new EventsConverter(), self::getConnectionFactory()]),
             configuration: (ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel)),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel))
+                ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE);
     }

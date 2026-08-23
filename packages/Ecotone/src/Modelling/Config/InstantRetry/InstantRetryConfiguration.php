@@ -15,8 +15,7 @@ final class InstantRetryConfiguration
 
     public static function createWithDefaults(): self
     {
-        /** @TODO Ecotone 2.0 asynchronous retries enabled by default */
-        return new self(false, 3, [], false, 3, []);
+        return new self(false, 3, [], true, 3, []);
     }
 
     /**

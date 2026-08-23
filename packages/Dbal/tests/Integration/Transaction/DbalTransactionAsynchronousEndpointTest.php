@@ -218,6 +218,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                         ->withDefaultErrorChannel('nullChannel'),
+                    \Ecotone\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
@@ -332,6 +333,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                         ->withDefaultErrorChannel('nullChannel'),
+                    \Ecotone\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
@@ -477,7 +479,8 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withTransactionOnCommandBus(false),
                     DbalBackedMessageChannelBuilder::create('async'),
                     InstantRetryConfiguration::createWithDefaults()
-                        ->withCommandBusRetry(isEnabled: true, retryTimes: 3),
+                        ->withCommandBusRetry(isEnabled: true, retryTimes: 3)
+                        ->withAsynchronousEndpointsRetry(false),
                 ])
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,]),
         );

@@ -20,7 +20,6 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Attribute\QueryHandler;
@@ -207,20 +206,6 @@ class AsynchronousModule implements AnnotationModule, RoutingEventHandler
 
     public function handleRoutingEvent(RoutingEvent $event): void
     {
-        $registration = $event->getRegistration();
-        $isAsynchronous = $registration->hasMethodAnnotation(Asynchronous::class);
-        if (! $isAsynchronous) {
-            return;
-        }
-
-        $annotationForMethod = $registration->getAnnotationForMethod();
-        $asynchronous = $registration->getMethodAnnotationsWithType(Asynchronous::class)[0];
-
-        if ($annotationForMethod instanceof CommandHandler) {
-            Assert::isTrue(! in_array($annotationForMethod->getInputChannelName(), $asynchronous->getChannelName()), "Command Handler routing key can't be equal to asynchronous channel name in {$registration}");
-        } elseif ($annotationForMethod instanceof EventHandler) {
-            Assert::isTrue(! in_array($annotationForMethod->getListenTo(), $asynchronous->getChannelName()), "Event Handler listen to routing can't be equal to asynchronous channel name in {$registration}");
-        }
     }
 
     public function registerDefaultPollingMetadata(ServiceConfiguration $serviceConfiguration, array $asyncChannels, array $pollingMetadata, array $polingChannelBuilders, Configuration $messagingConfiguration): void

@@ -11,6 +11,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Schema;
@@ -178,14 +179,15 @@ final class LaravelQueueIntegrationTest extends TestCase
             ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ])
         );
 
         $messaging->sendCommandWithRoutingKey('execute.fail', $messagePayload);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -201,14 +203,15 @@ final class LaravelQueueIntegrationTest extends TestCase
                 ->withExtensionObjects([
                     LaravelQueueMessageChannelBuilder::create($channelName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ])
         );
 
         $messaging->sendCommandWithRoutingKey('execute.fail', $messagePayload);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -325,13 +328,13 @@ final class LaravelQueueIntegrationTest extends TestCase
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
         $this->assertEquals(
             [$messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
         $this->assertEquals(
             [$messagePayload, $messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')

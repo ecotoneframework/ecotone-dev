@@ -54,7 +54,7 @@ class QueueChannelTest extends TestCase
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$failureService::class],
             [$failureService],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async',
                     finalFailureStrategy: FinalFailureStrategy::RESEND
                 )));
@@ -73,7 +73,7 @@ class QueueChannelTest extends TestCase
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$failureService::class],
             [$failureService],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async',
                     finalFailureStrategy: FinalFailureStrategy::RELEASE
                 )));
@@ -92,7 +92,7 @@ class QueueChannelTest extends TestCase
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$failureService::class],
             [$failureService],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async',
                     finalFailureStrategy: FinalFailureStrategy::IGNORE
                 )));
@@ -111,7 +111,7 @@ class QueueChannelTest extends TestCase
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$failureService::class],
             [$failureService],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async',
                     finalFailureStrategy: FinalFailureStrategy::STOP
                 )));
@@ -149,7 +149,7 @@ class QueueChannelTest extends TestCase
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([$failureService::class],
             [$failureService],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(
                     'async',
                     finalFailureStrategy: FinalFailureStrategy::RESEND
                 )));

@@ -236,6 +236,13 @@ transaction wraps the whole message on every driver. Deduplication cleanup runs 
 | Instant retries on asynchronous endpoints | disabled | enabled (3 attempts) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withModulePackages()` lists; with no call, all installed packages load | `ServiceConfiguration::withModulePackages([...])` |
 
+Test-suite impact of the new defaults:
+- A test that asserted "exactly one message handled per `run()`" now sees up to 100; pass
+  `ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1)` (or `--handledMessageLimit=1` on `ecotone:run`).
+- A test that expected the first consumer run to fail and a second run to succeed now sees the failure retried instantly inside the first
+  run; disable it for that test with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
+  or assert the retried outcome.
+
 Delayable channels change in-memory behaviour: a message sent with `delay` is not visible to `run()` until the
 clock passes the delay. Use `$ecotone->run('x', ExecutionPollingMetadata::createWithTestingSetup(), releaseAwaitingFor: Duration::seconds(5))`
 or `TestConfiguration::createWithDefaults()->withSpyOnChannel()` to assert delayed messages.

@@ -22,7 +22,7 @@ class ErrorConfigurationContext
     #[ServiceContext]
     public function getInputChannel()
     {
-        return SimpleMessageChannelBuilder::createQueueChannel(self::INPUT_CHANNEL);
+        return SimpleMessageChannelBuilder::createQueueChannel(self::INPUT_CHANNEL, delayable: false);
     }
 
     #[ServiceContext]

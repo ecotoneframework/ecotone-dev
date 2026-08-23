@@ -414,13 +414,13 @@ class OrchestratorTest extends TestCase
 
         $this->assertEquals(['stepA'], $service->getExecutedSteps());
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(1));
         $this->assertEquals(['stepA', 'stepB'], $service->getExecutedSteps());
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(1));
         $this->assertEquals(['stepA', 'stepB', 'stepD'], $service->getExecutedSteps());
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(1));
         $this->assertEquals(['stepA', 'stepB', 'stepD', 'stepE', 'stepC'], $service->getExecutedSteps());
     }
 

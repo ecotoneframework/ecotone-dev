@@ -2128,36 +2128,44 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
         $this->assertEquals(1000, $headers['header.token']);
     }
 
-    public function test_throwing_exception_if_registered_command_handler_with_same_routing_as_asynchronous_channel()
+    public function test_command_handler_routing_key_can_match_asynchronous_channel_name(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Command Handler routing key can't be equal to asynchronous channel name");
+        $commandHandler = new SomeTestCommandHandler();
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [SomeTestCommandHandler::class],
-            [new SomeTestCommandHandler()],
+            [$commandHandler],
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([])
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('input'),
+                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 ])
         );
+
+        $ecotone->sendCommandWithRoutingKey('orders');
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(1));
+
+        $this->assertSame(1, $commandHandler->handled);
     }
 
-    public function test_throwing_exception_if_registered_event_handler_with_same_routing_as_asynchronous_channel()
+    public function test_event_handler_routing_key_can_match_asynchronous_channel_name(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("Event Handler listen to routing can't be equal to asynchronous channel name");
+        $eventHandler = new SomeTestEventHandler();
 
-        EcotoneLite::bootstrapFlowTesting(
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
             [SomeTestEventHandler::class],
-            [new SomeTestEventHandler()],
+            [$eventHandler],
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([])
                 ->withExtensionObjects([
-                    SimpleMessageChannelBuilder::createQueueChannel('input'),
+                    SimpleMessageChannelBuilder::createQueueChannel('orders'),
                 ])
         );
+
+        $ecotone->publishEventWithRoutingKey('orders');
+        $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(1));
+
+        $this->assertSame(1, $eventHandler->handled);
     }
 
     public function test_throwing_exception_on_lacking_request_channel_for_gateway(): void

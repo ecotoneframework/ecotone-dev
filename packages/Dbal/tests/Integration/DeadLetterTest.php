@@ -250,7 +250,8 @@ final class DeadLetterTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
-                ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL),
+                ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)
+                ->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
             classesToResolve: [$handler::class],
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -326,7 +327,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
-                ->withExtensionObjects($extensionObjects)
+                ->withExtensionObjects(array_merge([\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], $extensionObjects))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         ));

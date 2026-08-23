@@ -6,7 +6,6 @@ namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Messaging\BaseEcotoneTestCase;
@@ -71,7 +70,7 @@ final class CustomRepositoriesTest extends BaseEcotoneTestCase
         );
     }
 
-    public function test_default_repository_are_not_used_when_multiple_repositories_provided()
+    public function test_default_repository_is_used_when_multiple_repositories_are_registered_for_different_standard_aggregate()
     {
         $articleRepository = ArticleRepository::createEmpty();
         $pageRepository = PageRepository::createEmpty();
@@ -84,9 +83,6 @@ final class CustomRepositoriesTest extends BaseEcotoneTestCase
             ],
             addInMemoryStateStoredRepository: true,
         );
-
-        // As more than one repository is available, the repository need to be handled explicitly
-        $this->expectException(InvalidArgumentException::class);
 
         $this->verify(Author::create('123'), $ecotoneLite, 'create.author', Author::class, null);
     }

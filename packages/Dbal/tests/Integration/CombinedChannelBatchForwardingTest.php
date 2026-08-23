@@ -76,7 +76,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'latte');
         $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte', 'cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfRowsOn('outbox'));
@@ -120,7 +120,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'latte');
         $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
         $this->assertNull($messaging->getMessageChannel('outbox')->receive());
 
         $messaging->run('orderProcessing', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 10000));
@@ -156,7 +156,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'latte');
         $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('outbox'))));
@@ -283,7 +283,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'latte');
         $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
         $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
@@ -374,7 +374,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
         $messaging->sendCommandWithRoutingKey('order.register', 'latte');
 
-        $messaging->run('orders', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('orders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertSame(['espresso'], $messaging->sendQueryWithRouting('order.getRegistered'));
     }
@@ -417,7 +417,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.registerPriority', 'flat white');
         $messaging->sendCommandWithRoutingKey('order.registerStandard', 'latte');
 
-        $messaging->run('sharedOutboxPublisher', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('sharedOutboxPublisher', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('standardProcessing'))));
         $this->assertSame(['flat white'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('priorityProcessing'))));
@@ -453,13 +453,13 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'latte');
         $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('failingProcessing'))));
         $this->assertSame(1, $this->amountOfRowsOn('outbox'));
         $this->assertSame([true], $this->redeliveredFlagsOn('outbox'));
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('failingProcessing'))));
         $this->assertSame(0, $this->amountOfRowsOn('outbox'));
@@ -492,7 +492,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
 
         $startedAt = microtime(true);
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 10000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 10000));
         $elapsedInMilliseconds = (microtime(true) - $startedAt) * 1000;
 
         $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
@@ -532,7 +532,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'latte');
         $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertNull($messaging->getMessageChannel('outbox')->receive());
@@ -573,7 +573,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $consumerStopped = false;
         try {
-            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
         } catch (RuntimeException) {
             $consumerStopped = true;
         }
@@ -662,7 +662,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
             $messaging->sendCommandWithRoutingKey('order.register', 'latte');
 
-            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
             $forwardedMessages = $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'));
             $this->assertCount(2, $forwardedMessages);
@@ -789,7 +789,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'latte');
         $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertCount(1, $this->receiveAllFrom($messaging->getMessageChannel('orderProcessing')));
         $this->assertCount(2, $this->receiveAllFrom($messaging->getMessageChannel('outbox')));
@@ -907,7 +907,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $consumerStopped = false;
         try {
-            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
         } catch (RuntimeException) {
             $consumerStopped = true;
         }
@@ -981,11 +981,11 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'latte');
         $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertSame(['cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertNull($messaging->getMessageChannel('outbox')->receive());
@@ -1000,14 +1000,14 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
 
         try {
-            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+            $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
         } catch (ConnectionException) {
         }
 
         $this->assertSame(3, $this->amountOfRowsOn('outbox'));
         $this->assertSame(0, $this->amountOfClaimedRowsOn('outbox'));
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte', 'cappuccino'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfRowsOn('outbox'));

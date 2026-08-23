@@ -3,9 +3,6 @@
 namespace Ecotone\Modelling;
 
 /**
- * @TODO Ecotone 2.0 change to StateStoredRepository
- *
- * Interface AggregateRepository
  * @package Ecotone\Modelling
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
  */

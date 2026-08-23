@@ -584,8 +584,6 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
 
         if (! $isFactoryMethod) {
             $serviceActivatorHandler
-                /** @TODO Ecotone 2.0 (remove) this. For backward compatibility when messages without AggregateMessage::AGGREGATE_ID is not available*/
-                ->chain(AggregateIdentifierRetrevingServiceBuilder::createWith($aggregateClassDefinition, $annotation->getIdentifierMetadataMapping(), $annotation->getAggregateIdentifierMapping(), $handledPayloadTypeDefinitions, $this->interfaceToCallRegistry))
                 ->chain(
                     LoadAggregateServiceBuilder::create($aggregateClassDefinition, $registration->getMethodName(), $handledPayloadType, $dropMessageOnNotFound ? LoadAggregateMode::createDropMessageOnNotFound() : LoadAggregateMode::createThrowOnNotFound())
                 );

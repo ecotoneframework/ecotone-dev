@@ -34,6 +34,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(100),
@@ -41,7 +42,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
         $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
         $this->assertNull($messageChannel->receive());
@@ -58,6 +59,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RESEND)
                         ->withReceiveTimeout(100),
@@ -66,7 +68,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_1');
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_2');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
         $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
         $this->assertSame('some_2', $messageChannel->receive()->getPayload());
@@ -83,6 +85,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
                 ->withExtensionObjects([
+                    \Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
                         ->withReceiveTimeout(100),
@@ -91,7 +94,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_1');
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some_2');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
         $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
         $this->assertSame('some_1', $messageChannel->receive()->getPayload());

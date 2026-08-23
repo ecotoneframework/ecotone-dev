@@ -28,7 +28,7 @@ final class LoggingModuleTest extends TestCase
         $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), 'logger' => $loggerExample],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME)));
+            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME)));
 
         $ecotoneLite
             ->sendCommandWithRoutingKey('handler.fail', ['command' => 2])
@@ -42,7 +42,7 @@ final class LoggingModuleTest extends TestCase
         $loggerExample = StubLogger::create();
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting([ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), 'logger' => $loggerExample],
-            (ServiceConfiguration::createWithDefaults()
+            (ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withDefaultErrorChannel('customErrorChannel'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel')));
 
         $ecotoneLite

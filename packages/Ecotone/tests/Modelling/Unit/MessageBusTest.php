@@ -14,8 +14,6 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Attribute\Aggregate;
 use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Modelling\Attribute\EventHandler;
@@ -557,66 +555,6 @@ final class MessageBusTest extends TestCase
         $this->assertCount(2, $handledEvents);
         $this->assertEquals($orderEventOne, $handledEvents[0]);
         $this->assertEquals($orderEventTwo, $handledEvents[1]);
-    }
-
-    public function test_aggregate_event_handler_with_union_type_and_using_target_identifier_being_asynchronous(): void
-    {
-        $aggregate = new #[Aggregate] class () {
-            #[Identifier]
-            private string $id = '';
-
-            /** @var array<object> */
-            private array $handledEvents = [];
-
-            #[CommandHandler('aggregate.create')]
-            public static function create(string $id): static
-            {
-                $self = new static();
-                $self->id = $id;
-                return $self;
-            }
-
-            #[Asynchronous('async')]
-            #[EventHandler(endpointId: 'aggregate.onEvent')]
-            public function onEvent(OrderWasPlacedWithIdentifierWithTarget|OrderWasRemovedWithIdentifier $event): void
-            {
-                $this->handledEvents[] = $event;
-            }
-
-            /** @return array<object> */
-            #[QueryHandler('aggregate.getHandledEvents')]
-            public function getHandledEvents(): array
-            {
-                return $this->handledEvents;
-            }
-        };
-
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([$aggregate::class],
-            [],
-            (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async', conversionMediaType: MediaType::createApplicationXPHPSerialized())));
-
-        $ecotoneTestSupport->sendCommandWithRoutingKey('aggregate.create', 'test-id');
-
-        $orderEventOne = new OrderWasPlacedWithIdentifierWithTarget('test-id');
-
-        $ecotoneTestSupport
-            ->publishEvent($orderEventOne);
-
-        $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
-        $message = $messageChannel->receive();
-        /** Remove information about aggregate id, so it has to be resolved from payload */
-        $messageChannel->send(MessageBuilder::fromMessage($message)
-            ->removeHeader(AggregateMessage::AGGREGATE_ID)
-            ->build());
-
-        $ecotoneTestSupport
-            ->run('async');
-
-        $handledEvents = $ecotoneTestSupport->sendQueryWithRouting('aggregate.getHandledEvents', metadata: ['aggregate.id' => 'test-id']);
-
-        $this->assertCount(1, $handledEvents);
-        $this->assertEquals($orderEventOne, $handledEvents[0]);
     }
 
     public function test_aggregate_query_handler_with_union_type_throws_exception(): void

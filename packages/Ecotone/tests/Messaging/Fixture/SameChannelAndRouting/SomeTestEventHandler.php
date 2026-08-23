@@ -12,9 +12,12 @@ use Ecotone\Modelling\Attribute\EventHandler;
  */
 final class SomeTestEventHandler
 {
-    #[Asynchronous('input')]
-    #[EventHandler(listenTo: 'input', endpointId: 'test')]
+    public int $handled = 0;
+
+    #[Asynchronous("orders")]
+    #[EventHandler(listenTo: "orders", endpointId: "test")]
     public function test2(): void
     {
+        $this->handled++;
     }
 }

@@ -322,7 +322,7 @@ class JMSConverterTest extends TestCase
 
         $this->assertSerializationAndDeserializationWithJSON($toSerialize, $expectedSerializationString, [
             new AccountStatusConverter(),
-        ]);
+        ], JMSConverterConfiguration::createWithDefaults()->withDefaultEnumSupport(false));
     }
 
     public function test_serializing_with_default_time_handler(): void

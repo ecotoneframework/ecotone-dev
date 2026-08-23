@@ -47,7 +47,6 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
 
     public function process(Message $message): Message
     {
-        /** @TODO Ecotone 2.0 (remove) this. For backward compatibility because it's ran again when message is consumed from Queue e*/
         if ($this->messageContainsCorrectAggregateId($message)) {
             return $message;
         }

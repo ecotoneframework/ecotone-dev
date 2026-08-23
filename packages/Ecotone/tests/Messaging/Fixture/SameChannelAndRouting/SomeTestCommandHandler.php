@@ -8,16 +8,16 @@ use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Modelling\Attribute\CommandHandler;
 
 /**
- * @TODO Ecotone 2.0 routing keys are not message channels, so asynchronous channel can be equal to routing key
- */
-/**
  * licence Apache-2.0
  */
 final class SomeTestCommandHandler
 {
-    #[Asynchronous('input')]
-    #[CommandHandler(routingKey: 'input', endpointId: 'test')]
+    public int $handled = 0;
+
+    #[Asynchronous("orders")]
+    #[CommandHandler(routingKey: "orders", endpointId: "test")]
     public function test(): void
     {
+        $this->handled++;
     }
 }

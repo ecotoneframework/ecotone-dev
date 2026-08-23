@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
@@ -85,6 +86,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [DocumentStore::class => $inMemoryDocumentStore, 'logger' => $stubLogger = StubLogger::create()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    InMemoryRepositoryBuilder::createDefaultEventSourcedRepository(),
                     (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 1),
                 ])
         )
@@ -107,6 +109,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [DocumentStore::class => $inMemoryDocumentStore, 'logger' => $stubLogger = StubLogger::create()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    InMemoryRepositoryBuilder::createDefaultEventSourcedRepository(),
                     (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 1),
                 ])
         );
@@ -135,6 +138,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [DocumentStore::class => $inMemoryDocumentStore, 'logger' => $stubLogger = StubLogger::create()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    InMemoryRepositoryBuilder::createDefaultEventSourcedRepository(),
                     (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 1),
                 ])
         );
@@ -163,6 +167,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [DocumentStore::class => $inMemoryDocumentStore],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    InMemoryRepositoryBuilder::createDefaultEventSourcedRepository(),
                     BaseEventSourcingConfiguration::withDefaults()
                         ->withSnapshotsFor(Ticket::class, 1),
                 ])
@@ -193,6 +198,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [DocumentStore::class => $inMemoryDocumentStore],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    InMemoryRepositoryBuilder::createDefaultEventSourcedRepository(),
                     (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 1),
                 ])
         )
@@ -216,6 +222,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [DocumentStore::class => $inMemoryDocumentStore],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    InMemoryRepositoryBuilder::createDefaultEventSourcedRepository(),
                     (new BaseEventSourcingConfiguration()),
                 ])
         )
@@ -233,6 +240,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             [DocumentStore::class => $inMemoryDocumentStore],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    InMemoryRepositoryBuilder::createDefaultEventSourcedRepository(),
                     (new BaseEventSourcingConfiguration())->withSnapshotsFor(Ticket::class, 2),
                 ])
         )

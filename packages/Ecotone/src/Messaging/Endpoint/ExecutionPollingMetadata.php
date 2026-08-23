@@ -25,14 +25,12 @@ final class ExecutionPollingMetadata
     }
 
     /**
-     * @TODO Ecotone 2.0 amountMessageToHandle increase to 100
-     *
      * @param int $amountOfMessagesToHandle how many messages should this consumer handle before exiting
      * @param int $maxExecutionTimeInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
      * @param bool $failAtError Should consumer stop when error occurs, if not message will be requeued and consumer will continue
      * @return $this
      */
-    public static function createWithTestingSetup(int $amountOfMessagesToHandle = 1, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
+    public static function createWithTestingSetup(int $amountOfMessagesToHandle = 100, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
     {
         return self::createWithDefaults()->withTestingSetup($amountOfMessagesToHandle, $maxExecutionTimeInMilliseconds, $failAtError);
     }
@@ -78,7 +76,7 @@ final class ExecutionPollingMetadata
      * @param int $maxExecutionTimeInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
      * @return $this
      */
-    public function withTestingSetup(int $amountOfMessagesToHandle = 1, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
+    public function withTestingSetup(int $amountOfMessagesToHandle = 100, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
     {
         return $this
             ->withHandledMessageLimit($amountOfMessagesToHandle)

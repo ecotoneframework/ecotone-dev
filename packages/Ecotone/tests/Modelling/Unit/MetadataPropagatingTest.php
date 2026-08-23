@@ -159,7 +159,7 @@ final class MetadataPropagatingTest extends TestCase
 
         $ecotoneTestSupport->sendCommandWithRoutingKey('sendNotificationViaCommandBus');
 
-        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup(1));
 
         $this->assertArrayNotHasKey(
             MessageHeaders::CONSUMER_POLLING_METADATA,

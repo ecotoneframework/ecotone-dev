@@ -11,6 +11,7 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
 use Exception;
 use Fixture\MessengerConsumer\ExampleCommand;
@@ -133,14 +134,15 @@ final class MessengerIntegrationTest extends WebTestCase
             ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ])
         );
 
         $messaging->sendCommandWithRoutingKey('execute.fail', $messagePayload);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -156,14 +158,15 @@ final class MessengerIntegrationTest extends WebTestCase
                 ->withExtensionObjects([
                     SymfonyMessengerMessageChannelBuilder::create($channelName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ])
         );
 
         $messaging->sendCommandWithRoutingKey('execute.fail', $messagePayload);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -280,13 +283,13 @@ final class MessengerIntegrationTest extends WebTestCase
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
         $this->assertEquals(
             [$messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
         $this->assertEquals(
             [$messagePayload, $messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')

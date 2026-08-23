@@ -13,7 +13,6 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
-use Ecotone\Modelling\WithEvents;
 use Money\Money;
 use Ramsey\Uuid\UuidInterface;
 

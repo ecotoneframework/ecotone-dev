@@ -3,8 +3,8 @@
 namespace Test\Ecotone\Dbal\Fixture\Deduplication;
 
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\EventBus;
 

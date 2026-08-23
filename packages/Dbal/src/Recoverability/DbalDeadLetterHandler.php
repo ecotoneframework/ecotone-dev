@@ -9,6 +9,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
+use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
@@ -21,7 +22,6 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Dbal\Connection\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Exception\Exception;
 

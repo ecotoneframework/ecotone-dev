@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Api\Attribute;
 
 use Attribute;
-use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 /**

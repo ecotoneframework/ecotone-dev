@@ -4,6 +4,7 @@ namespace Ecotone\Dbal\Api\ExtensionObject;
 
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;

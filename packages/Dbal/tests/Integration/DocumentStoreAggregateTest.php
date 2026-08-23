@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\Person;
 use Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate\PersonJsonConverter;
@@ -42,7 +42,7 @@ final class DocumentStoreAggregateTest extends DbalMessagingTestCase
             [Person::class, PersonJsonConverter::class],
             containerOrAvailableServices: [new PersonJsonConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withDocumentStore(enableDocumentStoreStateStoredRepository: true, documentStoreRelatedAggregates: [Person::class]),
@@ -64,7 +64,7 @@ final class DocumentStoreAggregateTest extends DbalMessagingTestCase
         return EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [new PersonJsonConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate',
                 ]),

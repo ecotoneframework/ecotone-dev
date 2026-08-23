@@ -6,6 +6,9 @@ namespace Ecotone\Dbal\BatchForwarding;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Dbal\Connection\DbalType;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
@@ -16,10 +19,7 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Dbal\Connection\DbalContext;
-use Ecotone\Dbal\Connection\DbalType;
 use Symfony\Component\Uid\Uuid;
 use Throwable;
 

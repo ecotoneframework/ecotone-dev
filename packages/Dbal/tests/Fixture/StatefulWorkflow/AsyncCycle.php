@@ -3,10 +3,10 @@
 namespace Test\Ecotone\Dbal\Fixture\StatefulWorkflow;
 
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\Parameter\Payload;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Parameter\Payload;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Modelling\WithEvents;

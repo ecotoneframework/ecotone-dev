@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Integration\DbalBusinessMethod;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\DateTimeToDayStringConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonNameDTOConverter;
@@ -18,7 +19,6 @@ use Test\Ecotone\Dbal\Fixture\DbalBusinessInterface\PersonRoleConverter;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler\PersonCommandService;
 use Test\Ecotone\Dbal\Fixture\DbalBusinessInterfaceCommandHandler\RegisterPerson;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
-use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal

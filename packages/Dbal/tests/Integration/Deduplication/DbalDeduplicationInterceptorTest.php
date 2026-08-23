@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\Attribute\Deduplicated;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\MessageHeaders;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**

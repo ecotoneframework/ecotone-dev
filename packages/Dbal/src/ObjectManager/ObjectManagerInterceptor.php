@@ -4,14 +4,14 @@ namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
-use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
+use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
-use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 use Throwable;
 
 /**

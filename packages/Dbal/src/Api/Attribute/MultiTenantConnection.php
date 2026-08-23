@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Api\Attribute;
 
 use Attribute;
-use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]
 /**

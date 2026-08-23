@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
+use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Api\Attribute\WithTenantResolver;
 use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\Attribute\Scheduled;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
 
@@ -62,10 +62,11 @@ final class WithTenantResolverLicensingTest extends TestCase
 
     private function bootstrap(object $service, ?string $licenceKey): void
     {
-        EcotoneLite::bootstrapFlowTesting([$service::class],
+        EcotoneLite::bootstrapFlowTesting(
+            [$service::class],
             [$service, 'tenant_a_connection' => new FakeConnectionFactory()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::createWithDefaultConnection(
                         'tenant',
@@ -79,6 +80,7 @@ final class WithTenantResolverLicensingTest extends TestCase
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
                         ->withDeduplication(false),
                 ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('external_processing')),
-            licenceKey: $licenceKey);
+            licenceKey: $licenceKey
+        );
     }
 }

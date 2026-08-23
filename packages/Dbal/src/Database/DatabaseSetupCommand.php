@@ -6,6 +6,7 @@ namespace Ecotone\Dbal\Database;
 
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ConsoleParameterOption;
+use Ecotone\Dbal\Api\Gateway\DatabaseSetupManager;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
 use function is_bool;

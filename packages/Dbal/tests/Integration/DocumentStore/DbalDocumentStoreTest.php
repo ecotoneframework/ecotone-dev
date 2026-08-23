@@ -2,14 +2,14 @@
 
 namespace Test\Ecotone\Dbal\Integration\DocumentStore;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Store\Document\DocumentException;
-use Ecotone\Api\Gateway\DocumentStore;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 
 use function json_decode;
 use function json_encode;

@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Recoverability;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Test\LicenceTesting;
 use Interop\Queue\ConnectionFactory;
 use RuntimeException;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
-use Ecotone\Test\LicenceTesting;
 
 /**
  * licence Apache-2.0

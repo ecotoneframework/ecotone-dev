@@ -2,10 +2,9 @@
 
 namespace Ecotone\Dbal\Api\ExtensionObject;
 
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Api\Gateway\DocumentStore;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
 
 /**
  * licence Apache-2.0

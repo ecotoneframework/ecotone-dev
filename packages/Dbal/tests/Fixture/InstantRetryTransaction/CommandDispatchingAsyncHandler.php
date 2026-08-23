@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\InstantRetryTransaction;
 
-use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Enqueue\CachedConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 
 /**

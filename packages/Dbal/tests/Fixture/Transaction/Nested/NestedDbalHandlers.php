@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\Transaction\Nested;
 
-use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;

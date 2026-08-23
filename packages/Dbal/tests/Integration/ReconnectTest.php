@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderRegisteringGateway;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction\OrderService;
-use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -94,7 +94,7 @@ final class ReconnectTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects(array_merge([
                     DbalBackedMessageChannelBuilder::create('orders'),
                     DbalBackedMessageChannelBuilder::create('processOrders'),

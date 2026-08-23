@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\Betting\BetService;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeContextWithMessages;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeMessageChannelWithConnectionFactoryBuilder;
-use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -171,11 +171,12 @@ final class MultiTenantConnectionFactoryTest extends TestCase
         array $tenantConnectionMapping = [],
         ?string $defaultConnectionName = null,
     ): \Ecotone\Lite\Test\FlowTestSupport {
-        return EcotoneLite::bootstrapFlowTesting([BetService::class],
+        return EcotoneLite::bootstrapFlowTesting(
+            [BetService::class],
             array_merge([new BetService()], $connections),
             (ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     PollingMetadata::create('bets')
                         ->setExecutionAmountLimit(1),
@@ -187,6 +188,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withDeduplication(false),
                 ]))->addExtensionObject(FakeMessageChannelWithConnectionFactoryBuilder::create('bets', DbalConnectionFactory::class)),
-            allowGatewaysToBeRegisteredInContainer: true);
+            allowGatewaysToBeRegisteredInContainer: true
+        );
     }
 }

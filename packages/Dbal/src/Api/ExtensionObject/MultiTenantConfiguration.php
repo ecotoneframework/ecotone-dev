@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Api\ExtensionObject;
 
 use Ecotone\Messaging\Config\ConnectionReference;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
 
 /**
  * licence Apache-2.0

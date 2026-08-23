@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Dbal\Fixture\Transaction;
 
-use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;

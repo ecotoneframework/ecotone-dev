@@ -5,10 +5,11 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Api\Gateway;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Dbal\Database\DbalTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Dbal\Connection\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 

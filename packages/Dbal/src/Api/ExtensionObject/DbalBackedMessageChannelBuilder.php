@@ -2,8 +2,9 @@
 
 namespace Ecotone\Dbal\Api\ExtensionObject;
 
+use Ecotone\Dbal\DbalInboundChannelAdapterBuilder;
+use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
 
 /**
  * licence Apache-2.0

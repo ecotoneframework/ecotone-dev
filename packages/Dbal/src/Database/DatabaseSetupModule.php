@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Database;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
+use Ecotone\Dbal\Api\Gateway\DatabaseSetupManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -18,7 +20,6 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 
 #[ModuleAnnotation]

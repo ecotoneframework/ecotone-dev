@@ -5,18 +5,19 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateNotFoundException;
-use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Test\LicenceTesting;
 use Exception;
 use PHPUnit\Framework\Attributes\Group;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -25,7 +26,6 @@ use Test\Ecotone\Dbal\Fixture\ConnectionBreakingModule;
 use Test\Ecotone\Dbal\Fixture\InstantRetryTransaction\CommandDispatchingAsyncHandler;
 use Test\Ecotone\Dbal\Fixture\ORM\FailureMode\MultipleInternalCommandsService;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
-use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -482,7 +482,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 3)
                         ->withAsynchronousEndpointsRetry(false),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,]),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ]),
         );
 
         $ecotoneLite->sendCommandWithRoutingKey('dispatch.sql.command', 'test');
@@ -524,7 +524,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     InstantRetryConfiguration::createWithDefaults()
                         ->withAsynchronousEndpointsRetry(isEnabled: true, retryTimes: 3),
                 ])
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,]),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ]),
         );
 
         $ecotoneLite->sendCommandWithRoutingKey('dispatch.sql.command', 'test');

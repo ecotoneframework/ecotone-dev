@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Api\Attribute;
 
 use Attribute;
-use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
+use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 
 #[Attribute(Attribute::TARGET_METHOD)]
 /**

@@ -3,10 +3,10 @@
 namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
-use Ecotone\Dbal\Connection\DbalContext;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\NativeClock;
 use Exception;
 use Interop\Queue\ConnectionFactory;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Api\ExtensionObject;
 
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConnectionReference;
 
 /**
@@ -11,7 +12,7 @@ use Ecotone\Messaging\Config\ConnectionReference;
  */
 final class DbalConnectionReference extends ConnectionReference
 {
-    public const DEFAULT = Connection\DbalConnectionFactory::class;
+    public const DEFAULT = DbalConnectionFactory::class;
 
     public static function defaultConnection(): self
     {

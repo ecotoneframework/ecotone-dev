@@ -3,8 +3,8 @@
 namespace Test\Ecotone\Dbal\Fixture\StatefulWorkflow;
 
 use Ecotone\Api\Attribute\BusinessMethod;
-use Ecotone\Api\Attribute\Parameter\Header;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Parameter\Header;
 
 interface CycleGateway
 {

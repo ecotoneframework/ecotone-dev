@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
-use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnection;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Test\LicenceTesting;
 use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
-use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -83,7 +83,7 @@ final class TransactionTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\Transaction',
                 ]),
@@ -178,7 +178,7 @@ final class TransactionTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
         );
         $ecotone->sendCommandWithRoutingKey('command.prepare');
         $this->assertSame(true, $consoleCommands->prepared, 'Preparation command should be executed');
@@ -216,7 +216,7 @@ final class TransactionTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\Dbal\Fixture\Transaction',
                 ]),
@@ -235,7 +235,7 @@ final class TransactionTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     MultiTenantConfiguration::create(
                         'tenant',

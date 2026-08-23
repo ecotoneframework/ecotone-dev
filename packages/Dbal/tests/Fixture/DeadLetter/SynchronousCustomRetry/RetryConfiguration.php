@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousCustomRetry;
 
-use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
 /**

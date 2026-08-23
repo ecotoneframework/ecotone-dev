@@ -5,20 +5,20 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Dbal\Api\Attribute\MultiTenantConnection;
 use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Api\Attribute\ConsoleCommand;
-use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Handler\MethodInvocationException;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Gateway\CommandBus;
-use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Ecotone\Test\LicenceTesting;
+use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**
  * Proves that a tenant header can be propagated into a `#[ConsoleCommand]` call

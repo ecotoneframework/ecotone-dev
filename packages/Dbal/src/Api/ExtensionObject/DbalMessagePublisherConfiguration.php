@@ -3,7 +3,6 @@
 namespace Ecotone\Dbal\Api\ExtensionObject;
 
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
 
 /**
  * licence Apache-2.0

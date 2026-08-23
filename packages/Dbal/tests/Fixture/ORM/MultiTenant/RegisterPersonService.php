@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\ORM\MultiTenant;
 
-use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\PersonWasRenamed;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;

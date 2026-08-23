@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Fixture\ProductsProjection;
 
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 
 /**
  * licence Apache-2.0

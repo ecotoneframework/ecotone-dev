@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\MetadataPropagating;
 
-use Ecotone\Messaging\Attribute\MessageGateway;
-use Ecotone\Messaging\Attribute\PropagateHeaders;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Messaging\Message;
 
 /**

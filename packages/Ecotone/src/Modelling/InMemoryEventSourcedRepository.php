@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling;
 
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingSaga;
+use Ecotone\Api\Attribute\Repository;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingSaga;
-use Ecotone\Modelling\Attribute\Repository;
 
 /**
  * Class InMemoryEventSourcedRepository

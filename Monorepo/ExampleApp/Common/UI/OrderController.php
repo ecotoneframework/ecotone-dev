@@ -7,7 +7,7 @@ namespace Monorepo\ExampleApp\Common\UI;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;
 use Monorepo\ExampleApp\Common\Infrastructure\Authentication\AuthenticationService;
-use Ecotone\Modelling\CommandBus;
+use Ecotone\Api\Gateway\CommandBus;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

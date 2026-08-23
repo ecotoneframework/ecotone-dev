@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\MultiTenant;
 
-use Ecotone\Dbal\Attribute\DbalQuery;
+use Ecotone\Dbal\Api\Attribute\DbalQuery;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 
 /**

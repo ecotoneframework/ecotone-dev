@@ -1,0 +1,20 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Ecotone\Dbal\Api\ExtensionObject;
+
+use Ecotone\Messaging\Config\ConnectionReference;
+
+/**
+ * licence Apache-2.0
+ */
+final class DbalConnectionReference extends ConnectionReference
+{
+    public const DEFAULT = Connection\DbalConnectionFactory::class;
+
+    public static function defaultConnection(): self
+    {
+        return new self(self::DEFAULT, null);
+    }
+}

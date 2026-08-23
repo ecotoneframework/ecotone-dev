@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\Async;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\ServiceActivator;
 
 #[Asynchronous(channelName: 'asyncChannel2')]
 /**

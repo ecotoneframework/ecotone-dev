@@ -2,13 +2,13 @@
 
 namespace Test\Ecotone\Dbal\Integration\Recoverability;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
+use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Message;

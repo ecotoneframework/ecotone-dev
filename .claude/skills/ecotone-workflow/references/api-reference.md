@@ -2,7 +2,7 @@
 
 ## #[Saga] Attribute
 
-Source: `Ecotone\Modelling\Attribute\Saga`
+Source: `Ecotone\Api\Attribute\Saga`
 
 Class-level attribute. Extends `Aggregate` -- sagas are stored and loaded like aggregates.
 
@@ -17,7 +17,7 @@ class MyProcess
 
 ## #[EventSourcingSaga] Attribute
 
-Source: `Ecotone\Modelling\Attribute\EventSourcingSaga`
+Source: `Ecotone\Api\Attribute\EventSourcingSaga`
 
 Class-level attribute. Extends `EventSourcingAggregate` -- saga state rebuilt from events.
 
@@ -57,7 +57,7 @@ Methods:
 
 ## #[InternalHandler] Attribute
 
-Source: `Ecotone\Messaging\Attribute\InternalHandler`
+Source: `Ecotone\Api\Attribute\InternalHandler`
 
 Extends `ServiceActivator`. For internal message routing not exposed via bus.
 
@@ -83,7 +83,7 @@ If handler returns `null`, the chain stops (no message sent to outputChannel).
 
 ## #[Orchestrator] Attribute (Enterprise)
 
-Source: `Ecotone\Messaging\Attribute\Orchestrator`
+Source: `Ecotone\Api\Attribute\Orchestrator`
 
 Method-level attribute. Returns array of channel names (routing slip).
 
@@ -104,12 +104,12 @@ Parameters:
 
 ## #[OrchestratorGateway] Attribute (Enterprise)
 
-Source: `Ecotone\Messaging\Attribute\OrchestratorGateway`
+Source: `Ecotone\Api\Attribute\OrchestratorGateway`
 
 Method-level attribute on interface methods. Creates business interface gateway.
 
 ```php
-use Ecotone\Messaging\Attribute\OrchestratorGateway;
+use Ecotone\Api\Attribute\OrchestratorGateway;
 
 interface MyWorkflowProcess
 {

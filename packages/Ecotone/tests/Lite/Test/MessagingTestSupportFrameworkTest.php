@@ -3,22 +3,21 @@
 namespace Test\Ecotone\Lite\Test;
 
 use DateTimeImmutable;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\TimeSpan;
-use Ecotone\Modelling\CommandBus;
 use PHPUnit\Framework\TestCase;
 use stdClass;
 use Symfony\Component\Uid\Uuid;
@@ -159,11 +158,13 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_failing_serializing_event_message_due_to_lack_of_converter()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, PlaceOrderConverter::class],
             [new OrderService(), new PlaceOrderConverter()],
             testConfiguration: TestConfiguration::createWithDefaults()
                 ->withSpyOnChannel('orders'),
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray())));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()))
+        );
 
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder('someId'));
 
@@ -487,9 +488,11 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_releasing_delayed_message_time_time_span_object()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray())));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()))
+        );
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
@@ -510,9 +513,11 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_delaying_till_specific_moment_in_time()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray())));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()))
+        );
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
@@ -533,9 +538,11 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_delaying_with_past_date_make_it_available_right_away(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray())));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()))
+        );
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
@@ -551,9 +558,11 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_configured_queue_channel_is_in_memory_delayable(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray())));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', true, MediaType::createApplicationXPHPArray()))
+        );
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
@@ -574,9 +583,11 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
     public function test_channel_provided_default_channel_is_not_used(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, PlaceOrderConverter::class, OrderWasPlacedConverter::class],
             [new OrderService(), new PlaceOrderConverter(), new OrderWasPlacedConverter()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', false)));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', false))
+        );
 
         $orderId = 'someId';
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [

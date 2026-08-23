@@ -3,8 +3,8 @@
 namespace Test\Ecotone\EventSourcing\Fixture\SpecificEventStream;
 
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 

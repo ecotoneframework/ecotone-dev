@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler;
 
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\CommandBus;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Gateway\CommandBus;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\PersonWasRenamed;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;
 

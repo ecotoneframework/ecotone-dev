@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 

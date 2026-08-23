@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Consumer;
 
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
-use Ecotone\Messaging\Store\Document\DocumentStore;
+use Ecotone\Api\Gateway\DocumentStore;
 
 /**
  * DBAL-based position tracker for persistent consumer offset storage using DocumentStore

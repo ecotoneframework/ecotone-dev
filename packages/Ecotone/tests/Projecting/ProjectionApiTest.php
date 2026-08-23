@@ -4,19 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Projecting;
 
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Partitioned;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\Streaming;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\Polling;
-use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\Attribute\Streaming;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

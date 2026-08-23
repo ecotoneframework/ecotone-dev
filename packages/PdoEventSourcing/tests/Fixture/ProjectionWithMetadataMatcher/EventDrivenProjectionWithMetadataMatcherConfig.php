@@ -8,7 +8,7 @@ use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\Prooph\Metadata\FieldType;
 use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher;
 use Ecotone\EventSourcing\Prooph\Metadata\Operator;
-use Ecotone\Messaging\Attribute\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList;
 
 final class EventDrivenProjectionWithMetadataMatcherConfig

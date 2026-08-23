@@ -5,9 +5,9 @@ namespace App\ReadModel\TicketCounterProjection;
 use App\Domain\Event\TicketWasRegistered;
 use App\Domain\Ticket;
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\EventSourcing\Attribute\ProjectionState;
+use Ecotone\Api\Attribute\ProjectionState;
 use Ecotone\EventSourcing\EventStreamEmitter;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
 
 #[Projection(self::NAME, Ticket::class)]
 final class TicketCounterProjection

@@ -7,7 +7,7 @@ use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Store\Document\DocumentStore;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;

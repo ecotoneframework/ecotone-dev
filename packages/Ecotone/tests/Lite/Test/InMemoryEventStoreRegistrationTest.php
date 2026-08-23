@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Lite\Test;
 
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Converter;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\Event;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\TenantSharedConnection;
 
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 use RuntimeException;
 use Tempest\Database\IsDatabaseModel;
 use Tempest\Database\PrimaryKey;

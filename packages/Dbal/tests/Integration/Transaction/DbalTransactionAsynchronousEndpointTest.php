@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Modelling\AggregateNotFoundException;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Exception;
 use PHPUnit\Framework\Attributes\Group;
@@ -218,7 +218,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                         ->withDefaultErrorChannel('nullChannel'),
-                    \Ecotone\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
+                    \Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
@@ -333,7 +333,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                         ->withDefaultErrorChannel('nullChannel'),
-                    \Ecotone\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
+                    \Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)

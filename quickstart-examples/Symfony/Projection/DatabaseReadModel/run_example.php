@@ -13,8 +13,8 @@ use App\Domain\Command\RegisterUser;
 use App\Domain\User;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 

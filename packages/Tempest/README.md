@@ -46,8 +46,8 @@ Ecotone derives your application namespaces from the PSR-4 roots declared in you
 // src/Order/PlaceOrderHandler.php
 namespace App\Order;
 
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 final class PlaceOrderHandler
 {
@@ -74,8 +74,8 @@ That is all that is needed. No configuration file, no registration — Ecotone d
 `CommandBus`, `QueryBus`, and `EventBus` are automatically registered in the Tempest container and can be injected anywhere:
 
 ```php
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 
 final class OrderController
 {
@@ -173,8 +173,8 @@ composer require ecotone/dbal
 Register a `TempestConnectionReference` via `#[ServiceContext]` to bridge Tempest's `DatabaseConfig` to Ecotone's DBAL module:
 
 ```php
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Tempest\Config\TempestConnectionReference;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Tempest\Api\ExtensionObject\TempestConnectionReference;
 
 final class EcotoneConfiguration
 {
@@ -211,9 +211,9 @@ public function dbalConnection(): TempestConnectionReference
 Use `MultiTenantConfiguration` together with per-tenant `TempestConnectionReference` instances. A `tenant` header on each message selects the correct database:
 
 ```php
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Tempest\Config\TempestConnectionReference;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Tempest\Api\ExtensionObject\TempestConnectionReference;
 use Tempest\Database\Config\MysqlConfig;
 use Tempest\Database\Config\PostgresConfig;
 
@@ -279,8 +279,8 @@ When `APP_ENV=prod` or `APP_ENV=production`, the production cache path is used a
 Ecotone supports Symfony Expression Language in `#[Payload]` and `#[Header]` attributes. The `parameter()` function reads from environment variables via `TempestConfigurationVariableService`:
 
 ```php
-use Ecotone\Messaging\Attribute\Parameter\Payload;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Payload;
+use Ecotone\Api\Attribute\CommandHandler;
 
 final class CalculatorHandler
 {

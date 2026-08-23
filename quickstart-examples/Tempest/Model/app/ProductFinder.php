@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App;
 
-use Ecotone\Dbal\Attribute\DbalQuery;
+use Ecotone\Dbal\Api\Attribute\DbalQuery;
 
 interface ProductFinder
 {

@@ -8,14 +8,14 @@ declare(strict_types=1);
 namespace Ecotone\Projecting\Config;
 
 use Closure;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\Streaming;
 use Ecotone\Messaging\Config\Configuration;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
 use Ecotone\Modelling\Config\Routing\RoutingEvent;
 use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
-use Ecotone\Projecting\Attribute\Polling;
-use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\Attribute\Streaming;
 
 /**
  * This routing extension is responsible for changing destination channel to projection triggering channel

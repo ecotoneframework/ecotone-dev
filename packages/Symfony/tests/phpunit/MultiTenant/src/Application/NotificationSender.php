@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Symfony\App\MultiTenant\Application;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Attribute\MultiTenantConnection;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Dbal\Api\Attribute\MultiTenantConnection;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

@@ -2,7 +2,7 @@
 
 use App\Domain\Event\CustomerRegistered;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 
 echo "Running example with authoritative classmap (--no-dev)\n";
 exec("composer update --ignore-platform-reqs --classmap-authoritative --no-dev");

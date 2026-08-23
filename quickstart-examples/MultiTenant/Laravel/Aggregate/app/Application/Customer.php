@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\MultiTenant\Application;
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\IdentifierMethod;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\IdentifierMethod;
 use Illuminate\Database\Eloquent\Model;
 
 #[Aggregate]

@@ -5,7 +5,7 @@
 Enable Doctrine ORM repositories so aggregates can be stored as Doctrine entities:
 
 ```php
-use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 
 class EcotoneConfiguration
 {
@@ -46,9 +46,9 @@ doctrine:
 
 ```php
 use Doctrine\ORM\Mapping as ORM;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'orders')]
@@ -84,8 +84,8 @@ class Order
 ### Default Connection via ManagerRegistry
 
 ```php
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\SymfonyBundle\Config\SymfonyConnectionReference;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\SymfonyBundle\Api\ExtensionObject\SymfonyConnectionReference;
 
 class EcotoneConfiguration
 {
@@ -133,7 +133,7 @@ framework:
 Register as Ecotone channels via `#[ServiceContext]`:
 
 ```php
-use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
+use Ecotone\SymfonyBundle\Api\ExtensionObject\SymfonyMessengerMessageChannelBuilder;
 
 class ChannelConfiguration
 {
@@ -154,7 +154,7 @@ class ChannelConfiguration
 ### Using DBAL Channels Directly
 
 ```php
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
 
 class ChannelConfiguration
 {
@@ -169,7 +169,7 @@ class ChannelConfiguration
 ## Multi-Tenant Configuration -- Full Example
 
 ```php
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
 
 class EcotoneConfiguration
 {

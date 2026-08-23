@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\AsyncOrderSubscriber;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\FakeTransactionModule;
@@ -63,10 +63,12 @@ final class HighThroughputPublishingCollectorMatrixTest extends TestCase
 
     private function bootstrapEcotone(OperationsLog $operationsLog, bool $collectorEnabled): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting([OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
+        return EcotoneLite::bootstrapFlowTesting(
+            [OrderService::class, AsyncOrderSubscriber::class, FakeTransactionModule::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
             (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 PollableChannelConfiguration::neverRetry('async_orders')->withCollector($collectorEnabled),
-            ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders')));
+            ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))
+        );
     }
 }

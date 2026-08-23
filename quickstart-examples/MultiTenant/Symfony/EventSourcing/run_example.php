@@ -2,8 +2,8 @@
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use App\MultiTenant\Configuration\Kernel;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use PHPUnit\Framework\Assert;
 use App\MultiTenant\Application\Command\RegisterProduct;
 use App\MultiTenant\Application\Command\UnregisterProduct;

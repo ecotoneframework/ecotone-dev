@@ -6,7 +6,7 @@ namespace Ecotone\Kafka\Outbound;
 
 use Ecotone\Kafka\Api\KafkaHeader;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaPublisherConfiguration;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;

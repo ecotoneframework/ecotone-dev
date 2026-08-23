@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
@@ -81,11 +81,13 @@ final class ClosureExpressionTest extends TestCase
 
     public function test_delayed_endpoint_attribute_with_closure_expression(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([DelayedClosureService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DelayedClosureService::class],
             [new DelayedClosureService()],
             testConfiguration: TestConfiguration::createWithDefaults()->withSpyOnChannel('async'),
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+        );
 
         $headers = $ecotoneLite
             ->sendCommandWithRoutingKey('notification.delayed', new DelayCommand(1234))
@@ -98,9 +100,11 @@ final class ClosureExpressionTest extends TestCase
     {
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting([DelayedClosureService::class],
+        EcotoneLite::bootstrapFlowTesting(
+            [DelayedClosureService::class],
             [new DelayedClosureService()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+        );
     }
 
     public function test_fetch_closure_expression_loads_aggregate(): void

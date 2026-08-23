@@ -13,12 +13,12 @@ use App\Domain\Event\UserWasDeactivated;
 use App\Domain\Event\UserWasRegistered;
 use App\Domain\User;
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\FromAggregateStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\FromAggregateStream;
+use Ecotone\Api\Attribute\ProjectionDelete;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\ProjectionV2;
 
 #[ProjectionV2('user_list_database')]
 #[FromAggregateStream(User::class)]

@@ -2,8 +2,8 @@
 
 namespace Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow;
 
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageDeliveryException;
 use Ecotone\Messaging\MessageHandler;
 use Ecotone\Messaging\PollableChannel;

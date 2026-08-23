@@ -6,8 +6,8 @@ namespace Ecotone\SymfonyBundle\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;

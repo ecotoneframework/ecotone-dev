@@ -10,6 +10,8 @@ namespace Ecotone\Modelling\Config\Routing;
 use function array_unique;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -17,8 +19,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\PriorityBasedOnType;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\NamedEvent;
 use RuntimeException;
 
 use function str_contains;

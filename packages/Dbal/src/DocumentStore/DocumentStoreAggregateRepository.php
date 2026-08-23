@@ -2,7 +2,7 @@
 
 namespace Ecotone\Dbal\DocumentStore;
 
-use Ecotone\Messaging\Store\Document\DocumentStore;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Modelling\StateStoredRepository;
 
 /**

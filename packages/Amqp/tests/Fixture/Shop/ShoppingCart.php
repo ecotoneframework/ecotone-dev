@@ -3,9 +3,9 @@
 namespace Test\Ecotone\Amqp\Fixture\Shop;
 
 use Ecotone\Messaging\Attribute\MessageConsumer;
-use Ecotone\Messaging\MessagePublisher;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Modelling\Event;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
@@ -23,7 +23,7 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
 {
     public function test_registering_in_memory_event_store_when_event_sourcing_configuration_is_in_memory(): void
     {
-        $eventSourcingConfiguration = \Ecotone\EventSourcing\EventSourcingConfiguration::createInMemory();
+        $eventSourcingConfiguration = \Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration::createInMemory();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [TestEventConverter::class],

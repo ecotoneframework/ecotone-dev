@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Attribute;
 
-use Ecotone\Kafka\Attribute\KafkaConsumer;
+use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\ExpressionLanguage\Expression;
 use TypeError;

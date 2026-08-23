@@ -7,21 +7,21 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\FromStream;
+use Ecotone\Api\Attribute\ProjectionDelete;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\ProjectionReset;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\ProjectionDeployment;
-use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\ProjectionRegistry;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\ProjectionDeployment;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Gateway\ProjectionRegistry;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 

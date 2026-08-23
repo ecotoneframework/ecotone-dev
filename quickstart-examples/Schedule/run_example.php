@@ -7,7 +7,7 @@ use App\Schedule\Messaging\StaticSchedules\MessagingConfiguration as StaticMessa
 use App\Schedule\ScheduledJob\ScheduledCommandHandler\InvoiceService;
 use App\Schedule\ScheduledJob\ScheduledJob\NotificationService;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 
 require __DIR__ . "/vendor/autoload.php";

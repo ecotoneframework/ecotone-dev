@@ -2,10 +2,9 @@
 
 namespace Test\Ecotone\Lite;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\InMemoryPSRContainer;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Behat\Presend\CoinGateway;
 use Test\Ecotone\Messaging\Fixture\Behat\Presend\MultiplyCoins;

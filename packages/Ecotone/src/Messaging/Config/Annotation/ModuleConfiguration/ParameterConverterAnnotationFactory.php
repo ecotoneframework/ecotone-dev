@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Closure;
-use Ecotone\Messaging\Attribute\Parameter\ConfigurationVariable;
-use Ecotone\Messaging\Attribute\Parameter\Fetch;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Attribute\Parameter\Headers;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\IgnorePayload;
+use Ecotone\Api\Attribute\Parameter\ConfigurationVariable;
+use Ecotone\Api\Attribute\Parameter\Fetch;
+use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Parameter\Headers;
+use Ecotone\Api\Attribute\Parameter\Payload;
+use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Handler\ClosureExpression\ClosureExpressionParameterConverterBuilder;
@@ -28,7 +29,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadExpressio
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Modelling\Attribute\IgnorePayload;
 
 /**
  * Class ParameterConverterAnnotationFactory

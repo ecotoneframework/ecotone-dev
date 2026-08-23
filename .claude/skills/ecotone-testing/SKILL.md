@@ -98,8 +98,8 @@ public function test_closing_ticket(): void
 ### Async-Tested-Synchronously
 
 ```php
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 
 public function test_async_handler(): void
 {

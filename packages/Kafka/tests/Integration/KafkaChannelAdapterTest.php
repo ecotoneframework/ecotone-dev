@@ -4,31 +4,31 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
 use Ecotone\Kafka\Api\KafkaHeader;
-use Ecotone\Kafka\Attribute\KafkaConsumer;
+use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
-use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Kafka\Outbound\MessagePublishingException;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagePublisher;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -326,7 +326,7 @@ final class KafkaChannelAdapterTest extends TestCase
             private array $processedMessages = [];
 
             #[KafkaConsumer('kafka_consumer_attribute', 'testTopicDeadLetter')]
-            public function handle(#[\Ecotone\Messaging\Attribute\Parameter\Payload] string $payload): void
+            public function handle(#[\Ecotone\Api\Attribute\Parameter\Payload] string $payload): void
             {
                 if ($this->failureCount < 1) {
                     $this->failureCount++;
@@ -407,7 +407,7 @@ final class KafkaChannelAdapterTest extends TestCase
             public array $processedPayloads = [];
 
             #[KafkaConsumer(self::ENDPOINT_ID, self::TOPIC_REFERENCE)]
-            public function handle(#[\Ecotone\Messaging\Attribute\Parameter\Payload] string $payload): void
+            public function handle(#[\Ecotone\Api\Attribute\Parameter\Payload] string $payload): void
             {
                 $this->invocations++;
                 if ($this->shouldFail) {

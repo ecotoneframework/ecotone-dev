@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\EventSourcing\Attribute\AggregateType;
-use Ecotone\EventSourcing\Attribute\Stream;
+use Ecotone\Api\Attribute\AggregateEvents;
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\IdentifierMethod;
+use Ecotone\Api\Attribute\Version;
+use Ecotone\EventSourcing\Api\Attribute\Stream;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Modelling\Attribute\AggregateEvents;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\IdentifierMethod;
-use Ecotone\Modelling\Attribute\Version;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 
 /**

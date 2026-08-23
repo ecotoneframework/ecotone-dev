@@ -3,7 +3,7 @@
 namespace App\Infrastructure;
 
 use App\ReadModel\TicketCounterProjection\TicketCounterState;
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 final class TicketCounterStateConverter
 {

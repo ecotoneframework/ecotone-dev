@@ -3,8 +3,8 @@
 ## Async-Tested-Synchronously Pattern
 
 ```php
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 
 public function test_async_event_processing(): void
 {
@@ -72,7 +72,7 @@ $ecotone->deleteProjection('name');      // Cleanup
 ## ServiceConfiguration with ModulePackageList
 
 ```php
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 
 public function test_with_dbal_module(): void

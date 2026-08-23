@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\AmqpConsumer;
 
-use Ecotone\Amqp\Attribute\RabbitConsumer;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Amqp\Api\Attribute\RabbitConsumer;
+use Ecotone\Api\Attribute\QueryHandler;
 use stdClass;
 
 /**

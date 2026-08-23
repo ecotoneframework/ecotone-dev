@@ -2,9 +2,9 @@
 
 namespace Ecotone\Modelling;
 
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Store\Document\DocumentStore;
 
 /**
  * licence Apache-2.0

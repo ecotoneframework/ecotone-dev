@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 #[Asynchronous('async_channel')]
 /**

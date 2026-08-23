@@ -8,16 +8,18 @@ use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
-use Ecotone\Messaging\Channel\CombinedMessageChannel;
 use Ecotone\Messaging\Channel\EventDrivenChannelInterceptorAdapter;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\OutboxForwardingChannel;
 use Ecotone\Messaging\Channel\PollableChannelInterceptorAdapter;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModuleRetrievingService;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -44,7 +46,6 @@ use Ecotone\Messaging\Endpoint\ChannelAdapterConsumerBuilder;
 use Ecotone\Messaging\Endpoint\MessageHandlerConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncEndpointAnnotationContext;
 use Ecotone\Messaging\Endpoint\PollingConsumer\AsyncHandlerAnnotationRegistry;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -484,9 +485,9 @@ final class MessagingSystemConfiguration implements Configuration
                     $hasErrorChannel = false;
                     $hasDelayedRetry = false;
                     foreach ($endpointAnnotations as $endpointAnnotation) {
-                        if ($endpointAnnotation instanceof \Ecotone\Messaging\Attribute\ErrorChannel) {
+                        if ($endpointAnnotation instanceof \Ecotone\Api\Attribute\ErrorChannel) {
                             $hasErrorChannel = true;
-                        } elseif ($endpointAnnotation instanceof \Ecotone\Messaging\Attribute\DelayedRetry) {
+                        } elseif ($endpointAnnotation instanceof \Ecotone\Api\Attribute\DelayedRetry) {
                             $hasDelayedRetry = true;
                         }
                     }
@@ -497,12 +498,12 @@ final class MessagingSystemConfiguration implements Configuration
                     }
 
                     foreach ($handlerInterface->getMethodAnnotations() as $methodAnnotation) {
-                        if ($methodAnnotation instanceof \Ecotone\Messaging\Attribute\ErrorChannel) {
+                        if ($methodAnnotation instanceof \Ecotone\Api\Attribute\ErrorChannel) {
                             throw ConfigurationException::create(
                                 Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::errorChannelDirectlyOnAsyncHandlerMethod($targetEndpointId)
                             );
                         }
-                        if ($methodAnnotation instanceof \Ecotone\Messaging\Attribute\DelayedRetry) {
+                        if ($methodAnnotation instanceof \Ecotone\Api\Attribute\DelayedRetry) {
                             throw ConfigurationException::create(
                                 Annotation\ModuleConfiguration\ErrorChannelExceptionMessages::delayedRetryDirectlyOnAsyncHandlerMethod($targetEndpointId)
                             );

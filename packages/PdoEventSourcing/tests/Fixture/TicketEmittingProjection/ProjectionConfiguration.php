@@ -3,7 +3,7 @@
 namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
-use Ecotone\Messaging\Attribute\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 
 /**
  * licence Apache-2.0

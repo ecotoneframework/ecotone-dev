@@ -7,7 +7,7 @@ namespace Test;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Fixture\ExpressionLanguage\ExpressionLanguageCommandHandler;
 use Fixture\User\User;
 use Fixture\User\UserRepository;

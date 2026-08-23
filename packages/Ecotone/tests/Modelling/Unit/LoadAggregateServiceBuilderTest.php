@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\AggregateNotFoundException;
@@ -26,10 +26,8 @@ use Test\Ecotone\Modelling\Fixture\Renter\AppointmentRepositoryInterface;
 use Test\Ecotone\Modelling\Fixture\Renter\AppointmentStateStoredRepository;
 use Test\Ecotone\Modelling\Fixture\Renter\CreateAppointmentCommand;
 use Test\Ecotone\Modelling\Fixture\Saga\AsynchronousOrderFulfilment;
-use Test\Ecotone\Modelling\Fixture\Saga\BeforeFinishOrder;
 use Test\Ecotone\Modelling\Fixture\Saga\OrderFulfilment;
 use Test\Ecotone\Modelling\Fixture\Saga\PaymentWasDoneEvent;
-use Test\Ecotone\Modelling\Fixture\Saga\PresendFinishOrder;
 
 /**
  * @internal
@@ -65,8 +63,10 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
     {
         $this->assertEquals(
             'done',
-            EcotoneLite::bootstrapFlowTesting(classesToResolve: [AsynchronousOrderFulfilment::class],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')))
+            EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [AsynchronousOrderFulfilment::class],
+                configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            )
                 ->sendCommandWithRoutingKey('order.start', $oderId = 100)
                 ->publishEvent(PaymentWasDoneEvent::create($oderId), metadata: ['paymentId' => $oderId])
                 ->run('async')

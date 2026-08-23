@@ -2,7 +2,7 @@
 
 namespace Ecotone\EventSourcing\Config;
 
-use Ecotone\EventSourcing\EventSourcingConfiguration;
+use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Messaging\Config\Container\Definition;

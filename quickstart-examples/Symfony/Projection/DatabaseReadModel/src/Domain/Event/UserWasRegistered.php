@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Event;
 
-use Ecotone\Modelling\Attribute\NamedEvent;
+use Ecotone\Api\Attribute\NamedEvent;
 
 #[NamedEvent(self::EVENT_NAME)]
 final readonly class UserWasRegistered

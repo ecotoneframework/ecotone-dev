@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Workflow\Application;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 
 final readonly class ImageProcessingWorkflow
 {

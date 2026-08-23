@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Symfony\App\SingleTenant\Configuration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
-use Ecotone\SymfonyBundle\Config\SymfonyConnectionReference;
-use Ecotone\SymfonyBundle\Messenger\SymfonyMessengerMessageChannelBuilder;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\SymfonyBundle\Api\ExtensionObject\SymfonyConnectionReference;
+use Ecotone\SymfonyBundle\Api\ExtensionObject\SymfonyMessengerMessageChannelBuilder;
 
 /**
  * licence Apache-2.0

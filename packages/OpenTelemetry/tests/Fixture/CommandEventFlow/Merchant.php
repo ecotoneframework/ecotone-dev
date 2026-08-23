@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow;
 
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\EventBus;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Gateway\EventBus;
 
 #[Aggregate]
 /**

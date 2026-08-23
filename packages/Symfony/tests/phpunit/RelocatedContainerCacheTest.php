@@ -12,7 +12,7 @@ use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
 use Ecotone\Messaging\Handler\Gateway\ProxyFactory;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\SymfonyBundle\DependencyInjection\EcotoneContainerLoader;
 use Ecotone\SymfonyContainer\EcotoneSymfonyContainerFactory;
 use PHPUnit\Framework\TestCase;

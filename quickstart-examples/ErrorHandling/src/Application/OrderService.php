@@ -8,12 +8,12 @@ use App\Domain\Order;
 use App\Domain\OrderRepository;
 use App\Domain\OrderWasPlaced;
 use App\Domain\ShippingService;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Parameter\Header;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\EventBus;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Gateway\EventBus;
 
 final class OrderService
 {

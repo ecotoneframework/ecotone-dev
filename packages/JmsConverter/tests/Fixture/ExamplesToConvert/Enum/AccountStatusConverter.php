@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Fixture\ExamplesToConvert\Enum;
 
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 final class AccountStatusConverter
 {

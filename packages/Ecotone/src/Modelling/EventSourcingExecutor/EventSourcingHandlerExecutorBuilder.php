@@ -2,6 +2,7 @@
 
 namespace Ecotone\Modelling\EventSourcingExecutor;
 
+use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -11,7 +12,6 @@ use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
 use Ecotone\Modelling\EventSourcingHandlerMethod;
 use ReflectionClass;
 

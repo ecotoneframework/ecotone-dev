@@ -6,7 +6,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;
 use Ecotone\Dbal\Connection\DbalContext;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\NativeClock;
 use Exception;
 use Interop\Queue\ConnectionFactory;

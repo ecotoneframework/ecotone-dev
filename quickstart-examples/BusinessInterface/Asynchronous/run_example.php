@@ -20,7 +20,7 @@ $cacheService->set(new \App\BusinessInterface\CachedItem("pageViews", "12333", "
 Assert::assertNull($cacheService->get("pageViews"));
 
 // running Message Consumer
-$messagingSystem->run('async', \Ecotone\Messaging\Endpoint\ExecutionPollingMetadata::createWithTestingSetup());
+$messagingSystem->run('async', \Ecotone\Api\ExtensionObject\ExecutionPollingMetadata::createWithTestingSetup());
 
 Assert::assertEquals('12333', $cacheService->get('pageViews'));
 echo "Cache set and get successfully\n";

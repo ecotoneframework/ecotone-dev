@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Fixture\RedisConsumer;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 #[Asynchronous('redis')]
 /**

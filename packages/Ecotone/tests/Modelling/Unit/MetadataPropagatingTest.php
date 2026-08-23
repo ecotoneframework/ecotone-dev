@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\CombinedMessageChannel;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\AggregateMessage;
 use PHPUnit\Framework\TestCase;
@@ -85,8 +85,10 @@ final class MetadataPropagatingTest extends TestCase
 
     public function test_not_propagating_aggregate_headers(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Order::class],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')));
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [Order::class],
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
+        );
 
         $orderId = '1';
 
@@ -103,8 +105,10 @@ final class MetadataPropagatingTest extends TestCase
 
     public function test_using_aggregate_id_target_with_asynchronous_endpoint(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Order::class],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders')));
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [Order::class],
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
+        );
 
         $orderId = '1';
 
@@ -121,7 +125,8 @@ final class MetadataPropagatingTest extends TestCase
 
     public function test_using_aggregate_id_target_with_combined_channel(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([Order::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [Order::class],
             configuration: (ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withExtensionObjects(
                     [
@@ -130,7 +135,8 @@ final class MetadataPropagatingTest extends TestCase
                             ['outbox', 'processing']
                         ),
                     ]
-                ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('outbox'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('processing')));
+                ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('outbox'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('processing'))
+        );
 
         $orderId = '1';
 
@@ -169,8 +175,10 @@ final class MetadataPropagatingTest extends TestCase
 
     public function test_propagating_headers_to_all_published_asynchronous_event_handlers_extended(): void
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(classesToResolve: [Basket::class, ItemInventory::class],
-            configuration: (ServiceConfiguration::createWithDefaults())->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('basket'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('itemInventory')));
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [Basket::class, ItemInventory::class],
+            configuration: (ServiceConfiguration::createWithDefaults())->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('basket'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('itemInventory'))
+        );
 
         $ecotoneTestSupport->withEventsFor(
             'basket-123',

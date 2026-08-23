@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\ClosureInAttribute;
 
-use Ecotone\Dbal\Attribute\DbalParameter;
-use Ecotone\Dbal\Attribute\DbalQuery;
-use Ecotone\Dbal\Attribute\DbalWrite;
+use Ecotone\Dbal\Api\Attribute\DbalParameter;
+use Ecotone\Dbal\Api\Attribute\DbalQuery;
+use Ecotone\Dbal\Api\Attribute\DbalWrite;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 
 /**

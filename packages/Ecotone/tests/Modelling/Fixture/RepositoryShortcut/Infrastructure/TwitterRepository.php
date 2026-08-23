@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\RepositoryShortcut\Infrastructure;
 
-use Ecotone\Modelling\Attribute\Repository;
+use Ecotone\Api\Attribute\Repository;
 use Ecotone\Modelling\InMemoryStateStoredRepository;
 
 #[Repository]

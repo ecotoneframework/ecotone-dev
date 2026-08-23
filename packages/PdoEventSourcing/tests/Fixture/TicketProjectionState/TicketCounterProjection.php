@@ -3,9 +3,9 @@
 namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\EventSourcing\Attribute\ProjectionState;
+use Ecotone\Api\Attribute\ProjectionState;
 use Ecotone\EventSourcing\EventStreamEmitter;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;

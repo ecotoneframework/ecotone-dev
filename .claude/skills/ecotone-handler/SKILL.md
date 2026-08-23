@@ -26,7 +26,7 @@ Message handlers are the core building blocks in Ecotone. They process messages 
 ## CommandHandler
 
 ```php
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class OrderService
 {
@@ -41,7 +41,7 @@ class OrderService
 ## EventHandler
 
 ```php
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
 
 class NotificationService
 {
@@ -58,7 +58,7 @@ Multiple `#[EventHandler]` methods can listen to the same event -- all will be c
 ## QueryHandler
 
 ```php
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 class OrderQueryService
 {
@@ -75,7 +75,7 @@ class OrderQueryService
 Low-level message handler that works directly with message channels:
 
 ```php
-use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\ServiceActivator;
 
 class MessageProcessor
 {
@@ -92,7 +92,7 @@ class MessageProcessor
 Access message headers via `#[Header]` parameter attribute:
 
 ```php
-use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Parameter\Header;
 
 class AuditHandler
 {

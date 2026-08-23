@@ -81,9 +81,9 @@ With sagas, you react to events and track state -- powerful but the workflow def
 
 **Define the workflow** -- return an array of step channel names:
 ```php
-use Ecotone\Messaging\Attribute\Orchestrator;
-use Ecotone\Messaging\Attribute\OrchestratorGateway;
-use Ecotone\Messaging\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Orchestrator;
+use Ecotone\Api\Attribute\OrchestratorGateway;
+use Ecotone\Api\Attribute\InternalHandler;
 
 class OrderFulfillmentOrchestrator
 {
@@ -230,7 +230,7 @@ Manual retry logic clutters business code with try/catch loops, retry counters, 
 
 ```php
 use Ecotone\Messaging\Attribute\InstantRetry;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class InventoryService
 {

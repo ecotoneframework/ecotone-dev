@@ -13,7 +13,7 @@ use App\Workflow\Saga\Application\Payment\PaymentService;
 use App\Workflow\Saga\Application\Payment\PaymentProcessor;
 use App\Workflow\Saga\Infrastructure\StubOrderService;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use Money\Money;
 use PHPUnit\Framework\TestCase;
@@ -28,7 +28,7 @@ final class OrderProcessTest extends TestCase
             [
                 OrderService::class => new StubOrderService($totalPrice)
             ],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite->publishEvent(new OrderWasPlaced($orderId));
 
@@ -53,7 +53,7 @@ final class OrderProcessTest extends TestCase
                 OrderService::class => new StubOrderService($totalPrice),
                 PaymentService::class => new PaymentService(new PaymentProcessor())
             ],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $this->assertEquals(
             OrderProcessStatus::READY_TO_BE_SHIPPED,
@@ -73,7 +73,7 @@ final class OrderProcessTest extends TestCase
                 OrderService::class => new StubOrderService($totalPrice),
                 PaymentService::class => new PaymentService(new PaymentProcessor(successAfterAttempt: 3))
             ],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(// Make Message Channel aware of the delay
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(// Make Message Channel aware of the delay
                 SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true)));
 
         $this->assertEquals(

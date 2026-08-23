@@ -2,7 +2,7 @@
 
 ## ProjectionV2 Attribute
 
-Source: `Ecotone\Projecting\Attribute\ProjectionV2`
+Source: `Ecotone\Api\Attribute\ProjectionV2`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -47,7 +47,7 @@ Requires the referenced class to be an `#[EventSourcingAggregate]`.
 
 ## Partitioned Attribute
 
-Source: `Ecotone\Projecting\Attribute\Partitioned`
+Source: `Ecotone\Api\Attribute\Partitioned`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -64,7 +64,7 @@ class Partitioned
 
 ## Polling Attribute
 
-Source: `Ecotone\Projecting\Attribute\Polling`
+Source: `Ecotone\Api\Attribute\Polling`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -78,7 +78,7 @@ class Polling
 
 ## Streaming Attribute
 
-Source: `Ecotone\Projecting\Attribute\Streaming`
+Source: `Ecotone\Api\Attribute\Streaming`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -94,9 +94,9 @@ class Streaming
 
 | Attribute | Source | When Called |
 |-----------|--------|-----------|
-| `#[ProjectionInitialization]` | `Ecotone\EventSourcing\Attribute\ProjectionInitialization` | On first run / initialization |
-| `#[ProjectionDelete]` | `Ecotone\EventSourcing\Attribute\ProjectionDelete` | When projection is deleted |
-| `#[ProjectionReset]` | `Ecotone\EventSourcing\Attribute\ProjectionReset` | When projection is reset |
+| `#[ProjectionInitialization]` | `Ecotone\Api\Attribute\ProjectionInitialization` | On first run / initialization |
+| `#[ProjectionDelete]` | `Ecotone\Api\Attribute\ProjectionDelete` | When projection is deleted |
+| `#[ProjectionReset]` | `Ecotone\Api\Attribute\ProjectionReset` | When projection is reset |
 | `#[ProjectionFlush]` | `Ecotone\EventSourcing\Attribute\ProjectionFlush` | After each batch of events |
 
 All are `#[Attribute(Attribute::TARGET_METHOD)]` with no constructor parameters.
@@ -105,7 +105,7 @@ All are `#[Attribute(Attribute::TARGET_METHOD)]` with no constructor parameters.
 
 ### ProjectionExecution
 
-Source: `Ecotone\Projecting\Attribute\ProjectionExecution`
+Source: `Ecotone\Api\Attribute\ProjectionExecution`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -119,7 +119,7 @@ class ProjectionExecution
 
 ### ProjectionBackfill
 
-Source: `Ecotone\Projecting\Attribute\ProjectionBackfill`
+Source: `Ecotone\Api\Attribute\ProjectionBackfill`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -134,7 +134,7 @@ class ProjectionBackfill
 
 ### ProjectionDeployment
 
-Source: `Ecotone\Projecting\Attribute\ProjectionDeployment`
+Source: `Ecotone\Api\Attribute\ProjectionDeployment`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -149,7 +149,7 @@ class ProjectionDeployment
 
 ## ProjectionState Parameter Attribute
 
-Source: `Ecotone\EventSourcing\Attribute\ProjectionState`
+Source: `Ecotone\Api\Attribute\ProjectionState`
 
 ```php
 #[Attribute(Attribute::TARGET_PARAMETER)]
@@ -171,7 +171,7 @@ public function onEvent(SomeEvent $event, #[ProjectionState] array $state = []):
 
 ## Revision Attribute
 
-Source: `Ecotone\Modelling\Attribute\Revision`
+Source: `Ecotone\Api\Attribute\Revision`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -188,7 +188,7 @@ class Revision
 
 ## NamedEvent Attribute
 
-Source: `Ecotone\Modelling\Attribute\NamedEvent`
+Source: `Ecotone\Api\Attribute\NamedEvent`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]

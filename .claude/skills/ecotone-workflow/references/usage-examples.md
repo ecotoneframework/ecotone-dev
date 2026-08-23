@@ -7,9 +7,9 @@ Complete, runnable code examples for Ecotone workflow patterns.
 A complete saga that coordinates an order fulfillment process by reacting to multiple events and tracking state. Demonstrates `#[Saga]`, `#[Identifier]`, `WithEvents` trait, static factory `#[EventHandler]`, and instance event handlers.
 
 ```php
-use Ecotone\Modelling\Attribute\Saga;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Modelling\WithEvents;
 
 #[Saga]
@@ -59,11 +59,11 @@ class OrderFulfillmentProcess
 A complete saga demonstrating `outputChannelName` to trigger commands from event handlers, combined with `#[Asynchronous]` and `#[Delayed]` for retry logic. Shows how returning `null` stops the chain.
 
 ```php
-use Ecotone\Modelling\Attribute\Saga;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Modelling\WithEvents;
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Messaging\Attribute\Delayed;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 
@@ -209,7 +209,7 @@ class OrderProcess
 ## Event-Sourced Saga
 
 ```php
-use Ecotone\Modelling\Attribute\EventSourcingSaga;
+use Ecotone\Api\Attribute\EventSourcingSaga;
 
 #[EventSourcingSaga]
 class OrderSaga
@@ -234,7 +234,7 @@ class OrderSaga
 Make individual steps asynchronous:
 
 ```php
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Asynchronous;
 
 final readonly class ImageProcessingWorkflow
 {

@@ -4,8 +4,8 @@ namespace Ecotone\Messaging\Handler;
 
 use Ecotone\AnnotationFinder\AnnotationResolver;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
-use Ecotone\Messaging\Attribute\IgnoreDocblockTypeHint;
-use Ecotone\Messaging\Attribute\IsAbstract;
+use Ecotone\Api\Attribute\IgnoreDocblockTypeHint;
+use Ecotone\Api\Attribute\IsAbstract;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\AttributeReference;

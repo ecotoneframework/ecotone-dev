@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies;
 
 use Ecotone\EventSourcing\EventStreamEmitter;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
 
 /**
  * licence Apache-2.0

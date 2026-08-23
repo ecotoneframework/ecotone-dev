@@ -3,9 +3,9 @@
 namespace App\Conversion;
 
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Gateway\SerializerGateway;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Gateway\SerializerGateway;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 class OrderService
 {

@@ -40,7 +40,7 @@ interface OrderRepository
 ## 2. Media Type Converter
 
 ```php
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class OrderConverter
 {
@@ -73,7 +73,7 @@ The framework auto-discovers converters and uses them for type conversion in mes
 `BusinessMethod` is an interface-only attribute -- Ecotone auto-generates an implementation that sends messages through the messaging system. The `requestChannel` routes to the matching handler's routing key.
 
 ```php
-use Ecotone\Messaging\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\BusinessMethod;
 
 interface NotificationGateway
 {
@@ -81,7 +81,7 @@ interface NotificationGateway
     public function send(string $message, string $recipient): void;
 }
 
-use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\ServiceActivator;
 
 class NotificationHandler
 {
@@ -98,8 +98,8 @@ class NotificationHandler
 BusinessMethod interfaces can be injected as parameters into CommandHandler methods for cross-aggregate communication:
 
 ```php
-use Ecotone\Messaging\Attribute\BusinessMethod;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Identifier;
 
 interface ProductService
 {
@@ -131,7 +131,7 @@ Use `#[Reference]` for explicit service container injection when it is not the f
 Ecotone attributes support expressions for dynamic behavior:
 
 ```php
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class OrderService
 {
@@ -147,7 +147,7 @@ Available variables: `payload` (message payload), `headers` (message headers).
 Ecotone auto-generates repositories for aggregates. For custom repositories:
 
 ```php
-use Ecotone\Modelling\Attribute\Repository;
+use Ecotone\Api\Attribute\Repository;
 
 #[Repository]
 interface CustomOrderRepository

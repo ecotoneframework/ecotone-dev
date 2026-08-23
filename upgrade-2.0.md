@@ -73,7 +73,7 @@ messages yourself.
 **Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`,
 `ProjectionManager`, `ProjectionRunningConfiguration`, `ecotone:es:*` console commands, `FlowTestSupport::initializeProjection()`,
 `resetProjection()`, `stopProjection()`, `deleteProjection()`, `triggerProjection()`), and the new v2
-(`Ecotone\Projecting\Attribute\ProjectionV2`).
+(`Ecotone\Api\Attribute\ProjectionV2`).
 
 **Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Attribute\Projection`). v1
 classes, configuration and console commands are gone. Projection state lives in the v2 state table
@@ -129,7 +129,7 @@ Prooph classes (`Prooph\EventStore\*`, `MetadataMatcher`, `FieldType`, `Operator
 
 **Now:** The queue transport classes live in `Ecotone\Dbal\Connection` (`DbalConnectionFactory`, `DbalContext`, `DbalProducer`,
 `DbalConsumer`, `ManagerRegistryConnectionFactory`, …) and still implement the `queue-interop` interfaces. The default connection
-reference name is `Ecotone\Dbal\DbalConnectionReference::DEFAULT` (which equals `Ecotone\Dbal\Connection\DbalConnectionFactory::class`);
+reference name is `Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference::DEFAULT` (which equals `Ecotone\Dbal\Connection\DbalConnectionFactory::class`);
 `DbalConnectionReference::defaultConnection()` returns the reference object. Framework references keep their factories
 (`SymfonyConnectionReference::createForManagerRegistry('default')`, `LaravelConnectionReference::defaultConnection()`,
 `TempestConnectionReference::default()`) and resolve to the new default. The `enqueue/dbal` composer replacement/conflict and the
@@ -295,7 +295,7 @@ Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php`; the bu
 
 **Before:** User-facing attributes and configuration objects lived in module namespaces
 (`Ecotone\Messaging\Attribute\*`, `Ecotone\Modelling\Attribute\*`, `Ecotone\Projecting\Attribute\*`, `Ecotone\Dbal\Attribute\*`,
-`Ecotone\Messaging\Config\ServiceConfiguration`, `Ecotone\Dbal\Configuration\DbalConfiguration`, ...).
+`Ecotone\Api\ExtensionObject\ServiceConfiguration`, `Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration`, ...).
 
 **Now:** Everything you are meant to reference from application code is under an `Api` namespace:
 - attributes → `Ecotone\Api\Attribute\*` (core) / `Ecotone\<Package>\Api\Attribute\*`
@@ -309,13 +309,13 @@ Classes outside `Api` are `@internal` and may change in minor versions.
 
 | 1.x | 2.0 |
 |---|---|
-| `Ecotone\Modelling\Attribute\CommandHandler` | `Ecotone\Api\Attribute\CommandHandler` |
-| `Ecotone\Messaging\Attribute\Asynchronous` | `Ecotone\Api\Attribute\Asynchronous` |
-| `Ecotone\Projecting\Attribute\ProjectionV2` | `Ecotone\Api\Attribute\Projection` |
-| `Ecotone\Messaging\Config\ServiceConfiguration` | `Ecotone\Api\ExtensionObject\ServiceConfiguration` |
-| `Ecotone\Dbal\Configuration\DbalConfiguration` | `Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration` |
-| `Ecotone\Amqp\AmqpBackedMessageChannelBuilder` | `Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder` |
-| `Ecotone\Modelling\CommandBus` | `Ecotone\Api\Gateway\CommandBus` |
+| `Ecotone\Api\Attribute\CommandHandler` | `Ecotone\Api\Attribute\CommandHandler` |
+| `Ecotone\Api\Attribute\Asynchronous` | `Ecotone\Api\Attribute\Asynchronous` |
+| `Ecotone\Api\Attribute\ProjectionV2` | `Ecotone\Api\Attribute\Projection` |
+| `Ecotone\Api\ExtensionObject\ServiceConfiguration` | `Ecotone\Api\ExtensionObject\ServiceConfiguration` |
+| `Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration` | `Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration` |
+| `Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder` | `Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder` |
+| `Ecotone\Api\Gateway\CommandBus` | `Ecotone\Api\Gateway\CommandBus` |
 
 ## 14. Smaller behaviour changes
 

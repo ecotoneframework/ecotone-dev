@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Fixture\DynamicTopics;
 
-use Ecotone\Kafka\Attribute\KafkaConsumer;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Enterprise

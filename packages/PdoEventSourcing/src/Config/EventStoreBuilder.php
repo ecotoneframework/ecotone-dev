@@ -2,7 +2,7 @@
 
 namespace Ecotone\EventSourcing\Config;
 
-use Ecotone\EventSourcing\EventSourcingConfiguration;
+use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Config\Container\Definition;

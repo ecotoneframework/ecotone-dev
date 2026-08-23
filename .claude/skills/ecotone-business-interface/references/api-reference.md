@@ -33,7 +33,7 @@ class DbalWriteBusinessMethod
 
 ## DbalParameter Attribute
 
-Source: `Ecotone\Dbal\Attribute\DbalParameter`
+Source: `Ecotone\Dbal\Api\Attribute\DbalParameter`
 
 ```php
 #[Attribute(Attribute::TARGET_PARAMETER)]
@@ -72,7 +72,7 @@ class FetchMode
 
 ## BusinessMethod / MessageGateway Attribute
 
-Source: `Ecotone\Messaging\Attribute\BusinessMethod`
+Source: `Ecotone\Api\Attribute\BusinessMethod`
 
 `BusinessMethod` extends `MessageGateway`. Ecotone generates an implementation that sends messages through the messaging system.
 

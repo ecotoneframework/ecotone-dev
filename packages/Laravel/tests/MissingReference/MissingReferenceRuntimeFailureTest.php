@@ -6,7 +6,7 @@ namespace Test\Ecotone\Laravel\MissingReference;
 
 use App\MissingReference\Laravel\FactoryRegistrationProvider;
 use Ecotone\Laravel\EcotoneCacheClear;
-use Ecotone\Modelling\CommandBus;
+use Ecotone\Api\Gateway\CommandBus;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Foundation\Application;
 use PHPUnit\Framework\TestCase;

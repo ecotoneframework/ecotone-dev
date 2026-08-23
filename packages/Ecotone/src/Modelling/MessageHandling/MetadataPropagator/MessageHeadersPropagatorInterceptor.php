@@ -3,8 +3,8 @@
 namespace Ecotone\Modelling\MessageHandling\MetadataPropagator;
 
 use Closure;
-use Ecotone\Messaging\Attribute\PropagateHeaders;
-use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\PropagateHeaders;
+use Ecotone\Api\Attribute\ServiceActivator;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;

@@ -5,17 +5,18 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\Api\Distribution;
 
 use function array_key_exists;
-use function in_array;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\Config\Routing\BusRoutingMap;
-use Ecotone\Modelling\DistributedBus;
 use Ecotone\Modelling\MessageHandling\Distribution\UnknownDistributedDestination;
+
+use function in_array;
 
 /**
  * licence Enterprise

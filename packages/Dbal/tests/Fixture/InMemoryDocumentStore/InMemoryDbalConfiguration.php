@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Dbal\Fixture\InMemoryDocumentStore;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Messaging\Attribute\ServiceContext;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Attribute\ServiceContext;
 
 /**
  * licence Apache-2.0

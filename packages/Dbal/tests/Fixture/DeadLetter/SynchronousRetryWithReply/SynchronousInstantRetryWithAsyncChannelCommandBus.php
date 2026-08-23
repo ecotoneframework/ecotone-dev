@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousRetryWithReply;
 
-use Ecotone\Messaging\Attribute\ErrorChannel;
-use Ecotone\Modelling\Attribute\InstantRetry;
-use Ecotone\Modelling\CommandBus;
+use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Api\Attribute\InstantRetry;
+use Ecotone\Api\Gateway\CommandBus;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
 
 /**

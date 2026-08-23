@@ -5,12 +5,12 @@
 ### Basic ProjectionV2 with Lifecycle
 
 ```php
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\ProjectionV2;
 use Ecotone\Projecting\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\ProjectionDelete;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 #[ProjectionV2('ticket_list')]
 #[FromStream(Ticket::class)]
@@ -63,9 +63,9 @@ class TicketListProjection
 ### Partitioned Projection with State
 
 ```php
-use Ecotone\Projecting\Attribute\Partitioned;
+use Ecotone\Api\Attribute\Partitioned;
 use Ecotone\Projecting\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionState;
+use Ecotone\Api\Attribute\ProjectionState;
 
 #[Partitioned]
 #[ProjectionV2('ticket_details')]
@@ -103,7 +103,7 @@ Partitioned projection rules:
 ### Polling Projection
 
 ```php
-use Ecotone\Projecting\Attribute\Polling;
+use Ecotone\Api\Attribute\Polling;
 
 #[Polling('orderSummaryEndpoint')]
 #[ProjectionV2('order_summary')]
@@ -128,7 +128,7 @@ $ecotone->run('orderSummaryEndpoint', ExecutionPollingMetadata::createWithTestin
 ### Streaming Projection
 
 ```php
-use Ecotone\Projecting\Attribute\Streaming;
+use Ecotone\Api\Attribute\Streaming;
 
 #[Streaming('dashboard_channel')]
 #[ProjectionV2('live_dashboard')]
@@ -206,9 +206,9 @@ class NotificationProjection
 ### Configuration Attributes
 
 ```php
-use Ecotone\Projecting\Attribute\ProjectionExecution;
-use Ecotone\Projecting\Attribute\ProjectionBackfill;
-use Ecotone\Projecting\Attribute\ProjectionDeployment;
+use Ecotone\Api\Attribute\ProjectionExecution;
+use Ecotone\Api\Attribute\ProjectionBackfill;
+use Ecotone\Api\Attribute\ProjectionDeployment;
 
 // Batch size for event loading
 #[ProjectionV2('big_projection')]
@@ -241,8 +241,8 @@ class ProjectionV1Deploy { }
 ### Revision and NamedEvent
 
 ```php
-use Ecotone\Modelling\Attribute\Revision;
-use Ecotone\Modelling\Attribute\NamedEvent;
+use Ecotone\Api\Attribute\Revision;
+use Ecotone\Api\Attribute\NamedEvent;
 
 // Version 1 (default when no attribute)
 class PersonWasRegistered

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Configuration;
 
-use Ecotone\Laravel\Config\LaravelConnectionReference;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
+use Ecotone\Laravel\Api\ExtensionObject\LaravelConnectionReference;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
 
 final readonly class EcotoneConfiguration
 {

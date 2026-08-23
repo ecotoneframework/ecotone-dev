@@ -6,9 +6,9 @@ namespace Test\Ecotone\Sqs\Integration;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Sqs\Api\ExtensionObject\SqsBackedMessageChannelBuilder;
 use Exception;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 

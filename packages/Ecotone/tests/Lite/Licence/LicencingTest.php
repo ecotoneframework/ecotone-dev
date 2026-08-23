@@ -6,9 +6,9 @@ namespace Test\Ecotone\Lite\Licence;
 
 use DateTimeImmutable;
 use DateTimeZone;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\LicensingException;
 
 use function json_encode;

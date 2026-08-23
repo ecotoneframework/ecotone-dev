@@ -6,10 +6,10 @@ namespace Test\Ecotone\Redis\Integration;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Redis\Configuration\RedisMessageConsumerConfiguration;
-use Ecotone\Redis\Configuration\RedisMessagePublisherConfiguration;
+use Ecotone\Redis\Api\ExtensionObject\RedisMessagePublisherConfiguration;
 use Enqueue\Redis\RedisConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;

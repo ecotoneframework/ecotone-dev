@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -22,10 +22,12 @@ final class AsynchronousGatewayTest extends TestCase
 {
     public function test_running_async_gateway(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([AsyncTicketCreator::class, TicketService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [AsyncTicketCreator::class, TicketService::class],
             [new TicketService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+        );
 
         /** @var AsyncTicketCreator $ticketCreator */
         $ticketCreator = $ecotoneLite->getGateway(AsyncTicketCreator::class);
@@ -47,10 +49,12 @@ final class AsynchronousGatewayTest extends TestCase
 
     public function test_running_async_gateway_inside_async_gateway(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([AsyncTicketCreator::class, TicketService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [AsyncTicketCreator::class, TicketService::class],
             [new TicketService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+        );
 
         /** @var AsyncTicketCreator $ticketCreator */
         $ticketCreator = $ecotoneLite->getGateway(AsyncTicketCreator::class);
@@ -70,10 +74,12 @@ final class AsynchronousGatewayTest extends TestCase
 
     public function test_extending_command_bus_with_async_functionality(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([AsyncCommandBus::class, TicketService::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [AsyncCommandBus::class, TicketService::class],
             [new TicketService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+        );
 
         /** @var AsyncCommandBus $commandBus */
         $commandBus = $ecotoneLite->getGateway(AsyncCommandBus::class);
@@ -92,8 +98,10 @@ final class AsynchronousGatewayTest extends TestCase
     {
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting([AsyncTicketCreator::class, TicketService::class],
+        EcotoneLite::bootstrapFlowTesting(
+            [AsyncTicketCreator::class, TicketService::class],
             [new TicketService()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+        );
     }
 }

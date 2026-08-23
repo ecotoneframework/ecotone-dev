@@ -7,11 +7,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\App\Tooling;
 
-use Ecotone\Messaging\Attribute\Interceptor\Around;
+use Ecotone\Api\Attribute\Interceptor\Around;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Transaction\Transactional;
-use Ecotone\Modelling\CommandBus;
+use Ecotone\Api\Gateway\CommandBus;
 
 class CommitOnUserInputInterceptor
 {

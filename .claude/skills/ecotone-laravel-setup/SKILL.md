@@ -45,9 +45,9 @@ This creates `config/ecotone.php`.
 Ecotone automatically registers `EloquentRepository` -- Eloquent models extending `Model` are auto-detected as aggregates.
 
 ```php
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\IdentifierMethod;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\IdentifierMethod;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Modelling\WithEvents;
 use Illuminate\Database\Eloquent\Model;
 

@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\GatewayInGatewayWithMessages;
 
-use Ecotone\Messaging\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Messaging\Message;
 
 /**

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\Serialization;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
@@ -52,9 +52,11 @@ final class PollableChannelSerializationModuleTest extends TestCase
      */
     private function bootstrapEcotone(array $classesToResolve, array $services, array $channelBuilders, array $extensionObjects = []): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting($classesToResolve,
+        return EcotoneLite::bootstrapFlowTesting(
+            $classesToResolve,
             $services,
             (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects($extensionObjects))->withExtensionObjects($channelBuilders));
+                ->withExtensionObjects($extensionObjects))->withExtensionObjects($channelBuilders)
+        );
     }
 }

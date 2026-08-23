@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver;
 
-use Ecotone\Messaging\Attribute\ServiceActivator;
-use Ecotone\Modelling\Attribute\Distributed;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

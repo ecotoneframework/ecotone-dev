@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Redis\Fixture\RedisConsumer;
 
 use Ecotone\Messaging\Attribute\MessageConsumer;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

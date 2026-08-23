@@ -3,8 +3,8 @@
 ## Basic Async Testing
 
 ```php
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 
 public function test_async_processing(): void
 {
@@ -29,7 +29,7 @@ public function test_async_processing(): void
 ## ExecutionPollingMetadata
 
 ```php
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 
 // Default test setup
 $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());

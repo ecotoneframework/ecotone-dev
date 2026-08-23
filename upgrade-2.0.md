@@ -295,27 +295,32 @@ Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php`; the bu
 
 **Before:** User-facing attributes and configuration objects lived in module namespaces
 (`Ecotone\Messaging\Attribute\*`, `Ecotone\Modelling\Attribute\*`, `Ecotone\Projecting\Attribute\*`, `Ecotone\Dbal\Attribute\*`,
-`Ecotone\Api\ExtensionObject\ServiceConfiguration`, `Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration`, ...).
+`Ecotone\Messaging\Config\ServiceConfiguration`, `Ecotone\Dbal\Configuration\DbalConfiguration`, ...).
 
 **Now:** Everything you are meant to reference from application code is under an `Api` namespace:
 - attributes → `Ecotone\Api\Attribute\*` (core) / `Ecotone\<Package>\Api\Attribute\*`
 - extension objects returned from `#[ServiceContext]` → `Ecotone\Api\ExtensionObject\*` / `Ecotone\<Package>\Api\ExtensionObject\*`
 - gateways/buses → `Ecotone\Api\Gateway\*` (`CommandBus`, `QueryBus`, `EventBus`, `DistributedBus`, `MessagePublisher`, ...)
 
-Classes outside `Api` are `@internal` and may change in minor versions.
+Classes outside `Api` are `@internal` and may change in minor versions. `ProjectionV2` keeps its name in this release
+(the rename to `#[Projection]` is a separate, not-yet-implemented change, see §3); it only moves namespace, to
+`Ecotone\Api\Attribute\ProjectionV2`. `Ecotone\Modelling\Api\Distribution\*` (`DistributedServiceMap`, `DistributedBusHeader`)
+and `Ecotone\Kafka\Api\KafkaHeader` already lived under `Api` before this change and keep their namespace.
 
 **How to adapt:** Run the provided Rector set (`vendor/ecotone/ecotone/upgrade/rector-2.0.php`) or apply the mapping table in
 `upgrade/namespace-map-2.0.csv` with `sed`. Examples:
 
 | 1.x | 2.0 |
 |---|---|
-| `Ecotone\Api\Attribute\CommandHandler` | `Ecotone\Api\Attribute\CommandHandler` |
-| `Ecotone\Api\Attribute\Asynchronous` | `Ecotone\Api\Attribute\Asynchronous` |
-| `Ecotone\Api\Attribute\ProjectionV2` | `Ecotone\Api\Attribute\Projection` |
-| `Ecotone\Api\ExtensionObject\ServiceConfiguration` | `Ecotone\Api\ExtensionObject\ServiceConfiguration` |
-| `Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration` | `Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration` |
-| `Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder` | `Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder` |
-| `Ecotone\Api\Gateway\CommandBus` | `Ecotone\Api\Gateway\CommandBus` |
+| `Ecotone\Modelling\Attribute\CommandHandler` | `Ecotone\Api\Attribute\CommandHandler` |
+| `Ecotone\Messaging\Attribute\Asynchronous` | `Ecotone\Api\Attribute\Asynchronous` |
+| `Ecotone\Projecting\Attribute\ProjectionV2` | `Ecotone\Api\Attribute\ProjectionV2` |
+| `Ecotone\Messaging\Config\ServiceConfiguration` | `Ecotone\Api\ExtensionObject\ServiceConfiguration` |
+| `Ecotone\Dbal\Configuration\DbalConfiguration` | `Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration` |
+| `Ecotone\Amqp\AmqpBackedMessageChannelBuilder` | `Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder` |
+| `Ecotone\Modelling\CommandBus` | `Ecotone\Api\Gateway\CommandBus` |
+
+The full 148-class mapping is in `upgrade/namespace-map-2.0.csv`.
 
 ## 14. Smaller behaviour changes
 

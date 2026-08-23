@@ -11,6 +11,7 @@ namespace Ecotone\Messaging\Attribute;
  */
 /**
  * licence Apache-2.0
+ * @internal
  */
 interface WithRequiredReferenceNameList
 {

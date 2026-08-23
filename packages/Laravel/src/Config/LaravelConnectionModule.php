@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Laravel\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
+use Ecotone\Laravel\Api\ExtensionObject\LaravelConnectionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;

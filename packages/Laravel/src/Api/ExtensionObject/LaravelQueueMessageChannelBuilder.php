@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Laravel\Api\ExtensionObject;
 
+use Ecotone\Laravel\Queue\LaravelQueueAcknowledgementCallback;
+use Ecotone\Laravel\Queue\LaravelQueueMessageChannel;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Config\Container\Definition;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Fixture\User;
 
-use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 
 /**
  * licence Apache-2.0

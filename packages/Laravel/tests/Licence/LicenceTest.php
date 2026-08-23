@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Licence;
 
-use Ecotone\Laravel\EcotoneCacheClear;
-use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Laravel\EcotoneCacheClear;
+use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Test\LicenceTesting;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;

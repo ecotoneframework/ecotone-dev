@@ -4,11 +4,12 @@ namespace Ecotone\EventSourcing\Prooph;
 
 use ArrayIterator;
 use Doctrine\DBAL\Driver\PDOConnection;
+use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\Database\LegacyProjectionsTableManager;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\EventSourcing\InMemory\StreamIteratorWithPosition;
 use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
@@ -16,7 +17,6 @@ use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMysqlSimpleStreamSt
 use Ecotone\EventSourcing\ProophEventMapper;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Dbal\Connection\DbalContext;
 use Interop\Queue\ConnectionFactory;
 use Iterator;
 use PDO;

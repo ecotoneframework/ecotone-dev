@@ -2,13 +2,13 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDrivenProjection;
 
-use Ecotone\EventSourcing\Attribute\Projection;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\ProjectionDelete;
 use Ecotone\Api\Attribute\ProjectionInitialization;
 use Ecotone\Api\Attribute\ProjectionReset;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\EventSourcing\Attribute\Projection;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;

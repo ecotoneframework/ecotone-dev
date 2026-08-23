@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEventDrivenProjection;
 
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 
 /**
  * licence Apache-2.0

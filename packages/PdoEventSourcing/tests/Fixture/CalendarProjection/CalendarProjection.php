@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\CalendarProjection;
 
-use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\EventSourcing\Attribute\Projection;
+use Ecotone\Messaging\Support\Assert;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarCreated;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingCreated;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\MeetingScheduled;

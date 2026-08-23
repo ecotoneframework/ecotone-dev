@@ -8,27 +8,27 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\FromStream;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\ProjectionDelete;
 use Ecotone\Api\Attribute\ProjectionInitialization;
 use Ecotone\Api\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Attribute\Polling;
-use Ecotone\Api\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 
 use function get_class;
 
@@ -63,7 +63,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,])
+                    ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     MultiTenantConfiguration::create(
@@ -133,7 +133,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,])
+                    ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     MultiTenantConfiguration::create(
@@ -210,7 +210,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,])
+                    ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     MultiTenantConfiguration::create(
@@ -253,7 +253,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,
-                    ModulePackageList::DBAL_PACKAGE,])
+                    ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
                     MultiTenantConfiguration::create(

@@ -7,11 +7,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\EventNameFiltering;
 
-use Ecotone\EventSourcing\Api\Attribute\Stream;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\EventSourcing\Api\Attribute\Stream;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate, Stream(self::STREAM_NAME)]

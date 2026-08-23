@@ -8,25 +8,25 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\ORM\EntityManagerInterface;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\DbalConnection;
-use Ecotone\Dbal\ManagerRegistryEmulator;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\ProjectionState;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\FromStream;
 use Ecotone\Api\Attribute\Partitioned;
 use Ecotone\Api\Attribute\ProjectionDeployment;
 use Ecotone\Api\Attribute\ProjectionExecution;
 use Ecotone\Api\Attribute\ProjectionFlush;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\ProjectionState;
 use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Test\LicenceTesting;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\DbalConnection;
+use Ecotone\Dbal\ManagerRegistryEmulator;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Test\LicenceTesting;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
@@ -87,11 +87,13 @@ class ProophIntegrationTest extends ProjectingTestCase
             public const NAME = 'async_dbal_tickets_projection';
             public const ASYNC_CHANNEL = 'async_projection';
         };
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore([$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL)));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL))
+        );
 
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
             ->deleteProjection($projection::NAME)

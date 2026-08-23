@@ -2,14 +2,16 @@
 
 namespace Ecotone\EventSourcing\Api\ExtensionObject;
 
+use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore as EcotoneInMemoryEventStore;
 use Ecotone\EventSourcing\InMemory\CachingInMemoryProjectionManager;
 use Ecotone\EventSourcing\InMemory\InMemoryProjectionManager;
+use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\ProophInMemoryEventStoreAdapter;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
 use Prooph\EventStore\Pdo\PersistenceStrategy;
 use Prooph\EventStore\StreamName;
 

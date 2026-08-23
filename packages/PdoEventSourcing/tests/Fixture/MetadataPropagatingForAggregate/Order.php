@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\MetadataPropagatingForAggregate;
 
-use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\WithAggregateVersioning;
 

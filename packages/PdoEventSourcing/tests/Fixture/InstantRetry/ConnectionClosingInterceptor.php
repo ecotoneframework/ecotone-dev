@@ -6,9 +6,9 @@ namespace Test\Ecotone\EventSourcing\Fixture\InstantRetry;
 
 use Ecotone\Api\Attribute\Interceptor\Around;
 use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 

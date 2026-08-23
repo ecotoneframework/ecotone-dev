@@ -10,6 +10,8 @@ namespace Ecotone\EventSourcing\Projecting\PartitionState;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\Projecting\NoOpTransaction;
@@ -17,8 +19,6 @@ use Ecotone\Projecting\ProjectionInitializationStatus;
 use Ecotone\Projecting\ProjectionPartitionState;
 use Ecotone\Projecting\ProjectionStateStorage;
 use Ecotone\Projecting\Transaction;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 
 use function in_array;
 use function json_decode;

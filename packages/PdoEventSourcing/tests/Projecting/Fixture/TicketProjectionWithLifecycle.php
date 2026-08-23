@@ -7,8 +7,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Fixture;
 
-use Ecotone\Api\Attribute\ProjectionInitialization;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\ProjectionInitialization;
 use Ecotone\Api\Attribute\ProjectionV2;
 use RuntimeException;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;

@@ -2,17 +2,17 @@
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
-use Ecotone\EventSourcing\Config\EventSourcingModule;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\PollableChannel;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
@@ -57,7 +57,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class, ProjectionConfiguration::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),
@@ -151,7 +151,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withEnvironment('test')
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createInMemory(),

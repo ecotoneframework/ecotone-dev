@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\LinkingEventsWithoutProjection;
 
-use Ecotone\EventSourcing\EventStore;
-use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Modelling\Event;
 
 /**

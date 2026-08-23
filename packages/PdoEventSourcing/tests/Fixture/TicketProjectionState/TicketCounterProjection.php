@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
-use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Api\Attribute\ProjectionState;
-use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\ProjectionState;
+use Ecotone\EventSourcing\Attribute\Projection;
+use Ecotone\EventSourcing\EventStreamEmitter;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;

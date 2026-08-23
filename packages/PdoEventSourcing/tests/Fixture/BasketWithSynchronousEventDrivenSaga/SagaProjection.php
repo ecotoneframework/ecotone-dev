@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga;
 
-use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Messaging\Support\Assert;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\ProjectionInitialization;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\EventSourcing\Attribute\Projection;
+use Ecotone\Messaging\Support\Assert;
 
 #[Projection(self::PROJECTION_NAME, Saga::class)]
 /**

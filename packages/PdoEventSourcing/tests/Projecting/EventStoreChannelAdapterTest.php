@@ -7,18 +7,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
-use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
+use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
@@ -65,7 +65,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,])
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),
                     EventStreamingChannelAdapter::create(
@@ -219,7 +219,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),

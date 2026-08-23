@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Api\Attribute\Converter;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Modelling\Event;
+use Ecotone\Api\Attribute\FromStream;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Modelling\Event;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

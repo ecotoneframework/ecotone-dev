@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\BasketListProjection;
 
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 
 /**
  * licence Apache-2.0

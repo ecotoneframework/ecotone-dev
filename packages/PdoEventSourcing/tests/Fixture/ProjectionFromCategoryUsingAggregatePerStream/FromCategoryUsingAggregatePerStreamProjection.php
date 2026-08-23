@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\ProjectionFromCategoryUsingAggregatePerStream;
 
-use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\EventSourcing\Attribute\Projection;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 

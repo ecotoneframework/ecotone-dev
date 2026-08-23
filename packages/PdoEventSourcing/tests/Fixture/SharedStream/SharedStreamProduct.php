@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Fixture\SharedStream;
 
 use Ecotone\Api\Attribute\AggregateType;
-use Ecotone\EventSourcing\Api\Attribute\Stream;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\EventSourcing\Api\Attribute\Stream;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Modelling\WithEvents;
 

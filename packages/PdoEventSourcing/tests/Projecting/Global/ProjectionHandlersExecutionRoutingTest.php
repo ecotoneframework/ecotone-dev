@@ -7,15 +7,15 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\FromStream;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 
 use function get_class;
 
@@ -38,7 +38,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -63,7 +63,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -77,7 +77,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -115,7 +115,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             classesToResolve: [get_class($projection), AnAggregate::class, AnEvent::class, Converters::class],
             containerOrAvailableServices: [$projection, new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

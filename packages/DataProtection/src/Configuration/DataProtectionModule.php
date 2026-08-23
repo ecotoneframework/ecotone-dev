@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\DataProtection\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\DataProtection\Api\Attribute\Sensitive;
 use Ecotone\DataProtection\Api\Attribute\WithEncryptionKey;
 use Ecotone\DataProtection\Channel\OutboundDecryptionChannelBuilder;
@@ -21,7 +22,6 @@ use Ecotone\DataProtection\Conversion\XPhpDecryptionConverter;
 use Ecotone\DataProtection\Conversion\XPhpEncryptionConverter;
 use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration;
-use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\MessageChannelWithSerializationBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;

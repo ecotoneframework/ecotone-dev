@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Redis\Api\ExtensionObject;
 
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Redis\RedisInboundChannelAdapterBuilder;
+use Ecotone\Redis\RedisOutboundChannelAdapterBuilder;
 use Enqueue\Redis\RedisConnectionFactory;
 
 /**

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Redis\Configuration\RedisMessageConsumerConfiguration;
 use Ecotone\Redis\Api\ExtensionObject\RedisMessagePublisherConfiguration;
+use Ecotone\Redis\Configuration\RedisMessageConsumerConfiguration;
 use Enqueue\Redis\RedisConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;

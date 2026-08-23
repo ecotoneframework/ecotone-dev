@@ -6,23 +6,23 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use const E_USER_NOTICE;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\SimpleChannelInterceptorBuilder;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Test\LicenceTesting;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\SDK\Trace\SpanExporter\InMemoryExporter;
@@ -217,7 +217,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             [$userService, TracerProviderInterface::class => TracingTestCase::prepareTracer(new InMemoryExporter())],
             ServiceConfiguration::createWithDefaults()
                 ->withDefaultErrorChannel('error_channel')
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                     ExceptionalQueueChannel::createWithExceptionOnSend('error_channel'),
@@ -240,7 +240,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
             [TracerProviderInterface::class => TracingTestCase::prepareTracer(new InMemoryExporter())],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('user_service')
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     ExceptionalQueueChannel::createWithExceptionOnSend('distributed_channel'),
                     DistributedServiceMap::initialize()->withCommandMapping(targetServiceName: 'ticket_service', channelName: 'distributed_channel'),
@@ -282,7 +282,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
                 $servicesToRegister,
             ),
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects($channelsToRegister)
         );
     }

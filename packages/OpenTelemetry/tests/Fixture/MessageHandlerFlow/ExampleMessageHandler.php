@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Fixture\MessageHandlerFlow;
 
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Messaging\Message;
-use Ecotone\Api\Attribute\CommandHandler;
 
 /**
  * licence Apache-2.0

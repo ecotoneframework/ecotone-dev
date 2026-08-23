@@ -12,6 +12,9 @@ use Ecotone\Tempest\MessagingSystemInitializer;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\TempestTestPaths;
 
+/**
+ * @internal
+ */
 final class MultiTenantLicensingTest extends EcotoneIntegrationTestCase
 {
     protected function setUp(): void
@@ -29,7 +32,7 @@ final class MultiTenantLicensingTest extends EcotoneIntegrationTestCase
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\MultiTenant\\'],
             modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
-                ModulePackageList::DBAL_PACKAGE,],
+                ModulePackageList::DBAL_PACKAGE, ],
             test: false,
         );
     }

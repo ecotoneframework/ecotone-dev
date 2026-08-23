@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Dbal;
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use RuntimeException;
 use Tempest\Database\Database;
 use Tempest\Database\Query;
@@ -29,7 +29,7 @@ final class SharedConnectionTransactionTest extends EcotoneIntegrationTestCase
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\SharedConnection\\'],
             modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
-                ModulePackageList::DBAL_PACKAGE,],
+                ModulePackageList::DBAL_PACKAGE, ],
             test: false,
         );
     }

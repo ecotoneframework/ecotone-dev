@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\MultiTenant;
 
-use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Api\Attribute\QueryHandler;
 
 /**

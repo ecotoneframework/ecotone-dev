@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\MultiTenant;
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;
@@ -30,7 +30,7 @@ final class MultiTenantTest extends EcotoneIntegrationTestCase
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\MultiTenant\\'],
             modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
-                ModulePackageList::DBAL_PACKAGE,],
+                ModulePackageList::DBAL_PACKAGE, ],
             test: false,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

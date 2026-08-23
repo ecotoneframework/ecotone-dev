@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Tempest\Api\ExtensionObject\TempestConnectionReference;
 use Ecotone\Tempest\Config\PDO\MySqlDriver;
 use Ecotone\Tempest\Config\PDO\PostgresDriver;
 use Ecotone\Tempest\Config\PDO\SQLiteDriver;

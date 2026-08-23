@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Repository;
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;

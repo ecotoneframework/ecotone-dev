@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Tempest\Api\ExtensionObject;
 
+use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
 use Ecotone\Messaging\Config\ConnectionReference;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
 
 /**
  * licence Apache-2.0

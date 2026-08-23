@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Kafka\Api\ExtensionObject\KafkaMessageChannelBuilder;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaMessageChannelBuilder;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -39,7 +39,7 @@ final class FinalFailureStrategyTest extends TestCase
             [SingleMessageHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
@@ -83,7 +83,7 @@ final class FinalFailureStrategyTest extends TestCase
             [ThreeMessageHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
@@ -122,7 +122,7 @@ final class FinalFailureStrategyTest extends TestCase
             [ThreeMessageHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RESEND)
@@ -162,7 +162,7 @@ final class FinalFailureStrategyTest extends TestCase
             [TwoApplicationHandler::class],
             [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(channelName: 'kafka_channel', topicName: $topicName)
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
@@ -208,7 +208,7 @@ final class FinalFailureStrategyTest extends TestCase
             [IgnoreTestHandler::class],
             [$handler, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',
@@ -263,7 +263,7 @@ final class FinalFailureStrategyTest extends TestCase
             [IgnoreTestHandler::class],
             [$handler1, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',
@@ -300,7 +300,7 @@ final class FinalFailureStrategyTest extends TestCase
             [IgnoreTestHandler::class],
             [$handler2, KafkaBrokerConfiguration::class => ConnectionTestCase::getConnection()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'kafka_channel',

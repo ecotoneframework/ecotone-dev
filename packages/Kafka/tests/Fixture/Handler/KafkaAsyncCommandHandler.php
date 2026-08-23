@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Kafka\Fixture\Handler;
 
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Parameter\Headers;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Headers;
 use Ecotone\Api\Attribute\QueryHandler;
 use InvalidArgumentException;
 

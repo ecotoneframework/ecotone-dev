@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Api\ExtensionObject;
 
+use Ecotone\Kafka\Channel\KafkaMessageChannel;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapterBuilder;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapterBuilder;

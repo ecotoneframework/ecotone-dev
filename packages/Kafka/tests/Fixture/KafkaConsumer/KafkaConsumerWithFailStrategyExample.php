@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Fixture\KafkaConsumer;
 
-use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
 use Ecotone\Api\Attribute\Parameter\Header;
 use Ecotone\Api\Attribute\Parameter\Payload;
-use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
+use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use RuntimeException;
 
 /**

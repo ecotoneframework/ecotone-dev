@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Api\ExtensionObject;
 
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Messaging\Support\Assert;
 use RdKafka\Conf;
 

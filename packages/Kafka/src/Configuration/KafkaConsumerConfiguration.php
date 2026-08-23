@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Configuration;
 
+use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Inbound\KafkaAcknowledgementCallback;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;

@@ -4,21 +4,21 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Kafka\Api\KafkaHeader;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaMessageChannelBuilder;
-use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaMessageChannelBuilder;
+use Ecotone\Kafka\Api\KafkaHeader;
+use Ecotone\Kafka\Configuration\KafkaAdmin;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
@@ -585,7 +585,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('publisher-service')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -608,7 +608,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service1')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -630,7 +630,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service2')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,

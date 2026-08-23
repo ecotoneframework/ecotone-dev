@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration\MultiTenant;
 
+use Ecotone\Api\Attribute\Parameter\Headers;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Api\Attribute\WithTenantResolver;
 use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
 use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\Attribute\Parameter\Headers;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use LogicException;

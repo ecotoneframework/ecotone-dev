@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Kafka\Configuration;
 
 use Ecotone\Kafka\Api\Attribute\KafkaConsumer as KafkaConsumerAttribute;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Outbound\KafkaDeliveryTracker;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;

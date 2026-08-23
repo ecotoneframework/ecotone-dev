@@ -2,6 +2,7 @@
 
 namespace Ecotone\JMSConverter;
 
+use Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;

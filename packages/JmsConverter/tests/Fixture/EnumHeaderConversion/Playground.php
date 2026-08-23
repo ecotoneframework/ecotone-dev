@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion;
 
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Parameter\Header;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Parameter\Header;
 
 /**
  * licence Apache-2.0

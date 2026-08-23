@@ -4,12 +4,12 @@ namespace Ecotone\JMSConverter\Configuration;
 
 use ArrayObject;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\JMSConverter\ArrayObjectConverter;
-use Ecotone\JMSConverter\JMSConverterBuilder;
-use Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration;
-use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration;
+use Ecotone\JMSConverter\ArrayObjectConverter;
+use Ecotone\JMSConverter\JMSConverterBuilder;
+use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -18,7 +18,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
 

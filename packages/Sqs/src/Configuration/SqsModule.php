@@ -12,7 +12,6 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Sqs\Api\ExtensionObject\SqsBackedMessageChannelBuilder;
 
 #[ModuleAnnotation]
 /**

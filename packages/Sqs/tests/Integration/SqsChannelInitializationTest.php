@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Sqs\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
 use Ecotone\Sqs\Api\ExtensionObject\SqsBackedMessageChannelBuilder;
 use Exception;
@@ -217,7 +217,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([\Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::SQS_PACKAGE,])
+                    \Ecotone\Messaging\Config\ModulePackageList::SQS_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
                     SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME)
@@ -235,7 +235,7 @@ final class SqsChannelInitializationTest extends ConnectionTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([\Ecotone\Messaging\Config\ModulePackageList::CORE_PACKAGE,
-                    \Ecotone\Messaging\Config\ModulePackageList::SQS_PACKAGE,])
+                    \Ecotone\Messaging\Config\ModulePackageList::SQS_PACKAGE, ])
                 ->withExtensionObjects([
                     $config,
                     SqsBackedMessageChannelBuilder::create(self::TEST_CHANNEL_NAME_2)->withAutoDeclare(false),

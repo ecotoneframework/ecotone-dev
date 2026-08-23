@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Sqs\Fixture\SqsConsumer;
 
-use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Messaging\Attribute\MessageConsumer;
 
 /**
  * licence Apache-2.0

@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Sqs\Integration;
 
 use Aws\Sqs\Exception\SqsException;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
@@ -72,7 +72,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
                 SqsConnectionFactory::class => $this->getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::REDIS_PACKAGE,])
+                ->withModulePackages([ModulePackageList::REDIS_PACKAGE, ])
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create($queueName),
                 ])
@@ -104,7 +104,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
                 'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::SQS_PACKAGE,])
+                ->withModulePackages([ModulePackageList::SQS_PACKAGE, ])
                 ->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
                 )

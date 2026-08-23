@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Sqs\Api\ExtensionObject;
 
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
+use Ecotone\Sqs\SqsInboundChannelAdapterBuilder;
+use Ecotone\Sqs\SqsOutboundChannelAdapterBuilder;
 use Enqueue\Sqs\SqsConnectionFactory;
 
 /**

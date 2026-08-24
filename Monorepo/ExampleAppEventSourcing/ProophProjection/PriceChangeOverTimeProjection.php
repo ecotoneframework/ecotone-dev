@@ -4,9 +4,9 @@
  */
 namespace Monorepo\ExampleAppEventSourcing\ProophProjection;
 
-use Ecotone\Api\Attribute\ProjectionDelete;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ProjectionDelete;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
 use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
 use Monorepo\ExampleAppEventSourcing\Common\PriceChange;

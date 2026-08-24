@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\QueryHandler\Service;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\NotUniqueHandler;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\NotUniqueHandler;
 use stdClass;
 
 /**

@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\Publisher;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\DistributedBus;
+use Ecotone\Api\Header;
+use Ecotone\Api\Reference;
 
 /**
  * licence Apache-2.0

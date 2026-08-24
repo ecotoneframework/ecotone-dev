@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\Retry;
 
-use Ecotone\Api\Attribute\InstantRetry;
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\InstantRetry;
 use RuntimeException;
 
 /**

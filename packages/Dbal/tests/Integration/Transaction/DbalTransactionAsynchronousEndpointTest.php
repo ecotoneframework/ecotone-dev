@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
-use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\DeadLetterGateway;
+use Ecotone\Api\Dbal\MultiTenantConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\InstantRetryConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -218,7 +218,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                         ->withDefaultErrorChannel('nullChannel'),
-                    \Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
+                    \Ecotone\Api\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
@@ -333,7 +333,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                     ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                         ->withDefaultErrorChannel('nullChannel'),
-                    \Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
+                    \Ecotone\Api\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
                     DbalConfiguration::createWithDefaults()
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)

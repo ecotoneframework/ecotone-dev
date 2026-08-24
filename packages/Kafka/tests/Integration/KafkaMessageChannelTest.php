@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaMessageChannelBuilder;
-use Ecotone\Kafka\Api\KafkaHeader;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\InstantRetryConfiguration;
+use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaHeader;
+use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\TestConfiguration;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -19,7 +20,6 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
@@ -533,8 +533,8 @@ final class KafkaMessageChannelTest extends TestCase
 
         // Publisher service
         $publisher = new class () {
-            #[\Ecotone\Api\Attribute\CommandHandler('publish.event')]
-            public function publish(string $payload, \Ecotone\Api\Gateway\EventBus $eventBus): void
+            #[\Ecotone\Api\CommandHandler('publish.event')]
+            public function publish(string $payload, \Ecotone\Api\EventBus $eventBus): void
             {
                 $eventBus->publish($payload);
             }
@@ -544,8 +544,8 @@ final class KafkaMessageChannelTest extends TestCase
         $consumer1 = new class () {
             private array $consumed = [];
 
-            #[\Ecotone\Api\Attribute\Distributed]
-            #[\Ecotone\Api\Attribute\EventHandler('distributed.event', endpointId: 'consumer1')]
+            #[\Ecotone\Api\Distributed]
+            #[\Ecotone\Api\EventHandler('distributed.event', endpointId: 'consumer1')]
             public function handle(string $payload): void
             {
                 $this->consumed[] = $payload;
@@ -562,8 +562,8 @@ final class KafkaMessageChannelTest extends TestCase
         $consumer2 = new class () {
             private array $consumed = [];
 
-            #[\Ecotone\Api\Attribute\Distributed]
-            #[\Ecotone\Api\Attribute\EventHandler('distributed.event', endpointId: 'consumer2')]
+            #[\Ecotone\Api\Distributed]
+            #[\Ecotone\Api\EventHandler('distributed.event', endpointId: 'consumer2')]
             public function handle(string $payload): void
             {
                 $this->consumed[] = $payload;
@@ -594,7 +594,7 @@ final class KafkaMessageChannelTest extends TestCase
                         topicName: $topicName,
                     )
                         ->withCommitInterval(1),
-                    \Ecotone\Modelling\Api\Distribution\DistributedServiceMap::initialize()
+                    \Ecotone\Api\DistributedServiceMap::initialize()
                         ->withEventMapping(channelName: $channelName, subscriptionKeys: ['*']),
                     TestConfiguration::createWithDefaults(),
                 ]),

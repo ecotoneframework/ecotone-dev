@@ -2,12 +2,12 @@
 
 namespace Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingHandler;
+use Ecotone\Api\Header;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Modelling\WithEvents;
 

@@ -5,7 +5,7 @@ namespace Ecotone\Dbal\DocumentStore;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\DocumentStore;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;

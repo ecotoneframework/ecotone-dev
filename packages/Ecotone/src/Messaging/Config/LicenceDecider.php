@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
-use Ecotone\Api\Attribute\Enterprise;
+use Ecotone\Api\Enterprise;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ClassDefinition;

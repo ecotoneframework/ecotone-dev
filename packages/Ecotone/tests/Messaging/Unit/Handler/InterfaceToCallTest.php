@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler;
 
 use DateTimeInterface;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\ClassReference;
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\ClassReference;
+use Ecotone\Api\Converter;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Type;

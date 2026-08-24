@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Inbound;
 
-use Ecotone\Kafka\Api\KafkaHeader;
+use Ecotone\Api\Kafka\KafkaHeader;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;

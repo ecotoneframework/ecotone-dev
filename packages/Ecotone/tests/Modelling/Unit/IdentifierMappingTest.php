@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\Api\Attribute\Converter;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Converter;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\AggregateMessage;
 use Exception;

@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\Shopping;
 
-use Ecotone\Api\Attribute\Transformer;
+use Ecotone\Api\Transformer;
 
 /**
  * licence Apache-2.0

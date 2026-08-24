@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptedQueryAggregate\AddVat;
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 
 /**
  * licence Apache-2.0

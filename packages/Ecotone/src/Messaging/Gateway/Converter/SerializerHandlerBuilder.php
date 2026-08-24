@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Gateway\Converter;
 
-use Ecotone\Api\Gateway\SerializerGateway;
+use Ecotone\Api\SerializerGateway;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;

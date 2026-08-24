@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Blog;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Identifier;
 
 #[Aggregate]
 /**

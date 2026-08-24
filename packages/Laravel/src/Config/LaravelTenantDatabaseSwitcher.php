@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Laravel\Config;
 
-use Ecotone\Laravel\Api\ExtensionObject\LaravelConnectionReference;
+use Ecotone\Api\Laravel\LaravelConnectionReference;
 use Ecotone\Messaging\Config\ConnectionReference;
 use Illuminate\Support\Facades\Config;
 

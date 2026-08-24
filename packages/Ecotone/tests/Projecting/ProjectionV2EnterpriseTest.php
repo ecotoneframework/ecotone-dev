@@ -4,26 +4,28 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Projecting;
 
-use Ecotone\Api\Attribute;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\Partitioned;
-use Ecotone\Api\Attribute\Polling;
-use Ecotone\Api\Attribute\ProjectionBackfill;
-use Ecotone\Api\Attribute\ProjectionDelete;
-use Ecotone\Api\Attribute\ProjectionDeployment;
-use Ecotone\Api\Attribute\ProjectionExecution;
-use Ecotone\Api\Attribute\ProjectionFlush;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\ProjectionName;
-use Ecotone\Api\Attribute\ProjectionRebuild;
-use Ecotone\Api\Attribute\ProjectionReset;
-use Ecotone\Api\Attribute\ProjectionState;
-use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Api\Attribute\Streaming;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Partitioned;
+use Ecotone\Api\PartitionProvider as PartitionProviderAttribute;
+use Ecotone\Api\Polling;
+use Ecotone\Api\ProjectionBackfill;
+use Ecotone\Api\ProjectionDelete;
+use Ecotone\Api\ProjectionDeployment;
+use Ecotone\Api\ProjectionExecution;
+use Ecotone\Api\ProjectionFlush;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\ProjectionName;
+use Ecotone\Api\ProjectionRebuild;
+use Ecotone\Api\ProjectionReset;
+use Ecotone\Api\ProjectionState;
+use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\StateStorage;
+use Ecotone\Api\Streaming;
+use Ecotone\Api\StreamSource as StreamSourceAttribute;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\MessageHeaders;
@@ -309,7 +311,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             }
         };
 
-        $customStreamSource = new #[Attribute\StreamSource] class () implements StreamSource {
+        $customStreamSource = new #[StreamSourceAttribute] class () implements StreamSource {
             public function canHandle(string $projectionName): bool
             {
                 return true;
@@ -340,7 +342,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             }
         };
 
-        $customStateStorage = new #[Attribute\StateStorage] class () implements ProjectionStateStorage {
+        $customStateStorage = new #[StateStorage] class () implements ProjectionStateStorage {
             public function canHandle(string $projectionName): bool
             {
                 return true;
@@ -393,7 +395,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
             }
         };
 
-        $customPartitionProvider = new #[Attribute\PartitionProvider] class () implements PartitionProvider {
+        $customPartitionProvider = new #[PartitionProviderAttribute] class () implements PartitionProvider {
             public function canHandle(string $projectionName): bool
             {
                 return true;

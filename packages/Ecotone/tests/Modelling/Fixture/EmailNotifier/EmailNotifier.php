@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\EmailNotifier;
 
-use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\EventHandler;
 
 class EmailNotifier
 {

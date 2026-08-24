@@ -7,10 +7,10 @@ use App\Domain\Command\SubtractMoneyFromWallet;
 use App\Domain\Event\MoneyWasAddedToWallet;
 use App\Domain\Event\MoneyWasSubtractedFromWallet;
 use App\Domain\Event\WalletWasInitialized;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]

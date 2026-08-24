@@ -7,14 +7,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\InternalHandler;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;

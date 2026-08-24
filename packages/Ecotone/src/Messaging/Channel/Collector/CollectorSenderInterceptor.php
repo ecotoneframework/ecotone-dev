@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\Collector;
 
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\WithoutMessageCollector;
+use Ecotone\Api\Reference;
+use Ecotone\Api\WithoutMessageCollector;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Channel\MessageChannelInterceptorAdapter;

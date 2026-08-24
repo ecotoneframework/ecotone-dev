@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction;
 
-use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\MessageGateway;
 
 /**
  * licence Apache-2.0

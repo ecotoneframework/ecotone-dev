@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\MessagePublisher;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaPublisherConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
+use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;

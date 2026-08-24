@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain;
 
-use Ecotone\Api\Attribute\Repository;
+use Ecotone\Api\Repository;
 
 interface OrderRepository
 {

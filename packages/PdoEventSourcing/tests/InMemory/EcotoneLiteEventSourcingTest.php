@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\ProjectionManager;

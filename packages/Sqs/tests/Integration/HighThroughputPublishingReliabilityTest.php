@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Sqs\Integration;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\Reference;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
+use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Sqs\Api\ExtensionObject\SqsBackedMessageChannelBuilder;
-use Ecotone\Sqs\Api\ExtensionObject\SqsMessagePublisherConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Sqs\SqsConnectionFactory;
 use Symfony\Component\Uid\Uuid;

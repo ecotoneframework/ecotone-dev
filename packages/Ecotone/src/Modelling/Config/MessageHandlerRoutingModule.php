@@ -4,21 +4,21 @@ namespace Ecotone\Modelling\Config;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\IgnorePayload;
-use Ecotone\Api\Attribute\MessageGateway;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\NamedEvent;
-use Ecotone\Api\Attribute\Parameter\ConfigurationVariable;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\Parameter\Headers;
-use Ecotone\Api\Attribute\PropagateHeaders;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\EventBus;
-use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\ConfigurationVariable;
+use Ecotone\Api\EventBus;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\Header;
+use Ecotone\Api\Headers;
+use Ecotone\Api\IgnorePayload;
+use Ecotone\Api\MessageGateway;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\NamedEvent;
+use Ecotone\Api\PropagateHeaders;
+use Ecotone\Api\QueryBus;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -108,7 +108,7 @@ class MessageHandlerRoutingModule implements AnnotationModule
             $reflectionParameter = new ReflectionParameter([$registration->getClassName(), $registration->getMethodName()], 0);
 
             foreach ($reflectionParameter->getAttributes() as $attribute) {
-                if (in_array($attribute->getName(), [ConfigurationVariable::class, Header::class, Headers::class, \Ecotone\Api\Attribute\Parameter\Reference::class])) {
+                if (in_array($attribute->getName(), [ConfigurationVariable::class, Header::class, Headers::class, \Ecotone\Api\Reference::class])) {
                     return 'array';
                 }
             }

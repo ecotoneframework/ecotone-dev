@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\CommandHandler;
 
 #[Aggregate]
 /**

@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\Interceptor;
 
-use Ecotone\Api\Attribute\ClassReference;
-use Ecotone\Api\Attribute\Interceptor\After;
-use Ecotone\Api\Attribute\Interceptor\Before;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\Parameter\Payload;
+use Ecotone\Api\After;
+use Ecotone\Api\Before;
+use Ecotone\Api\ClassReference;
+use Ecotone\Api\Header;
+use Ecotone\Api\Payload;
 
 #[ClassReference('someMethodInterceptor')]
 /**

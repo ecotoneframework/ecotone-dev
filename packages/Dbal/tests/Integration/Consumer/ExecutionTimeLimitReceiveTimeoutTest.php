@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Consumer;
 
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;

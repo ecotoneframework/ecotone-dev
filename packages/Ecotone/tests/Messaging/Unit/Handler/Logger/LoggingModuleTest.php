@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Logger;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\TestCase;
@@ -29,7 +29,7 @@ final class LoggingModuleTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), 'logger' => $loggerExample],
-            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME))
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME))
         );
 
         $ecotoneLite
@@ -45,7 +45,7 @@ final class LoggingModuleTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ExampleFailureCommandHandler::class],
             [new ExampleFailureCommandHandler(), 'logger' => $loggerExample],
-            (ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
+            (ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withDefaultErrorChannel('customErrorChannel'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(self::CHANNEL_NAME))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'))
         );
 

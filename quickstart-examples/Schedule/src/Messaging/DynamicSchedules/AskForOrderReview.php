@@ -2,8 +2,8 @@
 
 namespace App\Schedule\Messaging\DynamicSchedules;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\CommandHandler;
 
 class AskForOrderReview
 {

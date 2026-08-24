@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\DeadLetterGateway;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Lite\EcotoneLite;

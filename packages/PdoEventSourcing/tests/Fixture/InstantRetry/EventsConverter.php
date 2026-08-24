@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\InstantRetry;
 
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Converter;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\CustomerRegistered;
 
 final class EventsConverter

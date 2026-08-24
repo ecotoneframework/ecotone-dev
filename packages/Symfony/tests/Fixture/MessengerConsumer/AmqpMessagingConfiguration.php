@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Fixture\MessengerConsumer;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\SymfonyBundle\Api\ExtensionObject\SymfonyMessengerMessageChannelBuilder;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 
 /**
  * licence Apache-2.0

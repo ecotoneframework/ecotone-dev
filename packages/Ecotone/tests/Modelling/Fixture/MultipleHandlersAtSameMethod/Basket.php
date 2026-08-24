@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\MultipleHandlersAtSameMethod;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\QueryHandler;
 
 /**
  * licence Apache-2.0

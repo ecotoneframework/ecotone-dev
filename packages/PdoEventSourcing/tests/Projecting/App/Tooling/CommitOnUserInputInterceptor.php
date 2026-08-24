@@ -7,8 +7,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\App\Tooling;
 
-use Ecotone\Api\Attribute\Interceptor\Around;
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Around;
+use Ecotone\Api\CommandBus;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Transaction\Transactional;

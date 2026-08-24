@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Config;
 
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\PollingMetadata;
 use Ecotone\Messaging\Channel\ChannelInterceptorBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;

@@ -2,12 +2,12 @@
 
 namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\IgnorePayload;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Attribute\Version;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\IgnorePayload;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Version;
 use Ecotone\Modelling\WithEvents;
 
 #[Aggregate]

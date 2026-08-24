@@ -2,7 +2,7 @@
 
 ## Aggregate Attribute
 
-Source: `Ecotone\Api\Attribute\Aggregate`
+Source: `Ecotone\Api\Aggregate`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -13,7 +13,7 @@ Class-level attribute. Marks a class as a state-stored aggregate.
 
 ## EventSourcingAggregate Attribute
 
-Source: `Ecotone\Api\Attribute\EventSourcingAggregate`
+Source: `Ecotone\Api\EventSourcingAggregate`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
@@ -24,7 +24,7 @@ Class-level attribute. Marks a class as an event-sourced aggregate. State is reb
 
 ## Identifier Attribute
 
-Source: `Ecotone\Api\Attribute\Identifier`
+Source: `Ecotone\Api\Identifier`
 
 ```php
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]
@@ -41,7 +41,7 @@ Can be applied to properties or constructor parameters. Multiple `#[Identifier]`
 
 ## EventSourcingHandler Attribute
 
-Source: `Ecotone\Api\Attribute\EventSourcingHandler`
+Source: `Ecotone\Api\EventSourcingHandler`
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]
@@ -52,7 +52,7 @@ Method-level attribute. Marks a method that applies an event to rebuild aggregat
 
 ## Version Attribute
 
-Source: `Ecotone\Api\Attribute\Version`
+Source: `Ecotone\Api\Version`
 
 ```php
 #[Attribute(Attribute::TARGET_PROPERTY)]
@@ -100,7 +100,7 @@ Methods:
 
 ## TargetIdentifier Attribute
 
-Source: `Ecotone\Api\Attribute\TargetIdentifier`
+Source: `Ecotone\Api\TargetIdentifier`
 
 ```php
 #[Attribute(Attribute::TARGET_PROPERTY | Attribute::TARGET_PARAMETER)]

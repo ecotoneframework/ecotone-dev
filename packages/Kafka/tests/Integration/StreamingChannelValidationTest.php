@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaMessageChannelBuilder;
+use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaMessageChannelBuilder;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;

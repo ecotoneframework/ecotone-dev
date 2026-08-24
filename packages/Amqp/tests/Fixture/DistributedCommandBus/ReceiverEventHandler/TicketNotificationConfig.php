@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler;
 
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
-use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\ServiceContext;
 
 /**
  * licence Apache-2.0

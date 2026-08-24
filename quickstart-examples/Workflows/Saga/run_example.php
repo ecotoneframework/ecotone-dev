@@ -3,7 +3,7 @@
 use App\Workflow\Saga\Application\Order\Command\PlaceOrder;
 use App\Workflow\Saga\Application\Order\Item;
 use App\Workflow\Saga\Application\OrderProcess\OrderProcessStatus;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExecutionPollingMetadata;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 

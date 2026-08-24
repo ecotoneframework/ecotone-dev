@@ -30,7 +30,7 @@
         "messaging",
         "eip"
     ],
-    "description": "Ecotone for Symfony \u2014 CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox on top of Symfony Messenger, via PHP attributes.",
+    "description": "Ecotone for Symfony — CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox on top of Symfony Messenger, via PHP attributes.",
     "repositories": [
         {
             "type": "path",
@@ -72,6 +72,7 @@
     },
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\Symfony\\": "src/Api/",
             "Ecotone\\SymfonyBundle\\DependencyInjection\\": "DependencyInjection",
             "Ecotone\\SymfonyBundle\\": "SymfonyBundle"
         }

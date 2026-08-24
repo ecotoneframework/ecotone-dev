@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
-use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\MessagePublisher;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\SymfonyBundle\Messenger;
 
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\EventBus;
-use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\EventBus;
+use Ecotone\Api\QueryBus;
 
 /**
  * licence Apache-2.0

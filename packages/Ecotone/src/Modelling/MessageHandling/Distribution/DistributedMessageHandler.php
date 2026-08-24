@@ -2,13 +2,13 @@
 
 namespace Ecotone\Modelling\MessageHandling\Distribution;
 
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\DistributedBusHeader;
+use Ecotone\Api\EventBus;
+use Ecotone\Api\Header;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
 use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 
 /**

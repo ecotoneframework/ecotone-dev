@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Transformer;
 
-use Ecotone\Api\Attribute\Parameter\Payload;
-use Ecotone\Api\Attribute\Transformer;
+use Ecotone\Api\Payload;
+use Ecotone\Api\Transformer;
 
 /**
  * licence Apache-2.0

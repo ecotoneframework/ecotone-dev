@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\DynamicChannel\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Lite\EcotoneLite;

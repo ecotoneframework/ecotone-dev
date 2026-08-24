@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\DataProtection\Fixture\EncryptAnnotatedMessages;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\Parameter\Headers;
-use Ecotone\Api\Attribute\Parameter\Payload;
-use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\Headers;
+use Ecotone\Api\Payload;
+use Ecotone\Api\Reference;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessage;
 use Test\Ecotone\DataProtection\Fixture\AnnotatedMessageWithSecondaryEncryptionKey;
 use Test\Ecotone\DataProtection\Fixture\MessageReceiver;

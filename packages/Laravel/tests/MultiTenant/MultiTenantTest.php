@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\MultiTenant;
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\QueryBus;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Test\LicenceTesting;

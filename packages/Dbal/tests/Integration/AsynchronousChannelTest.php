@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Lite\EcotoneLite;
@@ -143,7 +143,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
-                ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
+                ->addExtensionObject(\Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         );

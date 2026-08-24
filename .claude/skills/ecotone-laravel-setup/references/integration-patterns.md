@@ -5,11 +5,11 @@
 Ecotone automatically registers `EloquentRepository` -- Eloquent models that extend `Model` are auto-detected as aggregates. No additional configuration is needed.
 
 ```php
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\IdentifierMethod;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\IdentifierMethod;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Modelling\WithEvents;
 use Illuminate\Database\Eloquent\Model;
 
@@ -66,8 +66,8 @@ Key differences from regular aggregates:
 ### Default Connection
 
 ```php
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Laravel\Api\ExtensionObject\LaravelConnectionReference;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Laravel\LaravelConnectionReference;
 
 class EcotoneConfiguration
 {
@@ -97,7 +97,7 @@ public function connections(): array
 ## Laravel Queue Channel -- Full Examples
 
 ```php
-use Ecotone\Laravel\Api\ExtensionObject\LaravelQueueMessageChannelBuilder;
+use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
 
 class ChannelConfiguration
 {
@@ -140,7 +140,7 @@ return [
 ### Using DBAL Channels Directly
 
 ```php
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
 
 class ChannelConfiguration
 {
@@ -155,7 +155,7 @@ class ChannelConfiguration
 ## Multi-Tenant Configuration -- Full Example
 
 ```php
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\MultiTenantConfiguration;
 
 class EcotoneConfiguration
 {

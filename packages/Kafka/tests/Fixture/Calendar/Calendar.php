@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Fixture\Calendar;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Modelling\WithEvents;
 
 #[Aggregate]

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\MissingReference;
 
 use App\MissingReference\Laravel\FactoryRegistrationProvider;
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Foundation\Application;

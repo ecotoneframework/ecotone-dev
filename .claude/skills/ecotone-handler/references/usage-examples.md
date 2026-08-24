@@ -5,7 +5,7 @@ Complete, runnable code examples for Ecotone message handlers.
 ## Command Handler (Service)
 
 ```php
-use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\CommandHandler;
 
 class OrderService
 {
@@ -28,9 +28,9 @@ class OrderService
 ## Command Handler (Aggregate)
 
 ```php
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\CommandHandler;
 
 #[Aggregate]
 class Order
@@ -62,8 +62,8 @@ class Order
 ## Event Handler (Sync and Async)
 
 ```php
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\Asynchronous;
 
 class NotificationService
 {
@@ -87,7 +87,7 @@ class NotificationService
 ## Query Handler (Class-Based and String-Based)
 
 ```php
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\QueryHandler;
 
 class ProductQueryService
 {
@@ -110,7 +110,7 @@ class ProductQueryService
 ## Handler with Header Parameters
 
 ```php
-use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\Header;
 
 class AuditService
 {
@@ -128,7 +128,7 @@ class AuditService
 ## ServiceActivator with Output Channel
 
 ```php
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 
 class TransformationService
 {

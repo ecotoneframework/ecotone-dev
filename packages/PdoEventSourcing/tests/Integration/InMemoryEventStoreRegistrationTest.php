@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Api\Attribute\Converter;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Converter;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Modelling\Event;
@@ -23,7 +23,7 @@ final class InMemoryEventStoreRegistrationTest extends TestCase
 {
     public function test_registering_in_memory_event_store_when_event_sourcing_configuration_is_in_memory(): void
     {
-        $eventSourcingConfiguration = \Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration::createInMemory();
+        $eventSourcingConfiguration = \Ecotone\Api\EventSourcing\EventSourcingConfiguration::createInMemory();
 
         $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
             [TestEventConverter::class],

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\LinkingEventsWithoutProjection;
 
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Converter;
 
 /**
  * licence Apache-2.0

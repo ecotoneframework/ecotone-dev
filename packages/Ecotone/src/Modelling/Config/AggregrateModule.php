@@ -6,15 +6,15 @@ use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\NamedEvent;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Attribute\RelatedAggregate;
-use Ecotone\Api\Attribute\Repository;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\NamedEvent;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\RelatedAggregate;
+use Ecotone\Api\Repository;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -381,7 +381,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
                 Reference::to(ConversionService::REFERENCE_NAME),
                 DefaultHeaderMapper::createAllHeadersMapping()->getDefinition(),
                 Reference::to(EventMapper::class),
-                Reference::to(\Ecotone\Api\Gateway\EcotoneClockInterface::class),
+                Reference::to(\Ecotone\Api\EcotoneClockInterface::class),
             ])
         );
     }

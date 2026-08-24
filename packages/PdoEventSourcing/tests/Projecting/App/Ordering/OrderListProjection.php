@@ -8,12 +8,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\App\Ordering;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\ProjectionDelete;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\ProjectionDelete;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\QueryHandler;
 use RuntimeException;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasCancelled;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasPlaced;

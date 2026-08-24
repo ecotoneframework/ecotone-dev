@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\Queue;
 
 use DateTimeImmutable;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Laravel\Api\ExtensionObject\LaravelQueueMessageChannelBuilder;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;

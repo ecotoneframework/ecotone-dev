@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\Counter;
 
-use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\BusinessMethod;
 
 /**
  * licence Apache-2.0

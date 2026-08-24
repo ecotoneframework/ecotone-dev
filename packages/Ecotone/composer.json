@@ -30,7 +30,7 @@
         "message-driven",
         "event-driven"
     ],
-    "description": "Enterprise architecture layer for Laravel and Symfony \u2014 CQRS, Event Sourcing, Durable Workflows (Sagas, Orchestrators), Projections, and Outbox messaging via PHP attributes.",
+    "description": "Enterprise architecture layer for Laravel and Symfony — CQRS, Event Sourcing, Durable Workflows (Sagas, Orchestrators), Projections, and Outbox messaging via PHP attributes.",
     "repositories": [
         {
             "type": "path",
@@ -42,6 +42,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\": "src/Api/",
             "Ecotone\\": "src"
         }
     },

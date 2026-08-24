@@ -3,13 +3,13 @@
 namespace Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjectionMultiTenant;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\ProjectionDelete;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\ProjectionReset;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\ProjectionDelete;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\ProjectionReset;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Reference;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Attribute\Projection;
 use Interop\Queue\ConnectionFactory;

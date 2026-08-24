@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\AddHeaders;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Endpoint\AddHeader;
-use Ecotone\Api\Attribute\Endpoint\Delayed;
-use Ecotone\Api\Attribute\Endpoint\Priority;
-use Ecotone\Api\Attribute\Endpoint\RemoveHeader;
-use Ecotone\Api\Attribute\Endpoint\TimeToLive;
+use Ecotone\Api\AddHeader;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Delayed;
+use Ecotone\Api\Priority;
+use Ecotone\Api\RemoveHeader;
+use Ecotone\Api\TimeToLive;
 
 /**
  * licence Apache-2.0

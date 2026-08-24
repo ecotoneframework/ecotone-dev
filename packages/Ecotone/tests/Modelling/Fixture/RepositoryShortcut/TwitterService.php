@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\RepositoryShortcut;
 
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\MessageGateway;
-use Ecotone\Api\Attribute\Parameter\Payload;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\MessageGateway;
+use Ecotone\Api\Payload;
 
 /**
  * licence Apache-2.0

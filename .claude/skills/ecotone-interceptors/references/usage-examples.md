@@ -5,7 +5,7 @@
 Source pattern: `Ecotone\Messaging\Transaction\TransactionInterceptor`
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Around;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Precedence;
 
@@ -30,8 +30,8 @@ class TransactionInterceptor
 ## Validation Interceptor (Before)
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Before;
-use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Before;
+use Ecotone\Api\CommandHandler;
 
 class ValidationInterceptor
 {
@@ -49,8 +49,8 @@ class ValidationInterceptor
 ## Audit Logging Interceptor (After)
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\After;
-use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\After;
+use Ecotone\Api\Header;
 
 class AuditInterceptor
 {
@@ -67,8 +67,8 @@ class AuditInterceptor
 ## Authorization Interceptor (Presend)
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Presend;
-use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\Presend;
+use Ecotone\Api\Header;
 
 class AuthorizationInterceptor
 {
@@ -90,7 +90,7 @@ class AuthorizationInterceptor
 ## Correlation ID Enrichment (Before with changeHeaders)
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Before;
 
 class CorrelationIdInterceptor
 {
@@ -108,7 +108,7 @@ class CorrelationIdInterceptor
 ## Header Enrichment (Before with changeHeaders)
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Before;
 
 class HeaderEnricher
 {
@@ -127,7 +127,7 @@ class HeaderEnricher
 ## Argument Modification (Around)
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Around;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 class EnrichmentInterceptor

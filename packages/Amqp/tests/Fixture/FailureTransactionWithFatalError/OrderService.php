@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Amqp\Fixture\FailureTransactionWithFatalError;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\QueryHandler;
 
 /**
  * licence Apache-2.0

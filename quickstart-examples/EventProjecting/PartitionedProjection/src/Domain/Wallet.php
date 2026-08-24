@@ -10,11 +10,11 @@ use App\EventProjecting\PartitionedProjection\Domain\Command\DebitWallet;
 use App\EventProjecting\PartitionedProjection\Domain\Event\WalletWasCreated;
 use App\EventProjecting\PartitionedProjection\Domain\Event\WalletWasCredited;
 use App\EventProjecting\PartitionedProjection\Domain\Event\WalletWasDebited;
-use Ecotone\EventSourcing\Api\Attribute\Stream;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingHandler;
+use Ecotone\Api\Identifier;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]

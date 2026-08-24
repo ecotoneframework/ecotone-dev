@@ -2,9 +2,9 @@
 
 namespace Monorepo\CrossModuleTests\Fixture\FailureHandler;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\QueryHandler;
 
 final class ExampleFailureCommandHandler
 {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Endpoint;
 
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Endpoint\InboundChannelAdapter\InboundChannelAdapterBuilder;

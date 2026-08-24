@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Ecotone\Projecting\Config;
 
 use Ecotone\AnnotationFinder\AnnotatedDefinition;
-use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Asynchronous;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;

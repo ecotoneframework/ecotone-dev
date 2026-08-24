@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\QueryHandler;
 use Ecotone\EventSourcing\Attribute\Projection;
 
 #[Asynchronous(channelName: self::CHANNEL)]

@@ -29,7 +29,7 @@
         "messaging",
         "eip"
     ],
-    "description": "Ecotone for Laravel \u2014 CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox on top of Laravel Queue, via PHP attributes.",
+    "description": "Ecotone for Laravel — CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox on top of Laravel Queue, via PHP attributes.",
     "repositories": [
         {
             "type": "path",
@@ -41,6 +41,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\Laravel\\": "src/Api/",
             "Ecotone\\Laravel\\": "src"
         }
     },

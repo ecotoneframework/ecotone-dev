@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\Scheduled;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycleBuilder;

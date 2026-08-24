@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator\Incorrect;
 
-use Ecotone\Api\Attribute\Orchestrator;
+use Ecotone\Api\Orchestrator;
 
 /**
  * licence Enterprise

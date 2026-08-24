@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\Interceptor;
 
-use Ecotone\Api\Attribute\Interceptor\After;
-use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\After;
+use Ecotone\Api\Before;
 use stdClass;
 
 /**

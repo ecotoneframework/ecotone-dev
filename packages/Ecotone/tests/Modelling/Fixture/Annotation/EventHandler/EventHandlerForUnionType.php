@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\EventHandler;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 use stdClass;
 
 /**

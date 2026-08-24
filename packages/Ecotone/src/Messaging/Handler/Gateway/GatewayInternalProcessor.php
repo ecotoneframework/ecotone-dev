@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\PollingMetadata;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Future;
 use Ecotone\Messaging\Handler\MessageHandlingException;

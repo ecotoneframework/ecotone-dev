@@ -7,21 +7,24 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Projecting;
 
-use Ecotone\Api\Attribute;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Endpoint\Priority;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\Interceptor\Around;
-use Ecotone\Api\Attribute\Partitioned;
-use Ecotone\Api\Attribute\ProjectionDeployment;
-use Ecotone\Api\Attribute\ProjectionExecution;
-use Ecotone\Api\Attribute\ProjectionFlush;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Around;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Partitioned;
+use Ecotone\Api\PartitionProvider as PartitionProviderAttribute;
+use Ecotone\Api\Priority;
+use Ecotone\Api\ProjectionBackfill;
+use Ecotone\Api\ProjectionDeployment;
+use Ecotone\Api\ProjectionExecution;
+use Ecotone\Api\ProjectionFlush;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\StateStorage;
+use Ecotone\Api\StreamSource as StreamSourceAttribute;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
@@ -90,7 +93,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
+        $streamSource = new #[StreamSourceAttribute] class () implements StreamSource {
             private array $events = [];
             private string $partitionHeader = 'id';
 
@@ -151,7 +154,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
+        $streamSource = new #[StreamSourceAttribute] class () implements StreamSource {
             private array $events = [];
             private string $partitionHeader = 'id';
 
@@ -546,7 +549,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
+        $streamSource = new #[StreamSourceAttribute] class () implements StreamSource {
             public function canHandle(string $projectionName): bool
             {
                 return true;
@@ -723,7 +726,7 @@ class ProjectingTest extends TestCase
 
     public function test_userland_partition_provider_is_used_during_backfill(): void
     {
-        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class () implements PartitionProvider {
+        $userlandPartitionProvider = new #[PartitionProviderAttribute] class () implements PartitionProvider {
             public function canHandle(string $projectionName): bool
             {
                 return $projectionName === 'userland_backfill_projection';
@@ -742,7 +745,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $projection = new #[ProjectionV2('userland_backfill_projection'), FromStream('test_stream'), Partitioned('partitionHeader'), Attribute\ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_async')] class {
+        $projection = new #[ProjectionV2('userland_backfill_projection'), FromStream('test_stream'), Partitioned('partitionHeader'), ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_async')] class {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -751,7 +754,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
+        $streamSource = new #[StreamSourceAttribute] class () implements StreamSource {
             private array $events = [];
             private string $partitionHeader = 'partitionId';
 
@@ -790,7 +793,7 @@ class ProjectingTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
             addInMemoryStateStoredRepository: false,
-            testConfiguration: \Ecotone\Api\ExtensionObject\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
+            testConfiguration: \Ecotone\Api\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
         );
 
         $streamSource->append(
@@ -808,7 +811,7 @@ class ProjectingTest extends TestCase
 
     public function test_non_handled_projection_falls_back_to_single_partition_during_backfill(): void
     {
-        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class () implements PartitionProvider {
+        $userlandPartitionProvider = new #[PartitionProviderAttribute] class () implements PartitionProvider {
             public function canHandle(string $projectionName): bool
             {
                 return $projectionName === 'only_this_projection';
@@ -825,7 +828,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $projection = new #[ProjectionV2('different_projection'), FromStream('test_stream'), Attribute\ProjectionBackfill(asyncChannelName: 'backfill_async')] class {
+        $projection = new #[ProjectionV2('different_projection'), FromStream('test_stream'), ProjectionBackfill(asyncChannelName: 'backfill_async')] class {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -834,7 +837,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
+        $streamSource = new #[StreamSourceAttribute] class () implements StreamSource {
             public function canHandle(string $projectionName): bool
             {
                 return true;
@@ -854,7 +857,7 @@ class ProjectingTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
             addInMemoryStateStoredRepository: false,
-            testConfiguration: \Ecotone\Api\ExtensionObject\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
+            testConfiguration: \Ecotone\Api\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
         );
 
         $ecotone->initializeProjection('different_projection');
@@ -911,7 +914,7 @@ class ProjectingTest extends TestCase
 
     public function test_userland_state_storage_is_prioritized_over_built_in(): void
     {
-        $userlandStorage = new #[Attribute\StateStorage] class () implements ProjectionStateStorage {
+        $userlandStorage = new #[StateStorage] class () implements ProjectionStateStorage {
             public bool $wasUsed = false;
             private array $projectionStates = [];
 
@@ -970,7 +973,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $streamSource = new #[Attribute\StreamSource] class () implements StreamSource {
+        $streamSource = new #[StreamSourceAttribute] class () implements StreamSource {
             private array $events = [];
 
             public function append(Event ...$events): void

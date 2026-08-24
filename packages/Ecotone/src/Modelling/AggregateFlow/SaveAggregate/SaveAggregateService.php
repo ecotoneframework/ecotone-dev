@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\EventBus;
 use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\MessageProcessor;
 use Ecotone\Messaging\Message;

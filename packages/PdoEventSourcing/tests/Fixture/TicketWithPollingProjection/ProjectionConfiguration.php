@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceContext;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 
 /**

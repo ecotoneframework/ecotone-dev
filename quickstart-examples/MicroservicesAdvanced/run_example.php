@@ -5,7 +5,7 @@ use App\Microservices\CustomerService\Domain\Issue;
 use App\Microservices\CustomerService\Domain\IssueRepository;
 use App\Microservices\CustomerService\Infrastructure\EcotoneConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;

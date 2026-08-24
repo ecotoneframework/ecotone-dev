@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\FromAggregateStream;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\Partitioned;
-use Ecotone\Api\Attribute\ProjectionState;
-use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromAggregateStream;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Partitioned;
+use Ecotone\Api\ProjectionState;
+use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;

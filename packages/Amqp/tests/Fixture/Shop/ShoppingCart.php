@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Amqp\Fixture\Shop;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 
 /**

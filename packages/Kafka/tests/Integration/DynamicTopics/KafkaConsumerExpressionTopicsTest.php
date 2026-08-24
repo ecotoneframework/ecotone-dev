@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration\DynamicTopics;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;

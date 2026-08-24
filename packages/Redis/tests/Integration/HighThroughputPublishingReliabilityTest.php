@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\BatchMessage;
@@ -14,7 +15,6 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Redis\Api\ExtensionObject\RedisBackedMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisContext;

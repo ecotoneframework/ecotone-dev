@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketWithLimitedLoad;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ServiceContext;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\Prooph\ProophProjectionRunningOption;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList;

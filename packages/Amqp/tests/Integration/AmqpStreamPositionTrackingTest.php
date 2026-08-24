@@ -6,9 +6,9 @@ namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\AmqpStreamChannelBuilder;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\TestConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;

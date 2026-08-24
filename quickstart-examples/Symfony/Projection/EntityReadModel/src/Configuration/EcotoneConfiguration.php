@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace App\Configuration;
 
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\SymfonyBundle\Api\ExtensionObject\SymfonyConnectionReference;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Symfony\SymfonyConnectionReference;
 
 final readonly class EcotoneConfiguration
 {

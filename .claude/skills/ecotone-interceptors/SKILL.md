@@ -27,7 +27,7 @@ Execution order: Presend -> Before -> Around -> handler -> Around end -> After
 ## Before Interceptor
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Before;
 
 class ValidationInterceptor
 {
@@ -42,7 +42,7 @@ class ValidationInterceptor
 ## After Interceptor
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\After;
+use Ecotone\Api\After;
 
 class AuditInterceptor
 {
@@ -57,7 +57,7 @@ class AuditInterceptor
 ## Around Interceptor
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Around;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 class TransactionInterceptor
@@ -83,7 +83,7 @@ class TransactionInterceptor
 ## Presend Interceptor
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Presend;
+use Ecotone\Api\Presend;
 
 class AuthorizationInterceptor
 {

@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Channel;
 
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageChannel;
 use Ecotone\Messaging\PollableChannel;

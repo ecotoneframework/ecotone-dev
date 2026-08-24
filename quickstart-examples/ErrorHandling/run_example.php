@@ -3,11 +3,11 @@
 use App\Application\PlaceOrder;
 use App\Domain\ShippingService;
 use App\Infrastructure\NetworkFailingShippingService;
-use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
-use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Api\Dbal\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\DeadLetterGateway;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Distributed\DistributedSendInterceptor;
 
-use Ecotone\Api\Attribute\Interceptor\Before;
-use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Before;
+use Ecotone\Api\DistributedBus;
 
 final class DistributedSendInterceptor
 {

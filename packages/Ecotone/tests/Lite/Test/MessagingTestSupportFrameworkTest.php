@@ -3,12 +3,12 @@
 namespace Test\Ecotone\Lite\Test;
 
 use DateTimeImmutable;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\TestConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;

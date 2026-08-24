@@ -1,8 +1,8 @@
 <?php
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\QueryBus;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;

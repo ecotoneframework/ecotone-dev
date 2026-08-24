@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\OrderAggregate;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 
 /**
  * licence Apache-2.0

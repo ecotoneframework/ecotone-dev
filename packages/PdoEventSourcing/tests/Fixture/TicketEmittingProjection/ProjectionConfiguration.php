@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 
-use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ServiceContext;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 
 /**

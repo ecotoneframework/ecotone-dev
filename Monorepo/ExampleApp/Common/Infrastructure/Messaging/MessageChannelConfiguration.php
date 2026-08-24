@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Infrastructure\Messaging;
 
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\InstantRetryConfiguration;
 use Monorepo\ExampleApp\Common\Domain\Order\Order;
 
 final class MessageChannelConfiguration

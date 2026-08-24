@@ -3,9 +3,9 @@
 namespace App\Microservices\Publisher;
 
 use App\Microservices\Receiver\MessagingConfiguration as ReceiverMessagingConfiguration;
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
-use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
-use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\DistributedServiceMap;
+use Ecotone\Api\ServiceContext;
 
 class MessagingConfiguration
 {

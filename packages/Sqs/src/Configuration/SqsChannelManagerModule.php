@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Sqs\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Messaging\Channel\Manager\ChannelInitializationConfiguration;
 use Ecotone\Messaging\Channel\Manager\ChannelManagerReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -18,7 +19,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Sqs\Api\ExtensionObject\SqsBackedMessageChannelBuilder;
 use Ecotone\Sqs\SqsChannelManager;
 
 #[ModuleAnnotation]

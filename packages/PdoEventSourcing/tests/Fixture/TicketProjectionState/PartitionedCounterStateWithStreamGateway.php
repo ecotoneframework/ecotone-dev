@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
-use Ecotone\Api\Attribute\FromAggregateStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\EventSourcing\Attribute\ProjectionStateGateway;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 

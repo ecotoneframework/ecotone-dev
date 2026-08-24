@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\ServiceContext;
 
 /**
  * licence Apache-2.0

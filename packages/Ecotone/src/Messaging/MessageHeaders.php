@@ -2,12 +2,12 @@
 
 namespace Ecotone\Messaging;
 
+use Ecotone\Api\DistributedBusHeader;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Scheduling\NativeClock;
 use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
 use Ecotone\Modelling\Config\MessageBusChannel;
 
 use function json_encode;

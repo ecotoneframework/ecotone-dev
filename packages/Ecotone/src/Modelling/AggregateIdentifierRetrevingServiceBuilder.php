@@ -2,9 +2,9 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\IdentifierMethod;
-use Ecotone\Api\Attribute\TargetIdentifier;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\IdentifierMethod;
+use Ecotone\Api\TargetIdentifier;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;

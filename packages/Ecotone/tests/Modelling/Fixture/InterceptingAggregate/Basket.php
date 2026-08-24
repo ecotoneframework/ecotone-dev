@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptingAggregate;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\QueryHandler;
 
 #[Aggregate]
 /**

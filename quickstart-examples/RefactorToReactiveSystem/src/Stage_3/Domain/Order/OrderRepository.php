@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\ReactiveSystem\Stage_3\Domain\Order;
 
-use Ecotone\Api\Attribute\Repository;
+use Ecotone\Api\Repository;
 use Ramsey\Uuid\UuidInterface;
 
 interface OrderRepository

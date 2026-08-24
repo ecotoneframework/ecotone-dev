@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\Example;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\ServiceContext;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 

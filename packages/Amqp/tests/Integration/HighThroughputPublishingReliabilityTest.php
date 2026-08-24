@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpPublisherConfirmations;
-use Ecotone\Amqp\Api\ExtensionObject\AmqpMessagePublisherConfiguration;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;

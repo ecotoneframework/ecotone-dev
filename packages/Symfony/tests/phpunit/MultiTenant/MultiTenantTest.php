@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\MultiTenant;
 
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\QueryBus;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;

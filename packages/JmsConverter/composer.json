@@ -26,7 +26,7 @@
         "xml",
         "converter"
     ],
-    "description": "JMS Serializer media type converter for Ecotone \u2014 serialize commands, events, and queries with JMS annotations.",
+    "description": "JMS Serializer media type converter for Ecotone — serialize commands, events, and queries with JMS annotations.",
     "repositories": [
         {
             "type": "path",
@@ -38,6 +38,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\JMSConverter\\": "src/Api/",
             "Ecotone\\JMSConverter\\": "src"
         }
     },

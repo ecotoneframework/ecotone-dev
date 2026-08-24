@@ -4,9 +4,9 @@ namespace Ecotone\JMSConverter\Configuration;
 
 use ArrayObject;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\Converter;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration;
+use Ecotone\Api\Converter;
+use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
+use Ecotone\Api\ModuleAnnotation;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverterBuilder;
 use Ecotone\JMSConverter\JMSHandlerAdapterBuilder;

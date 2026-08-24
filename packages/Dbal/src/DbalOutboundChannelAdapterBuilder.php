@@ -2,8 +2,8 @@
 
 namespace Ecotone\Dbal;
 
-use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\Dbal\DbalConnectionReference;
+use Ecotone\Api\EcotoneClockInterface;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;

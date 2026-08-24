@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\Order;
 
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Converter;
 
 /**
  * licence Apache-2.0

@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler\Processor;
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use stdClass;

@@ -6,10 +6,10 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Doctrine\DBAL\ConnectionException;
 use Doctrine\DBAL\Exception\NoActiveTransaction;
-use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\InstantRetryConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Support\ConcurrencyException;
@@ -44,7 +44,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                     ModulePackageList::CORE_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                    \Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+                    \Ecotone\Api\Dbal\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class]),
                 ]),
@@ -90,7 +90,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                     ModulePackageList::CORE_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                    \Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+                    \Ecotone\Api\Dbal\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class]),
                 ]),
@@ -149,7 +149,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
                     ModulePackageList::CORE_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                    \Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
+                    \Ecotone\Api\Dbal\DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true),
                     InstantRetryConfiguration::createWithDefaults()
                         ->withCommandBusRetry(isEnabled: true, retryTimes: 1, retryExceptions: [ConcurrencyException::class, NoActiveTransaction::class, ConnectionException::class]),
                 ]),

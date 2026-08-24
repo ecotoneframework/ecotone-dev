@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptedEventAggregate\AddExecutorId;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Before;
+use Ecotone\Api\CommandHandler;
 use Test\Ecotone\Modelling\Fixture\InterceptedEventAggregate\Logger;
 
 /**

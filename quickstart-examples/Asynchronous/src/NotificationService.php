@@ -2,8 +2,8 @@
 
 namespace App\Asynchronous;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
 
 class NotificationService
 {

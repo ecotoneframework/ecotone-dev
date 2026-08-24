@@ -6,8 +6,8 @@ namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
 use Doctrine\Common\Annotations\AnnotationException;
 use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
@@ -116,7 +116,7 @@ final class AsynchronousModuleTest extends AnnotationConfigurationTestCase
             $classesToResolve,
             $services,
             (ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects($collectorConfigurations))->withExtensionObjects($channelBuilders)->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
+                ->withExtensionObjects($collectorConfigurations))->withExtensionObjects($channelBuilders)->addExtensionObject(\Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
         );
     }
 }

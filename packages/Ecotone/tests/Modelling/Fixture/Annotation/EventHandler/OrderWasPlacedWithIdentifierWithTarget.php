@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\EventHandler;
 
-use Ecotone\Api\Attribute\TargetIdentifier;
+use Ecotone\Api\TargetIdentifier;
 
 /**
  * licence Apache-2.0

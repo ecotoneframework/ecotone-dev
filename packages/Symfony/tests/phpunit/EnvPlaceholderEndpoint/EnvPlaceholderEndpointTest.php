@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\EnvPlaceholderEndpoint;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\Test\LicenceTesting;

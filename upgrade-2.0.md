@@ -81,7 +81,7 @@ messages yourself.
 **Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`,
 `ProjectionManager`, `ProjectionRunningConfiguration`, `ecotone:es:*` console commands, `FlowTestSupport::initializeProjection()`,
 `resetProjection()`, `stopProjection()`, `deleteProjection()`, `triggerProjection()`), and the new v2
-(`Ecotone\Api\Attribute\ProjectionV2`).
+(`Ecotone\Api\ProjectionV2`).
 
 **Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Attribute\Projection`). v1
 classes, configuration and console commands are gone. Projection state lives in the v2 state table
@@ -139,7 +139,7 @@ Prooph classes (`Prooph\EventStore\*`, `MetadataMatcher`, `FieldType`, `Operator
 
 **Now:** The queue transport classes live in `Ecotone\Dbal\Connection` (`DbalConnectionFactory`, `DbalContext`, `DbalProducer`,
 `DbalConsumer`, `ManagerRegistryConnectionFactory`, …) and still implement the `queue-interop` interfaces. The default connection
-reference name is `Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference::DEFAULT` (which equals `Ecotone\Dbal\Connection\DbalConnectionFactory::class`);
+reference name is `Ecotone\Api\Dbal\DbalConnectionReference::DEFAULT` (which equals `Ecotone\Dbal\Connection\DbalConnectionFactory::class`);
 `DbalConnectionReference::defaultConnection()` returns the reference object. Framework references keep their factories
 (`SymfonyConnectionReference::createForManagerRegistry('default')`, `LaravelConnectionReference::defaultConnection()`,
 `TempestConnectionReference::default()`) and resolve to the new default. The `enqueue/dbal` composer replacement/conflict and the
@@ -201,7 +201,7 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `StandardRepository` interface | `StateStoredRepository` (same methods) |
 | `EcotoneLite::bootstrapForTesting()`, `EcotoneLiteConfiguration`, `ecotone/lite-application` package | `EcotoneLite::bootstrapFlowTesting()` / `EcotoneLite::bootstrap()` |
 | `MethodInvocation::getInterfaceToCall()`, `MethodInvocation::replaceArgument()` | `getObjectToInvokeOn()` / `getMethodName()`; pass changed values by returning a new message or header from `#[Before]` / `#[Presend]` |
-| `Ecotone\Messaging\Gateway\Converter\Serializer` | `Ecotone\Api\Gateway\SerializerGateway` |
+| `Ecotone\Messaging\Gateway\Converter\Serializer` | `Ecotone\Api\SerializerGateway` |
 | `Type::STRING`, `Type::ARRAY`, `Type::OBJECT` | `Type::string()`, `Type::array()`, `Type::object()` |
 | `Clock::get()` static access | inject `EcotoneClockInterface` |
 | `FlowTestSupport::releaseAwaitingMessagesAndRunConsumer()` | `run()` |
@@ -317,21 +317,21 @@ Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php`; the bu
 
 Classes outside `Api` are `@internal` and may change in minor versions. `ProjectionV2` keeps its name in this release
 (the rename to `#[Projection]` is a separate, not-yet-implemented change, see §3); it only moves namespace, to
-`Ecotone\Api\Attribute\ProjectionV2`. `Ecotone\Modelling\Api\Distribution\*` (`DistributedServiceMap`, `DistributedBusHeader`)
-and `Ecotone\Kafka\Api\KafkaHeader` already lived under `Api` before this change and keep their namespace.
+`Ecotone\Api\ProjectionV2`. `Ecotone\Modelling\Api\Distribution\*` (`DistributedServiceMap`, `DistributedBusHeader`)
+and `Ecotone\Api\Kafka\KafkaHeader` already lived under `Api` before this change and keep their namespace.
 
 **How to adapt:** Run the provided Rector set (`vendor/ecotone/ecotone/upgrade/rector-2.0.php`) or apply the mapping table in
 `upgrade/namespace-map-2.0.csv` with `sed`. Examples:
 
 | 1.x | 2.0 |
 |---|---|
-| `Ecotone\Modelling\Attribute\CommandHandler` | `Ecotone\Api\Attribute\CommandHandler` |
-| `Ecotone\Messaging\Attribute\Asynchronous` | `Ecotone\Api\Attribute\Asynchronous` |
-| `Ecotone\Projecting\Attribute\ProjectionV2` | `Ecotone\Api\Attribute\ProjectionV2` |
-| `Ecotone\Messaging\Config\ServiceConfiguration` | `Ecotone\Api\ExtensionObject\ServiceConfiguration` |
-| `Ecotone\Dbal\Configuration\DbalConfiguration` | `Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration` |
-| `Ecotone\Amqp\AmqpBackedMessageChannelBuilder` | `Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder` |
-| `Ecotone\Modelling\CommandBus` | `Ecotone\Api\Gateway\CommandBus` |
+| `Ecotone\Modelling\Attribute\CommandHandler` | `Ecotone\Api\CommandHandler` |
+| `Ecotone\Messaging\Attribute\Asynchronous` | `Ecotone\Api\Asynchronous` |
+| `Ecotone\Projecting\Attribute\ProjectionV2` | `Ecotone\Api\ProjectionV2` |
+| `Ecotone\Messaging\Config\ServiceConfiguration` | `Ecotone\Api\ServiceConfiguration` |
+| `Ecotone\Dbal\Configuration\DbalConfiguration` | `Ecotone\Api\Dbal\DbalConfiguration` |
+| `Ecotone\Amqp\AmqpBackedMessageChannelBuilder` | `Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder` |
+| `Ecotone\Modelling\CommandBus` | `Ecotone\Api\CommandBus` |
 
 The full 148-class mapping is in `upgrade/namespace-map-2.0.csv`.
 

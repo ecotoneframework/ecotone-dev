@@ -2,9 +2,9 @@
 
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
-use Ecotone\Api\Attribute\DelayedRetry;
-use Ecotone\Api\Attribute\ErrorChannel;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\DelayedRetry;
+use Ecotone\Api\ErrorChannel;
+use Ecotone\Api\PollingMetadata;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Gateway\ErrorChannelService;

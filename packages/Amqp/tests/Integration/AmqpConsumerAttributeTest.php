@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\Api\Attribute\RabbitConsumer;
-use Ecotone\Amqp\Api\ExtensionObject\AmqpMessagePublisherConfiguration;
-use Ecotone\Api\Attribute\MediaTypeConverter;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\Amqp\RabbitConsumer;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\MediaTypeConverter;
+use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
@@ -74,7 +74,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    \Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -109,7 +109,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    \Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -144,7 +144,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    \Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -180,7 +180,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    \Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -216,7 +216,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    \Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -255,7 +255,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    \Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -293,7 +293,7 @@ final class AmqpConsumerAttributeTest extends AmqpMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    \Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)

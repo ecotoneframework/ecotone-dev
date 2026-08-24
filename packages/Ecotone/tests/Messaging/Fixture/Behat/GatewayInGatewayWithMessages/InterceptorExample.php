@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\GatewayInGatewayWithMessages;
 
-use Ecotone\Api\Attribute\Interceptor\After;
-use Ecotone\Api\Attribute\Interceptor\Around;
-use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\After;
+use Ecotone\Api\Around;
+use Ecotone\Api\Before;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\TenantSharedConnection;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
-use Ecotone\Tempest\Api\ExtensionObject\TempestConnectionReference;
+use Ecotone\Api\Dbal\MultiTenantConfiguration;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Tempest\TempestConnectionReference;
 
 /**
  * licence Apache-2.0

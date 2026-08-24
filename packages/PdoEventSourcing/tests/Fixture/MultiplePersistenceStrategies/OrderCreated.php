@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies;
 
-use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\NamedEvent;
 
 #[NamedEvent(self::NAME)]
 /**

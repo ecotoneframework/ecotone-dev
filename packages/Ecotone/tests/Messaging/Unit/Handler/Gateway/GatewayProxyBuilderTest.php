@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendGateway;

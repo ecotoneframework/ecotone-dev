@@ -14,10 +14,10 @@ use App\Domain\Command\RegisterUser;
 use App\Domain\Event\UserNameWasChanged;
 use App\Domain\Event\UserWasDeactivated;
 use App\Domain\Event\UserWasRegistered;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingHandler;
+use Ecotone\Api\Identifier;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]

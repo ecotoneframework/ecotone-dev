@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\QueryHandler;
 use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\Messaging\Support\Assert;
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;

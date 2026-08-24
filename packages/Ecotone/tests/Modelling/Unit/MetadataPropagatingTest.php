@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\CombinedMessageChannel;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\AggregateMessage;

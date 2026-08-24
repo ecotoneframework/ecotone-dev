@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
 use Doctrine\DBAL\ArrayParameterType;
-use Ecotone\Dbal\Api\Attribute\DbalParameter;
-use Ecotone\Dbal\Api\Attribute\DbalQuery;
+use Ecotone\Api\Dbal\DbalParameter;
+use Ecotone\Api\Dbal\DbalQuery;
 
 /**
  * licence Apache-2.0

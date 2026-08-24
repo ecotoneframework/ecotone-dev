@@ -4,7 +4,7 @@ namespace Ecotone\Messaging\Config\Annotation;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ClassReference;
+use Ecotone\Api\ClassReference;
 
 /**
  * licence Apache-2.0

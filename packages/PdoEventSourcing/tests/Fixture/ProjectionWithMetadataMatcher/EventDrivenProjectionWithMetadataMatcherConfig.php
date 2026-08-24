@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\ProjectionWithMetadataMatcher;
 
-use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ServiceContext;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\Prooph\Metadata\FieldType;
 use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher;

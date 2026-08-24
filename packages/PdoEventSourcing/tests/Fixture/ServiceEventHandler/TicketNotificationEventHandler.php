@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\ServiceEventHandler;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryBus;
+use Ecotone\Api\QueryHandler;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 
 /**

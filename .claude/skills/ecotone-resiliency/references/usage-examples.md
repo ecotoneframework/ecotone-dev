@@ -52,7 +52,7 @@ public function errorHandler(): ErrorHandlerConfiguration
 Messages that exhaust all retries go to the dead letter channel:
 
 ```php
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
 
 class DeadLetterConfig
 {
@@ -96,7 +96,7 @@ This guarantees no events are lost even if the application crashes after saving 
 Route errors from a specific endpoint to a custom error handler:
 
 ```php
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\PollingMetadata;
 
 #[ServiceContext]
 public function ordersPolling(): PollingMetadata
@@ -109,7 +109,7 @@ public function ordersPolling(): PollingMetadata
 ## Custom Error Processing with ServiceActivator
 
 ```php
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\Handler\Recoverability\ErrorMessage;
 
 class ErrorProcessor
@@ -133,7 +133,7 @@ Route errors to custom processing via `PollingMetadata::setErrorChannelName()` o
 ## #[InstantRetry] with Specific Exceptions (Enterprise)
 
 ```php
-use Ecotone\Api\Attribute\InstantRetry;
+use Ecotone\Api\InstantRetry;
 
 #[InstantRetry(retryTimes: 3, exceptions: [ConnectionException::class, TimeoutException::class])]
 #[CommandHandler('order.place')]
@@ -146,7 +146,7 @@ public function placeOrder(PlaceOrder $command): void
 ## #[ErrorChannel] Usage (Enterprise)
 
 ```php
-use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Api\ErrorChannel;
 
 #[ErrorChannel('orders_error')]
 class OrderService

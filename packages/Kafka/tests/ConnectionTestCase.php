@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka;
 
-use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use PHPUnit\Framework\TestCase;
 
 /**

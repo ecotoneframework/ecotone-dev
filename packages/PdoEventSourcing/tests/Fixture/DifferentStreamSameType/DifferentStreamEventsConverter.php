@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\DifferentStreamSameType;
 
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Converter;
 
 final class DifferentStreamEventsConverter
 {

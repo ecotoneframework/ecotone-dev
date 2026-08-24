@@ -7,9 +7,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -82,7 +82,7 @@ class RoutingTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, GuestWasAddedToBook::class, GuestWasAddedToBookConverter::class],
             containerOrAvailableServices: [$handler, new GuestWasAddedToBookConverter()],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+            configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
             ])
         );

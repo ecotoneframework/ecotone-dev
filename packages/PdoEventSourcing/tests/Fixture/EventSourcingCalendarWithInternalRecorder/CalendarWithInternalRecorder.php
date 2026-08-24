@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\EventSourcingCalendarWithInternalRecorder;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingHandler;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Modelling\WithEvents;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarClosed;

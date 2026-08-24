@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingHandler;
+use Ecotone\Api\Identifier;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;

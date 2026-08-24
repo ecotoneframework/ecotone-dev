@@ -6,11 +6,11 @@ use App\WorkingWithAggregateDirectly\Command\ChangePrice;
 use App\WorkingWithAggregateDirectly\Command\RegisterProduct;
 use App\WorkingWithAggregateDirectly\Event\PriceWasChanged;
 use App\WorkingWithAggregateDirectly\Event\ProductWasRegistered;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingHandler;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]

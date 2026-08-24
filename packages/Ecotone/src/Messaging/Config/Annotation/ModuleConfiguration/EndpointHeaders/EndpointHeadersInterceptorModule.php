@@ -3,9 +3,9 @@
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\Endpoint\AddHeader;
-use Ecotone\Api\Attribute\Endpoint\RemoveHeader;
-use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\AddHeader;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\RemoveHeader;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;

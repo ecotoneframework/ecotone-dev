@@ -2,7 +2,7 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Api\Attribute\AggregateEvents;
+use Ecotone\Api\AggregateEvents;
 
 /**
  * Class WithEvents

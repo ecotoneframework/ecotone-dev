@@ -10,11 +10,11 @@ use App\Testing\Domain\ShoppingBasket\Event\OrderWasPlaced;
 use App\Testing\Domain\ShoppingBasket\Event\ProductWasAddedToBasket;
 use App\Testing\Domain\ShoppingBasket\Event\ProductWasRemovedFromBasket;
 use Assert\Assert;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Reference;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ramsey\Uuid\UuidInterface;
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\CalendarProjection;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\Messaging\Support\Assert;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarCreated;

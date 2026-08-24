@@ -1,7 +1,7 @@
 <?php
 
+use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 

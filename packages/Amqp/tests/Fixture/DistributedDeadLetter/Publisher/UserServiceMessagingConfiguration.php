@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Publisher;
 
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\DistributedServiceMap;
+use Ecotone\Api\ServiceContext;
 use Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver\TicketServiceMessagingConfiguration;
 
 /**

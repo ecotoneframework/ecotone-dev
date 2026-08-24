@@ -6,13 +6,13 @@ namespace Integration;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\AbstractSchemaManager;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
-use Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;

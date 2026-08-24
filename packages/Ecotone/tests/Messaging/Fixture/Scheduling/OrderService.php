@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Scheduling;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventBus;
 
 /**
  * licence Apache-2.0

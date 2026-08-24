@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Modelling\Unit\Config\InstantRetry;
 
-use Ecotone\Api\Attribute\InstantRetry;
-use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\InstantRetry;
+use Ecotone\Api\InstantRetryConfiguration;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\LicensingException;

@@ -17,10 +17,10 @@ Event sourcing stores state as a sequence of domain events rather than current s
 ## 1. Event-Sourced Aggregates
 
 ```php
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingHandler;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\CommandHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
@@ -71,9 +71,9 @@ Every ProjectionV2 class needs:
 3. At least one `#[EventHandler]` method
 
 ```php
-use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\ProjectionV2;
 use Ecotone\Projecting\Attribute\FromStream;
-use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\EventHandler;
 
 #[ProjectionV2('ticket_list')]
 #[FromStream(Ticket::class)]
@@ -104,7 +104,7 @@ class TicketListProjection
 ### Partitioning
 
 ```php
-use Ecotone\Api\Attribute\Partitioned;
+use Ecotone\Api\Partitioned;
 
 #[ProjectionV2('ticket_details'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
 ```
@@ -114,8 +114,8 @@ Per-aggregate-instance position tracking. NOT compatible with multiple `#[FromSt
 ## 3. Event Versioning
 
 ```php
-use Ecotone\Api\Attribute\Revision;
-use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\Revision;
+use Ecotone\Api\NamedEvent;
 
 #[Revision(2)]
 #[NamedEvent('person.was_registered')]

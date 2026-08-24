@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\DeadLetterRightAway;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\DbalDeadLetterBuilder;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceContext;
 
 /**
  * licence Apache-2.0

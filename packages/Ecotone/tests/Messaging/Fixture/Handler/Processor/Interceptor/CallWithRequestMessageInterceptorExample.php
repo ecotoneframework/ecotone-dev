@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor;
 
-use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Around;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 

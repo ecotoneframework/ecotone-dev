@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\ORM\PersonRepository;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventBus;
+use Ecotone\Api\QueryHandler;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\Person;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\PersonWasRenamed;
 use Test\Ecotone\Dbal\Fixture\ORM\Person\RegisterPerson;

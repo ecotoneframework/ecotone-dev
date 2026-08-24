@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Application;
 
-use Ecotone\Api\Attribute\ConsoleCommand;
-use Ecotone\Api\Attribute\ConsoleParameterOption;
+use Ecotone\Api\ConsoleCommand;
+use Ecotone\Api\ConsoleParameterOption;
 
 final readonly class ExampleCommand
 {

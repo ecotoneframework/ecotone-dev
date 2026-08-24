@@ -2,13 +2,13 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\Basket;
 
-use Ecotone\Api\Attribute\AggregateType;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\EventSourcing\Api\Attribute\Stream;
+use Ecotone\Api\AggregateType;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingHandler;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Modelling\WithEvents;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;

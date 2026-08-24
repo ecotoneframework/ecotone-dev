@@ -2,7 +2,7 @@
 
 namespace Ecotone\EventSourcing\Prooph;
 
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\ProjectionSetupConfiguration;

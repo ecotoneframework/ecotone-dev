@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\MetadataPropagating;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Interceptor\Around;
-use Ecotone\Api\Attribute\Parameter\Headers;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Around;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Headers;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Reference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 

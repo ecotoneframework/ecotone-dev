@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\Basket;
 
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Converter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\ProductWasAddedToBasket;
 

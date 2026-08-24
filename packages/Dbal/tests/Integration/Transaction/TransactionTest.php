@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\ConsoleCommand;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\ConsoleCommand;
+use Ecotone\Api\Dbal\MultiTenantConfiguration;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Reference;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\WithoutDatabaseTransaction;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Lite\EcotoneLite;

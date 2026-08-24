@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Scheduling;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Endpoint\Delayed;
-use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\Delayed;
+use Ecotone\Api\EventHandler;
 
 /**
  * licence Apache-2.0

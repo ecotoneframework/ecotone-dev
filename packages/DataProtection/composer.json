@@ -26,7 +26,7 @@
         "sensitive-data",
         "secure-messages"
     ],
-    "description": "Field-level encryption and PII masking for Ecotone messages \u2014 GDPR-friendly data protection with crypto-shredding.",
+    "description": "Field-level encryption and PII masking for Ecotone messages — GDPR-friendly data protection with crypto-shredding.",
     "repositories": [
         {
             "type": "path",
@@ -38,6 +38,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\DataProtection\\": "src/Api/",
             "Ecotone\\DataProtection\\": "src"
         }
     },

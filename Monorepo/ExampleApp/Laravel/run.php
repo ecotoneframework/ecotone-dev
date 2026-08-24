@@ -1,7 +1,7 @@
 <?php
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExecutionPollingMetadata;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Artisan;

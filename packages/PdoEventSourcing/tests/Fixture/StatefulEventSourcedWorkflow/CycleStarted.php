@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow;
 
-use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\NamedEvent;
 
 #[NamedEvent(self::NAME)]
 class CycleStarted

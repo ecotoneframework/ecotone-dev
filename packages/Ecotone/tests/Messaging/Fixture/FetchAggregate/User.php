@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\FetchAggregate;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\Identifier;
 
 #[Aggregate]
 /**

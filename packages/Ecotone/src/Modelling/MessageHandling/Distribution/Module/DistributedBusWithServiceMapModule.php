@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\MessageHandling\Distribution\Module;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\DistributedBus;
+use Ecotone\Api\DistributedBusHeader;
+use Ecotone\Api\DistributedServiceMap;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -28,8 +30,6 @@ use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
-use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributedOutboundRouter;
 
 #[ModuleAnnotation]

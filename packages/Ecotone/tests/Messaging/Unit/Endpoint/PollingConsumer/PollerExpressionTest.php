@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Endpoint\PollingConsumer;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Poller\ExpressionPollerExample;

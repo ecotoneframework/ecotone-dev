@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\User;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\Identifier;
 
 /**
  * licence Apache-2.0

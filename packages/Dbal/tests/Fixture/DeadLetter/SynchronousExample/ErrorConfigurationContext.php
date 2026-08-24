@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalDeadLetterBuilder;
+use Ecotone\Api\ServiceContext;
 
 /**
  * licence Enterprise

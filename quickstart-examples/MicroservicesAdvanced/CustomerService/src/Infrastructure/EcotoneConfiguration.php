@@ -2,12 +2,12 @@
 
 namespace App\Microservices\CustomerService\Infrastructure;
 
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\DistributedServiceMap;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\PollingMetadata;
 
 class EcotoneConfiguration
 {

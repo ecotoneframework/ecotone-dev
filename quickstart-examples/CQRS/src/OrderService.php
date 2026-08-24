@@ -2,8 +2,8 @@
 
 namespace App\CQRS;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\QueryHandler;
 
 class OrderService
 {

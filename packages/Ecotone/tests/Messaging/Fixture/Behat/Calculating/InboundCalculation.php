@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\Calculating;
 
-use Ecotone\Api\Attribute\Scheduled;
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Scheduled;
+use Ecotone\Api\ServiceActivator;
 
 /**
  * licence Apache-2.0

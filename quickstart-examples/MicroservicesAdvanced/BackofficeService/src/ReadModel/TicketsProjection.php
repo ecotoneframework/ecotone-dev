@@ -9,12 +9,12 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\ProjectionReset;
-use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\ProjectionReset;
+use Ecotone\Api\Header;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 

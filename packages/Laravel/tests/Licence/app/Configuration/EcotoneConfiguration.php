@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Licence\Laravel\Configuration;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
 
 /**

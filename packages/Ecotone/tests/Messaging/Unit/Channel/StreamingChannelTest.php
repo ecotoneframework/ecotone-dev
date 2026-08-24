@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel;
 
-use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\DistributedServiceMap;
+use Ecotone\Api\InternalHandler;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
-use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

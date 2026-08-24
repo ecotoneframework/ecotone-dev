@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptedBridge;
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 
 /**
  * licence Apache-2.0

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
-use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Api\Dbal\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\DeadLetterGateway;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -217,8 +217,8 @@ final class DeadLetterTest extends DbalMessagingTestCase
             public array $processedPayloads = [];
             private bool $hasEmitted = false;
 
-            #[\Ecotone\Api\Attribute\Scheduled(self::REQUEST_CHANNEL, self::ENDPOINT_ID)]
-            #[\Ecotone\Api\Attribute\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
+            #[\Ecotone\Api\Scheduled(self::REQUEST_CHANNEL, self::ENDPOINT_ID)]
+            #[\Ecotone\Api\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
             public function emit(): ?string
             {
                 if ($this->hasEmitted) {
@@ -229,7 +229,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
                 return 'first-payload';
             }
 
-            #[\Ecotone\Api\Attribute\ServiceActivator(self::REQUEST_CHANNEL)]
+            #[\Ecotone\Api\ServiceActivator(self::REQUEST_CHANNEL)]
             public function handle(string $payload): void
             {
                 $this->invocations++;
@@ -251,7 +251,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withDefaultErrorChannel(DbalDeadLetterBuilder::STORE_CHANNEL)
-                ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
+                ->addExtensionObject(\Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
             classesToResolve: [$handler::class],
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -327,7 +327,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
-                ->withExtensionObjects(array_merge([\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], $extensionObjects))
+                ->withExtensionObjects(array_merge([\Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)], $extensionObjects))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         ));

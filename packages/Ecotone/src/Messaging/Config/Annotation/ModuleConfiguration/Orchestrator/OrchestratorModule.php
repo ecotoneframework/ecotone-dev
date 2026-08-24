@@ -6,12 +6,12 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\Orchestrator;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\Orchestrator;
-use Ecotone\Api\Attribute\OrchestratorGateway;
-use Ecotone\Api\Attribute\Saga;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\Orchestrator;
+use Ecotone\Api\OrchestratorGateway;
+use Ecotone\Api\Saga;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;

@@ -2,9 +2,9 @@
 
 namespace App\Microservices\Receiver;
 
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\PollingMetadata;
 
 class MessagingConfiguration
 {

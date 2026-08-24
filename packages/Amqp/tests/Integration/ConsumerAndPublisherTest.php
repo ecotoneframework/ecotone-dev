@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
-use Ecotone\Amqp\Api\ExtensionObject\AmqpMessagePublisherConfiguration;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;

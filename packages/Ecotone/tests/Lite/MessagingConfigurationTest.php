@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Lite;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\InMemoryPSRContainer;
 use PHPUnit\Framework\TestCase;

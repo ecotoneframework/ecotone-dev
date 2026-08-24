@@ -2,9 +2,9 @@
 
 namespace Monorepo\ExampleAppEventSourcing\Common\Infrastructure;
 
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
-use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ServiceContext;
 
 class EcotoneConfiguration
 {

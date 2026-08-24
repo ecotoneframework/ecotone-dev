@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\Example;
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 use InvalidArgumentException;
 
 /**

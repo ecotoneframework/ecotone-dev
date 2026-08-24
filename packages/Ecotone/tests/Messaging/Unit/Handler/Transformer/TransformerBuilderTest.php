@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Transformer;
 
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;

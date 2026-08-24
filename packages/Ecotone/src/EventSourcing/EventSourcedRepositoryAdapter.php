@@ -7,8 +7,8 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\Api\Attribute\Version;
-use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\DocumentStore;
+use Ecotone\Api\Version;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
 use Ecotone\Messaging\Handler\Enricher\PropertyPath;

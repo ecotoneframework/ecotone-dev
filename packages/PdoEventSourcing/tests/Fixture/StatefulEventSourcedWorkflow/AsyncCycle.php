@@ -2,14 +2,14 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingHandler;
-use Ecotone\Api\Attribute\EventSourcingSaga;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\Parameter\Payload;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventSourcingHandler;
+use Ecotone\Api\EventSourcingSaga;
+use Ecotone\Api\Header;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\Payload;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Modelling\WithEvents;
 

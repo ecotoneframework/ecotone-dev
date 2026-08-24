@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\SymfonyContainer;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Parameter\Payload;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Payload;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use PHPUnit\Framework\TestCase;

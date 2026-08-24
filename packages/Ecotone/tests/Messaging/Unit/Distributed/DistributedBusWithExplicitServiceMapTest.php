@@ -4,14 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Distributed;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Distributed;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Distributed;
+use Ecotone\Api\DistributedBus;
+use Ecotone\Api\DistributedBusHeader;
+use Ecotone\Api\DistributedServiceMap;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
@@ -23,8 +25,6 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
-use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
 use Ecotone\Modelling\MessageHandling\Distribution\UnknownDistributedDestination;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -684,7 +684,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
         // Publisher service
         $publisher = new class () {
             #[CommandHandler('publish.event')]
-            public function publish(string $payload, \Ecotone\Api\Gateway\EventBus $eventBus): void
+            public function publish(string $payload, \Ecotone\Api\EventBus $eventBus): void
             {
                 $eventBus->publish($payload);
             }

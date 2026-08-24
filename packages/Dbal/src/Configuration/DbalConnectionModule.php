@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalConnectionReference;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;

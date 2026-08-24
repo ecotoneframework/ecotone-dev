@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace App\Domain;
 
 use App\Domain\Command\RegisterCustomer;
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\IdentifierMethod;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\IdentifierMethod;
 use Tempest\Database\IsDatabaseModel;
 use Tempest\Database\PrimaryKey;
 use Tempest\Database\Table;

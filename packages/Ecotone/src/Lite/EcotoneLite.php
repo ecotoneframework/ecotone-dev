@@ -6,10 +6,10 @@ namespace Ecotone\Lite;
 
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
 use Ecotone\AnnotationFinder\FileSystem\RootCatalogNotFound;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\TestConfiguration;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Lite\Test\ConfiguredMessagingSystemWithTestSupport;
 use Ecotone\Lite\Test\FlowTestSupport;

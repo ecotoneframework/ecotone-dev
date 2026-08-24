@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Integration\DbalBusinessMethod;
 
 use DateTimeImmutable;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Lite\EcotoneLite;

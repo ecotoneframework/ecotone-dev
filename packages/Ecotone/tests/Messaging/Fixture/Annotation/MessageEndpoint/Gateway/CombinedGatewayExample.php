@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Gateway;
 
-use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\MessageGateway;
 
 /**
  * licence Apache-2.0

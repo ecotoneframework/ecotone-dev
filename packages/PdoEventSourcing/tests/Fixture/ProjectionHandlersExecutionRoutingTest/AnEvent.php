@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\ProjectionHandlersExecutionRoutingTest;
 
-use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\NamedEvent;
 
 #[NamedEvent(self::NAME)]
 class AnEvent

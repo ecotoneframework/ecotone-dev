@@ -6,7 +6,7 @@ namespace Test\Ecotone\Tempest\Hardening;
 
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;
 use Ecotone\Tempest\MessagingSystemInitializer;

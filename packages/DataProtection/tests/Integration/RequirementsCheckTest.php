@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\DataProtection\Integration;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\Lite\EcotoneLite;

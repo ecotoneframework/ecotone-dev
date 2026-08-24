@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 
 /**
  * licence Apache-2.0

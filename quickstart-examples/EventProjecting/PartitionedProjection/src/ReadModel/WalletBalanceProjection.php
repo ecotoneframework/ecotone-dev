@@ -9,16 +9,16 @@ use App\EventProjecting\PartitionedProjection\Domain\Event\WalletWasCredited;
 use App\EventProjecting\PartitionedProjection\Domain\Event\WalletWasDebited;
 use App\EventProjecting\PartitionedProjection\Domain\Wallet;
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\ProjectionDelete;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\ProjectionDelete;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Projecting\Attribute\GlobalProjection;
-use Ecotone\Api\Attribute\Partitioned;
+use Ecotone\Api\Partitioned;
 use Ecotone\Projecting\Attribute\Projection;
-use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\ProjectionV2;
 
 #[Partitioned]
 #[ProjectionV2(self::NAME)]

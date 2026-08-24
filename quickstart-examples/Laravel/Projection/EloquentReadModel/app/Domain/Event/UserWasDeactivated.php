@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Event;
 
-use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\NamedEvent;
 
 #[NamedEvent(self::EVENT_NAME)]
 final readonly class UserWasDeactivated

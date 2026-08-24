@@ -3,7 +3,7 @@
 namespace Test\Ecotone\Messaging\Fixture\Handler;
 
 use Attribute;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Identifier;
 
 /**
  * licence Apache-2.0

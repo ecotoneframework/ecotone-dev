@@ -2,7 +2,7 @@
 
 namespace App\OutboxPattern\Domain;
 
-use Ecotone\Api\Attribute\Repository;
+use Ecotone\Api\Repository;
 
 interface OrderRepository
 {

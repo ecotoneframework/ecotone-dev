@@ -3,8 +3,8 @@
 ## Declaring Identifiers on Aggregates
 
 ```php
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\Identifier;
 
 #[Aggregate]
 class Order
@@ -17,8 +17,8 @@ class Order
 ## Declaring Identifiers on Sagas
 
 ```php
-use Ecotone\Api\Attribute\Saga;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Saga;
+use Ecotone\Api\Identifier;
 
 #[Saga]
 class OrderProcess
@@ -47,8 +47,8 @@ class ShelfItem
 When the identifier property name differs from what the aggregate/saga exposes:
 
 ```php
-use Ecotone\Api\Attribute\IdentifierMethod;
-use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\IdentifierMethod;
+use Ecotone\Api\Saga;
 
 #[Saga]
 class OrderProcess
@@ -135,7 +135,7 @@ $commandBus->sendWithRouting(
 ## `#[TargetIdentifier]` Full Saga Example
 
 ```php
-use Ecotone\Api\Attribute\TargetIdentifier;
+use Ecotone\Api\TargetIdentifier;
 
 class OrderStarted
 {

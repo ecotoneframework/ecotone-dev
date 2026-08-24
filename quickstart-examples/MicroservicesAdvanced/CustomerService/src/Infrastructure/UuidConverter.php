@@ -2,7 +2,7 @@
 
 namespace App\Microservices\CustomerService\Infrastructure;
 
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Converter;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 

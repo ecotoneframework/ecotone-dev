@@ -4,10 +4,10 @@ namespace Ecotone\EventSourcing\Prooph;
 
 use ArrayIterator;
 use Doctrine\DBAL\Driver\PDOConnection;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\Database\LegacyProjectionsTableManager;
 use Ecotone\EventSourcing\InMemory\StreamIteratorWithPosition;

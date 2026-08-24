@@ -6,12 +6,12 @@ namespace App\MultiTenant\Application;
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use App\MultiTenant\Application\Event\CustomerWasRegistered;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventBus;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\Header;
+use Ecotone\Api\QueryHandler;
 use Illuminate\Support\Facades\DB;
 use PDO;
 use RuntimeException;

@@ -2,7 +2,7 @@
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\Api\Attribute\PropagateHeaders;
+use Ecotone\Api\PropagateHeaders;
 
 /**
  * licence Apache-2.0

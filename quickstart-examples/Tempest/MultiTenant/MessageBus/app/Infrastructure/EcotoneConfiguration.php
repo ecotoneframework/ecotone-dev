@@ -8,9 +8,9 @@ declare(strict_types=1);
 
 namespace App\Infrastructure;
 
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Tempest\Api\ExtensionObject\TempestConnectionReference;
+use Ecotone\Api\Dbal\MultiTenantConfiguration;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Tempest\TempestConnectionReference;
 
 final readonly class EcotoneConfiguration
 {

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\ExpressionLanguage;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Parameter\Payload;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Payload;
+use Ecotone\Api\QueryHandler;
 
 /**
  * licence Apache-2.0

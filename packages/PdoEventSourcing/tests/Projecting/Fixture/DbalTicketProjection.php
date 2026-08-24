@@ -8,11 +8,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Fixture;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\ProjectionDelete;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\ProjectionDelete;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\QueryHandler;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Interceptor;
 
-use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Around;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 

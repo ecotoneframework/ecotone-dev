@@ -10,8 +10,8 @@ namespace Ecotone\Modelling\Config\Routing;
 use function array_unique;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\NamedEvent;
 use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;

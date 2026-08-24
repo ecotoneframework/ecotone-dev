@@ -7,11 +7,11 @@ declare(strict_types=1);
 
 namespace EventSourcing\Fixture\Projecting;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\ProjectionDelete;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\ProjectionReset;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\ProjectionDelete;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\ProjectionReset;
+use Ecotone\Api\QueryHandler;
 use Ecotone\EventSourcing\Attribute\Projection;
 
 #[Projection('order_projection')]

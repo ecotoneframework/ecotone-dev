@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\MessageHandling\Distribution;
 
-use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\DistributedBusHeader;
+use Ecotone\Api\DistributedServiceMap;
+use Ecotone\Api\Header;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
-use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
 
 use function in_array;
 use function sprintf;

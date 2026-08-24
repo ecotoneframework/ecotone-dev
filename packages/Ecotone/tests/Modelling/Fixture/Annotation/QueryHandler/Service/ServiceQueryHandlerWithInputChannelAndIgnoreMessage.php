@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\QueryHandler\Service;
 
-use Ecotone\Api\Attribute\IgnorePayload;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\IgnorePayload;
+use Ecotone\Api\QueryHandler;
 use stdClass;
 
 /**

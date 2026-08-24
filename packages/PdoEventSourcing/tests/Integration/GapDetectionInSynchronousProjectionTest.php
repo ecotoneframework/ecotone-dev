@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\Prooph\GapDetection;
 use Ecotone\EventSourcing\Prooph\GapDetection\DateInterval;

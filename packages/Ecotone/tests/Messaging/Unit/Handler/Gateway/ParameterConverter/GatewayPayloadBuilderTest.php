@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway\ParameterConverter;
 
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;

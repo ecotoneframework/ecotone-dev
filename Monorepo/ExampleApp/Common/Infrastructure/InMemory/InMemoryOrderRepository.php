@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Infrastructure\InMemory;
 
-use Ecotone\Api\Attribute\Repository;
+use Ecotone\Api\Repository;
 use Ecotone\Modelling\StateStoredRepository;
 use Monorepo\ExampleApp\Common\Domain\Order\Order;
 use Ramsey\Uuid\UuidInterface;

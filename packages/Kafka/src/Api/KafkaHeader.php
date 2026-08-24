@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Kafka\Api;
+namespace Ecotone\Api\Kafka;
 
 /**
  * licence Enterprise

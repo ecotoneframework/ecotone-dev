@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousCustomRetry;
 
-use Ecotone\Api\Attribute\ErrorChannel;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\Dbal\DbalDeadLetterBuilder;
+use Ecotone\Api\ErrorChannel;
 
 /**
  * licence Enterprise

@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\Async;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
 use stdClass;
 
 #[Asynchronous('asyncChannel')]

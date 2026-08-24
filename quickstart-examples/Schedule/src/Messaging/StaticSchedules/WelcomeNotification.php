@@ -2,12 +2,12 @@
 
 namespace App\Schedule\Messaging\StaticSchedules;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Endpoint\Delayed;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\Delayed;
+use Ecotone\Api\Reference;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\EventBus;
 
 class WelcomeNotification
 {

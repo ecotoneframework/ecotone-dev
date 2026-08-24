@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Header;
+use Ecotone\Api\QueryHandler;
 
 /**
  * licence Apache-2.0

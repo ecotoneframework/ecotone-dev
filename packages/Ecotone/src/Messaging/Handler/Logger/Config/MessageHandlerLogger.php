@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Logger\Config;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\Interceptor\Around;
-use Ecotone\Api\Attribute\Interceptor\Presend;
-use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Around;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Presend;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Reference;
+use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;

@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\Identifier;
 
 #[EventSourcingAggregate]
 /**

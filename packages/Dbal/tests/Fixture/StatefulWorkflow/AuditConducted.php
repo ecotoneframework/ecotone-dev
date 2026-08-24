@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Fixture\StatefulWorkflow;
 
-use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\NamedEvent;
 
 #[NamedEvent(self::NAME)]
 class AuditConducted

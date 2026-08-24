@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
-use Ecotone\Api\Attribute\ClassReference;
-use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Around;
+use Ecotone\Api\ClassReference;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;

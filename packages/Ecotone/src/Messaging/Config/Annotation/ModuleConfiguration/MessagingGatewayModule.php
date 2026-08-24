@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\ErrorChannel;
-use Ecotone\Api\Attribute\MessageGateway;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\Parameter\Headers;
-use Ecotone\Api\Attribute\Parameter\Payload;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\ErrorChannel;
+use Ecotone\Api\Header;
+use Ecotone\Api\Headers;
+use Ecotone\Api\MessageGateway;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\Payload;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -131,7 +131,7 @@ class MessagingGatewayModule extends NoExternalConfigurationModule implements An
             if ($errorChannel && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
                 throw LicensingException::create(ErrorChannelExceptionMessages::gatewayErrorChannelRequiresEnterprise($gatewayBuilder->getInterfaceName(), $gatewayBuilder->getRelatedMethodName()));
             }
-            $delayedRetry = $interfaceToCallRegistry->getFor($gatewayBuilder->getInterfaceName(), $gatewayBuilder->getRelatedMethodName())->getAnnotationsByImportanceOrder(Type::attribute(\Ecotone\Api\Attribute\DelayedRetry::class));
+            $delayedRetry = $interfaceToCallRegistry->getFor($gatewayBuilder->getInterfaceName(), $gatewayBuilder->getRelatedMethodName())->getAnnotationsByImportanceOrder(Type::attribute(\Ecotone\Api\DelayedRetry::class));
             if ($delayedRetry && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
                 throw LicensingException::create(ErrorChannelExceptionMessages::gatewayDelayedRetryRequiresEnterprise($gatewayBuilder->getInterfaceName(), $gatewayBuilder->getRelatedMethodName()));
             }

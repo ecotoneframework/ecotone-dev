@@ -42,6 +42,18 @@
             "Ecotone\\": [
                 "packages/Ecotone/src"
             ],
+            "Ecotone\\Api\\": "packages/Ecotone/src/Api",
+            "Ecotone\\Api\\Amqp\\": "packages/Amqp/src/Api",
+            "Ecotone\\Api\\DataProtection\\": "packages/DataProtection/src/Api",
+            "Ecotone\\Api\\Dbal\\": "packages/Dbal/src/Api",
+            "Ecotone\\Api\\EventSourcing\\": "packages/PdoEventSourcing/src/Api",
+            "Ecotone\\Api\\JMSConverter\\": "packages/JmsConverter/src/Api",
+            "Ecotone\\Api\\Redis\\": "packages/Redis/src/Api",
+            "Ecotone\\Api\\Sqs\\": "packages/Sqs/src/Api",
+            "Ecotone\\Api\\Laravel\\": "packages/Laravel/src/Api",
+            "Ecotone\\Api\\Tempest\\": "packages/Tempest/src/Api",
+            "Ecotone\\Api\\Kafka\\": "packages/Kafka/src/Api",
+            "Ecotone\\Api\\Symfony\\": "packages/Symfony/src/Api",
             "Ecotone\\Amqp\\": "packages/Amqp/src",
             "Ecotone\\AnnotationFinder\\": "packages/Ecotone/src/AnnotationFinder/",
             "Ecotone\\DataProtection\\": [

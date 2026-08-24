@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
 use DateTimeImmutable;
-use Ecotone\Dbal\Api\Attribute\DbalQuery;
-use Ecotone\Dbal\Api\Attribute\DbalWrite;
+use Ecotone\Api\Dbal\DbalQuery;
+use Ecotone\Api\Dbal\DbalWrite;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 
 /**

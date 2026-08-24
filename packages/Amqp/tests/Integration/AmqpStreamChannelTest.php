@@ -6,11 +6,11 @@ namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\AmqpStreamChannelBuilder;
-use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\InternalHandler;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\TestConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Support\LicensingException;
@@ -1241,8 +1241,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         // Publisher service
         $publisher = new class () {
-            #[\Ecotone\Api\Attribute\CommandHandler('publish.event')]
-            public function publish(string $payload, \Ecotone\Api\Gateway\EventBus $eventBus): void
+            #[\Ecotone\Api\CommandHandler('publish.event')]
+            public function publish(string $payload, \Ecotone\Api\EventBus $eventBus): void
             {
                 $eventBus->publish($payload);
             }
@@ -1252,8 +1252,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $consumer1 = new class () {
             private array $consumed = [];
 
-            #[\Ecotone\Api\Attribute\Distributed]
-            #[\Ecotone\Api\Attribute\EventHandler('distributed.event', endpointId: 'consumer1')]
+            #[\Ecotone\Api\Distributed]
+            #[\Ecotone\Api\EventHandler('distributed.event', endpointId: 'consumer1')]
             public function handle(string $payload): void
             {
                 $this->consumed[] = $payload;
@@ -1270,8 +1270,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $consumer2 = new class () {
             private array $consumed = [];
 
-            #[\Ecotone\Api\Attribute\Distributed]
-            #[\Ecotone\Api\Attribute\EventHandler('distributed.event', endpointId: 'consumer2')]
+            #[\Ecotone\Api\Distributed]
+            #[\Ecotone\Api\EventHandler('distributed.event', endpointId: 'consumer2')]
             public function handle(string $payload): void
             {
                 $this->consumed[] = $payload;
@@ -1306,7 +1306,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                         amqpConnectionReferenceName: AmqpLibConnection::class,
                         queueName: $queueName,
                     ),
-                    \Ecotone\Modelling\Api\Distribution\DistributedServiceMap::initialize()
+                    \Ecotone\Api\DistributedServiceMap::initialize()
                         ->withEventMapping(channelName: $channelName, subscriptionKeys: ['*']),
                 ])
         );

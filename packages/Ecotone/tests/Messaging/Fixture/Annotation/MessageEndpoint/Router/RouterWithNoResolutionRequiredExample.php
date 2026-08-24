@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Router;
 
-use Ecotone\Api\Attribute\Parameter\Payload;
-use Ecotone\Api\Attribute\Router;
+use Ecotone\Api\Payload;
+use Ecotone\Api\Router;
 
 /**
  * licence Apache-2.0

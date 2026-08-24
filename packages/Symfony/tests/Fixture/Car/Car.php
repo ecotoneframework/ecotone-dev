@@ -2,7 +2,7 @@
 
 namespace Fixture\Car;
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 
 /**
  * licence Apache-2.0

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Annotation\Interceptor\AroundInterceptorExample;
@@ -27,7 +27,7 @@ final class MethodInterceptorModuleTest extends AnnotationConfigurationTestCase
         $ecootneLite = EcotoneLite::bootstrapFlowTesting(
             [AroundInterceptorExample::class],
             [$service = new AroundInterceptorExample()],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
         $ecootneLite->sendCommandWithRoutingKey('doSomethingAsync', new stdClass());

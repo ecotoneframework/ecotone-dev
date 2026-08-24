@@ -2,9 +2,9 @@
 
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
-use Ecotone\Api\Attribute\OnConsumerStop;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\OnConsumerStop;
+use Ecotone\Api\PollingMetadata;
 use Ecotone\Messaging\Endpoint\ConsumerInterceptor;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\Interceptor\ConnectionExceptionRetryInterceptor;

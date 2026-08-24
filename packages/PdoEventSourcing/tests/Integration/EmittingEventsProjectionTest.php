@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\Prooph\ProophProjectionRunningOption;
 use Ecotone\Lite\EcotoneLite;

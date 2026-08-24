@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\MultiTenantConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;

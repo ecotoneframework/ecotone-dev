@@ -2,7 +2,7 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\DocumentStore;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 

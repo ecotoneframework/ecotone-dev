@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\MultiTenant\Application;
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\QueryHandler;
 use Illuminate\Support\Facades\DB;
 
 final readonly class CustomerService

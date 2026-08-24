@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Symfony\App\EnvPlaceholderEndpoint\Configuration;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 
 /**
  * licence Apache-2.0

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Application;
 
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;

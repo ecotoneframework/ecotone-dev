@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
 
-use Ecotone\Api\Attribute\TargetIdentifier;
+use Ecotone\Api\TargetIdentifier;
 
 /**
  * Class GetAmountQuery

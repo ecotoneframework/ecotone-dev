@@ -5,9 +5,9 @@
 ### Single Channel per Method
 
 ```php
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 
 class MessagingConfiguration
 {
@@ -44,7 +44,7 @@ public function channels(): array
 ### Registering PollingMetadata via ServiceContext
 
 ```php
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\PollingMetadata;
 
 #[ServiceContext]
 public function ordersPolling(): PollingMetadata
@@ -64,8 +64,8 @@ bin/console ecotone:run notifications --handledMessageLimit=100
 ## Channel Usage with Handlers
 
 ```php
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
 
 class NotificationService
 {
@@ -81,7 +81,7 @@ class NotificationService
 ## Priority Handling
 
 ```php
-use Ecotone\Api\Attribute\Endpoint\Priority;
+use Ecotone\Api\Priority;
 
 class OrderService
 {
@@ -100,7 +100,7 @@ class OrderService
 ## Time to Live Patterns
 
 ```php
-use Ecotone\Api\Attribute\Endpoint\TimeToLive;
+use Ecotone\Api\TimeToLive;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 
 class NotificationService

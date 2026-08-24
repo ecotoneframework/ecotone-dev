@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\CommandEventFlow;
 
-use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\InternalHandler;
+use Ecotone\Api\QueryHandler;
 
 final class AuditLog
 {

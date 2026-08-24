@@ -3,7 +3,7 @@
 ## DistributedBus Interface
 
 ```php
-use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\DistributedBus;
 use Ecotone\Messaging\Conversion\MediaType;
 
 interface DistributedBus
@@ -59,7 +59,7 @@ interface DistributedBus
 ## MessagePublisher Interface
 
 ```php
-use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\MessagePublisher;
 use Ecotone\Messaging\Conversion\MediaType;
 
 interface MessagePublisher
@@ -96,7 +96,7 @@ interface MessagePublisher
 ## #[Distributed] Attribute
 
 ```php
-use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Distributed;
 
 #[Distributed(distributionReference: DistributedBus::class)]
 ```
@@ -107,7 +107,7 @@ use Ecotone\Api\Attribute\Distributed;
 ## DistributedServiceMap API
 
 ```php
-use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
+use Ecotone\Api\DistributedServiceMap;
 
 DistributedServiceMap::initialize(referenceName: DistributedBus::class)
 ```

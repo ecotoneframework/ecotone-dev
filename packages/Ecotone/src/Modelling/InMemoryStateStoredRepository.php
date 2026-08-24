@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\Repository;
-use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\Repository;
+use Ecotone\Api\Saga;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Type;
 

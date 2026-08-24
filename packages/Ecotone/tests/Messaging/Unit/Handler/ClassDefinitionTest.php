@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingSaga;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingSaga;
+use Ecotone\Api\Identifier;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\ClassPropertyDefinition;
 use Ecotone\Messaging\Handler\Type;

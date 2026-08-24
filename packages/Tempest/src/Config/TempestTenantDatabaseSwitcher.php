@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Tempest\Config;
 
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\Dbal\DbalConnectionReference;
+use Ecotone\Api\Tempest\TempestConnectionReference;
 use Ecotone\Messaging\Config\ConnectionReference;
-use Ecotone\Tempest\Api\ExtensionObject\TempestConnectionReference;
 use Tempest\Container\GenericContainer;
 use Tempest\Database\Config\DatabaseConfig;
 use Tempest\Database\Connection\Connection;

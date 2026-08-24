@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
 use Attribute;
-use Ecotone\Api\Attribute\Interceptor\Before;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Attribute\Scheduled;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Before;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Scheduled;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\NullableMessageChannel;
 use PHPUnit\Framework\TestCase;

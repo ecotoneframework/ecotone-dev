@@ -3,12 +3,12 @@
 namespace Ecotone\Dbal\ObjectManager;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\ProjectionFlush;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalConnectionReference;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\ProjectionFlush;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;

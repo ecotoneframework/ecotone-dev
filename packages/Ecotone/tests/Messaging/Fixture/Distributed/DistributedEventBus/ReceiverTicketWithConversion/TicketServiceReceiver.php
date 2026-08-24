@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicketWithConversion;
 
-use Ecotone\Api\Attribute\Distributed;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Distributed;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 
 /**
  * licence Apache-2.0

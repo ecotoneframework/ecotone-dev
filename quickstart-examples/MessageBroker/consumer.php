@@ -1,11 +1,11 @@
 <?php
 
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\CommandHandler;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 require __DIR__ . "/vendor/autoload.php";

@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\Dbal\Fixture\ORM\Person;
 
 use Doctrine\ORM\Mapping as ORM;
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Header;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Modelling\WithEvents;
 use RuntimeException;
 

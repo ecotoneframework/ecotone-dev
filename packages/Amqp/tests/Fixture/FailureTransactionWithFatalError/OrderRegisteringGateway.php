@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Amqp\Fixture\FailureTransactionWithFatalError;
 
-use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\MessageGateway;
 
 /**
  * licence Apache-2.0

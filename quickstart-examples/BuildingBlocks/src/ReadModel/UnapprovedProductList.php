@@ -8,10 +8,10 @@ use App\Domain\Product\Event\ProductWasAdded;
 use App\Domain\Product\Event\ProductWasApproved;
 use App\Domain\Product\Product;
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Gateway\DocumentStore;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Reference;
+use Ecotone\Api\DocumentStore;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 
 /**
  * @link https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections

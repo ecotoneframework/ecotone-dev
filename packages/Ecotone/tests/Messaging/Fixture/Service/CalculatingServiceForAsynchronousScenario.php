@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Service;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\Before;
+use Ecotone\Api\CommandHandler;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 
 /**

@@ -3,11 +3,11 @@
 namespace App\OutboxPattern\Infrastructure;
 
 use App\OutboxPattern\Application\EventHandlerService;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ServiceContext;
+use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\PollingMetadata;
 
 class Configuration
 {

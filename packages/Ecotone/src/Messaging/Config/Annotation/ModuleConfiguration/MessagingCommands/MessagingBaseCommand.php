@@ -2,8 +2,8 @@
 
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands;
 
-use Ecotone\Api\Attribute\ConsoleParameterOption;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ConsoleParameterOption;
+use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 

@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting;
 
-use Ecotone\Api\Gateway\ProjectionRegistry;
+use Ecotone\Api\ProjectionRegistry;
 
 class ProjectionV2StateHandler
 {

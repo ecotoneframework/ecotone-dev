@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\SymfonyBundle\Messenger;
 
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\Assert;

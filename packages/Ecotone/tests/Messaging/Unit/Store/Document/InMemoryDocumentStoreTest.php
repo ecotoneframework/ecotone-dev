@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Store\Document;
 
-use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\DocumentStore;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use PHPUnit\Framework\TestCase;
 use stdClass;

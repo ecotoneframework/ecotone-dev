@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Header;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
 use PHPUnit\Framework\Attributes\DataProvider;

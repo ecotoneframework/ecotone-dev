@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver;
 
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\ErrorHandlerConfiguration;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceContext;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
 /**

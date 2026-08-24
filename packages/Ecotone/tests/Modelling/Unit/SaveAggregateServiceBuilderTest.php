@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\DocumentStore;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;

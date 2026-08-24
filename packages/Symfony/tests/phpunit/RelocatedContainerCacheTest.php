@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test;
 
-use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\QueryBus;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Messaging\Config\Container\Compiler\RegisterInterfaceToCallReferences;
 use Ecotone\Messaging\Config\Container\Compiler\ValidityCheckPass;

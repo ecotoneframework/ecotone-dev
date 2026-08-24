@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\EventNameFiltering;
 
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Converter;
 
 class Converters
 {

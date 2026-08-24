@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\QueryHandler;
 
-use Ecotone\Api\Attribute\TargetIdentifier;
+use Ecotone\Api\TargetIdentifier;
 
 /**
  * Class SomeResult

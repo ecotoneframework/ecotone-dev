@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\Renter;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 
 /**
  * licence Apache-2.0

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\SingleTenant;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\QueryBus;
-use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\Dbal\DeadLetterGateway;
+use Ecotone\Api\QueryBus;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;

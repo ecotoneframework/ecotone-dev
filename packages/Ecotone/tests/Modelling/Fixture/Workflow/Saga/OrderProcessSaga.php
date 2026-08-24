@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\Workflow\Saga;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\Header;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\Saga;
 use Ecotone\Modelling\WithEvents;
 use Test\Ecotone\Modelling\Fixture\Workflow\Saga\Command\TakePayment;
 use Test\Ecotone\Modelling\Fixture\Workflow\Saga\Event\OrderProcessSagaStarted;

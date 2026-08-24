@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
-use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\EcotoneClockInterface;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;

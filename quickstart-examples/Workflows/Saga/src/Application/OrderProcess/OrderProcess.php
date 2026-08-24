@@ -10,13 +10,13 @@ use App\Workflow\Saga\Application\OrderProcess\Event\OrderProcessWasStarted;
 use App\Workflow\Saga\Application\Payment\Command\TakePayment;
 use App\Workflow\Saga\Application\Payment\Event\PaymentFailed;
 use App\Workflow\Saga\Application\Payment\Event\PaymentWasSuccessful;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Endpoint\Delayed;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\Delayed;
 use Ecotone\Messaging\Scheduling\TimeSpan;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\Identifier;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\Identifier;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Saga;
 use Ecotone\Modelling\WithEvents;
 
 #[Saga]

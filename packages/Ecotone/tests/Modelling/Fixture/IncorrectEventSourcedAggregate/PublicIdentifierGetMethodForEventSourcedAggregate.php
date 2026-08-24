@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\IdentifierMethod;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\IdentifierMethod;
 use Ecotone\Modelling\WithEvents;
 use Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory\CreateNoIdDefinedAggregate;
 

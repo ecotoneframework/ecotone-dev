@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\IncorrectEventTypeReturned;
 
-use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingAggregate;
 
 #[EventSourcingAggregate]
 /**

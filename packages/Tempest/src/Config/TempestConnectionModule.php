@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Tempest\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\MultiTenantConfiguration;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\Tempest\TempestConnectionReference;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -17,7 +18,6 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Tempest\Api\ExtensionObject\TempestConnectionReference;
 use Interop\Queue\ConnectionFactory;
 
 #[ModuleAnnotation]

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Amqp\Configuration;
 
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
-use Ecotone\Amqp\Api\Attribute\RabbitConsumer;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Amqp\RabbitConsumer;
+use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;

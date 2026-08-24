@@ -83,8 +83,8 @@ class OrderProcess
 Chain handlers using `outputChannelName` and `#[InternalHandler]` for multi-step stateless processing:
 
 ```php
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\InternalHandler;
 
 final readonly class ImageProcessingWorkflow
 {
@@ -117,8 +117,8 @@ final readonly class ImageProcessingWorkflow
 Orchestrators define a routing slip -- an ordered list of steps to execute. Each step is an `#[InternalHandler]`. Requires Enterprise licence.
 
 ```php
-use Ecotone\Api\Attribute\Orchestrator;
-use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Orchestrator;
+use Ecotone\Api\InternalHandler;
 
 class AuthorizationOrchestrator
 {
@@ -144,7 +144,7 @@ class AuthorizationOrchestrator
 Provide a business interface for invoking orchestrators:
 
 ```php
-use Ecotone\Api\Attribute\OrchestratorGateway;
+use Ecotone\Api\OrchestratorGateway;
 
 interface AuthorizationProcess
 {

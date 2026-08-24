@@ -9,7 +9,7 @@ use Ecotone\AnnotationFinder\AnnotationResolver;
 use Ecotone\AnnotationFinder\ConfigurationException;
 use Ecotone\AnnotationFinder\FileSystem\AutoloadFileNamespaceParser;
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
-use Ecotone\Api\Attribute\Environment;
+use Ecotone\Api\Environment;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use ReflectionException;

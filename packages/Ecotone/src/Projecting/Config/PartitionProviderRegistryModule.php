@@ -8,9 +8,9 @@ declare(strict_types=1);
 namespace Ecotone\Projecting\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\Attribute\PartitionProvider as PartitionProviderAttribute;
-use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\PartitionProvider as PartitionProviderAttribute;
+use Ecotone\Api\ProjectionV2;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;

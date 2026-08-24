@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 
-use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\EcotoneClockInterface;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;
 use Ecotone\Messaging\Channel\ChannelInterceptor;

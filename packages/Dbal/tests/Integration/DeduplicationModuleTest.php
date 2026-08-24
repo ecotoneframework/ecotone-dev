@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -177,7 +177,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration::createWithDefaults()
+                    \Ecotone\Api\Dbal\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(true)
                         ->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
@@ -196,7 +196,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration::createWithDefaults()
+                    \Ecotone\Api\Dbal\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(true)
                         ->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
@@ -254,7 +254,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration::createWithDefaults()
+                    \Ecotone\Api\Dbal\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(false)
                         ->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
@@ -273,7 +273,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
                 ->withDefaultSerializationMediaType(MediaType::createApplicationJson())
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    \Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration::createWithDefaults()
+                    \Ecotone\Api\Dbal\DbalConfiguration::createWithDefaults()
                         ->withTransactionOnCommandBus(false)
                         ->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),

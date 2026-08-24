@@ -7,8 +7,8 @@ use App\Domain\Event\MoneyWasSubtractedFromWallet;
 use App\Domain\Wallet;
 use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\EventSourcing\EventStreamEmitter;
-use Ecotone\Api\Gateway\DocumentStore;
-use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\DocumentStore;
+use Ecotone\Api\EventHandler;
 
 #[Projection(self::PROJECTION_NAME, Wallet::class)]
 final class WalletBalanceProjection

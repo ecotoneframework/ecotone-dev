@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Lite\Test;
 
-use Ecotone\Api\Attribute\Converter;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Converter;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\Event;
 use PHPUnit\Framework\TestCase;

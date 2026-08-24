@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
-use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\ProjectingManager;
-use Ecotone\Api\Gateway\ProjectionRegistry;
+use Ecotone\Api\ProjectingManager;
+use Ecotone\Api\ProjectionRegistry;
+use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\PdoStreamTableNameProvider;

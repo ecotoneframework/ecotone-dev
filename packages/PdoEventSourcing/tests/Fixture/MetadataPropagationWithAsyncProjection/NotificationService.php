@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProjection;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 
 /**
  * licence Apache-2.0

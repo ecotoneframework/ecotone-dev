@@ -2,7 +2,7 @@
 
 namespace Ecotone\Dbal\Recoverability;
 
-use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Api\Dbal\DeadLetterGateway;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\MessageHeaders;

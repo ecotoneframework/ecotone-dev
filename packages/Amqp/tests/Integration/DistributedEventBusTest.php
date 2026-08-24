@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;

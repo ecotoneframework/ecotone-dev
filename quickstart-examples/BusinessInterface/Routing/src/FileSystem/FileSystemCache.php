@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\BusinessInterface\FileSystem;
 
 use App\BusinessInterface\CachedItem;
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 
 final readonly class FileSystemCache
 {

@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor;
 
-use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Before;
 
 /**
  * licence Apache-2.0

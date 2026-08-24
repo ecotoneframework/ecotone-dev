@@ -4,7 +4,7 @@ namespace Test\Ecotone\Modelling\Fixture\TwoSagas;
 
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStateStoredRepository;
 
-#[\Ecotone\Api\Attribute\Repository]
+#[\Ecotone\Api\Repository]
 /**
  * licence Apache-2.0
  */

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
@@ -26,7 +26,7 @@ final class AsynchronousGatewayTest extends TestCase
             [AsyncTicketCreator::class, TicketService::class],
             [new TicketService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
         /** @var AsyncTicketCreator $ticketCreator */
@@ -53,7 +53,7 @@ final class AsynchronousGatewayTest extends TestCase
             [AsyncTicketCreator::class, TicketService::class],
             [new TicketService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
         /** @var AsyncTicketCreator $ticketCreator */
@@ -78,7 +78,7 @@ final class AsynchronousGatewayTest extends TestCase
             [AsyncCommandBus::class, TicketService::class],
             [new TicketService()],
             licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
         /** @var AsyncCommandBus $commandBus */
@@ -101,7 +101,7 @@ final class AsynchronousGatewayTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [AsyncTicketCreator::class, TicketService::class],
             [new TicketService()],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
     }
 }

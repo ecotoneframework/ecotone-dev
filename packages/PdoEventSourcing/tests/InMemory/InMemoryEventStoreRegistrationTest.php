@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
-use Ecotone\Api\Attribute\Converter;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\Polling;
-use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\Api\Converter;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Polling;
+use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Modelling\Event;

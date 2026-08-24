@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample;
 
-use Ecotone\Api\Attribute\ErrorChannel;
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\ErrorChannel;
 
 /**
  * licence Enterprise

@@ -3,9 +3,9 @@
 namespace Monorepo\Benchmark;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;

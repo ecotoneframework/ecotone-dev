@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Fixture\User;
 
-use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ServiceContext;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 
 /**

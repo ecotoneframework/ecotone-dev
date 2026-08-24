@@ -3,8 +3,8 @@
 ## Accessing Single Header in Handler
 
 ```php
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Header;
+use Ecotone\Api\EventHandler;
 
 class NotificationService
 {
@@ -29,8 +29,8 @@ class NotificationService
 ## Accessing All Headers in Handler
 
 ```php
-use Ecotone\Api\Attribute\Parameter\Headers;
-use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Headers;
+use Ecotone\Api\CommandHandler;
 
 class AuditService
 {
@@ -48,8 +48,8 @@ class AuditService
 When the handler has two parameters (first = payload, second = array), the second is auto-resolved as headers:
 
 ```php
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventBus;
 
 class OrderService
 {
@@ -80,11 +80,11 @@ $queryBus->sendWithRouting('order.get', metadata: ['aggregate.id' => '123']);
 ## Declarative Header Enrichment
 
 ```php
-use Ecotone\Api\Attribute\Endpoint\AddHeader;
-use Ecotone\Api\Attribute\Endpoint\RemoveHeader;
-use Ecotone\Api\Attribute\Endpoint\Delayed;
-use Ecotone\Api\Attribute\Endpoint\Priority;
-use Ecotone\Api\Attribute\Endpoint\TimeToLive;
+use Ecotone\Api\AddHeader;
+use Ecotone\Api\RemoveHeader;
+use Ecotone\Api\Delayed;
+use Ecotone\Api\Priority;
+use Ecotone\Api\TimeToLive;
 
 // Static value
 #[AddHeader('source', 'api')]
@@ -118,9 +118,9 @@ public function process(): void { }
 ## Before Interceptor with `changeHeaders`
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Before;
-use Ecotone\Api\Attribute\Parameter\Headers;
-use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Before;
+use Ecotone\Api\Headers;
+use Ecotone\Api\CommandHandler;
 
 class MetadataEnricher
 {
@@ -143,7 +143,7 @@ class MetadataEnricher
 ## After Interceptor with `changeHeaders`
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\After;
+use Ecotone\Api\After;
 
 class NotificationTimestampEnricher
 {
@@ -158,7 +158,7 @@ class NotificationTimestampEnricher
 ## Presend Interceptor with `changeHeaders`
 
 ```php
-use Ecotone\Api\Attribute\Interceptor\Presend;
+use Ecotone\Api\Presend;
 
 class PaymentEnricher
 {
@@ -260,7 +260,7 @@ class OrderService
 ## Disabling Propagation
 
 ```php
-use Ecotone\Api\Attribute\PropagateHeaders;
+use Ecotone\Api\PropagateHeaders;
 
 interface OrderGateway
 {

@@ -4,9 +4,9 @@ namespace Test\Ecotone\JMSConverter\Unit;
 
 use ArrayObject;
 use DateTimeImmutable;
-use Ecotone\Api\Attribute\Converter;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration;
+use Ecotone\Api\Converter;
+use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverter;
 use Ecotone\Lite\EcotoneLite;

@@ -7,13 +7,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Projecting\BlueGreen;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\ProjectionName;
-use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Api\Attribute\Streaming;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ProjectionName;
+use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\Streaming;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\SymfonyBundle\Api\ExtensionObject\SymfonyMessengerMessageChannelBuilder;
 use Fixture\MessengerConsumer\AmqpExampleCommand;
 use Fixture\MessengerConsumer\AmqpMessengerAsyncCommandHandler;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;

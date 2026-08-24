@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Orchestrator;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\EventBus;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;

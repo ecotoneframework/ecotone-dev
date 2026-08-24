@@ -2,7 +2,7 @@
 
 namespace Monorepo\ExampleAppEventSourcing\Common\Event;
 
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Converter;
 
 class PriceWasChanged
 {

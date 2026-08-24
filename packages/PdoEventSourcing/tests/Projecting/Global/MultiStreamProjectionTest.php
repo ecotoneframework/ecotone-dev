@@ -7,17 +7,17 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\FromAggregateStream;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\Partitioned;
-use Ecotone\Api\Attribute\Polling;
-use Ecotone\Api\Attribute\ProjectionDelete;
-use Ecotone\Api\Attribute\ProjectionReset;
-use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\FromAggregateStream;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Partitioned;
+use Ecotone\Api\Polling;
+use Ecotone\Api\ProjectionDelete;
+use Ecotone\Api\ProjectionReset;
+use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Domain\Product;
 
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\Identifier;
 use Ramsey\Uuid\UuidInterface;
 
 #[Aggregate]

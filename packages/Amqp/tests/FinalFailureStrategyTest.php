@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp;
 
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\ServiceActivator;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Message;
@@ -34,7 +34,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    \Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
                         ->withFinalFailureStrategy(FinalFailureStrategy::IGNORE)
                         ->withReceiveTimeout(100),
@@ -59,7 +59,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    \Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RESEND)
                         ->withReceiveTimeout(100),
@@ -85,7 +85,7 @@ final class FinalFailureStrategyTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
-                    \Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    \Ecotone\Api\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     AmqpBackedMessageChannelBuilder::create(channelName: 'async')
                         ->withFinalFailureStrategy(FinalFailureStrategy::RELEASE)
                         ->withReceiveTimeout(100),

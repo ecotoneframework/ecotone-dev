@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\DataProtection\Fixture\PersistingSensitiveEvents;
 
-use Ecotone\DataProtection\Api\Attribute\Sensitive;
+use Ecotone\Api\DataProtection\Sensitive;
 use Test\Ecotone\DataProtection\Fixture\TestClass;
 use Test\Ecotone\DataProtection\Fixture\TestEnum;
 

@@ -2,7 +2,7 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
 use Ecotone\Messaging\Conversion\MediaType;
 
 /**

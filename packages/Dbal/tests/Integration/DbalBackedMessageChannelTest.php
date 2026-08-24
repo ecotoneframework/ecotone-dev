@@ -3,11 +3,11 @@
 namespace Test\Ecotone\Dbal\Integration;
 
 use Doctrine\DBAL\Exception\TableNotFoundException;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\EcotoneClockInterface;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Lite\EcotoneLite;

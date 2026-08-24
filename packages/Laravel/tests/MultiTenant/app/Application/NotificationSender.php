@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Application;
 
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Header;
+use Ecotone\Api\QueryHandler;
 
 /**
  * licence Apache-2.0

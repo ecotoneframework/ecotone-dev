@@ -2,8 +2,8 @@
 
 namespace App\Domain\Customer;
 
-use Ecotone\Api\Attribute\Interceptor\Around;
-use Ecotone\Api\Attribute\Parameter\Headers;
+use Ecotone\Api\Around;
+use Ecotone\Api\Headers;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 class IsOwnerVerificator

@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Amqp\Fixture\Order;
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\MessagingException;
 
 /**

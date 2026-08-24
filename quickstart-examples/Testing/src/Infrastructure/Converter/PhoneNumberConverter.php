@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Testing\Infrastructure\Converter;
 
 use App\Testing\Domain\User\PhoneNumber;
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Converter;
 
 final class PhoneNumberConverter
 {

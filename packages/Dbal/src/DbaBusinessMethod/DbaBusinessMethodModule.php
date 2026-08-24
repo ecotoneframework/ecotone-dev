@@ -6,11 +6,11 @@ namespace Ecotone\Dbal\DbaBusinessMethod;
 
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Api\Attribute\DbalParameter;
-use Ecotone\Dbal\Api\Attribute\DbalQuery;
-use Ecotone\Dbal\Api\Attribute\DbalWrite;
+use Ecotone\Api\Dbal\DbalParameter;
+use Ecotone\Api\Dbal\DbalQuery;
+use Ecotone\Api\Dbal\DbalWrite;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;

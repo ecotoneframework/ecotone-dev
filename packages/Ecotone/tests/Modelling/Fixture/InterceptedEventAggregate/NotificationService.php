@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptedEventAggregate;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceActivator;
 use Test\Ecotone\Modelling\Fixture\InterceptedCommandAggregate\EventWasLogged;
 
 /**

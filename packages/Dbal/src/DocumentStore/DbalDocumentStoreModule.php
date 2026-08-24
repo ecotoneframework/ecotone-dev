@@ -3,10 +3,10 @@
 namespace Ecotone\Dbal\DocumentStore;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\DocumentStore;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\DocumentStore;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;

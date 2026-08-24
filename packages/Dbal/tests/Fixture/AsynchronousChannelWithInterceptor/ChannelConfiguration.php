@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceContext;
 
 /**
  * licence Apache-2.0

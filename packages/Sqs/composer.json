@@ -38,6 +38,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\Sqs\\": "src/Api/",
             "Ecotone\\Sqs\\": "src"
         }
     },

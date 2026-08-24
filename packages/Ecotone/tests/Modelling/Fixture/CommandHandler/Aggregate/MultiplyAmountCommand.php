@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
 
-use Ecotone\Api\Attribute\TargetIdentifier;
-use Ecotone\Api\Attribute\TargetVersion;
+use Ecotone\Api\TargetIdentifier;
+use Ecotone\Api\TargetVersion;
 
 /**
  * Class MultiplyAmountCommand

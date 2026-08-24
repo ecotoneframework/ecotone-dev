@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\CommandEventFlow;
 
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\InternalHandler;
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\InternalHandler;
 
 final class MerchantSubscriberWithMetadata
 {

@@ -26,7 +26,7 @@
         "durable-workflows",
         "document-store"
     ],
-    "description": "Doctrine DBAL integration for Ecotone \u2014 database-backed message channel, outbox pattern, dead letter queue, durable saga state storage, and document store.",
+    "description": "Doctrine DBAL integration for Ecotone — database-backed message channel, outbox pattern, dead letter queue, durable saga state storage, and document store.",
     "repositories": [
         {
             "type": "path",
@@ -38,6 +38,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\Dbal\\": "src/Api/",
             "Ecotone\\Dbal\\": "src"
         }
     },

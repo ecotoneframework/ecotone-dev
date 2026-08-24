@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Integration;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\EventStore;

@@ -28,7 +28,7 @@
         "messaging",
         "eip"
     ],
-    "description": "Ecotone for Tempest \u2014 CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox via PHP attributes.",
+    "description": "Ecotone for Tempest — CQRS, Event Sourcing, Sagas, Durable Workflows, and Outbox via PHP attributes.",
     "repositories": [
         {
             "type": "path",
@@ -40,6 +40,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\Tempest\\": "src/Api/",
             "Ecotone\\Tempest\\": "src"
         }
     },

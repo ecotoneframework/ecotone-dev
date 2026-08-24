@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Service;
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 
 /**
  * Class StaticallyCalledService

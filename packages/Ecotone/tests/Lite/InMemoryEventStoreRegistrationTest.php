@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Lite;
 
-use Ecotone\Api\Attribute;
-use Ecotone\Api\Attribute\Converter;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\Polling;
-use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Converter;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Polling;
+use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\StreamSource as StreamSourceAttribute;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\StreamPage;
@@ -94,7 +94,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
             }
         };
 
-        $customStreamSource = new #[Attribute\StreamSource] class () implements StreamSource {
+        $customStreamSource = new #[StreamSourceAttribute] class () implements StreamSource {
             private array $events = [];
 
             public function append(Event ...$events): void

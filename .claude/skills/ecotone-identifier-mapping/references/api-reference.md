@@ -2,7 +2,7 @@
 
 ## `#[Identifier]`
 
-Source: `Ecotone\Api\Attribute\Identifier`
+Source: `Ecotone\Api\Identifier`
 
 Marks a property as the identity of an aggregate or saga. Multiple `#[Identifier]` properties create a composite identifier.
 
@@ -22,7 +22,7 @@ private string $orderId;
 
 ## `#[TargetIdentifier]`
 
-Source: `Ecotone\Api\Attribute\TargetIdentifier`
+Source: `Ecotone\Api\TargetIdentifier`
 
 Maps a command/event property to an aggregate/saga identifier when names differ.
 
@@ -39,7 +39,7 @@ class TargetIdentifier
 
 ## `#[IdentifierMethod]`
 
-Source: `Ecotone\Api\Attribute\IdentifierMethod`
+Source: `Ecotone\Api\IdentifierMethod`
 
 Declares a method that provides the value for a named identifier. Used when the identifier value must be computed or when the internal property name differs from the identifier name.
 

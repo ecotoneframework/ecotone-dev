@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\Async;
 
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\QueryHandler;
 use stdClass;
 
 /**

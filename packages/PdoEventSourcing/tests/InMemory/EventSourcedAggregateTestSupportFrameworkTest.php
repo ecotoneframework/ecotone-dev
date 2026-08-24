@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;

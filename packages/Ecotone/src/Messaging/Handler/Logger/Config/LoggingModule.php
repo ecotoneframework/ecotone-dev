@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Logger\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;

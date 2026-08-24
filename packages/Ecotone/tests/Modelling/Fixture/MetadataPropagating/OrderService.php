@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\Modelling\Fixture\MetadataPropagating;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventBus;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Messaging\Conversion\MediaType;
 
 use function end;

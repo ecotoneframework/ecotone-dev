@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
 use Doctrine\Common\Annotations\AnnotationException;
-use Ecotone\Api\Gateway\SerializerGateway;
+use Ecotone\Api\SerializerGateway;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\TypeDefinitionException;

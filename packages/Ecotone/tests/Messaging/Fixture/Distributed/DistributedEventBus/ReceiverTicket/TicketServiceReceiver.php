@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Distributed\DistributedEventBus\ReceiverTicket;
 
-use Ecotone\Api\Attribute\Distributed;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Distributed;
+use Ecotone\Api\EventBus;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\Header;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Messaging\Message;
 use RuntimeException;
 

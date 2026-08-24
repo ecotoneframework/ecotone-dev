@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Deduplication;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\Deduplicated;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Deduplicated;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;

@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver;
 
-use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ServiceContext;
 
 /**
  * licence Apache-2.0

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Outbound;
 
-use Ecotone\Kafka\Api\ExtensionObject\KafkaPublisherConfiguration;
-use Ecotone\Kafka\Api\KafkaHeader;
+use Ecotone\Api\Kafka\KafkaHeader;
+use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\FailedDelivery;

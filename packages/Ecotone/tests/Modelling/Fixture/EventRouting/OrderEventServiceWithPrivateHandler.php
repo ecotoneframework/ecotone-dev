@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\EventRouting;
 
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventBus;
+use Ecotone\Api\EventHandler;
 
 /**
  * licence Apache-2.0

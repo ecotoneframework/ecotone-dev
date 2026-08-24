@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies;
 
-use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\EventHandler;
 use Ecotone\EventSourcing\EventStreamEmitter;
 
 /**

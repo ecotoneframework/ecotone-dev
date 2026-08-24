@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator;
 
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Reference;
+use Ecotone\Api\ServiceActivator;
 use stdClass;
 
 /**

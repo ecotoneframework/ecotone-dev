@@ -25,8 +25,8 @@ When a command or event targets an existing aggregate or saga, Ecotone must reso
 Use `#[Identifier]` on the identity property of an aggregate or saga:
 
 ```php
-use Ecotone\Api\Attribute\Aggregate;
-use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Aggregate;
+use Ecotone\Api\Identifier;
 
 #[Aggregate]
 class Order
@@ -73,7 +73,7 @@ $commandBus->sendWithRouting('order.cancel', metadata: ['aggregate.id' => $order
 When the command/event property name differs from the aggregate/saga identifier:
 
 ```php
-use Ecotone\Api\Attribute\TargetIdentifier;
+use Ecotone\Api\TargetIdentifier;
 
 class OrderStarted
 {

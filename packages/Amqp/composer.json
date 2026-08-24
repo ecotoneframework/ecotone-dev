@@ -40,6 +40,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\Amqp\\": "src/Api/",
             "Ecotone\\Amqp\\": "src"
         }
     },

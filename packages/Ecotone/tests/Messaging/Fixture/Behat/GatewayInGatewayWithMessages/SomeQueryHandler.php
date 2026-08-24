@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\GatewayInGatewayWithMessages;
 
-use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\QueryHandler;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;

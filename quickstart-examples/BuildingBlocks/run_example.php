@@ -10,7 +10,7 @@ use App\Domain\OrderSaga\ProductReservationService;
 use App\Domain\Product\Command\CreateProduct;
 use Assert\Assert;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Money\Money;
 use Ramsey\Uuid\Uuid;

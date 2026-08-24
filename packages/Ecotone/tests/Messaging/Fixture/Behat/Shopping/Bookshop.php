@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\Shopping;
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ServiceActivator;
 
 /**
  * licence Apache-2.0

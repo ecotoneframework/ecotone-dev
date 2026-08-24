@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\SymfonyContainer;
 
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RequiresPhp;

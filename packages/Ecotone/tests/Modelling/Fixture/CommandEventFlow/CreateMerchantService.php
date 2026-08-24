@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\CommandEventFlow;
 
-use Ecotone\Api\Attribute\BusinessMethod;
-use Ecotone\Api\Attribute\Parameter\Headers;
+use Ecotone\Api\BusinessMethod;
+use Ecotone\Api\Headers;
 
 interface CreateMerchantService
 {

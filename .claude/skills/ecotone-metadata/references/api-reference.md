@@ -2,7 +2,7 @@
 
 ## `#[Header]`
 
-Source: `Ecotone\Api\Attribute\Parameter\Header`
+Source: `Ecotone\Api\Header`
 
 Extracts a single header from message metadata and injects it into a handler parameter.
 
@@ -24,7 +24,7 @@ class Header
 
 ## `#[Headers]`
 
-Source: `Ecotone\Api\Attribute\Parameter\Headers`
+Source: `Ecotone\Api\Headers`
 
 Injects all message metadata as an associative array into a handler parameter.
 
@@ -39,7 +39,7 @@ No constructor parameters.
 
 ## `#[AddHeader]`
 
-Source: `Ecotone\Api\Attribute\Endpoint\AddHeader`
+Source: `Ecotone\Api\AddHeader`
 
 Declaratively adds a header to the message metadata. Applied on handler methods or classes.
 
@@ -62,7 +62,7 @@ Either `$value` or `$expression` must be provided, not both.
 
 ## `#[RemoveHeader]`
 
-Source: `Ecotone\Api\Attribute\Endpoint\RemoveHeader`
+Source: `Ecotone\Api\RemoveHeader`
 
 Declaratively removes a header from the message metadata.
 
@@ -79,7 +79,7 @@ class RemoveHeader
 
 ## `#[PropagateHeaders]`
 
-Source: `Ecotone\Api\Attribute\PropagateHeaders`
+Source: `Ecotone\Api\PropagateHeaders`
 
 Controls whether userland headers propagate from the current message to downstream messages. Applied on gateway methods.
 

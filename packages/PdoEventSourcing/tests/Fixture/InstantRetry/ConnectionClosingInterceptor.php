@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\InstantRetry;
 
-use Ecotone\Api\Attribute\Interceptor\Around;
-use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Around;
+use Ecotone\Api\Reference;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
@@ -31,7 +31,7 @@ final class ConnectionClosingInterceptor
         $this->closeOnCall = $closeOnCall;
     }
 
-    #[Around(pointcut: \Ecotone\Api\Gateway\CommandBus::class)]
+    #[Around(pointcut: \Ecotone\Api\CommandBus::class)]
     public function closeAfter(
         MethodInvocation $methodInvocation,
         Message $message,

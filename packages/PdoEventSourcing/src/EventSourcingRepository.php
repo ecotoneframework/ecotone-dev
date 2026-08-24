@@ -2,8 +2,8 @@
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\Api\Gateway\DocumentStore;
-use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\Api\DocumentStore;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;

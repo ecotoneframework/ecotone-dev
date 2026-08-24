@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\Saga;
 
-use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Before;
 
 final class BeforeFinishOrder
 {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Application;
 
-use Ecotone\Api\Gateway\CommandBus;
-use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\Api\CommandBus;
+use Ecotone\Api\QueryBus;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\Fixture\User\User;
 use Test\Ecotone\Tempest\Fixture\User\UserRepository;

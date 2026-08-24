@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Fixture\DocumentStoreAggregate;
 
-use Ecotone\Api\Attribute\MediaTypeConverter;
+use Ecotone\Api\MediaTypeConverter;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;

@@ -8,8 +8,8 @@ use App\ReactiveSystem\Stage_3\Domain\Order\Event\OrderWasPlaced;
 use App\ReactiveSystem\Stage_3\Domain\Order\OrderRepository;
 use App\ReactiveSystem\Stage_3\Domain\User\UserRepository;
 use App\ReactiveSystem\Stage_3\Infrastructure\Messaging\MessageChannelConfiguration;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\EventHandler;
 
 final class NotificationSubscriber
 {

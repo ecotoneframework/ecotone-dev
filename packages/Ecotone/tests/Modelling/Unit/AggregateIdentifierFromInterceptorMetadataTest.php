@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Test\Ecotone\Messaging\BaseEcotoneTestCase;
 use Test\Ecotone\Modelling\Fixture\Saga\AsynchronousOrderFulfilment;

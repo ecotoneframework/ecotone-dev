@@ -2,9 +2,9 @@
 
 namespace Ecotone\Modelling\AggregateFlow\CallAggregate;
 
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingSaga;
-use Ecotone\Api\Attribute\Version;
+use Ecotone\Api\EventSourcingAggregate;
+use Ecotone\Api\EventSourcingSaga;
+use Ecotone\Api\Version;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;

@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Store\Document;
 
-use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\DocumentStore;
 
 use function json_decode;
 

@@ -2,8 +2,8 @@
 
 namespace Ecotone\JMSConverter\Configuration;
 
-use Ecotone\Api\Attribute\ServiceContext;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ServiceContext;
 use Ecotone\Messaging\Conversion\MediaType;
 
 /**

@@ -28,7 +28,7 @@
         "mysql",
         "pdo"
     ],
-    "description": "PDO-backed Event Store for Ecotone \u2014 event-sourced aggregates, event-sourced sagas (durable workflows), projections, upcasting, and streaming projections (Kafka, RabbitMQ) on PostgreSQL or MySQL.",
+    "description": "PDO-backed Event Store for Ecotone — event-sourced aggregates, event-sourced sagas (durable workflows), projections, upcasting, and streaming projections (Kafka, RabbitMQ) on PostgreSQL or MySQL.",
     "repositories": [
         {
             "type": "path",
@@ -40,6 +40,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\EventSourcing\\": "src/Api/",
             "Ecotone\\EventSourcing\\": "src"
         }
     },

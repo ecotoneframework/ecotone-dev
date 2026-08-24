@@ -15,7 +15,7 @@
             "email": "support@simplycodedsoftware.com"
         },
         {
-            "name": "Piotr Zaj\u0105c",
+            "name": "Piotr Zając",
             "email": "piotr.zajac@unixslayer.pl",
             "homepage": "http://unixslayer.pl"
         }
@@ -40,6 +40,7 @@
     ],
     "autoload": {
         "psr-4": {
+            "Ecotone\\Api\\Redis\\": "src/Api/",
             "Ecotone\\Redis\\": "src"
         }
     },

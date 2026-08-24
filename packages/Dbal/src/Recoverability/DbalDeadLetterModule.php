@@ -3,11 +3,11 @@
 namespace Ecotone\Dbal\Recoverability;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
-use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\DeadLetterGateway;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DeadLetterTableManager;

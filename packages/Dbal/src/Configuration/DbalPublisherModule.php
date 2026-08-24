@@ -3,12 +3,12 @@
 namespace Ecotone\Dbal\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\Gateway\MessagePublisher;
-use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
-use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
-use Ecotone\Dbal\Api\ExtensionObject\DbalMessagePublisherConfiguration;
+use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\DbalMessagePublisherConfiguration;
+use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;

@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\JMSConverter\Fixture\Configuration\ClassToClass;
 
-use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Converter;
 use stdClass;
 
 /**

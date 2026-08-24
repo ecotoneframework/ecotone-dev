@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Console;
 
-use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\ConsoleCommand;
 use Ecotone\Messaging\Config\ConsoleCommandConfiguration;
 use PHPUnit\Framework\TestCase;
 

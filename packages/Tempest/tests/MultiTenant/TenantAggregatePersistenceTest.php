@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\MultiTenant;
 
-use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\CommandBus;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;

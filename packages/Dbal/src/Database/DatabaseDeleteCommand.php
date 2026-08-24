@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Database;
 
-use Ecotone\Api\Attribute\ConsoleCommand;
-use Ecotone\Api\Attribute\ConsoleParameterOption;
-use Ecotone\Dbal\Api\Gateway\DatabaseSetupManager;
+use Ecotone\Api\ConsoleCommand;
+use Ecotone\Api\ConsoleParameterOption;
+use Ecotone\Api\Dbal\DatabaseSetupManager;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
 /**

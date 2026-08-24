@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
-use Ecotone\Dbal\Api\Attribute\DbalParameter;
-use Ecotone\Dbal\Api\Attribute\DbalWrite;
+use Ecotone\Api\Dbal\DbalParameter;
+use Ecotone\Api\Dbal\DbalWrite;
 use Ecotone\Messaging\Conversion\MediaType;
 
 #[DbalParameter(name: 'roles', expression: "name === 'Johny' ? ['ROLE_ADMIN'] : []", convertToMediaType: MediaType::APPLICATION_JSON)]

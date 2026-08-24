@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
-use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Api\EcotoneClockInterface;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadConverter;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadExpressionConverter;
 use Ecotone\Messaging\Handler\MethodArgument;

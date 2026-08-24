@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
-use Ecotone\Api\ExtensionObject\PollingMetadata;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Redis\Api\ExtensionObject\RedisBackedMessageChannelBuilder;
 use Ecotone\Test\StubLogger;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisDestination;

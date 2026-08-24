@@ -2,7 +2,7 @@
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate;
 
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\EventBus;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;

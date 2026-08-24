@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\BusinessInterface;
 
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\Router;
+use Ecotone\Api\Header;
+use Ecotone\Api\Router;
 
 final readonly class CachingRouter
 {

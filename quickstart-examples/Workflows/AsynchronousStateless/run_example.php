@@ -1,7 +1,7 @@
 <?php
 
 use App\Workflow\Application\ProcessImage;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExecutionPollingMetadata;
 
 require __DIR__ . '/vendor/autoload.php';
 require __DIR__ . "/../boostrap.php";

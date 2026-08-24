@@ -5,19 +5,20 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\Attribute;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\FromAggregateStream;
-use Ecotone\Api\Attribute\FromStream;
-use Ecotone\Api\Attribute\Partitioned;
-use Ecotone\Api\Attribute\ProjectionDelete;
-use Ecotone\Api\Attribute\ProjectionInitialization;
-use Ecotone\Api\Attribute\ProjectionReset;
-use Ecotone\Api\Attribute\ProjectionV2;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\ExtensionObject\ServiceConfiguration;
-use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
-use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromAggregateStream;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Partitioned;
+use Ecotone\Api\PartitionProvider as PartitionProviderAttribute;
+use Ecotone\Api\ProjectionBackfill;
+use Ecotone\Api\ProjectionDelete;
+use Ecotone\Api\ProjectionInitialization;
+use Ecotone\Api\ProjectionReset;
+use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\TestConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -321,7 +322,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
     public function test_userland_partition_provider_is_prioritized_over_builtin_during_backfill(): void
     {
-        $userlandPartitionProvider = new #[Attribute\PartitionProvider] class () implements PartitionProvider {
+        $userlandPartitionProvider = new #[PartitionProviderAttribute] class () implements PartitionProvider {
             public function canHandle(string $projectionName): bool
             {
                 return $projectionName === 'userland_backfill_projection';
@@ -342,7 +343,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             }
         };
 
-        $projection = new #[ProjectionV2('userland_backfill_projection'), FromAggregateStream(Ticket::class), Partitioned, Attribute\ProjectionBackfill(backfillPartitionBatchSize: 3, asyncChannelName: 'backfill_channel')] class {
+        $projection = new #[ProjectionV2('userland_backfill_projection'), FromAggregateStream(Ticket::class), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 3, asyncChannelName: 'backfill_channel')] class {
             #[EventHandler]
             public function handle(TicketWasRegistered $event): void
             {

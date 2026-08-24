@@ -10,15 +10,15 @@ use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
-use Ecotone\Dbal\Api\Attribute\MultiTenantObjectManager;
+use Ecotone\Api\Dbal\MultiTenantObjectManager;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\Attribute\Parameter\Header;
-use Ecotone\Api\Attribute\Parameter\Reference;
-use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventHandler;
-use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Asynchronous;
+use Ecotone\Api\Header;
+use Ecotone\Api\Reference;
+use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EventHandler;
+use Ecotone\Api\QueryHandler;
+use Ecotone\Api\EventBus;
 use Illuminate\Support\Facades\DB;
 
 final readonly class CustomerService

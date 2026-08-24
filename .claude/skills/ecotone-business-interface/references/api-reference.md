@@ -1,12 +1,12 @@
 # Business Interface API Reference
 
-## DbalQueryBusinessMethod Attribute
+## DbalQuery Attribute
 
-Source: `Ecotone\Dbal\Attribute\DbalQueryBusinessMethod`
+Source: `Ecotone\Dbal\Api\Attribute\DbalQuery`
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]
-class DbalQueryBusinessMethod
+class DbalQuery
 {
     public function __construct(
         public readonly string $sql = '',
@@ -16,13 +16,13 @@ class DbalQueryBusinessMethod
 }
 ```
 
-## DbalWriteBusinessMethod Attribute
+## DbalWrite Attribute
 
-Source: `Ecotone\Dbal\Attribute\DbalWriteBusinessMethod`
+Source: `Ecotone\Dbal\Api\Attribute\DbalWrite`
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]
-class DbalWriteBusinessMethod
+class DbalWrite
 {
     public function __construct(
         public readonly string $sql = '',

@@ -5,31 +5,31 @@
 ### Basic Queries with Different FetchModes
 
 ```php
-use Ecotone\Dbal\Attribute\DbalQueryBusinessMethod;
+use Ecotone\Dbal\Api\Attribute\DbalQuery;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 
 interface ProductRepository
 {
     // Returns array of associative arrays
-    #[DbalQueryBusinessMethod('SELECT * FROM products')]
+    #[DbalQuery('SELECT * FROM products')]
     public function findAll(): array;
 
     // Returns single row or null
-    #[DbalQueryBusinessMethod(
+    #[DbalQuery(
         'SELECT * FROM products WHERE id = :productId',
         fetchMode: FetchMode::FIRST_ROW
     )]
     public function findById(string $productId): ?array;
 
     // Returns scalar value
-    #[DbalQueryBusinessMethod(
+    #[DbalQuery(
         'SELECT COUNT(*) FROM products WHERE category = :category',
         fetchMode: FetchMode::FIRST_COLUMN_OF_FIRST_ROW
     )]
     public function countByCategory(string $category): int;
 
     // Returns array of single column values
-    #[DbalQueryBusinessMethod(
+    #[DbalQuery(
         'SELECT name FROM products WHERE active = :active',
         fetchMode: FetchMode::FIRST_COLUMN
     )]
@@ -40,21 +40,21 @@ interface ProductRepository
 ### Write Operations
 
 ```php
-use Ecotone\Dbal\Attribute\DbalWriteBusinessMethod;
+use Ecotone\Dbal\Api\Attribute\DbalWrite;
 
 interface ProductWriter
 {
-    #[DbalWriteBusinessMethod(
+    #[DbalWrite(
         'INSERT INTO products (id, name, price, category) VALUES (:id, :name, :price, :category)'
     )]
     public function insert(string $id, string $name, int $price, string $category): void;
 
-    #[DbalWriteBusinessMethod(
+    #[DbalWrite(
         'UPDATE products SET price = :price WHERE id = :id'
     )]
     public function updatePrice(string $id, int $price): void;
 
-    #[DbalWriteBusinessMethod(
+    #[DbalWrite(
         'DELETE FROM products WHERE id = :id'
     )]
     public function delete(string $id): void;
@@ -68,17 +68,17 @@ use Ecotone\Dbal\Api\Attribute\DbalParameter;
 
 interface AdvancedQueries
 {
-    #[DbalQueryBusinessMethod('SELECT * FROM events WHERE tags @> :tags')]
+    #[DbalQuery('SELECT * FROM events WHERE tags @> :tags')]
     public function findByTags(
         #[DbalParameter(type: 'json')] array $tags
     ): array;
 
-    #[DbalQueryBusinessMethod('SELECT * FROM orders WHERE created_at > :since')]
+    #[DbalQuery('SELECT * FROM orders WHERE created_at > :since')]
     public function findRecent(
         #[DbalParameter(type: 'datetime')] \DateTimeInterface $since
     ): array;
 
-    #[DbalQueryBusinessMethod('SELECT * FROM items WHERE id = ANY(:ids)')]
+    #[DbalQuery('SELECT * FROM items WHERE id = ANY(:ids)')]
     public function findByIds(
         #[DbalParameter(type: 'json')] array $ids
     ): array;
@@ -90,7 +90,7 @@ interface AdvancedQueries
 ```php
 interface OrderQueries
 {
-    #[DbalQueryBusinessMethod('SELECT * FROM orders WHERE user_id = :userId')]
+    #[DbalQuery('SELECT * FROM orders WHERE user_id = :userId')]
     public function findForUser(
         #[DbalParameter(expression: "headers['userId']")] string $userId
     ): array;
@@ -102,7 +102,7 @@ interface OrderQueries
 ```php
 interface SecondaryDbQueries
 {
-    #[DbalQueryBusinessMethod(
+    #[DbalQuery(
         'SELECT * FROM legacy_orders',
         connectionReferenceName: 'secondary_connection'
     )]

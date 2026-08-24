@@ -280,7 +280,7 @@ class TicketWasRegistered
 Upcasters transform old event versions to the current schema:
 
 ```php
-use Ecotone\Modelling\Attribute\EventRevision;
+use Ecotone\Api\Attribute\Revision;
 
 class PersonWasRegisteredUpcaster
 {

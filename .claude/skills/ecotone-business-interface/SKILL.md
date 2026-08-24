@@ -17,22 +17,22 @@ Business interfaces let you declare PHP interfaces that Ecotone auto-implements 
 ## 1. DBAL Query Interface
 
 ```php
-use Ecotone\Dbal\Attribute\DbalQueryBusinessMethod;
-use Ecotone\Dbal\Attribute\DbalWriteBusinessMethod;
+use Ecotone\Dbal\Api\Attribute\DbalQuery;
+use Ecotone\Dbal\Api\Attribute\DbalWrite;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 
 interface OrderRepository
 {
-    #[DbalQueryBusinessMethod('SELECT * FROM orders WHERE order_id = :orderId')]
+    #[DbalQuery('SELECT * FROM orders WHERE order_id = :orderId')]
     public function findById(string $orderId): ?array;
 
-    #[DbalQueryBusinessMethod(
+    #[DbalQuery(
         'SELECT * FROM orders WHERE status = :status',
         fetchMode: FetchMode::ASSOCIATIVE
     )]
     public function findByStatus(string $status): array;
 
-    #[DbalWriteBusinessMethod('INSERT INTO orders (order_id, product, status) VALUES (:orderId, :product, :status)')]
+    #[DbalWrite('INSERT INTO orders (order_id, product, status) VALUES (:orderId, :product, :status)')]
     public function save(string $orderId, string $product, string $status): void;
 }
 ```
@@ -167,7 +167,7 @@ interface CustomOrderRepository
 
 ## Additional resources
 
-- [API reference](references/api-reference.md) -- Attribute constructor signatures and parameter lists for `DbalQueryBusinessMethod`, `DbalWriteBusinessMethod`, `DbalParameter`, `BusinessMethod`/`MessageGateway`, `FetchMode` constants, and `MediaType` constants. Load when you need exact constructor parameters, types, or defaults.
+- [API reference](references/api-reference.md) -- Attribute constructor signatures and parameter lists for `DbalQuery`, `DbalWrite`, `DbalParameter`, `BusinessMethod`/`MessageGateway`, `FetchMode` constants, and `MediaType` constants. Load when you need exact constructor parameters, types, or defaults.
 
 - [Usage examples](references/usage-examples.md) -- Complete, runnable code examples for all business interface patterns: advanced DBAL queries with parameter type conversion and expressions, write operations, JSON converters, BusinessMethod with headers and routing, cross-aggregate injection with `#[Reference]`, custom connection references. Load when you need full class implementations or advanced variations beyond the basic patterns above.
 

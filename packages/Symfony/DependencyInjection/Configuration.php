@@ -79,6 +79,7 @@ class Configuration implements ConfigurationInterface
                     ->end()
 
                     ->arrayNode('modulePackages')
+                        ->defaultNull()
                         ->scalarPrototype()
                     ->end()
                 ->end()

@@ -106,9 +106,10 @@ public function test_async_handler(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [NotificationHandler::class],
         containerOrAvailableServices: [new NotificationHandler()],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
+            ]),
     );
 
     $ecotone->sendCommand(new SendNotification('hello'));
@@ -146,7 +147,7 @@ public function test_with_service_dependency(): void
 |---------|-------|-----|
 | "No handler found for message" | Handler class not in `classesToResolve` | Add class to first argument |
 | "Service not found in container" | Missing dependency | Add to `containerOrAvailableServices` |
-| "Channel not found" | Async channel not configured | Add channel to `enableAsynchronousProcessing` |
+| "Channel not found" | Async channel not configured | Register the channel via `ServiceConfiguration::withExtensionObjects([SimpleMessageChannelBuilder::createQueueChannel('async')])` |
 | Message not processed | Async handler not run | Call `$ecotone->run('channelName')` |
 | "Module not found" | Wrong `ModulePackageList` config | Check `allPackagesExcept()` includes needed modules |
 | Database errors | Missing DSN env vars | Run inside Docker container with env vars set |

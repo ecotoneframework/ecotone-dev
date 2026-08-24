@@ -18,7 +18,7 @@ final class EcotoneConfig
         public bool $cacheConfiguration = false,
         public string $defaultSerializationMediaType = '',
         public string $defaultErrorChannel = '',
-        public array $modulePackages = [],
+        public ?array $modulePackages = null,
         public bool $test = false,
         public string $licenceKey = '',
     ) {

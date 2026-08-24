@@ -126,9 +126,10 @@ public function test_add_and_remove_headers(): void
     $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
         [AddingMultipleHeaders::class],
         [AddingMultipleHeaders::class => new AddingMultipleHeaders()],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async'),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]),
         testConfiguration: TestConfiguration::createWithDefaults()
             ->withSpyOnChannel('async')
     );
@@ -159,7 +160,7 @@ public function test_metadata_propagates_to_async_handlers(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [OrderService::class],
         containerOrAvailableServices: [new OrderService()],
-        configuration: ServiceConfiguration::createWithAsynchronicityOnly()
+        configuration: ServiceConfiguration::createWithDefaults()
             ->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('orders'),
             ])
@@ -170,7 +171,7 @@ public function test_metadata_propagates_to_async_handlers(): void
         metadata: ['userId' => '123']
     );
 
-    $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(2));
+    $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
     $notifications = $ecotone->sendQueryWithRouting('getAllNotificationHeaders');
 
     $this->assertCount(2, $notifications);

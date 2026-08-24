@@ -16,7 +16,6 @@ public static function bootstrapFlowTesting(
     bool                     $allowGatewaysToBeRegisteredInContainer = false,
     bool                     $addInMemoryStateStoredRepository = true,
     bool                     $addInMemoryEventSourcedRepository = true,
-    array|bool|null          $enableAsynchronousProcessing = null,
     ?TestConfiguration       $testConfiguration = null,
     ?string                  $licenceKey = null
 ): FlowTestSupport
@@ -36,7 +35,6 @@ public static function bootstrapFlowTestingWithEventStore(
     bool                     $allowGatewaysToBeRegisteredInContainer = false,
     bool                     $addInMemoryStateStoredRepository = true,
     bool                     $runForProductionEventStore = false,
-    array|bool|null          $enableAsynchronousProcessing = null,
     ?TestConfiguration       $testConfiguration = null,
     ?string                  $licenceKey = null,
 ): FlowTestSupport

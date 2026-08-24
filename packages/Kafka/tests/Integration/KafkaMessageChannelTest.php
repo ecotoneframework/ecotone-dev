@@ -19,6 +19,7 @@ use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
@@ -287,13 +288,13 @@ final class KafkaMessageChannelTest extends TestCase
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 4000));
         $this->assertEquals(
             [$messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 4000));
         $this->assertEquals(
             [$messagePayload, $messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')
@@ -318,6 +319,7 @@ final class KafkaMessageChannelTest extends TestCase
                         topicName: ($topicName = $topicName ?: Uuid::v7()->toRfc4122()),
                         messageGroupId: $topicName
                     ),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

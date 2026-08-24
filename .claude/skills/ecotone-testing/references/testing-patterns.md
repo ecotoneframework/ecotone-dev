@@ -22,9 +22,10 @@ public function test_async_event_processing(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
+            ]),
     );
 
     $ecotone->publishEvent(new OrderWasPlaced('order-1'));
@@ -80,12 +81,10 @@ public function test_with_dbal_module(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [MyProjection::class],
         configuration: ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(
-                ModulePackageList::allPackagesExcept([
-                    ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,
-                ])
-            ),
+            ->withModulePackages([
+                ModulePackageList::DBAL_PACKAGE,
+                ModulePackageList::EVENT_SOURCING_PACKAGE,
+            ]),
     );
 }
 ```
@@ -96,7 +95,7 @@ public function test_with_dbal_module(): void
 |---------|-------|-----|
 | "No handler found for message" | Handler class not in `classesToResolve` | Add class to first argument |
 | "Service not found in container" | Missing dependency | Add to `containerOrAvailableServices` |
-| "Channel not found" | Async channel not configured | Add channel to `enableAsynchronousProcessing` |
+| "Channel not found" | Async channel not configured | Register the channel via `ServiceConfiguration::withExtensionObjects([SimpleMessageChannelBuilder::createQueueChannel('async')])` |
 | Message not processed | Async handler not run | Call `$ecotone->run('channelName')` |
 | "Module not found" | Wrong `ModulePackageList` config | Check `allPackagesExcept()` includes needed modules |
 | Database errors | Missing DSN env vars | Run inside Docker container with env vars set |

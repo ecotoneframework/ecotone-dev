@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Kafka\Integration;
 
 use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterBuilder;
 use Ecotone\Dbal\Recoverability\DeadLetterGateway;
 use Ecotone\Kafka\Api\KafkaHeader;
@@ -29,8 +30,8 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -139,6 +140,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults(Uuid::v7()->toRfc4122()),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -163,6 +165,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName = Uuid::v7()->toRfc4122()),
                     TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -185,6 +188,7 @@ final class KafkaChannelAdapterTest extends TestCase
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),
                     TopicConfiguration::createWithReferenceName('testTopicFailure', $topicName),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -218,6 +222,7 @@ final class KafkaChannelAdapterTest extends TestCase
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),
                     TopicConfiguration::createWithReferenceName('testTopicRetry', $topicName),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -256,6 +261,7 @@ final class KafkaChannelAdapterTest extends TestCase
                         ->withHeaderMapper('*'),
                     TopicConfiguration::createWithReferenceName('testTopicError', $topicName),
                     SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -298,6 +304,7 @@ final class KafkaChannelAdapterTest extends TestCase
                                 TopicConfiguration::createWithReferenceName('testTopicFailure', $topicName),
                                 KafkaConsumerConfiguration::createWithDefaults($consumerReferenceName),
                                 SimpleMessageChannelBuilder::createQueueChannel('customErrorChannel'),
+                                InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                             ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -363,6 +370,7 @@ final class KafkaChannelAdapterTest extends TestCase
                     KafkaConsumerConfiguration::createWithDefaults($consumerReferenceName),
                     DbalConfiguration::createWithDefaults()
                         ->withAutomaticTableInitialization(true),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
             pathToRootCatalog: __DIR__ . '/../../',
@@ -438,6 +446,7 @@ final class KafkaChannelAdapterTest extends TestCase
                     KafkaConsumerConfiguration::createWithDefaults('replayable_kafka_consumer'),
                     DbalConfiguration::createWithDefaults()
                         ->withAutomaticTableInitialization(true),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
             pathToRootCatalog: __DIR__ . '/../../',
@@ -490,6 +499,7 @@ final class KafkaChannelAdapterTest extends TestCase
                     KafkaPublisherConfiguration::createWithDefaults($topicName, MessagePublisher::class, KafkaBrokerConfiguration::class, MediaType::APPLICATION_JSON),
                     TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
                     KafkaConsumerConfiguration::createWithDefaults('exampleConsumer'),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -538,6 +548,7 @@ final class KafkaChannelAdapterTest extends TestCase
                         )->maxRetryAttempts(2), // Maximum 2 delayed retry attempts
                         deadLetterChannel: 'dbal_dead_letter'
                     ),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -586,6 +597,7 @@ final class KafkaChannelAdapterTest extends TestCase
                     KafkaPublisherConfiguration::createWithDefaults($topicName),
                     TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
                     KafkaConsumerConfiguration::createWithDefaults('exampleConsumer'),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -619,6 +631,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName),
                     TopicConfiguration::createWithReferenceName('exampleTopic', $topicName),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -668,6 +681,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     TopicConfiguration::createWithReferenceName('orders', $topicName),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -692,6 +706,7 @@ final class KafkaChannelAdapterTest extends TestCase
                 ->withModulePackages([ModulePackageList::KAFKA_PACKAGE])
                 ->withExtensionObjects([
                     KafkaPublisherConfiguration::createWithDefaults($topicName),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

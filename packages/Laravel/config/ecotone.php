@@ -97,8 +97,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | A list of Ecotone module packages to load (e.g. ModulePackageList::DBAL_PACKAGE).
-    | Leave this key absent or empty to load every installed module package.
-    | Uncomment and provide an explicit list to load only the packages you name.
+    | Leave this key absent to load every installed module package.
+    | Uncomment and provide an explicit list to load only the packages you name;
+    | an empty list loads Core alone.
     |
     */
     // 'modulePackages' => [],

@@ -35,7 +35,7 @@ class EcotoneExtension extends Extension
         $config = $this->processConfiguration($configuration, $configs);
         $config = $container->resolveEnvPlaceholders($config, true);
 
-        $modulePackages = $config['modulePackages'] ?? [];
+        $modulePackages = $config['modulePackages'] ?? null;
 
         $serviceConfiguration = ServiceConfiguration::createWithDefaults()
             ->withEnvironment($container->getParameter('kernel.environment'))
@@ -44,7 +44,7 @@ class EcotoneExtension extends Extension
             ->withNamespaces($config['namespaces'])
         ;
 
-        if ($modulePackages !== []) {
+        if ($modulePackages !== null) {
             $serviceConfiguration = $serviceConfiguration->withModulePackages($modulePackages);
         }
 

@@ -90,9 +90,10 @@ public function test_saga_retries_payment_after_delay(): void
             OrderService::class => new StubOrderService(Money::EUR(100)),
             PaymentService::class => new PaymentService(new FailingPaymentProcessor())
         ],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true),
+            ]),
     );
 
     $ecotone
@@ -115,9 +116,10 @@ public function test_saga_triggers_command_via_output_channel(): void
             OrderService::class => new StubOrderService(Money::EUR(100)),
             PaymentService::class => new PaymentService(new PaymentProcessor())
         ],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async'),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]),
     );
 
     $this->assertEquals(
@@ -136,9 +138,10 @@ public function test_saga_triggers_command_via_output_channel(): void
 $ecotone = EcotoneLite::bootstrapFlowTesting(
     [OrderProcess::class, PaymentService::class],
     [PaymentService::class => new PaymentService(new FailingProcessor())],
-    enableAsynchronousProcessing: [
-        SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true),
-    ],
+    configuration: ServiceConfiguration::createWithDefaults()
+        ->withExtensionObjects([
+            SimpleMessageChannelBuilder::createQueueChannel('async', delayable: true),
+        ]),
 );
 
 $ecotone
@@ -178,9 +181,10 @@ public function test_async_workflow(): void
             ImageResizer::class => new ImageResizer(),
             ImageUploader::class => $uploader = new InMemoryImageUploader(),
         ],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async'),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ]),
     );
 
     $ecotone
@@ -224,7 +228,7 @@ public function test_orchestrator_executes_steps_in_order(): void
         [AuthorizationOrchestrator::class],
         [$orchestrator = new AuthorizationOrchestrator()],
         ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
+            ->withModulePackages([ModulePackageList::CORE_PACKAGE])
             ->withLicenceKey(LicenceTesting::VALID_LICENCE),
     );
 
@@ -243,7 +247,7 @@ public function test_orchestrator_via_business_interface(): void
         [AuthorizationOrchestrator::class, AuthorizationProcess::class],
         [new AuthorizationOrchestrator()],
         ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::CORE_PACKAGE]))
+            ->withModulePackages([ModulePackageList::CORE_PACKAGE])
             ->withLicenceKey(LicenceTesting::VALID_LICENCE),
     );
 
@@ -266,14 +270,11 @@ public function test_async_orchestrator(): void
         [AsyncWorkflow::class],
         [$service = new AsyncWorkflow()],
         ServiceConfiguration::createWithDefaults()
-            ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([
-                ModulePackageList::CORE_PACKAGE,
-                ModulePackageList::ASYNCHRONOUS_PACKAGE,
-            ]))
+            ->withModulePackages([ModulePackageList::CORE_PACKAGE])
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('async'),
+            ])
             ->withLicenceKey(LicenceTesting::VALID_LICENCE),
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('async'),
-        ],
     );
 
     $ecotone->sendDirectToChannel('async.workflow', []);

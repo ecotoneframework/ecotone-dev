@@ -49,7 +49,6 @@ Source: `Ecotone\Messaging\Config\ModulePackageList`
 final class ModulePackageList
 {
     public const CORE_PACKAGE = 'core';
-    public const ASYNCHRONOUS_PACKAGE = 'asynchronous';
     public const AMQP_PACKAGE = 'amqp';
     public const DATA_PROTECTION_PACKAGE = 'dataProtection';
     public const DBAL_PACKAGE = 'dbal';

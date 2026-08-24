@@ -100,7 +100,7 @@ final class UserReadModel extends Model
     public $timestamps = false;
     public $fillable = ['user_id', 'name', 'email', 'active'];
 
-    #[AggregateIdentifierMethod('user_id')]
+    #[IdentifierMethod('user_id')]
     public function getUserId(): string { return $this->user_id; }
 
     #[CommandHandler('RegisterUserReadModel')]
@@ -120,7 +120,7 @@ final class UserReadModel extends Model
 Three things make this work end-to-end:
 
 - **`#[Aggregate]` + `extends Model`** — Ecotone detects an Eloquent aggregate and wires its `EloquentRepository` automatically. No repository configuration needed.
-- **`#[AggregateIdentifierMethod('user_id')]`** — declares which Eloquent column identifies the aggregate. Ecotone uses this to load the model from the DB before invoking instance command handlers, and to persist it afterwards.
+- **`#[IdentifierMethod('user_id')]`** — declares which Eloquent column identifies the aggregate. Ecotone uses this to load the model from the DB before invoking instance command handlers, and to persist it afterwards.
 - **`identifierMapping: ['user_id' => "payload['user_id']"]`** — tells Ecotone where to find the identifier *in the inbound payload*. The expression `payload['user_id']` reads the `user_id` key of the array. The static `register` handler doesn't need it — it creates a new aggregate, so there's nothing to load first.
 
 After the handler returns, Ecotone calls `$model->save()` for you. That's the "auto-load + auto-save" sugar applied to a read model.

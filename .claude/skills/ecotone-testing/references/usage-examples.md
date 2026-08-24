@@ -175,7 +175,6 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 
 // Available package constants:
 // ModulePackageList::CORE_PACKAGE
-// ModulePackageList::ASYNCHRONOUS_PACKAGE
 // ModulePackageList::AMQP_PACKAGE
 // ModulePackageList::DBAL_PACKAGE
 // ModulePackageList::REDIS_PACKAGE
@@ -187,12 +186,10 @@ use Ecotone\Messaging\Config\ServiceConfiguration;
 // ModulePackageList::TEST_PACKAGE
 
 $config = ServiceConfiguration::createWithDefaults()
-    ->withSkippedModulePackageNames(
-        ModulePackageList::allPackagesExcept([
-            ModulePackageList::DBAL_PACKAGE,
-            ModulePackageList::EVENT_SOURCING_PACKAGE,
-        ])
-    );
+    ->withModulePackages([
+        ModulePackageList::DBAL_PACKAGE,
+        ModulePackageList::EVENT_SOURCING_PACKAGE,
+    ]);
 ```
 
 ## Projection Testing with Inline Class

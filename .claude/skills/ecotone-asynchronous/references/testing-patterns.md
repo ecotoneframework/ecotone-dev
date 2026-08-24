@@ -11,9 +11,10 @@ public function test_async_processing(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [NotificationHandler::class],
         containerOrAvailableServices: [new NotificationHandler()],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
+            ]),
     );
 
     $ecotone->publishEvent(new OrderWasPlaced('order-1'));
@@ -51,7 +52,7 @@ $ecotone->run('reminders', null, TimeSpan::withSeconds(60));
 
 ## Key Testing Methods
 
-- `enableAsynchronousProcessing` -- provide in-memory channels to `bootstrapFlowTesting`
+- `ServiceConfiguration::withExtensionObjects([...])` -- register in-memory channels for `bootstrapFlowTesting`
 - `$ecotone->run('channelName')` -- consume messages from a channel
 - `ExecutionPollingMetadata::createWithTestingSetup()` -- default test polling config
 - `$ecotone->sendDirectToChannel('channel', $payload)` -- inject messages directly into a channel

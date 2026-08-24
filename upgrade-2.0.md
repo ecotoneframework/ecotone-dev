@@ -6,6 +6,11 @@ the release; within a group the most impactful changes come first.
 
 Minimum requirements: PHP 8.2, Symfony 6.4+/7, Laravel 11+, Doctrine DBAL 4.
 
+**Status of this guide.** Sections 1, 2, 5, 6, 7, 9, 11 and 14 describe behaviour that is already in the
+codebase. Sections 3, 4, 8, 12 and 13 are **planned for 2.0 and not implemented yet** — they are marked
+individually below. Do not act on a planned section until it ships; the API it describes does not exist.
+Section 10 records behaviour that was considered for change and deliberately kept as it is.
+
 ---
 
 ## 1. Asynchronous processing is part of Core
@@ -47,8 +52,9 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
 - Symfony `ecotone.yaml`, Laravel `config/ecotone.php` and Tempest config: the `skippedModulePackageNames` key is renamed to
   `modulePackages` and now lists packages to load (Core and Asynchronous are implicit).
 - A handler referencing an unregistered channel fails at bootstrap with
-  `ConfigurationException: Message Channel "orders" used by #[Asynchronous] … is not registered. Register it with
-  SimpleMessageChannelBuilder::createQueueChannel('orders') (or a broker-backed builder) as an extension object or from #[ServiceContext]`.
+  `ConfigurationException: Registered asynchronous endpoint \`orderHandler\`, however channel configuration for \`orders\` was not
+  provided. Register it with SimpleMessageChannelBuilder::createQueueChannel('orders') as a ServiceConfiguration extension object
+  or from a #[ServiceContext] method.`
   Previously test bootstrap silently created an in-memory channel.
 - Default queue channels are delayable (see §9); nothing to change unless you relied on delays being ignored.
 
@@ -69,6 +75,8 @@ licensed, replace multi-tenant connection switching with explicit per-tenant con
 messages yourself.
 
 ## 3. Projections: v1 removed, `ProjectionV2` renamed to `Projection`
+
+> **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
 
 **Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`,
 `ProjectionManager`, `ProjectionRunningConfiguration`, `ecotone:es:*` console commands, `FlowTestSupport::initializeProjection()`,
@@ -104,6 +112,8 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
 - `EventSourcingConfiguration::withProjectionsTable()` and the projection-manager reference argument are removed.
 
 ## 4. Event Store: single global event log, DCB-ready, no Prooph
+
+> **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
 
 **Before:** `ecotone/pdo-event-sourcing` wrapped `prooph/pdo-event-store`. Four persistence strategies existed
 (`simple`, `single`, `aggregate`, `partition`), with `single` deprecated. Aggregate concurrency was enforced through
@@ -164,7 +174,7 @@ AmqpDistributedBusConfiguration::createConsumer(),
 // 2.0
 DistributedServiceMap::initialize()
     ->withCommandMapping('ticket_service', 'ticket_service.commands')
-    ->withEventMapping('ticket_service', 'ticket_service.events'),
+    ->withEventMapping('ticket_service.events', subscriptionKeys: ['*']),
 AmqpBackedMessageChannelBuilder::create('ticket_service.commands'),
 AmqpBackedMessageChannelBuilder::create('ticket_service.events'),
 ```
@@ -211,6 +221,8 @@ with `ExtensionObjectResolver::resolve(MyConfig::class, $extensionObjects)` insi
 
 ## 8. Database tables are no longer created on the fly
 
+> **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
+
 **Before:** `DbalTransactionInterceptor` and `DeduplicationInterceptor` created `ecotone_deduplication`, `ecotone_error_messages`,
 `ecotone_enqueue` etc. during the first message and on MySQL committed the surrounding transaction implicitly
 (`@TODO Ecotone 2.0 remove implicit commit`). PostgreSQL received a special-case branch.
@@ -220,7 +232,7 @@ transaction wraps the whole message on every driver. Deduplication cleanup runs 
 (scheduled job), so it no longer holds row locks while your handler runs.
 
 **How to adapt:**
-- Run `ecotone:database:setup` on deploy, or `ecotone:database:dump-sql` to produce SQL for Doctrine Migrations / Laravel migrations.
+- Run `ecotone:migration:database:setup` on deploy, or `ecotone:migration:database:dump-sql` to produce SQL for Doctrine Migrations / Laravel migrations.
 - `EcotoneLite::bootstrapFlowTesting*()` still prepares tables automatically for in-memory/test connections. For integration tests
   against a real database call `$ecotone->getGateway(DatabaseSetupManager::class)->setup()` once in `setUp()`.
 - Remove any code that relied on the implicit commit (e.g. MySQL DDL during a handler).
@@ -247,14 +259,13 @@ Delayable channels change in-memory behaviour: a message sent with `delay` is no
 clock passes the delay. Use `$ecotone->run('x', ExecutionPollingMetadata::createWithTestingSetup(), releaseAwaitingFor: Duration::seconds(5))`
 or `TestConfiguration::createWithDefaults()->withSpyOnChannel()` to assert delayed messages.
 
-## 10. Aggregate identifier resolution for queued messages
+## 10. Aggregate identifier resolution for queued messages (unchanged)
 
-**Before:** When a message reached an aggregate handler without the `aggregate.id` header (messages queued by Ecotone < 1.60),
-the identifier was resolved again from the payload at consumption time.
+Consumer-side identifier resolution stays as it was in 1.x: when a message reaches an aggregate handler without the
+`aggregate.id` header, the identifier is resolved again from the payload at consumption time. This also covers messages
+whose `aggregate.id` is supplied by a `#[Before]` or `#[Presend]` interceptor rather than by the sending bus.
 
-**Now:** The header is required on the consumer side; aggregate identifiers are resolved once, when the message is sent.
-
-**How to adapt:** Drain queues produced by Ecotone versions older than 1.60 before upgrading, or re-publish them.
+**How to adapt:** Nothing. Queues produced by older Ecotone versions do not need draining.
 
 ## 11. Routing keys and channel names
 
@@ -265,6 +276,8 @@ the identifier was resolved again from the payload at consumption time.
 **How to adapt:** Nothing; remove workarounds that renamed channels to avoid the clash.
 
 ## 12. Framework configuration: `ServiceContext` only
+
+> **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
 
 **Before:** Symfony `config/packages/ecotone.yaml` and Laravel `config/ecotone.php` exposed most `ServiceConfiguration` options
 (`serviceName`, `defaultSerializationMediaType`, `defaultErrorChannel`, `skippedModulePackageNames`, `loadAppNamespaces`, ...).
@@ -292,6 +305,8 @@ final class EcotoneConfiguration
 Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php`; the bundle/provider rejects unknown keys.
 
 ## 13. Public API moved to `Api` namespaces
+
+> **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
 
 **Before:** User-facing attributes and configuration objects lived in module namespaces
 (`Ecotone\Messaging\Attribute\*`, `Ecotone\Modelling\Attribute\*`, `Ecotone\Projecting\Attribute\*`, `Ecotone\Dbal\Attribute\*`,
@@ -341,6 +356,6 @@ Classes outside `Api` are `@internal` and may change in minor versions.
 6. Replace `Enqueue\Dbal\DbalConnectionFactory` references (§5).
 7. Replace `AmqpDistributedBusConfiguration` with `DistributedServiceMap` (§6).
 8. Rename projections, run `ecotone:projection:rebuild` for former v1 projections (§3).
-9. Add `ecotone:database:setup` (or dumped SQL) to your deployment (§8).
+9. Add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).
 10. Review changed defaults (§9) and set explicit values where the old behaviour is required.
 11. Provide an Enterprise licence key if you use multi-tenancy (§2).

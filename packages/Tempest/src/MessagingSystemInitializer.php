@@ -126,7 +126,7 @@ final class MessagingSystemInitializer implements Initializer
             ->withNamespaces($namespaces)
             ->withCacheDirectoryPath($cacheDirectory);
 
-        if ($config->modulePackages !== []) {
+        if ($config->modulePackages !== null) {
             $applicationConfiguration = $applicationConfiguration->withModulePackages($config->modulePackages);
         }
 

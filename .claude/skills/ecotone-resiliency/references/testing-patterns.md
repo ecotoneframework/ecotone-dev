@@ -22,9 +22,10 @@ public function test_retry_on_failure(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('orders'),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+            ]),
     );
 
     $ecotone->sendCommand(new PlaceOrder('123'));
@@ -61,10 +62,11 @@ public function test_error_handler_routes_to_dead_letter(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [$handler::class, $errorConfig::class],
         containerOrAvailableServices: [$handler, $errorConfig],
-        enableAsynchronousProcessing: [
-            SimpleMessageChannelBuilder::createQueueChannel('orders'),
-            SimpleMessageChannelBuilder::createQueueChannel('dead_letter'),
-        ],
+        configuration: ServiceConfiguration::createWithDefaults()
+            ->withExtensionObjects([
+                SimpleMessageChannelBuilder::createQueueChannel('orders'),
+                SimpleMessageChannelBuilder::createQueueChannel('dead_letter'),
+            ]),
     );
 
     $ecotone->sendCommand(new PlaceOrder('123'));

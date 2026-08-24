@@ -706,7 +706,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         multiplier?: int|Param,
  *     },
  *     licenceKey?: scalar|Param|null, // Default: null
- *     modulePackages?: list<scalar|Param|null>,
+ *     modulePackages?: null|list<scalar|Param|null>,
  * }
  * @psalm-type ConfigType = array{
  *     imports?: ImportsConfig,

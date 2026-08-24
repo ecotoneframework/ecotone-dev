@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\Type\UnionType;
-use Ecotone\Modelling\CommandBus;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder\CreateAggregate;

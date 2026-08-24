@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\PollableChannel;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
@@ -11,8 +13,6 @@ use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
@@ -288,10 +288,12 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
      */
     private function bootstrapEcotone(array $classesToResolve, array $services, array $channelBuilders, array $extensionObjects = [], bool $withEnterpriseLicence = false): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting($classesToResolve,
+        return EcotoneLite::bootstrapFlowTesting(
+            $classesToResolve,
             $services,
             ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects(array_merge($extensionObjects, $channelBuilders)),
-            licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null);
+            licenceKey: $withEnterpriseLicence ? LicenceTesting::VALID_LICENCE : null
+        );
     }
 }

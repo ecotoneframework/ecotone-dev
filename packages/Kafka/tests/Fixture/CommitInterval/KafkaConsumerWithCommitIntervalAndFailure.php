@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Fixture\CommitInterval;
 
-use Ecotone\Kafka\Attribute\KafkaConsumer;
-use Ecotone\Messaging\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use RuntimeException;
 
 /**

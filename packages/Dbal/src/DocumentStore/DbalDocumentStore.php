@@ -5,7 +5,9 @@ namespace Ecotone\Dbal\DocumentStore;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
+use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Conversion\ConversionException;
@@ -14,8 +16,6 @@ use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\DocumentNotFound;
-use Ecotone\Messaging\Store\Document\DocumentStore;
-use Ecotone\Dbal\Connection\DbalContext;
 
 use function spl_object_id;
 

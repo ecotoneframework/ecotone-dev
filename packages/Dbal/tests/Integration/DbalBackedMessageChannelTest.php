@@ -3,23 +3,23 @@
 namespace Test\Ecotone\Dbal\Integration;
 
 use Doctrine\DBAL\Exception\TableNotFoundException;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Scheduling\Duration;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\StubLogger;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Dbal\Connection\DbalContext;
 use Psr\Clock\ClockInterface;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -361,7 +361,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 'logger' => $loggerExample,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withConnectionRetryTemplate(
                     RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
                 )

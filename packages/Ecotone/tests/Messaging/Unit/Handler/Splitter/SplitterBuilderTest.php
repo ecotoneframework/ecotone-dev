@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Splitter;
 
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Splitter\SplitterBuilder;
 use Ecotone\Messaging\MessagingException;

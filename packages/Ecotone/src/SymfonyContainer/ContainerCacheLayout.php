@@ -8,9 +8,9 @@ use const DIRECTORY_SEPARATOR;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationFinderFactory;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 
 use function realpath;
 

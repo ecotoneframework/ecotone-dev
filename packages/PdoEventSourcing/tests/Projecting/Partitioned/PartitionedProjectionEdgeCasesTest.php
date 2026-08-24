@@ -9,18 +9,18 @@ namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\FromStream;
+use Ecotone\Api\Attribute\Partitioned;
+use Ecotone\Api\Attribute\ProjectionDelete;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarCreated;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CreateCalendar;
@@ -441,7 +441,7 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -458,7 +458,7 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
             containerOrAvailableServices: array_merge($services, [new EventsConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

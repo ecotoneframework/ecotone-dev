@@ -6,8 +6,8 @@ namespace App\WorkingWithAggregateDirectly;
 
 use App\WorkingWithAggregateDirectly\Command\ChangePrice;
 use App\WorkingWithAggregateDirectly\Command\RegisterProduct;
-use Ecotone\Messaging\Attribute\BusinessMethod;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Identifier;
 
 /**
  * Implementation will be auto-generated and this class will be available in your Dependency Container

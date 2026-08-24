@@ -6,22 +6,22 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\FromStream;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\ProjectionDelete;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\Polling;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -184,7 +184,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,])
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withExtensionObjects([$dbalConfiguration]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,

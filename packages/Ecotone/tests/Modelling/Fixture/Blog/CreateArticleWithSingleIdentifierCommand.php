@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Blog;
 
-use Ecotone\Modelling\Attribute\TargetIdentifier;
+use Ecotone\Api\Attribute\TargetIdentifier;
 
 /**
  * Command that provides only one identifier for Article creation

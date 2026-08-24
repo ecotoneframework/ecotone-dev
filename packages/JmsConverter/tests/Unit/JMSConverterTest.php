@@ -4,13 +4,13 @@ namespace Test\Ecotone\JMSConverter\Unit;
 
 use ArrayObject;
 use DateTimeImmutable;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration;
 use Ecotone\JMSConverter\ArrayObjectConverter;
 use Ecotone\JMSConverter\JMSConverter;
-use Ecotone\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Converter;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;

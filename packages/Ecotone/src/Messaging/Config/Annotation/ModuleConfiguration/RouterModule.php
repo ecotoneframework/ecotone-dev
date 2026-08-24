@@ -3,8 +3,8 @@
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Attribute\Router;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\Router;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;

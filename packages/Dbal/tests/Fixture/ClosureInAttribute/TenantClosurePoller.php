@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\ClosureInAttribute;
 
-use Ecotone\Dbal\Attribute\WithTenantResolver;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Attribute\Scheduled;
+use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Dbal\Api\Attribute\WithTenantResolver;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\MessageBuilder;
 

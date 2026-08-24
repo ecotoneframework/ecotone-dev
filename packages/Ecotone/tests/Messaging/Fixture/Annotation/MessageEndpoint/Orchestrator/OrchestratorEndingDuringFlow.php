@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator;
 
-use Ecotone\Messaging\Attribute\InternalHandler;
-use Ecotone\Messaging\Attribute\Orchestrator;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Orchestrator;
 
 /**
  * licence Enterprise

@@ -2,13 +2,12 @@
 
 namespace Test\Ecotone\Lite;
 
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Order\ChannelConfiguration;
 use Test\Ecotone\Modelling\Fixture\Order\OrderService;
@@ -39,12 +38,14 @@ class EcotoneLiteTest extends TestCase
 
     public function test_with_spying_on_multiple_channels(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [],
             [],
             testConfiguration: TestConfiguration::createWithDefaults()
                 ->withSpyOnChannel('async1')
                 ->withSpyOnChannel('async2'),
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async1'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async2')));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async1'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async2'))
+        );
 
         $ecotoneLite->sendDirectToChannel('async1', 'test1');
         $ecotoneLite->sendDirectToChannel('async2', 'test2');
@@ -89,7 +90,7 @@ class EcotoneLiteTest extends TestCase
             $this->markTestSkipped('pcntl extension is not loaded');
         }
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+        $ecotone = EcotoneLite::bootstrapFlowTesting(configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $handler = pcntl_signal_get_handler(SIGINT);
 

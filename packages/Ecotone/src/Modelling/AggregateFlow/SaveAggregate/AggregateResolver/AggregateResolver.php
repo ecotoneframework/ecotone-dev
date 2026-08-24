@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Enricher\PropertyEditorAccessor;
@@ -12,7 +13,6 @@ use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;

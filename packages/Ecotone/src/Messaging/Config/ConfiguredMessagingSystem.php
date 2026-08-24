@@ -2,16 +2,16 @@
 
 namespace Ecotone\Messaging\Config;
 
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Gateway\Gateway;
 use Ecotone\Messaging\MessageChannel;
-use Ecotone\Messaging\MessagePublisher;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\DistributedBus;
-use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\QueryBus;
 use InvalidArgumentException;
 
 /**

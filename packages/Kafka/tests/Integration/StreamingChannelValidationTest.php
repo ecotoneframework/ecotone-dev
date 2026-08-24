@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -53,7 +53,7 @@ final class StreamingChannelValidationTest extends TestCase
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'channel1',
@@ -97,7 +97,7 @@ final class StreamingChannelValidationTest extends TestCase
                 KafkaBrokerConfiguration::class => KafkaBrokerConfiguration::createWithDefaults(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: 'channel1',

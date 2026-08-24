@@ -7,11 +7,11 @@ use App\Microservices\BackofficeService\Domain\Ticket\Command\PrepareTicket;
 use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasAssigned;
 use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasCancelled;
 use App\Microservices\BackofficeService\Domain\Ticket\Event\TicketWasPrepared;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\Distributed;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ramsey\Uuid\Uuid;
 

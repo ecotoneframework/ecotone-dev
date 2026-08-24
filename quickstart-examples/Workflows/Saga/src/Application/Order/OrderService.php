@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Workflow\Saga\Application\Order;
 
-use Ecotone\Messaging\Attribute\BusinessMethod;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Identifier;
 use Money\Money;
 
 interface OrderService

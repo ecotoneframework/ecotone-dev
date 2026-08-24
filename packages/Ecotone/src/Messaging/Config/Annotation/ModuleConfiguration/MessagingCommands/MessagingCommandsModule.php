@@ -3,7 +3,7 @@
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingCommands;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;

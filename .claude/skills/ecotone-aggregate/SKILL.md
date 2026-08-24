@@ -17,10 +17,10 @@ Aggregates are domain-driven design building blocks that encapsulate business ru
 ## State-Stored Aggregate
 
 ```php
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 #[Aggregate]
 class Order
@@ -56,10 +56,10 @@ class Order
 ## Event-Sourced Aggregate
 
 ```php
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]
@@ -123,7 +123,7 @@ class Order
 ### TargetIdentifier on Command
 
 ```php
-use Ecotone\Modelling\Attribute\TargetIdentifier;
+use Ecotone\Api\Attribute\TargetIdentifier;
 
 class CancelOrder
 {

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Channel;
 
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapter;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapter;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\PollableChannel;
 

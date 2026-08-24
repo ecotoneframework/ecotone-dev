@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionHandlersExecutionRoutingTest\{AnAggregate,
     AnEvent,
@@ -30,7 +30,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             classesToResolve: [ProjectionWithObjectRouting::class, AnEvent::class, AnAggregate::class, Converters::class],
             containerOrAvailableServices: [$projection = new ProjectionWithObjectRouting(), new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true
         );
 
@@ -49,7 +49,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             classesToResolve: [ProjectionWithRegexRouting::class, AnEvent::class, AnAggregate::class, Converters::class],
             containerOrAvailableServices: [$projection = new ProjectionWithRegexRouting(), new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true
         );
 
@@ -70,7 +70,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             classesToResolve: [ProjectionWithMulitpleHandlersForSameEvent::class, AnEvent::class, AnAggregate::class, Converters::class],
             containerOrAvailableServices: [$projection = new ProjectionWithMulitpleHandlersForSameEvent(), new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true
         );
 

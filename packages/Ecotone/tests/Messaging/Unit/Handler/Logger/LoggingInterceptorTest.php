@@ -12,7 +12,6 @@ use Ecotone\Messaging\Handler\Logger\Annotation\LogAfter;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\Logger\LoggingLevel;
 use Ecotone\Messaging\Handler\Logger\StubLoggingGateway;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;

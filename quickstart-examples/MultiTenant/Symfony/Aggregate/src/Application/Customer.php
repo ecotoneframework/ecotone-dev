@@ -9,9 +9,9 @@ use Doctrine\ORM\Mapping\Column;
 use Doctrine\ORM\Mapping\Entity;
 use Doctrine\ORM\Mapping\Id;
 use Doctrine\ORM\Mapping\Table;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Illuminate\Database\Eloquent\Model;
 
 // Important Attribute to tell Ecotone that this is an Aggregate

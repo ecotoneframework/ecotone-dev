@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\MessageConverter;
 
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Test\InMemoryConversionService;
 use PHPUnit\Framework\TestCase;

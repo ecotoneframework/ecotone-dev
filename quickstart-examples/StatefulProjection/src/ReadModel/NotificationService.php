@@ -3,7 +3,7 @@
 namespace App\ReadModel;
 
 use App\ReadModel\TicketCounterProjection\TicketCounterWasChanged;
-use Ecotone\Modelling\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
 
 final class NotificationService
 {

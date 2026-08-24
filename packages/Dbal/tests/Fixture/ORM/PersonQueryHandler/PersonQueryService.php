@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler;
 
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 

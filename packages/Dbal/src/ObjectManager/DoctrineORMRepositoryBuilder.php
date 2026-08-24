@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\ObjectManager;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;

@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\ErrorHandling\DeadLetter;
 
-use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\ServiceActivator;
 use InvalidArgumentException;
 
 /**

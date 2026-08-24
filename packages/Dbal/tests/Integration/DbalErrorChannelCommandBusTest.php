@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
+use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Api\Attribute\InstantRetry;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\ErrorChannel;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
-use Ecotone\Modelling\Attribute\InstantRetry;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample\ErrorConfigurationContext;
@@ -261,7 +261,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()->withModulePackages([])
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
-                ->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
+                ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
             licenceKey: LicenceTesting::VALID_LICENCE,

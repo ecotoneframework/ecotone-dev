@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\SynchronousExample;
 
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use InvalidArgumentException;
 
 /**

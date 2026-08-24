@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Transformer;
 
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -22,7 +22,6 @@ use Ecotone\Messaging\Handler\Enricher\EnrichException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\MessageBuilder;

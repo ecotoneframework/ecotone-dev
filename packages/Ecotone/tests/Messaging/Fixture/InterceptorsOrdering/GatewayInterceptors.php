@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 
-use Ecotone\Messaging\Attribute\Interceptor\After;
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Attribute\Interceptor\Before;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\Interceptor\After;
+use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 /**

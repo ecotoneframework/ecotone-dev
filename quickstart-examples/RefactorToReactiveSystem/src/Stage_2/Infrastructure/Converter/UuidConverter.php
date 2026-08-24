@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\ReactiveSystem\Stage_2\Infrastructure\Converter;
 
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 

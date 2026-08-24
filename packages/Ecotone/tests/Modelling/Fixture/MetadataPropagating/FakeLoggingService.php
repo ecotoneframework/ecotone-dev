@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\MetadataPropagating;
 
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Attribute\Parameter\Headers;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Attribute\Parameter\Headers;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

@@ -6,24 +6,24 @@ namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\FromStream;
+use Ecotone\Api\Attribute\PartitionAggregateId;
+use Ecotone\Api\Attribute\Partitioned;
+use Ecotone\Api\Attribute\ProjectionDelete;
+use Ecotone\Api\Attribute\ProjectionExecution;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\ProjectionRebuild;
+use Ecotone\Api\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\PartitionAggregateId;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionExecution;
-use Ecotone\Projecting\Attribute\ProjectionRebuild;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use InvalidArgumentException;
 use RuntimeException;
@@ -420,13 +420,15 @@ final class RebuildProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services, bool|array $channels, ?TestConfiguration $testConfiguration = null): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: [...$classesToResolve, Ticket::class, TicketEventConverter::class],
+        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [...$classesToResolve, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [...$services, new TicketEventConverter(), self::getConnectionFactory()],
             configuration: (ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->withExtensionObjects(is_array($channels) ? $channels : []),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->withExtensionObjects(is_array($channels) ? $channels : []),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
-            testConfiguration: $testConfiguration);
+            testConfiguration: $testConfiguration
+        );
     }
 }

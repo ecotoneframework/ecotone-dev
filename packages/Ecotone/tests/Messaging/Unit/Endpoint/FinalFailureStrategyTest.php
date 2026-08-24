@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Endpoint;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryAcknowledgeStatus;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryQueueAcknowledgeInterceptor;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Endpoint\AcknowledgementCallback;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Endpoint\PollingConsumer\RejectMessageException;
 use Ecotone\Messaging\Message;
@@ -31,9 +31,11 @@ final class FinalFailureStrategyTest extends TestCase
 {
     public function test_reject_failure_strategy_rejects_message_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([FailingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [FailingService::class],
             [$service = new FailingService()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE)));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE))
+        );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
@@ -46,9 +48,11 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_requeue_failure_strategy_requeues_message_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([FailingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [FailingService::class],
             [$service = new FailingService()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::RESEND)));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::RESEND))
+        );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
@@ -61,9 +65,11 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_stop_failure_strategy_stops_consumer_on_exception()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([FailingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [FailingService::class],
             [$service = new FailingService()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::STOP)));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::STOP))
+        );
 
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('Service failed');
@@ -74,9 +80,11 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_successful_processing_always_acknowledges_message()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([SuccessService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [SuccessService::class],
             [$service = new SuccessService()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE)));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE))
+        );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
@@ -89,9 +97,11 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_reject_message_exception_triggers_reject_strategy()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([RejectingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [RejectingService::class],
             [$service = new RejectingService()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE)));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE))
+        );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
@@ -104,9 +114,11 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_setting_execution_metadata_to_stop_on_error()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([RejectingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [RejectingService::class],
             [$service = new RejectingService()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE)));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::IGNORE))
+        );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
@@ -119,9 +131,11 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_manual_ack_service_acknowledges_message_manually()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([ManualAckService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [ManualAckService::class],
             [$service = new ManualAckService()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::STOP, isAutoAcked: false)));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::STOP, isAutoAcked: false))
+        );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
@@ -134,9 +148,11 @@ final class FinalFailureStrategyTest extends TestCase
 
     public function test_auto_ack_disabled_and_fails()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting([FailingService::class],
+        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+            [FailingService::class],
             [$service = new FailingService()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::RESEND, isAutoAcked: false)));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel(messageChannelName: 'async', finalFailureStrategy: FinalFailureStrategy::RESEND, isAutoAcked: false))
+        );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));

@@ -36,7 +36,7 @@ $retry = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(1000, 2, 60000)
 ## 2. ErrorHandlerConfiguration
 
 ```php
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 
 class ErrorConfig
 {
@@ -86,7 +86,7 @@ class OutboxConfig
 ## 5. #[InstantRetry] (Enterprise)
 
 ```php
-use Ecotone\Modelling\Attribute\InstantRetry;
+use Ecotone\Api\Attribute\InstantRetry;
 
 #[InstantRetry(retryTimes: 3)]
 class OrderService

@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Api\KafkaHeader;
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Attribute\InternalHandler;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Ecotone\Test\StubLogger;
 
@@ -533,8 +533,8 @@ final class KafkaMessageChannelTest extends TestCase
 
         // Publisher service
         $publisher = new class () {
-            #[\Ecotone\Modelling\Attribute\CommandHandler('publish.event')]
-            public function publish(string $payload, \Ecotone\Modelling\EventBus $eventBus): void
+            #[\Ecotone\Api\Attribute\CommandHandler('publish.event')]
+            public function publish(string $payload, \Ecotone\Api\Gateway\EventBus $eventBus): void
             {
                 $eventBus->publish($payload);
             }
@@ -544,8 +544,8 @@ final class KafkaMessageChannelTest extends TestCase
         $consumer1 = new class () {
             private array $consumed = [];
 
-            #[\Ecotone\Modelling\Attribute\Distributed]
-            #[\Ecotone\Modelling\Attribute\EventHandler('distributed.event', endpointId: 'consumer1')]
+            #[\Ecotone\Api\Attribute\Distributed]
+            #[\Ecotone\Api\Attribute\EventHandler('distributed.event', endpointId: 'consumer1')]
             public function handle(string $payload): void
             {
                 $this->consumed[] = $payload;
@@ -562,8 +562,8 @@ final class KafkaMessageChannelTest extends TestCase
         $consumer2 = new class () {
             private array $consumed = [];
 
-            #[\Ecotone\Modelling\Attribute\Distributed]
-            #[\Ecotone\Modelling\Attribute\EventHandler('distributed.event', endpointId: 'consumer2')]
+            #[\Ecotone\Api\Attribute\Distributed]
+            #[\Ecotone\Api\Attribute\EventHandler('distributed.event', endpointId: 'consumer2')]
             public function handle(string $payload): void
             {
                 $this->consumed[] = $payload;
@@ -587,7 +587,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('publisher-service')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -610,7 +610,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service1')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,
@@ -632,7 +632,7 @@ final class KafkaMessageChannelTest extends TestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service2')
-                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE,])
+                ->withModulePackages([ModulePackageList::KAFKA_PACKAGE, ])
                 ->withExtensionObjects([
                     KafkaMessageChannelBuilder::create(
                         channelName: $channelName,

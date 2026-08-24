@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Mapping;
 
 use Ecotone\Messaging\Config\Container\Definition;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Modelling\Event;
 
 /**

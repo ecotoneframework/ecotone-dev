@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
+use Ecotone\Amqp\Api\ExtensionObject\AmqpMessagePublisherConfiguration;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\AmqpConsumer\AmqpConsumerExample;
@@ -34,7 +34,7 @@ final class ConsumerAndPublisherTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
                     AmqpQueue::createWith($queueName),

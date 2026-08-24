@@ -124,7 +124,7 @@ $ecotone->deleteProjection('name');      // Cleanup
 To test rebuild behavior (emissions suppressed), access `ProjectionRegistry` directly:
 
 ```php
-use Ecotone\Projecting\ProjectionRegistry;
+use Ecotone\Api\Gateway\ProjectionRegistry;
 
 // Rebuild: replays events but suppresses EventStreamEmitter emissions
 $ecotone->getGateway(ProjectionRegistry::class)->get('projection_name')->prepareRebuild();

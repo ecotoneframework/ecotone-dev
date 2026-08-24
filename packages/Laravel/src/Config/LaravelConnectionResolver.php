@@ -7,6 +7,7 @@ namespace Ecotone\Laravel\Config;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver;
 use Ecotone\Dbal\DbalConnection;
+use Ecotone\Laravel\Api\ExtensionObject\LaravelConnectionReference;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Illuminate\Support\Facades\DB;
 use Interop\Queue\ConnectionFactory;

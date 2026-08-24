@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Order;
 
-use Ecotone\AnnotationFinder\Attribute\Environment;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\Attribute\Environment;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 
 /**
  * licence Apache-2.0

@@ -5,21 +5,21 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\FromAggregateStream;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\FromAggregateStream;
+use Ecotone\Api\Attribute\FromStream;
+use Ecotone\Api\Attribute\ProjectionDelete;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\QueryBus;
+use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\QueryBus;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 
 use function get_class;
@@ -132,7 +132,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             containerOrAvailableServices: [$projection, $notificationHandler, new TicketEventConverter(), self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -164,7 +164,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,])
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults()
                         ->withSnapshotsFor([Ticket::class, Basket::class], 1),
@@ -198,7 +198,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             containerOrAvailableServices: [$projection, new EventsConverter(), self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -246,7 +246,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             containerOrAvailableServices: [$projection, self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -399,7 +399,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

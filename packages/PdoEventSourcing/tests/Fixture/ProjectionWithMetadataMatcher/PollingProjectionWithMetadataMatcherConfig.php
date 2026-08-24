@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\ProjectionWithMetadataMatcher;
 
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 use Ecotone\EventSourcing\Prooph\Metadata\FieldType;
 use Ecotone\EventSourcing\Prooph\Metadata\MetadataMatcher;
 use Ecotone\EventSourcing\Prooph\Metadata\Operator;
-use Ecotone\Messaging\Attribute\ServiceContext;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection\InProgressTicketList;
 
 final class PollingProjectionWithMetadataMatcherConfig

@@ -3,12 +3,14 @@
 namespace Ecotone\Dbal\Deduplication;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\Deduplicated;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
@@ -17,13 +19,11 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Precedence;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\LicensingException;
 
 #[ModuleAnnotation]

@@ -3,11 +3,14 @@
 namespace Ecotone\Dbal\Recoverability;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
 use Ecotone\Dbal\Configuration\CustomDeadLetterGateway;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -17,7 +20,6 @@ use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;

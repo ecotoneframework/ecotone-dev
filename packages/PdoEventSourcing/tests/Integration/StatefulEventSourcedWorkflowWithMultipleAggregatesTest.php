@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithMetadataMapping;
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithoutMetadataMapping;
@@ -24,7 +24,8 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
 {
     public function test_stateful_event_sourced_workflow_with_multiple_aggregates_without_metadata_mapping(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: [
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [
                 AggregatesWithoutMetadataMapping\Basket::class,
                 AggregatesWithoutMetadataMapping\ItemInventory::class,
             ],
@@ -33,7 +34,7 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
                 self::getConnectionFactory(),
             ],
             configuration: (ServiceConfiguration::createWithDefaults()
-              ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE,])
+              ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
               ->withNamespaces(
                   [
                       'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common',
@@ -41,7 +42,8 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
                   ]
               ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('itemInventory')),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true);
+            runForProductionEventStore: true
+        );
 
         $ecotone->withEventsFor(
             'basket-1',
@@ -79,7 +81,8 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
 
     public function test_stateful_event_sourced_workflow_with_multiple_aggregates_with_metadata_mapping(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: [
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: [
                 AggregatesWithMetadataMapping\Basket::class,
                 AggregatesWithMetadataMapping\ItemInventory::class,
             ],
@@ -88,13 +91,14 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
                 self::getConnectionFactory(),
             ],
             configuration: (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common',
                     'Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithMetadataMapping',
                 ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('itemInventory')),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true);
+            runForProductionEventStore: true
+        );
 
         $ecotone->withEventsFor(
             'basket-1',

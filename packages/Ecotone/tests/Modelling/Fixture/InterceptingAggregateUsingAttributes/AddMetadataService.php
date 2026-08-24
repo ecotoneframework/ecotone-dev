@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptingAggregateUsingAttributes;
 
-use Ecotone\Messaging\Attribute\Interceptor\Before;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Interceptor\Before;
 
 /**
  * licence Apache-2.0

@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Logger\Config;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Attribute\Interceptor\Presend;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\ServiceActivator;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Attribute\Interceptor\Presend;
-use Ecotone\Messaging\Attribute\InternalHandler;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Attribute\ServiceActivator;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

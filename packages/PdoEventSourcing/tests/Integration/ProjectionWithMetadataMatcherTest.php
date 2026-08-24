@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
+use Ecotone\Lite\EcotoneLite;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionWithMetadataMatcher\EventDrivenProjectionWithMetadataMatcherConfig;
 use Test\Ecotone\EventSourcing\Fixture\ProjectionWithMetadataMatcher\PollingProjectionWithMetadataMatcherConfig;

@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\ClosureInAttribute;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Headers;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Headers;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\RequiresPhp;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ClosureInAttribute\ClosureDeduplicatedHandler;
@@ -149,11 +149,12 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
         ]);
         $receiver = $this->newReceiver();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting([TenantClosurePoller::class, $receiver::class],
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [TenantClosurePoller::class, $receiver::class],
             [$poller, $receiver, 'tenant_a_connection' => new FakeConnectionFactory()],
             (ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     PollingMetadata::create('externalEventPoller')
                         ->setExecutionAmountLimit(1)
@@ -173,7 +174,8 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
                         ->withDeduplication(false),
                 ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('external_processing')),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $ecotone->run('externalEventPoller', ExecutionPollingMetadata::createWithTestingSetup(1, 1));
         $ecotone->run('external_processing', ExecutionPollingMetadata::createWithTestingSetup(1, 1));

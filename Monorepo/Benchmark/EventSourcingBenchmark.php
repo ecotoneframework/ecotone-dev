@@ -4,8 +4,8 @@ namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;

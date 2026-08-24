@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Fixture\MessengerConsumer;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Headers;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Headers;
+use Ecotone\Api\Attribute\QueryHandler;
 use InvalidArgumentException;
 
 /**

@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\DelayedRetry;
-use Ecotone\Messaging\Attribute\ErrorChannel;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\DelayedRetry;
+use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -22,14 +24,12 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Recoverability\DelayedRetryErrorHandler;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\Router\HeaderRouter;
 use Ecotone\Messaging\Handler\Router\RouterBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 
 #[ModuleAnnotation]
 /**

@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting;
 
+use Ecotone\Api\Gateway\ProjectionRegistry;
+
 class ProjectionV2StateHandler
 {
     public function __construct(private ProjectionRegistry $projectionRegistry)

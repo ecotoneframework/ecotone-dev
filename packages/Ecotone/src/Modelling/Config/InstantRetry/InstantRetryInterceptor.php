@@ -2,8 +2,8 @@
 
 namespace Ecotone\Modelling\Config\InstantRetry;
 
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;

@@ -8,12 +8,12 @@ use App\MultiTenant\Application\Command\RegisterCustomer;
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
-use Ecotone\Dbal\Attribute\MultiTenantConnection;
-use Ecotone\Dbal\Attribute\MultiTenantObjectManager;
+use Ecotone\Dbal\Api\Attribute\MultiTenantConnection;
+use Ecotone\Dbal\Api\Attribute\MultiTenantObjectManager;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Illuminate\Support\Facades\DB;
 
 final readonly class CustomerService

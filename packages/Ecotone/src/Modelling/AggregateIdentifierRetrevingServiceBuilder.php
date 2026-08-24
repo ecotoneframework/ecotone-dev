@@ -2,6 +2,9 @@
 
 namespace Ecotone\Modelling;
 
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\IdentifierMethod;
+use Ecotone\Api\Attribute\TargetIdentifier;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -14,9 +17,6 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\IdentifierMethod;
-use Ecotone\Modelling\Attribute\TargetIdentifier;
 
 use function is_null;
 

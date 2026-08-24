@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\AsyncCycle;
 use Test\Ecotone\Dbal\Fixture\StatefulWorkflow\AsyncCycleGateway;
@@ -52,7 +52,8 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(classesToResolve: [
+        return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [
                 AsyncCycle::class,
                 AsyncCycleGateway::class,
                 EventsConverters::class,
@@ -62,8 +63,9 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
                 $this->getConnectionFactory(),
             ],
             configuration: (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\Dbal\Fixture\StatefulWorkflow']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('cycle')),
-            pathToRootCatalog: __DIR__ . '/../../');
+            pathToRootCatalog: __DIR__ . '/../../'
+        );
     }
 }

@@ -3,9 +3,12 @@
 namespace Ecotone\Modelling\Config\InstantRetry;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\InstantRetry;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\MessageConsumer;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -13,14 +16,11 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\Attribute\InstantRetry;
-use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Symfony\Component\Uid\Uuid;
 

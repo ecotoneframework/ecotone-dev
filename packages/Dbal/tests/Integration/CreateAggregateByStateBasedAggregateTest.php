@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\Calendar\CalendarCreated;
 use Test\Ecotone\Dbal\Fixture\Calendar\CreateCalendar;

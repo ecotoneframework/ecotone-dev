@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Infrastructure;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
 use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
 final class EcotoneConfiguration

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarClosed;
 use Test\Ecotone\EventSourcing\Fixture\Calendar\CalendarCreated;

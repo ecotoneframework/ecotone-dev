@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 
 #[Projection(self::NAME, fromCategories: ['order'])]
 /**

@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\Attribute\ServiceActivator;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Saga;
 
 #[ModuleAnnotation]
 /**

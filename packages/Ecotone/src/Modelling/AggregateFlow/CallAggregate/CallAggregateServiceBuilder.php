@@ -2,6 +2,9 @@
 
 namespace Ecotone\Modelling\AggregateFlow\CallAggregate;
 
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingSaga;
+use Ecotone\Api\Attribute\Version;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -16,9 +19,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerAggregateObje
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvokerBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\Attribute\Version;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingSaga;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 /**

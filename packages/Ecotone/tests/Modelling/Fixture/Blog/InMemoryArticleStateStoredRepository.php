@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Blog;
 
+use Ecotone\Api\Attribute\Repository;
 use Ecotone\Modelling\AggregateNotFoundException;
-use Ecotone\Modelling\Attribute\Repository;
 use Ecotone\Modelling\StateStoredRepository;
 
 /**

@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
-use Ecotone\EventSourcing\Attribute\FromAggregateStream;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionState;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\FromAggregateStream;
+use Ecotone\Api\Attribute\FromStream;
+use Ecotone\Api\Attribute\Partitioned;
+use Ecotone\Api\Attribute\ProjectionState;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
@@ -153,7 +153,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

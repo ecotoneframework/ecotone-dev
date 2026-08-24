@@ -9,7 +9,7 @@ use App\Workflow\Application\ImageResizer;
 use App\Workflow\Application\ImageUploader;
 use App\Workflow\Application\ProcessImage;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use PHPUnit\Framework\TestCase;
 use Intervention\Image\Drivers\Gd\Driver;
 use Intervention\Image\ImageManager;
@@ -29,7 +29,7 @@ final class ImageProcessingFlow extends TestCase
                 ImageResizer::class => new ImageResizer(new ImageManager(new Driver())),
                 ImageUploader::class => new ImageUploader()
             ],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
 
         $ecotoneLite
             ->sendCommand(new ProcessImage(__DIR__ . '/../../ecotone_logo.png'))

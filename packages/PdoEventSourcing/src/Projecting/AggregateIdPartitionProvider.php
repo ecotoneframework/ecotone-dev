@@ -13,11 +13,11 @@ use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\StreamFilter;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 
 use function in_array;
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Workflow\Configuration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Messaging\Attribute\ServiceContext;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Attribute\ServiceContext;
 
 final readonly class EcotoneConfiguration
 {

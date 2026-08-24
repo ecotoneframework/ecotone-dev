@@ -2,14 +2,14 @@
 
 namespace Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder;
 
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\WithEvents;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
+use Ecotone\Modelling\WithEvents;
 
 #[EventSourcingAggregate(true)]
 /**

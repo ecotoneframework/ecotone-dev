@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\LinkingEventsWithoutProjection;
 
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\EventSourcing\EventStreamEmitter;
-use Ecotone\Modelling\Attribute\EventHandler;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 

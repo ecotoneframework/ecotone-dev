@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\DynamicChannel;
 
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\MessagingSystemConfiguration;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollingConsumerBuilder;
 use Ecotone\Messaging\Endpoint\PollingConsumer\PollOrThrow\PollOrThrowMessageHandlerConsumerBuilder;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
@@ -37,14 +36,16 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     public function test_sending_and_receiving_from_single_channel(): void
     {
         $successServiceActivator = new SuccessServiceActivator();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [SuccessServiceActivator::class],
             [$successServiceActivator],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
                         ->setExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one')),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
         $this->assertSame(0, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
@@ -60,25 +61,31 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     public function test_sending_to_send_only_channel(): void
     {
         $channelName = 'channel_one';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(DynamicMessageChannelBuilder::createWithSendOnlyStrategy(
-                    $sharedChannel = SimpleMessageChannelBuilder::createQueueChannel($channelName)
-                )));
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DynamicMessageChannelBuilder::createWithSendOnlyStrategy(
+                $sharedChannel = SimpleMessageChannelBuilder::createQueueChannel($channelName)
+            ))
+        );
 
         $ecotoneLite->sendDirectToChannel($channelName, ['test']);
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject($sharedChannel));
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject($sharedChannel)
+        );
         $this->assertNotNull($ecotoneLite->getMessageChannel($channelName)->receive());
     }
 
     public function test_throwing_exception_on_polling_from_send_only_channel(): void
     {
         $channelName = 'channel_one';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(licenceKey: LicenceTesting::VALID_LICENCE,
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(DynamicMessageChannelBuilder::createWithSendOnlyStrategy(
-                    SimpleMessageChannelBuilder::createQueueChannel($channelName)
-                )));
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            licenceKey: LicenceTesting::VALID_LICENCE,
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(DynamicMessageChannelBuilder::createWithSendOnlyStrategy(
+                SimpleMessageChannelBuilder::createQueueChannel($channelName)
+            ))
+        );
 
         $this->expectException(ConfigurationException::class);
 
@@ -88,14 +95,16 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     public function test_sending_and_receiving_from_multiple_channels(): void
     {
         $successServiceActivator = new SuccessServiceActivator();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [SuccessServiceActivator::class],
             [$successServiceActivator],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
                         ->setExecutionAmountLimit(1),
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobinWithDifferentChannels('async_channel', sendingChannelNames: ['channel_one'], receivingChannelNames: ['channel_two', 'channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two')),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         /** Send to channel_one */
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
@@ -113,7 +122,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     {
         $successServiceActivator = new SuccessServiceActivator();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [SuccessServiceActivator::class],
             [$successServiceActivator],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -128,7 +138,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                         SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
                     ])),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         /** Send to channel_one */
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
@@ -146,7 +157,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     {
         $successServiceActivator = new SuccessServiceActivator();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [SuccessServiceActivator::class],
             [$successServiceActivator],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -161,7 +173,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         'x' => SimpleMessageChannelBuilder::createQueueChannel('channel_one'),
                         'y' => SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
                     ])),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         /** Send to x */
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
@@ -184,7 +197,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     public function test_using_skipping_receiving_strategy(): void
     {
         $successServiceActivator = new SuccessServiceActivator();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([SuccessServiceActivator::class, SimpleConsumptionDecider::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [SuccessServiceActivator::class, SimpleConsumptionDecider::class],
             [$successServiceActivator, new SimpleConsumptionDecider(['channel_one' => false, 'channel_two' => true], 'async_channel')],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -199,7 +213,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     'dynamicChannel.decide',
                     ['channel_one', 'channel_two']
                 ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two')),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
@@ -218,7 +233,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             ['channel_one']
         );
         $successServiceActivator = new SuccessServiceActivator();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([DynamicChannelResolver::class, SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [$dynamicChannelResolver, $successServiceActivator],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -227,7 +243,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel')
                     ->withCustomSendingStrategy('dynamicChannel.send')
                     ->withCustomReceivingStrategy('dynamicChannel.receive'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one')),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
         $this->assertSame(0, $ecotoneLite->sendQueryWithRouting('get_number_of_calls'));
@@ -249,7 +266,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
             ['channel_two', 'channel_one', 'channel_three', 'channel_two']
         );
         $successServiceActivator = new SuccessServiceActivator();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([DynamicChannelResolver::class, SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [$dynamicChannelResolver, $successServiceActivator],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -258,7 +276,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                 ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel')
                     ->withCustomSendingStrategy('dynamicChannel.send')
                     ->withCustomReceivingStrategy('dynamicChannel.receive'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_three')),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         /** Sending to channel one */
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
@@ -285,7 +304,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
 
     public function test_sending_using_header_strategy_with_mapping(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([DynamicChannelResolver::class, SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -305,7 +325,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         SimpleMessageChannelBuilder::createQueueChannel('channel_two'),
                         SimpleMessageChannelBuilder::createQueueChannel('channel_three'),
                     ])),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test'], ['tenant' => 'tenant_b']);
 
@@ -330,7 +351,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
 
     public function test_sending_using_header_strategy_from_factory(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([DynamicChannelResolver::class, SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -345,7 +367,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         'tenant_c' => 'channel_three',
                     ]
                 ))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_two'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_three')),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test'], ['tenant' => 'tenant_b']);
 
@@ -370,7 +393,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
 
     public function test_sending_using_header_strategy_without_mapping(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([DynamicChannelResolver::class, SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -385,7 +409,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_b'),
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_c'),
                     ])),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test'], ['tenant' => 'tenant_b']);
 
@@ -410,7 +435,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
 
     public function test_sending_using_header_strategy_throws_exception_when_header_is_missing(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([DynamicChannelResolver::class, SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -420,7 +446,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     ->withHeaderSendingStrategy(
                         'tenant',
                     )),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $this->expectException(InvalidArgumentException::class);
 
@@ -429,7 +456,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
 
     public function test_sending_using_header_strategy_with_default_channel(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([DynamicChannelResolver::class, SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -444,7 +472,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_shared'),
                     ])),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $ecotoneLite->sendDirectToChannel('handle_channel', ['test']);
 
@@ -459,7 +488,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
 
     public function test_throwing_exception_if_trying_to_consume_from_internal_channel(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([DynamicChannelResolver::class, SuccessServiceActivator::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [DynamicChannelResolver::class, SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
@@ -472,7 +502,8 @@ final class DynamicMessageChannelBuilderTest extends TestCase
                     ->withInternalChannels([
                         SimpleMessageChannelBuilder::createQueueChannel('tenant_a'),
                     ])),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $this->expectException(InvalidArgumentException::class);
 
@@ -504,13 +535,15 @@ final class DynamicMessageChannelBuilderTest extends TestCase
     {
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting([SuccessServiceActivator::class],
+        EcotoneLite::bootstrapFlowTesting(
+            [SuccessServiceActivator::class],
             [new SuccessServiceActivator()],
             (ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
                     PollingMetadata::create('async_channel')
                         ->setExecutionAmountLimit(1),
-                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one')));
+                ]))->addExtensionObject(DynamicMessageChannelBuilder::createRoundRobin('async_channel', ['channel_one']))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('channel_one'))
+        );
     }
 
     public function test_hiding_polling_consumer_for_send_only_channel_with_poll_or_throw()

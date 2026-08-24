@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
-use Ecotone\Messaging\Attribute\Endpoint\Priority;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Endpoint\Priority;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Modelling\Attribute\Aggregate;
 
 /**
  * licence Apache-2.0

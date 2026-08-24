@@ -6,12 +6,12 @@ namespace App\Domain\OrderSaga;
 
 use App\Domain\Order\Event\OrderWasPlaced;
 use App\Domain\OrderSaga\Event\OrderSagaStarted;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Endpoint\Delayed;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\Saga;
-use Ecotone\Modelling\CommandBus;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Endpoint\Delayed;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Modelling\WithEvents;
 use Ramsey\Uuid\UuidInterface;
 

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies;
 
-use Ecotone\EventSourcing\Attribute\AggregateType;
-use Ecotone\EventSourcing\Attribute\Stream;
-use Ecotone\Modelling\Attribute\EventSourcingAggregate;
-use Ecotone\Modelling\Attribute\EventSourcingHandler;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\EventSourcing\Api\Attribute\Stream;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]

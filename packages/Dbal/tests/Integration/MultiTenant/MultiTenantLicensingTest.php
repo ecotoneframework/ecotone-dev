@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
-use Ecotone\Dbal\Attribute\MultiTenantConnection;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Api\Attribute\MultiTenantConnection;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
 
+/**
+ * @internal
+ */
 final class MultiTenantLicensingTest extends TestCase
 {
     public function test_throws_when_multi_tenant_configuration_is_used_without_enterprise_licence(): void

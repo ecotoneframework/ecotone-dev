@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Messaging\Scheduling\NativeClock;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
 use Interop\Queue\Destination;

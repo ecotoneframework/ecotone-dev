@@ -6,16 +6,18 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\Orchestrator;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Attribute\Orchestrator;
-use Ecotone\Messaging\Attribute\OrchestratorGateway;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\Orchestrator;
+use Ecotone\Api\Attribute\OrchestratorGateway;
+use Ecotone\Api\Attribute\Saga;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
@@ -29,8 +31,6 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Saga;
 
 #[ModuleAnnotation]
 /**

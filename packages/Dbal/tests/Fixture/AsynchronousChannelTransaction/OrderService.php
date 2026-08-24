@@ -4,10 +4,10 @@ namespace Test\Ecotone\Dbal\Fixture\AsynchronousChannelTransaction;
 
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 use Interop\Queue\ConnectionFactory;

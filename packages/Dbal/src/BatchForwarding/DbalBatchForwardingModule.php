@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\BatchForwarding;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\Attribute\WithoutMessageCollector;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\Api\ExtensionObject\OutboxForwardingMessageChannel;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
-use Ecotone\Dbal\OutboxForwardingMessageChannel;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
-use Ecotone\Messaging\Attribute\WithoutDatabaseTransaction;
-use Ecotone\Messaging\Attribute\WithoutMessageCollector;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -26,7 +27,6 @@ use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\NullableMessageChannel;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
 
 #[ModuleAnnotation]

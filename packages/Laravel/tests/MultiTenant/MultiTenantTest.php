@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\Laravel\MultiTenant;
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Modelling\QueryBus;
 use Ecotone\Test\LicenceTesting;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;

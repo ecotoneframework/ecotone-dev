@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\ConsoleWriter;
 
-use Ecotone\Messaging\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Messaging\Console\ConsoleWriter;
 
 /**

@@ -4,9 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Modelling\Api\Distribution\DistributedBusHeader;
 use Ecotone\Modelling\MessageHandling\Distribution\DistributionEntrypoint;

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\MultiTenant\Application;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\Attribute\MultiTenantConnection;
+use Ecotone\Dbal\Api\Attribute\MultiTenantConnection;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\QueryHandler;
 
 final class NotificationSender
 {

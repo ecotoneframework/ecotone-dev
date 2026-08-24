@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\ExceptionalQueueChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\AggregateNotFoundException;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use RuntimeException;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
@@ -150,7 +150,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
             $classesToResolve,
             $services,
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects(array_merge(
                     $extensionObjects,
                     $channelBuilders,

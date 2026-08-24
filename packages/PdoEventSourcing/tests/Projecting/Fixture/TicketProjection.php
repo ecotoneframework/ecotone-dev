@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\Fixture;
 
-use Ecotone\EventSourcing\Attribute\ProjectionState;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Partitioned;
+use Ecotone\Api\Attribute\ProjectionState;
+use Ecotone\Api\Attribute\ProjectionV2;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketUnassigned;

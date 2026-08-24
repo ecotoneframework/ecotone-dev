@@ -6,11 +6,15 @@ namespace Ecotone\Kafka\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Kafka\Attribute\KafkaConsumer;
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaMessageChannelBuilder;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapterBuilder;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapterBuilder;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\Config\DeferredPublishingGatewayRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -20,7 +24,6 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
@@ -31,7 +34,6 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayload
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Messaging\Support\LicensingException;
 
 /**

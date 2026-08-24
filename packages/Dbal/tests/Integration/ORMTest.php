@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\AggregateNotFoundException;
-use Ecotone\Modelling\CommandBus;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\ORM\FailureMode\MultipleInternalCommandsService;
@@ -28,7 +29,6 @@ use Test\Ecotone\Dbal\Fixture\ORM\PersonQueryHandler\PersonQueryService;
 use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\ORMPersonRepository;
 use Test\Ecotone\Dbal\Fixture\ORM\PersonRepository\RegisterPersonService;
 use Test\Ecotone\Dbal\Fixture\ORM\SynchronousEventHandler\SaveMultipleEntitiesHandler;
-use Ecotone\Test\LicenceTesting;
 
 /**
  * @internal
@@ -149,7 +149,7 @@ final class ORMTest extends DbalMessagingTestCase
             ], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects(array_merge([
                     DbalConfiguration::createWithDefaults()
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
@@ -224,7 +224,7 @@ final class ORMTest extends DbalMessagingTestCase
             ], $services),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
@@ -267,7 +267,7 @@ final class ORMTest extends DbalMessagingTestCase
             containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces($namespaces)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
@@ -299,7 +299,7 @@ final class ORMTest extends DbalMessagingTestCase
             containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
@@ -348,7 +348,7 @@ final class ORMTest extends DbalMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces($namespaces)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Modelling\DistributedBus;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Interceptor\CustomDistributedBusInterceptor;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher\UserService;

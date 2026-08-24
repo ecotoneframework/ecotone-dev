@@ -8,25 +8,25 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\FromStream;
+use Ecotone\Api\Attribute\Partitioned;
+use Ecotone\Api\Attribute\ProjectionDelete;
+use Ecotone\Api\Attribute\ProjectionExecution;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
-use Ecotone\Modelling\EventBus;
-use Ecotone\Projecting\Attribute\Partitioned;
-use Ecotone\Projecting\Attribute\ProjectionExecution;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use stdClass;
@@ -280,17 +280,19 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: array_merge([$projection::class, $notificationHandler::class], [Ticket::class, TicketEventConverter::class]),
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: array_merge([$projection::class, $notificationHandler::class], [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: [$projection, $notificationHandler, new TicketEventConverter(), self::getConnectionFactory()],
             configuration: (ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,])
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withExtensionObjects([
                     PollableChannelConfiguration::neverRetry('notifications')->withCollector(true),
                 ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($projection::CHANNEL))
                 ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('notifications')),
             runForProductionEventStore: true,
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
 
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
@@ -310,13 +312,15 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services, string $channel): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
+        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+            classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: (ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel))
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]))->addExtensionObject(DbalBackedMessageChannelBuilder::create($channel))
                 ->addExtensionObject(InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)),
             runForProductionEventStore: true,
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
     }
 }

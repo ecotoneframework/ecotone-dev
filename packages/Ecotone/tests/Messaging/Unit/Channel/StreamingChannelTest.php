@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel;
 
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\InternalHandler;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Modelling\Api\Distribution\DistributedServiceMap;

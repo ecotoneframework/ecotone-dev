@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\TenantAggregate;
 
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\IdentifierMethod;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\IdentifierMethod;
 use Tempest\Database\IsDatabaseModel;
 use Tempest\Database\PrimaryKey;
 use Tempest\Database\Table;

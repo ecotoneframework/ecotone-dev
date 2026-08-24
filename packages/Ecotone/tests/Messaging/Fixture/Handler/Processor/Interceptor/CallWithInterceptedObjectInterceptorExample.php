@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor;
 
-use Ecotone\Messaging\Attribute\Interceptor\Around;
+use Ecotone\Api\Attribute\Interceptor\Around;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\StubCallSavingService;
 
 /**

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Application;
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\Fixture\Counter\CounterGateway;
@@ -35,7 +34,7 @@ final class BusinessInterfaceResolutionTest extends EcotoneIntegrationTestCase
     {
         $counterGateway = $this->container->get(CounterGateway::class);
 
-        $commandBus = $this->container->get(\Ecotone\Modelling\CommandBus::class);
+        $commandBus = $this->container->get(\Ecotone\Api\Gateway\CommandBus::class);
         $commandBus->sendWithRouting('counter.increment');
 
         $this->assertSame(1, $counterGateway->get());

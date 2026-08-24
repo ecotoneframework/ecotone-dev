@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Fixture\Deduplication;
 
-use Ecotone\Kafka\Attribute\KafkaConsumer;
-use Ecotone\Messaging\Attribute\Deduplicated;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
+use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\Parameter\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Enterprise

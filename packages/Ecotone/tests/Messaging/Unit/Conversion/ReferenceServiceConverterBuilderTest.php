@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Conversion;
 
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Converter;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Attribute\CommandHandler;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
 use stdClass;

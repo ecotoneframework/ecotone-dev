@@ -6,12 +6,12 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeader
 
 use DateTimeImmutable;
 use DateTimeInterface;
-use Ecotone\Messaging\Attribute\Endpoint\AddHeader;
-use Ecotone\Messaging\Attribute\Endpoint\ContentType;
-use Ecotone\Messaging\Attribute\Endpoint\Delayed;
-use Ecotone\Messaging\Attribute\Endpoint\Priority;
-use Ecotone\Messaging\Attribute\Endpoint\RemoveHeader;
-use Ecotone\Messaging\Attribute\Endpoint\TimeToLive;
+use Ecotone\Api\Attribute\Endpoint\AddHeader;
+use Ecotone\Api\Attribute\Endpoint\ContentType;
+use Ecotone\Api\Attribute\Endpoint\Delayed;
+use Ecotone\Api\Attribute\Endpoint\Priority;
+use Ecotone\Api\Attribute\Endpoint\RemoveHeader;
+use Ecotone\Api\Attribute\Endpoint\TimeToLive;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;

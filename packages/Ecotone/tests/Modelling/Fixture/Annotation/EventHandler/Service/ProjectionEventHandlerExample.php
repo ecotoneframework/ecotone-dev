@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\EventHandler\Service;
 
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Modelling\Attribute\EventHandler;
 use stdClass;
 
 #[Projection('some', 'some')]

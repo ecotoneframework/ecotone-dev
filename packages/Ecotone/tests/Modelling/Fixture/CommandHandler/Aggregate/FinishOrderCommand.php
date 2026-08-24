@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate;
 
-use Ecotone\Modelling\Attribute\TargetIdentifier;
+use Ecotone\Api\Attribute\TargetIdentifier;
 
 /**
  * Class FinishOrderCommand

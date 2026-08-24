@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\Collector\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\Collector\CollectorSenderInterceptor;
 use Ecotone\Messaging\Channel\Collector\CollectorStorage;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
@@ -25,7 +26,6 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Precedence;
-use Ecotone\Modelling\CommandBus;
 
 #[ModuleAnnotation]
 /**

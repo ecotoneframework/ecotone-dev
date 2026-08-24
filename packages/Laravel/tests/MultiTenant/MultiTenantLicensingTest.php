@@ -8,7 +8,9 @@ use Ecotone\Messaging\Support\LicensingException;
 use Illuminate\Foundation\Http\Kernel;
 use PHPUnit\Framework\TestCase;
 
-
+/**
+ * @internal
+ */
 final class MultiTenantLicensingTest extends TestCase
 {
     protected function tearDown(): void

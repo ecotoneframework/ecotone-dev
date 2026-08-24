@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\Gateway\DeadLetterGateway;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
-use Ecotone\Dbal\Recoverability\DeadLetterGateway;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 
 /**

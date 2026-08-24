@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\DataProtection\Fixture;
 
-use Ecotone\DataProtection\Attribute\Sensitive;
+use Ecotone\DataProtection\Api\Attribute\Sensitive;
 
 #[Sensitive]
 class AnnotatedClassWithAnnotatedProperty

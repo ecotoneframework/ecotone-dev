@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Api\ExtensionObject\EventSourcingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
@@ -43,7 +43,7 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
             containerOrAvailableServices: [new BasketEventConverter(), new BasketMediaTypeConverter(), new TicketEventConverter(), new TicketMediaTypeConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Basket',
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Recoverability;
 
-use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Handler\ChannelResolver;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\MessageHandlingException;

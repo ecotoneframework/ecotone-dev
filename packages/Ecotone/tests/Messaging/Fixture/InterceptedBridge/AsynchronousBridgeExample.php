@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptedBridge;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Attribute\ServiceActivator;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 /**

@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Consumer;
 
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\PollableChannel;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 

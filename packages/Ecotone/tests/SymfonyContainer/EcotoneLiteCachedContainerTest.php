@@ -4,13 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\SymfonyContainer;
 
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Payload;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\CommandBus;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\OneTimeWithResultExample;

@@ -6,8 +6,8 @@ the release; within a group the most impactful changes come first.
 
 Minimum requirements: PHP 8.2, Symfony 6.4+/7, Laravel 11+, Doctrine DBAL 4.
 
-**Status of this guide.** Sections 1, 2, 5, 6, 7, 9, 11 and 14 describe behaviour that is already in the
-codebase. Sections 3, 4, 8, 12 and 13 are **planned for 2.0 and not implemented yet** — they are marked
+**Status of this guide.** Sections 1, 2, 5, 6, 7, 9, 11, 13 and 14 describe behaviour that is already in the
+codebase. Sections 3, 4, 8 and 12 are **planned for 2.0 and not implemented yet** — they are marked
 individually below. Do not act on a planned section until it ships; the API it describes does not exist.
 Section 10 records behaviour that was considered for change and deliberately kept as it is.
 
@@ -81,7 +81,7 @@ messages yourself.
 **Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`,
 `ProjectionManager`, `ProjectionRunningConfiguration`, `ecotone:es:*` console commands, `FlowTestSupport::initializeProjection()`,
 `resetProjection()`, `stopProjection()`, `deleteProjection()`, `triggerProjection()`), and the new v2
-(`Ecotone\Projecting\Attribute\ProjectionV2`).
+(`Ecotone\Api\Attribute\ProjectionV2`).
 
 **Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Attribute\Projection`). v1
 classes, configuration and console commands are gone. Projection state lives in the v2 state table
@@ -139,7 +139,7 @@ Prooph classes (`Prooph\EventStore\*`, `MetadataMatcher`, `FieldType`, `Operator
 
 **Now:** The queue transport classes live in `Ecotone\Dbal\Connection` (`DbalConnectionFactory`, `DbalContext`, `DbalProducer`,
 `DbalConsumer`, `ManagerRegistryConnectionFactory`, …) and still implement the `queue-interop` interfaces. The default connection
-reference name is `Ecotone\Dbal\DbalConnectionReference::DEFAULT` (which equals `Ecotone\Dbal\Connection\DbalConnectionFactory::class`);
+reference name is `Ecotone\Dbal\Api\ExtensionObject\DbalConnectionReference::DEFAULT` (which equals `Ecotone\Dbal\Connection\DbalConnectionFactory::class`);
 `DbalConnectionReference::defaultConnection()` returns the reference object. Framework references keep their factories
 (`SymfonyConnectionReference::createForManagerRegistry('default')`, `LaravelConnectionReference::defaultConnection()`,
 `TempestConnectionReference::default()`) and resolve to the new default. The `enqueue/dbal` composer replacement/conflict and the
@@ -306,8 +306,6 @@ Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php`; the bu
 
 ## 13. Public API moved to `Api` namespaces
 
-> **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
-
 **Before:** User-facing attributes and configuration objects lived in module namespaces
 (`Ecotone\Messaging\Attribute\*`, `Ecotone\Modelling\Attribute\*`, `Ecotone\Projecting\Attribute\*`, `Ecotone\Dbal\Attribute\*`,
 `Ecotone\Messaging\Config\ServiceConfiguration`, `Ecotone\Dbal\Configuration\DbalConfiguration`, ...).
@@ -317,7 +315,10 @@ Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php`; the bu
 - extension objects returned from `#[ServiceContext]` → `Ecotone\Api\ExtensionObject\*` / `Ecotone\<Package>\Api\ExtensionObject\*`
 - gateways/buses → `Ecotone\Api\Gateway\*` (`CommandBus`, `QueryBus`, `EventBus`, `DistributedBus`, `MessagePublisher`, ...)
 
-Classes outside `Api` are `@internal` and may change in minor versions.
+Classes outside `Api` are `@internal` and may change in minor versions. `ProjectionV2` keeps its name in this release
+(the rename to `#[Projection]` is a separate, not-yet-implemented change, see §3); it only moves namespace, to
+`Ecotone\Api\Attribute\ProjectionV2`. `Ecotone\Modelling\Api\Distribution\*` (`DistributedServiceMap`, `DistributedBusHeader`)
+and `Ecotone\Kafka\Api\KafkaHeader` already lived under `Api` before this change and keep their namespace.
 
 **How to adapt:** Run the provided Rector set (`vendor/ecotone/ecotone/upgrade/rector-2.0.php`) or apply the mapping table in
 `upgrade/namespace-map-2.0.csv` with `sed`. Examples:
@@ -326,11 +327,13 @@ Classes outside `Api` are `@internal` and may change in minor versions.
 |---|---|
 | `Ecotone\Modelling\Attribute\CommandHandler` | `Ecotone\Api\Attribute\CommandHandler` |
 | `Ecotone\Messaging\Attribute\Asynchronous` | `Ecotone\Api\Attribute\Asynchronous` |
-| `Ecotone\Projecting\Attribute\ProjectionV2` | `Ecotone\Api\Attribute\Projection` |
+| `Ecotone\Projecting\Attribute\ProjectionV2` | `Ecotone\Api\Attribute\ProjectionV2` |
 | `Ecotone\Messaging\Config\ServiceConfiguration` | `Ecotone\Api\ExtensionObject\ServiceConfiguration` |
 | `Ecotone\Dbal\Configuration\DbalConfiguration` | `Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration` |
 | `Ecotone\Amqp\AmqpBackedMessageChannelBuilder` | `Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder` |
 | `Ecotone\Modelling\CommandBus` | `Ecotone\Api\Gateway\CommandBus` |
+
+The full 148-class mapping is in `upgrade/namespace-map-2.0.csv`.
 
 ## 14. Smaller behaviour changes
 

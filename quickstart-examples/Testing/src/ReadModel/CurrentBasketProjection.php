@@ -10,9 +10,9 @@ use App\Testing\Domain\ShoppingBasket\Event\OrderWasPlaced;
 use App\Testing\Domain\ShoppingBasket\Event\ProductWasAddedToBasket;
 use App\Testing\Domain\ShoppingBasket\Event\ProductWasRemovedFromBasket;
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Messaging\Store\Document\DocumentStore;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ramsey\Uuid\UuidInterface;
 
 #[Projection("current_basket", [Basket::class, Product::class])]

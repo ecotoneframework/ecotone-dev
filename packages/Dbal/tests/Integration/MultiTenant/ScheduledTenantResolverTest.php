@@ -4,27 +4,27 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
-use Ecotone\Dbal\Attribute\WithTenantResolver;
-use Ecotone\Dbal\Configuration\DbalConfiguration;
-use Ecotone\Dbal\MultiTenant\MultiTenantConfiguration;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Attribute\Parameter\Headers;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Dbal\Api\Attribute\WithTenantResolver;
+use Ecotone\Dbal\Api\ExtensionObject\DbalConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Interceptor\Before;
-use Ecotone\Messaging\Attribute\Parameter\Headers;
-use Ecotone\Messaging\Attribute\Scheduled;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\MultiTenant\FakeConnectionFactory;
 
@@ -266,11 +266,12 @@ final class ScheduledTenantResolverTest extends TestCase
      */
     private function bootstrap(array $services, array $classes): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting($classes,
+        return EcotoneLite::bootstrapFlowTesting(
+            $classes,
             array_merge($services, ['tenant_a_connection' => new FakeConnectionFactory()]),
             (ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     PollingMetadata::create('externalEventPoller')
                         ->setExecutionAmountLimit(1)
@@ -290,7 +291,8 @@ final class ScheduledTenantResolverTest extends TestCase
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
                         ->withDeduplication(false),
                 ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('external_processing')),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
     }
 
     private function pollOnce(FlowTestSupport $ecotone): void

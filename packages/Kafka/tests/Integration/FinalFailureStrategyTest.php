@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Kafka\Channel\KafkaMessageChannelBuilder;
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;

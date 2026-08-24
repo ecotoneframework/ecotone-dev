@@ -4,18 +4,18 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Amqp\AmqpQueue;
+use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
+use Ecotone\Amqp\Api\ExtensionObject\AmqpMessagePublisherConfiguration;
 use Ecotone\Amqp\Configuration\AmqpMessageConsumerConfiguration;
-use Ecotone\Amqp\Publisher\AmqpMessagePublisherConfiguration;
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Parameter\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Attribute\MessageConsumer;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 
@@ -38,7 +38,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpMessageConsumerConfiguration::create($endpointId, $queueName),
                     AmqpQueue::createWith($queueName),
@@ -73,7 +73,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(
                         'async_commands_unique',
@@ -108,7 +108,7 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create(
                         'async_commands_unique',

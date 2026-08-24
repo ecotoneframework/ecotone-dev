@@ -6,11 +6,11 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodIntercep
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Messaging\Attribute\Interceptor\After;
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Attribute\Interceptor\Before;
-use Ecotone\Messaging\Attribute\Interceptor\Presend;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\Interceptor\After;
+use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Attribute\Interceptor\Presend;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;

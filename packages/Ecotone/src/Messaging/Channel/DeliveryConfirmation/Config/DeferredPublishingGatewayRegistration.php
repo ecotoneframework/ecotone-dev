@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Channel\DeliveryConfirmation\Config;
 
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\DeferredPublishingGateway;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -17,7 +18,6 @@ use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaders
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\MessagePublisher;
 
 /**
  * licence Enterprise

@@ -5,8 +5,8 @@ namespace App\EventSourcing;
 use App\EventSourcing\Event\PriceWasChanged;
 use App\EventSourcing\Event\ProductWasRegistered;
 use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 #[Projection("price_change_over_time", Product::class)]
 class PriceChangeOverTimeProjection

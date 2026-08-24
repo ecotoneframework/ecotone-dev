@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Integration;
 
-use Ecotone\Amqp\AmqpBackedMessageChannelBuilder;
+use Ecotone\Amqp\Api\ExtensionObject\AmqpBackedMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Modelling\AggregateMessage;
 use Test\Ecotone\Amqp\AmqpMessagingTestCase;
 use Test\Ecotone\Amqp\Fixture\Calendar\Calendar;
@@ -29,7 +29,7 @@ final class CallAggregateAsynchronousEndpointTest extends AmqpMessagingTestCase
                 ...self::getConnectionFactoryReferences(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create('calendar'),
                 ])

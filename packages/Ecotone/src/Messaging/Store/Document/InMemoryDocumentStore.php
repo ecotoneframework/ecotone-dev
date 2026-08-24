@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging\Store\Document;
 
+use Ecotone\Api\Gateway\DocumentStore;
+
 use function json_decode;
 
 use JsonException;

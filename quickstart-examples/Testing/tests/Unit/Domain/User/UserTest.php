@@ -15,11 +15,11 @@ use App\Testing\Infrastructure\MessagingConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use PHPUnit\Framework\TestCase;
 use Ramsey\Uuid\Uuid;
 

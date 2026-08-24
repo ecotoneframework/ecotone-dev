@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\FromStream;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\FromStream;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Attribute\ProjectionDelete;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Projecting\Attribute\Polling;
-use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
@@ -137,7 +137,7 @@ final class PollingProjectionTest extends ProjectingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -319,7 +319,7 @@ final class PollingProjectionTest extends ProjectingTestCase
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE,
-                    ModulePackageList::EVENT_SOURCING_PACKAGE,]),
+                    ModulePackageList::EVENT_SOURCING_PACKAGE, ]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Integration;
 
-use Ecotone\JMSConverter\JMSConverterConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\JMSConverter\Api\ExtensionObject\JMSConverterConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\BasicEnum;
 use Test\Ecotone\JMSConverter\Fixture\EnumHeaderConversion\Message;
@@ -29,7 +29,7 @@ class HeaderConversionTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             containerOrAvailableServices: [$playground],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE,])
+                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     JMSConverterConfiguration::createWithDefaults()
@@ -78,7 +78,7 @@ class HeaderConversionTest extends TestCase
             classesToResolve: [Playground::class],
             containerOrAvailableServices: [$playground],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE,])
+                ->withModulePackages([ModulePackageList::JMS_CONVERTER_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
                     JMSConverterConfiguration::createWithDefaults()

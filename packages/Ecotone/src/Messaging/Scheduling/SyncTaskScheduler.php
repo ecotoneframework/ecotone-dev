@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
-use Ecotone\Messaging\Endpoint\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 
 /**
  * Class SyncTaskScheduler

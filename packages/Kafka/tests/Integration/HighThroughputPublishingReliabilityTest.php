@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Kafka\Configuration\KafkaBrokerConfiguration;
-use Ecotone\Kafka\Configuration\KafkaPublisherConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaBrokerConfiguration;
+use Ecotone\Kafka\Api\ExtensionObject\KafkaPublisherConfiguration;
 use Ecotone\Kafka\Outbound\MessagePublishingException;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;

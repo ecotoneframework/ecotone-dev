@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Orchestrator;
 
-use Ecotone\Messaging\Attribute\InternalHandler;
-use Ecotone\Messaging\Attribute\Orchestrator;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\CommandBus;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Orchestrator;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Gateway\CommandBus;
 
 /**
  * licence Enterprise

@@ -3,12 +3,12 @@
 namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Exception\ConnectionException;
+use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Dbal\Connection\DbalContext;
 
 /**
  * licence Apache-2.0

@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal;
 
+use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Dbal\Connection\DbalDestination;
+use Ecotone\Dbal\Connection\DbalProducer;
 use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
@@ -12,9 +15,6 @@ use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConve
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Dbal\Connection\DbalContext;
-use Ecotone\Dbal\Connection\DbalDestination;
-use Ecotone\Dbal\Connection\DbalProducer;
 use Interop\Queue\Context;
 
 /**

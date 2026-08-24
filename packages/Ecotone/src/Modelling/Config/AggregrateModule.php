@@ -6,8 +6,16 @@ use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\NamedEvent;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\RelatedAggregate;
+use Ecotone\Api\Attribute\Repository;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Mapping\EventMapper;
-use Ecotone\Messaging\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
@@ -18,7 +26,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Config\PriorityBasedOnType;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Bridge\BridgeBuilder;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -49,13 +56,6 @@ use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateTestSetupServiceBuilder;
 use Ecotone\Modelling\AggregateIdentifierRetrevingServiceBuilder;
 use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\NamedEvent;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\Attribute\RelatedAggregate;
-use Ecotone\Modelling\Attribute\Repository;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
 use Ecotone\Modelling\Config\Routing\RoutingEvent;
 use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
@@ -381,7 +381,7 @@ class AggregrateModule implements AnnotationModule, RoutingEventHandler
                 Reference::to(ConversionService::REFERENCE_NAME),
                 DefaultHeaderMapper::createAllHeadersMapping()->getDefinition(),
                 Reference::to(EventMapper::class),
-                Reference::to(\Ecotone\Messaging\Scheduling\EcotoneClockInterface::class),
+                Reference::to(\Ecotone\Api\Gateway\EcotoneClockInterface::class),
             ])
         );
     }

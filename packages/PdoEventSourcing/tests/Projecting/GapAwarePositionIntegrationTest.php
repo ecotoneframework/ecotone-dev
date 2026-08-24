@@ -7,6 +7,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\ProjectingManager;
+use Ecotone\Api\Gateway\ProjectionRegistry;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
@@ -14,17 +19,12 @@ use Ecotone\EventSourcing\Projecting\StreamSource\GapAwarePosition;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\StubUTCClock;
 use Ecotone\Modelling\Event;
-use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\ProjectingManager;
-use Ecotone\Projecting\ProjectionRegistry;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Test\LicenceTesting;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Psr\Clock\ClockInterface;
 
 use function sha1;

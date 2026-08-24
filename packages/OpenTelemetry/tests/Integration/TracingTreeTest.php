@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use ArrayObject;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\OpenTelemetry\Configuration\TracingConfiguration;
 use Ecotone\OpenTelemetry\Support\OTelTracer;
 use InvalidArgumentException;
@@ -492,7 +492,7 @@ final class TracingTreeTest extends TracingTestCase
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -541,7 +541,7 @@ final class TracingTreeTest extends TracingTestCase
                 TracerProviderInterface::class => self::prepareTracer($exporter),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -586,7 +586,7 @@ final class TracingTreeTest extends TracingTestCase
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -650,7 +650,7 @@ final class TracingTreeTest extends TracingTestCase
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -710,7 +710,7 @@ final class TracingTreeTest extends TracingTestCase
             [\Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow\User::class],
             [TracerProviderInterface::class => TracingTestCase::prepareTracer($exporter)],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),
                 ])
@@ -784,7 +784,7 @@ final class TracingTreeTest extends TracingTestCase
                 TracerProviderInterface::class => $tracerProvider,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::TRACING_PACKAGE,])
+                ->withModulePackages([ModulePackageList::TRACING_PACKAGE, ])
                 ->withExtensionObjects([
                     TracingConfiguration::createWithDefaults(),
                     SimpleMessageChannelBuilder::createQueueChannel('async_channel'),

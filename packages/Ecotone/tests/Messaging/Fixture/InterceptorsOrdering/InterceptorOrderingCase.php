@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 
-use Ecotone\Messaging\Attribute\InternalHandler;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Messaging\Attribute\ServiceActivator;
-use Ecotone\Modelling\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\ServiceActivator;
 
 /**
  * licence Apache-2.0

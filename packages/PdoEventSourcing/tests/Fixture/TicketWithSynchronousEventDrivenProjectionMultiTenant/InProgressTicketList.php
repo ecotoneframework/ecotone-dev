@@ -3,14 +3,14 @@
 namespace Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjectionMultiTenant;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\EventSourcing\Attribute\Projection;
-use Ecotone\EventSourcing\Attribute\ProjectionDelete;
-use Ecotone\EventSourcing\Attribute\ProjectionInitialization;
-use Ecotone\EventSourcing\Attribute\ProjectionReset;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\ProjectionDelete;
+use Ecotone\Api\Attribute\ProjectionInitialization;
+use Ecotone\Api\Attribute\ProjectionReset;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Attribute\Projection;
 use Interop\Queue\ConnectionFactory;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;

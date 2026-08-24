@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
-use Ecotone\Messaging\MessagePublisher;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\InMemoryHighThroughputOutboundAdapter;
 use Test\Ecotone\Messaging\Fixture\HighThroughputPublishing\InMemoryHighThroughputPublisherModule;

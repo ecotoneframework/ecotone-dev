@@ -6,15 +6,15 @@ namespace Test\Ecotone\Amqp\Integration;
 
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Amqp\AmqpStreamChannelBuilder;
-use Ecotone\Lite\Test\TestConfiguration;
-use Ecotone\Messaging\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Symfony\Component\Uid\Uuid;
@@ -46,7 +46,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue('test_queue'),
                     AmqpStreamChannelBuilder::create(
@@ -71,7 +71,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -115,7 +115,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -162,7 +162,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -209,7 +209,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -256,7 +256,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -294,7 +294,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -339,7 +339,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -381,7 +381,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -415,7 +415,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -458,7 +458,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -498,7 +498,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -536,7 +536,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -579,7 +579,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -623,7 +623,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -664,7 +664,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -709,7 +709,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -759,7 +759,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -805,7 +805,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -877,7 +877,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -930,7 +930,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -982,7 +982,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -1051,7 +1051,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -1101,7 +1101,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 \Ecotone\Messaging\Consumer\ConsumerPositionTracker::class => $sharedPositionTracker,
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -1241,8 +1241,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         // Publisher service
         $publisher = new class () {
-            #[\Ecotone\Modelling\Attribute\CommandHandler('publish.event')]
-            public function publish(string $payload, \Ecotone\Modelling\EventBus $eventBus): void
+            #[\Ecotone\Api\Attribute\CommandHandler('publish.event')]
+            public function publish(string $payload, \Ecotone\Api\Gateway\EventBus $eventBus): void
             {
                 $eventBus->publish($payload);
             }
@@ -1252,8 +1252,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $consumer1 = new class () {
             private array $consumed = [];
 
-            #[\Ecotone\Modelling\Attribute\Distributed]
-            #[\Ecotone\Modelling\Attribute\EventHandler('distributed.event', endpointId: 'consumer1')]
+            #[\Ecotone\Api\Attribute\Distributed]
+            #[\Ecotone\Api\Attribute\EventHandler('distributed.event', endpointId: 'consumer1')]
             public function handle(string $payload): void
             {
                 $this->consumed[] = $payload;
@@ -1270,8 +1270,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $consumer2 = new class () {
             private array $consumed = [];
 
-            #[\Ecotone\Modelling\Attribute\Distributed]
-            #[\Ecotone\Modelling\Attribute\EventHandler('distributed.event', endpointId: 'consumer2')]
+            #[\Ecotone\Api\Attribute\Distributed]
+            #[\Ecotone\Api\Attribute\EventHandler('distributed.event', endpointId: 'consumer2')]
             public function handle(string $payload): void
             {
                 $this->consumed[] = $payload;
@@ -1296,7 +1296,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('publisher-service')
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -1321,7 +1321,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service1')
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -1344,7 +1344,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
             ],
             ServiceConfiguration::createWithDefaults()
                 ->withServiceName('service2')
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName),
@@ -1382,7 +1382,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName)
@@ -1434,7 +1434,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
                 ...$this->getConnectionFactoryReferences(),
             ],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::AMQP_PACKAGE,])
+                ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     AmqpQueue::createStreamQueue($queueName)

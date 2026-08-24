@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
@@ -10,7 +11,6 @@ use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Test\ComponentTestBuilder;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;

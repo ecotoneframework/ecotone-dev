@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use Ecotone\Modelling\Event;
 
 use function end;

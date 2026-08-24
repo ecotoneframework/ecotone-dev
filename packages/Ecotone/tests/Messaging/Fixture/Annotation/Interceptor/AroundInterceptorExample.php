@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\Interceptor;
 
-use Ecotone\Messaging\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Interceptor\Around;
+use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
-use Ecotone\Messaging\Attribute\Interceptor\Around;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
-use Ecotone\Modelling\Attribute\CommandHandler;
 use stdClass;
 
 final class AroundInterceptorExample

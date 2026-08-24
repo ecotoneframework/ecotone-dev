@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling;
 
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Repository;
+use Ecotone\Api\Attribute\Saga;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Repository;
-use Ecotone\Modelling\Attribute\Saga;
 
 /**
  * licence Apache-2.0

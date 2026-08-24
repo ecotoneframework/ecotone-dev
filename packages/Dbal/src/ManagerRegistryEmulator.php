@@ -12,8 +12,8 @@ use Doctrine\ORM\Tools\Setup;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
 use Doctrine\Persistence\ObjectRepository;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
  * licence Apache-2.0

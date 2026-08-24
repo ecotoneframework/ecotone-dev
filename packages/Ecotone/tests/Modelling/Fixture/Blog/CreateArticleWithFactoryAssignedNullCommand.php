@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Blog;
 
-use Ecotone\Modelling\Attribute\TargetIdentifier;
+use Ecotone\Api\Attribute\TargetIdentifier;
 
 /**
  * Command where one identifier comes from command metadata and factory method generates the other

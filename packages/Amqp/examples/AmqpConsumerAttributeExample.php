@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp\Examples;
 
-use Ecotone\Amqp\Attribute\RabbitConsumer;
-use Ecotone\Messaging\Attribute\Parameter\Payload;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Amqp\Api\Attribute\RabbitConsumer;
+use Ecotone\Api\Attribute\Parameter\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Enterprise

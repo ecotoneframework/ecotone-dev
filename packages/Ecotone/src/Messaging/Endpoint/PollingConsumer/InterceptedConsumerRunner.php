@@ -2,18 +2,18 @@
 
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
-use Ecotone\Messaging\Endpoint\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\MessagePoller;
 use Ecotone\Messaging\Scheduling\CronTrigger;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\PeriodicTrigger;
 use Ecotone\Messaging\Scheduling\SyncTaskScheduler;
 

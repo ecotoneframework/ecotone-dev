@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\ReactiveSystem\Stage_3\Infrastructure\Messaging;
 
-use Ecotone\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Handler\Recoverability\ErrorHandlerConfiguration;
+use Ecotone\Dbal\Api\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 
 final class MessageChannelConfiguration
 {

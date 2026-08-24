@@ -4,9 +4,7 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
 use function array_values;
 
-use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 
 /**
  * Executes endpoint with around interceptors

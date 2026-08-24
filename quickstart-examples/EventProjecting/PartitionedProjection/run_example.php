@@ -7,7 +7,7 @@ use App\EventProjecting\PartitionedProjection\Domain\Command\DebitWallet;
 use App\EventProjecting\PartitionedProjection\Domain\Command\CreditWallet;
 use App\EventProjecting\PartitionedProjection\ReadModel\WalletBalanceProjection;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;

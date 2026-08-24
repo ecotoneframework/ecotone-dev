@@ -2,7 +2,7 @@
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Money\Money;
 use Ramsey\Uuid\UuidInterface;

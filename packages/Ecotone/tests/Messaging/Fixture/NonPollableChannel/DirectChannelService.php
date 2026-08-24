@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\NonPollableChannel;
 
-use Ecotone\Messaging\Attribute\InternalHandler;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Parameter\Reference;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
-use Ecotone\Modelling\Attribute\CommandHandler;
 
 /**
  * licence Apache-2.0

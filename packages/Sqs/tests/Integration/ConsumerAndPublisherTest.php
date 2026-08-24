@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Sqs\Integration;
 
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
+use Ecotone\Sqs\Api\ExtensionObject\SqsMessagePublisherConfiguration;
 use Ecotone\Sqs\Configuration\SqsMessageConsumerConfiguration;
-use Ecotone\Sqs\Configuration\SqsMessagePublisherConfiguration;
 use Enqueue\Sqs\SqsConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Sqs\ConnectionTestCase;

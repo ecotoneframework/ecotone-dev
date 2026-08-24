@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event;
 
-use Ecotone\Modelling\Attribute\NamedEvent;
+use Ecotone\Api\Attribute\NamedEvent;
 
 #[NamedEvent(self::EVENT_NAME)]
 class OrderWasPlaced

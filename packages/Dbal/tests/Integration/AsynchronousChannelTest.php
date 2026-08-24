@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor\AddMetadataInterceptor;
@@ -122,7 +122,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
                 ),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\Dbal\Fixture\AsynchronousChannelWithInterceptor']),
             pathToRootCatalog: __DIR__ . '/../../',
         );
@@ -142,8 +142,8 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
             containerOrAvailableServices: array_merge($services, [DbalConnectionFactory::class => DbalConnection::fromConnectionFactory($dbalConnectionFactory), 'managerRegistry' => $dbalConnectionFactory]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::DBAL_PACKAGE,])
-                ->addExtensionObject(\Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+                ->addExtensionObject(\Ecotone\Api\ExtensionObject\InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false))
                 ->withNamespaces($namespaces),
             pathToRootCatalog: __DIR__ . '/../../',
         );

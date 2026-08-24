@@ -2,7 +2,7 @@
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Modelling\Attribute\Version;
+use Ecotone\Api\Attribute\Version;
 
 /**
  * licence Apache-2.0

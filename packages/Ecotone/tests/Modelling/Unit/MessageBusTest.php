@@ -5,24 +5,20 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\Unit;
 
 use Ecotone\AnnotationFinder\ConfigurationException as AnnotationConfigurationException;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\Identifier;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\Config\MessageBusChannel;
-use Ecotone\Modelling\EventBus;
-use Ecotone\Modelling\QueryBus;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use stdClass;
@@ -300,11 +296,13 @@ final class MessageBusTest extends TestCase
 
     public function test_it_does_use_endpoint_ids_as_routing_slips_to_ensure_it_kept_static(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(classesToResolve: [
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [
                 GuestNotifier::class,
             ],
             containerOrAvailableServices: [new GuestNotifier()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('background')));
+            configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('background'))
+        );
 
         $ecotoneLite
             ->publishEvent(new GuestWasAddedToBook('book-1', 'John Doe'));

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Application\Execution;
 
-use Ecotone\Laravel\Queue\LaravelQueueMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Laravel\Api\ExtensionObject\LaravelQueueMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Http\Kernel;
 use Illuminate\Support\Facades\Schema;

@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\Snapshots;
 
-use Ecotone\Messaging\Attribute\MediaTypeConverter;
+use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Messaging\Conversion\Converter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;

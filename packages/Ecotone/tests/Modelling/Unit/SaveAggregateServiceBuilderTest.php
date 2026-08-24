@@ -2,17 +2,17 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Store\Document\DocumentException;
-use Ecotone\Messaging\Store\Document\DocumentStore;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateService;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
-use Ecotone\Modelling\CommandBus;
 use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
 use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\TestCase;

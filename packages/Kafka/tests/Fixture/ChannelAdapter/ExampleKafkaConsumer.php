@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Fixture\ChannelAdapter;
 
-use Ecotone\Kafka\Attribute\KafkaConsumer;
-use Ecotone\Modelling\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Kafka\Api\Attribute\KafkaConsumer;
 
 /**
  * licence Enterprise

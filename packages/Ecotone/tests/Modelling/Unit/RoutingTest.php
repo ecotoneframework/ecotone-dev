@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Modelling\Attribute\EventHandler;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestWasAddedToBook;
@@ -79,11 +79,13 @@ class RoutingTest extends TestCase
     #[DataProvider('cases')]
     public function test_it_can_route_events_by_name_and_convert(mixed $event, bool $async, RoutingTestHandler $handler): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(classesToResolve: [$handler::class, GuestWasAddedToBook::class, GuestWasAddedToBookConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, GuestWasAddedToBook::class, GuestWasAddedToBookConverter::class],
             containerOrAvailableServices: [$handler, new GuestWasAddedToBookConverter()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel('async'),
-            ]));
+            ])
+        );
 
         $ecotoneLite
             ->publishEventWithRoutingKey(GuestWasAddedToBook::EVENT_NAME, $event);

@@ -7,7 +7,6 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
-use Ecotone\Messaging\Handler\Type;
 use Ecotone\Test\ComponentTestBuilder;
 use Ecotone\Test\InMemoryConversionService;
 use PHPUnit\Framework\TestCase;

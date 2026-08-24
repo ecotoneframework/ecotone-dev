@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace App\Infrastructure;
 
-use Ecotone\Laravel\Config\LaravelConnectionReference;
-use Ecotone\Messaging\Attribute\ServiceContext;
+use Ecotone\Laravel\Api\ExtensionObject\LaravelConnectionReference;
+use Ecotone\Api\Attribute\ServiceContext;
 
 final readonly class EcotoneConfiguration
 {

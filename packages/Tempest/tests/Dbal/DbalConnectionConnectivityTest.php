@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Dbal;
 
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Tempest\EcotoneConfig;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Test\Ecotone\Tempest\EcotoneIntegrationTestCase;
 use Test\Ecotone\Tempest\TempestDatabaseConfigFactory;
 
@@ -22,7 +22,7 @@ final class DbalConnectionConnectivityTest extends EcotoneIntegrationTestCase
         return new EcotoneConfig(
             namespaces: ['Test\\Ecotone\\Tempest\\Fixture\\Dbal\\'],
             modulePackages: [ModulePackageList::TEMPEST_PACKAGE,
-                ModulePackageList::DBAL_PACKAGE,],
+                ModulePackageList::DBAL_PACKAGE, ],
             test: false,
         );
     }

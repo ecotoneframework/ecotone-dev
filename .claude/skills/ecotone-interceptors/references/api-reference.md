@@ -2,7 +2,7 @@
 
 ## `#[Before]`
 
-Source: `Ecotone\Messaging\Attribute\Interceptor\Before`
+Source: `Ecotone\Api\Attribute\Interceptor\Before`
 
 Runs before the handler executes. Can modify the payload, validate, or throw to abort.
 
@@ -25,7 +25,7 @@ class Before
 
 ## `#[After]`
 
-Source: `Ecotone\Messaging\Attribute\Interceptor\After`
+Source: `Ecotone\Api\Attribute\Interceptor\After`
 
 Runs after the handler completes. Receives the handler's return value as first parameter.
 
@@ -45,7 +45,7 @@ class After
 
 ## `#[Around]`
 
-Source: `Ecotone\Messaging\Attribute\Interceptor\Around`
+Source: `Ecotone\Api\Attribute\Interceptor\Around`
 
 Wraps handler execution. Must call `MethodInvocation::proceed()` to continue the chain.
 
@@ -68,7 +68,7 @@ Note: `#[Around]` does NOT support `changeHeaders`.
 
 ## `#[Presend]`
 
-Source: `Ecotone\Messaging\Attribute\Interceptor\Presend`
+Source: `Ecotone\Api\Attribute\Interceptor\Presend`
 
 Runs before the message enters the channel (before `#[Before]`). Useful for authorization or enrichment before async dispatch.
 

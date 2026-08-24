@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Endpoint\ContentType;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Attribute\Asynchronous;
-use Ecotone\Messaging\Attribute\Endpoint\ContentType;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Attribute\CommandHandler;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Messaging\Fixture\Handler\HeaderConversion\JsonConverter;
 
@@ -35,9 +35,11 @@ final class ContentTypeAttributeTest extends TestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([get_class($orderService), JsonConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [get_class($orderService), JsonConverter::class],
             [$orderService, new JsonConverter()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+        );
 
         $ecotoneLite->sendMessageDirectToChannel(
             'order.place',
@@ -62,9 +64,11 @@ final class ContentTypeAttributeTest extends TestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([get_class($orderService), JsonConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [get_class($orderService), JsonConverter::class],
             [$orderService, new JsonConverter()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+        );
 
         $ecotoneLite->sendMessageDirectToChannel(
             'order.place',
@@ -91,9 +95,11 @@ final class ContentTypeAttributeTest extends TestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting([get_class($orderService), JsonConverter::class],
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [get_class($orderService), JsonConverter::class],
             [$orderService, new JsonConverter()],
-            configuration: \Ecotone\Messaging\Config\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')));
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+        );
 
         $ecotoneLite->sendMessageDirectToChannel(
             'order.place',

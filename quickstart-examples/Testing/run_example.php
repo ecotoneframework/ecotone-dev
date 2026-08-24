@@ -15,7 +15,7 @@ use App\Testing\Infrastructure\Converter\PhoneNumberConverter;
 use App\Testing\Infrastructure\Converter\UuidConverter;
 use App\Testing\ReadModel\CurrentBasketProjection;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;

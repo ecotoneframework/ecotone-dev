@@ -6,7 +6,6 @@ namespace Test\Ecotone\Tempest\Hardening;
 
 use const DIRECTORY_SEPARATOR;
 
-use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Tempest\EcotoneConfig;
 use Ecotone\Tempest\EcotoneServiceInitializer;

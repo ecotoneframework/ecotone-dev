@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\AggregateServiceBuilder;
 
-use Ecotone\EventSourcing\Attribute\AggregateType;
-use Ecotone\Modelling\Attribute\Aggregate;
-use Ecotone\Modelling\Attribute\Identifier;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Modelling\WithEvents;
 

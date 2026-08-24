@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 namespace App\Configuration;
 
-use Ecotone\Messaging\Attribute\ServiceContext;
-use Ecotone\SymfonyBundle\Config\SymfonyConnectionReference;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\SymfonyBundle\Api\ExtensionObject\SymfonyConnectionReference;
 
 final readonly class EcotoneConfiguration
 {

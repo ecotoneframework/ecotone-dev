@@ -7,20 +7,19 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Projecting\BlueGreen;
 
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\ProjectionName;
+use Ecotone\Api\Attribute\ProjectionV2;
+use Ecotone\Api\Attribute\Streaming;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 use Ecotone\Messaging\Consumer\InMemory\InMemoryConsumerPositionTracker;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Projecting\Attribute\ProjectionName;
-use Ecotone\Projecting\Attribute\ProjectionV2;
-use Ecotone\Projecting\Attribute\Streaming;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 

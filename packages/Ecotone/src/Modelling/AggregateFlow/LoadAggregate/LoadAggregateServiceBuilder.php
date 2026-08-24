@@ -2,6 +2,7 @@
 
 namespace Ecotone\Modelling\AggregateFlow\LoadAggregate;
 
+use Ecotone\Api\Attribute\TargetVersion;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
@@ -12,7 +13,6 @@ use Ecotone\Messaging\Handler\Enricher\PropertyReaderAccessor;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
 use Ecotone\Messaging\Handler\Processor\InterceptedMessageProcessorBuilder;
 use Ecotone\Messaging\Handler\Type;
-use Ecotone\Modelling\Attribute\TargetVersion;
 use Ecotone\Modelling\Repository\AllAggregateRepository;
 
 /**

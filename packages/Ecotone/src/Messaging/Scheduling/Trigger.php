@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
+use Ecotone\Api\Gateway\EcotoneClockInterface;
+
 /**
  * Interface Trigger
  * @package Ecotone\Messaging\Scheduling

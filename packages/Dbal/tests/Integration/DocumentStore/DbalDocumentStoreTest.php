@@ -2,14 +2,14 @@
 
 namespace Test\Ecotone\Dbal\Integration\DocumentStore;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Store\Document\DocumentException;
-use Ecotone\Messaging\Store\Document\DocumentStore;
-use Ecotone\Dbal\Connection\DbalConnectionFactory;
 
 use function json_decode;
 use function json_encode;
@@ -91,7 +91,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_adding_document_as_object_should_return_object()
     {
-        $converter = new #[\Ecotone\Messaging\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
+        $converter = new #[\Ecotone\Api\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
             public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
             {
                 if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
@@ -131,7 +131,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_adding_document_as_collection_of_objects_should_return_object()
     {
-        $converter = new #[\Ecotone\Messaging\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
+        $converter = new #[\Ecotone\Api\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
             public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
             {
                 if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
@@ -173,7 +173,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_adding_document_as_array_should_return_array()
     {
-        $converter = new #[\Ecotone\Messaging\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
+        $converter = new #[\Ecotone\Api\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
             public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
             {
                 if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {
@@ -312,7 +312,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     public function test_retrieving_whole_collection_of_objects()
     {
-        $converter = new #[\Ecotone\Messaging\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
+        $converter = new #[\Ecotone\Api\Attribute\MediaTypeConverter] class () implements \Ecotone\Messaging\Conversion\Converter {
             public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, \Ecotone\Messaging\Conversion\MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, \Ecotone\Messaging\Conversion\MediaType $targetMediaType)
             {
                 if ($sourceMediaType->isCompatibleWith(\Ecotone\Messaging\Conversion\MediaType::createApplicationXPHP())) {

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\InterceptedScheduled;
 
-use Ecotone\Messaging\Attribute\Interceptor\Before;
-use Ecotone\Messaging\Attribute\Interceptor\Presend;
-use Ecotone\Messaging\Attribute\Poller;
-use Ecotone\Messaging\Attribute\Scheduled;
-use Ecotone\Messaging\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\Interceptor\Before;
+use Ecotone\Api\Attribute\Interceptor\Presend;
+use Ecotone\Api\Attribute\Poller;
+use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Attribute\ServiceActivator;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 
 /**

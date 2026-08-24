@@ -9,14 +9,14 @@ use App\MultiTenant\Application\Event\CustomerWasRegistered;
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Doctrine\Persistence\ObjectManager;
-use Ecotone\Dbal\Attribute\MultiTenantObjectManager;
+use Ecotone\Dbal\Api\Attribute\MultiTenantObjectManager;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\Messaging\Attribute\Parameter\Header;
-use Ecotone\Messaging\Attribute\Parameter\Reference;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
-use Ecotone\Modelling\EventBus;
+use Ecotone\Api\Attribute\Parameter\Header;
+use Ecotone\Api\Attribute\Parameter\Reference;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Gateway\EventBus;
 use Illuminate\Support\Facades\DB;
 
 final readonly class CustomerService

@@ -10,17 +10,17 @@ use Ecotone\AnnotationFinder\AnnotatedDefinition;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\AnnotationFinder\AnnotationResolver;
-use Ecotone\AnnotationFinder\Attribute\Environment;
 use Ecotone\AnnotationFinder\ConfigurationException;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Environment;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\IsAbstract;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
-use Ecotone\Messaging\Attribute\IsAbstract;
 use Ecotone\Messaging\Attribute\MessageConsumer;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
-use Ecotone\Modelling\Attribute\CommandHandler;
-use Ecotone\Modelling\Attribute\EventHandler;
-use Ecotone\Modelling\Attribute\QueryHandler;
 use ReflectionClass;
 
 /**

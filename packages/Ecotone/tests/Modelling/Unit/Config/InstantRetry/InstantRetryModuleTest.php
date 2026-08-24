@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit\Config\InstantRetry;
 
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
-use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
-use Ecotone\Messaging\Endpoint\ExecutionPollingMetadata;
-use Ecotone\Modelling\Config\InstantRetry\InstantRetryConfiguration;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;

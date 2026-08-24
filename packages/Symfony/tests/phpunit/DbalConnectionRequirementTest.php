@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test;
 
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Messaging\Config\ConfigurationException;
 use PHPUnit\Framework\Attributes\DoesNotPerformAssertions;
 use PHPUnit\Framework\TestCase;
 use Symfony\App\DbalConnectionRequirement\Kernel;

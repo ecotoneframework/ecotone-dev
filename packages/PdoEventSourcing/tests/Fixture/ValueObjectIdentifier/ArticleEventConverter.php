@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\ValueObjectIdentifier;
 
-use Ecotone\Messaging\Attribute\Converter;
+use Ecotone\Api\Attribute\Converter;
 use Ramsey\Uuid\Uuid;
 
 /**

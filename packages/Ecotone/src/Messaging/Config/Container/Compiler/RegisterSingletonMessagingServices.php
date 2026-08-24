@@ -2,6 +2,8 @@
 
 namespace Ecotone\Messaging\Config\Container\Compiler;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
@@ -14,7 +16,6 @@ use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\MessagingSystemContainer;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ServiceCacheConfiguration;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Console\ConsoleWriter;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;
 use Ecotone\Messaging\Console\PlainConsoleWriter;
@@ -29,7 +30,6 @@ use Ecotone\Messaging\Handler\ReferenceSearchService;
 use Ecotone\Messaging\Handler\SymfonyExpressionEvaluationAdapter;
 use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Scheduling\Clock;
-use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Psr\Clock\ClockInterface;
 use Psr\Container\ContainerInterface;
 

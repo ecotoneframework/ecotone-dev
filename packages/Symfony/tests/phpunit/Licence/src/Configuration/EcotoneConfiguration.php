@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Symfony\App\Licence\Configuration;
 
-use Ecotone\Messaging\Attribute\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
-use Ecotone\Messaging\Channel\SimpleMessageChannelBuilder;
 
 /**
  * licence Enterprise

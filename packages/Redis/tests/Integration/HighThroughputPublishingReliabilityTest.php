@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
 use Ecotone\Messaging\Channel\PollableChannel\PollableChannelConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\Config\ServiceConfiguration;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
-use Ecotone\Redis\RedisBackedMessageChannelBuilder;
+use Ecotone\Redis\Api\ExtensionObject\RedisBackedMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\Redis\RedisConnectionFactory;
 use Enqueue\Redis\RedisContext;
@@ -66,14 +66,16 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
 
     private function bootstrapEcotoneWithRetryingChannel(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting([],
+        return EcotoneLite::bootstrapFlowTesting(
+            [],
             [RedisConnectionFactory::class => $this->getConnectionFactory()],
             (ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::REDIS_PACKAGE,])
+                ->withModulePackages([ModulePackageList::REDIS_PACKAGE, ])
                 ->withExtensionObjects([
                     PollableChannelConfiguration::create(self::CHANNEL_NAME, RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build()),
                 ]))->addExtensionObject(RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withHighThroughputPublishing()),
-            licenceKey: LicenceTesting::VALID_LICENCE);
+            licenceKey: LicenceTesting::VALID_LICENCE
+        );
     }
 
     private function queueLength(): int

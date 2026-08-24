@@ -38,7 +38,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Ecotone\\Api\\JMSConverter\\": "src/Api/",
+            "Ecotone\\Api\\JMSConverter\\": "Api/",
             "Ecotone\\JMSConverter\\": "src"
         }
     },

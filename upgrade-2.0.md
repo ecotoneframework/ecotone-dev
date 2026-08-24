@@ -83,7 +83,7 @@ messages yourself.
 `resetProjection()`, `stopProjection()`, `deleteProjection()`, `triggerProjection()`), and the new v2
 (`Ecotone\Api\ProjectionV2`).
 
-**Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Attribute\Projection`). v1
+**Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Projection`). v1
 classes, configuration and console commands are gone. Projection state lives in the v2 state table
 (`ecotone_projection_state`), not the Prooph `projections` table.
 
@@ -100,7 +100,7 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
 final class OrderListProjection { #[EventHandler] public function when(OrderPlaced $e): void {} }
 ```
 
-- Rename `#[ProjectionV2]` → `#[Projection]` (namespace `Ecotone\Api\Attribute`).
+- Rename `#[ProjectionV2]` → `#[Projection]` (namespace `Ecotone\Api`).
 - Replace `ProjectionRunningConfiguration` / `ProjectionSetupConfiguration` / `ProjectionLifeCycleConfiguration`
   with `#[Polling]`, `#[Streaming]`, `#[Partitioned]`, `#[Asynchronous]` on the projection class.
 - Console: `ecotone:es:initialize-projection|reset-projection|delete-projection|run-projection` →
@@ -310,15 +310,27 @@ Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php`; the bu
 (`Ecotone\Messaging\Attribute\*`, `Ecotone\Modelling\Attribute\*`, `Ecotone\Projecting\Attribute\*`, `Ecotone\Dbal\Attribute\*`,
 `Ecotone\Messaging\Config\ServiceConfiguration`, `Ecotone\Dbal\Configuration\DbalConfiguration`, ...).
 
-**Now:** Everything you are meant to reference from application code is under an `Api` namespace:
-- attributes → `Ecotone\Api\Attribute\*` (core) / `Ecotone\<Package>\Api\Attribute\*`
-- extension objects returned from `#[ServiceContext]` → `Ecotone\Api\ExtensionObject\*` / `Ecotone\<Package>\Api\ExtensionObject\*`
-- gateways/buses → `Ecotone\Api\Gateway\*` (`CommandBus`, `QueryBus`, `EventBus`, `DistributedBus`, `MessagePublisher`, ...)
+**Now:** Everything you are meant to reference from application code — attributes, `#[ServiceContext]` extension
+objects, and gateways/buses alike — is flattened directly under a single `Ecotone\Api` namespace:
+- core classes → `Ecotone\Api\<ClassName>` (e.g. `Ecotone\Api\CommandHandler`, `Ecotone\Api\ServiceConfiguration`,
+  `Ecotone\Api\CommandBus`, `Ecotone\Api\QueryBus`, `Ecotone\Api\EventBus`, `Ecotone\Api\DistributedBus`,
+  `Ecotone\Api\MessagePublisher`, `Ecotone\Api\ProjectionV2`)
+- package classes → `Ecotone\Api\<Package>\<ClassName>` (e.g. `Ecotone\Api\Dbal\DbalWrite`,
+  `Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder`, `Ecotone\Api\Kafka\KafkaMessageChannelBuilder`,
+  `Ecotone\Api\Laravel\LaravelConnectionReference`, `Ecotone\Api\Symfony\SymfonyConnectionReference`,
+  `Ecotone\Api\Tempest\TempestConnectionReference`, `Ecotone\Api\EventSourcing\EventSourcingConfiguration`,
+  `Ecotone\Api\JMSConverter\JMSConverterConfiguration`, `Ecotone\Api\Redis\*`, `Ecotone\Api\Sqs\*`,
+  `Ecotone\Api\DataProtection\*`)
+
+There is no `Attribute` / `ExtensionObject` / `Gateway` mid-level segment — the category a class falls into does not
+appear in its namespace.
 
 Classes outside `Api` are `@internal` and may change in minor versions. `ProjectionV2` keeps its name in this release
 (the rename to `#[Projection]` is a separate, not-yet-implemented change, see §3); it only moves namespace, to
-`Ecotone\Api\ProjectionV2`. `Ecotone\Modelling\Api\Distribution\*` (`DistributedServiceMap`, `DistributedBusHeader`)
-and `Ecotone\Api\Kafka\KafkaHeader` already lived under `Api` before this change and keep their namespace.
+`Ecotone\Api\ProjectionV2`. `DistributedServiceMap` and `DistributedBusHeader` (formerly
+`Ecotone\Modelling\Api\Distribution\*`) fold into the flat core namespace as `Ecotone\Api\DistributedServiceMap` /
+`Ecotone\Api\DistributedBusHeader`; `KafkaHeader` (formerly `Ecotone\Kafka\Api\KafkaHeader`) becomes
+`Ecotone\Api\Kafka\KafkaHeader`, consistent with every other Kafka class.
 
 **How to adapt:** Run the provided Rector set (`vendor/ecotone/ecotone/upgrade/rector-2.0.php`) or apply the mapping table in
 `upgrade/namespace-map-2.0.csv` with `sed`. Examples:
@@ -333,7 +345,7 @@ and `Ecotone\Api\Kafka\KafkaHeader` already lived under `Api` before this change
 | `Ecotone\Amqp\AmqpBackedMessageChannelBuilder` | `Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder` |
 | `Ecotone\Modelling\CommandBus` | `Ecotone\Api\CommandBus` |
 
-The full 148-class mapping is in `upgrade/namespace-map-2.0.csv`.
+The full 151-class mapping is in `upgrade/namespace-map-2.0.csv`.
 
 ## 14. Smaller behaviour changes
 

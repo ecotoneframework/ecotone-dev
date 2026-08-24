@@ -40,7 +40,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Ecotone\\Api\\Tempest\\": "src/Api/",
+            "Ecotone\\Api\\Tempest\\": "Api/",
             "Ecotone\\Tempest\\": "src"
         }
     },

@@ -36,7 +36,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Ecotone\\Api\\Kafka\\": "src/Api/",
+            "Ecotone\\Api\\Kafka\\": "Api/",
             "Ecotone\\Kafka\\": "src"
         }
     },

@@ -72,7 +72,7 @@
     },
     "autoload": {
         "psr-4": {
-            "Ecotone\\Api\\Symfony\\": "src/Api/",
+            "Ecotone\\Api\\Symfony\\": "Api/",
             "Ecotone\\SymfonyBundle\\DependencyInjection\\": "DependencyInjection",
             "Ecotone\\SymfonyBundle\\": "SymfonyBundle"
         }

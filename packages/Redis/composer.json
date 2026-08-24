@@ -40,7 +40,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Ecotone\\Api\\Redis\\": "src/Api/",
+            "Ecotone\\Api\\Redis\\": "Api/",
             "Ecotone\\Redis\\": "src"
         }
     },

@@ -41,7 +41,7 @@
     ],
     "autoload": {
         "psr-4": {
-            "Ecotone\\Api\\Laravel\\": "src/Api/",
+            "Ecotone\\Api\\Laravel\\": "Api/",
             "Ecotone\\Laravel\\": "src"
         }
     },

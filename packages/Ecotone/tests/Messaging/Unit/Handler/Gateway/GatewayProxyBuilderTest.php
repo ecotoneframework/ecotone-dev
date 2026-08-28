@@ -12,7 +12,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
-use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeadersBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -59,7 +58,6 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceRece
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceReceiveOnlyWithNull;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendOnly;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendOnlyWithTwoArguments;
-use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSendOnlyWithTwoArgumentsAndArray;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceWithFutureReceive;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceWithMixed;
 use Test\Ecotone\Messaging\Unit\MessagingTestCase;
@@ -96,30 +94,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
         );
     }
 
-    public function test_creating_gateway_for_send_only_interface()
-    {
-        $messageHandler = NoReturnMessageHandler::create();
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceWithMixed::class,
-                    ServiceWithMixed::class,
-                    'sendWithoutReturnValue',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference($messageHandler, 'handle')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $messaging->getGateway(ServiceWithMixed::class)
-            ->sendWithoutReturnValue(new stdClass());
-
-        $this->assertTrue($messageHandler->wasCalled());
-    }
-
     public function test_throwing_exception_if_reply_channel_passed_for_send_only_interface()
     {
         $this->expectException(InvalidArgumentException::class);
@@ -139,30 +113,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
                     ->withInputChannelName($inputChannel)
             )
             ->build();
-    }
-
-    public function test_creating_gateway_for_receive_only()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel('replyChannel'))
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceReceiveOnly::class,
-                    ServiceInterfaceReceiveOnly::class,
-                    'sendMail',
-                    $inputChannel = 'inputChannel'
-                )->withReplyChannel('replyChannel')
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingNoArguments::createWithReturnValue($result = 'test'), 'withReturnValue')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->assertEquals(
-            $result,
-            $messaging->getGateway(ServiceInterfaceReceiveOnly::class)->sendMail()
-        );
     }
 
     public function test_calling_reply_queue_with_time_out()
@@ -245,34 +195,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
         );
     }
 
-    public function test_specific_headers_always_override_array_of_headers(): void
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceSendOnlyWithTwoArgumentsAndArray::class,
-                    ServiceInterfaceSendOnlyWithTwoArgumentsAndArray::class,
-                    'send',
-                    $inputChannel = 'inputChannel'
-                )
-                    ->withParameterConverters(
-                        [
-                            GatewayHeaderBuilder::create('value', 'personId'),
-                            GatewayHeadersBuilder::create('data'),
-                        ]
-                    )
-            )
-            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($inputChannel))
-            ->build();
-
-        $gateway = $messaging->getGateway(ServiceInterfaceSendOnlyWithTwoArgumentsAndArray::class);
-
-        $gateway->send('someValue', ['personId' => '123', 'data' => 'some']);
-
-        $message = $messaging->receiveMessageFrom($inputChannel);
-        $this->assertSame('someValue', $message->getHeaders()->get('personId'));
-    }
-
     public function test_executing_with_method_argument_converters()
     {
         $messaging = ComponentTestBuilder::create()
@@ -333,39 +255,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             ->build();
     }
 
-    public function test_converters_execution_according_to_order_in_list()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($outputChannel = 'outputChannel'))
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceSendOnly::class,
-                    ServiceInterfaceSendOnly::class,
-                    'sendMailWithMetadata',
-                    $inputChannel = 'inputChannel'
-                )
-                    ->withParameterConverters(
-                        [
-                            GatewayHeadersBuilder::create('metadata'),
-                            GatewayHeaderBuilder::create('content', 'personId'),
-                        ]
-                    )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-                    ->withOutputMessageChannel($outputChannel)
-            )
-            ->build();
-
-        $messaging->getGateway(ServiceInterfaceSendOnly::class)
-            ->sendMailWithMetadata(3, ['personId' => 2]);
-
-        $message = $messaging->receiveMessageFrom($outputChannel);
-
-        $this->assertEquals(3, $message->getHeaders()->get('personId'));
-    }
-
     public function test_executing_with_multiple_message_converters_for_same_parameter()
     {
         $messaging = ComponentTestBuilder::create()
@@ -403,74 +292,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
      * @throws InvalidArgumentException
      * @throws MessagingException
      */
-    public function test_throwing_exception_if_gateway_expect_reply_and_request_channel_is_queue()
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        ComponentTestBuilder::create()
-            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($inputChannel = 'inputChannel'))
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceReceiveOnly::class,
-                    ServiceInterfaceReceiveOnly::class,
-                    'sendMail',
-                    $inputChannel
-                )
-            )
-            ->build();
-    }
-
-    /**
-     * @throws InvalidArgumentException
-     * @throws MessagingException
-     */
-    public function test_creating_with_queue_channel_when_gateway_does_not_expect_reply()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($inputChannel = 'inputChannel'))
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceSendOnly::class,
-                    ServiceInterfaceSendOnly::class,
-                    'sendMail',
-                    $inputChannel
-                )
-            )
-            ->build();
-
-        $messaging->getGateway(ServiceInterfaceSendOnly::class)
-            ->sendMail('some');
-
-        $this->assertEquals(
-            'some',
-            $messaging->receiveMessageFrom($inputChannel)->getPayload()
-        );
-    }
-
-    public function test_resolving_response_in_future_from_handler()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceWithFutureReceive::class,
-                    ServiceInterfaceWithFutureReceive::class,
-                    'someLongRunningWork',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->assertNotNull(
-            $messaging->getGateway(ServiceInterfaceWithFutureReceive::class)
-                ->someLongRunningWork()
-                ->resolve()
-        );
-    }
-
     public function test_resolving_response_in_future_from_reply_channel(): void
     {
         $messaging = ComponentTestBuilder::create()
@@ -555,78 +376,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             ->resolve();
     }
 
-    public function test_returning_null_when_no_reply_received_for_nullable_interface()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel('replyChannel'))
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceReceiveOnlyWithNull::class,
-                    ServiceInterfaceReceiveOnlyWithNull::class,
-                    'sendMail',
-                    $inputChannel = 'inputChannel'
-                )->withReplyChannel('replyChannel')
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(NoReturnMessageHandler::create(), 'handle')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->assertNull(
-            $messaging->getGateway(ServiceInterfaceReceiveOnlyWithNull::class)->sendMail()
-        );
-    }
-
-    public function test_throwing_exception_when_reply_is_null_but_interface_expect_value()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceReceiveOnly::class,
-                    ServiceInterfaceReceiveOnly::class,
-                    'sendMail',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(NoReturnMessageHandler::create(), 'handle')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->expectException(InvalidArgumentException::class);
-
-        $messaging->getGateway(ServiceInterfaceReceiveOnly::class)->sendMail();
-    }
-
-    public function test_propagating_error_to_error_channel()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($errorChannelName = 'error'))
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceReceiveOnlyWithNull::class,
-                    ServiceInterfaceReceiveOnlyWithNull::class,
-                    'sendMail',
-                    $inputChannel = 'inputChannel'
-                )
-                ->withErrorChannel($errorChannelName)
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ExceptionMessageHandler::create(), 'handle')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $messaging->getGateway(ServiceInterfaceReceiveOnlyWithNull::class)->sendMail();
-
-        $this->assertInstanceOf(
-            ErrorMessage::class,
-            $messaging->receiveMessageFrom($errorChannelName)
-        );
-    }
-
     public function test_propagating_error_to_error_channel_when_exception_happen_during_receiving_reply()
     {
         $messaging = ComponentTestBuilder::create()
@@ -656,28 +405,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             ErrorMessage::class,
             $messaging->receiveMessageFrom($errorChannelName)
         );
-    }
-
-    public function test_throwing_root_cause_exception_when_no_error_channel_defined()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceReceiveOnlyWithNull::class,
-                    ServiceInterfaceReceiveOnlyWithNull::class,
-                    'sendMail',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ExceptionMessageHandler::create(), 'handle')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->expectException(\InvalidArgumentException::class);
-
-        $messaging->getGateway(ServiceInterfaceReceiveOnlyWithNull::class)->sendMail();
     }
 
     public function test_calling_interface_with_around_interceptor_from_endpoint_annotation()

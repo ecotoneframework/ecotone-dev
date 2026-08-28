@@ -24,9 +24,9 @@
     "require": {
         "doctrine/orm": "^3.3",
         "doctrine/persistence": "^4.0",
-        "ecotone/dbal": "dev-main as 1.326.1",
-        "ecotone/jms-converter": "dev-main as 1.326.1",
-        "ecotone/lite-application": "dev-main as 1.326.1",
+        "ecotone/dbal": "~1.326.1",
+        "ecotone/jms-converter": "~1.326.1",
+        "ecotone/lite-application": "~1.326.1",
         "ecotone/lite-dbal-starter": "^1.0.1"
     },
     "require-dev": {

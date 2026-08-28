@@ -36,9 +36,9 @@ foreach ($packages as $package) {
     file_put_contents($composerFile, json_encode($composer, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
 }
 
-// Quickstart examples alias local packages to the path repository ("dev-main as $version") so
-// they resolve against the monorepo's own code instead of Packagist while testing a branch; keep
-// that alias in sync with whatever gets released, same as the sibling package requires above.
+// Quickstart examples directly require some local packages (see bin/get-packages) so their tests
+// resolve them from the path repository instead of Packagist; keep those requirements pinned to
+// "~$version" in sync with whatever gets released, same as the sibling package requires above.
 $quickstartDirectory = realpath(__DIR__ . '/../quickstart-examples');
 $iterator = new RecursiveIteratorIterator(
     new RecursiveCallbackFilterIterator(
@@ -57,9 +57,9 @@ foreach ($iterator as $file) {
     $touched = false;
 
     foreach (['require', 'require-dev'] as $section) {
-        foreach ($composer[$section] ?? [] as $requiredPackage => $constraint) {
-            if (str_starts_with($constraint, 'dev-main as ')) {
-                $composer[$section][$requiredPackage] = 'dev-main as ' . $version;
+        foreach ($composer[$section] ?? [] as $requiredPackage => $requiredVersion) {
+            if (in_array($requiredPackage, $packageNames)) {
+                $composer[$section][$requiredPackage] = '~' . $version;
                 $touched = true;
             }
         }

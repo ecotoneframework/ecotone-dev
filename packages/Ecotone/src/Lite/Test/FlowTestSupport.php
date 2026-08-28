@@ -15,7 +15,6 @@ use Ecotone\Api\MessagePublisher;
 use Ecotone\Api\ProjectionRegistry;
 use Ecotone\Api\QueryBus;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Console\InMemoryConsoleWriter;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -305,61 +304,29 @@ final class FlowTestSupport
         Assert::allStrings($projectionName, '$projectionName must be single or collection of strings');
 
         foreach ($projectionName as $name) {
-            if ($this->getGateway(ProjectionRegistry::class)->has($name)) {
-                $this->getGateway(ProjectionRegistry::class)->get($name)->executeAll();
-            } else {
-                $this->getGateway(ProjectionManager::class)->triggerProjection($name);
-            }
+            $this->getGateway(ProjectionRegistry::class)->get($name)->executeAll();
         }
 
         return $this;
     }
 
-    public function initializeProjection(string $projectionName, array $metadata = []): self
+    public function initializeProjection(string $projectionName): self
     {
-        $projectionRegistry = $this->getGateway(ProjectionRegistry::class);
-        if ($projectionRegistry->has($projectionName)) {
-            $projectionRegistry->get($projectionName)->init();
-        } else {
-            $this->getGateway(ProjectionManager::class)->initializeProjection($projectionName, $metadata);
-        }
-
-        return $this;
-    }
-
-    public function stopProjection(string $projectionName): self
-    {
-        if ($this->getGateway(ProjectionRegistry::class)->has($projectionName)) {
-            // Not handled in ProjectionRegistry
-            return $this;
-        } else {
-            $this->getGateway(ProjectionManager::class)->stopProjection($projectionName);
-        }
+        $this->getGateway(ProjectionRegistry::class)->get($projectionName)->init();
 
         return $this;
     }
 
     public function resetProjection(string $projectionName): self
     {
-        if ($this->getGateway(ProjectionRegistry::class)->has($projectionName)) {
-            $this->getGateway(ProjectionRegistry::class)->get($projectionName)->executeAllWithReset();
-        } else {
-            $this->getGateway(ProjectionManager::class)->resetProjection($projectionName);
-        }
-
+        $this->getGateway(ProjectionRegistry::class)->get($projectionName)->executeAllWithReset();
 
         return $this;
     }
 
     public function deleteProjection(string $projectionName): self
     {
-        if ($this->getGateway(ProjectionRegistry::class)->has($projectionName)) {
-            $this->getGateway(ProjectionRegistry::class)->get($projectionName)->delete();
-        } else {
-            // fixme Calling ProjectionManager to delete the projection throws `Header with name ecotone.eventSourcing.manager.deleteEmittedEvents does not exists` exception
-            //$this->getGateway(ProjectionManager::class)->deleteProjection($projectionName);
-            $this->configuredMessagingSystem->runConsoleCommand('ecotone:es:delete-projection', ['name' => $projectionName]);
-        }
+        $this->getGateway(ProjectionRegistry::class)->get($projectionName)->delete();
 
         return $this;
     }

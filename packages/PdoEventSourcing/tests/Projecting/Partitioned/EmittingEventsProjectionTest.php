@@ -426,7 +426,8 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
         self::assertCount(2, $eventStore->load('projection_flush_emitting_projection'));
 
-        $ecotone->resetProjection('flush_emitting_projection');
+        $ecotone->deleteProjection('flush_emitting_projection')
+            ->initializeProjection('flush_emitting_projection');
         self::assertEmpty($projection->getTickets());
         $emittedCountBeforeRebuild = $eventStore->hasStream('projection_flush_emitting_projection')
             ? count($eventStore->load('projection_flush_emitting_projection'))
@@ -546,21 +547,15 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
             }
 
             #[ProjectionReset]
-            public function reset(#[Reference] EventStore $eventStore): void
+            public function reset(): void
             {
                 $this->tickets = [];
-                if ($eventStore->hasStream('projection_flush_emitting_projection')) {
-                    $eventStore->delete('projection_flush_emitting_projection');
-                }
             }
 
             #[ProjectionDelete]
-            public function delete(#[Reference] EventStore $eventStore): void
+            public function delete(): void
             {
                 $this->tickets = [];
-                if ($eventStore->hasStream('projection_flush_emitting_projection')) {
-                    $eventStore->delete('projection_flush_emitting_projection');
-                }
             }
         };
     }

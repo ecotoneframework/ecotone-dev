@@ -219,7 +219,7 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
         self::assertEquals(50, $ecotone->sendQueryWithRouting('getTicketCount'), 'All 50 partitions should be backfilled');
     }
 
-    public function test_reset_and_trigger_clears_state_and_replays_all_events(): void
+    public function test_reset_projection_replays_all_events_from_scratch(): void
     {
         $projection = $this->createTicketListProjection();
 
@@ -235,11 +235,7 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
 
         $ecotone->resetProjection($projection::NAME);
 
-        self::assertCount(0, $ecotone->sendQueryWithRouting('getTicketList'), 'Reset should clear all data');
-
-        $ecotone->triggerProjection($projection::NAME);
-
-        self::assertCount(2, $ecotone->sendQueryWithRouting('getTicketList'), 'Trigger should replay all events');
+        self::assertCount(2, $ecotone->sendQueryWithRouting('getTicketList'), 'Reset should replay all events from scratch');
     }
 
     private function createIdempotentProjection(): object

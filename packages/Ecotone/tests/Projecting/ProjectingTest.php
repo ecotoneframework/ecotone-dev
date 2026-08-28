@@ -686,6 +686,61 @@ class ProjectingTest extends TestCase
         self::assertCount(0, $projection->processingEvents);
     }
 
+    public function test_trigger_projection_processes_events_synchronously_even_with_async_backfill_channel_configured(): void
+    {
+        $projection = new #[ProjectionV2('sync_trigger_projection'), FromStream('test_stream'), ProjectionBackfill(asyncChannelName: 'backfill_async')] class {
+            public array $processedEvents = [];
+            #[EventHandler('*')]
+            public function handle(array $event): void
+            {
+                $this->processedEvents[] = $event;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async'))
+        );
+        $ecotone->withEvents([
+            Event::createWithType('event1', []),
+        ]);
+
+        $ecotone->triggerProjection('sync_trigger_projection');
+
+        self::assertCount(1, $projection->processedEvents, 'triggerProjection() must process pending events synchronously, not merely enqueue a backfill batch');
+    }
+
+    public function test_reset_projection_replays_previously_processed_events_from_scratch(): void
+    {
+        $projection = new #[ProjectionV2('reset_replay_projection'), FromStream('test_stream')] class {
+            public array $processedEvents = [];
+            #[EventHandler('*')]
+            public function handle(array $event): void
+            {
+                $this->processedEvents[] = $event;
+            }
+        };
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [$projection::class],
+            [$projection],
+            ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+        );
+        $ecotone->withEvents([
+            Event::createWithType('event1', []),
+        ]);
+        $ecotone->triggerProjection('reset_replay_projection');
+        self::assertCount(1, $projection->processedEvents);
+
+        $ecotone->resetProjection('reset_replay_projection');
+
+        self::assertCount(2, $projection->processedEvents, 'resetProjection() must replay previously processed events from scratch, not merely clear and re-init state');
+    }
+
     #[RequiresPhpExtension('pcntl')]
     #[RequiresPhpExtension('posix')]
     public function test_pcntl_signals_handling(): void

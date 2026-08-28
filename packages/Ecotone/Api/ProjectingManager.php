@@ -187,6 +187,30 @@ class ProjectingManager
         );
     }
 
+    public function executeAll(bool $manualInitialization = true): void
+    {
+        foreach ($this->partitionsToProcess() as $partitionKeyValue) {
+            $this->execute($partitionKeyValue, $manualInitialization);
+        }
+    }
+
+    public function executeAllWithReset(): void
+    {
+        $this->delete();
+        $this->init();
+        $this->executeAll();
+    }
+
+    /**
+     * @return iterable<string|null>
+     */
+    private function partitionsToProcess(): iterable
+    {
+        foreach ($this->streamFilterRegistry->provide($this->projectionName) as $streamFilter) {
+            yield from $this->getPartitionProvider()->partitions($streamFilter);
+        }
+    }
+
     public function prepareRebuild(): void
     {
         $this->preparePartitionBatches($this->rebuildPartitionBatchSize, $this->rebuildAsyncChannelName, true);

@@ -306,7 +306,7 @@ final class FlowTestSupport
 
         foreach ($projectionName as $name) {
             if ($this->getGateway(ProjectionRegistry::class)->has($name)) {
-                $this->getGateway(ProjectionRegistry::class)->get($name)->prepareBackfill();
+                $this->getGateway(ProjectionRegistry::class)->get($name)->executeAll();
             } else {
                 $this->getGateway(ProjectionManager::class)->triggerProjection($name);
             }
@@ -342,9 +342,7 @@ final class FlowTestSupport
     public function resetProjection(string $projectionName): self
     {
         if ($this->getGateway(ProjectionRegistry::class)->has($projectionName)) {
-            $projectionManager = $this->getGateway(ProjectionRegistry::class)->get($projectionName);
-            $projectionManager->delete();
-            $projectionManager->init();
+            $this->getGateway(ProjectionRegistry::class)->get($projectionName)->executeAllWithReset();
         } else {
             $this->getGateway(ProjectionManager::class)->resetProjection($projectionName);
         }

@@ -158,8 +158,9 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
         self::assertEquals("{$calendarStream}:{$calendarStream}:cal-A", $resultsBeforeReset[0]['partition_key']);
         self::assertEquals("{$calendarStream}:{$calendarStream}:cal-B", $resultsBeforeReset[1]['partition_key']);
 
-        $ecotone->resetProjection($projection::NAME);
-        self::assertCount(0, $ecotone->sendQueryWithRouting('getPartitionTrackingEvents'), 'Should have 0 events after reset');
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+        self::assertCount(0, $ecotone->sendQueryWithRouting('getPartitionTrackingEvents'), 'Should have 0 events after a clean slate');
 
         $ecotone->sendCommand(new ScheduleMeetingWithEventSourcing('cal-A', 'meeting-1'));
 
@@ -204,8 +205,9 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
         self::assertEquals("{$sharedStream}:{$categoryType}:cat-1", $resultsBeforeReset[1]['partition_key']);
         self::assertEquals("{$sharedStream}:{$productType}:prod-2", $resultsBeforeReset[2]['partition_key']);
 
-        $ecotone->resetProjection($projection::NAME);
-        self::assertCount(0, $ecotone->sendQueryWithRouting('getSharedStreamEvents'), 'Should have 0 events after reset');
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+        self::assertCount(0, $ecotone->sendQueryWithRouting('getSharedStreamEvents'), 'Should have 0 events after a clean slate');
 
         $ecotone->sendCommand(new CreateProduct('prod-3'));
 
@@ -490,8 +492,9 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
         self::assertEquals("{$streamA}:{$aggregateType}:prodA-1", $resultsBeforeReset[0]['partition_key']);
         self::assertEquals("{$streamB}:{$aggregateType}:prodB-1", $resultsBeforeReset[1]['partition_key']);
 
-        $ecotone->resetProjection($projection::NAME);
-        self::assertCount(0, $ecotone->sendQueryWithRouting('getDifferentStreamSameTypeEvents'), 'Should have 0 events after reset');
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
+        self::assertCount(0, $ecotone->sendQueryWithRouting('getDifferentStreamSameTypeEvents'), 'Should have 0 events after a clean slate');
 
         $ecotone->sendCommand(new CreateProductA('prodA-2'));
 

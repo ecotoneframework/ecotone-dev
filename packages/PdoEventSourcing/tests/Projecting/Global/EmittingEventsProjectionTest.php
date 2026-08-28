@@ -229,7 +229,8 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
         self::assertCount(1, $eventStore->load('notifications_stream'), 'One event should have been emitted during live run');
 
-        $ecotone->resetProjection('emitting_projection');
+        $ecotone->deleteProjection('emitting_projection')
+            ->initializeProjection('emitting_projection');
         self::assertEmpty($projection->getTickets(), 'Tickets should be empty before rebuild');
         $notificationsCountBeforeRebuild = $eventStore->hasStream('notifications_stream') ? count($eventStore->load('notifications_stream')) : 0;
 
@@ -269,7 +270,8 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
         self::assertCount(1, $eventStore->load('notifications_stream'), 'One event should have been emitted during live run');
 
-        $ecotone->resetProjection('emitting_projection');
+        $ecotone->deleteProjection('emitting_projection')
+            ->initializeProjection('emitting_projection');
         self::assertEmpty($projection->getTickets(), 'Tickets should be empty before backfill');
         self::assertFalse($eventStore->hasStream('notifications_stream'), 'Notifications stream should not exist after reset');
 

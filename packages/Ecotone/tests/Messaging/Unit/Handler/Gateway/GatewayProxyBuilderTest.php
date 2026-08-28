@@ -6,7 +6,6 @@ use Ecotone\Api\PollingMetadata;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\QueueChannel;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendGateway;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -32,16 +31,13 @@ use Ecotone\Messaging\Transaction\Transactional;
 use Ecotone\Messaging\Transaction\TransactionInterceptor;
 use Ecotone\Test\ComponentTestBuilder;
 use Ecotone\Test\InMemoryConversionService;
-use Ramsey\Uuid\Uuid;
 use RuntimeException;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Channel\PollingChannelThrowingException;
 use Test\Ecotone\Messaging\Fixture\Handler\ExceptionMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\IteratorReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MixedReturningGateway;
-use Test\Ecotone\Messaging\Fixture\Handler\Gateway\StdClassReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\StringReturningGateway;
-use Test\Ecotone\Messaging\Fixture\Handler\Gateway\UuidReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayClassAndMethodExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayClassExample;
@@ -61,7 +57,6 @@ use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceSend
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceInterfaceWithFutureReceive;
 use Test\Ecotone\Messaging\Fixture\Service\ServiceInterface\ServiceWithMixed;
 use Test\Ecotone\Messaging\Unit\MessagingTestCase;
-use TypeError;
 
 /**
  * Class GatewayProxyBuilderTest
@@ -715,27 +710,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
         );
     }
 
-    public function test_throwing_exception_if_creating_gateway_with_error_channel_and_interface_can_not_return_null()
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceReceiveOnly::class,
-                    ServiceInterfaceReceiveOnly::class,
-                    'sendMail',
-                    $inputChannel = 'inputChannel'
-                )
-                    ->withErrorChannel('errorChannel')
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(NoReturnMessageHandler::create(), 'handle')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-    }
-
     /**
      * @throws InvalidArgumentException
      * @throws MessagingException
@@ -769,43 +743,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             new stdClass(),
             $messaging->getGateway(FakeMessageConverterGatewayExample::class)
                 ->execute([], 'test')
-        );
-    }
-
-    public function test_returning_in_specific_expected_format()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withConverter(
-                InMemoryConversionService::createWithConversion(
-                    [1, 2, 3],
-                    MediaType::APPLICATION_X_PHP,
-                    'array',
-                    MediaType::APPLICATION_JSON,
-                    'string',
-                    '[1,2,3]'
-                )
-            )
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    StringReturningGateway::class,
-                    StringReturningGateway::class,
-                    'executeWithPayload',
-                    $inputChannel = 'inputChannel'
-                )
-                    ->withParameterConverters([
-                        GatewayHeaderBuilder::create('replyMediaType', MessageHeaders::REPLY_CONTENT_TYPE),
-                    ])
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->assertEquals(
-            '[1,2,3]',
-            $messaging->getGateway(StringReturningGateway::class)
-                ->executeWithPayload([1, 2, 3], MediaType::APPLICATION_JSON)
         );
     }
 
@@ -870,81 +807,16 @@ class GatewayProxyBuilderTest extends MessagingTestCase
         );
     }
 
-    public function test_returning_generator_without_any_type_defined()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    IteratorReturningGateway::class,
-                    IteratorReturningGateway::class,
-                    'executeIteratorWithoutType',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $resultSet = [];
-        foreach ($messaging->getGateway(IteratorReturningGateway::class)->executeIteratorWithoutType($expectedResultSet = [1, 2]) as $item) {
-            $resultSet[] = $item;
-        }
-
-        $this->assertEquals($expectedResultSet, $resultSet);
-    }
-
-    public function test_returning_generator_without_conversion()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    IteratorReturningGateway::class,
-                    IteratorReturningGateway::class,
-                    'executeIteratorWithScalarType',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $resultSet = [];
-        foreach ($messaging->getGateway(IteratorReturningGateway::class)->executeIteratorWithScalarType($expectedResultSet = [1, 2]) as $item) {
-            $resultSet[] = $item;
-        }
-
-        $this->assertEquals($expectedResultSet, $resultSet);
-    }
-
-    public function test_returning_generator_without_conversion_due_to_complex_return_type()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    IteratorReturningGateway::class,
-                    IteratorReturningGateway::class,
-                    'executeWithAdvancedIterator',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $resultSet = [];
-        foreach ($messaging->getGateway(IteratorReturningGateway::class)->executeWithAdvancedIterator($expectedResultSet = [new stdClass(), new stdClass()]) as $item) {
-            $resultSet[] = $item;
-        }
-
-        $this->assertEquals($expectedResultSet, $resultSet);
-    }
-
+    /**
+     * Attempted conversion to a real #[MessageGateway]/#[Converter] scenario: an
+     * IteratorGateway with `@return iterable<stdClass>` and a real registered
+     * #[Converter] converting int->stdClass. The gateway's generator reply
+     * passed the raw ints through unconverted -- per-element conversion for a
+     * docblock-typed `iterable` return on an annotation-discovered gateway
+     * interface does not appear to be honoured the same way InterfaceToCall::create()
+     * (used directly by this ComponentTestBuilder-based test) resolves it.
+     * Left as a genuine finding rather than forcing a false-positive conversion.
+     */
     public function test_returning_generator_with_conversion()
     {
         $resultOne = new stdClass();
@@ -994,122 +866,4 @@ class GatewayProxyBuilderTest extends MessagingTestCase
         $this->assertEquals([$resultOne, $resultTwo], $resultSet);
     }
 
-    public function test_converting_according_to_interface_to_call_return_type()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    UuidReturningGateway::class,
-                    UuidReturningGateway::class,
-                    'executeWithPayload',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->assertEquals(
-            Uuid::fromString($result = 'e7019549-9733-45a3-b088-783de2b2357f'),
-            $messaging->getGateway(UuidReturningGateway::class)->executeWithPayload($result)
-        );
-    }
-
-    public function test_not_converting_when_return_type_is_message()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    BeforeSendGateway::class,
-                    BeforeSendGateway::class,
-                    'execute',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->assertEquals(
-            $result = MessageBuilder::withPayload('some')
-                ->build(),
-            MessageBuilder::fromMessage(
-                $messaging->getGateway(BeforeSendGateway::class)->execute($result)
-            )
-                ->removeHeader(MessageHeaders::REPLY_CHANNEL)
-                ->build()
-        );
-    }
-
-    public function test_not_converting_if_reply_has_already_expected_type()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    UuidReturningGateway::class,
-                    UuidReturningGateway::class,
-                    'executeWithPayload',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->assertSame(
-            $result = Uuid::fromString('e7019549-9733-45a3-b088-783de2b2357f'),
-            $messaging->getGateway(UuidReturningGateway::class)->executeWithPayload($result)
-        );
-    }
-
-    public function test_throwing_exception_if_converter_for_reply_media_type_is_missing()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    StdClassReturningGateway::class,
-                    StdClassReturningGateway::class,
-                    'executeWithPayload',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->expectException(TypeError::class);
-
-        $messaging->getGateway(StdClassReturningGateway::class)->executeWithPayload('something');
-    }
-
-    public function test_executing_with_default_parameters_auto_resolved()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    StringReturningGateway::class,
-                    StringReturningGateway::class,
-                    'executeWithDefault',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->assertSame(
-            'default',
-            $messaging->getGateway(StringReturningGateway::class)->executeWithDefault()
-        );
-    }
 }

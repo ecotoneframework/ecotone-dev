@@ -23,8 +23,12 @@
         }
     },
     "require": {
+        "ecotone/amqp": "dev-main as 1.999.999",
+        "ecotone/jms-converter": "dev-main as 1.999.999",
         "ecotone/lite-amqp-starter": "^1.0.1",
+        "ecotone/lite-application": "dev-main as 1.999.999",
         "ecotone/lite-event-sourcing-starter": "^1.0",
+        "ecotone/pdo-event-sourcing": "dev-main as 1.999.999",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

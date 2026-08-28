@@ -9,12 +9,12 @@ namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionDeployment;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionRegistry;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\Reference;
 use Ecotone\Api\ServiceConfiguration;
@@ -39,10 +39,10 @@ use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdate
 use Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection\TicketListUpdatedConverter;
 
 /**
- * Tests for emitting events from ProjectionV2 handlers.
+ * Tests for emitting events from Projection handlers.
  *
  * EventStreamEmitter is a general EventSourcing feature that can be used with any event handler,
- * including ProjectionV2 handlers. It allows projections to emit events to other streams.
+ * including Projection handlers. It allows projections to emit events to other streams.
  *
  * @internal
  */
@@ -283,7 +283,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjection(): object
     {
-        return new #[ProjectionV2('emitting_projection'), FromStream(Ticket::class)] class () {
+        return new #[Projection('emitting_projection'), FromStream(Ticket::class)] class () {
             private const STREAM_NAME = 'notifications_stream';
             private array $tickets = [];
 
@@ -339,7 +339,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createNonLiveEmittingProjection(): object
     {
-        return new #[ProjectionV2('non_live_emitting_projection'), ProjectionDeployment(live: false), FromStream(Ticket::class)] class () {
+        return new #[Projection('non_live_emitting_projection'), ProjectionDeployment(live: false), FromStream(Ticket::class)] class () {
             private const STREAM_NAME = 'notifications_stream_non_live';
             private array $tickets = [];
 
@@ -392,7 +392,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjectionWithLinkToProjectionStream(): object
     {
-        return new #[ProjectionV2('emitting_linked_projection'), FromStream(Ticket::class)] class () {
+        return new #[Projection('emitting_linked_projection'), FromStream(Ticket::class)] class () {
             private const STREAM_NAME = 'projection-emitting_linked_projection';
             private array $tickets = [];
 

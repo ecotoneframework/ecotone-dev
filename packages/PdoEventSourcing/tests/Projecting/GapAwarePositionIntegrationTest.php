@@ -8,8 +8,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting;
 
 use Ecotone\Api\ProjectingManager;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionRegistry;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
@@ -62,7 +62,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             }
         };
 
-        $projection = new #[ProjectionV2(DbalTicketProjection::NAME)] class (self::$connectionFactory->establishConnection()) extends DbalTicketProjection {
+        $projection = new #[Projection(DbalTicketProjection::NAME)] class (self::$connectionFactory->establishConnection()) extends DbalTicketProjection {
         };
         self::$projection = $projection;
         self::$ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(

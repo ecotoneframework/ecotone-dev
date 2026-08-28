@@ -11,7 +11,7 @@ use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 use Ecotone\Api\StateStorage as StateStorageAttribute;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -44,8 +44,8 @@ class ProjectionStateStorageRegistryModule extends NoExternalConfigurationModule
     public static function create(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $allProjectionNames = [];
-        foreach ($annotationFinder->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
-            $projectionAttribute = $annotationFinder->getAttributeForClass($projectionClassName, ProjectionV2::class);
+        foreach ($annotationFinder->findAnnotatedClasses(Projection::class) as $projectionClassName) {
+            $projectionAttribute = $annotationFinder->getAttributeForClass($projectionClassName, Projection::class);
             $allProjectionNames[] = $projectionAttribute->name;
         }
 

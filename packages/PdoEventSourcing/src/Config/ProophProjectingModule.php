@@ -16,8 +16,8 @@ use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Api\Partitioned;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionRegistry;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\Attribute\ProjectionStateGateway;
@@ -47,8 +47,8 @@ use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Projecting\Config\StreamFilterRegistryModule;
 use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
 use Ecotone\Projecting\PartitionProviderReference;
+use Ecotone\Projecting\ProjectionStateHandler;
 use Ecotone\Projecting\ProjectionStateStorageReference;
-use Ecotone\Projecting\ProjectionV2StateHandler;
 use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamSourceReference;
@@ -79,8 +79,8 @@ class ProophProjectingModule implements AnnotationModule
         [$partitionedProjectionNames, $globalStreamProjectionNames] = self::resolveProjectionTypes($annotationRegistrationService, $allStreamFilters);
 
         $projectionNames = [];
-        foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
-            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, ProjectionV2::class);
+        foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
+            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
             $projectionNames[] = $projectionAttribute->name;
         }
 
@@ -184,8 +184,8 @@ class ProophProjectingModule implements AnnotationModule
 
         foreach ($allStreamFilters as $projectionName => $streamFilters) {
             $projectionClass = null;
-            foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $classname) {
-                $projectionAttribute = $annotationRegistrationService->getAttributeForClass($classname, ProjectionV2::class);
+            foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $classname) {
+                $projectionAttribute = $annotationRegistrationService->getAttributeForClass($classname, Projection::class);
                 if ($projectionAttribute->name === $projectionName) {
                     $projectionClass = $classname;
                     break;
@@ -225,7 +225,7 @@ class ProophProjectingModule implements AnnotationModule
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
 
         if (! empty($multiTenantConfigurations) && ! empty($this->projectionNames) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create('Using Multi-Tenant connection with ProjectionV2 requires Ecotone Enterprise licence.');
+            throw LicensingException::create('Using Multi-Tenant connection with Projection requires Ecotone Enterprise licence.');
         }
 
         foreach ($extensionObjects as $extensionObject) {
@@ -323,8 +323,8 @@ class ProophProjectingModule implements AnnotationModule
         }
 
         $messagingConfiguration->registerServiceDefinition(
-            ProjectionV2StateHandler::class,
-            new Definition(ProjectionV2StateHandler::class, [
+            ProjectionStateHandler::class,
+            new Definition(ProjectionStateHandler::class, [
                 new Reference(ProjectionRegistry::class),
             ])
         );
@@ -333,8 +333,8 @@ class ProophProjectingModule implements AnnotationModule
 
         $messagingConfiguration->registerMessageHandler(
             ServiceActivatorBuilder::create(
-                ProjectionV2StateHandler::class,
-                InterfaceToCallReference::create(ProjectionV2StateHandler::class, 'getProjectionState')
+                ProjectionStateHandler::class,
+                InterfaceToCallReference::create(ProjectionStateHandler::class, 'getProjectionState')
             )
             ->withMethodParameterConverters([
                 HeaderBuilder::create('projectionName', 'ecotone.projectionV2.state.projectionName'),

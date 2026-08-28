@@ -17,6 +17,7 @@ use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Api\NamedEvent;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\Polling;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionBackfill;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionDeployment;
@@ -25,7 +26,6 @@ use Ecotone\Api\ProjectionFlush;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionRebuild;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\Streaming;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
@@ -84,8 +84,8 @@ class ProjectingAttributeModule implements AnnotationModule
         $projectionBuilders = [];
         $pollingProjections = [];
         $eventStreamingProjections = [];
-        foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
-            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, ProjectionV2::class);
+        foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
+            $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, Projection::class);
             $batchSizeAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionExecution::class);
             $backfillAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionBackfill::class);
             $rebuildAttribute = $annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionRebuild::class);
@@ -143,22 +143,22 @@ class ProjectingAttributeModule implements AnnotationModule
 
         /** @var array<string, EcotoneProjectionExecutorBuilder> $projectionBuilders */
         $lifecycleHandlers = [];
-        foreach ($annotationRegistrationService->findCombined(ProjectionV2::class, EventHandler::class) as $projectionEventHandler) {
-            /** @var ProjectionV2 $projectionAttribute */
+        foreach ($annotationRegistrationService->findCombined(Projection::class, EventHandler::class) as $projectionEventHandler) {
+            /** @var Projection $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
             $projectionBuilder = $projectionBuilders[$projectionAttribute->name] ?? throw new LogicException();
             $projectionBuilder->addEventHandler($projectionEventHandler);
         }
 
         $lifecycleAnnotations = array_merge(
-            $annotationRegistrationService->findCombined(ProjectionV2::class, ProjectionInitialization::class),
-            $annotationRegistrationService->findCombined(ProjectionV2::class, ProjectionDelete::class),
-            $annotationRegistrationService->findCombined(ProjectionV2::class, ProjectionFlush::class),
-            $annotationRegistrationService->findCombined(ProjectionV2::class, ProjectionReset::class),
+            $annotationRegistrationService->findCombined(Projection::class, ProjectionInitialization::class),
+            $annotationRegistrationService->findCombined(Projection::class, ProjectionDelete::class),
+            $annotationRegistrationService->findCombined(Projection::class, ProjectionFlush::class),
+            $annotationRegistrationService->findCombined(Projection::class, ProjectionReset::class),
         );
         $hasFlushWithProjectionState = false;
         foreach ($lifecycleAnnotations as $lifecycleAnnotation) {
-            /** @var ProjectionV2 $projectionAttribute */
+            /** @var Projection $projectionAttribute */
             $projectionAttribute = $lifecycleAnnotation->getAnnotationForClass();
             $projectionBuilder = $projectionBuilders[$projectionAttribute->name] ?? throw new LogicException();
             $projectionReferenceName = AnnotatedDefinitionReference::getReferenceForClassName($annotationRegistrationService, $lifecycleAnnotation->getClassName());
@@ -280,7 +280,7 @@ class ProjectingAttributeModule implements AnnotationModule
         return null;
     }
 
-    private static function verifyCorrectApiUsage(bool $isPolling, ?string $asynchronousChannelName, ProjectionV2 $projectionAttribute, bool $isEventStreaming, bool $isPartitioned): void
+    private static function verifyCorrectApiUsage(bool $isPolling, ?string $asynchronousChannelName, Projection $projectionAttribute, bool $isEventStreaming, bool $isPartitioned): void
     {
         if ($isPolling && $asynchronousChannelName !== null) {
             throw ConfigurationException::create(

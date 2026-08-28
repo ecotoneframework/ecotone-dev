@@ -16,7 +16,7 @@ use Ecotone\Api\EventSourcingHandler;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Identifier;
 use Ecotone\Api\NamedEvent;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
@@ -111,7 +111,7 @@ class AnAggregate
     }
 }
 
-#[ProjectionV2('a-projection'), FromStream('a-stream')]
+#[Projection('a-projection'), FromStream('a-stream')]
 class AProjection
 {
     public array $events = [];

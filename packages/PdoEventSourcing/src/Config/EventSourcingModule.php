@@ -12,16 +12,16 @@ use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Api\NamedEvent;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\PropagateHeaders;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\AggregateStreamMapping;
 use Ecotone\EventSourcing\AggregateTypeMapping;
-use Ecotone\EventSourcing\Attribute\Projection;
+use Ecotone\EventSourcing\Attribute\Projection as V1Projection;
 use Ecotone\EventSourcing\Attribute\ProjectionStateGateway;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionChannelAdapter;
 use Ecotone\EventSourcing\Config\InboundChannelAdapter\ProjectionEventHandler;
@@ -125,8 +125,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
         }
 
         $v2ProjectionNames = [];
-        foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $className) {
-            $v2ProjectionNames[] = $annotationRegistrationService->getAttributeForClass($className, ProjectionV2::class)->name;
+        foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $className) {
+            $v2ProjectionNames[] = $annotationRegistrationService->getAttributeForClass($className, Projection::class)->name;
         }
 
         $projectionStateGateways = [];
@@ -151,19 +151,19 @@ class EventSourcingModule extends NoExternalConfigurationModule
             ]);
         }
 
-        $projectionClassNames = $annotationRegistrationService->findAnnotatedClasses(Projection::class);
-        $projectionEventHandlers = $annotationRegistrationService->findCombined(Projection::class, EventHandler::class);
+        $projectionClassNames = $annotationRegistrationService->findAnnotatedClasses(V1Projection::class);
+        $projectionEventHandlers = $annotationRegistrationService->findCombined(V1Projection::class, EventHandler::class);
         $projectionSetupConfigurations = [];
         $projectionLifeCyclesServiceActivators = [];
 
         foreach ($projectionClassNames as $projectionClassName) {
             $attributes = $annotationRegistrationService->getAnnotationsForClass($projectionClassName);
-            /** @var Projection $projectionAttribute */
+            /** @var V1Projection $projectionAttribute */
             $projectionAttribute = null;
             /** @var Asynchronous|null $asynchronousChannelName */
             $asynchronousChannelName = null;
             foreach ($attributes as $attribute) {
-                if ($attribute instanceof Projection) {
+                if ($attribute instanceof V1Projection) {
                     $projectionAttribute = $attribute;
                 }
                 if ($attribute instanceof Asynchronous) {
@@ -610,7 +610,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         /** @var array<string, AnnotatedDefinition[]> $eventHandlersByProjectionName */
         $eventHandlersByProjectionName = [];
         foreach ($this->projectionEventHandlers as $projectionEventHandler) {
-            /** @var Projection $projectionAttribute */
+            /** @var V1Projection $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
             $eventHandlersByProjectionName[$projectionAttribute->getName()][] = $projectionEventHandler;
         }

@@ -13,9 +13,9 @@ use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\Polling;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -152,7 +152,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
     private function createMultiStreamProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
+        return new #[Projection(self::NAME), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
             public const NAME = 'calendar_multi_stream_projection';
 
             private array $calendars = [];
@@ -203,7 +203,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
     private function createPartitionedMultiStreamProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class {
             public const NAME = 'calendar_multi_stream_projection_partitioned';
 
             private array $calendars = [];
@@ -254,7 +254,7 @@ final class MultiStreamProjectionTest extends ProjectingTestCase
 
     private function createPollingMultiStreamProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), Polling(self::ENDPOINT_ID), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
+        return new #[Projection(self::NAME), Polling(self::ENDPOINT_ID), FromStream(CalendarWithInternalRecorder::class), FromStream(MeetingWithEventSourcing::class)] class () {
             public const NAME = 'calendar_multi_stream_projection_polling';
             public const ENDPOINT_ID = 'calendar_multi_stream_projection_polling_runner';
 

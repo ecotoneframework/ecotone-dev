@@ -9,7 +9,7 @@ namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
@@ -95,7 +95,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
     {
         $this->expectException(InvalidArgumentException::class);
 
-        $projection = new #[ProjectionV2('projection_with_multiple_handlers'), FromStream(AnAggregate::STREAM_NAME)] class {
+        $projection = new #[Projection('projection_with_multiple_handlers'), FromStream(AnAggregate::STREAM_NAME)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -131,7 +131,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithObjectRouting(): object
     {
-        return new #[ProjectionV2('projection_with_object_routing'), FromStream(AnAggregate::STREAM_NAME)] class {
+        return new #[Projection('projection_with_object_routing'), FromStream(AnAggregate::STREAM_NAME)] class {
             public array $events = [];
 
             #[EventHandler]
@@ -144,7 +144,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithRegexRouting(): object
     {
-        return new #[ProjectionV2('projection_with_regex_routing'), FromStream(AnAggregate::STREAM_NAME)] class {
+        return new #[Projection('projection_with_regex_routing'), FromStream(AnAggregate::STREAM_NAME)] class {
             public array $events = [];
 
             #[EventHandler('test.*')]
@@ -157,7 +157,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 
     private function getProjectionWithMultipleHandlers(): object
     {
-        return new #[ProjectionV2('projection_with_multiple_handlers'), FromStream(AnAggregate::STREAM_NAME)] class {
+        return new #[Projection('projection_with_multiple_handlers'), FromStream(AnAggregate::STREAM_NAME)] class {
             public array $events = [];
 
             #[EventHandler]

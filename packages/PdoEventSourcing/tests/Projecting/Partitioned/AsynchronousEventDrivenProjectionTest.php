@@ -10,10 +10,10 @@ use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Partitioned;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
@@ -192,7 +192,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         self::assertFalse(
             self::tableExists($this->getConnection(), 'in_progress_tickets_async_partitioned'),
-            'Projection deletion for ProjectionV2 is synchronous'
+            'Projection deletion for Projection is synchronous'
         );
 
         $ecotone->initializeProjection($projection::NAME);
@@ -219,7 +219,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, Asynchronous(self::CHANNEL), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, Asynchronous(self::CHANNEL), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
             public const NAME = 'async_ticket_list_partitioned';
             public const CHANNEL = 'async_projection_partitioned';
 

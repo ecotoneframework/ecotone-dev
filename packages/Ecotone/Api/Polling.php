@@ -11,7 +11,7 @@ use Attribute;
 
 /**
  * Marks a projection as polling-based.
- * When combined with ProjectionV2, the projection will be triggered by polling instead of event-driven.
+ * When combined with Projection, the projection will be triggered by polling instead of event-driven.
  * The endpointId is used to identify the polling endpoint.
  */
 #[Attribute(Attribute::TARGET_CLASS)]

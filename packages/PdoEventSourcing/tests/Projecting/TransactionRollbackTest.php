@@ -15,10 +15,10 @@ use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\InstantRetryConfiguration;
 use Ecotone\Api\Partitioned;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -186,7 +186,7 @@ final class TransactionRollbackTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Asynchronous(self::CHANNEL), FromStream(Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Asynchronous(self::CHANNEL), FromStream(Ticket::class)] class ($connection) {
             public const NAME = 'global_rollback_projection';
             public const CHANNEL = 'global_rollback_channel';
             public static int $callCount = 0;
@@ -236,7 +236,7 @@ final class TransactionRollbackTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, Asynchronous(self::CHANNEL), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, Asynchronous(self::CHANNEL), FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
             public const NAME = 'partitioned_rollback_projection';
             public const CHANNEL = 'partitioned_rollback_channel';
             public static int $callCount = 0;
@@ -286,7 +286,7 @@ final class TransactionRollbackTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, Asynchronous(self::CHANNEL), FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, Asynchronous(self::CHANNEL), FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
             public const NAME = 'multi_stream_rollback_projection';
             public const CHANNEL = 'multi_stream_rollback_channel';
             public static int $callCount = 0;
@@ -348,7 +348,7 @@ final class TransactionRollbackTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, Asynchronous(self::CHANNEL), FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, Asynchronous(self::CHANNEL), FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
             public const NAME = 'multi_stream_fail_second_projection';
             public const CHANNEL = 'multi_stream_fail_second_channel';
             public static int $callCount = 0;

@@ -8,12 +8,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Fixture;
 
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionInitialization;
-use Ecotone\Api\ProjectionV2;
 use RuntimeException;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 
-#[ProjectionV2(self::NAME)]
+#[Projection(self::NAME)]
 class TicketProjectionWithLifecycle
 {
     public const NAME = 'projection_with_lifecycle';

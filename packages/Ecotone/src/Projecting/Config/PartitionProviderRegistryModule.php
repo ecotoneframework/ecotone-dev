@@ -10,7 +10,7 @@ namespace Ecotone\Projecting\Config;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Api\PartitionProvider as PartitionProviderAttribute;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -42,8 +42,8 @@ class PartitionProviderRegistryModule extends NoExternalConfigurationModule impl
     public static function create(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
         $allProjectionNames = [];
-        foreach ($annotationFinder->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
-            $projectionAttribute = $annotationFinder->getAttributeForClass($projectionClassName, ProjectionV2::class);
+        foreach ($annotationFinder->findAnnotatedClasses(Projection::class) as $projectionClassName) {
+            $projectionAttribute = $annotationFinder->getAttributeForClass($projectionClassName, Projection::class);
             $allProjectionNames[] = $projectionAttribute->name;
         }
 

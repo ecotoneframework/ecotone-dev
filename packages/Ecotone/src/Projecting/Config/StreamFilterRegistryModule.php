@@ -14,7 +14,7 @@ use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Api\NamedEvent;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\Streaming;
 use Ecotone\EventSourcing\EventStore;
@@ -55,8 +55,8 @@ class StreamFilterRegistryModule implements AnnotationModule
 
         $streamFilters = [];
 
-        foreach ($annotationFinder->findAnnotatedClasses(ProjectionV2::class) as $classname) {
-            $projectionAttribute = $annotationFinder->getAttributeForClass($classname, ProjectionV2::class);
+        foreach ($annotationFinder->findAnnotatedClasses(Projection::class) as $classname) {
+            $projectionAttribute = $annotationFinder->getAttributeForClass($classname, Projection::class);
             $projectionName = $projectionAttribute->name;
             $eventNames = $projectionEventNames[$projectionName] ?? [];
 
@@ -102,8 +102,8 @@ class StreamFilterRegistryModule implements AnnotationModule
         $disabledFiltering = [];
         $routingMapBuilder = new BusRoutingMapBuilder();
 
-        foreach ($annotationFinder->findCombined(ProjectionV2::class, EventHandler::class) as $projectionEventHandler) {
-            /** @var ProjectionV2 $projectionAttribute */
+        foreach ($annotationFinder->findCombined(Projection::class, EventHandler::class) as $projectionEventHandler) {
+            /** @var Projection $projectionAttribute */
             $projectionAttribute = $projectionEventHandler->getAnnotationForClass();
             $projectionName = $projectionAttribute->name;
 

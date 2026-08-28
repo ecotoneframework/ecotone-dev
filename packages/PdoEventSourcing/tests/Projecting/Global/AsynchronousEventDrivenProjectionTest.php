@@ -9,10 +9,10 @@ use Ecotone\Api\Asynchronous;
 use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
@@ -197,7 +197,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         self::assertFalse(
             self::tableExists($this->getConnection(), 'in_progress_tickets'),
-            'Projection deletion for ProjectionV2 is synchronous'
+            'Projection deletion for Projection is synchronous'
         );
 
         $ecotone->initializeProjection($projection::NAME);
@@ -224,7 +224,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Asynchronous(self::CHANNEL), FromStream(Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Asynchronous(self::CHANNEL), FromStream(Ticket::class)] class ($connection) {
             public const NAME = 'async_ticket_list';
             public const CHANNEL = 'async_projection';
 

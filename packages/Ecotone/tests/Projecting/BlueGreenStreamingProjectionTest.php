@@ -9,8 +9,8 @@ namespace Test\Ecotone\Projecting\BlueGreen;
 
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionName;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Api\Streaming;
@@ -33,7 +33,7 @@ final class BlueGreenStreamingProjectionTest extends TestCase
     {
         $positionTracker = new InMemoryConsumerPositionTracker();
 
-        $v1 = new #[ProjectionV2('users_v1'), Streaming('streaming_channel')] class {
+        $v1 = new #[Projection('users_v1'), Streaming('streaming_channel')] class {
             public array $users = [];
             public ?string $receivedProjectionName = null;
 
@@ -45,7 +45,7 @@ final class BlueGreenStreamingProjectionTest extends TestCase
             }
         };
 
-        $v2 = new #[ProjectionV2('users_v2'), Streaming('streaming_channel')] class {
+        $v2 = new #[Projection('users_v2'), Streaming('streaming_channel')] class {
             public array $users = [];
             public ?string $receivedProjectionName = null;
 

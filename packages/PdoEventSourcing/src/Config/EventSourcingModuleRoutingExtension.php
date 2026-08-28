@@ -15,7 +15,7 @@ use Ecotone\Modelling\Config\Routing\RoutingEventHandler;
 
 /**
  * This routing event handler is responsible to trigger projection instead of routing directly to execution endpoint.
- * This handles the old Prooph-based Projection attribute, not the new ProjectionV2.
+ * This handles the old Prooph-based Projection attribute, not the new Projection.
  */
 class EventSourcingModuleRoutingExtension implements RoutingEventHandler
 {

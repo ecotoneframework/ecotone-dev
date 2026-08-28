@@ -16,7 +16,7 @@ use Ecotone\EventSourcing\EventStore;
  *
  * Example usage:
  * ```php
- * #[ProjectionV2('order_list')]
+ * #[Projection('order_list')]
  * #[FromAggregateStream(Order::class)]
  * class OrderListProjection { ... }
  * ```

@@ -15,12 +15,12 @@ use Ecotone\Api\FromStream;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\PartitionProvider as PartitionProviderAttribute;
 use Ecotone\Api\Priority;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionBackfill;
 use Ecotone\Api\ProjectionDeployment;
 use Ecotone\Api\ProjectionExecution;
 use Ecotone\Api\ProjectionFlush;
 use Ecotone\Api\ProjectionInitialization;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Api\StateStorage;
@@ -54,7 +54,7 @@ class ProjectingTest extends TestCase
     public function test_asynchronous_projection(): void
     {
         // Given an asynchronous projection
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), Asynchronous('async')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), Asynchronous('async')] class {
             public array $handledEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -84,7 +84,7 @@ class ProjectingTest extends TestCase
 
     public function test_partitioned_projection(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), Partitioned('partitionHeader')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), Partitioned('partitionHeader')] class {
             public array $handledEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -145,7 +145,7 @@ class ProjectingTest extends TestCase
 
     public function test_asynchronous_partitioned_projection(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), Partitioned('partitionHeader'), Asynchronous('async')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), Partitioned('partitionHeader'), Asynchronous('async')] class {
             public array $handledEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -209,7 +209,7 @@ class ProjectingTest extends TestCase
 
     public function test_it_can_init_projection_lifecycle_state(): void
     {
-        $projection = new #[ProjectionV2('projection_with_lifecycle'), FromStream('test_stream')] class {
+        $projection = new #[Projection('projection_with_lifecycle'), FromStream('test_stream')] class {
             public const TICKET_CREATED = 'ticket.created';
             private bool $initialized = false;
             public array $projectedEvents = [];
@@ -252,7 +252,7 @@ class ProjectingTest extends TestCase
 
     public function test_it_skips_execution_when_automatic_initialization_is_off_and_not_initialized(): void
     {
-        $projection = new #[ProjectionV2('projection_with_manual_initialization'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: true)] class {
+        $projection = new #[Projection('projection_with_manual_initialization'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: true)] class {
             public const TICKET_CREATED = 'ticket.created';
             public array $projectedEvents = [];
 
@@ -292,7 +292,7 @@ class ProjectingTest extends TestCase
 
     public function test_init_partition_concurrency_protection(): void
     {
-        $projection = new #[ProjectionV2('concurrent_projection'), FromStream('test_stream')] class {
+        $projection = new #[Projection('concurrent_projection'), FromStream('test_stream')] class {
             public const TICKET_CREATED = 'ticket.created';
             public array $projectedEvents = [];
             public int $initCallCount = 0;
@@ -335,7 +335,7 @@ class ProjectingTest extends TestCase
 
     public function test_auto_initialization_mode_processes_events(): void
     {
-        $projection = new #[ProjectionV2('auto_projection'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: false)] class {
+        $projection = new #[Projection('auto_projection'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: false)] class {
             public const TICKET_CREATED = 'ticket.created';
             public array $projectedEvents = [];
             public int $initCallCount = 0;
@@ -375,7 +375,7 @@ class ProjectingTest extends TestCase
 
     public function test_skip_initialization_mode_skips_events_when_not_initialized(): void
     {
-        $projection = new #[ProjectionV2('skip_projection'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: true)] class {
+        $projection = new #[Projection('skip_projection'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: true)] class {
             public const TICKET_CREATED = 'ticket.created';
             public array $projectedEvents = [];
             public int $initCallCount = 0;
@@ -415,7 +415,7 @@ class ProjectingTest extends TestCase
 
     public function test_skip_mode_with_multiple_events(): void
     {
-        $projection = new #[ProjectionV2('skip_multiple_events'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: true)] class {
+        $projection = new #[Projection('skip_multiple_events'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: true)] class {
             public const TICKET_CREATED = 'ticket.created';
             public array $projectedEvents = [];
             public int $initCallCount = 0;
@@ -458,7 +458,7 @@ class ProjectingTest extends TestCase
 
     public function test_auto_mode_with_multiple_events(): void
     {
-        $projection = new #[ProjectionV2('auto_multiple_events'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: false)] class {
+        $projection = new #[Projection('auto_multiple_events'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: false)] class {
             public const TICKET_CREATED = 'ticket.created';
             public array $projectedEvents = [];
             public int $initCallCount = 0;
@@ -500,7 +500,7 @@ class ProjectingTest extends TestCase
 
     public function test_projection_with_partitioned_events(): void
     {
-        $projection = new #[ProjectionV2('partitioned_auto_projection'), FromStream('test_stream'), Partitioned('tenantId')] class {
+        $projection = new #[Projection('partitioned_auto_projection'), FromStream('test_stream'), Partitioned('tenantId')] class {
             public const TICKET_CREATED = 'ticket.created';
             public array $projectedEvents = [];
             public int $initCallCount = 0;
@@ -542,7 +542,7 @@ class ProjectingTest extends TestCase
     {
         $this->expectException(LicensingException::class);
 
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -574,7 +574,7 @@ class ProjectingTest extends TestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage("Projection 'test_no_stream' must have at least one #[FromStream] or #[FromAggregateStream] attribute defined");
 
-        $projection = new #[ProjectionV2('test_no_stream')] class {
+        $projection = new #[Projection('test_no_stream')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -591,7 +591,7 @@ class ProjectingTest extends TestCase
     public function test_it_with_event_handler_priority(): void
     {
         $db = [];
-        $projectionA = new #[ProjectionV2('A'), FromStream('test_stream')] class ($db) {
+        $projectionA = new #[Projection('A'), FromStream('test_stream')] class ($db) {
             public function __construct(private array &$db)
             {
             }
@@ -607,7 +607,7 @@ class ProjectingTest extends TestCase
                 $this->db[] = 'projectionA-with-priority';
             }
         };
-        $projectionB = new #[ProjectionV2('B'), FromStream('test_stream')] class ($db) {
+        $projectionB = new #[Projection('B'), FromStream('test_stream')] class ($db) {
             public function __construct(private array &$db)
             {
             }
@@ -649,7 +649,7 @@ class ProjectingTest extends TestCase
 
     public function test_it_can_flush_by_batches(): void
     {
-        $projection = new #[ProjectionV2('batch_projection'), FromStream('test_stream')] class () {
+        $projection = new #[Projection('batch_projection'), FromStream('test_stream')] class () {
             public array $processingEvents = [];
             public array $flushedEvents = [];
             #[EventHandler('*')]
@@ -688,7 +688,7 @@ class ProjectingTest extends TestCase
 
     public function test_trigger_projection_processes_events_synchronously_even_with_async_backfill_channel_configured(): void
     {
-        $projection = new #[ProjectionV2('sync_trigger_projection'), FromStream('test_stream'), ProjectionBackfill(asyncChannelName: 'backfill_async')] class {
+        $projection = new #[Projection('sync_trigger_projection'), FromStream('test_stream'), ProjectionBackfill(asyncChannelName: 'backfill_async')] class {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -715,7 +715,7 @@ class ProjectingTest extends TestCase
 
     public function test_reset_projection_replays_previously_processed_events_from_scratch(): void
     {
-        $projection = new #[ProjectionV2('reset_replay_projection'), FromStream('test_stream')] class {
+        $projection = new #[Projection('reset_replay_projection'), FromStream('test_stream')] class {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -745,7 +745,7 @@ class ProjectingTest extends TestCase
     #[RequiresPhpExtension('posix')]
     public function test_pcntl_signals_handling(): void
     {
-        $projection = new #[ProjectionV2('signals_projection'), FromStream('test_stream'), ProjectionExecution(eventLoadingBatchSize: 2)] class () {
+        $projection = new #[Projection('signals_projection'), FromStream('test_stream'), ProjectionExecution(eventLoadingBatchSize: 2)] class () {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -800,7 +800,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $projection = new #[ProjectionV2('userland_backfill_projection'), FromStream('test_stream'), Partitioned('partitionHeader'), ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_async')] class {
+        $projection = new #[Projection('userland_backfill_projection'), FromStream('test_stream'), Partitioned('partitionHeader'), ProjectionBackfill(backfillPartitionBatchSize: 2, asyncChannelName: 'backfill_async')] class {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -883,7 +883,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $projection = new #[ProjectionV2('different_projection'), FromStream('test_stream'), ProjectionBackfill(asyncChannelName: 'backfill_async')] class {
+        $projection = new #[Projection('different_projection'), FromStream('test_stream'), ProjectionBackfill(asyncChannelName: 'backfill_async')] class {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -935,7 +935,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $projection = new #[ProjectionV2('intercepted_batch_projection'), FromStream('test_stream'), ProjectionExecution(eventLoadingBatchSize: 3)] class () {
+        $projection = new #[Projection('intercepted_batch_projection'), FromStream('test_stream'), ProjectionExecution(eventLoadingBatchSize: 3)] class () {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void
@@ -1019,7 +1019,7 @@ class ProjectingTest extends TestCase
             }
         };
 
-        $projection = new #[ProjectionV2('userland_storage_projection'), FromStream('test_stream')] class {
+        $projection = new #[Projection('userland_storage_projection'), FromStream('test_stream')] class {
             public array $processedEvents = [];
             #[EventHandler('*')]
             public function handle(array $event): void

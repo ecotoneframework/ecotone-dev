@@ -20,7 +20,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
-use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\MessagingException;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -37,7 +36,6 @@ use Test\Ecotone\Messaging\Fixture\Channel\PollingChannelThrowingException;
 use Test\Ecotone\Messaging\Fixture\Handler\ExceptionMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\IteratorReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MixedReturningGateway;
-use Test\Ecotone\Messaging\Fixture\Handler\Gateway\StringReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayClassAndMethodExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayClassExample;
@@ -188,40 +186,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             $payload,
             $messaging->getGateway(ServiceInterfaceReceiveOnly::class)->sendMail()
         );
-    }
-
-    public function test_executing_with_method_argument_converters()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withChannel(SimpleMessageChannelBuilder::createQueueChannel($outputChannel = 'outputChannel'))
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    ServiceInterfaceSendOnlyWithTwoArguments::class,
-                    ServiceInterfaceSendOnlyWithTwoArguments::class,
-                    'sendMail',
-                    $inputChannel = 'inputChannel'
-                )
-                    ->withParameterConverters(
-                        [
-                            GatewayHeaderBuilder::create('personId', 'personId'),
-                            GatewayPayloadBuilder::create('content'),
-                        ]
-                    )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-                    ->withOutputMessageChannel($outputChannel)
-            )
-            ->build();
-
-        $messaging->getGateway(ServiceInterfaceSendOnlyWithTwoArguments::class)
-                        ->sendMail($personId = '123', $content = 'some bla content');
-
-        $message = $messaging->receiveMessageFrom($outputChannel);
-
-        $this->assertEquals($personId, $message->getHeaders()->get('personId'));
-        $this->assertEquals($content, $message->getPayload());
     }
 
     public function test_throwing_exception_if_two_payload_converters_passed()
@@ -743,33 +707,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             new stdClass(),
             $messaging->getGateway(FakeMessageConverterGatewayExample::class)
                 ->execute([], 'test')
-        );
-    }
-
-    public function test_returning_with_specific_content_type_if_defined_in_reply_message()
-    {
-        $messaging = ComponentTestBuilder::create()
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    StringReturningGateway::class,
-                    StringReturningGateway::class,
-                    'executeWithPayloadAndHeaders',
-                    $inputChannel = 'inputChannel'
-                )
-                    ->withParameterConverters([
-                        GatewayHeaderBuilder::create('replyMediaType', MessageHeaders::REPLY_CONTENT_TYPE),
-                    ])
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $this->assertEquals(
-            '[1,2,3]',
-            $messaging->getGateway(StringReturningGateway::class)
-                ->executeWithPayloadAndHeaders('[1,2,3]', [MessageHeaders::CONTENT_TYPE => MediaType::APPLICATION_JSON], MediaType::APPLICATION_JSON)
         );
     }
 

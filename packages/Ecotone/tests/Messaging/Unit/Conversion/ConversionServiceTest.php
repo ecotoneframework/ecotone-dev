@@ -6,11 +6,8 @@ namespace Test\Ecotone\Messaging\Unit\Conversion;
 
 use Ecotone\Api\Converter;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
-use Ecotone\Messaging\Conversion\SerializedToObject\DeserializingConverter;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessagingException;
@@ -40,11 +37,7 @@ class ConversionServiceTest extends TestCase
      */
     public function test_using_php_serializing_converters()
     {
-        $conversionService = AutoCollectionConversionService::createWith([
-            new DeserializingConverter(),
-            new SerializingConverter(),
-        ]);
-
+        $conversionService = EcotoneLite::bootstrapFlowTesting()->getGateway(ConversionService::class);
 
         $serializedObject = new stdClass();
         $serializedObject->name = 'johny';
@@ -72,7 +65,7 @@ class ConversionServiceTest extends TestCase
 
     public function test_not_converting_when_source_is_null()
     {
-        $conversionService = AutoCollectionConversionService::createWith([new SerializingConverter()]);
+        $conversionService = EcotoneLite::bootstrapFlowTesting()->getGateway(ConversionService::class);
 
         $this->assertEquals(
             null,

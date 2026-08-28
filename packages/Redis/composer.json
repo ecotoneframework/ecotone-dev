@@ -51,7 +51,7 @@
         }
     },
     "require": {
-        "ecotone/enqueue": "~1.326.1",
+        "ecotone/enqueue": "~2.0.0-beta.1",
         "enqueue/redis": "^0.10.9"
     },
     "require-dev": {
@@ -69,7 +69,7 @@
     },
     "extra": {
         "branch-alias": {
-            "dev-main": "1.326.x-dev"
+            "dev-main": "2.0.x-dev"
         },
         "ecotone": {
             "repository": "redis"
@@ -85,6 +85,6 @@
                 "description": "Allows to use Enterprise features of Ecotone. For more information please write to support@simplycodedsoftware.com"
             }
         },
-        "release-time": "2026-08-22 12:14:33"
+        "release-time": "2026-08-28 17:47:54"
     }
 }

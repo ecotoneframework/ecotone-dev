@@ -33,6 +33,24 @@ foreach ($iterator as $file) {
         unset($composer['repositories']);
     }
 
+    // Require entries aliasing a local path package (e.g. "dev-main as 1.999.999") only make
+    // sense while the path repository above is present; without it they'd force installs from
+    // an unstable dev branch instead of the published release the package otherwise resolves to.
+    foreach (['require', 'require-dev'] as $section) {
+        if (!isset($composer[$section])) {
+            continue;
+        }
+
+        $composer[$section] = array_filter(
+            $composer[$section],
+            fn ($constraint) => !str_starts_with($constraint, 'dev-main as ')
+        );
+
+        if (empty($composer[$section])) {
+            unset($composer[$section]);
+        }
+    }
+
     file_put_contents(
         $path,
         json_encode($composer, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n"

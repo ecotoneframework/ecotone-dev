@@ -25,10 +25,7 @@
         ]
     },
     "require": {
-        "ecotone/amqp": "dev-main as 1.999.999",
-        "ecotone/jms-converter": "dev-main as 1.999.999",
-        "ecotone/lite-amqp-starter": "^1.0.1",
-        "ecotone/lite-application": "dev-main as 1.999.999"
+        "ecotone/lite-amqp-starter": "^1.0.1"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.6|^10.5|^11.0"

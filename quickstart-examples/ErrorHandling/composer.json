@@ -21,11 +21,7 @@
         }
     },
     "require": {
-        "ecotone/amqp": "dev-main as 1.999.999",
-        "ecotone/dbal": "dev-main as 1.999.999",
-        "ecotone/jms-converter": "dev-main as 1.999.999",
         "ecotone/lite-amqp-starter": "^1.0.1",
-        "ecotone/lite-application": "dev-main as 1.999.999",
         "ecotone/lite-dbal-starter": "^1.0.1",
         "ramsey/uuid": "^4.0"
     },

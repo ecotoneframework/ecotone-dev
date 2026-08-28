@@ -22,9 +22,6 @@
         }
     },
     "require": {
-        "ecotone/dbal": "dev-main as 1.999.999",
-        "ecotone/jms-converter": "dev-main as 1.999.999",
-        "ecotone/laravel": "dev-main as 1.999.999",
         "ecotone/laravel-starter": "^1.1.0",
         "laravel/laravel": "^10.0"
     },

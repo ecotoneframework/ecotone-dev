@@ -22,11 +22,8 @@
         }
     },
     "require": {
-        "ecotone/dbal": "dev-main as 1.999.999",
-        "ecotone/jms-converter": "dev-main as 1.999.999",
-        "ecotone/lite-application": "dev-main as 1.999.999",
         "ecotone/lite-event-sourcing-starter": "^1.0",
-        "ecotone/pdo-event-sourcing": "dev-main as 1.999.999",
+        "ecotone/dbal": "^1.0",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

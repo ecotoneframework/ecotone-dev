@@ -22,8 +22,6 @@
         }
     },
     "require": {
-        "ecotone/jms-converter": "dev-main as 1.999.999",
-        "ecotone/lite-application": "dev-main as 1.999.999",
         "ecotone/lite-application-starter": "^1.0.1",
         "ramsey/uuid": "^4.0"
     },

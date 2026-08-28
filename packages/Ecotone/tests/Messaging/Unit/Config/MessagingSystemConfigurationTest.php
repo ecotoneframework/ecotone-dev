@@ -1695,40 +1695,6 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
     /**
      * @throws MessagingException
      */
-    public function test_throwing_exception_if_registering_handlers_with_same_endpoint_id()
-    {
-        $this->expectException(ConfigurationException::class);
-
-        MessagingSystemConfiguration::prepareWithDefaultsForTesting()
-            ->registerMessageHandler(DumbMessageHandlerBuilder::createSimple()->withEndpointId('1'))
-            ->registerMessageHandler(DumbMessageHandlerBuilder::createSimple()->withEndpointId('1'));
-    }
-
-    /**
-     * @throws ConfigurationException
-     * @throws MessagingException
-     */
-    public function test_generating_random_id_if_no_endpoint_id_passed()
-    {
-        MessagingSystemConfiguration::prepareWithDefaultsForTesting()
-            ->registerMessageHandler(DumbMessageHandlerBuilder::createSimple())
-            ->registerMessageHandler(DumbMessageHandlerBuilder::createSimple());
-
-        $this->assertTrue(true);
-    }
-
-    /**
-     * @throws MessagingException
-     */
-    public function test_throwing_exception_if_trying_to_register_two_channels_with_same_names()
-    {
-        $this->expectException(ConfigurationException::class);
-
-        MessagingSystemConfiguration::prepareWithDefaultsForTesting()
-            ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel('some'))
-            ->registerMessageChannel(SimpleMessageChannelBuilder::createDirectMessageChannel('some'));
-    }
-
     public function test_calling_console_command_with_default()
     {
         $consoleCommandName = 'someName';

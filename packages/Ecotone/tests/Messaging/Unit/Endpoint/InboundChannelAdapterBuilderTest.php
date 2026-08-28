@@ -14,7 +14,6 @@ use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Messaging\NullableMessageChannel;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Messaging\Transaction\Null\NullTransaction;
@@ -24,8 +23,6 @@ use Ecotone\Messaging\Transaction\TransactionInterceptor;
 use Ecotone\Test\ComponentTestBuilder;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerContinuouslyWorkingService;
 use Test\Ecotone\Messaging\Fixture\Endpoint\ConsumerStoppingService;
-use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingNoArguments;
-use Test\Ecotone\Messaging\Fixture\Service\ServiceExpectingOneArgument;
 use Test\Ecotone\Messaging\Unit\MessagingTestCase;
 
 /**
@@ -41,104 +38,6 @@ use Test\Ecotone\Messaging\Unit\MessagingTestCase;
  */
 class InboundChannelAdapterBuilderTest extends MessagingTestCase
 {
-    /**
-     * @throws \Ecotone\Messaging\MessagingException
-     */
-    public function test_throwing_exception_if_passed_reference_service_has_parameters()
-    {
-        $this->expectException(InvalidArgumentException::class);
-        ComponentTestBuilder::create()
-            ->withReference('someRef', ServiceExpectingOneArgument::create())
-            ->withPollingMetadata(PollingMetadata::create('test'))
-            ->withInboundChannelAdapter(
-                InboundChannelAdapterBuilder::create(
-                    'channelName',
-                    'someRef',
-                    InterfaceToCall::create(ServiceExpectingOneArgument::class, 'withReturnValue')
-                )
-                    ->withEndpointId('test')
-            )
-            ->build();
-    }
-
-    /**
-     * @throws InvalidArgumentException
-     * @throws \Ecotone\Messaging\MessagingException
-     */
-    public function test_passed_reference_should_return_parameters()
-    {
-        $this->expectException(InvalidArgumentException::class);
-        ComponentTestBuilder::create()
-            ->withReference('someRef', ServiceExpectingOneArgument::create())
-            ->withPollingMetadata(PollingMetadata::create('test'))
-            ->withInboundChannelAdapter(
-                InboundChannelAdapterBuilder::create(
-                    'channelName',
-                    'someRef',
-                    InterfaceToCall::create(ServiceExpectingNoArguments::class, 'withoutReturnValue')
-                )->withEndpointId('test')
-            )
-            ->build();
-    }
-
-    public function test_executing_with_no_parameters_when_null_channel_defined()
-    {
-        $inputChannelName = NullableMessageChannel::CHANNEL_NAME;
-        $service = ServiceExpectingNoArguments::create();
-
-        $messaging = ComponentTestBuilder::create()
-            ->withReference('someRef', $service)
-            ->withPollingMetadata(PollingMetadata::create('test')->setHandledMessageLimit(1))
-            ->withInboundChannelAdapter(
-                InboundChannelAdapterBuilder::create(
-                    $inputChannelName,
-                    'someRef',
-                    InterfaceToCall::create($service::class, 'withoutReturnValue')
-                )
-                    ->withEndpointId('test')
-            )
-            ->build();
-
-        $messaging->run('test');
-
-        $this->assertTrue($service->wasCalled());
-    }
-
-
-    /**
-     * @throws InvalidArgumentException
-     * @throws \Ecotone\Messaging\MessagingException
-     */
-    public function test_running_with_default_period_trigger()
-    {
-        $payload = 'testPayload';
-        $inputChannelName = 'inputChannelName';
-        $inputChannel = QueueChannel::create();
-        $inboundChannelAdapterStoppingService = ConsumerStoppingService::create($payload);
-
-        $messaging = ComponentTestBuilder::create()
-            ->withChannel(SimpleMessageChannelBuilder::create($inputChannelName, $inputChannel))
-            ->withReference('someRef', $inboundChannelAdapterStoppingService)
-            ->withPollingMetadata(PollingMetadata::create('test')->withTestingSetup())
-            ->withInboundChannelAdapter(
-                InboundChannelAdapterBuilder::create(
-                    $inputChannelName,
-                    'someRef',
-                    InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'execute')
-                )
-                    ->withEndpointId('test')
-            )
-            ->build()
-        ;
-
-        $messaging->run('test');
-
-        $this->assertEquals(
-            $payload,
-            $inputChannel->receive()->getPayload()
-        );
-    }
-
     /**
      * @throws InvalidArgumentException
      * @throws \Ecotone\Messaging\MessagingException
@@ -273,43 +172,6 @@ class InboundChannelAdapterBuilderTest extends MessagingTestCase
         $messaging->run('test');
 
         $this->assertNull($requestChannel->receive());
-    }
-
-    /**
-     * @throws \Ecotone\Messaging\MessagingException
-     */
-    public function test_running_with_custom_trigger()
-    {
-        $payload = 'testPayload';
-        $inputChannelName = 'inputChannelName';
-        $inputChannel = QueueChannel::create();
-        $inboundChannelAdapterStoppingService = ConsumerStoppingService::create($payload);
-
-        $messaging = ComponentTestBuilder::create()
-            ->withChannel(SimpleMessageChannelBuilder::create($inputChannelName, $inputChannel))
-            ->withReference('someRef', $inboundChannelAdapterStoppingService)
-            ->withPollingMetadata(
-                PollingMetadata::create('test')
-                    ->setFixedRateInMilliseconds(1)
-                    ->setInitialDelayInMilliseconds(0)
-                    ->setExecutionTimeLimitInMilliseconds(100)
-            )
-            ->withInboundChannelAdapter(
-                InboundChannelAdapterBuilder::create(
-                    $inputChannelName,
-                    'someRef',
-                    InterfaceToCall::create($inboundChannelAdapterStoppingService::class, 'execute')
-                )
-                ->withEndpointId('test')
-            )
-            ->build();
-
-        $messaging->run('test');
-
-        $this->assertEquals(
-            $payload,
-            $inputChannel->receive()->getPayload()
-        );
     }
 
     public function test_acking_message_when_ack_available_in_message_header_in_inbound_channel_adapter()

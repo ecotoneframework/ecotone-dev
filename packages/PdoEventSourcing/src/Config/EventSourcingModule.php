@@ -81,6 +81,7 @@ use Ecotone\Modelling\Config\MessageBusChannel;
 use Ecotone\Modelling\Config\Routing\BusRouteSelector;
 use Ecotone\Modelling\Config\Routing\BusRoutingKeyResolver;
 use Ecotone\Modelling\Config\Routing\BusRoutingMapBuilder;
+use Ecotone\Projecting\ProjectingHeaders;
 use Symfony\Component\Uid\Uuid;
 
 #[ModuleAnnotation]
@@ -562,7 +563,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $linkingRouterHandler =
             MessageProcessorActivatorBuilder::create()
                 ->withInputChannelName(Uuid::v7()->toRfc4122())
-                ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectionEventHandler::PROJECTION_LIVE, false))
+                ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectingHeaders::PROJECTION_LIVE, false))
                 ->chain(RouterProcessorBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),
                     $eventBusChannelName,
@@ -580,7 +581,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             MessageProcessorActivatorBuilder::create()
                 ->withInputChannelName(Uuid::v7()->toRfc4122())
                 ->chain(new Definition(StreamNameMapper::class))
-                ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectionEventHandler::PROJECTION_LIVE))
+                ->chain(MessageFilterBuilder::createNotBoolHeaderFilter(ProjectingHeaders::PROJECTION_LIVE))
                 ->chain(RouterProcessorBuilder::createRecipientListRouter([
                     $eventStoreHandler->getInputMessageChannelName(),
                     $eventBusChannelName,

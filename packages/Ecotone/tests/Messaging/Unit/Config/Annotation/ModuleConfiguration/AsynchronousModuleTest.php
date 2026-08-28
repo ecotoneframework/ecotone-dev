@@ -5,17 +5,14 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
 use Doctrine\Common\Annotations\AnnotationException;
-use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\Collector\Config\CollectorConfiguration;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessagingException;
 use ReflectionException;
@@ -49,22 +46,14 @@ final class AsynchronousModuleTest extends AnnotationConfigurationTestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        AsynchronousModule::create(
-            InMemoryAnnotationFinder::createEmpty()
-                ->registerClassWithAnnotations(AsyncEventHandlerWithoutIdExample::class),
-            InterfaceToCallRegistry::createEmpty()
-        );
+        EcotoneLite::bootstrapFlowTesting([AsyncEventHandlerWithoutIdExample::class], [new AsyncEventHandlerWithoutIdExample()]);
     }
 
     public function test_throwing_exception_if_using_generated_id_for_command_handler()
     {
         $this->expectException(ConfigurationException::class);
 
-        AsynchronousModule::create(
-            InMemoryAnnotationFinder::createEmpty()
-                ->registerClassWithAnnotations(AsyncCommandHandlerWithoutIdExample::class),
-            InterfaceToCallRegistry::createEmpty()
-        );
+        EcotoneLite::bootstrapFlowTesting([AsyncCommandHandlerWithoutIdExample::class], [new AsyncCommandHandlerWithoutIdExample()]);
     }
 
     public function test_messaging_provide_default_ending_polling_metadata()

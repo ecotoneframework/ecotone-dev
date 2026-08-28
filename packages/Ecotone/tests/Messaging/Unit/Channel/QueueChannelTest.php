@@ -7,9 +7,7 @@ use Ecotone\Api\CommandHandler;
 use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Channel\QueueChannel;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
-use Ecotone\Messaging\Support\MessageBuilder;
 use Exception;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
@@ -27,25 +25,30 @@ use PHPUnit\Framework\TestCase;
  */
 class QueueChannelTest extends TestCase
 {
-    public function test_sending_and_receiving_message_in_last_in_first_out_order()
+    public function test_sending_and_receiving_message_in_first_in_first_out_order()
     {
-        $queueChannel = QueueChannel::create();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [],
+            configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('rawQueue', delayable: false)),
+        );
 
-        $firstMessage = MessageBuilder::withPayload('a')->build();
-        $secondMessage = MessageBuilder::withPayload('b')->build();
+        $ecotoneLite->sendDirectToChannel('rawQueue', 'a');
+        $ecotoneLite->sendDirectToChannel('rawQueue', 'b');
 
-        $queueChannel->send($firstMessage);
-        $queueChannel->send($secondMessage);
-
-        $this->assertEquals($firstMessage, $queueChannel->receive());
-        $this->assertEquals($secondMessage, $queueChannel->receive());
+        $this->assertSame('a', $ecotoneLite->receiveMessageFrom('rawQueue')->getPayload());
+        $this->assertSame('b', $ecotoneLite->receiveMessageFrom('rawQueue')->getPayload());
     }
 
     public function test_returning_null_when_queue_is_empty()
     {
-        $queueChannel = QueueChannel::create();
+        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+            [],
+            [],
+            configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('rawQueue', delayable: false)),
+        );
 
-        $this->assertNull($queueChannel->receive());
+        $this->assertNull($ecotoneLite->receiveMessageFrom('rawQueue'));
     }
 
     public function test_resending_message_back_to_queue_on_failure(): void

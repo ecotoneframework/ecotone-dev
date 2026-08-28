@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
-use Ecotone\AnnotationFinder\InMemory\InMemoryAnnotationFinder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
-use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ConsoleCommandWithArrayOptions;
 use Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand\ConsoleCommandWithMessageHeaders;
@@ -31,12 +28,7 @@ final class ConsoleCommandModuleTest extends AnnotationConfigurationTestCase
     {
         $this->expectException(InvalidArgumentException::class);
 
-        ConsoleCommandModule::create(
-            InMemoryAnnotationFinder::createFrom([
-                OneTimeWithIncorrectResultSet::class,
-            ]),
-            InterfaceToCallRegistry::createEmpty()
-        );
+        EcotoneLite::bootstrapFlowTesting([OneTimeWithIncorrectResultSet::class], [new OneTimeWithIncorrectResultSet()]);
     }
 
     public function test_execute_console_command_with_array_of_options()

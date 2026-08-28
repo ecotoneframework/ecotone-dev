@@ -28,10 +28,10 @@
     },
     "require": {
         "beberlei/assert": "^3.3.2",
-        "ecotone/jms-converter": "dev-main as 1.999.999",
-        "ecotone/lite-application": "dev-main as 1.999.999",
+        "ecotone/jms-converter": "dev-main as 1.326.1",
+        "ecotone/lite-application": "dev-main as 1.326.1",
         "ecotone/lite-event-sourcing-starter": "^1.0",
-        "ecotone/pdo-event-sourcing": "dev-main as 1.999.999",
+        "ecotone/pdo-event-sourcing": "dev-main as 1.326.1",
         "ramsey/uuid": "^4.0"
     },
     "require-dev": {

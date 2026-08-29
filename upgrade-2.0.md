@@ -6,8 +6,8 @@ the release; within a group the most impactful changes come first.
 
 Minimum requirements: PHP 8.2, Symfony 6.4+/7, Laravel 11+, Doctrine DBAL 4.
 
-**Status of this guide.** Sections 1, 2, 5, 6, 7, 9, 11, 13 and 14 describe behaviour that is already in the
-codebase. Sections 3, 4, 8 and 12 are **planned for 2.0 and not implemented yet** — they are marked
+**Status of this guide.** Sections 1, 2, 3, 5, 6, 7, 9, 11, 13 and 14 describe behaviour that is already in the
+codebase. Sections 4, 8 and 12 are **planned for 2.0 and not implemented yet** — they are marked
 individually below. Do not act on a planned section until it ships; the API it describes does not exist.
 Section 10 records behaviour that was considered for change and deliberately kept as it is.
 

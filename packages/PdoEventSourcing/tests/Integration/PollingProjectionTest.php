@@ -10,6 +10,7 @@ use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Basket\BasketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Command\AddProduct;
@@ -53,7 +54,8 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
@@ -116,12 +118,11 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
                     EventSourcingConfiguration::createWithDefaults(),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotoneLite->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
-        $ecotoneLite->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
-        $ecotoneLite->stopProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotoneLite->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotoneLite->sendCommand(new RegisterTicket('124', 'Johnny', 'alert'));
 
@@ -138,7 +139,6 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
         ], $ecotoneLite->sendQueryWithRouting('getInProgressTickets'));
 
         $ecotoneLite->deleteProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
-        $ecotoneLite->run(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
         self::assertFalse(SchemaManagerCompatibility::tableExists($connection, 'in_progress_tickets'));
     }
@@ -153,6 +153,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\Basket',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
         $ecotoneLite->sendCommand(new CreateBasket('1000'));

@@ -9,13 +9,13 @@ namespace Test\Ecotone\EventSourcing\Projecting\Fixture;
 
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\Partitioned;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionState;
-use Ecotone\Api\ProjectionV2;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketAssigned;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketUnassigned;
 
-#[ProjectionV2(self::NAME), Partitioned]
+#[Projection(self::NAME), Partitioned]
 class TicketProjection
 {
     public const NAME = 'ticket_projection';

@@ -7,7 +7,7 @@ namespace Test\Ecotone\Projecting;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\Polling;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Api\Streaming;
@@ -27,7 +27,7 @@ final class ProjectionApiTest extends TestCase
 {
     public function test_it_throws_exception_when_polling_and_streaming_are_used_together(): void
     {
-        $projection = new #[ProjectionV2('test_projection'), Polling('test_endpoint'), Streaming('test_channel')] class {
+        $projection = new #[Projection('test_projection'), Polling('test_endpoint'), Streaming('test_channel')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -47,7 +47,7 @@ final class ProjectionApiTest extends TestCase
 
     public function test_it_throws_exception_when_polling_and_partitioned_are_used_together(): void
     {
-        $projection = new #[ProjectionV2('test_projection'), Polling('test_endpoint'), Partitioned] class {
+        $projection = new #[Projection('test_projection'), Polling('test_endpoint'), Partitioned] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -67,7 +67,7 @@ final class ProjectionApiTest extends TestCase
 
     public function test_it_throws_exception_when_partitioned_and_streaming_are_used_together(): void
     {
-        $projection = new #[ProjectionV2('test_projection'), Partitioned, Streaming('test_channel')] class {
+        $projection = new #[Projection('test_projection'), Partitioned, Streaming('test_channel')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -89,7 +89,7 @@ final class ProjectionApiTest extends TestCase
     {
         $positionTracker = new InMemoryConsumerPositionTracker();
 
-        $projection = new #[ProjectionV2('streaming_projection'), Streaming('streaming_channel')] class {
+        $projection = new #[Projection('streaming_projection'), Streaming('streaming_channel')] class {
             public array $events = [];
 
             #[EventHandler('*')]
@@ -115,7 +115,7 @@ final class ProjectionApiTest extends TestCase
 
     public function test_non_streaming_projection_requires_from_stream_attribute(): void
     {
-        $projection = new #[ProjectionV2('non_streaming_projection')] class {
+        $projection = new #[Projection('non_streaming_projection')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {

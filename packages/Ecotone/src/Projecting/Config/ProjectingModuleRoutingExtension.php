@@ -11,7 +11,7 @@ use Closure;
 use Ecotone\Api\CommandHandler;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\Polling;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 use Ecotone\Api\Streaming;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Modelling\Config\Routing\RoutingEvent;
@@ -33,9 +33,9 @@ class ProjectingModuleRoutingExtension implements RoutingEventHandler
     {
         $registration = $event->getRegistration();
         $isCommandOrEventHandler = $registration->hasAnnotation(CommandHandler::class) || $registration->hasAnnotation(EventHandler::class);
-        if ($isCommandOrEventHandler && $event->getRegistration()->hasAnnotation(ProjectionV2::class)) {
-            /** @var ProjectionV2 $projectionAttribute */
-            $projectionAttribute = $event->getRegistration()->getClassAnnotationsWithType(ProjectionV2::class)[0];
+        if ($isCommandOrEventHandler && $event->getRegistration()->hasAnnotation(Projection::class)) {
+            /** @var Projection $projectionAttribute */
+            $projectionAttribute = $event->getRegistration()->getClassAnnotationsWithType(Projection::class)[0];
             $isPolling = $registration->hasAnnotation(Polling::class);
             $isEventStreaming = $registration->hasAnnotation(Streaming::class);
 

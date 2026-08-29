@@ -3,12 +3,14 @@
 namespace Test\Ecotone\EventSourcing\Fixture\CustomEventStream;
 
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\QueryHandler;
-use Ecotone\EventSourcing\Attribute\Projection;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 
-#[Projection('custom_event_stream_projection', fromStreams: Basket::BASKET_STREAM)]
+#[Projection('custom_event_stream_projection')]
+#[FromStream(Basket::BASKET_STREAM)]
 /**
  * licence Apache-2.0
  */

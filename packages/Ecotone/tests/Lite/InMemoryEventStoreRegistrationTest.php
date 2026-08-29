@@ -9,7 +9,7 @@ use Ecotone\Api\EventHandler;
 use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Polling;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\StreamSource as StreamSourceAttribute;
 use Ecotone\Lite\EcotoneLite;
@@ -32,7 +32,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
             }
         };
 
-        $projection = new #[ProjectionV2('test_projection'), Polling('test_projection_poller'), FromStream('test_stream')] class ($testEvent) {
+        $projection = new #[Projection('test_projection'), Polling('test_projection_poller'), FromStream('test_stream')] class ($testEvent) {
             public array $events = [];
             public int $callCount = 0;
             private string $eventClass;
@@ -82,7 +82,7 @@ class InMemoryEventStoreRegistrationTest extends TestCase
             }
         };
 
-        $projection = new #[ProjectionV2('test_projection'), Polling('test_projection_poller'), FromStream('test_stream')] class {
+        $projection = new #[Projection('test_projection'), Polling('test_projection_poller'), FromStream('test_stream')] class {
             public array $events = [];
             public int $callCount = 0;
 

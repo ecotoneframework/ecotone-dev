@@ -3,7 +3,7 @@
 namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
 use Ecotone\Api\FromAggregateStream;
-use Ecotone\EventSourcing\Attribute\ProjectionStateGateway;
+use Ecotone\Api\ProjectionStateGateway;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 interface PartitionedCounterStateWithStreamGateway

@@ -1,34 +1,37 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 /*
  * licence Enterprise
  */
+
 namespace Monorepo\ExampleAppEventSourcing\EcotoneProjection;
 
-use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromAggregateStream;
+use Ecotone\Api\Projection;
+use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\QueryHandler;
-use Ecotone\Api\ProjectionV2;
 use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
 use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
 use Monorepo\ExampleAppEventSourcing\Common\PriceChange;
 use Monorepo\ExampleAppEventSourcing\Common\Product;
 
-#[ProjectionV2("price_change_over_time")]
+#[Projection('price_change_over_time')]
 #[FromAggregateStream(Product::class)]
 class PriceChangeOverTimeProjectionWithEcotoneProjection
 {
-    public const NAME = "price_change_over_time";
+    public const NAME = 'price_change_over_time';
 
     private array $priceChangeOverTime = [];
 
     /**
      * @return PriceChange[]
      */
-    #[QueryHandler("product.getPriceChange")]
+    #[QueryHandler('product.getPriceChange')]
     public function getPriceChangesFor(string $productId): array
     {
-        if (!isset($this->priceChangeOverTime[$productId])) {
+        if (! isset($this->priceChangeOverTime[$productId])) {
             return [];
         }
 

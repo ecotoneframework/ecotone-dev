@@ -7,8 +7,6 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
-use Ecotone\EventSourcing\Prooph\ProophProjectionRunningOption;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -115,7 +113,6 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
         );
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Marcus', 'alert'));
-        $ecotone->stopProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
         $ecotone->sendCommand(new RegisterTicket('124', 'Andrew', 'alert'));
 
         self::assertEquals([
@@ -209,9 +206,6 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
                 ])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
-                    ProjectionRunningConfiguration::createEventDriven(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
-                        ->withTestingSetup()
-                        ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 100),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true

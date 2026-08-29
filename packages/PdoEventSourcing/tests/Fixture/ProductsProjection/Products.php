@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Fixture\ProductsProjection;
 
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Polling;
+use Ecotone\Api\Projection;
 use Ecotone\Api\QueryHandler;
-use Ecotone\EventSourcing\Attribute\Projection;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\ProductWasAddedToBasket;
 
-#[Projection(self::PROJECTION_NAME, Basket::BASKET_STREAM)]
+#[Projection(self::PROJECTION_NAME)]
+#[FromStream(Basket::BASKET_STREAM)]
+#[Polling(endpointId: self::PROJECTION_NAME)]
 /**
  * licence Apache-2.0
  */

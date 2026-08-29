@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
-use Ecotone\EventSourcing\Attribute\ProjectionStateGateway;
+use Ecotone\Api\ProjectionStateGateway;
 
 /**
  * licence Apache-2.0

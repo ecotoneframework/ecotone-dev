@@ -74,18 +74,18 @@ Laravel-backed `MultiTenantConfiguration` exists and is licensed; Symfony and Te
 licensed, replace multi-tenant connection switching with explicit per-tenant connection references and route
 messages yourself.
 
-## 3. Projections: v1 removed, `ProjectionV2` renamed to `Projection`
+## 3. Projections: v1 (Prooph-based) removed, `ProjectionV2` renamed to `Projection`
 
-> **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
+**Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`
+with `fromStreams`/`fromCategories`/`fromAll`, `ProjectionManager`, `ProjectionRunningConfiguration`, the
+`ecotone:es:*` console commands, `FlowTestSupport::initializeProjection()`, `resetProjection()`,
+`stopProjection()`, `deleteProjection()`, `triggerProjection()`), and the new v2 (`Ecotone\Api\ProjectionV2`).
 
-**Before:** Two projection systems coexisted: the Prooph-based v1 (`Ecotone\EventSourcing\Attribute\Projection`,
-`ProjectionManager`, `ProjectionRunningConfiguration`, `ecotone:es:*` console commands, `FlowTestSupport::initializeProjection()`,
-`resetProjection()`, `stopProjection()`, `deleteProjection()`, `triggerProjection()`), and the new v2
-(`Ecotone\Api\ProjectionV2`).
-
-**Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Projection`). v1
-classes, configuration and console commands are gone. Projection state lives in the v2 state table
-(`ecotone_projection_state`), not the Prooph `projections` table.
+**Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Projection`). v1's
+Prooph-based projection runtime, its lifecycle configuration classes and its `ecotone:es:*` console commands are
+gone entirely. Projection state lives in the v2 state table (`ecotone_projection_state`), not the Prooph
+`projections` table. The underlying Prooph *event store* integration is untouched by this change — see §4 for
+when Prooph itself goes away.
 
 **How to adapt:**
 
@@ -96,20 +96,41 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
 
 // 2.0
 #[Projection('order_list')]
-#[FromAggregateStream(Order::class)]
+#[FromStream(Order::class)]
 final class OrderListProjection { #[EventHandler] public function when(OrderPlaced $e): void {} }
 ```
 
-- Rename `#[ProjectionV2]` → `#[Projection]` (namespace `Ecotone\Api`).
+- Rename `#[ProjectionV2]` → `#[Projection]` (namespace `Ecotone\Api`, no `\Attribute\` segment — see §13).
+- `fromStreams: $x` → one `#[FromStream($x)]` per stream (repeatable). `fromCategories: $x` → `#[FromAggregateStream($aggregateClass)]`
+  when the category was actually one aggregate type's stream prefix (the common case); there is no direct
+  replacement for reading unpartitioned, across all instances of an aggregate-per-stream aggregate — that needs
+  `#[Partitioned]` and per-partition state instead. `fromAll` has **no replacement** — every projection must
+  declare an explicit `#[FromStream]`/`#[FromAggregateStream]`, so a forgotten filter cannot silently scan the
+  whole log.
 - Replace `ProjectionRunningConfiguration` / `ProjectionSetupConfiguration` / `ProjectionLifeCycleConfiguration`
-  with `#[Polling]`, `#[Streaming]`, `#[Partitioned]`, `#[Asynchronous]` on the projection class.
-- Console: `ecotone:es:initialize-projection|reset-projection|delete-projection|run-projection` →
-  `ecotone:projection:init|rebuild|backfill|delete`.
-- Tests: `$ecotone->initializeProjection('x')` / `triggerProjection('x')` → projections are event-driven; for async/polling
-  projections call `$ecotone->run('x')` (the channel name is the projection name). `ProjectingManager` is the programmatic API.
-- Existing v1 projections need a one-time rebuild after upgrading (`ecotone:projection:rebuild <name>`), since position
-  tracking moved to the new state table. Drop the legacy `projections` table afterwards.
-- `EventSourcingConfiguration::withProjectionsTable()` and the projection-manager reference argument are removed.
+  with `#[Polling(endpointId:)]`, `#[Streaming]`, `#[Partitioned]`, `#[Asynchronous]` on the projection class.
+  `#[ProjectionInitialization]`/`#[ProjectionReset]`/`#[ProjectionDelete]` keep their names and move to
+  `Ecotone\Api`.
+- Console: the `ecotone:es:*` commands are removed with no direct replacement for `reset-projection`,
+  `trigger-projection` or `stop-projection`. The nearest v2 surface is `ecotone:projection:init|backfill|rebuild|delete`
+  (`ProjectingManager::executeWithReset()`/`execute()` exist programmatically but are not exposed as console
+  commands).
+- `#[ProjectionState]` parameters must declare a default value (e.g. `array $state = []`, or
+  `MyState $state = new MyState()`) — the framework passes `null` before a partition has any state, and a
+  required, non-nullable parameter with no default cannot accept that.
+- `EventStreamEmitter::emit()` (not `linkTo()`) requires an Enterprise licence: it tags the emitted event with
+  the projection's own name, and that header is only populated under a valid licence.
+- Tests: `FlowTestSupport::triggerProjection()`/`resetProjection()`/`initializeProjection()`/`deleteProjection()`
+  now call the v2 `ProjectingManager` directly and synchronously — there is no more queued/asynchronous delay
+  before they take effect, so a test that relied on "nothing happens until the next `->run()`" needs to drop
+  that intermediate `->run()` call. `initializeProjection()` drops its unused `$metadata` parameter.
+  `stopProjection()` is removed with no replacement: stop a `#[Polling]` projection in a test by not calling
+  `->run($endpointId)` again; a purely synchronous or async-channel projection has no "stop" concept to begin
+  with. `deleteProjection()` no longer cascades into deleting a projection's `EventStreamEmitter`-emitted events,
+  and `initializeProjection()` after a delete only recreates empty state — it does not replay history (use
+  `resetProjection()` for that).
+- `EventSourcingConfiguration`'s projection-table-name and projection-manager-reference configuration are
+  removed; only event-store-meaningful configuration remains.
 
 ## 4. Event Store: single global event log, DCB-ready, no Prooph
 
@@ -314,7 +335,7 @@ Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php`; the bu
 objects, and gateways/buses alike — is flattened directly under a single `Ecotone\Api` namespace:
 - core classes → `Ecotone\Api\<ClassName>` (e.g. `Ecotone\Api\CommandHandler`, `Ecotone\Api\ServiceConfiguration`,
   `Ecotone\Api\CommandBus`, `Ecotone\Api\QueryBus`, `Ecotone\Api\EventBus`, `Ecotone\Api\DistributedBus`,
-  `Ecotone\Api\MessagePublisher`, `Ecotone\Api\ProjectionV2`)
+  `Ecotone\Api\MessagePublisher`, `Ecotone\Api\Projection`)
 - package classes → `Ecotone\Api\<Package>\<ClassName>` (e.g. `Ecotone\Api\Dbal\DbalWrite`,
   `Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder`, `Ecotone\Api\Kafka\KafkaMessageChannelBuilder`,
   `Ecotone\Api\Laravel\LaravelConnectionReference`, `Ecotone\Api\Symfony\SymfonyConnectionReference`,
@@ -325,9 +346,7 @@ objects, and gateways/buses alike — is flattened directly under a single `Ecot
 There is no `Attribute` / `ExtensionObject` / `Gateway` mid-level segment — the category a class falls into does not
 appear in its namespace.
 
-Classes outside `Api` are `@internal` and may change in minor versions. `ProjectionV2` keeps its name in this release
-(the rename to `#[Projection]` is a separate, not-yet-implemented change, see §3); it only moves namespace, to
-`Ecotone\Api\ProjectionV2`. `DistributedServiceMap` and `DistributedBusHeader` (formerly
+Classes outside `Api` are `@internal` and may change in minor versions. `DistributedServiceMap` and `DistributedBusHeader` (formerly
 `Ecotone\Modelling\Api\Distribution\*`) fold into the flat core namespace as `Ecotone\Api\DistributedServiceMap` /
 `Ecotone\Api\DistributedBusHeader`; `KafkaHeader` (formerly `Ecotone\Kafka\Api\KafkaHeader`) becomes
 `Ecotone\Api\Kafka\KafkaHeader`, consistent with every other Kafka class.
@@ -339,7 +358,7 @@ Classes outside `Api` are `@internal` and may change in minor versions. `Project
 |---|---|
 | `Ecotone\Modelling\Attribute\CommandHandler` | `Ecotone\Api\CommandHandler` |
 | `Ecotone\Messaging\Attribute\Asynchronous` | `Ecotone\Api\Asynchronous` |
-| `Ecotone\Projecting\Attribute\ProjectionV2` | `Ecotone\Api\ProjectionV2` |
+| `Ecotone\Projecting\Attribute\ProjectionV2` | `Ecotone\Api\Projection` |
 | `Ecotone\Messaging\Config\ServiceConfiguration` | `Ecotone\Api\ServiceConfiguration` |
 | `Ecotone\Dbal\Configuration\DbalConfiguration` | `Ecotone\Api\Dbal\DbalConfiguration` |
 | `Ecotone\Amqp\AmqpBackedMessageChannelBuilder` | `Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder` |

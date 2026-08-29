@@ -5,17 +5,19 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenPr
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
 use Ecotone\Api\QueryHandler;
-use Ecotone\EventSourcing\Attribute\Projection;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 #[Asynchronous(self::PROJECTION_CHANNEL)]
-#[Projection(self::IN_PROGRESS_TICKET_PROJECTION, Ticket::class)]
+#[Projection(self::IN_PROGRESS_TICKET_PROJECTION)]
+#[FromStream(Ticket::class)]
 /**
  * licence Apache-2.0
  */

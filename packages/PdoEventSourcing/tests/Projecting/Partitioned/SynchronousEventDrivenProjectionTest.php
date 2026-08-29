@@ -10,11 +10,11 @@ use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\PartitionProvider as PartitionProviderAttribute;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionBackfill;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
@@ -194,7 +194,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, FromAggregateStream(Order::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(Order::class)] class ($connection) {
             public const NAME = 'order_list_partitioned_aggregate_stream';
 
             public function __construct(private Connection $connection)
@@ -260,7 +260,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
             public const NAME = 'in_progress_ticket_list_partitioned';
 
             public function __construct(private Connection $connection)
@@ -343,7 +343,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             }
         };
 
-        $projection = new #[ProjectionV2('userland_backfill_projection'), FromAggregateStream(Ticket::class), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 3, asyncChannelName: 'backfill_channel')] class {
+        $projection = new #[Projection('userland_backfill_projection'), FromAggregateStream(Ticket::class), Partitioned, ProjectionBackfill(backfillPartitionBatchSize: 3, asyncChannelName: 'backfill_channel')] class {
             #[EventHandler]
             public function handle(TicketWasRegistered $event): void
             {

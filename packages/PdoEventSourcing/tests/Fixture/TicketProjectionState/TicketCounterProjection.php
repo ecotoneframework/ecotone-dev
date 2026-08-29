@@ -3,14 +3,16 @@
 namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionState;
-use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
-#[Projection(self::NAME, Ticket::class)]
+#[Projection(self::NAME)]
+#[FromStream(Ticket::class)]
 /**
  * licence Apache-2.0
  */
@@ -19,7 +21,7 @@ class TicketCounterProjection
     public const NAME = 'ticketCounter';
 
     #[EventHandler(endpointId: 'ticketCounter.addTicket')]
-    public function whenTicketWasRegistered(TicketWasRegistered $event, #[ProjectionState] array $state, EventStreamEmitter $eventStreamEmitter): array
+    public function whenTicketWasRegistered(TicketWasRegistered $event, EventStreamEmitter $eventStreamEmitter, #[ProjectionState] array $state = []): array
     {
         if (! isset($state['ticketCount'])) {
             $state['ticketCount'] = 0;
@@ -33,7 +35,7 @@ class TicketCounterProjection
     }
 
     #[EventHandler(endpointId: 'ticketCounter.closeTicket')]
-    public function whenTicketWasClosed(TicketWasClosed $event, #[ProjectionState] CounterState $state, EventStreamEmitter $eventStreamEmitter): CounterState
+    public function whenTicketWasClosed(TicketWasClosed $event, EventStreamEmitter $eventStreamEmitter, #[ProjectionState] CounterState $state = new CounterState()): CounterState
     {
         $state->closedTicketCount += 1;
 

@@ -13,7 +13,8 @@ use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Type;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Api\Dbal\MultiTenantConnection;
-use Ecotone\EventSourcing\Attribute\Projection;
+use Ecotone\Api\Projection;
+use Ecotone\Api\FromStream;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\Header;
@@ -23,7 +24,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-#[Projection(name: 'registered_products', fromStreams: Product::class)]
+#[Projection(name: 'registered_products')]
+#[FromStream(Product::class)]
 final readonly class RegisteredProductList
 {
     const TABLE_NAME = 'registered_products';

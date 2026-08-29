@@ -13,7 +13,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use function is_array;
 
 /**
- * Table manager for the ProjectionV2 state table.
+ * Table manager for the Projection state table.
  *
  * licence Apache-2.0
  */

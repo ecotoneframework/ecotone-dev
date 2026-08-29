@@ -4,18 +4,19 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
 use Ecotone\Api\QueryHandler;
-use Ecotone\EventSourcing\Attribute\Projection;
 use Ecotone\EventSourcing\EventStreamEmitter;
-use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
-#[Projection(self::NAME, Ticket::class)]
+#[Projection(self::NAME)]
+#[FromStream(Ticket::class)]
 /**
  * licence Apache-2.0
  */
@@ -41,7 +42,7 @@ class InProgressTicketList
     #[EventHandler(endpointId: 'inProgressTicketList.addTicket')]
     public function addTicket(TicketWasRegistered $event, EventStreamEmitter $eventStreamEmitter): void
     {
-        $eventStreamEmitter->linkTo(LazyProophProjectionManager::getProjectionStreamName(self::NAME), [new TicketListUpdated($event->getTicketId())]);
+        $eventStreamEmitter->linkTo('projection_' . self::NAME, [new TicketListUpdated($event->getTicketId())]);
 
         $this->connection->executeStatement(<<<SQL
                 INSERT INTO in_progress_tickets VALUES (?,?)

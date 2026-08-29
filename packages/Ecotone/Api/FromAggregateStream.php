@@ -1,7 +1,7 @@
 <?php
 
 /*
- * licence Enterprise
+ * licence Apache-2.0
  */
 declare(strict_types=1);
 
@@ -16,7 +16,7 @@ use Ecotone\EventSourcing\EventStore;
  *
  * Example usage:
  * ```php
- * #[ProjectionV2('order_list')]
+ * #[Projection('order_list')]
  * #[FromAggregateStream(Order::class)]
  * class OrderListProjection { ... }
  * ```

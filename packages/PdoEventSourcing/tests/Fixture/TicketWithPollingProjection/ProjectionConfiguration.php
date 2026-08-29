@@ -4,7 +4,6 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketWithPollingProjection;
 
 use Ecotone\Api\PollingMetadata;
 use Ecotone\Api\ServiceContext;
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 
 /**
  * licence Apache-2.0
@@ -17,11 +16,5 @@ class ProjectionConfiguration
         return PollingMetadata::create(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
             ->setExecutionAmountLimit(3)
             ->setExecutionTimeLimitInMilliseconds(300);
-    }
-
-    #[ServiceContext]
-    public function configureProjection()
-    {
-        return ProjectionRunningConfiguration::createPolling(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)->withTestingSetup();
     }
 }

@@ -7,12 +7,9 @@ use Ecotone\Api\PollingMetadata;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Messaging\PollableChannel;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
@@ -91,20 +88,17 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         /** @var EventStore $eventStore */
         $eventStore = $ecotoneTestSupport->getGatewayByName(EventStore::class);
 
-        /** @var ProjectionManager $projectionManager */
-        $projectionManager = $ecotoneTestSupport->getGatewayByName(ProjectionManager::class);
-
         if ($eventStore->hasStream(Ticket::class)) {
             $eventStore->delete(Ticket::class);
         }
 
-        $projectionManager->initializeProjection('inProgressTicketList');
+        $ecotoneTestSupport->initializeProjection('inProgressTicketList');
 
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
 
         $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
 
-        $projectionManager->resetProjection('inProgressTicketList');
+        $ecotoneTestSupport->resetProjection('inProgressTicketList');
         $eventStore->delete(Ticket::class);
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
 
@@ -143,48 +137,6 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         $this->assertCount(1, $ecotoneTestSupport->sendQueryWithRouting('getInProgressTickets'));
     }
 
-    public function test_triggering_projection_to_catch_up(): void
-    {
-        $channelName = 'asynchronous_projections';
-
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
-            [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
-            [new TicketEventConverter(), new InProgressTicketList()],
-            ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
-                ->withEnvironment('test')
-                ->withExtensionObjects([
-                    EventSourcingConfiguration::createInMemory(),
-                    PollingMetadata::create($channelName)
-                        ->withTestingSetup(),
-                    SimpleMessageChannelBuilder::createQueueChannel($channelName),
-                ]),
-        );
-
-        $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
-
-        $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
-        /** @var PollableChannel $asyncChannel */
-        $asyncChannel = $ecotoneTestSupport->getMessageChannelByName($channelName);
-        /** Drop message from channel */
-        $asyncChannel->receive();
-
-        /** No messages that will trigger projection */
-        $ecotoneTestSupport->run($channelName);
-
-        $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
-
-        /** When */
-        $ecotoneTestSupport->runConsoleCommand(EventSourcingModule::ECOTONE_ES_TRIGGER_PROJECTION, ['name' => InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION]);
-
-        $this->assertCount(0, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
-
-        /** New message will trigger projection */
-        $ecotoneTestSupport->run($channelName);
-
-        $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
-    }
-
     public function test_deleting_projection_table(): void
     {
         /** @var DbalConnectionFactory $connectionFactory */
@@ -201,31 +153,22 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             addInMemoryEventSourcedRepository: false,
         );
 
-        /** @var ProjectionManager $projectionManager */
-        $projectionManager = $ecotoneTestSupport->getGatewayByName(ProjectionManager::class);
-
-        // initialize projection for first time and check its position
-        $projectionManager->initializeProjection('inProgressTicketList');
+        $ecotoneTestSupport->initializeProjection('inProgressTicketList');
         self::assertTrue(self::tableExists($connection, 'in_progress_tickets'), 'Read model table should exists after initialization');
 
-        // send commands
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('2', 'andy', 'warning'));
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('3', 'henry', 'critical'));
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('4', 'duke', 'error'));
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('5', 'buddy', 'info'));
 
-        // check read model
         self::assertCount(5, $connection->fetchAllAssociative('select * from in_progress_tickets'));
 
-        // delete projection and check it was removed completely
-        $ecotoneTestSupport->runConsoleCommand(EventSourcingModule::ECOTONE_ES_DELETE_PROJECTION, ['name' => InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION]);
+        $ecotoneTestSupport->deleteProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
-        self::assertFalse($projectionManager->hasInitializedProjectionWithName('inProgressTicketList'), 'Projection should not exists');
         self::assertFalse(self::tableExists($connection, 'in_progress_tickets'), 'Read model table should be removed after delete command');
 
-        // initialize projection again and check its state was recreated
-        $projectionManager->initializeProjection('inProgressTicketList');
-        self::assertCount(5, $connection->fetchAllAssociative('select * from in_progress_tickets'), 'Read model table should be rebuild after second initialization');
+        $ecotoneTestSupport->initializeProjection('inProgressTicketList');
+        self::assertCount(0, $connection->fetchAllAssociative('select * from in_progress_tickets'), 'Read model table should be empty after re-initialization');
     }
 }

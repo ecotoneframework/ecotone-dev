@@ -15,11 +15,11 @@ use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\InstantRetryConfiguration;
 use Ecotone\Api\Partitioned;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionExecution;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
@@ -50,7 +50,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
         $collector->callCount = 0;
 
         $projection = new
-            #[ProjectionV2('batch_transaction_test')]
+            #[Projection('batch_transaction_test')]
             #[Asynchronous('async_projection')]
             #[ProjectionExecution(eventLoadingBatchSize: 1)]
             #[FromStream(Ticket::class)]
@@ -129,7 +129,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
         $collector->callCount = 0;
 
         $projection = new
-            #[ProjectionV2('partitioned_batch_transaction_test')]
+            #[Projection('partitioned_batch_transaction_test')]
             #[Partitioned]
             #[Asynchronous('async_partitioned_projection')]
             #[ProjectionExecution(eventLoadingBatchSize: 1)]
@@ -220,7 +220,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
         $collector->callCount = 0;
 
         $projection = new
-            #[ProjectionV2('collector_disabled_test')]
+            #[Projection('collector_disabled_test')]
             #[Asynchronous('async_projection')]
             #[ProjectionExecution(eventLoadingBatchSize: 1)]
             #[FromStream(Ticket::class)]

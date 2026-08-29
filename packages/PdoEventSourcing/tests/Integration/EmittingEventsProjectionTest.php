@@ -7,11 +7,10 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
-use Ecotone\EventSourcing\Prooph\ProophProjectionRunningOption;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -44,34 +43,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         $this->assertState(ecotone: $ecotone, ticketId: '123', notificationsCount: 3);
     }
 
-    public function test_when_projection_is_deleted_emitted_events_will_be_removed_too(): void
-    {
-        $ecotone = $this->bootstrapEcotone();
-        $ecotone->initializeProjection(InProgressTicketList::NAME)
-            ->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'))
-            ->sendCommand(new CloseTicket('123'))
-            ->deleteProjection(InProgressTicketList::NAME)
-        ;
-
-        self::assertNull($ecotone->sendQueryWithRouting('get.notifications'));
-    }
-
-    public function test_projection_emitting_events_should_not_republished_in_case_replaying_projection(): void
-    {
-        $ecotone = $this->bootstrapEcotone([
-            ProjectionRunningConfiguration::createEventDriven(InProgressTicketList::NAME)
-                ->withTestingSetup()
-                ->withOption(ProophProjectionRunningOption::OPTION_LOAD_COUNT, 2),
-        ]);
-        $ecotone->initializeProjection(InProgressTicketList::NAME)
-            ->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'))
-            ->sendCommand(new RegisterTicket('124', 'Johnny', 'info'))
-            ->resetProjection(InProgressTicketList::NAME)
-        ;
-
-        $this->assertState(ecotone: $ecotone, ticketId: '124', notificationsCount: 2);
-    }
-
     private function bootstrapEcotone(array $extensionObjects = []): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
@@ -85,7 +56,8 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
                 ])
                 ->withExtensionObjects(array_merge([EventSourcingConfiguration::createWithDefaults()], $extensionObjects)),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

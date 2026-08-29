@@ -10,10 +10,10 @@ use Ecotone\Api\Dbal\DbalConfiguration;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Polling;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
@@ -137,7 +137,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2('test_polling_projection'), Polling('test_polling_projection_runner'), FromStream(Ticket::class)] class ($connection) {
+        return new #[Projection('test_polling_projection'), Polling('test_polling_projection_runner'), FromStream(Ticket::class)] class ($connection) {
             public const NAME = 'test_polling_projection';
             public const ENDPOINT_ID = 'test_polling_projection_runner';
 

@@ -8,10 +8,10 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Polling;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -166,7 +166,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), Polling(self::ENDPOINT_ID), FromStream(Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Polling(self::ENDPOINT_ID), FromStream(Ticket::class)] class ($connection) {
             public const NAME = 'polling_ticket_list';
             public const ENDPOINT_ID = 'polling_ticket_list_runner';
 
@@ -229,7 +229,7 @@ final class PollingProjectionTest extends ProjectingTestCase
 
     private function createBasketListProjection(): object
     {
-        return new #[ProjectionV2('basketList'), Polling('basketList_runner'), FromStream(Basket::BASKET_STREAM)] class () {
+        return new #[Projection('basketList'), Polling('basketList_runner'), FromStream(Basket::BASKET_STREAM)] class () {
             public const NAME = 'basketList';
             public const ENDPOINT_ID = 'basketList_runner';
             private array $basketsList = [];
@@ -273,7 +273,7 @@ final class PollingProjectionTest extends ProjectingTestCase
 
     private function createProductsProjection(): object
     {
-        return new #[ProjectionV2('products'), Polling('products_runner'), FromStream(Basket::BASKET_STREAM)] class () {
+        return new #[Projection('products'), Polling('products_runner'), FromStream(Basket::BASKET_STREAM)] class () {
             public const NAME = 'products';
             public const ENDPOINT_ID = 'products_runner';
             private array $products = [];

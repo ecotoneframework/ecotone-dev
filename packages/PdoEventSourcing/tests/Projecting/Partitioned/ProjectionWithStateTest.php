@@ -9,10 +9,10 @@ use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Partitioned;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -124,7 +124,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
 
     private function createCounterProjection(Connection $connection): object
     {
-        return new #[ProjectionV2(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
             public const NAME = 'ticket_counter_partitioned';
 
             public function __construct(private Connection $connection)

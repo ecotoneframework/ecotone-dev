@@ -9,6 +9,7 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
@@ -104,7 +105,8 @@ final class ProjectionWithStateTest extends EventSourcingMessagingTestCase
                     'Test\Ecotone\EventSourcing\Fixture\TicketProjectionState',
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',
-            runForProductionEventStore: true
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 }

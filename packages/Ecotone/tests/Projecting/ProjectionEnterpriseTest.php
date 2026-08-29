@@ -10,6 +10,7 @@ use Ecotone\Api\FromStream;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\PartitionProvider as PartitionProviderAttribute;
 use Ecotone\Api\Polling;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionBackfill;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionDeployment;
@@ -20,7 +21,6 @@ use Ecotone\Api\ProjectionName;
 use Ecotone\Api\ProjectionRebuild;
 use Ecotone\Api\ProjectionReset;
 use Ecotone\Api\ProjectionState;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Api\StateStorage;
@@ -44,11 +44,11 @@ use PHPUnit\Framework\TestCase;
 /**
  * @internal
  */
-final class ProjectionV2EnterpriseTest extends TestCase
+final class ProjectionEnterpriseTest extends TestCase
 {
     public function test_global_sync_projection_works_without_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream')] class {
             public array $handledEvents = [];
 
             #[EventHandler('*')]
@@ -73,7 +73,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_global_async_projection_works_without_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), Asynchronous('async')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), Asynchronous('async')] class {
             public array $handledEvents = [];
 
             #[EventHandler('*')]
@@ -96,7 +96,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_sync_backfill_works_without_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), ProjectionBackfill] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), ProjectionBackfill] class {
             public array $handledEvents = [];
 
             #[EventHandler('*')]
@@ -118,7 +118,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_lifecycle_hooks_work_without_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream')] class {
             public bool $initialized = false;
             public bool $deleted = false;
             public bool $reset = false;
@@ -168,7 +168,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_projection_execution_batch_size_works_without_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), ProjectionExecution(eventLoadingBatchSize: 50)] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), ProjectionExecution(eventLoadingBatchSize: 50)] class {
             public array $handledEvents = [];
 
             #[EventHandler('*')]
@@ -190,7 +190,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_partitioned_projection_requires_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), Partitioned] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), Partitioned] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -209,7 +209,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_streaming_projection_requires_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), Streaming('streaming_channel')] class {
+        $projection = new #[Projection('test'), Streaming('streaming_channel')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -228,7 +228,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_polling_projection_requires_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), Polling('test_endpoint')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), Polling('test_endpoint')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -247,7 +247,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_async_backfill_requires_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), ProjectionBackfill(asyncChannelName: 'backfill_channel')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), ProjectionBackfill(asyncChannelName: 'backfill_channel')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -266,7 +266,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_rebuild_requires_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), ProjectionRebuild] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), ProjectionRebuild] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -285,7 +285,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_deployment_requires_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: true)] class {
+        $projection = new #[Projection('test'), FromStream('test_stream'), ProjectionDeployment(manualKickOff: true)] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -304,7 +304,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_custom_stream_source_requires_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -335,7 +335,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_custom_state_storage_requires_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -388,7 +388,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_custom_partition_provider_requires_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream')] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -424,7 +424,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_projection_name_header_is_not_available_without_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream')] class {
             public array $handledEvents = [];
 
             #[EventHandler('*')]
@@ -453,7 +453,7 @@ final class ProjectionV2EnterpriseTest extends TestCase
 
     public function test_flush_with_projection_state_requires_licence(): void
     {
-        $projection = new #[ProjectionV2('test'), FromStream('test_stream')] class {
+        $projection = new #[Projection('test'), FromStream('test_stream')] class {
             #[EventHandler('*')]
             public function handle(array $event): array
             {

@@ -5,12 +5,14 @@ namespace App\ReadModel\WalletBalance;
 use App\Domain\Event\MoneyWasAddedToWallet;
 use App\Domain\Event\MoneyWasSubtractedFromWallet;
 use App\Domain\Wallet;
-use Ecotone\EventSourcing\Attribute\Projection;
+use Ecotone\Api\Projection;
+use Ecotone\Api\FromStream;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\DocumentStore;
 use Ecotone\Api\EventHandler;
 
-#[Projection(self::PROJECTION_NAME, Wallet::class)]
+#[Projection(self::PROJECTION_NAME)]
+#[FromStream(Wallet::class)]
 final class WalletBalanceProjection
 {
     const PROJECTION_NAME = "wallet_balance";

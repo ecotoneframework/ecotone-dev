@@ -2,17 +2,17 @@
 
 ## Projection Examples
 
-### Basic ProjectionV2 with Lifecycle
+### Basic Projection with Lifecycle
 
 ```php
-use Ecotone\Api\ProjectionV2;
-use Ecotone\Projecting\Attribute\FromStream;
+use Ecotone\Api\Projection;
+use Ecotone\Api\FromStream;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\QueryHandler;
 
-#[ProjectionV2('ticket_list')]
+#[Projection('ticket_list')]
 #[FromStream(Ticket::class)]
 class TicketListProjection
 {
@@ -64,11 +64,11 @@ class TicketListProjection
 
 ```php
 use Ecotone\Api\Partitioned;
-use Ecotone\Projecting\Attribute\FromStream;
+use Ecotone\Api\FromStream;
 use Ecotone\Api\ProjectionState;
 
 #[Partitioned]
-#[ProjectionV2('ticket_details')]
+#[Projection('ticket_details')]
 #[FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
 class TicketDetailsProjection
 {
@@ -106,7 +106,7 @@ Partitioned projection rules:
 use Ecotone\Api\Polling;
 
 #[Polling('orderSummaryEndpoint')]
-#[ProjectionV2('order_summary')]
+#[Projection('order_summary')]
 #[FromStream(Order::class)]
 class OrderSummaryProjection
 {
@@ -131,7 +131,7 @@ $ecotone->run('orderSummaryEndpoint', ExecutionPollingMetadata::createWithTestin
 use Ecotone\Api\Streaming;
 
 #[Streaming('dashboard_channel')]
-#[ProjectionV2('live_dashboard')]
+#[Projection('live_dashboard')]
 #[FromStream(Order::class)]
 class LiveDashboardProjection
 {
@@ -146,7 +146,7 @@ class LiveDashboardProjection
 ### Multi-Stream Projection
 
 ```php
-#[ProjectionV2('calendar_view')]
+#[Projection('calendar_view')]
 #[FromStream(Calendar::class)]
 #[FromStream(Meeting::class)]
 class CalendarViewProjection
@@ -164,9 +164,9 @@ Cannot be combined with `#[Partitioned]`.
 ### FromAggregateStream
 
 ```php
-use Ecotone\Projecting\Attribute\FromAggregateStream;
+use Ecotone\Api\FromAggregateStream;
 
-#[ProjectionV2('order_list')]
+#[Projection('order_list')]
 #[FromAggregateStream(Order::class)]
 class OrderListProjection
 {
@@ -180,7 +180,7 @@ class OrderListProjection
 ```php
 use Ecotone\EventSourcing\EventStreamEmitter;
 
-#[ProjectionV2('notifications')]
+#[Projection('notifications')]
 #[FromStream(Order::class)]
 class NotificationProjection
 {
@@ -211,26 +211,26 @@ use Ecotone\Api\ProjectionBackfill;
 use Ecotone\Api\ProjectionDeployment;
 
 // Batch size for event loading
-#[ProjectionV2('big_projection')]
+#[Projection('big_projection')]
 #[ProjectionExecution(eventLoadingBatchSize: 500)]
 #[FromStream(Ticket::class)]
 class BigProjection { }
 
 // Backfill configuration
-#[ProjectionV2('my_proj')]
+#[Projection('my_proj')]
 #[Partitioned]
 #[ProjectionBackfill(backfillPartitionBatchSize: 100, asyncChannelName: 'backfill_channel')]
 #[FromStream(Ticket::class)]
 class BackfillableProjection { }
 
 // Blue/green deployment: non-live suppresses EventStreamEmitter events
-#[ProjectionV2('projection_v2')]
+#[Projection('projection_v2')]
 #[ProjectionDeployment(live: false)]
 #[FromStream(Ticket::class)]
 class ProjectionV2Deploy { }
 
 // Manual kickoff: requires explicit initialization
-#[ProjectionV2('projection_v1')]
+#[Projection('projection_v1')]
 #[ProjectionDeployment(manualKickOff: true)]
 #[FromStream(Ticket::class)]
 class ProjectionV1Deploy { }

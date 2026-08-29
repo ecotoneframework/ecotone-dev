@@ -6,8 +6,8 @@ namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionState;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -96,7 +96,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
 
     private function createCounterProjection(): object
     {
-        return new #[ProjectionV2(self::NAME), FromStream(Ticket::class)] class () {
+        return new #[Projection(self::NAME), FromStream(Ticket::class)] class () {
             public const NAME = 'ticket_counter';
 
             private int $ticketCount = 0;

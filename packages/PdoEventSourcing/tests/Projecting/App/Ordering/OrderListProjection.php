@@ -10,16 +10,16 @@ namespace Test\Ecotone\EventSourcing\Projecting\App\Ordering;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use RuntimeException;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasCancelled;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasPlaced;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasShipped;
 
-#[ProjectionV2(OrderListProjection::PROJECTION_NAME)]
+#[Projection(OrderListProjection::PROJECTION_NAME)]
 #[FromStream(Order::STREAM_NAME, 'order')]
 class OrderListProjection
 {

@@ -10,7 +10,7 @@ namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Partitioned;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -32,8 +32,8 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        $v1 = new #[ProjectionV2('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
-        $v2 = new #[ProjectionV2('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v1 = new #[Projection('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v2 = new #[Projection('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
 
         $ecotone = $this->bootstrapEcotone([$v1::class, $v2::class], [$v1, $v2]);
 
@@ -64,8 +64,8 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        $v1 = new #[ProjectionV2('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
-        $v2 = new #[ProjectionV2('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v1 = new #[Projection('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v2 = new #[Projection('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
 
         $ecotone = $this->bootstrapEcotone([$v1::class, $v2::class], [$v1, $v2]);
 
@@ -91,8 +91,8 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        $v1 = new #[ProjectionV2('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
-        $v2 = new #[ProjectionV2('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v1 = new #[Projection('tickets_v1'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
+        $v2 = new #[Projection('tickets_v2'), Partitioned, FromStream(stream: Ticket::STREAM_NAME, aggregateType: Ticket::class)] class ($connection) extends DbalBlueGreenTicketProjection {};
 
         $ecotone = $this->bootstrapEcotone([$v1::class, $v2::class], [$v1, $v2]);
 

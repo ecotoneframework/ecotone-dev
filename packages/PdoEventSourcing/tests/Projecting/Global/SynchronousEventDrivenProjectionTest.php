@@ -9,10 +9,10 @@ use Ecotone\Api\EventHandler;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryBus;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
@@ -231,7 +231,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     public function test_aggregate_stream_throws_exception_for_non_event_sourcing_aggregate(): void
     {
         // Create a projection that references a non-EventSourcingAggregate class
-        $projection = new #[ProjectionV2('invalid_projection'), FromAggregateStream(stdClass::class)] class {
+        $projection = new #[Projection('invalid_projection'), FromAggregateStream(stdClass::class)] class {
             #[EventHandler('*')]
             public function handle(array $event): void
             {
@@ -256,7 +256,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), FromAggregateStream(Order::class)] class ($connection) {
+        return new #[Projection(self::NAME), FromAggregateStream(Order::class)] class ($connection) {
             public const NAME = 'order_list_aggregate_stream';
 
             public function __construct(private Connection $connection)
@@ -332,7 +332,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[ProjectionV2(self::NAME), FromStream(Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), FromStream(Ticket::class)] class ($connection) {
             public const NAME = 'in_progress_ticket_list';
 
             public function __construct(private Connection $connection)

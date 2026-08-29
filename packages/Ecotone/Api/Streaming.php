@@ -12,7 +12,7 @@ use Attribute;
 /**
  * Marks a projection as event-streaming based.
  * Event streaming projections consume events directly from streaming channels.
- * This attribute should be combined with #[ProjectionV2] attribute.
+ * This attribute should be combined with #[Projection] attribute.
  */
 #[Attribute(Attribute::TARGET_CLASS)]
 class Streaming

@@ -10,7 +10,7 @@ use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Polling;
 use Ecotone\Api\PollingMetadata;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -32,7 +32,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     public function test_polling_projection_with_global_stream(): void
     {
         // Given a polling projection
-        $projection = new #[ProjectionV2('polling_test'), Polling('polling_test_runner'), FromStream(Ticket::class)] class {
+        $projection = new #[Projection('polling_test'), Polling('polling_test_runner'), FromStream(Ticket::class)] class {
             public array $projectedEvents = [];
 
             #[EventHandler]
@@ -66,7 +66,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     public function test_polling_projection_processes_events_incrementally(): void
     {
         // Given a polling projection
-        $projection = new #[ProjectionV2('incremental_test'), Polling('incremental_runner'), FromStream(Ticket::class)] class {
+        $projection = new #[Projection('incremental_test'), Polling('incremental_runner'), FromStream(Ticket::class)] class {
             public array $projectedEvents = [];
 
             #[EventHandler]
@@ -101,7 +101,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     public function test_polling_attribute_throws_exception_when_combined_with_asynchronous(): void
     {
         // Given a projection with both Polling and Asynchronous attributes
-        $projection = new #[ProjectionV2('async_polling'), Polling('async_polling_runner'), Asynchronous('async'), FromStream(Ticket::class)] class {
+        $projection = new #[Projection('async_polling'), Polling('async_polling_runner'), Asynchronous('async'), FromStream(Ticket::class)] class {
             public array $projectedEvents = [];
 
             #[EventHandler]

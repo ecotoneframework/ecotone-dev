@@ -6,7 +6,6 @@ namespace Test\Ecotone\EventSourcing\Fixture\ProductsProjection;
 
 use Ecotone\Api\PollingMetadata;
 use Ecotone\Api\ServiceContext;
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 
 /**
  * licence Apache-2.0
@@ -19,11 +18,5 @@ final class ProductsConfiguration
         return PollingMetadata::create(Products::PROJECTION_NAME)
             ->setExecutionAmountLimit(3)
             ->setExecutionTimeLimitInMilliseconds(300);
-    }
-
-    #[ServiceContext]
-    public function enablePollingProjection(): ProjectionRunningConfiguration
-    {
-        return ProjectionRunningConfiguration::createPolling(Products::PROJECTION_NAME);
     }
 }

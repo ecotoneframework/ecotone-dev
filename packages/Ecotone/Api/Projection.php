@@ -11,7 +11,7 @@ use Attribute;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
 
 #[Attribute(Attribute::TARGET_CLASS)]
-class ProjectionV2 extends StreamBasedSource
+class Projection extends StreamBasedSource
 {
     public function __construct(
         public readonly string $name,

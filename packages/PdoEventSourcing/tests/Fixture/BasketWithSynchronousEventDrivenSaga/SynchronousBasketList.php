@@ -3,13 +3,15 @@
 namespace Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga;
 
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\QueryHandler;
-use Ecotone\EventSourcing\Attribute\Projection;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Basket;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\BasketWasCreated;
 use Test\Ecotone\EventSourcing\Fixture\Basket\Event\ProductWasAddedToBasket;
 
-#[Projection(self::PROJECTION_NAME, Basket::BASKET_STREAM)]
+#[Projection(self::PROJECTION_NAME)]
+#[FromStream(Basket::BASKET_STREAM)]
 /**
  * licence Apache-2.0
  */

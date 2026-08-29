@@ -9,7 +9,6 @@ use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
-use Ecotone\EventSourcing\Database\LegacyProjectionsTableManager;
 use Ecotone\EventSourcing\InMemory\StreamIteratorWithPosition;
 use Ecotone\EventSourcing\PdoStreamTableNameProvider;
 use Ecotone\EventSourcing\Prooph\PersistenceStrategy\InterlopMariaDbSimpleStreamStrategy;
@@ -90,7 +89,6 @@ class LazyProophEventStore implements EventStore, PdoStreamTableNameProvider
         private ProophEventMapper             $messageFactory,
         private ConnectionFactory|null        $connectionFactory,
         private EventStreamTableManager       $eventStreamTableManager,
-        private LegacyProjectionsTableManager $projectionsTableManager,
     ) {
         $this->messageConverter = new FromProophMessageToArrayConverter();
         $this->canBeInitialized = $eventSourcingConfiguration->isInitializedOnStart();
@@ -188,20 +186,14 @@ class LazyProophEventStore implements EventStore, PdoStreamTableNameProvider
         }
 
         $connection = $this->getConnection();
-        $projectionTableExists = ! $this->projectionsTableManager->shouldBeInitializedAutomatically() || $this->projectionsTableManager->isInitialized($connection);
         $eventStreamTableExists = ! $this->eventStreamTableManager->shouldBeInitializedAutomatically() || $this->eventStreamTableManager->isInitialized($connection);
 
-        if ($eventStreamTableExists && $projectionTableExists) {
+        if ($eventStreamTableExists) {
             $this->initializated[$connectionName] = true;
             return;
         }
 
-        if (! $eventStreamTableExists) {
-            $this->eventStreamTableManager->createTable($connection);
-        }
-        if (! $projectionTableExists) {
-            $this->projectionsTableManager->createTable($connection);
-        }
+        $this->eventStreamTableManager->createTable($connection);
     }
 
     public function getEventStore(?StreamName $streamName = null, string|null $streamStrategy = null): EventStore

@@ -7,12 +7,14 @@ namespace Test\Ecotone\EventSourcing\Fixture\MetadataPropagationWithAsyncProject
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\QueryHandler;
-use Ecotone\EventSourcing\Attribute\Projection;
 
 #[Asynchronous(channelName: self::CHANNEL)]
-#[Projection(name: self::NAME, fromStreams: [Order::class])]
+#[Projection(name: self::NAME)]
+#[FromStream(Order::class)]
 /**
  * licence Apache-2.0
  */

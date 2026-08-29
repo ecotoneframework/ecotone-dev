@@ -11,12 +11,12 @@ use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\PartitionAggregateId;
 use Ecotone\Api\Partitioned;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionExecution;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionRebuild;
 use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\ProjectionV2;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
@@ -123,7 +123,7 @@ abstract class AbstractRebuildPartitionedProjection
     }
 }
 
-#[ProjectionV2('rebuild_rollback')]
+#[Projection('rebuild_rollback')]
 #[Partitioned]
 #[ProjectionRebuild]
 #[ProjectionExecution(eventLoadingBatchSize: 3)]
@@ -210,7 +210,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
         $this->expectExceptionMessage('Rebuild partition batch size must be at least 1');
 
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_batch0_projection'), Partitioned, ProjectionRebuild(partitionBatchSize: 0), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
+        $projection = new #[ Projection('rebuild_batch0_projection'), Partitioned, ProjectionRebuild(partitionBatchSize: 0), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
             protected function tableName(): string
             {
                 return 'rebuild_batch0_tickets';
@@ -223,7 +223,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
     public function test_partitioned_projection_async_rebuild_with_batch_of_2(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_batch2_async'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
+        $projection = new #[ Projection('rebuild_batch2_async'), Partitioned, ProjectionRebuild(partitionBatchSize: 2, asyncChannelName: 'rebuild_channel'), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
             #[QueryHandler('getRebuildBatch2Tickets')]
             public function query(): array
             {
@@ -260,7 +260,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
     public function test_partitioned_projection_sync_rebuild(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_sync_partitioned'), Partitioned, ProjectionRebuild(partitionBatchSize: 2), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
+        $projection = new #[ Projection('rebuild_sync_partitioned'), Partitioned, ProjectionRebuild(partitionBatchSize: 2), FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
             #[QueryHandler('getRebuildSyncPartitionedTickets')]
             public function query(): array
             {
@@ -285,7 +285,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
     public function test_global_projection_async_rebuild(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_global_async'), ProjectionRebuild(asyncChannelName: 'rebuild_global_channel'), FromStream(Ticket::class) ] class ($connection) extends AbstractRebuildGlobalProjection {
+        $projection = new #[ Projection('rebuild_global_async'), ProjectionRebuild(asyncChannelName: 'rebuild_global_channel'), FromStream(Ticket::class) ] class ($connection) extends AbstractRebuildGlobalProjection {
             #[QueryHandler('getRebuildGlobalAsyncTickets')]
             public function query(): array
             {
@@ -321,7 +321,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
     public function test_global_projection_sync_rebuild(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_global_sync'), ProjectionRebuild, FromStream(Ticket::class) ] class ($connection) extends AbstractRebuildGlobalProjection {
+        $projection = new #[ Projection('rebuild_global_sync'), ProjectionRebuild, FromStream(Ticket::class) ] class ($connection) extends AbstractRebuildGlobalProjection {
             #[QueryHandler('getRebuildGlobalSyncTickets')]
             public function query(): array
             {
@@ -346,7 +346,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
     public function test_rebuild_resets_existing_data(): void
     {
         $connection = $this->getConnection();
-        $projection = new #[ ProjectionV2('rebuild_resets_data'), Partitioned, ProjectionRebuild, FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
+        $projection = new #[ Projection('rebuild_resets_data'), Partitioned, ProjectionRebuild, FromStream(stream: Ticket::class, aggregateType: Ticket::class) ] class ($connection) extends AbstractRebuildPartitionedProjection {
             #[QueryHandler('getRebuildResetsDataTickets')]
             public function query(): array
             {

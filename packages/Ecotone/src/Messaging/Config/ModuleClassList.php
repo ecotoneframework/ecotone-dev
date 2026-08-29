@@ -39,6 +39,7 @@ use Ecotone\Messaging\Channel\PollableChannel\SendRetries\PollableChannelSendRet
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\PollableChannelSerializationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\AsynchronousModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\BasicMessagingModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ChannelInterceptor\ChannelInterceptorModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConverterModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\EndpointHeaders\EndpointHeadersInterceptorModule;
@@ -97,6 +98,7 @@ class ModuleClassList
         ServiceHandlerModule::class,
         MessageHandlerRoutingModule::class,
         MethodInterceptorModule::class,
+        ChannelInterceptorModule::class,
         MessagingCommandsModule::class,
         EndpointHeadersInterceptorModule::class,
         BasicMessagingModule::class,

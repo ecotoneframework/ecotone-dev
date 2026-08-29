@@ -86,6 +86,31 @@ class Presend
 
 **Parameters:** Same as `#[Before]`.
 
+## `#[ChannelInterceptor]` (Enterprise)
+
+Source: `Ecotone\Api\ChannelInterceptor`
+
+Runs before a message is sent to the named channel — targets a channel by name instead of a pointcut against handlers, so it applies to every message sent to that channel regardless of which handler(s) receive it, including before a message is enqueued to an asynchronous channel. Requires an Ecotone Enterprise licence.
+
+```php
+#[Attribute(Attribute::TARGET_METHOD)]
+final class ChannelInterceptor
+{
+    public function __construct(
+        string $channelName,
+        bool $changeHeaders = false,
+        int $precedence = Precedence::DEFAULT_PRECEDENCE
+    )
+}
+```
+
+**Parameters:**
+- `channelName` (string, required) — Exact name of the channel this interceptor runs for.
+- `changeHeaders` (bool, default `false`) — When `true`, the interceptor must return an `array` that gets merged into message headers.
+- `precedence` (int, default `Precedence::DEFAULT_PRECEDENCE` = 1) — Execution order among multiple interceptors on the same channel. Lower runs earlier.
+
+No `pointcut` parameter — matching is by exact channel name only, not by handler pointcut expression.
+
 ## `MethodInvocation` Interface
 
 Source: `Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation`

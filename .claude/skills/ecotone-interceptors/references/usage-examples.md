@@ -87,6 +87,47 @@ class AuthorizationInterceptor
 }
 ```
 
+## Tenant Header Enrichment (ChannelInterceptor, Enterprise)
+
+Targets a channel by name rather than a pointcut, so it runs for every message sent to that channel — including before a message is enqueued to an asynchronous channel. Requires an Ecotone Enterprise licence.
+
+```php
+use Ecotone\Api\ChannelInterceptor;
+use Ecotone\Api\Headers;
+
+class OrdersChannelTenantInterceptor
+{
+    #[ChannelInterceptor('orders', changeHeaders: true)]
+    public function enrichWithTenant(#[Headers] array $headers): array
+    {
+        $headers['tenantId'] = $this->tenantResolver->resolveCurrentTenantId();
+        return $headers;
+    }
+}
+```
+
+Ordering multiple interceptors on the same channel works the same way as other interceptors — lower `precedence` runs earlier:
+
+```php
+class FirstOrdersInterceptor
+{
+    #[ChannelInterceptor('orders', precedence: 1)]
+    public function intercept(#[Payload] string $payload): string
+    {
+        return strtoupper($payload);
+    }
+}
+
+class SecondOrdersInterceptor
+{
+    #[ChannelInterceptor('orders', precedence: 2)]
+    public function intercept(#[Payload] string $payload): string
+    {
+        return trim($payload);
+    }
+}
+```
+
 ## Correlation ID Enrichment (Before with changeHeaders)
 
 ```php

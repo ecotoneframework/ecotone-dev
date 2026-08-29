@@ -377,6 +377,7 @@ The full 151-class mapping is in `upgrade/namespace-map-2.0.csv`.
 - `ecotone/lite-application` package is discontinued; use `ecotone/ecotone` `EcotoneLite::bootstrap()`.
 - Laravel: `LaravelConnectionReference::defaultConnection()` resolves to the Ecotone DBAL factory (§5); `SHELL_VERBOSITY` handling in tests unchanged.
 - OpenTelemetry: spans now carry `polledChannelName` and `routingSlip` attributes.
+- `ChannelInterceptor` attribute (Enterprise): a method annotated `#[ChannelInterceptor('channelName')]` now runs as a pre-send interceptor for that channel (matching by exact channel name, not a handler pointcut), with the same `changeHeaders`/`precedence` semantics as `#[Before]`/`#[Presend]`. Requires an Enterprise licence; see the `ecotone-interceptors` skill for details.
 
 ---
 

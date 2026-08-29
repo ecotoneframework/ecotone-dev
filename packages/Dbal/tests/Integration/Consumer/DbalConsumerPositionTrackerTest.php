@@ -161,8 +161,7 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
 
     public function tearDown(): void
     {
-        // Clean up consumer positions collection
-        $this->documentStore->dropCollection('consumer_positions');
+        $this->documentStore->dropCollection('ecotone_consumer_positions');
 
         parent::tearDown();
     }

@@ -15,7 +15,6 @@ use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\QueryHandler;
-use Ecotone\Projecting\Attribute\GlobalProjection;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\Projection;
 

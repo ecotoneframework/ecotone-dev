@@ -91,6 +91,7 @@ Ecotone\EventSourcing\Attribute\ProjectionDelete,Ecotone\Api\ProjectionDelete
 Ecotone\EventSourcing\Attribute\ProjectionInitialization,Ecotone\Api\ProjectionInitialization
 Ecotone\EventSourcing\Attribute\ProjectionReset,Ecotone\Api\ProjectionReset
 Ecotone\EventSourcing\Attribute\ProjectionState,Ecotone\Api\ProjectionState
+Ecotone\EventSourcing\Attribute\ProjectionStateGateway,Ecotone\Api\ProjectionStateGateway
 Ecotone\Dbal\Attribute\DbalParameter,Ecotone\Api\Dbal\DbalParameter
 Ecotone\Dbal\Attribute\DbalQuery,Ecotone\Api\Dbal\DbalQuery
 Ecotone\Dbal\Attribute\DbalWrite,Ecotone\Api\Dbal\DbalWrite

@@ -107,7 +107,7 @@ class FailingService
     private Message $message;
 
     #[Asynchronous('async')]
-    #[ServiceActivator('executionChannel')]
+    #[ServiceActivator('executionChannel', endpointId: 'failingServiceHandle')]
     public function handle(Message $message): void
     {
         $this->message = $message;

@@ -82,6 +82,27 @@ final class RealBootRuntimeFailureTest extends TestCase
         );
     }
 
+    public function test_kernel_boots_when_a_handler_dependencys_own_dependency_is_missing_and_dispatch_fails_honestly(): void
+    {
+        $kernel = $this->bootTempestKernel(
+            'Test\\Ecotone\\Tempest\\Hardening\\Fixture\\MissingReferenceChain\\',
+        );
+
+        $commandBus = $kernel->container->get(CommandBus::class);
+
+        try {
+            $commandBus->sendWithRouting('missing_reference.chain', 'payload');
+
+            $this->fail('Dispatch must fail: RequiresMissingClass needs NonExistingCollaborator in its constructor');
+        } catch (Throwable $exception) {
+            $this->assertStringContainsString(
+                'NonExistingCollaborator',
+                $exception->getMessage(),
+                'The dispatch error must name what could not be resolved',
+            );
+        }
+    }
+
     public function test_kernel_boots_and_handler_executes_when_service_is_provided_by_initializer(): void
     {
         $kernel = $this->bootTempestKernel(

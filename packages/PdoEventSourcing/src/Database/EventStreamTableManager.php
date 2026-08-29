@@ -61,7 +61,7 @@ final class EventStreamTableManager implements DbalTableManager
     {
         $schema = EventStreamSchemaFactory::for($connection);
 
-        return implode('; ', array_map(
+        return implode(";\n", array_map(
             fn (string $tableName) => $schema->dropTableSql($tableName),
             $this->tableNames
         ));

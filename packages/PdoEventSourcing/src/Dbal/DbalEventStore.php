@@ -19,16 +19,12 @@ use Ecotone\EventSourcing\Dbal\WriteLock\MetadataLockStrategy;
 use Ecotone\EventSourcing\Dbal\WriteLock\NoLockStrategy;
 use Ecotone\EventSourcing\Dbal\WriteLock\PostgresAdvisoryLockStrategy;
 use Ecotone\EventSourcing\Dbal\WriteLock\WriteLockStrategy;
+use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
-use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\StreamTableRegistry;
-use Ecotone\Messaging\Conversion\ConversionService;
-use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\Type;
-use Ecotone\Messaging\Handler\TypeDefinitionException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -38,14 +34,15 @@ use function implode;
 
 use Interop\Queue\ConnectionFactory;
 
-use function is_array;
 use function is_bool;
 use function is_int;
 use function json_decode;
 use function json_encode;
 
 use Ramsey\Uuid\Uuid;
-use Throwable;
+
+use function sha1;
+use function substr;
 
 /**
  * licence BSD-3-Clause
@@ -66,8 +63,7 @@ final class DbalEventStore implements EventStore
     public function __construct(
         private StreamTableRegistry $streamTableRegistry,
         private array $connectionFactories,
-        private ConversionService $conversionService,
-        private EventMapper $eventMapper,
+        private EventSerializer $eventSerializer,
         private int $loadBatchSize,
         private bool $enableWriteLockStrategy,
         private bool $automaticTableInitialization,
@@ -76,7 +72,7 @@ final class DbalEventStore implements EventStore
 
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
     {
-        $this->ensureTableExists($streamName);
+        $this->ensureTableExists($streamName, alwaysCreate: true);
 
         if ($streamEvents !== []) {
             $this->appendTo($streamName, $streamEvents);
@@ -114,7 +110,7 @@ final class DbalEventStore implements EventStore
         }
 
         $lockStrategy = $this->writeLockStrategyFor($connection);
-        $lockName = '_' . $tableName . '_write_lock';
+        $lockName = '_' . substr(sha1($tableName), 0, 32) . '_write_lock';
         if (! $lockStrategy->getLock($connection, $lockName)) {
             throw new ConcurrencyException('Failed to acquire write lock for stream ' . $streamName);
         }
@@ -199,7 +195,7 @@ final class DbalEventStore implements EventStore
         return $events;
     }
 
-    public function ensureTableExists(string $streamName, ?Throwable $previous = null): void
+    public function ensureTableExists(string $streamName, bool $alwaysCreate = false): void
     {
         $contextKey = $this->contextKeyFor($streamName);
         if (isset($this->ensuredTables[$contextKey])) {
@@ -215,12 +211,10 @@ final class DbalEventStore implements EventStore
             return;
         }
 
-        if (! $this->automaticTableInitialization) {
+        if (! $alwaysCreate && ! $this->automaticTableInitialization) {
             throw new InvalidArgumentException(
                 "Event stream table `{$tableName}` for stream `{$streamName}` does not exist. "
-                . 'Run `ecotone:migration:database:setup` to create it.',
-                0,
-                $previous
+                . 'Run `ecotone:migration:database:setup` to create it.'
             );
         }
 
@@ -245,14 +239,8 @@ final class DbalEventStore implements EventStore
 
     private function convertToRow(object|array $eventToConvert): array
     {
-        if ($eventToConvert instanceof Event) {
-            $payload = $eventToConvert->getPayload();
-            $metadata = $eventToConvert->getMetadata();
-        } else {
-            $payload = $eventToConvert;
-            $metadata = [];
-            $eventToConvert = Event::create($payload);
-        }
+        $metadata = $eventToConvert instanceof Event ? $eventToConvert->getMetadata() : [];
+        $serialized = $this->eventSerializer->serialize($eventToConvert);
 
         $eventId = array_key_exists(MessageHeaders::MESSAGE_ID, $metadata)
             ? (string) $metadata[MessageHeaders::MESSAGE_ID]
@@ -261,14 +249,10 @@ final class DbalEventStore implements EventStore
             ? new DateTimeImmutable('@' . $metadata[MessageHeaders::TIMESTAMP], new DateTimeZone('UTC'))
             : new DateTimeImmutable('now', new DateTimeZone('UTC'));
 
-        $payloadAsArray = is_array($payload)
-            ? $payload
-            : $this->conversionService->convert($payload, Type::createFromVariable($payload), MediaType::createApplicationXPHP(), Type::array(), MediaType::createApplicationXPHP());
-
         return [
             $eventId,
-            $this->eventMapper->mapEventToName($eventToConvert),
-            json_encode($payloadAsArray, JSON_THROW_ON_ERROR),
+            $serialized->getEventName(),
+            json_encode($serialized->getPayload(), JSON_THROW_ON_ERROR),
             json_encode((object) $metadata, JSON_THROW_ON_ERROR),
             $createdAt->format('Y-m-d\TH:i:s.u'),
         ];
@@ -276,21 +260,11 @@ final class DbalEventStore implements EventStore
 
     private function convertToEvent(array $row, bool $deserialize): Event
     {
-        $eventType = null;
-        try {
-            $eventType = Type::create($this->eventMapper->mapNameToEventType($row['event_name']));
-        } catch (TypeDefinitionException) {
-        }
-
-        $payload = json_decode($row['payload'], true, 512, JSON_THROW_ON_ERROR);
-        $metadata = json_decode($row['metadata'], true, 512, JSON_THROW_ON_ERROR) ?? [];
-
-        return Event::createWithType(
-            eventType: $eventType === null ? $row['event_name'] : $eventType->toString(),
-            event: $deserialize && $eventType !== null
-                ? $this->conversionService->convert($payload, Type::array(), MediaType::createApplicationXPHP(), $eventType, MediaType::createApplicationXPHP())
-                : $payload,
-            metadata: array_merge([MessageHeaders::REVISION => 1], $metadata)
+        return $this->eventSerializer->deserialize(
+            $row['event_name'],
+            json_decode($row['payload'], true, 512, JSON_THROW_ON_ERROR),
+            json_decode($row['metadata'], true, 512, JSON_THROW_ON_ERROR) ?? [],
+            $deserialize
         );
     }
 

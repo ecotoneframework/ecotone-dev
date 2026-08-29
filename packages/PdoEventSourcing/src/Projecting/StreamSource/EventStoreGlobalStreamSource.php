@@ -81,47 +81,48 @@ class EventStoreGlobalStreamSource implements StreamSource
         $schema = EventStreamSchemaFactory::for($connection);
 
         if (! $schema->tableExists($connection, $streamTable)) {
-            return new StreamPage([], '');
+            return new StreamPage([], $lastPosition ?? '');
         }
 
         $quotedTable = $schema->quoteIdentifier($streamTable);
-
         $tracking = GapAwarePosition::fromString($lastPosition);
-
-        [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
-            true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => ArrayParameterType::INTEGER]],
-            false => ['', [], []],
-        };
-
-        $query = $connection->executeQuery(<<<SQL
-            SELECT no, event_name, payload, metadata, created_at
-                FROM {$quotedTable}
-                WHERE no > :position {$gapQueryPart}
-            ORDER BY no
-            LIMIT {$count}
-            SQL, [
-            'position' => $tracking->getPosition(),
-            ...$gapQueryPartParams,
-        ], $gapQueryPartParamTypes);
+        $cutoffTimestamp = $this->gapTimeout ? $this->clock->now()->sub($this->gapTimeout)->getTimestamp() : 0;
 
         $events = [];
-        $now = $this->clock->now();
-        $cutoffTimestamp = $this->gapTimeout ? $now->sub($this->gapTimeout)->getTimestamp() : 0;
-        foreach ($query->iterateAssociative() as $row) {
-            $metadata = json_decode($row['metadata'], true) ?? [];
-            $event = new StreamEvent(
-                $row['event_name'],
-                json_decode($row['payload'], true),
-                $metadata,
-                (int) $row['no'],
-                $this->getTimestamp($row['created_at'])
-            );
-            if ($this->matchesAnyFilter($streamFilters, $row['event_name'], $metadata)) {
-                $events[] = $event;
+        do {
+            [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
+                true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => ArrayParameterType::INTEGER]],
+                false => ['', [], []],
+            };
+
+            $query = $connection->executeQuery(<<<SQL
+                SELECT no, event_name, payload, metadata, created_at
+                    FROM {$quotedTable}
+                    WHERE no > :position {$gapQueryPart}
+                ORDER BY no
+                LIMIT {$count}
+                SQL, [
+                'position' => $tracking->getPosition(),
+                ...$gapQueryPartParams,
+            ], $gapQueryPartParamTypes);
+
+            $scannedRows = 0;
+            foreach ($query->iterateAssociative() as $row) {
+                $scannedRows++;
+                $metadata = json_decode($row['metadata'], true) ?? [];
+                $event = new StreamEvent(
+                    $row['event_name'],
+                    json_decode($row['payload'], true),
+                    $metadata,
+                    (int) $row['no'],
+                    $this->getTimestamp($row['created_at'])
+                );
+                if ($this->matchesAnyFilter($streamFilters, $row['event_name'], $metadata)) {
+                    $events[] = $event;
+                }
+                $tracking->advanceTo($event->no, $event->timestamp > $cutoffTimestamp);
             }
-            $insertGaps = $event->timestamp > $cutoffTimestamp;
-            $tracking->advanceTo($event->no, $insertGaps);
-        }
+        } while ($events === [] && $scannedRows === $count);
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);
 

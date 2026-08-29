@@ -13,6 +13,7 @@ use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Key;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;
@@ -77,7 +78,7 @@ class EncryptStoredEventsTest extends TestCase
             )
         ;
 
-        $this->streamName = $this->connection->fetchOne('select stream_name from event_streams where real_stream_name = ?', [SomeAggregate::class]);
+        $this->streamName = StreamTableRegistry::DEFAULT_STREAM;
         $ecotone
             ->sendCommand(new SomeCommand('123', 'another sensitive', TestEnum::FIRST, new TestClass('another sensitive', TestEnum::FIRST)))
         ;

@@ -16,11 +16,13 @@ use Ecotone\EventSourcing\AggregateStreamMapping;
 use Ecotone\EventSourcing\AggregateTypeMapping;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
+use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\EventSourcing\Mapping\EventMapper;
+use Ecotone\EventSourcing\SerializingEventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -151,6 +153,14 @@ class EventSourcingModule extends NoExternalConfigurationModule
         StreamTableRegistry $streamTableRegistry,
         DbalConfiguration $dbalConfiguration,
     ): void {
+        $messagingConfiguration->registerServiceDefinition(
+            EventSerializer::class,
+            new Definition(EventSerializer::class, [
+                new Reference(ConversionService::REFERENCE_NAME),
+                new Reference(EventMapper::class),
+            ])
+        );
+
         if ($eventSourcingConfiguration->isInMemory()) {
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
@@ -158,7 +168,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStoreReference::EVENT_STORE_INSTANCE,
-                new Reference(InMemoryEventStore::class)
+                new Definition(SerializingEventStore::class, [
+                    new Reference(InMemoryEventStore::class),
+                    new Reference(EventSerializer::class),
+                ])
             );
 
             return;
@@ -174,8 +187,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             new Definition(DbalEventStore::class, [
                 new Reference(StreamTableRegistry::class),
                 $connectionFactories,
-                new Reference(ConversionService::REFERENCE_NAME),
-                new Reference(EventMapper::class),
+                new Reference(EventSerializer::class),
                 $eventSourcingConfiguration->getLoadBatchSize(),
                 $eventSourcingConfiguration->isWriteLockStrategyEnabled(),
                 $eventSourcingConfiguration->isInitializedOnStart() && $dbalConfiguration->isAutomaticTableInitializationEnabled(),

@@ -56,11 +56,14 @@ class EventSourcingRepository implements EventSourcedRepository
 
         $streamEvents = $this->eventStore->load($streamName, 1, null, $metadataMatcher);
 
-        if (! empty($streamEvents)) {
-            $aggregateVersion = $streamEvents[array_key_last($streamEvents)]->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION];
+        if ($streamEvents === []) {
+            return EventStream::createEmpty();
         }
 
-        return EventStream::createWith($aggregateVersion, $streamEvents);
+        return EventStream::createWith(
+            $streamEvents[array_key_last($streamEvents)]->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION],
+            $streamEvents
+        );
     }
 
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void

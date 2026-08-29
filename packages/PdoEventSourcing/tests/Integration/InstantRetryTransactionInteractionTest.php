@@ -27,7 +27,7 @@ use Test\Ecotone\EventSourcing\Fixture\InstantRetry\TestRetryLogger;
  */
 final class InstantRetryTransactionInteractionTest extends EventSourcingMessagingTestCase
 {
-    public function test_retry_happens_inside_aborted_transaction_with_prooph_conflict(): void
+    public function test_retry_happens_inside_aborted_transaction_with_concurrency_conflict(): void
     {
         $logger = new TestRetryLogger();
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(

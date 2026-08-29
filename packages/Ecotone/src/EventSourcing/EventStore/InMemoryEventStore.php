@@ -159,7 +159,7 @@ final class InMemoryEventStore implements EventStore
 
     /**
      * Get all streams with their events and metadata
-     * Used for converting to Prooph event store
+     * Used for converting to a persistent event store
      * @return array<string, array{events: Event[], metadata: array}>
      */
     public function getAllStreams(): array

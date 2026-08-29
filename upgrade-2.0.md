@@ -84,8 +84,7 @@ with `fromStreams`/`fromCategories`/`fromAll`, `ProjectionManager`, `ProjectionR
 **Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Projection`). v1's
 Prooph-based projection runtime, its lifecycle configuration classes and its `ecotone:es:*` console commands are
 gone entirely. Projection state lives in the v2 state table (`ecotone_projection_state`), not the Prooph
-`projections` table. The underlying Prooph *event store* integration is untouched by this change — see §4 for
-when Prooph itself goes away.
+`projections` table. The event *store* is a separate change — see §4, where Prooph goes away entirely.
 
 **How to adapt:**
 

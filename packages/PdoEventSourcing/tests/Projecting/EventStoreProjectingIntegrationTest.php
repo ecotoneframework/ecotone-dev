@@ -43,7 +43,7 @@ use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketEventConverter;
 /**
  * @internal
  */
-class ProophIntegrationTest extends ProjectingTestCase
+class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 {
     public function test_it_can_project_events(): void
     {

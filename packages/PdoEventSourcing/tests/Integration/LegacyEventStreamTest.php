@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration;
 
+use DateTimeImmutable;
+use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
@@ -129,7 +131,7 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
                     '_aggregate_type' => LegacyOrder::class,
                     '_aggregate_version' => 1,
                 ]),
-                (new \DateTimeImmutable('now', new \DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.u'),
+                (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.u'),
             ]
         );
     }

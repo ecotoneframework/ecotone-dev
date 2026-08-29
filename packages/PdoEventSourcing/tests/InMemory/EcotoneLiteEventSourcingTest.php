@@ -3,7 +3,6 @@
 namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Api\PollingMetadata;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;

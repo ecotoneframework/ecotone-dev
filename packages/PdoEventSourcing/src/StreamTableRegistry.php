@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing;
 
+use function array_keys;
+
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-
-use function array_keys;
 
 /**
  * licence Apache-2.0

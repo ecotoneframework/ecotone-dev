@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Dbal;
 
+use function array_key_exists;
+use function count;
+
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
@@ -30,17 +33,19 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Event;
-use Interop\Queue\ConnectionFactory;
-use Ramsey\Uuid\Uuid;
 
-use function array_key_exists;
-use function count;
 use function implode;
+
+use Interop\Queue\ConnectionFactory;
+
 use function is_array;
 use function is_bool;
 use function is_int;
 use function json_decode;
 use function json_encode;
+
+use Ramsey\Uuid\Uuid;
+use Throwable;
 
 /**
  * licence BSD-3-Clause
@@ -194,7 +199,7 @@ final class DbalEventStore implements EventStore
         return $events;
     }
 
-    public function ensureTableExists(string $streamName, ?\Throwable $previous = null): void
+    public function ensureTableExists(string $streamName, ?Throwable $previous = null): void
     {
         $contextKey = $this->contextKeyFor($streamName);
         if (isset($this->ensuredTables[$contextKey])) {

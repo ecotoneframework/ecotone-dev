@@ -35,3 +35,37 @@ foreach ($packages as $package) {
 
     file_put_contents($composerFile, json_encode($composer, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
 }
+
+// Quickstart examples directly require some local packages (see bin/get-packages) so their tests
+// resolve them from the path repository instead of Packagist; keep those requirements pinned to
+// "~$version" in sync with whatever gets released, same as the sibling package requires above.
+$quickstartDirectory = realpath(__DIR__ . '/../quickstart-examples');
+$iterator = new RecursiveIteratorIterator(
+    new RecursiveCallbackFilterIterator(
+        new RecursiveDirectoryIterator($quickstartDirectory, RecursiveDirectoryIterator::SKIP_DOTS),
+        fn ($current) => $current->getFilename() !== 'vendor'
+    )
+);
+
+foreach ($iterator as $file) {
+    if ($file->getFilename() !== 'composer.json') {
+        continue;
+    }
+
+    $path = $file->getPathname();
+    $composer = json_decode(file_get_contents($path), true);
+    $touched = false;
+
+    foreach (['require', 'require-dev'] as $section) {
+        foreach ($composer[$section] ?? [] as $requiredPackage => $requiredVersion) {
+            if (in_array($requiredPackage, $packageNames)) {
+                $composer[$section][$requiredPackage] = '~' . $version;
+                $touched = true;
+            }
+        }
+    }
+
+    if ($touched) {
+        file_put_contents($path, json_encode($composer, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES) . "\n");
+    }
+}

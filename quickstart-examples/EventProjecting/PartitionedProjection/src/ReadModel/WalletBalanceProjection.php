@@ -17,11 +17,10 @@ use Ecotone\Api\EventHandler;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Projecting\Attribute\GlobalProjection;
 use Ecotone\Api\Partitioned;
-use Ecotone\Projecting\Attribute\Projection;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 
 #[Partitioned]
-#[ProjectionV2(self::NAME)]
+#[Projection(self::NAME)]
 #[FromStream('wallet_stream', Wallet::class)]
 #[Asynchronous('async_projection')]
 class WalletBalanceProjection

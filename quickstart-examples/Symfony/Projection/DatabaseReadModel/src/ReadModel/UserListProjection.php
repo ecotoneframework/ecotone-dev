@@ -18,9 +18,9 @@ use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\QueryHandler;
-use Ecotone\Api\ProjectionV2;
+use Ecotone\Api\Projection;
 
-#[ProjectionV2('user_list_database')]
+#[Projection('user_list_database')]
 #[FromAggregateStream(User::class)]
 final class UserListProjection
 {

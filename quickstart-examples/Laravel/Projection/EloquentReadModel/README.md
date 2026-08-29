@@ -15,7 +15,7 @@ flowchart LR
     Client -->|send command| CommandBus
     CommandBus -->|route| User["User\n#[EventSourcingAggregate]"]
     User -->|return events| EventStore[(Event Store)]
-    EventStore -->|stream| Projection["UserListProjection\n#[ProjectionV2]"]
+    EventStore -->|stream| Projection["UserListProjection\n#[Projection]"]
     Projection -->|array data\noutputChannelName: 'RegisterUserReadModel'| Aggregate["UserReadModel\n#[Aggregate] extends Model"]
     Projection -->|outputChannelName: 'ChangeUserReadModelName'| Aggregate
     Projection -->|outputChannelName: 'DeactivateUserReadModel'| Aggregate

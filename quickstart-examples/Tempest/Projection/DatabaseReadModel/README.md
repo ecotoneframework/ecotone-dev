@@ -17,7 +17,7 @@ flowchart LR
     Client -->|send command| CommandBus
     CommandBus -->|route| User["User\n#[EventSourcingAggregate]"]
     User -->|return events| EventStore[(Event Store\nPostgreSQL)]
-    EventStore -->|stream| UserListProjection["UserListProjection\n#[ProjectionV2]"]
+    EventStore -->|stream| UserListProjection["UserListProjection\n#[Projection]"]
     UserListProjection -->|INSERT / UPDATE| ReadModel[(user_list_database\ntable)]
     Client -->|sendWithRouting| QueryBus
     QueryBus -->|listActive| UserListProjection

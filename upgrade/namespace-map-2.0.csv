@@ -13,6 +13,9 @@ Ecotone\Messaging\Attribute\ErrorChannel,Ecotone\Api\ErrorChannel
 Ecotone\Messaging\Attribute\IgnoreDocblockTypeHint,Ecotone\Api\IgnoreDocblockTypeHint
 Ecotone\Messaging\Attribute\InternalHandler,Ecotone\Api\InternalHandler
 Ecotone\Messaging\Attribute\IsAbstract,Ecotone\Api\IsAbstract
+Ecotone\Messaging\Handler\Logger\Annotation\LogAfter,Ecotone\Api\LogAfter
+Ecotone\Messaging\Handler\Logger\Annotation\LogBefore,Ecotone\Api\LogBefore
+Ecotone\Messaging\Handler\Logger\Annotation\LogError,Ecotone\Api\LogError
 Ecotone\Messaging\Attribute\MediaTypeConverter,Ecotone\Api\MediaTypeConverter
 Ecotone\Messaging\Attribute\MessageGateway,Ecotone\Api\MessageGateway
 Ecotone\Messaging\Attribute\ModuleAnnotation,Ecotone\Api\ModuleAnnotation

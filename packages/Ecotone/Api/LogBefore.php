@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Messaging\Handler\Logger\Annotation;
+namespace Ecotone\Api;
 
 use Attribute;
 use Ecotone\Messaging\Handler\Logger\Logger;

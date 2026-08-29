@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Logger\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\LogAfter;
+use Ecotone\Api\LogBefore;
+use Ecotone\Api\LogError;
 use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -15,9 +18,6 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Logger\Annotation\LogAfter;
-use Ecotone\Messaging\Handler\Logger\Annotation\LogBefore;
-use Ecotone\Messaging\Handler\Logger\Annotation\LogError;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
@@ -51,7 +51,7 @@ class LoggingModule extends NoExternalConfigurationModule implements AnnotationM
         $messagingConfiguration->registerBeforeMethodInterceptor(
             MethodInterceptorBuilder::create(
                 Reference::to(LoggingInterceptor::class),
-                $interfaceToCallRegistry->getFor(LoggingInterceptor::class, 'log'),
+                $interfaceToCallRegistry->getFor(LoggingInterceptor::class, 'logBefore'),
                 Precedence::EXCEPTION_LOGGING_PRECEDENCE,
                 LogBefore::class
             )
@@ -59,7 +59,7 @@ class LoggingModule extends NoExternalConfigurationModule implements AnnotationM
         $messagingConfiguration->registerAfterMethodInterceptor(
             MethodInterceptorBuilder::create(
                 Reference::to(LoggingInterceptor::class),
-                $interfaceToCallRegistry->getFor(LoggingInterceptor::class, 'log'),
+                $interfaceToCallRegistry->getFor(LoggingInterceptor::class, 'logAfter'),
                 Precedence::EXCEPTION_LOGGING_PRECEDENCE,
                 LogAfter::class
             )

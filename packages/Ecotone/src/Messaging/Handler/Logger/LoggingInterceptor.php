@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Logger;
 
+use Ecotone\Api\LogAfter;
+use Ecotone\Api\LogBefore;
+use Ecotone\Api\LogError;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
-use Ecotone\Messaging\Handler\Logger\Annotation\LogError;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
@@ -27,7 +29,17 @@ class LoggingInterceptor
     {
     }
 
-    public function log(Message $message, Logger $logAnnotation): void
+    public function logBefore(Message $message, LogBefore $logAnnotation): void
+    {
+        $this->doLog($message, $logAnnotation);
+    }
+
+    public function logAfter(Message $message, LogAfter $logAnnotation): void
+    {
+        $this->doLog($message, $logAnnotation);
+    }
+
+    private function doLog(Message $message, Logger $logAnnotation): void
     {
         $payload = $this->convertPayloadToScalarType($message);
 

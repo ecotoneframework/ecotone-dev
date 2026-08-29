@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Logger;
 
+use Ecotone\Api\LogAfter;
 use Ecotone\Messaging\Conversion\ArrayToJson\ArrayToJsonConverter;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Conversion\ObjectToSerialized\SerializingConverter;
-use Ecotone\Messaging\Handler\Logger\Annotation\LogAfter;
 use Ecotone\Messaging\Handler\Logger\LoggingInterceptor;
 use Ecotone\Messaging\Handler\Logger\LoggingLevel;
 use Ecotone\Messaging\Handler\Logger\StubLoggingGateway;
@@ -52,7 +52,7 @@ class LoggingInterceptorTest extends TestCase
         $payload = ['some'];
         $message = MessageBuilder::withPayload($payload)->build();
 
-        $loggingInterceptor->log($message, new LogAfter(LogLevel::DEBUG, false));
+        $loggingInterceptor->logAfter($message, new LogAfter(LogLevel::DEBUG, false));
 
         $logs = $loggingService->getLogs();
         $this->assertCount(1, $logs);
@@ -70,7 +70,7 @@ class LoggingInterceptorTest extends TestCase
         $payload = Uuid::uuid4();
         $message = MessageBuilder::withPayload($payload)->build();
 
-        $loggingInterceptor->log($message, new LogAfter(LogLevel::DEBUG, false));
+        $loggingInterceptor->logAfter($message, new LogAfter(LogLevel::DEBUG, false));
         $logs = $loggingService->getLogs();
         $this->assertCount(1, $logs);
         $this->assertEquals(LogLevel::DEBUG, $logs[0]->level);
@@ -89,7 +89,7 @@ class LoggingInterceptorTest extends TestCase
                     ->setContentType(MediaType::createApplicationXPHPWithTypeParameter('array'))
                     ->build();
 
-        $loggingInterceptor->log($message, new LogAfter(LogLevel::DEBUG, false));
+        $loggingInterceptor->logAfter($message, new LogAfter(LogLevel::DEBUG, false));
         $logs = $loggingService->getLogs();
         $this->assertCount(1, $logs);
         $this->assertEquals(LogLevel::DEBUG, $logs[0]->level);
@@ -106,7 +106,7 @@ class LoggingInterceptorTest extends TestCase
         $payload = 'some';
         $message = MessageBuilder::withPayload($payload)->build();
 
-        $loggingInterceptor->log($message, new LogAfter(LogLevel::DEBUG, true));
+        $loggingInterceptor->logAfter($message, new LogAfter(LogLevel::DEBUG, true));
         $logs = $loggingService->getLogs();
         $this->assertCount(1, $logs);
         $this->assertEquals(LogLevel::DEBUG, $logs[0]->level);

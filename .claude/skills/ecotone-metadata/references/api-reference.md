@@ -77,6 +77,10 @@ class RemoveHeader
 **Parameters:**
 - `name` (string, required) — The header key to remove
 
+## Header changing via `#[InternalHandler]`/`#[ServiceActivator]` (Enterprise)
+
+For programmatic, dynamic header changes as part of a workflow step (as opposed to the declarative `#[AddHeader]`/`#[RemoveHeader]` above), `#[InternalHandler]`/`#[ServiceActivator]` accept a `changingHeaders: true` constructor argument: the handler's returned `array` is merged into the message headers instead of replacing the payload. Requires an Ecotone Enterprise licence. See the `ecotone-workflow` skill's `#[InternalHandler]` reference for the full semantics.
+
 ## `#[PropagateHeaders]`
 
 Source: `Ecotone\Api\PropagateHeaders`

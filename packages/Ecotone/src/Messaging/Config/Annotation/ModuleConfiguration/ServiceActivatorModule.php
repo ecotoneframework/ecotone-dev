@@ -5,16 +5,20 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
+use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Aggregate;
 use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Api\Saga;
 use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
+use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\MessageHandlerBuilderWithParameterConverters;
 use Ecotone\Messaging\Handler\ServiceActivator\ServiceActivatorBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Messaging\Support\LicensingException;
 
 #[ModuleAnnotation]
 /**
@@ -22,6 +26,36 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
  */
 class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
 {
+    /**
+     * @var AnnotatedFinding[]
+     */
+    private array $changingHeadersFindings = [];
+
+    public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
+    {
+        $instance = parent::create($annotationRegistrationService, $interfaceToCallRegistry);
+
+        foreach ($annotationRegistrationService->findAnnotatedMethods(static::getMessageHandlerAnnotation()) as $annotationRegistration) {
+            /** @var ServiceActivator $annotation */
+            $annotation = $annotationRegistration->getAnnotationForMethod();
+            if ($annotation->isChangingHeaders()) {
+                $instance->changingHeadersFindings[] = $annotationRegistration;
+            }
+        }
+
+        return $instance;
+    }
+
+    public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        if ($this->changingHeadersFindings && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            $firstFinding = $this->changingHeadersFindings[0];
+            throw LicensingException::create("{$firstFinding->getClassName()}::{$firstFinding->getMethodName()} is using changingHeaders, which is available only with Ecotone Enterprise licence. See https://docs.ecotone.tech/enterprise for details.");
+        }
+
+        parent::prepare($messagingConfiguration, $extensionObjects, $moduleReferenceSearchService, $interfaceToCallRegistry);
+    }
+
     /**
      * @inheritDoc
      */

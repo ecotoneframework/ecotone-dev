@@ -18,7 +18,7 @@ class HeaderResultMessageConverter implements ResultToMessageConverter
     public function convertToMessage(Message $requestMessage, mixed $result): ?Message
     {
         if (is_null($result)) {
-            return null;
+            return $requestMessage;
         }
 
         Assert::isFalse($result instanceof Message, 'Message should not be returned when changing headers in ' . $this->interfaceToCallName);

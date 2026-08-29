@@ -6,8 +6,10 @@ namespace Test\Ecotone\Messaging\Unit\Handler\ServiceActivator;
 
 use Ecotone\Api\Around;
 use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -20,7 +22,7 @@ final class ServiceActivatorAttributeTest extends TestCase
     public function test_returning_array_replaces_the_payload(): void
     {
         $handler = new ServiceActivatorHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([ServiceActivatorHandler::class], [$handler]);
+        $ecotone = $this->bootstrap([ServiceActivatorHandler::class], [$handler]);
 
         $result = $ecotone->sendDirectToChannel(ServiceActivatorHandler::ARRAY_CHANNEL, 'test');
 
@@ -30,7 +32,7 @@ final class ServiceActivatorAttributeTest extends TestCase
     public function test_returning_array_with_changing_headers_merges_into_the_message_headers_instead(): void
     {
         $handler = new ServiceActivatorHandler();
-        $ecotone = EcotoneLite::bootstrapFlowTesting([ServiceActivatorHandler::class], [$handler]);
+        $ecotone = $this->bootstrap([ServiceActivatorHandler::class], [$handler]);
 
         $message = $ecotone->sendDirectToChannelWithMessageReply(ServiceActivatorHandler::CHANGING_HEADERS_CHANNEL, 'test');
 
@@ -46,6 +48,15 @@ final class ServiceActivatorAttributeTest extends TestCase
         );
 
         $this->assertSame(8, $ecotone->sendDirectToChannel(MathHandler::MATH_CHANNEL, 1));
+    }
+
+    private function bootstrap(array $classesToResolve, array $services)
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            $classesToResolve,
+            $services,
+            ServiceConfiguration::createWithDefaults()->withLicenceKey(LicenceTesting::VALID_LICENCE),
+        );
     }
 }
 

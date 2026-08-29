@@ -77,9 +77,35 @@ Parameters:
 - `outputChannelName` (string, optional) -- channel to send result to (chains to next step)
 - `endpointId` (string, optional) -- required when used with `#[Asynchronous]`
 - `requiredInterceptorNames` (array, optional) -- interceptors to apply
-- `changingHeaders` (bool, optional) -- whether handler modifies message headers
+- `changingHeaders` (bool, optional, default `false`) -- header-changer mode, see below. **Requires Ecotone Enterprise licence.**
 
-If handler returns `null`, the chain stops (no message sent to outputChannel).
+By default (`changingHeaders: false`), if the handler returns `null`, the chain stops (no message sent to outputChannel).
+
+### Header-changer mode (`changingHeaders: true`, Enterprise)
+
+Source: `Ecotone\Api\ServiceActivator` / `Ecotone\Api\InternalHandler`
+
+With `changingHeaders: true`, the handler's return value is treated as headers to merge, not as the new payload:
+
+```php
+use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Header;
+
+class EnrichWithTenant
+{
+    #[InternalHandler(inputChannelName: 'step.name', outputChannelName: 'next.step', changingHeaders: true)]
+    public function enrich(#[Header('tenantId')] ?string $tenantId): array
+    {
+        return ['tenantId' => $tenantId ?? $this->tenantResolver->resolveCurrentTenantId()];
+    }
+}
+```
+
+- The returned `array` is merged into the message headers (existing keys are overwritten, other headers preserved); the payload is left untouched.
+- Returning `null` leaves the message (payload and headers) unchanged.
+- Returning anything other than `array` or `null` throws `Ecotone\Messaging\Support\InvalidArgumentException` naming the class/method.
+- The (unchanged-payload, enriched-headers) message continues to `outputChannelName` exactly as in the default mode.
+- `changingHeaders: true` requires an Ecotone Enterprise licence; without one, bootstrap throws `Ecotone\Messaging\Support\LicensingException` naming the class/method and linking to https://docs.ecotone.tech/enterprise. `changingHeaders: false` (the default) has no licence requirement.
 
 ## #[Orchestrator] Attribute (Enterprise)
 

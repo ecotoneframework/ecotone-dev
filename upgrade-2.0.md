@@ -378,6 +378,8 @@ The full 151-class mapping is in `upgrade/namespace-map-2.0.csv`.
 - Laravel: `LaravelConnectionReference::defaultConnection()` resolves to the Ecotone DBAL factory (§5); `SHELL_VERBOSITY` handling in tests unchanged.
 - OpenTelemetry: spans now carry `polledChannelName` and `routingSlip` attributes.
 - `ChannelInterceptor` attribute (Enterprise): a method annotated `#[ChannelInterceptor('channelName')]` now runs as a pre-send interceptor for that channel (matching by exact channel name, not a handler pointcut), with the same `changeHeaders`/`precedence` semantics as `#[Before]`/`#[Presend]`. Requires an Enterprise licence; see the `ecotone-interceptors` skill for details.
+- `#[Asynchronous]` now requires an explicit `endpointId` for `#[InternalHandler]`/`#[ServiceActivator]` too, not only `#[CommandHandler]`/`#[EventHandler]` — a generated endpoint id used to be silently accepted and fail later with an unrelated missing-channel error.
+- `#[InternalHandler]`/`#[ServiceActivator]` `changingHeaders: true` (Enterprise): the handler's returned `array` is merged into message headers instead of replacing the payload, the payload is left untouched, and returning `null` now leaves the message unchanged instead of dropping it. Requires an Enterprise licence; see the `ecotone-workflow` skill's `#[InternalHandler]` reference for details.
 
 ---
 

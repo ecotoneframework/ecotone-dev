@@ -13,7 +13,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
     $containerConfigurator->extension('ecotone', [
         'defaultSerializationMediaType' => 'application/json',
         'loadSrcNamespaces' => false,
-        'namespaces' => ['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\ProophProjection\\'],
+        'namespaces' => ['Monorepo\\ExampleAppEventSourcing\\Common\\', 'Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\'],
         'defaultErrorChannel' => 'errorChannel',
         'failFast' => false,
         'modulePackages' => \json_decode(\getenv('APP_MODULE_PACKAGES'), true) ?? [],
@@ -25,7 +25,7 @@ return static function (ContainerConfigurator $containerConfigurator): void {
         ->autowire()
         ->autoconfigure();
 
-    $services->load('Monorepo\\ExampleAppEventSourcing\\ProophProjection\\', '%kernel.project_dir%/../ProophProjection/')
+    $services->load('Monorepo\\ExampleAppEventSourcing\\EcotoneProjection\\', '%kernel.project_dir%/../EcotoneProjection/')
         ->autowire()
         ->autoconfigure();
 

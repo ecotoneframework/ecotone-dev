@@ -70,6 +70,17 @@ final class BusRoutingTest extends TestCase
 
         $this->assertSame(['wildcardHandler'], $handler->calls);
     }
+
+    public function test_a_handler_typed_to_the_native_object_type_catches_every_event_class(): void
+    {
+        $handler = new CatchAllHandler();
+        $ecotone = EcotoneLite::bootstrapFlowTesting([CatchAllHandler::class], [$handler]);
+
+        $ecotone->publishEvent(new AEvent());
+        $ecotone->publishEvent(new UnrelatedEvent());
+
+        $this->assertSame([AEvent::class, UnrelatedEvent::class], $handler->receivedClasses);
+    }
 }
 
 /**
@@ -97,6 +108,31 @@ class AEvent implements NotificationInterface
  */
 class BEvent extends AEvent
 {
+}
+
+/**
+ * licence Apache-2.0
+ *
+ * @internal
+ */
+class UnrelatedEvent
+{
+}
+
+/**
+ * licence Apache-2.0
+ *
+ * @internal
+ */
+final class CatchAllHandler
+{
+    public array $receivedClasses = [];
+
+    #[EventHandler]
+    public function onAnyEvent(object $event): void
+    {
+        $this->receivedClasses[] = $event::class;
+    }
 }
 
 /**

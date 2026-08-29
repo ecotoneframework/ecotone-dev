@@ -104,7 +104,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
     public static function clearDataTables(Connection $connection): void
     {
         foreach (self::getSchemaManager($connection)->listTableNames() as $tableNames) {
-            $sql = 'DROP TABLE ' . $tableNames;
+            $sql = 'DROP TABLE ' . $connection->getDatabasePlatform()->quoteIdentifier(trim($tableNames, '"`'));
             $connection->executeQuery($sql);
         }
     }

@@ -1,12 +1,12 @@
 # Event Sourcing API Reference
 
-## ProjectionV2 Attribute
+## Projection Attribute
 
-Source: `Ecotone\Api\ProjectionV2`
+Source: `Ecotone\Api\Projection`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS)]
-class ProjectionV2
+class Projection
 {
     public function __construct(
         public readonly string $name,
@@ -16,7 +16,7 @@ class ProjectionV2
 
 ## FromStream Attribute
 
-Source: `Ecotone\Projecting\Attribute\FromStream`
+Source: `Ecotone\Api\FromStream`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]
@@ -31,7 +31,7 @@ class FromStream
 
 ## FromAggregateStream Attribute
 
-Source: `Ecotone\Projecting\Attribute\FromAggregateStream`
+Source: `Ecotone\Api\FromAggregateStream`
 
 ```php
 #[Attribute(Attribute::TARGET_CLASS | Attribute::IS_REPEATABLE)]

@@ -63,19 +63,19 @@ Key rules:
 - `#[EventSourcingHandler]` rebuilds state (no side effects)
 - Use `WithAggregateVersioning` trait for optimistic concurrency
 
-## 2. ProjectionV2
+## 2. Projection
 
-Every ProjectionV2 class needs:
-1. `#[ProjectionV2('projection_name')]` -- class-level, unique name
+Every Projection class needs:
+1. `#[Projection('projection_name')]` -- class-level, unique name
 2. A stream source: `#[FromStream(Ticket::class)]` or `#[FromAggregateStream(Ticket::class)]`
 3. At least one `#[EventHandler]` method
 
 ```php
-use Ecotone\Api\ProjectionV2;
-use Ecotone\Projecting\Attribute\FromStream;
+use Ecotone\Api\Projection;
+use Ecotone\Api\FromStream;
 use Ecotone\Api\EventHandler;
 
-#[ProjectionV2('ticket_list')]
+#[Projection('ticket_list')]
 #[FromStream(Ticket::class)]
 class TicketListProjection
 {
@@ -106,7 +106,7 @@ class TicketListProjection
 ```php
 use Ecotone\Api\Partitioned;
 
-#[ProjectionV2('ticket_details'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
+#[Projection('ticket_details'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
 ```
 
 Per-aggregate-instance position tracking. NOT compatible with multiple `#[FromStream]` attributes.
@@ -146,10 +146,11 @@ interface EventStore
 
 ## Key Rules
 
-- Prefer `#[ProjectionV2]` over legacy `#[Projection]` for new code
+- Every projection needs at least one `#[FromStream]`/`#[FromAggregateStream]` -- there is no "from all streams" option; a forgotten filter is a bootstrap error, not a silent full-log scan
 - Partitioned projections cannot use multiple streams
 - `#[FromAggregateStream]` requires an `#[EventSourcingAggregate]` class
 - Projection names must be unique
+- A `#[ProjectionState]` parameter must declare a default value (`array $state = []`, or `MyState $state = new MyState()`) -- state is `null` before the first event
 - Always increment revision when changing event schema
 - Never modify stored events -- transform on read via upcasters
 
@@ -161,7 +162,7 @@ interface EventStore
 
 ## Additional resources
 
-- [API reference](references/api-reference.md) -- Attribute signatures for `ProjectionV2`, `FromStream`, `FromAggregateStream`, `Partitioned`, `Polling`, `Streaming`, lifecycle attributes (`ProjectionInitialization`, `ProjectionDelete`, `ProjectionReset`, `ProjectionFlush`), configuration attributes (`ProjectionExecution`, `ProjectionBackfill`, `ProjectionDeployment`), `ProjectionState`, `Revision`, `NamedEvent`, and `EventStore` interface. Load when you need exact constructor parameters, attribute targets, or API method signatures.
+- [API reference](references/api-reference.md) -- Attribute signatures for `Projection`, `FromStream`, `FromAggregateStream`, `Partitioned`, `Polling`, `Streaming`, lifecycle attributes (`ProjectionInitialization`, `ProjectionDelete`, `ProjectionReset`, `ProjectionFlush`), configuration attributes (`ProjectionExecution`, `ProjectionBackfill`, `ProjectionDeployment`), `ProjectionState`, `Revision`, `NamedEvent`, and `EventStore` interface. Load when you need exact constructor parameters, attribute targets, or API method signatures.
 
 - [Usage examples](references/usage-examples.md) -- Complete projection implementations (partitioned, polling, streaming, multi-stream, with EventStreamEmitter), state management patterns, `FromAggregateStream` usage, blue/green deployment configuration, upcasting patterns (adding fields, renaming fields, splitting events, removing fields), DCB multi-stream consistency projections, and event schema evolution strategies. Load when you need full working class implementations or advanced patterns.
 

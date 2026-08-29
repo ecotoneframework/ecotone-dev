@@ -112,14 +112,14 @@ Key points:
 
 ```php
 $ecotone->initializeProjection('name');  // Setup
-$ecotone->triggerProjection('name');     // Process events (backfill -- emits events)
-$ecotone->resetProjection('name');       // Clear + reinit
+$ecotone->triggerProjection('name');     // Process pending events synchronously, immediately
+$ecotone->resetProjection('name');       // Delete + reinit + replay full history
 $ecotone->deleteProjection('name');      // Cleanup
 ```
 
 ### Rebuild vs Backfill
 
-`triggerProjection()` calls `prepareBackfill()` for V2 projections (`shouldReset: false`) -- events ARE emitted via `EventStreamEmitter` during replay. This matches the `ecotone:projection:backfill` console command.
+`triggerProjection()` calls `executeAll()` -- it reads directly from the stream source and processes pending events synchronously, immediately, in the same call. `resetProjection()` calls `executeAllWithReset()` (delete + init + `executeAll()`), so it replays full history, not just what's pending.
 
 To test rebuild behavior (emissions suppressed), access `ProjectionRegistry` directly:
 

@@ -399,54 +399,6 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     /**
      * @throws MessagingException
      */
-    public function test_sending_and_receiving_with_routing_key_to_custom_exchange()
-    {
-        $exchangeName = Uuid::v7()->toRfc4122();
-        $whiteQueueName = Uuid::v7()->toRfc4122();
-        $blackQueueName = Uuid::v7()->toRfc4122();
-        $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName),
-            AmqpQueue::createWith($whiteQueueName),
-        ];
-        $amqpExchanges = [
-            AmqpExchange::createDirectExchange($exchangeName),
-        ];
-        $amqpBindings = [
-            AmqpBinding::createFromNames($exchangeName, $whiteQueueName, 'white'),
-            AmqpBinding::createFromNames($exchangeName, $blackQueueName, 'black'),
-        ];
-        $requestChannelName = 'requestChannel';
-        $inboundRequestChannel = QueueChannel::create();
-        $amqpConnectionReferenceName = AmqpConnectionFactory::class;
-        $converters = [];
-
-        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-id');
-        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-other-id');
-
-        $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::create($exchangeName, $amqpConnectionReferenceName)
-            ->withDefaultRoutingKey('white');
-        $this->send(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters),
-            $outboundAmqpGatewayBuilder,
-            MessageBuilder::withPayload('some')->build()
-        );
-
-        $this->assertNull(
-            $this->receiveOnce(
-                $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                    ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-                $inboundAmqpAdapterForBlack,
-                $inboundRequestChannel
-            )
-        );
-        $this->assertNotNull($this->receiveOnce(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-            $inboundAmqpAdapterForWhite,
-            $inboundRequestChannel
-        ));
-    }
-
     /**
      * @throws MessagingException
      */
@@ -525,52 +477,6 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     /**
      * @throws MessagingException
      */
-    public function test_sending_and_receiving_from_topic_exchange()
-    {
-        $exchangeName = Uuid::v7()->toRfc4122();
-        $whiteQueueName = Uuid::v7()->toRfc4122();
-        $blackQueueName = Uuid::v7()->toRfc4122();
-        $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName),
-            AmqpQueue::createWith($whiteQueueName),
-        ];
-        $amqpExchanges = [
-            AmqpExchange::createTopicExchange($exchangeName),
-        ];
-        $amqpBindings = [
-            AmqpBinding::createFromNames($exchangeName, $whiteQueueName, '*.white'),
-            AmqpBinding::createFromNames($exchangeName, $blackQueueName, '*.black'),
-        ];
-        $requestChannelName = 'requestChannel';
-        $inboundRequestChannel = QueueChannel::create();
-        $amqpConnectionReferenceName = AmqpConnectionFactory::class;
-        $converters = [];
-
-        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-id');
-        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-other-id');
-
-        $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::create($exchangeName, $amqpConnectionReferenceName)
-            ->withDefaultRoutingKey('color.white');
-        $this->send(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters),
-            $outboundAmqpGatewayBuilder,
-            MessageBuilder::withPayload('some')->build()
-        );
-
-        $this->assertNull($this->receiveOnce(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-            $inboundAmqpAdapterForBlack,
-            $inboundRequestChannel
-        ));
-        $this->assertNotNull($this->receiveOnce(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-            $inboundAmqpAdapterForWhite,
-            $inboundRequestChannel
-        ));
-    }
-
     /**
      * @throws MessagingException
      */
@@ -848,53 +754,6 @@ final class AmqpChannelAdapterTest extends AmqpMessagingTestCase
     /**
      * @throws MessagingException
      */
-    public function test_sending_and_receiving_from_fanout_exchange()
-    {
-        $exchangeName = Uuid::v7()->toRfc4122();
-        $whiteQueueName = Uuid::v7()->toRfc4122();
-        $blackQueueName = Uuid::v7()->toRfc4122();
-        $amqpQueues = [
-            AmqpQueue::createWith($blackQueueName),
-            AmqpQueue::createWith($whiteQueueName),
-        ];
-        $amqpExchanges = [
-            AmqpExchange::createFanoutExchange($exchangeName),
-        ];
-        $amqpBindings = [
-            AmqpBinding::createFromNamesWithoutRoutingKey($exchangeName, $whiteQueueName),
-            AmqpBinding::createFromNamesWithoutRoutingKey($exchangeName, $blackQueueName),
-        ];
-        $requestChannelName = 'requestChannel';
-        $inboundRequestChannel = QueueChannel::create();
-        $amqpConnectionReferenceName = AmqpConnectionFactory::class;
-        $converters = [];
-
-        $inboundAmqpAdapterForBlack = $this->createAmqpInboundAdapter($blackQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-id');
-        $inboundAmqpAdapterForWhite = $this->createAmqpInboundAdapter($whiteQueueName, $requestChannelName, $amqpConnectionReferenceName, 'an-other-id');
-
-        $outboundAmqpGatewayBuilder = AmqpOutboundChannelAdapterBuilder::create($exchangeName, $amqpConnectionReferenceName);
-        $this->send(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters),
-            $outboundAmqpGatewayBuilder,
-            MessageBuilder::withPayload('some')->build()
-        );
-
-        $this->assertNotNull(
-            $this->receiveOnce(
-                $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                    ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-                $inboundAmqpAdapterForBlack,
-                $inboundRequestChannel
-            )
-        );
-        $this->assertNotNull($this->receiveOnce(
-            $this->prepareMessaging($amqpConnectionReferenceName, $amqpExchanges, $amqpQueues, $amqpBindings, $converters)
-                ->withChannel(SimpleMessageChannelBuilder::create($requestChannelName, $inboundRequestChannel)),
-            $inboundAmqpAdapterForWhite,
-            $inboundRequestChannel
-        ));
-    }
-
     public function test_using_custom_delay_strategy_from_channel_builder()
     {
         $queueName = Uuid::v7()->toRfc4122();

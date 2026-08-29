@@ -8,9 +8,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Fixture\ProjectionHandlersExecutionRoutingTest;
 
 use Ecotone\Api\EventHandler;
-use Ecotone\EventSourcing\Attribute\Projection;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 
-#[Projection(self::NAME, AnAggregate::STREAM_NAME)]
+#[Projection(self::NAME)]
+#[FromStream(AnAggregate::STREAM_NAME)]
 class ProjectionWithObjectRouting
 {
     public const NAME = 'projection_with_object_routing';

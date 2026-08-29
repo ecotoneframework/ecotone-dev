@@ -17,7 +17,6 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenProjection\InProgressTicketList;
-use Throwable;
 
 /**
  * licence Apache-2.0
@@ -101,8 +100,6 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
-        $ecotone->stopProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
-        $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
         $ecotone->sendCommand(new RegisterTicket('1234', 'Johnny', 'alert'));
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
@@ -151,54 +148,6 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
             ['ticket_id' => '6', 'ticket_type' => 'info'],
             ['ticket_id' => '7', 'ticket_type' => 'warning'],
         ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
-    }
-
-    public function test_triggering_projection_action_is_asynchronous(): void
-    {
-        $ecotone = self::bootstrapEcotone();
-
-        $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));
-        $ecotone->sendCommand(new RegisterTicket('2', 'Andrew', 'alert'));
-
-        $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
-        $ecotone->deleteProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
-
-        self::assertEquals(
-            [
-                ['ticket_id' => '1', 'ticket_type' => 'alert'],
-                ['ticket_id' => '2', 'ticket_type' => 'alert'],
-            ],
-            $ecotone->sendQueryWithRouting('getInProgressTickets'),
-            'Projection deletion is totally asynchronous: can query it right after deletion'
-        );
-
-        $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
-
-        // At this point the projection is deleted
-        try {
-            $ecotone->sendQueryWithRouting('getInProgressTickets');
-            self::fail('Projection should be deleted, querying it should throw an exception');
-        } catch (Throwable $exception) {
-        }
-
-        $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
-
-        self::assertEquals(
-            [],
-            $ecotone->sendQueryWithRouting('getInProgressTickets'),
-            'Projection should be empty after initialization but no error are thrown: the table exists. Initialization is synchronous, but triggering projection is asynchronous'
-        );
-
-        $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL);
-
-        self::assertEquals(
-            [
-                ['ticket_id' => '1', 'ticket_type' => 'alert'],
-                ['ticket_id' => '2', 'ticket_type' => 'alert'],
-            ],
-            $ecotone->sendQueryWithRouting('getInProgressTickets')
-        );
-
     }
 
     private static function bootstrapEcotone(

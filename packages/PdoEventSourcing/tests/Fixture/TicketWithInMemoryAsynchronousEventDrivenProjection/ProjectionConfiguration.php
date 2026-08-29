@@ -5,7 +5,6 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEvent
 use Ecotone\Api\PollingMetadata;
 use Ecotone\Api\ServiceContext;
 use Ecotone\Api\SimpleMessageChannelBuilder;
-use Ecotone\EventSourcing\ProjectionRunningConfiguration;
 
 /**
  * licence Apache-2.0
@@ -24,12 +23,5 @@ class ProjectionConfiguration
     public function enableAsynchronousProjection()
     {
         return SimpleMessageChannelBuilder::createQueueChannel('asynchronous_projections');
-    }
-
-    #[ServiceContext]
-    public function configureProjection()
-    {
-        return ProjectionRunningConfiguration::createEventDriven(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION)
-            ->withTestingSetup();
     }
 }

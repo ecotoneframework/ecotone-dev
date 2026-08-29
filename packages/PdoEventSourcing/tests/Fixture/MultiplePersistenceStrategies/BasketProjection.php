@@ -6,11 +6,13 @@ namespace Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromStream;
+use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\QueryHandler;
-use Ecotone\EventSourcing\Attribute\Projection;
 
-#[Projection(self::NAME, fromStreams: ['basket'])]
+#[Projection(self::NAME)]
+#[FromStream('basket')]
 /**
  * licence Apache-2.0
  */

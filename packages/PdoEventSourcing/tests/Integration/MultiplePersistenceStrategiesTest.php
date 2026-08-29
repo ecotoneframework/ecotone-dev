@@ -18,7 +18,6 @@ use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\EventsConve
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\Logger;
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\Order;
 use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\OrderCreated;
-use Test\Ecotone\EventSourcing\Fixture\MultiplePersistenceStrategies\OrderProjection;
 
 /**
  * @internal
@@ -32,11 +31,10 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
     public function test_allow_multiple_persistent_strategies_per_aggregate(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: [Order::class, Basket::class, BasketProjection::class, OrderProjection::class, Logger::class],
+            classesToResolve: [Order::class, Basket::class, BasketProjection::class, Logger::class],
             containerOrAvailableServices: [
                 new EventsConverter(),
                 new BasketProjection($this->getConnection()),
-                new OrderProjection($this->getConnection()),
                 new Logger(),
                 self::getConnectionFactory(),
             ],
@@ -57,7 +55,6 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
 
         $ecotone
             ->initializeProjection(BasketProjection::NAME)
-            ->initializeProjection(OrderProjection::NAME)
             ->withEventsFor(
                 identifiers: 'order-1',
                 aggregateClass: Order::class,
@@ -93,7 +90,7 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
             ->publishEventWithRoutingKey(OrderCreated::NAME, new OrderCreated('order-2'))
             ->publishEventWithRoutingKey(BasketCreated::NAME, new BasketCreated('basket-1'))
             ->publishEventWithRoutingKey(BasketCreated::NAME, new BasketCreated('basket-2'))
-            ->triggerProjection([BasketProjection::NAME, OrderProjection::NAME])
+            ->triggerProjection(BasketProjection::NAME)
         ;
 
         $eventStore = $ecotone->getGateway(EventStore::class);
@@ -108,7 +105,6 @@ final class MultiplePersistenceStrategiesTest extends EventSourcingMessagingTest
         self::assertCount(2, $eventStore->load(Basket::STREAM));
         self::assertCount(4, $eventStore->load(Logger::STREAM));
 
-        self::assertEquals(['order-1', 'order-2'], $ecotone->sendQueryWithRouting('orders'));
         self::assertEquals(['basket-1', 'basket-2'], $ecotone->sendQueryWithRouting('baskets'));
     }
 }

@@ -12,6 +12,7 @@ use Ecotone\Api\EventHandler;
 use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Api\PollingMetadata;
 use Ecotone\Api\QueryHandler;
+use Ecotone\Api\ServiceActivator;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
@@ -67,7 +68,7 @@ class AsynchronousModule implements AnnotationModule
                     if ($endpoint->hasClassAnnotation(StreamBasedSource::class)) {
                         $streamSourcesAsyncEndpoints[$annotationForMethod->getEndpointId()] = $asyncClass->getChannelName();
                     } else {
-                        if (in_array(get_class($annotationForMethod), [CommandHandler::class, EventHandler::class])) {
+                        if ($annotationForMethod instanceof CommandHandler || $annotationForMethod instanceof EventHandler || $annotationForMethod instanceof ServiceActivator) {
                             if ($annotationForMethod->isEndpointIdGenerated()) {
                                 throw ConfigurationException::create("{$endpoint} should have endpointId defined for handling asynchronously");
                             }
@@ -89,7 +90,7 @@ class AsynchronousModule implements AnnotationModule
                     if ($annotationForMethod instanceof QueryHandler) {
                         continue;
                     }
-                    if (in_array(get_class($annotationForMethod), [CommandHandler::class, EventHandler::class])) {
+                    if ($annotationForMethod instanceof CommandHandler || $annotationForMethod instanceof EventHandler || $annotationForMethod instanceof ServiceActivator) {
                         if ($annotationForMethod->isEndpointIdGenerated()) {
                             throw ConfigurationException::create("{$endpoint} should have endpointId defined for handling asynchronously");
                         }

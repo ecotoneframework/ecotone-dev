@@ -6,7 +6,6 @@ use Ecotone\Api\EventHandler;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\Reference;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\Prooph\LazyProophProjectionManager;
 use Ecotone\Modelling\Event;
 
 use function end;
@@ -21,7 +20,7 @@ final class NotificationService
     #[QueryHandler('get.notifications')]
     public function getNotifications(#[Reference] EventStore $eventStore): ?string
     {
-        $projectionStreamName = LazyProophProjectionManager::getProjectionStreamName(InProgressTicketList::NAME);
+        $projectionStreamName = 'projection_' . InProgressTicketList::NAME;
         if (! $eventStore->hasStream($projectionStreamName)) {
             return null;
         }

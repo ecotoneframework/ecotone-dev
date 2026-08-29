@@ -60,17 +60,16 @@ class GatewayReplyConverter
 
         if (! $replyContentType) {
             if ($data instanceof Generator) {
-                $isCollection = $this->returnType->isCollection();
-                $genericType = null;
-                if ($this->returnType instanceof Type\GenericType) {
-                    $resolvedTypes = $this->returnType->genericTypes;
+                return $this->yieldResults($data, $this->collectionElementType());
+            }
 
-                    if (count($resolvedTypes) === 1) {
-                        $genericType = $resolvedTypes[0];
-                    }
+            if (is_array($data) && ! $sourceType instanceof Type\GenericType && ($elementType = $this->collectionElementType())) {
+                $converted = [];
+                foreach ($data as $key => $item) {
+                    $converted[$key] = $this->convertElementIfNeeded($item, $elementType);
                 }
 
-                return $this->yieldResults($data, $isCollection, $genericType);
+                return $converted;
             }
 
             if (! $this->returnType->isMessage() && ! $sourceType->isCompatibleWith($this->returnType)) {
@@ -120,16 +119,28 @@ class GatewayReplyConverter
         return $data;
     }
 
-    private function yieldResults(Generator $data, bool $isCollection, ?Type $expectedType): Generator
+    private function yieldResults(Generator $data, ?Type $expectedType): Generator
     {
         foreach ($data as $result) {
-            if ($expectedType !== null) {
-                if ($isCollection && ! $expectedType->accepts($result)) {
-                    $result = $this->conversionService->convert($result, Type::createFromVariable($result), MediaType::createApplicationXPHP(), $expectedType, MediaType::createApplicationXPHP());
-                }
-            }
-
-            yield $result;
+            yield $expectedType !== null ? $this->convertElementIfNeeded($result, $expectedType) : $result;
         }
+    }
+
+    private function collectionElementType(): ?Type
+    {
+        if ($this->returnType instanceof Type\GenericType && count($this->returnType->genericTypes) === 1) {
+            return $this->returnType->genericTypes[0];
+        }
+
+        return null;
+    }
+
+    private function convertElementIfNeeded(mixed $result, Type $expectedType): mixed
+    {
+        if ($expectedType->accepts($result)) {
+            return $result;
+        }
+
+        return $this->conversionService->convert($result, Type::createFromVariable($result), MediaType::createApplicationXPHP(), $expectedType, MediaType::createApplicationXPHP());
     }
 }

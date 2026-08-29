@@ -34,7 +34,6 @@ use RuntimeException;
 use stdClass;
 use Test\Ecotone\Messaging\Fixture\Channel\PollingChannelThrowingException;
 use Test\Ecotone\Messaging\Fixture\Handler\ExceptionMessageHandler;
-use Test\Ecotone\Messaging\Fixture\Handler\Gateway\IteratorReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MixedReturningGateway;
 use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\TransactionalInterceptorOnGatewayClassAndMethodExample;
@@ -742,65 +741,6 @@ class GatewayProxyBuilderTest extends MessagingTestCase
             $messaging->getGateway(MixedReturningGateway::class)
                 ->executeWithPayload($requestData)
         );
-    }
-
-    /**
-     * Attempted conversion to a real #[MessageGateway]/#[Converter] scenario: an
-     * IteratorGateway with `@return iterable<stdClass>` and a real registered
-     * #[Converter] converting int->stdClass. The gateway's generator reply
-     * passed the raw ints through unconverted -- per-element conversion for a
-     * docblock-typed `iterable` return on an annotation-discovered gateway
-     * interface does not appear to be honoured the same way InterfaceToCall::create()
-     * (used directly by this ComponentTestBuilder-based test) resolves it.
-     * Left as a genuine finding rather than forcing a false-positive conversion.
-     */
-    public function test_returning_generator_with_conversion()
-    {
-        $resultOne = new stdClass();
-        $resultOne->id = 1;
-        $resultTwo = new stdClass();
-        $resultTwo->id = 2;
-
-        $messaging = ComponentTestBuilder::create()
-            ->withConverter(
-                InMemoryConversionService::createWithoutConversion()
-                    ->registerConversion(
-                        $resultOne->id,
-                        MediaType::APPLICATION_X_PHP,
-                        Type::int()->toString(),
-                        MediaType::APPLICATION_X_PHP,
-                        Type::create(stdClass::class)->toString(),
-                        $resultOne
-                    )
-                    ->registerConversion(
-                        $resultTwo->id,
-                        MediaType::APPLICATION_X_PHP,
-                        Type::int()->toString(),
-                        MediaType::APPLICATION_X_PHP,
-                        Type::create(stdClass::class)->toString(),
-                        $resultTwo
-                    )
-            )
-            ->withGateway(
-                GatewayProxyBuilder::create(
-                    IteratorReturningGateway::class,
-                    IteratorReturningGateway::class,
-                    'executeIterator',
-                    $inputChannel = 'inputChannel'
-                )
-            )
-            ->withMessageHandler(
-                ServiceActivatorBuilder::createWithDirectReference(ServiceExpectingOneArgument::create(), 'withMessage')
-                    ->withInputChannelName($inputChannel)
-            )
-            ->build();
-
-        $resultSet = [];
-        foreach ($messaging->getGateway(IteratorReturningGateway::class)->executeIterator([$resultOne->id, $resultTwo->id]) as $item) {
-            $resultSet[] = $item;
-        }
-
-        $this->assertEquals([$resultOne, $resultTwo], $resultSet);
     }
 
 }

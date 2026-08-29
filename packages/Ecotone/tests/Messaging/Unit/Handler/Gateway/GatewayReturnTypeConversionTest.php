@@ -128,6 +128,34 @@ final class GatewayReturnTypeConversionTest extends TestCase
         $this->assertSame($expected, $resultSet);
     }
 
+    public function test_array_reply_elements_are_converted_through_a_real_registered_converter(): void
+    {
+        $handler = new IterableEchoHandler();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [ArrayConvertingIteratorGateway::class, IterableEchoHandler::class, IntToStdClassConverter::class],
+            [$handler, new IntToStdClassConverter()],
+        );
+
+        $resultSet = $ecotone->getGateway(ArrayConvertingIteratorGateway::class)->executeIteratorWithConversion([1, 2]);
+
+        $this->assertEquals([IntToStdClassConverter::convertOne(1), IntToStdClassConverter::convertOne(2)], $resultSet);
+    }
+
+    public function test_generator_reply_elements_are_converted_through_a_real_registered_converter(): void
+    {
+        $handler = new GeneratorEchoHandler();
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            [GeneratorConvertingIteratorGateway::class, GeneratorEchoHandler::class, IntToStdClassConverter::class],
+            [$handler, new IntToStdClassConverter()],
+        );
+
+        $resultSet = [];
+        foreach ($ecotone->getGateway(GeneratorConvertingIteratorGateway::class)->executeGeneratorWithConversion([1, 2]) as $item) {
+            $resultSet[] = $item;
+        }
+
+        $this->assertEquals([IntToStdClassConverter::convertOne(1), IntToStdClassConverter::convertOne(2)], $resultSet);
+    }
 }
 
 /**
@@ -240,6 +268,34 @@ interface IteratorGateway
  *
  * @internal
  */
+interface ArrayConvertingIteratorGateway
+{
+    /**
+     * @return iterable<stdClass>
+     */
+    #[MessageGateway(IterableEchoHandler::CHANNEL)]
+    public function executeIteratorWithConversion(mixed $payload): iterable;
+}
+
+/**
+ * licence Apache-2.0
+ *
+ * @internal
+ */
+interface GeneratorConvertingIteratorGateway
+{
+    /**
+     * @return iterable<stdClass>
+     */
+    #[MessageGateway(GeneratorEchoHandler::CHANNEL)]
+    public function executeGeneratorWithConversion(mixed $payload): iterable;
+}
+
+/**
+ * licence Apache-2.0
+ *
+ * @internal
+ */
 final class IterableEchoHandler
 {
     public const CHANNEL = 'gatewayReturnType.iterable';
@@ -248,6 +304,46 @@ final class IterableEchoHandler
     public function handle(mixed $payload): iterable
     {
         return $payload;
+    }
+}
+
+/**
+ * licence Apache-2.0
+ *
+ * @internal
+ */
+final class GeneratorEchoHandler
+{
+    public const CHANNEL = 'gatewayReturnType.generator';
+
+    #[ServiceActivator(self::CHANNEL)]
+    public function handle(mixed $payload): iterable
+    {
+        foreach ($payload as $item) {
+            yield $item;
+        }
+    }
+}
+
+/**
+ * licence Apache-2.0
+ *
+ * @internal
+ */
+final class IntToStdClassConverter
+{
+    #[\Ecotone\Api\Converter]
+    public function convert(int $value): stdClass
+    {
+        return self::convertOne($value);
+    }
+
+    public static function convertOne(int $value): stdClass
+    {
+        $result = new stdClass();
+        $result->id = $value;
+
+        return $result;
     }
 }
 

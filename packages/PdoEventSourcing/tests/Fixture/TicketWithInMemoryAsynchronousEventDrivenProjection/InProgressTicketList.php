@@ -4,7 +4,7 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketWithInMemoryAsynchronousEvent
 
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
@@ -16,7 +16,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 #[Asynchronous('asynchronous_projections')]
 #[Projection(self::IN_PROGRESS_TICKET_PROJECTION)]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 /**
  * licence Apache-2.0
  */

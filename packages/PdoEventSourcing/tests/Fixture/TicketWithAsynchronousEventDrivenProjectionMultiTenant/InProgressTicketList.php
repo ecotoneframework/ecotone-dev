@@ -5,7 +5,7 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketWithAsynchronousEventDrivenPr
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
@@ -20,7 +20,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 #[Asynchronous(self::PROJECTION_CHANNEL)]
 #[Projection(self::IN_PROGRESS_TICKET_PROJECTION)]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 /**
  * licence Apache-2.0
  */

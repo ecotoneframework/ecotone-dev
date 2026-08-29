@@ -22,6 +22,8 @@ use Ecotone\Modelling\NoCorrectIdentifierDefinedException;
  */
 final class AggregateDefinitionResolver
 {
+    public const DEFAULT_STREAM = 'ecotone_event_stream';
+
     public static function resolve(string $aggregateClass, InterfaceToCallRegistry $interfaceToCallRegistry): AggregateClassDefinition
     {
         $aggregateClassDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::object($aggregateClass));
@@ -99,7 +101,7 @@ final class AggregateDefinitionResolver
             }
         }
 
-        return $aggregateClass;
+        return self::DEFAULT_STREAM;
     }
 
     public static function resolveAggregateTypeFromFinder(AnnotationFinder $finder, string $aggregateClass): string

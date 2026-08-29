@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\PartitionAggregateId;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\Projection;
@@ -127,7 +127,7 @@ abstract class AbstractRebuildPartitionedProjection
 #[Partitioned]
 #[ProjectionRebuild]
 #[ProjectionExecution(eventLoadingBatchSize: 3)]
-#[FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class RebuildRollbackProjection
 {
     public bool $shouldFailOnProjection = false;

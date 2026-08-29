@@ -71,7 +71,7 @@ final class InMemoryEventStore implements EventStore
         }
 
         if (! isset($this->streams[$streamName])) {
-            throw new InvalidArgumentException("Stream {$streamName} not found");
+            return [];
         }
 
         if ($metadataMatcher === null) {
@@ -116,7 +116,7 @@ final class InMemoryEventStore implements EventStore
         }
 
         if (! isset($this->streams[$streamName])) {
-            throw new InvalidArgumentException("Stream {$streamName} not found");
+            return [];
         }
 
         if ($metadataMatcher === null) {

@@ -7,23 +7,27 @@ namespace Ecotone\EventSourcing\Database;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\Database\DbalTableManager;
+use Ecotone\EventSourcing\Dbal\EventStreamSchema;
+use Ecotone\EventSourcing\Dbal\MariaDbEventStreamSchema;
+use Ecotone\EventSourcing\Dbal\MySqlEventStreamSchema;
+use Ecotone\EventSourcing\Dbal\PostgresEventStreamSchema;
 use Ecotone\Messaging\Config\Container\Definition;
 
-use function is_array;
-
 /**
- * licence Enterprise
+ * licence Apache-2.0
  */
 final class EventStreamTableManager implements DbalTableManager
 {
-    public const FEATURE_NAME = 'event_streams';
+    public const FEATURE_NAME = 'event_stream';
 
+    /**
+     * @param array<string> $tableNames
+     */
     public function __construct(
-        private string $tableName,
-        private bool   $isUsed,
-        private bool   $shouldAutoInitialize,
+        private array $tableNames,
+        private bool  $isUsed,
+        private bool  $shouldAutoInitialize,
     ) {
     }
 
@@ -37,81 +41,67 @@ final class EventStreamTableManager implements DbalTableManager
         return $this->isUsed;
     }
 
-    public function getTableName(): string
+    /**
+     * @return array<string>
+     */
+    public function getTableNames(): array
     {
-        return $this->tableName;
+        return $this->tableNames;
     }
 
     public function getCreateTableSql(Connection $connection): string|array
     {
-        if ($this->isPostgres($connection)) {
-            return $this->getPostgresCreateSql();
+        $schema = $this->schemaFor($connection);
+        $statements = [];
+        foreach ($this->tableNames as $tableName) {
+            foreach ($schema->createTableSql($tableName) as $statement) {
+                $statements[] = $statement;
+            }
         }
 
-        if ($this->isMariaDb($connection)) {
-            return $this->getMariaDbCreateSql();
-        }
-
-        return $this->getMysqlCreateSql();
+        return $statements;
     }
 
     public function getDropTableSql(Connection $connection): string
     {
-        $tableName = $this->tableName;
+        $schema = $this->schemaFor($connection);
 
-        if ($this->isPostgres($connection)) {
-            return "DROP TABLE IF EXISTS {$tableName}";
-        }
-
-        return "DROP TABLE IF EXISTS `{$tableName}`";
+        return implode('; ', array_map(
+            fn (string $tableName) => $schema->dropTableSql($tableName),
+            $this->tableNames
+        ));
     }
 
     public function createTable(Connection $connection): void
     {
-        if ($this->isInitialized($connection)) {
-            return;
-        }
-
-        $sql = $this->getCreateTableSql($connection);
-        if (is_array($sql)) {
-            foreach ($sql as $statement) {
-                $connection->executeStatement($statement);
-            }
-        } else {
-            $connection->executeStatement($sql);
+        foreach ($this->getCreateTableSql($connection) as $statement) {
+            $connection->executeStatement($statement);
         }
     }
 
     public function dropTable(Connection $connection): void
     {
-        if ($this->isInitialized($connection)) {
-            $this->dropStreamTables($connection);
-        }
-        $connection->executeStatement($this->getDropTableSql($connection));
-    }
-
-    private function dropStreamTables(Connection $connection): void
-    {
-        $streamTableNames = $connection->fetchFirstColumn(
-            "SELECT stream_name FROM {$this->tableName}"
-        );
-
-        foreach ($streamTableNames as $streamTableName) {
-            $dropSql = $this->isPostgres($connection)
-                ? "DROP TABLE IF EXISTS {$streamTableName}"
-                : "DROP TABLE IF EXISTS `{$streamTableName}`";
-            $connection->executeStatement($dropSql);
+        $schema = $this->schemaFor($connection);
+        foreach ($this->tableNames as $tableName) {
+            $connection->executeStatement($schema->dropTableSql($tableName));
         }
     }
 
     public function isInitialized(Connection $connection): bool
     {
-        return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
+        $schema = $this->schemaFor($connection);
+        foreach ($this->tableNames as $tableName) {
+            if (! $schema->tableExists($connection, $tableName)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->shouldAutoInitialize]);
+        return new Definition(self::class, [$this->tableNames, $this->isUsed, $this->shouldAutoInitialize]);
     }
 
     public function shouldBeInitializedAutomatically(): bool
@@ -119,70 +109,14 @@ final class EventStreamTableManager implements DbalTableManager
         return $this->shouldAutoInitialize;
     }
 
-    private function isPostgres(Connection $connection): bool
+    private function schemaFor(Connection $connection): EventStreamSchema
     {
-        return $connection->getDatabasePlatform() instanceof PostgreSQLPlatform;
-    }
+        $platform = $connection->getDatabasePlatform();
 
-    private function isMariaDb(Connection $connection): bool
-    {
-        return $connection->getDatabasePlatform() instanceof MariaDBPlatform;
-    }
-
-    private function getPostgresCreateSql(): array
-    {
-        $tableName = $this->tableName;
-
-        return [
-            <<<SQL
-                CREATE TABLE IF NOT EXISTS {$tableName} (
-                  no BIGSERIAL,
-                  real_stream_name VARCHAR(150) NOT NULL,
-                  stream_name CHAR(41) NOT NULL,
-                  metadata JSONB,
-                  category VARCHAR(150),
-                  PRIMARY KEY (no),
-                  UNIQUE (stream_name)
-                )
-                SQL,
-            "CREATE INDEX IF NOT EXISTS ix_{$tableName}_category ON {$tableName} (category)",
-        ];
-    }
-
-    private function getMariaDbCreateSql(): string
-    {
-        $tableName = $this->tableName;
-
-        return <<<SQL
-            CREATE TABLE IF NOT EXISTS `{$tableName}` (
-                `no` BIGINT(20) NOT NULL AUTO_INCREMENT,
-                `real_stream_name` VARCHAR(150) NOT NULL,
-                `stream_name` CHAR(41) NOT NULL,
-                `metadata` LONGTEXT NOT NULL,
-                `category` VARCHAR(150),
-                CHECK (`metadata` IS NOT NULL OR JSON_VALID(`metadata`)),
-                PRIMARY KEY (`no`),
-                UNIQUE KEY `ix_rsn` (`real_stream_name`),
-                KEY `ix_cat` (`category`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin
-            SQL;
-    }
-
-    private function getMysqlCreateSql(): string
-    {
-        $tableName = $this->tableName;
-
-        return <<<SQL
-            CREATE TABLE IF NOT EXISTS `{$tableName}` (
-              `no` BIGINT(20) NOT NULL AUTO_INCREMENT,
-              `real_stream_name` VARCHAR(150) NOT NULL,
-              `stream_name` CHAR(41) NOT NULL,
-              `metadata` JSON,
-              `category` VARCHAR(150),
-              PRIMARY KEY (`no`),
-              UNIQUE KEY `ix_rsn` (`real_stream_name`),
-              KEY `ix_cat` (`category`)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin
-            SQL;
+        return match (true) {
+            $platform instanceof PostgreSQLPlatform => new PostgresEventStreamSchema(),
+            $platform instanceof MariaDBPlatform => new MariaDbEventStreamSchema(),
+            default => new MySqlEventStreamSchema(),
+        };
     }
 }

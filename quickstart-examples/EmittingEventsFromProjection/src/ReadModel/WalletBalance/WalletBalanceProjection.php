@@ -6,13 +6,13 @@ use App\Domain\Event\MoneyWasAddedToWallet;
 use App\Domain\Event\MoneyWasSubtractedFromWallet;
 use App\Domain\Wallet;
 use Ecotone\Api\Projection;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\DocumentStore;
 use Ecotone\Api\EventHandler;
 
 #[Projection(self::PROJECTION_NAME)]
-#[FromStream(Wallet::class)]
+#[FromAggregateStream(Wallet::class)]
 final class WalletBalanceProjection
 {
     const PROJECTION_NAME = "wallet_balance";

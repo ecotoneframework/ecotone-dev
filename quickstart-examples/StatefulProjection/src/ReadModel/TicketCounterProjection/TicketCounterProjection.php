@@ -5,13 +5,13 @@ namespace App\ReadModel\TicketCounterProjection;
 use App\Domain\Event\TicketWasRegistered;
 use App\Domain\Ticket;
 use Ecotone\Api\Projection;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\ProjectionState;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\Api\EventHandler;
 
 #[Projection(self::NAME)]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 final class TicketCounterProjection
 {
     const NAME = "ticket_counter";

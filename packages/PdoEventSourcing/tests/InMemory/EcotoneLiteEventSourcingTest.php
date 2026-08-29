@@ -8,6 +8,7 @@ use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -88,8 +89,8 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         /** @var EventStore $eventStore */
         $eventStore = $ecotoneTestSupport->getGatewayByName(EventStore::class);
 
-        if ($eventStore->hasStream(Ticket::class)) {
-            $eventStore->delete(Ticket::class);
+        if ($eventStore->hasStream(StreamTableRegistry::DEFAULT_STREAM)) {
+            $eventStore->delete(StreamTableRegistry::DEFAULT_STREAM);
         }
 
         $ecotoneTestSupport->initializeProjection('inProgressTicketList');
@@ -99,7 +100,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
 
         $ecotoneTestSupport->resetProjection('inProgressTicketList');
-        $eventStore->delete(Ticket::class);
+        $eventStore->delete(StreamTableRegistry::DEFAULT_STREAM);
         $ecotoneTestSupport->getCommandBus()->send(new RegisterTicket('1', 'johny', 'alert'));
 
         $this->assertCount(1, $ecotoneTestSupport->getQueryBus()->sendWithRouting('getInProgressTickets'));
@@ -120,8 +121,8 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         /** @var EventStore $eventStore */
         $eventStore = $ecotoneTestSupport->getGateway(EventStore::class);
 
-        if ($eventStore->hasStream(Ticket::class)) {
-            $eventStore->delete(Ticket::class);
+        if ($eventStore->hasStream(StreamTableRegistry::DEFAULT_STREAM)) {
+            $eventStore->delete(StreamTableRegistry::DEFAULT_STREAM);
         }
 
         $ecotoneTestSupport->initializeProjection('inProgressTicketList');
@@ -131,7 +132,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         $this->assertCount(1, $ecotoneTestSupport->sendQueryWithRouting('getInProgressTickets'));
 
         $ecotoneTestSupport->resetProjection('inProgressTicketList');
-        $eventStore->delete(Ticket::class);
+        $eventStore->delete(StreamTableRegistry::DEFAULT_STREAM);
         $ecotoneTestSupport->sendCommand(new RegisterTicket('1', 'johny', 'alert'));
 
         $this->assertCount(1, $ecotoneTestSupport->sendQueryWithRouting('getInProgressTickets'));

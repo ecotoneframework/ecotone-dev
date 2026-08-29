@@ -22,7 +22,7 @@ use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\ProjectionStateGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
-use Ecotone\EventSourcing\PdoStreamTableNameProvider;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProvider;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorage;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSource;
@@ -56,7 +56,7 @@ use Ecotone\Projecting\StreamSourceReference;
 use function in_array;
 
 #[ModuleAnnotation]
-class ProophProjectingModule implements AnnotationModule
+class EventSourcingProjectingModule implements AnnotationModule
 {
     /**
      * @param string[] $projectionNames
@@ -249,7 +249,7 @@ class ProophProjectingModule implements AnnotationModule
                 AggregateIdPartitionProvider::class,
                 new Definition(AggregateIdPartitionProvider::class, [
                     new Reference(DbalConnectionReference::DEFAULT),
-                    new Reference(PdoStreamTableNameProvider::class),
+                    new Reference(StreamTableRegistry::class),
                     $this->partitionedProjectionNames,
                 ])
             );
@@ -291,7 +291,7 @@ class ProophProjectingModule implements AnnotationModule
             new Definition(EventStoreGlobalStreamSource::class, [
                 new Reference(DbalConnectionReference::DEFAULT),
                 new Reference(EcotoneClockInterface::class),
-                new Reference(PdoStreamTableNameProvider::class),
+                new Reference(StreamTableRegistry::class),
                 new Reference(StreamFilterRegistry::class),
                 $this->globalStreamProjectionNames,
                 5_000,

@@ -61,6 +61,7 @@ class StreamFilterRegistryModule implements AnnotationModule
             $eventNames = $projectionEventNames[$projectionName] ?? [];
 
             foreach ($annotationFinder->getAnnotationsForClass($classname, FromStream::class) as $streamAttribute) {
+                self::assertIsNotAggregateClass($annotationFinder, $streamAttribute->stream, $projectionName, $classname);
                 $streamFilters[$projectionName][] = new StreamFilter(
                     $streamAttribute->stream,
                     $streamAttribute->aggregateType,
@@ -145,6 +146,22 @@ class StreamFilterRegistryModule implements AnnotationModule
         }
 
         return $projectionEventNames;
+    }
+
+    private static function assertIsNotAggregateClass(AnnotationFinder $annotationFinder, string $streamName, string $projectionName, string $projectionClassName): void
+    {
+        if (! class_exists($streamName)) {
+            return;
+        }
+
+        if ($annotationFinder->findAttributeForClass($streamName, EventSourcingAggregate::class) === null) {
+            return;
+        }
+
+        throw ConfigurationException::create(
+            "Projection '{$projectionName}' on {$projectionClassName} uses #[FromStream({$streamName}::class)] pointing to an Event Sourcing Aggregate. "
+            . "Use #[FromAggregateStream({$streamName}::class)] instead, so events are filtered by aggregate type."
+        );
     }
 
     public static function resolveFromAggregateStream(

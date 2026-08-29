@@ -12,7 +12,7 @@ use Ecotone\Api\Asynchronous;
 use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\EventBus;
 use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\InstantRetryConfiguration;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\Projection;
@@ -53,7 +53,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
             #[Projection('batch_transaction_test')]
             #[Asynchronous('async_projection')]
             #[ProjectionExecution(eventLoadingBatchSize: 1)]
-            #[FromStream(Ticket::class)]
+            #[FromAggregateStream(Ticket::class)]
             class ($connection, $collector) {
                 public const NAME = 'batch_transaction_test';
                 public const CHANNEL = 'async_projection';
@@ -133,7 +133,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
             #[Partitioned]
             #[Asynchronous('async_partitioned_projection')]
             #[ProjectionExecution(eventLoadingBatchSize: 1)]
-            #[FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
+            #[FromAggregateStream(Ticket::class)]
             class ($connection, $collector) {
                 public const NAME = 'partitioned_batch_transaction_test';
                 public const CHANNEL = 'async_partitioned_projection';
@@ -223,7 +223,7 @@ final class WithoutDbalTransactionProjectionTest extends ProjectingTestCase
             #[Projection('collector_disabled_test')]
             #[Asynchronous('async_projection')]
             #[ProjectionExecution(eventLoadingBatchSize: 1)]
-            #[FromStream(Ticket::class)]
+            #[FromAggregateStream(Ticket::class)]
             class ($connection, $collector) {
                 public const NAME = 'collector_disabled_test';
                 public const CHANNEL = 'async_projection';

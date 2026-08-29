@@ -3,6 +3,7 @@
 namespace Test\Ecotone\EventSourcing\Fixture\ProjectionFromMultipleStreams;
 
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Projection;
 use Ecotone\Api\QueryHandler;
@@ -12,7 +13,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 #[Projection('multiple_stream_projections')]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 #[FromStream(Basket::BASKET_STREAM)]
 /**
  * licence Apache-2.0

@@ -3,14 +3,14 @@
 namespace Test\Ecotone\EventSourcing\Fixture\BasketWithSynchronousEventDrivenSaga;
 
 use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Messaging\Support\Assert;
 
 #[Projection(self::PROJECTION_NAME)]
-#[FromStream(Saga::class)]
+#[FromAggregateStream(Saga::class)]
 /**
  * licence Apache-2.0
  */

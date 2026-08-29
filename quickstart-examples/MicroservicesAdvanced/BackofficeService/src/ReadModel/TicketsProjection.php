@@ -9,7 +9,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Api\Projection;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionReset;
 use Ecotone\Api\Header;
@@ -20,7 +20,7 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 
 #[Projection("tickets_projection")]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class TicketsProjection
 {
     const TABLE_NAME = "last_prepared_tickets";

@@ -2,31 +2,21 @@
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\Api\DocumentStore;
-use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
-use Ecotone\EventSourcing\Prooph\EcotoneEventStoreProophWrapper;
-use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
-use Prooph\EventStore\Exception\StreamNotFound;
-use Prooph\EventStore\StreamName;
 
 /**
  * licence Apache-2.0
  */
 class EventSourcingRepository implements EventSourcedRepository
 {
-    /**
-     * @param array<string, DocumentStore> $documentStoreReferences
-     */
     public function __construct(
-        private EcotoneEventStoreProophWrapper $eventStore,
+        private EventStore $eventStore,
         private array $handledAggregateClassNames,
-        private EventSourcingConfiguration $eventSourcingConfiguration,
         private AggregateStreamMapping $aggregateStreamMapping,
         private AggregateTypeMapping $aggregateTypeMapping,
     ) {
@@ -41,7 +31,7 @@ class EventSourcingRepository implements EventSourcedRepository
     {
         $aggregateId = reset($identifiers);
         $aggregateVersion = $fromVersion;
-        $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
+        $streamName = $this->getStreamName($aggregateClassName);
         $aggregateType = $this->getAggregateType($aggregateClassName);
 
         $metadataMatcher = new MetadataMatcher();
@@ -64,14 +54,10 @@ class EventSourcingRepository implements EventSourcedRepository
             );
         }
 
-        try {
-            $streamEvents = $this->eventStore->load($streamName, 1, null, $metadataMatcher);
-        } catch (StreamNotFound) {
-            return EventStream::createEmpty();
-        }
+        $streamEvents = $this->eventStore->load($streamName, 1, null, $metadataMatcher);
 
         if (! empty($streamEvents)) {
-            $aggregateVersion = $streamEvents[array_key_last($streamEvents)]->getMetadata()[LazyProophEventStore::AGGREGATE_VERSION];
+            $aggregateVersion = $streamEvents[array_key_last($streamEvents)]->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION];
         }
 
         return EventStream::createWith($aggregateVersion, $streamEvents);
@@ -82,23 +68,12 @@ class EventSourcingRepository implements EventSourcedRepository
         $aggregateId = reset($identifiers);
         Assert::notNullAndEmpty($aggregateId, sprintf('There was a problem when retrieving identifier for %s', $aggregateClassName));
 
-        $streamName = $this->getStreamName($aggregateClassName, $aggregateId);
-
-        $this->eventStore->appendTo($streamName, $events);
+        $this->eventStore->appendTo($this->getStreamName($aggregateClassName), $events);
     }
 
-    private function getStreamName(string $aggregateClassName, mixed $aggregateId): StreamName
+    private function getStreamName(string $aggregateClassName): string
     {
-        $streamName = $aggregateClassName;
-        if (array_key_exists($aggregateClassName, $this->aggregateStreamMapping->getAggregateToStreamMapping())) {
-            $streamName =  $this->aggregateStreamMapping->getAggregateToStreamMapping()[$aggregateClassName];
-        }
-
-        if ($this->eventSourcingConfiguration->isUsingAggregateStreamStrategyFor($streamName)) {
-            $streamName = $streamName . '-' . $aggregateId;
-        }
-
-        return new StreamName($streamName);
+        return $this->aggregateStreamMapping->getAggregateToStreamMapping()[$aggregateClassName] ?? StreamTableRegistry::DEFAULT_STREAM;
     }
 
     private function getAggregateType(string $aggregateClassName): string

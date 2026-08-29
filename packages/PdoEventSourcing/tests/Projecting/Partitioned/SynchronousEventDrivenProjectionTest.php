@@ -7,7 +7,6 @@ namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\FromStream;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\PartitionProvider as PartitionProviderAttribute;
 use Ecotone\Api\Projection;
@@ -260,7 +259,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[Projection(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(Ticket::class)] class ($connection) {
             public const NAME = 'in_progress_ticket_list_partitioned';
 
             public function __construct(private Connection $connection)

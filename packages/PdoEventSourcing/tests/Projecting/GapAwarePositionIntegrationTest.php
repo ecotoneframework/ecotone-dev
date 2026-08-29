@@ -13,7 +13,7 @@ use Ecotone\Api\ProjectionRegistry;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\PdoStreamTableNameProvider;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\EventSourcing\Projecting\StreamSource\GapAwarePosition;
 use Ecotone\Lite\EcotoneLite;
@@ -46,21 +46,19 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
     private static DbalTicketProjection $projection;
     private static EventStore $eventStore;
     private static ProjectingManager $projectionManager;
-    private static string $proophTicketTable;
-    private static PdoStreamTableNameProvider $tableNameProvider;
+    private static string $ticketStreamTable;
+
+    private static function streamTableRegistry(): StreamTableRegistry
+    {
+        return StreamTableRegistry::createWith([
+            Ticket::STREAM_NAME => ['table' => Ticket::STREAM_NAME, 'connection' => DbalConnectionFactory::class],
+        ], DbalConnectionFactory::class);
+    }
 
     protected function setUp(): void
     {
         self::$connectionFactory = self::getConnectionFactory();
         self::$clock = new StubUTCClock();
-
-        // Create a stub table name provider
-        self::$tableNameProvider = new class () implements PdoStreamTableNameProvider {
-            public function generateTableNameForStream(string $streamName): string
-            {
-                return '_' . sha1($streamName);
-            }
-        };
 
         $projection = new #[Projection(DbalTicketProjection::NAME)] class (self::$connectionFactory->establishConnection()) extends DbalTicketProjection {
         };
@@ -84,7 +82,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             runForProductionEventStore: true
         );
 
-        self::$proophTicketTable = self::$tableNameProvider->generateTableNameForStream(Ticket::STREAM_NAME);
+        self::$ticketStreamTable = Ticket::STREAM_NAME;
         self::$eventStore = self::$ecotone->getGateway(EventStore::class);
         self::$projectionManager = self::$ecotone->getGateway(ProjectionRegistry::class)->get(DbalTicketProjection::NAME);
         if (self::$eventStore->hasStream(Ticket::STREAM_NAME)) {
@@ -120,7 +118,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            self::$tableNameProvider,
+            self::streamTableRegistry(),
             $streamFilterRegistry,
             [$projectionName],
             maxGapOffset: 3, // Only keep gaps within 3 positions
@@ -164,7 +162,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            self::$tableNameProvider,
+            self::streamTableRegistry(),
             $streamFilterRegistry,
             [$projectionName],
             gapTimeout: Duration::seconds(5)
@@ -204,7 +202,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            self::$tableNameProvider,
+            self::streamTableRegistry(),
             $streamFilterRegistry,
             [$projectionName],
             maxGapOffset: 1000,
@@ -232,7 +230,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $streamSource = new EventStoreGlobalStreamSource(
             self::$connectionFactory,
             self::$clock,
-            self::$tableNameProvider,
+            self::streamTableRegistry(),
             $streamFilterRegistry,
             [$projectionName],
             maxGapOffset: 1000,

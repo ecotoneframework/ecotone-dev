@@ -6,7 +6,6 @@ namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\FromStream;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionState;
@@ -65,7 +64,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
 
     public function test_multiple_streams_without_from_aggregate_stream_on_gateway_throws_exception(): void
     {
-        $projection = new #[ Projection('ticket_counter_partitioned'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class), FromStream(stream: Basket::class, aggregateType: Basket::class), ] class () {
+        $projection = new #[ Projection('ticket_counter_partitioned'), Partitioned, FromAggregateStream(Ticket::class), FromAggregateStream(Basket::class), ] class () {
             public const NAME = 'ticket_counter_partitioned';
 
             #[EventHandler]
@@ -126,7 +125,7 @@ final class ProjectionStateGatewayTest extends ProjectingTestCase
 
     private function createCounterProjection(): object
     {
-        return new #[Projection(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class () {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(Ticket::class)] class () {
             public const NAME = 'ticket_counter_partitioned';
 
             #[EventHandler]

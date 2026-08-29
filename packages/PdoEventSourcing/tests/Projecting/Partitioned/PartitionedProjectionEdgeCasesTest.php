@@ -10,7 +10,7 @@ namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\Partitioned;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
@@ -242,7 +242,7 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[Projection(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(Ticket::class)] class ($connection) {
             public const NAME = 'idempotent_projection';
 
             public function __construct(private Connection $connection)
@@ -289,7 +289,7 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[Projection(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(Ticket::class)] class ($connection) {
             public const NAME = 'ticket_counting_projection';
 
             public function __construct(private Connection $connection)
@@ -332,7 +332,7 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[Projection(self::NAME), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(Ticket::class)] class ($connection) {
             public const NAME = 'ticket_list_projection';
 
             public function __construct(private Connection $connection)
@@ -375,7 +375,7 @@ final class PartitionedProjectionEdgeCasesTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[Projection(self::NAME), Partitioned, FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class ($connection) {
             public const NAME = 'multi_stream_edge_cases';
 
             public function __construct(private Connection $connection)

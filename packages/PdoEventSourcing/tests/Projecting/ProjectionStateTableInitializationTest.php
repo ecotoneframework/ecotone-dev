@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Api\Dbal\DbalConfiguration;
 use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\Polling;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
@@ -137,7 +137,7 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
     {
         $connection = $this->getConnection();
 
-        return new #[Projection('test_polling_projection'), Polling('test_polling_projection_runner'), FromStream(Ticket::class)] class ($connection) {
+        return new #[Projection('test_polling_projection'), Polling('test_polling_projection_runner'), FromAggregateStream(Ticket::class)] class ($connection) {
             public const NAME = 'test_polling_projection';
             public const ENDPOINT_ID = 'test_polling_projection_runner';
 

@@ -8,7 +8,6 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\FromStream;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
@@ -332,7 +331,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[Projection(self::NAME), FromStream(Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), FromAggregateStream(Ticket::class)] class ($connection) {
             public const NAME = 'in_progress_ticket_list';
 
             public function __construct(private Connection $connection)

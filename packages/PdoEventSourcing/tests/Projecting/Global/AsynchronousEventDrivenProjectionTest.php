@@ -8,7 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionInitialization;
@@ -224,7 +224,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[Projection(self::NAME), Asynchronous(self::CHANNEL), FromStream(Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Asynchronous(self::CHANNEL), FromAggregateStream(Ticket::class)] class ($connection) {
             public const NAME = 'async_ticket_list';
             public const CHANNEL = 'async_projection';
 

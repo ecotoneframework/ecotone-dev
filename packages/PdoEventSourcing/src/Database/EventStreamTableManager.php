@@ -5,13 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\MariaDBPlatform;
-use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Dbal\Database\DbalTableManager;
-use Ecotone\EventSourcing\Dbal\EventStreamSchema;
-use Ecotone\EventSourcing\Dbal\MariaDbEventStreamSchema;
-use Ecotone\EventSourcing\Dbal\MySqlEventStreamSchema;
-use Ecotone\EventSourcing\Dbal\PostgresEventStreamSchema;
+use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -51,7 +46,7 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function getCreateTableSql(Connection $connection): string|array
     {
-        $schema = $this->schemaFor($connection);
+        $schema = EventStreamSchemaFactory::for($connection);
         $statements = [];
         foreach ($this->tableNames as $tableName) {
             foreach ($schema->createTableSql($tableName) as $statement) {
@@ -64,7 +59,7 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function getDropTableSql(Connection $connection): string
     {
-        $schema = $this->schemaFor($connection);
+        $schema = EventStreamSchemaFactory::for($connection);
 
         return implode('; ', array_map(
             fn (string $tableName) => $schema->dropTableSql($tableName),
@@ -81,7 +76,7 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function dropTable(Connection $connection): void
     {
-        $schema = $this->schemaFor($connection);
+        $schema = EventStreamSchemaFactory::for($connection);
         foreach ($this->tableNames as $tableName) {
             $connection->executeStatement($schema->dropTableSql($tableName));
         }
@@ -89,7 +84,7 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function isInitialized(Connection $connection): bool
     {
-        $schema = $this->schemaFor($connection);
+        $schema = EventStreamSchemaFactory::for($connection);
         foreach ($this->tableNames as $tableName) {
             if (! $schema->tableExists($connection, $tableName)) {
                 return false;
@@ -109,14 +104,4 @@ final class EventStreamTableManager implements DbalTableManager
         return $this->shouldAutoInitialize;
     }
 
-    private function schemaFor(Connection $connection): EventStreamSchema
-    {
-        $platform = $connection->getDatabasePlatform();
-
-        return match (true) {
-            $platform instanceof PostgreSQLPlatform => new PostgresEventStreamSchema(),
-            $platform instanceof MariaDBPlatform => new MariaDbEventStreamSchema(),
-            default => new MySqlEventStreamSchema(),
-        };
-    }
 }

@@ -8,10 +8,10 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Dbal\WriteLock\MetadataLockStrategy;
 use Ecotone\EventSourcing\Dbal\WriteLock\NoLockStrategy;
 use Ecotone\EventSourcing\Dbal\WriteLock\PostgresAdvisoryLockStrategy;
@@ -89,7 +89,7 @@ final class DbalEventStore implements EventStore
         }
 
         $connection = $this->connectionFor($streamName);
-        $schema = $this->schemaFor($connection);
+        $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
         $rows = [];
@@ -126,17 +126,17 @@ final class DbalEventStore implements EventStore
     public function delete(string $streamName): void
     {
         $connection = $this->connectionFor($streamName);
-        $schema = $this->schemaFor($connection);
+        $schema = EventStreamSchemaFactory::for($connection);
 
         $connection->executeStatement($schema->dropTableSql($this->streamTableRegistry->tableFor($streamName)));
-        unset($this->ensuredTables[$streamName]);
+        unset($this->ensuredTables[$this->contextKeyFor($streamName)]);
     }
 
     public function hasStream(string $streamName): bool
     {
         $connection = $this->connectionFor($streamName);
 
-        return $this->schemaFor($connection)->tableExists($connection, $this->streamTableRegistry->tableFor($streamName));
+        return EventStreamSchemaFactory::for($connection)->tableExists($connection, $this->streamTableRegistry->tableFor($streamName));
     }
 
     public function load(
@@ -151,7 +151,7 @@ final class DbalEventStore implements EventStore
         }
 
         $connection = $this->connectionFor($streamName);
-        $schema = $this->schemaFor($connection);
+        $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
         if (! $schema->tableExists($connection, $tableName)) {
@@ -196,15 +196,16 @@ final class DbalEventStore implements EventStore
 
     public function ensureTableExists(string $streamName, ?\Throwable $previous = null): void
     {
-        if (isset($this->ensuredTables[$streamName])) {
+        $contextKey = $this->contextKeyFor($streamName);
+        if (isset($this->ensuredTables[$contextKey])) {
             return;
         }
 
         $connection = $this->connectionFor($streamName);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
-        if ($this->schemaFor($connection)->tableExists($connection, $tableName)) {
-            $this->ensuredTables[$streamName] = true;
+        if (EventStreamSchemaFactory::for($connection)->tableExists($connection, $tableName)) {
+            $this->ensuredTables[$contextKey] = true;
 
             return;
         }
@@ -218,11 +219,18 @@ final class DbalEventStore implements EventStore
             );
         }
 
-        foreach ($this->schemaFor($connection)->createTableSql($tableName) as $statement) {
+        foreach (EventStreamSchemaFactory::for($connection)->createTableSql($tableName) as $statement) {
             $connection->executeStatement($statement);
         }
+    }
 
-        $this->ensuredTables[$streamName] = true;
+    private function contextKeyFor(string $streamName): string
+    {
+        $connectionReference = $this->streamTableRegistry->connectionReferenceFor($streamName);
+        $connectionFactory = $this->connectionFactories[$connectionReference] ?? null;
+        $tenant = $connectionFactory instanceof MultiTenantConnectionFactory ? $connectionFactory->currentActiveTenant() : 'default';
+
+        return $connectionReference . '|' . $tenant . '|' . $streamName;
     }
 
     public function getConnectionForStream(string $streamName): Connection
@@ -348,17 +356,6 @@ final class DbalEventStore implements EventStore
         $context = (new DbalReconnectableConnectionFactory($connectionFactory))->createContext();
 
         return $context->getDbalConnection();
-    }
-
-    private function schemaFor(Connection $connection): EventStreamSchema
-    {
-        $platform = $connection->getDatabasePlatform();
-
-        return match (true) {
-            $platform instanceof PostgreSQLPlatform => new PostgresEventStreamSchema(),
-            $platform instanceof MariaDBPlatform => new MariaDbEventStreamSchema(),
-            default => new MySqlEventStreamSchema(),
-        };
     }
 
     private function writeLockStrategyFor(Connection $connection): WriteLockStrategy

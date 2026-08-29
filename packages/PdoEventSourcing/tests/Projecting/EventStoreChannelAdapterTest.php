@@ -15,6 +15,7 @@ use Ecotone\Api\PollingMetadata;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
@@ -71,7 +72,8 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                     EventStreamingChannelAdapter::create(
                         streamChannelName: 'event_stream',
                         endpointId: 'event_store_feeder',
-                        fromStream: Ticket::class
+                        fromStream: StreamTableRegistry::DEFAULT_STREAM,
+                        aggregateType: Ticket::class
                     ),
                     PollingMetadata::create('stream_consumer')->withTestingSetup(),
                 ]),
@@ -135,7 +137,8 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                     EventStreamingChannelAdapter::create(
                         streamChannelName: 'event_stream',
                         endpointId: 'event_store_feeder',
-                        fromStream: Ticket::class
+                        fromStream: StreamTableRegistry::DEFAULT_STREAM,
+                        aggregateType: Ticket::class
                     )
                         ->withEventNames(['*TicketWasRegistered']), // Only TicketWasRegistered events
                     PollingMetadata::create('stream_consumer')->withTestingSetup(),
@@ -226,7 +229,8 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                     EventStreamingChannelAdapter::create(
                         streamChannelName: 'event_stream',
                         endpointId: 'event_store_feeder',
-                        fromStream: Ticket::class
+                        fromStream: StreamTableRegistry::DEFAULT_STREAM,
+                        aggregateType: Ticket::class
                     ),
                     PollingMetadata::create('stream_consumer')->withTestingSetup(),
                 ]),

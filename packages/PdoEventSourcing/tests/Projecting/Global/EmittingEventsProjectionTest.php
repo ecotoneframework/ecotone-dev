@@ -8,7 +8,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\ProjectionDeployment;
@@ -283,7 +284,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjection(): object
     {
-        return new #[Projection('emitting_projection'), FromStream(Ticket::class)] class () {
+        return new #[Projection('emitting_projection'), FromAggregateStream(Ticket::class), Stream('notifications_stream')] class () {
             private const STREAM_NAME = 'notifications_stream';
             private array $tickets = [];
 
@@ -339,7 +340,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createNonLiveEmittingProjection(): object
     {
-        return new #[Projection('non_live_emitting_projection'), ProjectionDeployment(live: false), FromStream(Ticket::class)] class () {
+        return new #[Projection('non_live_emitting_projection'), ProjectionDeployment(live: false), FromAggregateStream(Ticket::class), Stream('notifications_stream_non_live')] class () {
             private const STREAM_NAME = 'notifications_stream_non_live';
             private array $tickets = [];
 
@@ -392,7 +393,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function createEmittingProjectionWithLinkToProjectionStream(): object
     {
-        return new #[Projection('emitting_linked_projection'), FromStream(Ticket::class)] class () {
+        return new #[Projection('emitting_linked_projection'), FromAggregateStream(Ticket::class), Stream('projection-emitting_linked_projection')] class () {
             private const STREAM_NAME = 'projection-emitting_linked_projection';
             private array $tickets = [];
 

@@ -9,6 +9,7 @@ namespace Test\Ecotone\EventSourcing\Projecting\Partitioned;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Header;
 use Ecotone\Api\Partitioned;
@@ -321,7 +322,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[Projection(self::NAME), Partitioned, FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class ($connection) {
             public const NAME = 'partition_tracking_projection';
 
             public function __construct(private Connection $connection)
@@ -400,7 +401,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[Projection(self::NAME), Partitioned, FromStream(stream: CalendarWithInternalRecorder::class, aggregateType: CalendarWithInternalRecorder::class), FromStream(stream: MeetingWithEventSourcing::class, aggregateType: MeetingWithEventSourcing::class)] class ($connection) {
+        return new #[Projection(self::NAME), Partitioned, FromAggregateStream(CalendarWithInternalRecorder::class), FromAggregateStream(MeetingWithEventSourcing::class)] class ($connection) {
             public const NAME = 'multi_stream_partitioned_events';
 
             public function __construct(private Connection $connection)

@@ -6,6 +6,7 @@ namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\FromStream;
 use Ecotone\Api\Polling;
 use Ecotone\Api\Projection;
@@ -166,7 +167,7 @@ final class PollingProjectionTest extends ProjectingTestCase
     {
         $connection = $this->getConnection();
 
-        return new #[Projection(self::NAME), Polling(self::ENDPOINT_ID), FromStream(Ticket::class)] class ($connection) {
+        return new #[Projection(self::NAME), Polling(self::ENDPOINT_ID), FromAggregateStream(Ticket::class)] class ($connection) {
             public const NAME = 'polling_ticket_list';
             public const ENDPOINT_ID = 'polling_ticket_list_runner';
 

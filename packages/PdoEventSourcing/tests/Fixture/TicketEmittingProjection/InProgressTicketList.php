@@ -4,6 +4,7 @@ namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionDelete;
@@ -16,6 +17,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 
 #[Projection(self::NAME)]
+#[Stream(self::EMITTED_STREAM)]
 #[FromAggregateStream(Ticket::class)]
 /**
  * licence Apache-2.0
@@ -23,6 +25,7 @@ use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 class InProgressTicketList
 {
     public const NAME = 'inProgressTicketList';
+    public const EMITTED_STREAM = 'projection_inProgressTicketList';
     private Connection $connection;
 
     public function __construct(Connection $connection)
@@ -42,7 +45,7 @@ class InProgressTicketList
     #[EventHandler(endpointId: 'inProgressTicketList.addTicket')]
     public function addTicket(TicketWasRegistered $event, EventStreamEmitter $eventStreamEmitter): void
     {
-        $eventStreamEmitter->linkTo('projection_' . self::NAME, [new TicketListUpdated($event->getTicketId())]);
+        $eventStreamEmitter->linkTo(self::EMITTED_STREAM, [new TicketListUpdated($event->getTicketId())]);
 
         $this->connection->executeStatement(<<<SQL
                 INSERT INTO in_progress_tickets VALUES (?,?)

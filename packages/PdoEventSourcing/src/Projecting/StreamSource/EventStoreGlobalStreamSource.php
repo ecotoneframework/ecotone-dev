@@ -14,7 +14,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EcotoneClockInterface;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
+use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
@@ -24,6 +24,7 @@ use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Modelling\Config\Routing\BusRoutingMap;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamPage;
 use Ecotone\Projecting\StreamSource;
@@ -77,10 +78,13 @@ class EventStoreGlobalStreamSource implements StreamSource
     private function loadFromSingleTable(string $streamTable, array $streamFilters, ?string $lastPosition, int $count): StreamPage
     {
         $connection = $this->getConnection();
+        $schema = EventStreamSchemaFactory::for($connection);
 
-        if (empty($lastPosition) && ! SchemaManagerCompatibility::tableExists($connection, $streamTable)) {
+        if (! $schema->tableExists($connection, $streamTable)) {
             return new StreamPage([], '');
         }
+
+        $quotedTable = $schema->quoteIdentifier($streamTable);
 
         $tracking = GapAwarePosition::fromString($lastPosition);
 
@@ -91,7 +95,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $query = $connection->executeQuery(<<<SQL
             SELECT no, event_name, payload, metadata, created_at
-                FROM {$streamTable}
+                FROM {$quotedTable}
                 WHERE no > :position {$gapQueryPart}
             ORDER BY no
             LIMIT {$count}
@@ -121,7 +125,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);
 
-        $this->cleanGapsByTimeout($tracking, $connection, $streamTable);
+        $this->cleanGapsByTimeout($tracking, $connection, $quotedTable);
 
         return new StreamPage($events, (string) $tracking);
     }
@@ -136,11 +140,25 @@ class EventStoreGlobalStreamSource implements StreamSource
             if ($streamFilter->aggregateType !== null && ($metadata[MessageHeaders::EVENT_AGGREGATE_TYPE] ?? null) !== $streamFilter->aggregateType) {
                 continue;
             }
-            if ($streamFilter->eventNames !== [] && ! in_array($eventName, $streamFilter->eventNames, true)) {
+            if ($streamFilter->eventNames !== [] && ! $this->matchesEventName($streamFilter->eventNames, $eventName)) {
                 continue;
             }
 
             return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string> $eventNames
+     */
+    private function matchesEventName(array $eventNames, string $eventName): bool
+    {
+        foreach ($eventNames as $pattern) {
+            if (BusRoutingMap::globMatch($pattern, $eventName)) {
+                return true;
+            }
         }
 
         return false;
@@ -223,7 +241,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         return $result;
     }
 
-    private function cleanGapsByTimeout(GapAwarePosition $tracking, Connection $connection, string $streamTable): void
+    private function cleanGapsByTimeout(GapAwarePosition $tracking, Connection $connection, string $quotedTable): void
     {
         if ($this->gapTimeout === null) {
             return;
@@ -238,7 +256,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
         $interleavedEvents = $connection->executeQuery(<<<SQL
             SELECT no, created_at
-                FROM {$streamTable}
+                FROM {$quotedTable}
                 WHERE no >= :minPosition and no <= :maxPosition
             ORDER BY no
             LIMIT 100

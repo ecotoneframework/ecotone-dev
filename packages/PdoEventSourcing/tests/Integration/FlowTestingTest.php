@@ -6,11 +6,11 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
-use Test\Ecotone\EventSourcing\Fixture\Ticket\Ticket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\TicketEventConverter;
 use Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList;
 
@@ -46,7 +46,7 @@ final class FlowTestingTest extends EventSourcingMessagingTestCase
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
 
-        $ecotone->deleteEventStream(Ticket::class);
+        $ecotone->deleteEventStream(StreamTableRegistry::DEFAULT_STREAM);
         $ecotone->resetProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
 
         self::assertEquals([], $ecotone->sendQueryWithRouting('getInProgressTickets'));

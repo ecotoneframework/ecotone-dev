@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Global;
 
 use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\Projection;
 use Ecotone\Api\ProjectionState;
 use Ecotone\Api\QueryHandler;
@@ -96,7 +96,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
 
     private function createCounterProjection(): object
     {
-        return new #[Projection(self::NAME), FromStream(Ticket::class)] class () {
+        return new #[Projection(self::NAME), FromAggregateStream(Ticket::class)] class () {
             public const NAME = 'ticket_counter';
 
             private int $ticketCount = 0;

@@ -15,6 +15,7 @@ use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Projecting\PartitionProvider;
 use Ecotone\Projecting\StreamFilter;
@@ -45,7 +46,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
         $connection = $this->getConnection();
         $platform = $connection->getDatabasePlatform();
 
-        $streamTable = $this->streamTableRegistry->tableFor($filter->streamName);
+        $streamTable = EventStreamSchemaFactory::for($connection)->quoteIdentifier($this->streamTableRegistry->tableFor($filter->streamName));
 
         try {
             if ($platform instanceof PostgreSQLPlatform) {
@@ -75,7 +76,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
         $connection = $this->getConnection();
         $platform = $connection->getDatabasePlatform();
 
-        $streamTable = $this->streamTableRegistry->tableFor($filter->streamName);
+        $streamTable = EventStreamSchemaFactory::for($connection)->quoteIdentifier($this->streamTableRegistry->tableFor($filter->streamName));
 
         $limitClause = '';
         if ($limit !== null) {

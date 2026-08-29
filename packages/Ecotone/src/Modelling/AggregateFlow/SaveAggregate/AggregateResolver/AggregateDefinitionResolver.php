@@ -89,7 +89,7 @@ final class AggregateDefinitionResolver
             }
         }
 
-        return $classDefinition->getClassType()->toString();
+        return self::DEFAULT_STREAM;
     }
 
     public static function resolveStreamNameFromFinder(AnnotationFinder $finder, string $aggregateClass): string

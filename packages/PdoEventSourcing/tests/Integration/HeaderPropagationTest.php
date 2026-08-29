@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\MessageHeaders;
 use PHPUnit\Framework\TestCase;
@@ -43,7 +44,7 @@ final class HeaderPropagationTest extends TestCase
             );
 
         /** From Event Store */
-        $headers = $flowTestSupport->getEventStreamEvents(Order::class)[0]->getMetadata();
+        $headers = $flowTestSupport->getEventStreamEvents(StreamTableRegistry::DEFAULT_STREAM)[0]->getMetadata();
         $this->assertNotSame($messageId, $headers[MessageHeaders::MESSAGE_ID]);
         $this->assertSame($messageId, $headers[MessageHeaders::PARENT_MESSAGE_ID]);
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);
@@ -76,7 +77,7 @@ final class HeaderPropagationTest extends TestCase
             );
 
         /** From Event Store */
-        $headers = $flowTestSupport->getEventStreamEvents(Order::class)[0]->getMetadata();
+        $headers = $flowTestSupport->getEventStreamEvents(StreamTableRegistry::DEFAULT_STREAM)[0]->getMetadata();
         $this->assertNotSame($messageId, $headers[MessageHeaders::MESSAGE_ID]);
         $this->assertSame($messageId, $headers[MessageHeaders::PARENT_MESSAGE_ID]);
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);

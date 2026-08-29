@@ -3,7 +3,6 @@
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use App\MultiTenant\Application\Command\RegisterProduct;
 use App\MultiTenant\Application\Command\UnregisterProduct;
-use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\Api\CommandBus;
 use Ecotone\Api\QueryBus;
 use Illuminate\Foundation\Http\Kernel;

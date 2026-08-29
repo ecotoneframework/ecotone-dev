@@ -7,7 +7,8 @@ namespace App\ReadModel;
 use App\Domain\Product\Event\ProductWasAdded;
 use App\Domain\Product\Event\ProductWasApproved;
 use App\Domain\Product\Product;
-use Ecotone\EventSourcing\Attribute\Projection;
+use Ecotone\Api\Projection;
+use Ecotone\Api\FromStream;
 use Ecotone\Api\Reference;
 use Ecotone\Api\DocumentStore;
 use Ecotone\Api\EventHandler;
@@ -17,7 +18,8 @@ use Ecotone\Api\QueryHandler;
  * @link https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections
  */
 // we provide the name of the projection and related aggregate to fetch events from
-#[Projection("unapproved_product_list", Product::class)]
+#[Projection("unapproved_product_list")]
+#[FromStream(Product::class)]
 final class UnapprovedProductList
 {
     const COLLECTION_NAME = 'unapproved_products';

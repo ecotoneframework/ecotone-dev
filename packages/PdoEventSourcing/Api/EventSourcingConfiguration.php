@@ -5,9 +5,6 @@ namespace Ecotone\Api\EventSourcing;
 use Ecotone\Api\Dbal\DbalConnectionReference;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore as EcotoneInMemoryEventStore;
-use Ecotone\EventSourcing\InMemory\CachingInMemoryProjectionManager;
-use Ecotone\EventSourcing\InMemory\InMemoryProjectionManager;
-use Ecotone\EventSourcing\ProjectionManager;
 use Ecotone\EventSourcing\Prooph\LazyProophEventStore;
 use Ecotone\EventSourcing\Prooph\ProophInMemoryEventStoreAdapter;
 use Ecotone\Messaging\Support\Assert;
@@ -26,31 +23,27 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     private int $loadBatchSize = LazyProophEventStore::LOAD_BATCH_SIZE;
     private bool $enableWriteLockStrategy = LazyProophEventStore::DEFAULT_ENABLE_WRITE_LOCK_STRATEGY;
     private string $eventStreamTableName = LazyProophEventStore::DEFAULT_STREAM_TABLE;
-    private string $projectionsTable = LazyProophEventStore::DEFAULT_PROJECTIONS_TABLE;
     private string $eventStoreReferenceName;
-    private string $projectManagerReferenceName;
     private string $connectionReferenceName;
     private string $persistenceStrategy = LazyProophEventStore::PARTITION_STREAM_PERSISTENCE;
     private ?PersistenceStrategy $customPersistenceStrategyInstance = null;
     private bool $isInMemory = false;
     private ?EcotoneInMemoryEventStore $inMemoryEventStore = null;
-    private ?\Prooph\EventStore\Projection\ProjectionManager $inMemoryProjectionManager = null;
     private ?ProophInMemoryEventStoreAdapter $inMemoryEventStoreAdapter = null;
     /** @var array<string> */
     private array $persistenceStrategies = [];
 
-    private function __construct(string $connectionReferenceName = DbalConnectionReference::DEFAULT, string $eventStoreReferenceName = EventStore::class, string $projectManagerReferenceName = ProjectionManager::class)
+    private function __construct(string $connectionReferenceName = DbalConnectionReference::DEFAULT, string $eventStoreReferenceName = EventStore::class)
     {
         $this->eventStoreReferenceName = $eventStoreReferenceName;
-        $this->projectManagerReferenceName = $projectManagerReferenceName;
         $this->connectionReferenceName = $connectionReferenceName;
 
         parent::__construct();
     }
 
-    public static function create(string $connectionReferenceName = DbalConnectionReference::DEFAULT, string $eventStoreReferenceName = EventStore::class, string $projectManagerReferenceName = ProjectionManager::class): static
+    public static function create(string $connectionReferenceName = DbalConnectionReference::DEFAULT, string $eventStoreReferenceName = EventStore::class): static
     {
-        return new self($connectionReferenceName, $eventStoreReferenceName, $projectManagerReferenceName);
+        return new self($connectionReferenceName, $eventStoreReferenceName);
     }
 
     public static function createWithDefaults(): static
@@ -64,7 +57,6 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         $eventSourcingConfiguration->isInMemory = true;
         $eventSourcingConfiguration->inMemoryEventStore = new EcotoneInMemoryEventStore();
         $eventSourcingConfiguration->inMemoryEventStoreAdapter = new ProophInMemoryEventStoreAdapter($eventSourcingConfiguration->inMemoryEventStore);
-        $eventSourcingConfiguration->inMemoryProjectionManager = new CachingInMemoryProjectionManager(new InMemoryProjectionManager($eventSourcingConfiguration->inMemoryEventStoreAdapter));
 
         return $eventSourcingConfiguration;
     }
@@ -141,11 +133,6 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $this->inMemoryEventStore;
     }
 
-    public function getInMemoryProjectionManager(): ?\Prooph\EventStore\Projection\ProjectionManager
-    {
-        return $this->inMemoryProjectionManager;
-    }
-
     public function withInitializeEventStoreOnStart(bool $isInitializedOnStartup): static
     {
         $this->initializeEventStoreOnStart = $isInitializedOnStartup;
@@ -170,13 +157,6 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     public function withEventStreamTableName(string $eventStreamTableName): static
     {
         $this->eventStreamTableName = $eventStreamTableName;
-
-        return $this;
-    }
-
-    public function withProjectionsTableName(string $projectionsTableName): static
-    {
-        $this->projectionsTable = $projectionsTableName;
 
         return $this;
     }
@@ -229,19 +209,9 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $this->eventStreamTableName;
     }
 
-    public function getProjectionsTable(): string
-    {
-        return $this->projectionsTable;
-    }
-
     public function getEventStoreReferenceName(): string
     {
         return $this->eventStoreReferenceName;
-    }
-
-    public function getProjectManagerReferenceName(): string
-    {
-        return $this->projectManagerReferenceName;
     }
 
     public function getConnectionReferenceName(): string

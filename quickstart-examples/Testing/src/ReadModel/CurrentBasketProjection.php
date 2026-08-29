@@ -9,13 +9,16 @@ use App\Testing\Domain\ShoppingBasket\Basket;
 use App\Testing\Domain\ShoppingBasket\Event\OrderWasPlaced;
 use App\Testing\Domain\ShoppingBasket\Event\ProductWasAddedToBasket;
 use App\Testing\Domain\ShoppingBasket\Event\ProductWasRemovedFromBasket;
-use Ecotone\EventSourcing\Attribute\Projection;
+use Ecotone\Api\Projection;
+use Ecotone\Api\FromStream;
 use Ecotone\Api\DocumentStore;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\QueryHandler;
 use Ramsey\Uuid\UuidInterface;
 
-#[Projection("current_basket", [Basket::class, Product::class])]
+#[Projection("current_basket")]
+#[FromStream(Basket::class)]
+#[FromStream(Product::class)]
 final class CurrentBasketProjection
 {
     private const BASKET_COLLECTION = "current_basket";

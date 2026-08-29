@@ -29,6 +29,33 @@ class FromStream
 }
 ```
 
+`$stream` is a stream name, which is also the name of its table. Only needed when the stream is not the
+default `ecotone_event_stream`. Passing an event-sourced aggregate class is a configuration error -- use
+`#[FromAggregateStream]`, which also supplies the aggregate-type filter that a shared table needs.
+
+## Stream Attribute
+
+Source: `Ecotone\Api\EventSourcing\Stream`
+
+```php
+#[Attribute(Attribute::TARGET_CLASS)]
+class Stream
+{
+    public function __construct(
+        private ?string $name = null,
+        private ?string $legacyStreamName = null,
+        private string $connectionReferenceName = DbalConnectionReference::DEFAULT,
+    )
+}
+```
+
+Placed on an event-sourced aggregate, it chooses the stream table that aggregate's events live in; placed on a
+class that uses `EventStreamEmitter::emit()`, it chooses where emitted events go. Without it, both use
+`ecotone_event_stream`.
+
+`legacyStreamName` addresses a table created by Ecotone 1.x (`_<sha1(streamName)>`) so 1.x data can be read and
+appended to without migrating it.
+
 ## FromAggregateStream Attribute
 
 Source: `Ecotone\Api\FromAggregateStream`

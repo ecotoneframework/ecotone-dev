@@ -6,14 +6,14 @@
 
 ```php
 use Ecotone\Api\Projection;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\ProjectionInitialization;
 use Ecotone\Api\ProjectionDelete;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\QueryHandler;
 
 #[Projection('ticket_list')]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class TicketListProjection
 {
     private array $tickets = [];
@@ -64,12 +64,12 @@ class TicketListProjection
 
 ```php
 use Ecotone\Api\Partitioned;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\ProjectionState;
 
 #[Partitioned]
 #[Projection('ticket_details')]
-#[FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class TicketDetailsProjection
 {
     #[EventHandler]
@@ -107,7 +107,7 @@ use Ecotone\Api\Polling;
 
 #[Polling('orderSummaryEndpoint')]
 #[Projection('order_summary')]
-#[FromStream(Order::class)]
+#[FromAggregateStream(Order::class)]
 class OrderSummaryProjection
 {
     #[EventHandler]
@@ -132,7 +132,7 @@ use Ecotone\Api\Streaming;
 
 #[Streaming('dashboard_channel')]
 #[Projection('live_dashboard')]
-#[FromStream(Order::class)]
+#[FromAggregateStream(Order::class)]
 class LiveDashboardProjection
 {
     #[EventHandler]
@@ -147,8 +147,8 @@ class LiveDashboardProjection
 
 ```php
 #[Projection('calendar_view')]
-#[FromStream(Calendar::class)]
-#[FromStream(Meeting::class)]
+#[FromAggregateStream(Calendar::class)]
+#[FromAggregateStream(Meeting::class)]
 class CalendarViewProjection
 {
     #[EventHandler]
@@ -181,7 +181,7 @@ class OrderListProjection
 use Ecotone\EventSourcing\EventStreamEmitter;
 
 #[Projection('notifications')]
-#[FromStream(Order::class)]
+#[FromAggregateStream(Order::class)]
 class NotificationProjection
 {
     #[EventHandler]
@@ -213,26 +213,26 @@ use Ecotone\Api\ProjectionDeployment;
 // Batch size for event loading
 #[Projection('big_projection')]
 #[ProjectionExecution(eventLoadingBatchSize: 500)]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class BigProjection { }
 
 // Backfill configuration
 #[Projection('my_proj')]
 #[Partitioned]
 #[ProjectionBackfill(backfillPartitionBatchSize: 100, asyncChannelName: 'backfill_channel')]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class BackfillableProjection { }
 
 // Blue/green deployment: non-live suppresses EventStreamEmitter events
 #[Projection('projection_v2')]
 #[ProjectionDeployment(live: false)]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class ProjectionV2Deploy { }
 
 // Manual kickoff: requires explicit initialization
 #[Projection('projection_v1')]
 #[ProjectionDeployment(manualKickOff: true)]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class ProjectionV1Deploy { }
 ```
 

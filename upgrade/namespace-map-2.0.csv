@@ -154,3 +154,4 @@ Ecotone\Dbal\Database\DatabaseSetupManager,Ecotone\Api\Dbal\DatabaseSetupManager
 Ecotone\Modelling\Api\Distribution\DistributedServiceMap,Ecotone\Api\DistributedServiceMap
 Ecotone\Modelling\Api\Distribution\DistributedBusHeader,Ecotone\Api\DistributedBusHeader
 Ecotone\Kafka\Api\KafkaHeader,Ecotone\Api\Kafka\KafkaHeader
+Ecotone\EventSourcing\Config\ProophProjectingModule,Ecotone\EventSourcing\Config\EventSourcingProjectingModule

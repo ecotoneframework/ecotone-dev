@@ -96,12 +96,14 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
 
 // 2.0
 #[Projection('order_list')]
-#[FromStream(Order::class)]
+#[FromAggregateStream(Order::class)]
 final class OrderListProjection { #[EventHandler] public function when(OrderPlaced $e): void {} }
 ```
 
 - Rename `#[ProjectionV2]` → `#[Projection]` (namespace `Ecotone\Api`, no `\Attribute\` segment — see §13).
-- `fromStreams: $x` → one `#[FromStream($x)]` per stream (repeatable). `fromCategories: $x` → `#[FromAggregateStream($aggregateClass)]`
+- `fromStreams: Aggregate::class` → `#[FromAggregateStream(Aggregate::class)]`; `fromStreams: 'some_stream'` → one
+  `#[FromStream('some_stream')]` per stream (repeatable). `#[FromStream]` pointing at an event-sourced aggregate class
+  is rejected — see §4. `fromCategories: $x` → `#[FromAggregateStream($aggregateClass)]`
   when the category was actually one aggregate type's stream prefix (the common case); there is no direct
   replacement for reading unpartitioned, across all instances of an aggregate-per-stream aggregate — that needs
   `#[Partitioned]` and per-partition state instead. `fromAll` has **no replacement** — every projection must
@@ -132,26 +134,103 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
 - `EventSourcingConfiguration`'s projection-table-name and projection-manager-reference configuration are
   removed; only event-store-meaningful configuration remains.
 
-## 4. Event Store: single global event log, DCB-ready, no Prooph
+## 4. Event Store: Ecotone owns the store, one event stream table by default
 
-> **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
+**Before:** `ecotone/pdo-event-sourcing` wrapped `prooph/pdo-event-store`. Every stream name was hashed into its own
+physical table (`_<sha1(streamName)>`), and an `event_streams` catalogue table mapped stream name → table. Four
+persistence strategies existed (`simple`, `single`, `aggregate`, `partition`), selected on `EventSourcingConfiguration`.
+Tables were created at runtime, during the first message that touched a stream.
 
-**Before:** `ecotone/pdo-event-sourcing` wrapped `prooph/pdo-event-store`. Four persistence strategies existed
-(`simple`, `single`, `aggregate`, `partition`), with `single` deprecated. Aggregate concurrency was enforced through
-`_aggregate_version` metadata.
+**Now:** Ecotone ships its own DBAL-backed event store. There is one layout, and **a stream name is the name of its
+table**. Aggregates that do not say otherwise all write to a single table, `ecotone_event_stream`, ordered by a global
+`no` sequence. There is no `event_streams` catalogue and no sha1 hashing. `Prooph\*` classes are no longer available and
+`prooph/pdo-event-store` (with `prooph/event-store` and `prooph/common`) is no longer a dependency.
 
-**Now:** Ecotone ships its own DBAL event store. There is one global, totally ordered event log (partition strategy
-semantics) with tags per event (aggregate id/type plus domain tags) and conditional append. Event ids are UUID v7.
-Prooph classes (`Prooph\EventStore\*`, `MetadataMatcher`, `FieldType`, `Operator`) are no longer available.
+Tags, `AppendCondition` and Dynamic Consistency Boundary querying are **planned** on top of this layout; they are not
+part of 2.0 as shipped.
 
 **How to adapt:**
-- Delete `withSingleStreamPersistenceStrategy()`, `withAggregateStreamPersistenceStrategy()`, `withSimpleStreamPersistenceStrategy()`
-  and `withCustomPersistenceStrategy()` calls; only the partition/global-log layout remains.
-- Existing `event_streams` data in `partition` or `single` layout is read as-is; `aggregate` (stream-per-aggregate) layout
-  needs a migration that merges tables into the global log (a CLI command is provided: `ecotone:event-store:migrate-aggregate-streams`).
-- `EventStore::load()` calls using `MetadataMatcher` become tag/type queries: `$eventStore->load(Query::forTags(['order' => '1'])->ofTypes([OrderPlaced::class]))`.
-- Custom implementations of `Ecotone\EventSourcing\EventStore` must implement the new interface (`append()` with `AppendCondition`, `load()` with `Query`).
-- `#[FromStream]` on aggregates is optional; the aggregate class name is the default stream/tag.
+
+- Delete `withSingleStreamPersistenceStrategy()`, `withPartitionStreamPersistenceStrategy()`,
+  `withStreamPerAggregatePersistenceStrategy()`, `withSimpleStreamPersistenceStrategy()`, `withPersistenceStrategyFor()`
+  and `withCustomPersistenceStrategy()`. They are gone; the single-table layout is the only one.
+- `#[Stream]` (`Ecotone\Api\EventSourcing\Stream`) keeps its name and gains two arguments:
+
+  ```php
+  #[EventSourcingAggregate]
+  #[Stream('orders_stream', connectionReferenceName: DbalConnectionReference::DEFAULT)]
+  final class Order { /* ... */ }
+  ```
+
+  The first argument is the stream name **and** the table name. `connectionReferenceName` lets one aggregate live on a
+  different DBAL connection. Aggregates with no `#[Stream]` use `ecotone_event_stream`.
+- **Keeping your 1.x data where it is.** A 1.x stream lives in `_<sha1(streamName)>`, where the stream name was your
+  `#[Stream]` value or, if you had none, the aggregate class name. Point the aggregate at it and nothing has to move:
+
+  ```php
+  #[EventSourcingAggregate]
+  #[Stream(legacyStreamName: 'App\Domain\Order')]   // reads and appends to _<sha1('App\Domain\Order')>
+  final class Order { /* ... */ }
+  ```
+
+  The legacy table keeps its 1.x schema — Ecotone writes the same five columns (`event_id`, `event_name`, `payload`,
+  `metadata`, `created_at`) — so there is no migration, no downtime and no new command to run. Once every stream is
+  addressed, the orphaned `event_streams` catalogue table can be dropped by hand; nothing reads it any more.
+  You can also name a table directly (`#[Stream('_a94a8fe5ccb19ba61c4c0873d391e987982fbbd3')]`); `legacyStreamName`
+  only saves you computing the hash.
+- **If you were on the `aggregate` (stream-per-aggregate) layout,** there is one table per aggregate *instance*
+  (`_sha1('Order-123')`). No attribute can address those. Copy their rows into one table — the column layout is
+  unchanged, so `INSERT INTO ecotone_event_stream (event_id, event_name, payload, metadata, created_at) SELECT
+  event_id, event_name, payload, metadata, created_at FROM "_sha1(...)" ORDER BY no` per table, ordered by original
+  `created_at` across tables — and then leave the aggregate on the default stream.
+- **If you were on `simple`,** events without aggregate metadata are still accepted: in the new schema
+  `aggregate_id`/`aggregate_type`/`aggregate_version` are nullable, so one table serves both aggregate events and
+  `EventStreamEmitter` events. `aggregate_id` widened from `CHAR(36)` to `VARCHAR(150)`, so non-UUID aggregate
+  identifiers are no longer a hazard on MySQL/MariaDB.
+- **Projections.** `#[FromStream]` is only needed when the stream is not the default one. Pointing it at an
+  event-sourced aggregate class is now a configuration error:
+
+  ```php
+  #[Projection('order_list')]
+  #[FromStream(Order::class)]         // 1.x / early 2.0 — now throws
+  #[FromAggregateStream(Order::class)] // 2.0 — resolves the aggregate's stream and filters by aggregate type
+  ```
+
+  This matters because several aggregates now share one table: without the aggregate-type filter a projection would
+  see everybody's events. `#[FromAggregateStream]` supplies it; `#[FromStream('name', aggregateType: ...)]` is the
+  explicit form.
+- **`EventStreamEmitter`.** `emit()` writes to the emitting class's `#[Stream]`, defaulting to `ecotone_event_stream`;
+  it no longer invents a `projection_<name>` stream. `linkTo($streamName, ...)` still takes an explicit target, but the
+  stream must be declared by a `#[Stream]` attribute somewhere — an unknown name is a configuration error instead of a
+  table created behind your back.
+- **Tables are declared, not discovered.** Every stream table is registered with `ecotone:migration:database:setup`
+  under the `event_stream` feature. In tests and dev (`DbalConfiguration` automatic table initialization) a missing
+  table is still created on first write.
+- `EventStreamingChannelAdapter::create(fromStream: ...)` takes a stream name, not an aggregate class; pass
+  `aggregateType:` to filter.
+- Custom implementations of `Ecotone\EventSourcing\EventStore` are unaffected — the interface did not change.
+
+**Schema of `ecotone_event_stream`** (PostgreSQL; MySQL/MariaDB use generated columns for the three aggregate fields):
+
+```sql
+CREATE TABLE ecotone_event_stream (
+    no BIGSERIAL,
+    event_id UUID NOT NULL,
+    event_name VARCHAR(255) NOT NULL,
+    payload JSON NOT NULL,
+    metadata JSONB NOT NULL,
+    created_at TIMESTAMP(6) NOT NULL,
+    PRIMARY KEY (no),
+    UNIQUE (event_id)
+);
+CREATE UNIQUE INDEX ... ON ecotone_event_stream
+    ((metadata->>'_aggregate_type'), (metadata->>'_aggregate_id'), (metadata->>'_aggregate_version'));
+CREATE INDEX ... ON ecotone_event_stream
+    ((metadata->>'_aggregate_type'), (metadata->>'_aggregate_id'), no);
+```
+
+The unique index is what enforces optimistic concurrency; rows without aggregate metadata do not collide because NULLs
+are distinct on all three engines.
 
 ## 5. DBAL connections: Ecotone classes replace the Enqueue ones
 
@@ -393,6 +472,7 @@ The full 151-class mapping is in `upgrade/namespace-map-2.0.csv`.
 6. Replace `Enqueue\Dbal\DbalConnectionFactory` references (§5).
 7. Replace `AmqpDistributedBusConfiguration` with `DistributedServiceMap` (§6).
 8. Rename projections, run `ecotone:projection:rebuild` for former v1 projections (§3).
-9. Add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).
-10. Review changed defaults (§9) and set explicit values where the old behaviour is required.
-11. Provide an Enterprise licence key if you use multi-tenancy (§2).
+9. Drop the persistence-strategy calls, and decide per aggregate whether it moves to `ecotone_event_stream` or stays on its 1.x table via `#[Stream(legacyStreamName: ...)]` (§4).
+10. Add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).
+11. Review changed defaults (§9) and set explicit values where the old behaviour is required.
+12. Provide an Enterprise licence key if you use multi-tenancy (§2).

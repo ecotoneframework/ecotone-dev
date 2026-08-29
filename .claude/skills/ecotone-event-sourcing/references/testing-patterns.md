@@ -88,7 +88,7 @@ public function test_projection_with_direct_events(): void
     $ecotone->initializeProjection('ticket_list');
 
     // Append events directly to the stream -- no Aggregate required
-    $ecotone->withEventStream(Ticket::class, [
+    $ecotone->withEventStream(StreamTableRegistry::DEFAULT_STREAM, [
         Event::create(new TicketWasRegistered('t-1', 'Bug')),
         Event::create(new TicketWasRegistered('t-2', 'Feature')),
         Event::create(new TicketWasClosed('t-1')),
@@ -104,7 +104,8 @@ public function test_projection_with_direct_events(): void
 
 Key points:
 - Use `bootstrapFlowTesting` (no EventStore bootstrap needed) -- the in-memory event store is registered automatically
-- Stream name in `withEventStream` must match the `#[FromStream]` attribute on the projection (here `Ticket::class`)
+- Stream name in `withEventStream` must match the stream the projection reads: `ecotone_event_stream`
+  (`StreamTableRegistry::DEFAULT_STREAM`) unless the aggregate declares `#[Stream('...')]`
 - Wrap each event in `Event::create()` from `Ecotone\EventSourcing\Event`
 - No Aggregate class is registered in `classesToResolve`
 

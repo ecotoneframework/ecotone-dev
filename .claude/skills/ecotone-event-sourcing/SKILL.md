@@ -63,20 +63,41 @@ Key rules:
 - `#[EventSourcingHandler]` rebuilds state (no side effects)
 - Use `WithAggregateVersioning` trait for optimistic concurrency
 
+## 1a. Where events are stored
+
+Every aggregate's events go to one table, `ecotone_event_stream`, ordered by a global `no` sequence. A stream name
+*is* its table name. Move an aggregate elsewhere with `#[Stream]`:
+
+```php
+use Ecotone\Api\EventSourcing\Stream;
+
+#[EventSourcingAggregate]
+#[Stream('orders_stream')]                       // events land in the `orders_stream` table
+final class Order { /* ... */ }
+
+#[EventSourcingAggregate]
+#[Stream(legacyStreamName: 'App\Domain\Order')]  // keeps reading/writing Ecotone 1.x's _<sha1(...)> table
+final class LegacyOrder { /* ... */ }
+```
+
+`#[Stream]` also takes `connectionReferenceName:` to put one aggregate on a different DBAL connection. There is no
+`event_streams` catalogue table and no persistence-strategy choice -- `EventSourcingConfiguration` only configures the
+default table name, batch size, write locks and startup initialisation.
+
 ## 2. Projection
 
 Every Projection class needs:
 1. `#[Projection('projection_name')]` -- class-level, unique name
-2. A stream source: `#[FromStream(Ticket::class)]` or `#[FromAggregateStream(Ticket::class)]`
+2. A stream source: `#[FromAggregateStream(Ticket::class)]` for an aggregate's events, or `#[FromStream('some_stream')]` for a stream that is not backed by one aggregate
 3. At least one `#[EventHandler]` method
 
 ```php
 use Ecotone\Api\Projection;
-use Ecotone\Api\FromStream;
+use Ecotone\Api\FromAggregateStream;
 use Ecotone\Api\EventHandler;
 
 #[Projection('ticket_list')]
-#[FromStream(Ticket::class)]
+#[FromAggregateStream(Ticket::class)]
 class TicketListProjection
 {
     private array $tickets = [];
@@ -106,7 +127,7 @@ class TicketListProjection
 ```php
 use Ecotone\Api\Partitioned;
 
-#[Projection('ticket_details'), Partitioned, FromStream(stream: Ticket::class, aggregateType: Ticket::class)]
+#[Projection('ticket_details'), Partitioned, FromAggregateStream(Ticket::class)]
 ```
 
 Per-aggregate-instance position tracking. NOT compatible with multiple `#[FromStream]` attributes.

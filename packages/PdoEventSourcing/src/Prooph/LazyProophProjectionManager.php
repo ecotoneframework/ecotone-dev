@@ -56,6 +56,10 @@ class LazyProophProjectionManager implements ProjectionManager
 
     private function getProjectionManager(): ProjectionManager
     {
+        if ($this->eventSourcingConfiguration->isInMemory()) {
+            return $this->eventSourcingConfiguration->getInMemoryProjectionManager();
+        }
+
         $context = $this->lazyProophEventStore->getContextName();
         $eventStore = $this->getLazyProophEventStore();
         $innerEventStore = $eventStore->getEventStore();
@@ -68,7 +72,6 @@ class LazyProophProjectionManager implements ProjectionManager
             LazyProophEventStore::EVENT_STORE_TYPE_POSTGRES => new PostgresProjectionManager($innerEventStore, $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
             LazyProophEventStore::EVENT_STORE_TYPE_MYSQL => new MySqlProjectionManager($innerEventStore, $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
             LazyProophEventStore::EVENT_STORE_TYPE_MARIADB => new MariaDbProjectionManager($innerEventStore, $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
-            LazyProophEventStore::EVENT_STORE_TYPE_IN_MEMORY => $this->eventSourcingConfiguration->getInMemoryProjectionManager()
         };
         $this->initializedEventStores[$context] = $innerEventStore;
 

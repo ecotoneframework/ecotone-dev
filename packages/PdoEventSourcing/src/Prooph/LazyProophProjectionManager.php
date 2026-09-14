@@ -15,6 +15,7 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Prooph\Common\Messaging\Message;
+use Prooph\EventStore\EventStore;
 use Prooph\EventStore\Exception\ProjectionNotFound;
 use Prooph\EventStore\Exception\RuntimeException;
 use Prooph\EventStore\Pdo\Projection\MariaDbProjectionManager;
@@ -36,8 +37,10 @@ use function str_contains;
  */
 class LazyProophProjectionManager implements ProjectionManager
 {
-    /** @var LazyProophProjectionManager[] */
+    /** @var ProjectionManager[] */
     private array $lazyInitializedProjectionManager = [];
+    /** @var EventStore[] */
+    private array $initializedEventStores = [];
 
     /**
      * @param array<string, ProjectionSetupConfiguration> $projectionSetupConfigurations
@@ -54,18 +57,20 @@ class LazyProophProjectionManager implements ProjectionManager
     private function getProjectionManager(): ProjectionManager
     {
         $context = $this->lazyProophEventStore->getContextName();
-        if (isset($this->lazyInitializedProjectionManager[$context])) {
+        $eventStore = $this->getLazyProophEventStore();
+        $innerEventStore = $eventStore->getEventStore();
+
+        if (isset($this->lazyInitializedProjectionManager[$context]) && $this->initializedEventStores[$context] === $innerEventStore) {
             return $this->lazyInitializedProjectionManager[$context];
         }
 
-        $eventStore = $this->getLazyProophEventStore();
-
         $this->lazyInitializedProjectionManager[$context] = match ($eventStore->getEventStoreType()) {
-            LazyProophEventStore::EVENT_STORE_TYPE_POSTGRES => new PostgresProjectionManager($eventStore->getEventStore(), $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
-            LazyProophEventStore::EVENT_STORE_TYPE_MYSQL => new MySqlProjectionManager($eventStore->getEventStore(), $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
-            LazyProophEventStore::EVENT_STORE_TYPE_MARIADB => new MariaDbProjectionManager($eventStore->getEventStore(), $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
+            LazyProophEventStore::EVENT_STORE_TYPE_POSTGRES => new PostgresProjectionManager($innerEventStore, $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
+            LazyProophEventStore::EVENT_STORE_TYPE_MYSQL => new MySqlProjectionManager($innerEventStore, $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
+            LazyProophEventStore::EVENT_STORE_TYPE_MARIADB => new MariaDbProjectionManager($innerEventStore, $eventStore->getWrappedConnection(), $this->eventSourcingConfiguration->getEventStreamTableName(), $this->eventSourcingConfiguration->getProjectionsTable()),
             LazyProophEventStore::EVENT_STORE_TYPE_IN_MEMORY => $this->eventSourcingConfiguration->getInMemoryProjectionManager()
         };
+        $this->initializedEventStores[$context] = $innerEventStore;
 
         return $this->lazyInitializedProjectionManager[$context];
     }

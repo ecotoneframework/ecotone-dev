@@ -4,12 +4,14 @@ This guide lists every behaviour change between Ecotone 1.x and 2.0. Each entry 
 how it works now, and what to change in your application. Entries are grouped the way the work is grouped in
 the release; within a group the most impactful changes come first.
 
-Minimum requirements: PHP 8.2, Symfony 6.4+/7, Laravel 11+, Doctrine DBAL 4.
+Minimum requirements: PHP 8.2 (8.4 for the Tempest integration), Symfony 6.4+, Laravel 11+, Doctrine DBAL 4 and,
+where used, Doctrine ORM 3 with DoctrineBundle 2.12+. Laravel 9/10, DBAL 3 and ORM 2 are no longer supported.
 
-**Status of this guide.** Sections 1, 2, 3, 5, 6, 7, 9, 11, 13 and 14 describe behaviour that is already in the
-codebase. Sections 4, 8 and 12 are **planned for 2.0 and not implemented yet** — they are marked
-individually below. Do not act on a planned section until it ships; the API it describes does not exist.
-Section 10 records behaviour that was considered for change and deliberately kept as it is.
+**Status of this guide.** Sections 1, 2, 3, 4, 5, 6, 7, 9, 11, 13 and 14 describe behaviour that is already in the
+codebase. Sections 8 and 12 are **planned for 2.0 and not implemented yet** — they are marked individually below.
+Do not act on a planned section until it ships; the API it describes does not exist. Items marked **TODO** inside an
+implemented section are known gaps that are not done yet. Section 10 records behaviour that was considered for change
+and deliberately kept as it is.
 
 ---
 
@@ -50,7 +52,8 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
 - `withSkippedModulePackageNames([...])` is replaced by `withModulePackages([...])` listing the packages to **load**;
   Core and Asynchronous are always loaded. Example: `->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::AMQP_PACKAGE])`.
 - Symfony `ecotone.yaml`, Laravel `config/ecotone.php` and Tempest config: the `skippedModulePackageNames` key is renamed to
-  `modulePackages` and now lists packages to load (Core and Asynchronous are implicit).
+  `modulePackages` and now lists packages to load (Core and Asynchronous are implicit). Leaving the key out loads every
+  installed package; an explicit empty list (`modulePackages: []`) loads Core and Asynchronous only.
 - A handler referencing an unregistered channel fails at bootstrap with
   `ConfigurationException: Registered asynchronous endpoint \`orderHandler\`, however channel configuration for \`orders\` was not
   provided. Register it with SimpleMessageChannelBuilder::createQueueChannel('orders') as a ServiceConfiguration extension object
@@ -108,6 +111,15 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
   `#[Partitioned]` and per-partition state instead. `fromAll` has **no replacement** — every projection must
   declare an explicit `#[FromStream]`/`#[FromAggregateStream]`, so a forgotten filter cannot silently scan the
   whole log.
+- v1 capabilities with **no 2.0 replacement**: glob-pattern event routing inside a projection (e.g.
+  `#[EventHandler('order.*')]`) and several handlers in one projection reacting to the same event — a projection now
+  routes each event to exactly one handler, so split such logic into separate handlers keyed by event class or into
+  separate projections; and Prooph's `MetadataMatcher` filtering and configurable `GapDetection` retry schedule on
+  projections — gap handling is built in (`GapAwarePosition`) and has no user configuration.
+- Code that injected the v1 `ProjectionManager` gateway (`Ecotone\EventSourcing\ProjectionManager`) injects
+  `Ecotone\Api\ProjectionRegistry` instead and works with `ProjectionRegistry::get('order_list')`, which returns a
+  `ProjectingManager`: `init()`, `execute()`, `executeWithReset()`, `prepareRebuild()`, `prepareBackfill()` and
+  `delete()` cover initialise, run, reset, rebuild, backfill and delete.
 - Replace `ProjectionRunningConfiguration` / `ProjectionSetupConfiguration` / `ProjectionLifeCycleConfiguration`
   with `#[Polling(endpointId:)]`, `#[Streaming]`, `#[Partitioned]`, `#[Asynchronous]` on the projection class.
   `#[ProjectionInitialization]`/`#[ProjectionReset]`/`#[ProjectionDelete]` keep their names and move to
@@ -202,9 +214,12 @@ part of 2.0 as shipped.
   it no longer invents a `projection_<name>` stream. `linkTo($streamName, ...)` still takes an explicit target, but the
   stream must be declared by a `#[Stream]` attribute somewhere — an unknown name is a configuration error instead of a
   table created behind your back.
-- **Tables are declared, not discovered.** Every stream table is registered with `ecotone:migration:database:setup`
-  under the `event_stream` feature. In tests and dev (`DbalConfiguration` automatic table initialization) a missing
-  table is still created on first write.
+- **Tables are declared, not discovered.** Every stream table on the default connection is registered with
+  `ecotone:migration:database:setup` under the `event_stream` feature. In tests and dev (`DbalConfiguration` automatic
+  table initialization) a missing table is still created on first write.
+  **TODO:** `ecotone:migration:database:setup` drives only the default connection, so a stream declared with a
+  non-default `connectionReferenceName` is not created by the command yet — it is created on first write when automatic
+  table initialization is on, otherwise create it yourself.
 - `EventStreamingChannelAdapter::create(fromStream: ...)` takes a stream name, not an aggregate class; pass
   `aggregateType:` to filter.
 - Custom implementations of `Ecotone\EventSourcing\EventStore` are unaffected — the interface did not change.
@@ -251,7 +266,7 @@ reference name is `Ecotone\Api\Dbal\DbalConnectionReference::DEFAULT` (which equ
 - Container service ids / reference names that were the literal string `Enqueue\Dbal\DbalConnectionFactory` must be renamed to
   `DbalConnectionReference::DEFAULT`; Ecotone no longer looks up the old id.
 - `DbalConnection::fromDsn()` / `fromConnectionFactory()` return the Ecotone classes; type-hints on `Enqueue\Dbal\*` must be updated.
-- Custom code relying on `Interop\Queue\Context` from the DBAL connection should use `Ecotone\Dbal\DbalContext`.
+- Custom code relying on `Interop\Queue\Context` from the DBAL connection should use `Ecotone\Dbal\Connection\DbalContext`.
 - AMQP, SQS and Redis packages still use `queue-interop` / `enqueue/*`; nothing changes there.
 
 ## 6. AMQP Distributed Bus removed
@@ -313,10 +328,13 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `CronExpression::factory()` | `new CronExpression()` |
 
 Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` (use `MessageProcessorActivatorBuilder` in new modules),
-`ServiceConfiguration::withCacheDirectoryPath()`, `MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()`.
+`MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()`.
 
 If you implemented a custom `Module` / `AnnotationModule`, delete the `canHandle()` method and filter extension objects
-with `ExtensionObjectResolver::resolve(MyConfig::class, $extensionObjects)` inside `prepare()`.
+with `ExtensionObjectResolver::resolve(MyConfig::class, $extensionObjects)` inside `prepare()`. The base and marker
+classes that concrete attributes extend (`EndpointAnnotation`, `IdentifiedAnnotation`, `ChannelAdapter`,
+`MessageConsumer`, `StreamBasedSource`, …) are now `@internal`: application code never uses them, and custom modules
+that type against them should expect them to change in minor versions.
 
 ## 8. Database tables are no longer created on the fly
 
@@ -343,7 +361,7 @@ transaction wraps the whole message on every driver. Deduplication cleanup runs 
 | JMS: serialize `null` properties | off | on | `JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false)` |
 | JMS: native enum support | off | on | `->withDefaultEnumSupport(false)` |
 | `SimpleMessageChannelBuilder::createQueueChannel()` delayable | `false` | `true` | `createQueueChannel('x', delayable: false)` |
-| `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `->withHandledMessageLimit(1)` |
+| `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(amountOfMessagesToHandle: 1)` |
 | Instant retries on asynchronous endpoints | disabled | enabled (3 attempts) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withModulePackages()` lists; with no call, all installed packages load | `ServiceConfiguration::withModulePackages([...])` |
 
@@ -429,8 +447,9 @@ Classes outside `Api` are `@internal` and may change in minor versions. `Distrib
 `Ecotone\Api\DistributedBusHeader`; `KafkaHeader` (formerly `Ecotone\Kafka\Api\KafkaHeader`) becomes
 `Ecotone\Api\Kafka\KafkaHeader`, consistent with every other Kafka class.
 
-**How to adapt:** Run the provided Rector set (`vendor/ecotone/ecotone/upgrade/rector-2.0.php`) or apply the mapping table in
-`upgrade/namespace-map-2.0.csv` with `sed`. Examples:
+**How to adapt:** Replace the imports using the full old → new mapping in
+[`upgrade/namespace-map-2.0.csv`](https://github.com/ecotoneframework/ecotone-dev/blob/2.0/upgrade/namespace-map-2.0.csv)
+(two columns, `old_fqcn,new_fqcn`) — a find-and-replace or `sed` over your `use` statements covers it. Examples:
 
 | 1.x | 2.0 |
 |---|---|
@@ -442,36 +461,56 @@ Classes outside `Api` are `@internal` and may change in minor versions. `Distrib
 | `Ecotone\Amqp\AmqpBackedMessageChannelBuilder` | `Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder` |
 | `Ecotone\Modelling\CommandBus` | `Ecotone\Api\CommandBus` |
 
-The full 151-class mapping is in `upgrade/namespace-map-2.0.csv`.
+The full mapping is in `upgrade/namespace-map-2.0.csv`.
 
 ## 14. Smaller behaviour changes
 
 - `ServiceConfiguration::withSkippedModulePackageNames()` → `withModulePackages()` (see §1/§9).
-- `EcotoneLite::bootstrapFlowTesting()` no longer registers a missing-handler interceptor for unknown routing keys; sending to an
-  unknown routing key throws `DestinationResolutionException` as in production.
-- `MessageHeaders::STREAM_BASED_SOURCED` header is replaced by the `#[StreamBasedSource]` attribute check.
-- `ecotone/pdo-event-sourcing` composer package is renamed to `ecotone/event-sourcing`; `composer require ecotone/event-sourcing` and
-  remove the old package. Class namespace `Ecotone\EventSourcing` is kept.
+- **TODO:** `MessageHeaders::STREAM_BASED_SOURCED` is planned to be replaced by the `#[StreamBasedSource]` attribute
+  check. Not done yet — the header still exists; nothing to change.
 - `ecotone/lite-application` package is discontinued; use `ecotone/ecotone` `EcotoneLite::bootstrap()`.
 - Laravel: `LaravelConnectionReference::defaultConnection()` resolves to the Ecotone DBAL factory (§5); `SHELL_VERBOSITY` handling in tests unchanged.
-- OpenTelemetry: spans now carry `polledChannelName` and `routingSlip` attributes.
-- `ChannelInterceptor` attribute (Enterprise): a method annotated `#[ChannelInterceptor('channelName')]` now runs as a pre-send interceptor for that channel (matching by exact channel name, not a handler pointcut), with the same `changeHeaders`/`precedence` semantics as `#[Before]`/`#[Presend]`. Requires an Enterprise licence; see the `ecotone-interceptors` skill for details.
-- `#[Asynchronous]` now requires an explicit `endpointId` for `#[InternalHandler]`/`#[ServiceActivator]` too, not only `#[CommandHandler]`/`#[EventHandler]` — a generated endpoint id used to be silently accepted and fail later with an unrelated missing-channel error.
-- `#[InternalHandler]`/`#[ServiceActivator]` `changingHeaders: true` (Enterprise): the handler's returned `array` is merged into message headers instead of replacing the payload, the payload is left untouched, and returning `null` now leaves the message unchanged instead of dropping it. Requires an Enterprise licence; see the `ecotone-workflow` skill's `#[InternalHandler]` reference for details.
+- **`#[Asynchronous]` requires an explicit `endpointId` on `#[InternalHandler]` and `#[ServiceActivator]`**, as it
+  already did for `#[CommandHandler]`/`#[EventHandler]`. Before, a generated endpoint id was accepted and failed later
+  with an unrelated missing-channel error. Bootstrap now throws a `ConfigurationException` naming the class and method,
+  ending with `should have endpointId defined for handling asynchronously`.
+  **How to adapt:** add it — `#[InternalHandler('orders.process', endpointId: 'orders.process.endpoint')]`, and use
+  that id with `run()` / consumer commands.
+- **`changingHeaders: true` on `#[InternalHandler]` / `#[ServiceActivator]` requires an Enterprise licence.** In this
+  mode the returned `array` is merged into the message headers, the payload is left untouched, and the message
+  continues to `outputChannelName`. Without a licence bootstrap throws `LicensingException` naming the method.
+  **How to adapt:** provide the licence key, or move the header enrichment into a `#[Before(changeHeaders: true)]`
+  interceptor on the handler that needs the headers.
+- **Returning `null` in header-changing mode keeps the message.** For `changingHeaders: true` handlers and for
+  `#[Before]`, `#[Presend]`, `#[After]` and `#[ChannelInterceptor]` with `changeHeaders: true`, a `null`/`void` return
+  used to drop the message silently; it now passes the message on unchanged. If you relied on `null` to stop the flow,
+  throw or route explicitly instead.
+- **Gateway `iterable<T>` replies are converted element by element.** A `#[MessageGateway]`/`#[BusinessMethod]`
+  declaring `@return iterable<Foo>` used to receive the raw array unconverted when the handler `return`ed
+  an array (only a `yield`ing handler was converted). Each element now goes through the registered converters, as the
+  return type says. If you worked around it by converting in the caller, remove that step.
+- **`#[LogBefore]` / `#[LogAfter]` work.** In 1.x they threw on the first handler call and were unusable; they now log
+  the payload (and headers with `logFullMessage: true`) through the configured PSR logger. They moved, with
+  `#[LogError]`, to `Ecotone\Api\LogBefore`, `Ecotone\Api\LogAfter` and `Ecotone\Api\LogError` (§13).
+- **New, Enterprise: `#[ChannelInterceptor('channelName')]`.** A method with this attribute runs as a pre-send
+  interceptor for that exact channel, with the same `changeHeaders` / `precedence` semantics as `#[Before]` /
+  `#[Presend]`. In 1.x the attribute existed but did nothing. Nothing to change unless you had it in code expecting it
+  to be ignored; without a licence bootstrap throws `LicensingException`.
 
 ---
 
 ## Upgrade checklist
 
-1. Upgrade to the latest 1.x first and fix every deprecation notice (`@deprecated` calls log via `trigger_error` in 1.330+).
-2. `composer require ecotone/ecotone:^2.0` (and `ecotone/event-sourcing` instead of `ecotone/pdo-event-sourcing`).
-3. Run the Rector set / namespace map (§13).
-4. Replace `withSkippedModulePackageNames` with `withModulePackages`; remove `enableAsynchronousProcessing` and add `->run('<channel>')` in tests (§1).
-5. Move framework YAML/PHP config options into `#[ServiceContext]` (§12).
+1. Upgrade to the latest 1.x first and fix every deprecation notice.
+2. Bring the platform up to the new minimums: PHP 8.2, Laravel 11+, DBAL 4, ORM 3 / DoctrineBundle 2.12+ (see the top of this guide).
+3. `composer require ecotone/ecotone:^2.0` together with every `ecotone/*` package you use.
+4. Replace imports with the namespace map (§13).
+5. Replace `withSkippedModulePackageNames` with `withModulePackages`; remove `enableAsynchronousProcessing` and add `->run('<channel>')` in tests (§1).
 6. Replace `Enqueue\Dbal\DbalConnectionFactory` references (§5).
 7. Replace `AmqpDistributedBusConfiguration` with `DistributedServiceMap` (§6).
-8. Rename projections, run `ecotone:projection:rebuild` for former v1 projections (§3).
-9. Drop the persistence-strategy calls, and decide per aggregate whether it moves to `ecotone_event_stream` or stays on its 1.x table via `#[Stream(legacyStreamName: ...)]` (§4).
-10. Add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).
+8. Move v1 projections to `#[Projection]` + `#[FromAggregateStream]`/`#[FromStream]`, give `#[ProjectionState]` parameters a default, and run `ecotone:projection:rebuild` for former v1 projections (§3).
+9. Drop the persistence-strategy calls, and decide per aggregate whether it moves to `ecotone_event_stream` or stays on its 1.x table via `#[Stream(legacyStreamName: ...)]`; replace `#[FromStream(Aggregate::class)]` with `#[FromAggregateStream(Aggregate::class)]` (§4).
+10. Add an explicit `endpointId` to every `#[Asynchronous]` `#[InternalHandler]` / `#[ServiceActivator]` (§14).
 11. Review changed defaults (§9) and set explicit values where the old behaviour is required.
-12. Provide an Enterprise licence key if you use multi-tenancy (§2).
+12. Provide an Enterprise licence key if you use multi-tenancy (§2), `EventStreamEmitter::emit()` (§3), `changingHeaders: true` on internal handlers or `#[ChannelInterceptor]` (§14).
+13. Once they ship: move framework YAML/PHP config options into `#[ServiceContext]` (§12) and add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).

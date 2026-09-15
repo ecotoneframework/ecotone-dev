@@ -646,6 +646,10 @@ rename test-support methods without aliases; the renamed methods are listed in e
   handler parameter without an attribute. If that parameter is a service rather than the message payload, mark it with
   #[Reference].`). Parameter resolution is unchanged.
   **How to adapt:** nothing; add `#[Reference]` where the message tells you to.
+- **New: `#[Delayed]` accepts named durations.** `#[Delayed(hours: 24)]` and `#[Delayed(minutes: 30, seconds: 10)]`
+  (`milliseconds`, `seconds`, `minutes`, `hours`, `days`) work next to `#[Delayed(new TimeSpan(hours: 24))]`. Passing both a
+  `$time` and a named duration throws `#[Delayed] takes either $time or named durations (milliseconds, seconds, minutes,
+  hours, days), not both.` **How to adapt:** nothing.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

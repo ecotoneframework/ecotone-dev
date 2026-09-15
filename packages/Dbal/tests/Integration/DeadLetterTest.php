@@ -269,7 +269,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->replayAllErrorMessages($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0);
-        $this->assertSame(2, $handler->invocations, 'replyAll() must synchronously re-invoke the handler via MessagingEntrypoint — no second run() needed');
+        $this->assertSame(2, $handler->invocations, 'replayAll() must synchronously re-invoke the handler via MessagingEntrypoint — no second run() needed');
         $this->assertSame(['first-payload'], $handler->processedPayloads, 'Replayed Message must carry the original payload back to the handler');
 
         $ecotone->run('failingInboundAdapter', ExecutionPollingMetadata::createWithTestingSetup(

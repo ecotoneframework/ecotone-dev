@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
+/**
+ * licence Apache-2.0
+ */
 interface MethodInvocation
 {
     /**

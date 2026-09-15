@@ -12,7 +12,7 @@ $ecotone->sendQuery(new GetOrder('1'), metadata: ['tenant' => 'acme']);
 ## Verifying Event Headers
 
 ```php
-$eventHeaders = $ecotone->getRecordedEventHeaders();
+$eventHeaders = $ecotone->popRecordedEventHeaders();
 $firstHeaders = $eventHeaders[0];
 
 $firstHeaders->get('userId');           // get specific header
@@ -26,7 +26,7 @@ $firstHeaders->headers();               // all headers as array
 ## Verifying Command Headers
 
 ```php
-$commandHeaders = $ecotone->getRecordedCommandHeaders();
+$commandHeaders = $ecotone->popRecordedCommandHeaders();
 $firstHeaders = $commandHeaders[0];
 ```
 
@@ -73,7 +73,7 @@ public function test_correlation_id_propagates_to_events(): void
                 MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
             ]
         )
-        ->getRecordedEventHeaders()[0];
+        ->popRecordedEventHeaders()[0];
 
     // Events get new message IDs
     $this->assertNotSame($messageId, $headers->getMessageId());
@@ -136,7 +136,7 @@ public function test_add_and_remove_headers(): void
 
     $headers = $ecotoneLite
         ->sendCommandWithRoutingKey('addHeaders', metadata: ['user' => '1233'])
-        ->getRecordedEcotoneMessagesFrom('async')[0]
+        ->popRecordedMessagesFrom('async')[0]
         ->getHeaders()->headers();
 
     // AddHeader added 'token'
@@ -192,7 +192,7 @@ public function test_event_sourced_aggregate_metadata(): void
     $orderId = Uuid::uuid4()->toString();
     $ecotone->sendCommand(new PlaceOrder($orderId), metadata: ['userland' => '123']);
 
-    $eventHeaders = $ecotone->getRecordedEventHeaders()[0];
+    $eventHeaders = $ecotone->popRecordedEventHeaders()[0];
 
     $this->assertSame('123', $eventHeaders->get('userland'));
     $this->assertSame($orderId, $eventHeaders->get(MessageHeaders::EVENT_AGGREGATE_ID));
@@ -214,7 +214,7 @@ public function test_propagation_disabled_on_gateway(): void
     $ecotone->getGateway(PropagatingGateway::class)
         ->placeOrderWithoutPropagation(['token' => '123']);
 
-    $headers = $ecotone->getRecordedEventHeaders()[0];
+    $headers = $ecotone->popRecordedEventHeaders()[0];
     $this->assertFalse($headers->containsKey('token'));
 }
 ```

@@ -46,7 +46,7 @@ final class VerificationProcessTest extends TestCase
             ],
             $this->bootstrapFlowTesting($tokenGenerator)
                 ->publishEvent(new UserWasRegistered($userId, $email, $phoneNumber))
-                ->getRecordedCommands()
+                ->popRecordedCommands()
         );
     }
 
@@ -68,7 +68,7 @@ final class VerificationProcessTest extends TestCase
                 ->discardRecordedMessages()
                 ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
                 ->run(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, 1000 * 60 * 60 * 24)
-                ->getRecordedCommandsWithRouting()
+                ->popRecordedCommandsWithRouting()
         );
     }
 
@@ -89,7 +89,7 @@ final class VerificationProcessTest extends TestCase
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->discardRecordedMessages()
                 ->run(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, 1000 * 60 * 60 * 24)
-                ->getRecordedCommandsWithRouting()
+                ->popRecordedCommandsWithRouting()
         );
     }
 

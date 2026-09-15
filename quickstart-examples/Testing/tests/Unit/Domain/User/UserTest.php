@@ -37,7 +37,7 @@ final class UserTest extends TestCase
         /** Comparing published events after registration */
         $this->assertEquals(
             [new UserWasRegistered($userId, $email, $phoneNumber)],
-            $user->getRecordedEvents()
+            $user->popRecordedEvents()
         );
     }
 
@@ -52,7 +52,7 @@ final class UserTest extends TestCase
             [new UserWasRegistered($userId, $email, $phoneNumber)],
             EcotoneLite::bootstrapFlowTesting([User::class])
                 ->sendCommand(new RegisterUser($userId, "johny", $email, $phoneNumber))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 

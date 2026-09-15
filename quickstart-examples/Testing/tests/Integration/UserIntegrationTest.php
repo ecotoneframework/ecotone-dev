@@ -49,7 +49,7 @@ final class UserIntegrationTest extends TestCase
                 PhoneNumber::create("148518518518")
             )],
             // Make use of Test Support Gateway to find published events
-            $ecotoneLite->getRecordedEvents()
+            $ecotoneLite->popRecordedEvents()
         );
     }
 }

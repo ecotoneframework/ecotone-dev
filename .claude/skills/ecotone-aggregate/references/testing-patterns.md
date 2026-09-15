@@ -32,7 +32,7 @@ $customer = $ecotone->getAggregate(Customer::class, 'c-1');
 
 ## Event-Sourced Aggregate Testing
 
-Use `withEventsFor()` to set up pre-existing events before sending a command, and `getRecordedEvents()` to assert on newly produced events.
+Use `withEventsFor()` to set up pre-existing events before sending a command, and `popRecordedEvents()` to assert on newly produced events.
 
 ```php
 public function test_ticket_close(): void
@@ -44,7 +44,7 @@ public function test_ticket_close(): void
             new TicketWasRegistered('ticket-1', 'alert'),
         ])
         ->sendCommand(new CloseTicket('ticket-1'))
-        ->getRecordedEvents();
+        ->popRecordedEvents();
 
     $this->assertEquals([new TicketWasClosed('ticket-1')], $events);
 }
@@ -60,7 +60,7 @@ $events = $ecotone
         new ProductWasRegistered('p-1', 'Widget', 100),
     ])
     ->sendCommand(new ChangeProductPrice('p-1', 200))
-    ->getRecordedEvents();
+    ->popRecordedEvents();
 
 $this->assertEquals(
     [new ProductPriceWasChanged('p-1', 200, 100)],
@@ -80,7 +80,7 @@ public function test_with_event_store(): void
     );
 
     $ecotone->sendCommand(new RegisterTicket('ticket-1', 'Bug'));
-    $events = $ecotone->getRecordedEvents();
+    $events = $ecotone->popRecordedEvents();
 
     $this->assertEquals([new TicketWasRegistered('ticket-1', 'Bug')], $events);
 }

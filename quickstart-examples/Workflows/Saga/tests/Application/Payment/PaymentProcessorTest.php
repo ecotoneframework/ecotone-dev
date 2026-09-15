@@ -28,7 +28,7 @@ final class PaymentProcessorTest extends TestCase
             [new PaymentWasSuccessful('123')],
             $ecotoneLite
                 ->sendCommandWithRoutingKey('takePayment', new TakePayment('123', Money::EUR(100)))
-                ->getRecordedEvents(),
+                ->popRecordedEvents(),
         );
     }
 
@@ -45,7 +45,7 @@ final class PaymentProcessorTest extends TestCase
             [new PaymentFailed('123')],
             $ecotoneLite
                 ->sendCommandWithRoutingKey('takePayment', new TakePayment('123', Money::EUR(100)))
-                ->getRecordedEvents(),
+                ->popRecordedEvents(),
         );
     }
 
@@ -64,7 +64,7 @@ final class PaymentProcessorTest extends TestCase
                 ->sendCommandWithRoutingKey('takePayment', new TakePayment('123', Money::EUR(100)))
                 ->discardRecordedMessages()
                 ->sendCommandWithRoutingKey('takePayment', new TakePayment('123', Money::EUR(100)))
-                ->getRecordedEvents(),
+                ->popRecordedEvents(),
         );
     }
 }

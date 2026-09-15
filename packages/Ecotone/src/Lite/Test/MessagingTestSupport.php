@@ -16,48 +16,58 @@ interface MessagingTestSupport
     /**
      * @return array<int, mixed>
      */
-    public function getRecordedEvents(): array;
+    public function popRecordedEvents(): array;
 
     /**
      * Allows to assert metadata of the message
      *
      * @return Message[]
      */
-    public function getRecordedEventMessages(): array;
+    public function popRecordedEventMessages(): array;
 
     /**
      * @return array<int, mixed>
      */
-    public function getRecordedCommands(): array;
+    /**
+     * @return Message[]
+     */
+    public function popRecordedEventMessagesOfType(string $className): array;
+
+    /**
+     * @return Message[]
+     */
+    public function popRecordedCommandMessagesOfType(string $className): array;
+
+    public function popRecordedCommands(): array;
 
     /**
      *  Allows to assert metadata of the message
      *
      * @return Message[]
      */
-    public function getRecordedCommandMessages(): array;
+    public function popRecordedCommandMessages(): array;
 
     /**
      * @return array<int, mixed>
      */
-    public function getRecordedQueries(): array;
+    public function popRecordedQueries(): array;
 
     /**
      *  Allows to assert metadata of the message
      *
      * @return Message[]
      */
-    public function getRecordedQueryMessages(): array;
+    public function popRecordedQueryMessages(): array;
 
     /**
      * @return mixed[]
      */
-    public function getRecordedMessagePayloadsFrom(string $channelName): array;
+    public function popRecordedMessagePayloadsFrom(string $channelName): array;
 
     /**
      * @return Message[]
      */
-    public function getRecordedEcotoneMessagesFrom(string $channelName): array;
+    public function popRecordedMessagesFrom(string $channelName): array;
 
     public function discardRecordedMessages(): void;
 

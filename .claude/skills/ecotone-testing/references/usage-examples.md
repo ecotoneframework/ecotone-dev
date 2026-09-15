@@ -105,7 +105,7 @@ public function test_event_sourced_aggregate(): void
             new TicketWasRegistered('ticket-1', 'Bug', 'johny'),
         ])
         ->sendCommand(new CloseTicket('ticket-1'))
-        ->getRecordedEvents();
+        ->popRecordedEvents();
 
     $this->assertEquals([new TicketWasClosed('ticket-1')], $events);
 }
@@ -154,13 +154,13 @@ public function test_inspect_recorded_messages(): void
     $ecotone->sendCommand(new PlaceOrder('order-1'));
 
     // Get recorded events (published via EventBus)
-    $events = $ecotone->getRecordedEvents();
+    $events = $ecotone->popRecordedEvents();
 
     // Get recorded commands (sent via CommandBus)
-    $commands = $ecotone->getRecordedCommands();
+    $commands = $ecotone->popRecordedCommands();
 
     // Get event headers
-    $headers = $ecotone->getRecordedEventHeaders();
+    $headers = $ecotone->popRecordedEventHeaders();
 
     // Discard and start fresh
     $ecotone->discardRecordedMessages();

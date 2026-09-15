@@ -37,7 +37,7 @@ class StatefulEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
                 new AuditConducted('foo', '123'),
                 new CertificateIssued('foo', '234'),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         self::assertEquals(['123'], $cycleGateway->conductedAudits('foo'));
@@ -68,7 +68,7 @@ class StatefulEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
                 new AuditConducted('foo', '678'),
                 new CertificateIssued('foo', '987'),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         self::assertEquals(['123', '678'], $cycleGateway->conductedAudits('foo'));

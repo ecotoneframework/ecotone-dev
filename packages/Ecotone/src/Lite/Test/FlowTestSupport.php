@@ -110,17 +110,17 @@ final class FlowTestSupport
     /**
      * @return mixed[]
      */
-    public function getRecordedMessagePayloadsFrom(string $channelName): array
+    public function popRecordedMessagePayloadsFrom(string $channelName): array
     {
-        return $this->testSupportGateway->getRecordedMessagePayloadsFrom($channelName);
+        return $this->testSupportGateway->popRecordedMessagePayloadsFrom($channelName);
     }
 
     /**
      * @return Message[]
      */
-    public function getRecordedEcotoneMessagesFrom(string $channelName): array
+    public function popRecordedMessagesFrom(string $channelName): array
     {
-        return $this->testSupportGateway->getRecordedEcotoneMessagesFrom($channelName);
+        return $this->testSupportGateway->popRecordedMessagesFrom($channelName);
     }
 
     public function getMessageChannel(string $channelName): MessageChannel|PollableChannel
@@ -346,9 +346,29 @@ final class FlowTestSupport
      *
      * @return mixed[]
      */
-    public function getRecordedEvents(): array
+    public function popRecordedEvents(): array
     {
-        return $this->testSupportGateway->getRecordedEvents();
+        return $this->testSupportGateway->popRecordedEvents();
+    }
+
+    /**
+     * @template E
+     * @param class-string<E> $className
+     * @return E[]
+     */
+    public function popRecordedEventsOfType(string $className): array
+    {
+        return array_map(fn (Message $message) => $message->getPayload(), $this->testSupportGateway->popRecordedEventMessagesOfType($className));
+    }
+
+    /**
+     * @template C
+     * @param class-string<C> $className
+     * @return C[]
+     */
+    public function popRecordedCommandsOfType(string $className): array
+    {
+        return array_map(fn (Message $message) => $message->getPayload(), $this->testSupportGateway->popRecordedCommandMessagesOfType($className));
     }
 
     /**
@@ -356,9 +376,9 @@ final class FlowTestSupport
      *
      * @return MessageHeaders[]
      */
-    public function getRecordedEventHeaders(): array
+    public function popRecordedEventHeaders(): array
     {
-        return array_map(fn (Message $message) => $message->getHeaders(), $this->testSupportGateway->getRecordedEventMessages());
+        return array_map(fn (Message $message) => $message->getHeaders(), $this->testSupportGateway->popRecordedEventMessages());
     }
 
     /**
@@ -366,9 +386,9 @@ final class FlowTestSupport
      *
      * @return MessageHeaders[]
      */
-    public function getRecordedEventRouting(): array
+    public function popRecordedEventRouting(): array
     {
-        return array_map(fn (Message $message) => $message->getHeaders()->get('ecotone.modelling.bus.command_by_name'), $this->testSupportGateway->getRecordedEventMessages());
+        return array_map(fn (Message $message) => $message->getHeaders()->get('ecotone.modelling.bus.command_by_name'), $this->testSupportGateway->popRecordedEventMessages());
     }
 
     /**
@@ -376,9 +396,9 @@ final class FlowTestSupport
      *
      * @return mixed[]
      */
-    public function getRecordedCommands(): array
+    public function popRecordedCommands(): array
     {
-        return $this->testSupportGateway->getRecordedCommands();
+        return $this->testSupportGateway->popRecordedCommands();
     }
 
     /**
@@ -386,9 +406,9 @@ final class FlowTestSupport
      *
      * @return MessageHeaders[]
      */
-    public function getRecordedCommandHeaders(): array
+    public function popRecordedCommandHeaders(): array
     {
-        return array_map(fn (Message $message) => $message->getHeaders(), $this->testSupportGateway->getRecordedCommandMessages());
+        return array_map(fn (Message $message) => $message->getHeaders(), $this->testSupportGateway->popRecordedCommandMessages());
     }
 
     /**
@@ -397,10 +417,10 @@ final class FlowTestSupport
      * @return string[]
      * @throws MessagingException
      */
-    public function getRecordedCommandsWithRouting(): array
+    public function popRecordedCommandsWithRouting(): array
     {
         $commandWithRouting = [];
-        foreach ($this->getRecordedCommandHeaders() as $commandHeaders) {
+        foreach ($this->popRecordedCommandHeaders() as $commandHeaders) {
             if ($commandHeaders->containsKey(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME)) {
                 $command = [
                     $commandHeaders->get(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME),

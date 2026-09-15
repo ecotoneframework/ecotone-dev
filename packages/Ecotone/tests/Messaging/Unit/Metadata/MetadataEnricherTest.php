@@ -26,7 +26,7 @@ final class MetadataEnricherTest extends TestCase
 
         $ecotone->sendCommandWithRoutingKey('revisionAggregate.createWithRevisionedEvent', 'agg-1');
 
-        $this->assertSame(2, $ecotone->getRecordedEventHeaders()[0]->get(MessageHeaders::REVISION));
+        $this->assertSame(2, $ecotone->popRecordedEventHeaders()[0]->get(MessageHeaders::REVISION));
     }
 
     public function test_revision_header_defaults_to_1_when_the_recorded_events_class_has_no_revision_attribute(): void
@@ -35,7 +35,7 @@ final class MetadataEnricherTest extends TestCase
 
         $ecotone->sendCommandWithRoutingKey('revisionAggregate.createWithUnrevisionedEvent', 'agg-2');
 
-        $this->assertSame(1, $ecotone->getRecordedEventHeaders()[0]->get(MessageHeaders::REVISION));
+        $this->assertSame(1, $ecotone->popRecordedEventHeaders()[0]->get(MessageHeaders::REVISION));
     }
 }
 

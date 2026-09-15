@@ -63,10 +63,10 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
         self::assertEquals([
             new MeetingCreated($meetingId, $calendarId),
-        ], $ecotone->getRecordedEvents());
+        ], $ecotone->popRecordedEvents());
 
         $meeting = new Meeting($meetingId, $calendarId);
-        $meeting->getRecordedEvents();
+        $meeting->popRecordedEvents();
 
         self::assertEquals($meeting, $ecotone->getAggregate(Meeting::class, $meetingId));
     }
@@ -100,7 +100,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
         self::assertEquals([
             new MeetingCreated($meetingId, $calendarId),
-        ], $ecotone->getRecordedEvents());
+        ], $ecotone->popRecordedEvents());
 
         $meeting = $ecotone->getAggregate(MeetingWithInternalRecorder::class, $meetingId);
 
@@ -137,7 +137,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
         self::assertEquals([
             new MeetingCreated($meetingId, $calendarId),
-        ], $ecotone->getRecordedEvents());
+        ], $ecotone->popRecordedEvents());
 
         $meeting = $ecotone->getAggregate(MeetingWithEventSourcing::class, $meetingId);
 
@@ -167,7 +167,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
         ;
 
         $meeting = new Meeting($meetingId, $calendarId);
-        $meeting->getRecordedEvents();
+        $meeting->popRecordedEvents();
 
         self::assertEquals($meeting, $ecotone->getAggregate(Meeting::class, $meetingId));
         self::assertEquals(
@@ -176,7 +176,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 new MeetingScheduled($calendarId, $meetingId),
                 new MeetingCreated($meetingId, $calendarId),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
         self::assertEquals([$meetingId], $ecotone->sendQueryWithRouting('calendar.meetings', metadata: ['aggregate.id' => $calendarId]));
     }
@@ -207,7 +207,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 new MeetingScheduled($calendarId, $meetingId),
                 new MeetingCreated($meetingId, $calendarId),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         $meeting = $ecotone->getAggregate(MeetingWithInternalRecorder::class, $meetingId);
@@ -244,7 +244,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 new MeetingScheduled($calendarId, $meetingId),
                 new MeetingCreated($meetingId, $calendarId),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         $meeting = $ecotone->getAggregate(MeetingWithEventSourcing::class, $meetingId);
@@ -289,7 +289,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 new CalendarClosed($oldCalendarId),
                 new CalendarCreated($newCalendarId),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         $this->assertFalse(
@@ -332,7 +332,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
                 new CalendarCreated($oldCalendarId),
                 new CalendarClosed($oldCalendarId),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         $this->assertFalse(

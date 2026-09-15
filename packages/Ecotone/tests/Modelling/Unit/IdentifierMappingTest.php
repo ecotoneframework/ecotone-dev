@@ -160,7 +160,7 @@ final class IdentifierMappingTest extends TestCase
                 ->getStatus()
         );
 
-        $recordedEvents = $ecotoneLite->getRecordedEventHeaders();
+        $recordedEvents = $ecotoneLite->popRecordedEventHeaders();
         $this->assertArrayNotHasKey(AggregateMessage::AGGREGATE_ID, $recordedEvents[0]->headers());
     }
 

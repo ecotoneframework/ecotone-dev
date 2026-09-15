@@ -357,7 +357,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->initializeProjection('userland_backfill_projection');
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'userland_backfill_projection']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_channel');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_channel');
         self::assertCount(3, $messages, 'Expected 3 batches for 7 partitions with batch size 3 (3+3+1)');
     }
 

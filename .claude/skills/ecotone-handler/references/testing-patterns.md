@@ -66,7 +66,7 @@ public function test_recorded_events(): void
 
     $events = $ecotone
         ->sendCommand(new PlaceOrder('order-1', 'product-1'))
-        ->getRecordedEvents();
+        ->popRecordedEvents();
 
     $this->assertEquals([new OrderWasPlaced('order-1')], $events);
 }

@@ -40,7 +40,7 @@ final class OrderProcessTest extends TestCase
 
         $this->assertEquals(
             new OrderProcessWasStarted($orderId),
-            $ecotoneLite->getRecordedEvents()[1]
+            $ecotoneLite->popRecordedEvents()[1]
         );
     }
 

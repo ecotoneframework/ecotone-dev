@@ -860,7 +860,7 @@ class ProjectingTest extends TestCase
         $ecotone->initializeProjection('userland_backfill_projection');
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'userland_backfill_projection']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_async');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_async');
         self::assertCount(2, $messages, 'Expected 2 batches for 3 partitions with batch size 2');
     }
 
@@ -918,7 +918,7 @@ class ProjectingTest extends TestCase
         $ecotone->initializeProjection('different_projection');
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'different_projection']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_async');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_async');
         self::assertCount(1, $messages, 'SinglePartitionProvider should produce exactly 1 batch');
     }
 

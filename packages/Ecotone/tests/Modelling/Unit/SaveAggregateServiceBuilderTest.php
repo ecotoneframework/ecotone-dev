@@ -379,7 +379,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
                 ->sendCommandWithRoutingKey('job.finish_and_start', new FinishJob($jobId), metadata: [
                     'newJobId' => $newJobId,
                 ])
-                ->getRecordedEvents(),
+                ->popRecordedEvents(),
         );
     }
 
@@ -416,7 +416,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
                 'userland' => '123',
             ]);
 
-        $eventMetadata = $ecotoneLite->getRecordedEventHeaders()[0];
+        $eventMetadata = $ecotoneLite->popRecordedEventHeaders()[0];
         $this->assertNotSame($messageId, $eventMetadata->get(MessageHeaders::MESSAGE_ID));
         $this->assertSame('123', $eventMetadata->get('userland'));
         $this->assertSame($id, $eventMetadata->get(MessageHeaders::EVENT_AGGREGATE_ID));
@@ -429,7 +429,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
                 'userland' => '1234',
             ]);
 
-        $eventHeaders = $ecotoneLite->getRecordedEventHeaders();
+        $eventHeaders = $ecotoneLite->popRecordedEventHeaders();
         $eventMetadata = $eventHeaders[0];
         $this->assertNotSame($messageId, $eventMetadata->get(MessageHeaders::MESSAGE_ID));
         $this->assertSame('1234', $eventMetadata->get('userland'));

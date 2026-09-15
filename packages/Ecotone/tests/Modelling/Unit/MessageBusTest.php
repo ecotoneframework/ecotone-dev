@@ -269,7 +269,7 @@ final class MessageBusTest extends TestCase
             [],
             $ecotoneLite
                 ->sendCommandWithRoutingKey('aggregate.create')
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 

@@ -99,7 +99,7 @@ final class MetadataPropagatingTest extends TestCase
                 ->discardRecordedMessages()
                 ->sendCommandWithRoutingKey('order.cancel_from_metadata', metadata: ['aggregate.id' => $orderId])
                 ->run('orders')
-                ->getRecordedEventHeaders()[0]->headers()
+                ->popRecordedEventHeaders()[0]->headers()
         );
     }
 
@@ -119,7 +119,7 @@ final class MetadataPropagatingTest extends TestCase
                 ->discardRecordedMessages()
                 ->sendCommandWithRoutingKey('order.cancel_from_metadata', metadata: ['aggregate.id' => $orderId])
                 ->run('orders')
-                ->getRecordedEventHeaders()[0]->headers()
+                ->popRecordedEventHeaders()[0]->headers()
         );
     }
 
@@ -148,7 +148,7 @@ final class MetadataPropagatingTest extends TestCase
                 ->sendCommandWithRoutingKey('order.cancel_from_metadata', metadata: ['aggregate.id' => $orderId])
                 ->run('outbox')
                 ->run('processing')
-                ->getRecordedEventHeaders()[0]->headers()
+                ->popRecordedEventHeaders()[0]->headers()
         );
     }
 
@@ -198,14 +198,14 @@ final class MetadataPropagatingTest extends TestCase
 
         $ecotoneTestSupport->sendCommand(new AddItemToBasket('basket-123', 'item-123'));
 
-        self::assertEquals([new ItemWasAddedToBasket('basket-123', 'item-123')], $ecotoneTestSupport->getRecordedEvents());
+        self::assertEquals([new ItemWasAddedToBasket('basket-123', 'item-123')], $ecotoneTestSupport->popRecordedEvents());
 
         $ecotoneTestSupport->run('basket', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertEquals([new ItemReservationCreated('item-123')], $ecotoneTestSupport->getRecordedEvents());
+        self::assertEquals([new ItemReservationCreated('item-123')], $ecotoneTestSupport->popRecordedEvents());
 
         $ecotoneTestSupport->run('itemInventory', ExecutionPollingMetadata::createWithTestingSetup());
 
-        self::assertEquals([new ItemReserved('item-123')], $ecotoneTestSupport->getRecordedEvents());
+        self::assertEquals([new ItemReserved('item-123')], $ecotoneTestSupport->popRecordedEvents());
     }
 }

@@ -24,7 +24,7 @@ final class ProductTest extends TestCase
             [new ProductWasAdded($productId,$name,$price)],
             EcotoneLite::bootstrapFlowTesting([Product::class])
                 ->sendCommand(new AddProduct($productId, $name, $price))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 }

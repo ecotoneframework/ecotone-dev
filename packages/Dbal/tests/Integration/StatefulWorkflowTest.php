@@ -35,7 +35,7 @@ class StatefulWorkflowTest extends DbalMessagingTestCase
                 new AuditConducted('foo', '123'),
                 new CertificateIssued('foo', '234'),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         self::assertEquals(['123'], $cycleGateway->conductedAudits('foo'));

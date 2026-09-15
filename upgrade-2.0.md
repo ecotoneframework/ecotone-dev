@@ -572,6 +572,27 @@ rename test-support methods without aliases; the renamed methods are listed in e
 
   Behaviour is unchanged. **How to adapt:** rename the calls; positional arguments keep working, named arguments use the
   new parameter names.
+- **Recorded-message readers are named `pop*`, because they remove what they return.** `getRecordedEvents()` returned
+  the events recorded since the previous call and cleared the list, so asserting twice saw nothing the second time. The
+  destructive behaviour stays; the names now say it, and typed variants remove only messages of one class.
+
+  | 1.x / early 2.0 | 2.0 |
+  |---|---|
+  | `FlowTestSupport::getRecordedEvents()` | `popRecordedEvents()` |
+  | — | `popRecordedEventsOfType(OrderWasPlaced::class)` (removes only events of that class) |
+  | `FlowTestSupport::getRecordedEventHeaders()` / `getRecordedEventRouting()` | `popRecordedEventHeaders()` / `popRecordedEventRouting()` |
+  | `FlowTestSupport::getRecordedCommands()` | `popRecordedCommands()` |
+  | — | `popRecordedCommandsOfType(PlaceOrder::class)` |
+  | `FlowTestSupport::getRecordedCommandHeaders()` / `getRecordedCommandsWithRouting()` | `popRecordedCommandHeaders()` / `popRecordedCommandsWithRouting()` |
+  | `FlowTestSupport::getRecordedMessagePayloadsFrom($channel)` | `popRecordedMessagePayloadsFrom($channel)` |
+  | `FlowTestSupport::getRecordedEcotoneMessagesFrom($channel)` | `popRecordedMessagesFrom($channel)` |
+  | `MessagingTestSupport::getRecordedEvents()`, `getRecordedEventMessages()`, `getRecordedCommands()`, `getRecordedCommandMessages()`, `getRecordedQueries()`, `getRecordedQueryMessages()` | the same names with `pop` instead of `get` |
+  | `WithEvents::getRecordedEvents()` (aggregate trait, also clears) | `WithEvents::popRecordedEvents()` |
+
+  Events the test publishes itself are still recorded. `discardRecordedMessages()` is unchanged.
+  **How to adapt:** replace `getRecorded` with `popRecorded` (and `getRecordedEcotoneMessagesFrom` with
+  `popRecordedMessagesFrom`); a `sed -i 's/getRecorded/popRecorded/g'` over the test suite covers it. If an aggregate
+  declares its own events method, keep it: the `#[AggregateEvents]` attribute, not the name, is what Ecotone looks for.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

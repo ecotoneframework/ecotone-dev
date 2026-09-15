@@ -275,7 +275,7 @@ interface OrderGateway
 Events from event-sourced aggregates automatically receive:
 
 ```php
-$eventHeaders = $ecotone->getRecordedEventHeaders()[0];
+$eventHeaders = $ecotone->popRecordedEventHeaders()[0];
 
 // Userland headers propagated from command
 $eventHeaders->get('userId');  // '123'

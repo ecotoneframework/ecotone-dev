@@ -36,7 +36,7 @@ final class FlowTestSupportFrameworkTest extends TestCase
                 ->sendCommandWithRoutingKey('order.register', new PlaceOrder('1'))
                 ->sendCommandWithRoutingKey('order.register', new PlaceOrder('3'), metadata: ['aggregate.id' => '3'])
                 ->sendCommand(new PlaceOrder('2'))
-                ->getRecordedCommandsWithRouting()
+                ->popRecordedCommandsWithRouting()
         );
     }
 

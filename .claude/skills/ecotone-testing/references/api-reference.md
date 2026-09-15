@@ -74,13 +74,15 @@ public static function bootstrapFlowTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `getRecordedEvents()` | `mixed[]` | Events published via EventBus |
-| `getRecordedEventHeaders()` | `MessageHeaders[]` | Headers of recorded events |
-| `getRecordedCommands()` | `mixed[]` | Commands sent via CommandBus |
-| `getRecordedCommandHeaders()` | `MessageHeaders[]` | Headers of recorded commands |
-| `getRecordedCommandsWithRouting()` | `string[]` | Commands with routing keys |
-| `getRecordedMessagePayloadsFrom(string $channelName)` | `mixed[]` | Payloads from specific channel |
-| `getRecordedEcotoneMessagesFrom(string $channelName)` | `Message[]` | Full messages from channel |
+| `popRecordedEvents()` | `mixed[]` | Events published via EventBus since the last pop; removes them |
+| `popRecordedEventsOfType(string $className)` | `object[]` | Removes and returns only events of that class |
+| `popRecordedEventHeaders()` | `MessageHeaders[]` | Headers of recorded events |
+| `popRecordedCommands()` | `mixed[]` | Commands sent via CommandBus since the last pop; removes them |
+| `popRecordedCommandsOfType(string $className)` | `object[]` | Removes and returns only commands of that class |
+| `popRecordedCommandHeaders()` | `MessageHeaders[]` | Headers of recorded commands |
+| `popRecordedCommandsWithRouting()` | `string[]` | Commands with routing keys |
+| `popRecordedMessagePayloadsFrom(string $channelName)` | `mixed[]` | Payloads from specific channel |
+| `popRecordedMessagesFrom(string $channelName)` | `Message[]` | Full messages from channel |
 | `discardRecordedMessages()` | `self` | Clear all recorded messages |
 
 ### Aggregate & Saga State

@@ -40,7 +40,7 @@ final class WorkflowTest extends TestCase
 
         $this->assertEquals(
             [new TakePayment($orderId)],
-            $ecotoneLite->getRecordedMessagePayloadsFrom('takePayment')
+            $ecotoneLite->popRecordedMessagePayloadsFrom('takePayment')
         );
     }
 
@@ -80,7 +80,7 @@ final class WorkflowTest extends TestCase
 
         $this->assertEquals(
             [new TakePayment($orderId)],
-            $ecotoneLite->getRecordedMessagePayloadsFrom('takePayment')
+            $ecotoneLite->popRecordedMessagePayloadsFrom('takePayment')
         );
 
         $this->assertTrue(
@@ -102,7 +102,7 @@ final class WorkflowTest extends TestCase
             [new TakePayment($orderId)],
             $ecotoneLite
                 ->publishEvent(new OrderWasPlaced($orderId))
-                ->getRecordedMessagePayloadsFrom('takePayment')
+                ->popRecordedMessagePayloadsFrom('takePayment')
         );
     }
 }

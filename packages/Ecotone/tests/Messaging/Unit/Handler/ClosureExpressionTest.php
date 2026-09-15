@@ -91,7 +91,7 @@ final class ClosureExpressionTest extends TestCase
 
         $headers = $ecotoneLite
             ->sendCommandWithRoutingKey('notification.delayed', new DelayCommand(1234))
-            ->getRecordedEcotoneMessagesFrom('async')[0]->getHeaders()->headers();
+            ->popRecordedMessagesFrom('async')[0]->getHeaders()->headers();
 
         $this->assertSame(1234, $headers[MessageHeaders::DELIVERY_DELAY]);
     }

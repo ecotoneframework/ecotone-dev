@@ -50,7 +50,7 @@ final class HeaderPropagationTest extends TestCase
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);
 
         /** From Event Bus */
-        $headers = $flowTestSupport->getRecordedEventHeaders()[0];
+        $headers = $flowTestSupport->popRecordedEventHeaders()[0];
         $this->assertNotSame($messageId, $headers->getMessageId());
         $this->assertSame($messageId, $headers->getParentId());
         $this->assertSame($correlationId, $headers->getCorrelationId());
@@ -83,7 +83,7 @@ final class HeaderPropagationTest extends TestCase
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);
 
         /** From Event Bus */
-        $headers = $flowTestSupport->getRecordedEventHeaders()[0]->headers();
+        $headers = $flowTestSupport->popRecordedEventHeaders()[0]->headers();
         $this->assertNotSame($messageId, $headers[MessageHeaders::MESSAGE_ID]);
         $this->assertSame($messageId, $headers[MessageHeaders::PARENT_MESSAGE_ID]);
         $this->assertSame($correlationId, $headers[MessageHeaders::MESSAGE_CORRELATION_ID]);

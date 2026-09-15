@@ -10,7 +10,6 @@ use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use LogicException;
-use ReflectionMethod;
 use Throwable;
 
 /**
@@ -86,12 +85,7 @@ class DbalConnectionFactory implements ConnectionFactory
     {
         if ($this->connection) {
             try {
-                if (method_exists($this->connection, 'close') && is_callable([$this->connection, 'close'])) {
-                    $reflection = new ReflectionMethod($this->connection, 'close');
-                    if ($reflection->isPublic()) {
-                        $this->connection->close();
-                    }
-                }
+                $this->connection->close();
             } catch (Throwable $e) {
             }
 
@@ -105,16 +99,7 @@ class DbalConnectionFactory implements ConnectionFactory
             $this->connection = DriverManager::getConnection($this->config['connection']);
 
             try {
-                if (method_exists($this->connection, 'connect') && is_callable([$this->connection, 'connect'])) {
-                    $reflection = new ReflectionMethod($this->connection, 'connect');
-                    if ($reflection->isPublic()) {
-                        $this->connection->connect();
-                    } else {
-                        $this->connection->getNativeConnection();
-                    }
-                } else {
-                    $this->connection->getNativeConnection();
-                }
+                $this->connection->getNativeConnection();
             } catch (Exception $e) {
             }
         }

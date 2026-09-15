@@ -65,7 +65,5 @@ SQL);
 
 function checkIfTableExists(Connection $connection, string $table): bool
 {
-    $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
-
-    return $schemaManager->tablesExist([$table]);
+    return $connection->createSchemaManager()->tableExists($table);
 }

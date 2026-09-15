@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\DbaBusinessMethod;
 
 use DateTimeInterface;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Dbal\Connection\DbalContext;
@@ -49,7 +50,6 @@ final class DbalBusinessMethodHandler
     ): ?Message {
         [$sql, $parameters, $parameterTypes] = $this->prepareExecution($sql, $headers);
 
-        // Convert parameter types to be compatible with both DBAL 3.x and 4.x
         $convertedParameterTypes = $this->convertParameterTypes($parameterTypes);
 
         $query = $this->getConnection()->executeQuery($sql, $parameters, $convertedParameterTypes);
@@ -76,7 +76,6 @@ final class DbalBusinessMethodHandler
     {
         [$sql, $parameters, $parameterTypes] = $this->prepareExecution($sql, $headers);
 
-        // Convert parameter types to be compatible with both DBAL 3.x and 4.x
         $convertedParameterTypes = $this->convertParameterTypes($parameterTypes);
 
         return $this->getConnection()->executeStatement($sql, $parameters, $convertedParameterTypes);
@@ -240,21 +239,16 @@ final class DbalBusinessMethodHandler
         return $parameterValue;
     }
 
-    /**
-     * Convert parameter types to be compatible with both DBAL 3.x and 4.x
-     */
     private function convertParameterTypes(array $parameterTypes): array
     {
         $convertedParameterTypes = [];
         foreach ($parameterTypes as $key => $type) {
             if (is_int($type)) {
-                // Handle array parameter types
                 if ($type === $this->getArrayIntegerTypeValue()) {
-                    $convertedParameterTypes[$key] = $this->getArrayIntegerType();
+                    $convertedParameterTypes[$key] = ArrayParameterType::INTEGER;
                 } elseif ($type === $this->getArrayStringTypeValue()) {
-                    $convertedParameterTypes[$key] = $this->getArrayStringType();
+                    $convertedParameterTypes[$key] = ArrayParameterType::STRING;
                 } else {
-                    // Handle scalar parameter types
                     $convertedParameterTypes[$key] = $this->convertScalarParameterType($type);
                 }
             } else {
@@ -263,34 +257,6 @@ final class DbalBusinessMethodHandler
         }
 
         return $convertedParameterTypes;
-    }
-
-    /**
-     * Get the appropriate ArrayParameterType::INTEGER for the current DBAL version
-     */
-    private function getArrayIntegerType()
-    {
-        // For DBAL 4.x (enum)
-        if (class_exists('\Doctrine\DBAL\ArrayParameterType') && enum_exists('\Doctrine\DBAL\ArrayParameterType')) {
-            return \Doctrine\DBAL\ArrayParameterType::INTEGER;
-        }
-
-        // For DBAL 3.x (integer constant)
-        return $this->getArrayIntegerTypeValue();
-    }
-
-    /**
-     * Get the appropriate ArrayParameterType::STRING for the current DBAL version
-     */
-    private function getArrayStringType()
-    {
-        // For DBAL 4.x (enum)
-        if (class_exists('\Doctrine\DBAL\ArrayParameterType') && enum_exists('\Doctrine\DBAL\ArrayParameterType')) {
-            return \Doctrine\DBAL\ArrayParameterType::STRING;
-        }
-
-        // For DBAL 3.x (integer constant)
-        return $this->getArrayStringTypeValue();
     }
 
     private function getArrayIntegerTypeValue(): int
@@ -303,25 +269,16 @@ final class DbalBusinessMethodHandler
         return 102;
     }
 
-    /**
-     * Convert scalar parameter types between DBAL 3.x and 4.x
-     */
     private function convertScalarParameterType($type)
     {
-        // If we're using DBAL 4.x with enum ParameterType
-        if (enum_exists('\Doctrine\DBAL\ParameterType')) {
-            return match($type) {
-                1 => ParameterType::INTEGER,
-                2 => ParameterType::STRING,
-                3 => ParameterType::LARGE_OBJECT,
-                5 => ParameterType::BOOLEAN,
-                16 => ParameterType::BINARY,
-                17 => ParameterType::ASCII,
-                default => $type,
-            };
-        }
-
-        // For DBAL 3.x, just return the integer constant
-        return $type;
+        return match ($type) {
+            1 => ParameterType::INTEGER,
+            2 => ParameterType::STRING,
+            3 => ParameterType::LARGE_OBJECT,
+            5 => ParameterType::BOOLEAN,
+            16 => ParameterType::BINARY,
+            17 => ParameterType::ASCII,
+            default => $type,
+        };
     }
 }

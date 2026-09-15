@@ -617,6 +617,18 @@ rename test-support methods without aliases; the renamed methods are listed in e
   EcotoneLite::bootstrapFlowTesting(), or load its namespace with ServiceConfiguration::withNamespaces(['App\Shipping']).`
   When no handler exists it says which attribute to add. Queries get the same message; the application bootstrap keeps
   the previous text. **How to adapt:** nothing.
+- **Handlers typed on an interface or abstract class receive the concrete message after serialisation.** A handler
+  such as `#[Asynchronous('async')] #[EventHandler] onChange(BasketContentChanged $event)`, where `BasketContentChanged`
+  is an interface, worked in process but failed once the message crossed a serialising channel
+  (`… is an interface, and cannot be instantiated`); on an aggregate the same handler failed with the misleading
+  `identifier header is missing`, and a projection handler failed on stored events. Ecotone now deserialises into the
+  concrete class named by the message's `__TypeId__` header (or the stored event name for projections) whenever the
+  parameter type is an interface or abstract class the concrete class implements, and resolves aggregate identifiers from
+  the concrete payload. When no concrete class is known, the conversion error ends with
+  `Parameter $event is typed with …BasketContentChanged, which cannot be instantiated, and the message does not name a
+  concrete class in its __TypeId__ header. Type the parameter with a concrete class or a union of concrete classes, or
+  send an object instead of an array.`
+  **How to adapt:** nothing; one interface-typed handler can replace per-event copies written as a workaround.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

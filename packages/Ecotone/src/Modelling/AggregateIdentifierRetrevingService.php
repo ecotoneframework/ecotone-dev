@@ -116,6 +116,14 @@ class AggregateIdentifierRetrevingService implements MessageProcessor
             return $this->perClassIdentifierMappings[$payloadClass];
         }
 
+        if ($payloadClass !== null) {
+            foreach ($this->perClassIdentifierMappings as $handledClass => $identifierMapping) {
+                if ($handledClass !== '' && is_a($payloadClass, $handledClass, true)) {
+                    return $identifierMapping;
+                }
+            }
+        }
+
         // Fallback to empty-key mapping when payload class is unknown
         if (isset($this->perClassIdentifierMappings[''])) {
             return $this->perClassIdentifierMappings[''];

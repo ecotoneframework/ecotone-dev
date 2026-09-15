@@ -13,6 +13,8 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Projecting\ProjectingHeaders;
+use ReflectionClass;
 
 /**
  * @author Dariusz Gafka <support@simplycodedsoftware.com>
@@ -57,7 +59,10 @@ class PayloadConverter implements ParameterConverter
             : Type::createFromVariable($data);
 
         $convertedData = null;
-        if (! $parameterType->isCompoundObjectType() && ! $parameterType->isAnything() && $this->canConvertParameter(
+        $concreteTypeFromHeader = $this->concreteTypeFromHeaderFor($message, $parameterType);
+        if ($concreteTypeFromHeader !== null && $this->canConvertParameter($sourceTypeDescriptor, $sourceMediaType, $concreteTypeFromHeader, $parameterMediaType)) {
+            $convertedData = $this->doConversion($data, $sourceTypeDescriptor, $sourceMediaType, $concreteTypeFromHeader, $parameterMediaType);
+        } elseif (! $parameterType->isCompoundObjectType() && ! $parameterType->isAnything() && $this->canConvertParameter(
             $sourceTypeDescriptor,
             $sourceMediaType,
             $parameterType,
@@ -92,6 +97,47 @@ class PayloadConverter implements ParameterConverter
         return $data;
     }
 
+    private function concreteTypeFromHeaderFor(Message $message, Type $parameterType): ?Type
+    {
+        $typeHeaderName = $message->getHeaders()->containsKey(MessageHeaders::TYPE_ID) ? MessageHeaders::TYPE_ID : ProjectingHeaders::PROJECTION_EVENT_NAME;
+        if (! $message->getHeaders()->containsKey($typeHeaderName)) {
+            return null;
+        }
+
+        if (! $this->isInterfaceOrAbstractClass($parameterType)) {
+            return null;
+        }
+        $parameterClass = $parameterType->toString();
+
+        $typeHeader = $message->getHeaders()->get($typeHeaderName);
+        $concreteClass = $this->mapper?->mapNameToEventType($typeHeader) ?? $typeHeader;
+        if (! class_exists($concreteClass) || ! is_a($concreteClass, $parameterClass, true)) {
+            return null;
+        }
+
+        return Type::object($concreteClass);
+    }
+
+    private function hintForNotInstantiableParameterType(Type $parameterType): string
+    {
+        if (! $this->isInterfaceOrAbstractClass($parameterType)) {
+            return '';
+        }
+
+        return ". Parameter \${$this->parameterName} is typed with {$parameterType->toString()}, which cannot be instantiated, and the message does not name a concrete class in its __TypeId__ header. Type the parameter with a concrete class or a union of concrete classes, or send an object instead of an array.";
+    }
+
+    private function isInterfaceOrAbstractClass(Type $type): bool
+    {
+        if (! $type->isClassOrInterface()) {
+            return false;
+        }
+
+        $className = $type->toString();
+
+        return interface_exists($className) || (class_exists($className) && (new ReflectionClass($className))->isAbstract());
+    }
+
     private function canConvertParameter(Type $requestType, MediaType $requestMediaType, Type $parameterType, MediaType $parameterMediaType): bool
     {
         return $this->conversionService->canConvert(
@@ -118,7 +164,7 @@ class PayloadConverter implements ParameterConverter
                 $parameterMediaType
             );
         } catch (ConversionException $exception) {
-            throw ConversionException::createFromPreviousException("There is a problem with conversion for {$this->interfaceName} on parameter {$this->parameterName}: " . $exception->getMessage(), $exception);
+            throw ConversionException::createFromPreviousException("There is a problem with conversion for {$this->interfaceName} on parameter {$this->parameterName}: " . $exception->getMessage() . $this->hintForNotInstantiableParameterType($parameterType), $exception);
         }
     }
 }

@@ -105,7 +105,7 @@ public static function bootstrapFlowTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `run(string $name, ?ExecutionPollingMetadata $meta = null, TimeSpan\|DateTimeInterface\|null $releaseFor = null)` | `self` | Run consumer/endpoint |
+| `run(string $name, ?ExecutionPollingMetadata $meta = null)` | `self` | Run consumer/endpoint; delivers messages due at the test clock's current time |
 | `getMessageChannel(string $channelName)` | `MessageChannel` | Get channel instance |
 | `receiveMessageFrom(string $channelName)` | `?Message` | Receive from pollable channel |
 
@@ -123,8 +123,8 @@ public static function bootstrapFlowTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `changeTimeTo(DateTimeImmutable $time)` | `self` | Set clock to specific time |
-| `advanceTimeTo(Duration $duration)` | `self` | Advance clock by duration |
+| `changeTimeTo(DateTimeImmutable $time)` | `self` | Set clock to specific time (same or later instant) |
+| `advanceTimeBy(TimeSpan\|Duration $span)` | `self` | Move clock forward by span; calls add up |
 
 ### Infrastructure
 

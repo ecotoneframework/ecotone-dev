@@ -7,6 +7,7 @@ namespace Ecotone\Lite\Test\Configuration;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\CommandBus;
 use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EcotoneClockInterface;
 use Ecotone\Api\EventBus;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
@@ -19,6 +20,7 @@ use Ecotone\Api\TestConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\Lite\Test\MessagingTestSupport;
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -135,6 +137,14 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 new Reference(InMemoryConsoleWriter::class),
             ])
         );
+
+        $messagingConfiguration->registerServiceDefinition(PinnedTestClockInterceptor::class, new Definition(PinnedTestClockInterceptor::class, [new Reference(EcotoneClockInterface::class)]));
+        $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
+            PinnedTestClockInterceptor::class,
+            $interfaceToCallRegistry->getFor(PinnedTestClockInterceptor::class, 'handleAtPinnedTime'),
+            Precedence::TRACING_PRECEDENCE - 1,
+            AsynchronousRunningEndpoint::class,
+        ));
 
         $messagingConfiguration->registerServiceDefinition(MessageCollectorHandler::class, new Definition(MessageCollectorHandler::class));
         $this->registerMessageCollector($messagingConfiguration, $interfaceToCallRegistry);

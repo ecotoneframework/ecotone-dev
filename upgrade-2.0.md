@@ -379,7 +379,7 @@ Test-suite impact of the new defaults:
   or assert the retried outcome.
 
 Delayable channels change in-memory behaviour: a message sent with `delay` is not visible to `run()` until the
-clock passes the delay. Use `$ecotone->run('x', ExecutionPollingMetadata::createWithTestingSetup(), releaseAwaitingFor: Duration::seconds(5))`
+clock passes the delay. Use `$ecotone->advanceTimeBy(Duration::seconds(5))->run('x')` (§15)
 or `TestConfiguration::createWithDefaults()->withSpyOnChannel()` to assert delayed messages.
 
 ## 10. Aggregate identifier resolution for queued messages (unchanged)
@@ -529,6 +529,35 @@ rename test-support methods without aliases; the renamed methods are listed in e
   `No dead letter channel defined. Message failed after 4 failed deliveries (1 initial + 3 retries). …` and
   `Message handling failed after 4 failed deliveries (1 initial + 3 retries). …`. The number of deliveries is unchanged.
   **How to adapt:** update log-based alerts or tests that match the old texts.
+- **The test clock stays where the test put it.** After `changeTimeTo()`, `advanceTimeBy()` or a `StaticPsrClock` created
+  with a fixed time, `run()` used to move the clock forward by its internal polling waits (about 1 ms per handled
+  message and 10 ms at the end), so handlers recorded `13:00:00.010000` instead of `13:00:00.000000` and setting the same
+  time again failed. Now every message handled by `run()` sees the time the test set, and the clock is back at that time
+  when `run()` returns.
+  **How to adapt:** remove workarounds that shifted fixture times to get past the drift.
+- **`changeTimeTo()` accepts the current instant.** Setting the time it already shows is a no-op; only an earlier time
+  throws, now with `Cannot move time backwards: the test clock is at 2026-03-01 13:00:00.000000 and you requested
+  2026-03-01 12:00:00.000000. Request a later time, or use advanceTimeBy() to move forward relative to the current time.`
+  **How to adapt:** nothing.
+- **`advanceTimeTo(Duration)` is renamed `advanceTimeBy(TimeSpan|Duration)`, and `run()` no longer takes a time
+  argument.** The third argument of `run($name, $metadata, $releaseAwaitingFor)` released messages whose *original delay*
+  was at most the given span (or which were due at a given date) without moving the clock, so `run(…, 23h)` followed by
+  `run(…, 2h)` never released a 24-hour delay. Time now moves only through the clock, and `run()` delivers what is due
+  at the clock's current time.
+  **How to adapt:**
+
+  | 1.x / early 2.0 | 2.0 |
+  |---|---|
+  | `$ecotone->advanceTimeTo(Duration::seconds(5))` | `$ecotone->advanceTimeBy(Duration::seconds(5))` |
+  | `$ecotone->run('async', $metadata, TimeSpan::withHours(1))` | `$ecotone->advanceTimeBy(TimeSpan::withHours(1))->run('async', $metadata)` |
+  | `$ecotone->run('async', releaseAwaitingFor: $dateTime)` | `$ecotone->changeTimeTo($dateTime)->run('async')` |
+
+  A test that used the span as "release everything delayed by up to X" while keeping the clock still must now move the
+  clock; set a fixed time first (`changeTimeTo()`) so second-precision message timestamps do not make the release flaky.
+- **Due delayed messages are delivered in the order they became due.** The in-memory delayable channel handed out due
+  messages in send order, so a 24-hour expiry sent before a 1-hour reminder ran first once both were due. It now delivers
+  the earliest due message first (send order for equal due times), as a broker with delivery delay does.
+  **How to adapt:** tests that asserted send order for messages with different delays assert due order instead.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

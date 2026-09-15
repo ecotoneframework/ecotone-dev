@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test;
 
 use DateTimeImmutable;
-use DateTimeInterface;
 use Ecotone\Api\CommandBus;
 use Ecotone\Api\DistributedBus;
 use Ecotone\Api\EcotoneClockInterface;
@@ -147,13 +146,16 @@ final class FlowTestSupport
         return $messageChannel->receive();
     }
 
-    /**
-     * @param int|TimeSpan|DateTimeInterface $releaseAwaitingFor will release messages which are delayed for given time
-     */
-    public function run(string $name, ?ExecutionPollingMetadata $executionPollingMetadata = null, TimeSpan|DateTimeInterface|null $releaseAwaitingFor = null): self
+    public function run(string $name, ?ExecutionPollingMetadata $executionPollingMetadata = null): self
     {
-        $this->testSupportGateway->releaseMessagesAwaitingFor($name, $releaseAwaitingFor ?? $this->clock->now());
-        $this->configuredMessagingSystem->run($name, $executionPollingMetadata);
+        $this->testSupportGateway->releaseMessagesAwaitingFor($name, $this->clock->now());
+        $staticClock = $this->staticClock();
+        $staticClock?->pinCurrentTime();
+        try {
+            $this->configuredMessagingSystem->run($name, $executionPollingMetadata);
+        } finally {
+            $staticClock?->returnToPinnedTime();
+        }
 
         return $this;
     }
@@ -203,10 +205,10 @@ final class FlowTestSupport
     {
         $psrClock = $this->getStaticPsrClockFromContainer();
 
-        if ($psrClock->hasBeenChanged() && $time <= $psrClock->now()) {
+        if ($psrClock->hasBeenChanged() && $time < $psrClock->now()) {
             throw new InvalidArgumentException(
                 sprintf(
-                    'Cannot move time backwards. Current clock time: %s, requested time: %s',
+                    'Cannot move time backwards: the test clock is at %s and you requested %s. Request a later time, or use advanceTimeBy() to move forward relative to the current time.',
                     $psrClock->now()->format('Y-m-d H:i:s.u'),
                     $time->format('Y-m-d H:i:s.u')
                 )
@@ -218,14 +220,22 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function advanceTimeTo(Duration $duration): self
+    public function advanceTimeBy(TimeSpan|Duration $span): self
     {
+        $duration = $span instanceof TimeSpan ? $span->toDuration() : $span;
         $psrClock = $this->getStaticPsrClockFromContainer();
         $psrClock->setCurrentTime(
             DateTimeImmutable::createFromInterface($psrClock->now())->modify("+{$duration->inMicroseconds()} microseconds")
         );
 
         return $this;
+    }
+
+    private function staticClock(): ?StaticPsrClock
+    {
+        $clock = $this->clock instanceof Clock ? $this->clock->internalClock() : null;
+
+        return $clock instanceof StaticPsrClock ? $clock : null;
     }
 
     private function getStaticPsrClockFromContainer(): StaticPsrClock

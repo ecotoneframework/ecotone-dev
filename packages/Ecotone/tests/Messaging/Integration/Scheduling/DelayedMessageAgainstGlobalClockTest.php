@@ -56,7 +56,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         $clock->sleep(Duration::minutes(1));
 
         // 2. Releasing messages awaiting for 60 seconds
-        $ecotoneTestSupport->run('notifications', releaseAwaitingFor: $clock->now());
+        $ecotoneTestSupport->run('notifications');
 
         $this->assertEquals(
             1,
@@ -97,7 +97,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
         $ecotoneTestSupport->run('notifications');
         $this->assertCount(0, $notifier->getNotificationsOf('placedOrder'));
 
-        $ecotoneTestSupport->advanceTimeTo(Duration::minutes(2));
+        $ecotoneTestSupport->advanceTimeBy(Duration::minutes(2));
         $ecotoneTestSupport->run('notifications');
 
         $this->assertCount(1, $notifier->getNotificationsOf('placedOrder'));
@@ -162,7 +162,7 @@ class DelayedMessageAgainstGlobalClockTest extends TestCase
             configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('notifications', true))
         );
 
-        $ecotoneTestSupport->advanceTimeTo(Duration::seconds(1));
+        $ecotoneTestSupport->advanceTimeBy(Duration::seconds(1));
 
         $clock = $ecotoneTestSupport->getServiceFromContainer(ClockInterface::class);
         $time1 = $clock->now();

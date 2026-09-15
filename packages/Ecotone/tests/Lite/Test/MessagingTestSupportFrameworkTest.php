@@ -495,6 +495,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         );
 
         $orderId = 'someId';
+        $ecotoneTestSupport->changeTimeTo(new DateTimeImmutable('2026-01-01 12:00:00'));
         $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
             MessageHeaders::DELIVERY_DELAY => TimeSpan::withHours(1),
         ]);
@@ -502,10 +503,10 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
-        $ecotoneTestSupport->run('orders', releaseAwaitingFor: TimeSpan::withMinutes(59));
+        $ecotoneTestSupport->advanceTimeBy(TimeSpan::withMinutes(59))->run('orders');
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
-        $ecotoneTestSupport->run('orders', releaseAwaitingFor: TimeSpan::withHours(1));
+        $ecotoneTestSupport->advanceTimeBy(TimeSpan::withMinutes(1))->run('orders');
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals([$orderId], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
@@ -527,10 +528,10 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
-        $ecotoneTestSupport->run('orders', releaseAwaitingFor: $delayTime->modify('-1 seconds'));
+        $ecotoneTestSupport->changeTimeTo($delayTime->modify('-1 seconds'))->run('orders');
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
-        $ecotoneTestSupport->run('orders', releaseAwaitingFor: $delayTime);
+        $ecotoneTestSupport->changeTimeTo($delayTime)->run('orders');
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals([$orderId], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
@@ -572,10 +573,10 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
-        $ecotoneTestSupport->run('orders', releaseAwaitingFor: $delayTime->modify('-1 seconds'));
+        $ecotoneTestSupport->changeTimeTo($delayTime->modify('-1 seconds'))->run('orders');
         $this->assertEquals([], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));
 
-        $ecotoneTestSupport->run('orders', releaseAwaitingFor: $delayTime);
+        $ecotoneTestSupport->changeTimeTo($delayTime)->run('orders');
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertEquals([$orderId], $ecotoneTestSupport->sendQueryWithRouting('order.getNotifiedOrders'));

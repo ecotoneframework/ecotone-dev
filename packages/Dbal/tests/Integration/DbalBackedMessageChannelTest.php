@@ -252,11 +252,11 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 ->build()
         );
 
-        $ecotoneLite->advanceTimeTo(Duration::seconds(1));
+        $ecotoneLite->advanceTimeBy(Duration::seconds(1));
 
         $this->assertNull($messageChannel->receive());
 
-        $ecotoneLite->advanceTimeTo(Duration::seconds(3));
+        $ecotoneLite->advanceTimeBy(Duration::seconds(3));
 
         $this->assertNotNull($messageChannel->receive());
     }

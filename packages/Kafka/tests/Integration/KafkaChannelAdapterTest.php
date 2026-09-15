@@ -389,7 +389,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $deadLetter = $ecotoneLite->getGateway(DeadLetterGateway::class);
         $this->assertEquals(1, $deadLetter->count());
 
-        $deadLetter->replyAll();
+        $deadLetter->replayAll();
         $this->assertEquals(0, $deadLetter->count());
 
         $ecotoneLite->run($consumerReferenceName, ExecutionPollingMetadata::createWithTestingSetup(
@@ -468,7 +468,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $this->assertSame([], $handler->processedPayloads);
 
         $handler->shouldFail = false;
-        $deadLetter->replyAll();
+        $deadLetter->replayAll();
 
         $this->assertEquals(0, $deadLetter->count());
         $this->assertSame(2, $handler->invocations, 'replyAll() must synchronously re-invoke the handler via MessagingEntrypoint — no second run() needed');

@@ -28,7 +28,7 @@ final class OnConsumerStopTest extends TestCase
         );
 
         // Send a command to async channel
-        $ecotoneLite->sendCommandWithRoutingKey('async.command', 'test');
+        $ecotoneLite->sendCommandWithRouting('async.command', 'test');
 
         // Run consumer with message limit (will stop after 1 message)
         // When running by channel name, the endpoint ID in PollingMetadata is the channel name

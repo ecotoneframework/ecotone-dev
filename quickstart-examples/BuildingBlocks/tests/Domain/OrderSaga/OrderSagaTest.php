@@ -84,7 +84,7 @@ final class OrderSagaTest extends TestCase
         $this->assertEquals(
             OrderStatus::COMPLETED,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('allow_product_reservation')
+                ->sendCommandWithRouting('allow_product_reservation')
                 ->run('orders', 1000 * 60, ExecutionPollingMetadata::createWithTestingSetup())
                 ->sendQueryWithRouting('order.get_status', metadata: ['aggregate.id' => $orderId])
         );

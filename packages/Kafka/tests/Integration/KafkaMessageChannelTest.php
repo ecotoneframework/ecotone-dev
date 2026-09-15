@@ -74,7 +74,7 @@ final class KafkaMessageChannelTest extends TestCase
             MessageHeaders::TIMESTAMP => 123333,
         ];
 
-        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload, metadata: $metadata);
+        $messaging->sendCommandWithRouting('execute.example_command', $messagePayload, metadata: $metadata);
         /** Consumer not yet run */
         $this->assertEquals(
             [],
@@ -180,7 +180,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload);
+        $messaging->sendCommandWithRouting('execute.example_command', $messagePayload);
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
@@ -197,7 +197,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.fail', $messagePayload, metadata: [
+        $messaging->sendCommandWithRouting('execute.fail', $messagePayload, metadata: [
             'failCount' => 1,
         ]);
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 2000, failAtError: false));
@@ -216,7 +216,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.noPayload');
+        $messaging->sendCommandWithRouting('execute.noPayload');
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
@@ -231,7 +231,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.arrayPayload', $payload);
+        $messaging->sendCommandWithRouting('execute.arrayPayload', $payload);
         $this->assertCount(0, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
@@ -247,7 +247,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
+        $messaging->sendCommandWithRouting('execute.stringPayload', $payload, MediaType::APPLICATION_JSON);
 
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
 
@@ -265,7 +265,7 @@ final class KafkaMessageChannelTest extends TestCase
 
         $messaging = $this->prepareAsyncCommandHandler($channelName);
 
-        $messaging->sendCommandWithRoutingKey('execute.example_command', $messagePayload);
+        $messaging->sendCommandWithRouting('execute.example_command', $messagePayload);
         $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 4000));
 
         $this->assertEquals(

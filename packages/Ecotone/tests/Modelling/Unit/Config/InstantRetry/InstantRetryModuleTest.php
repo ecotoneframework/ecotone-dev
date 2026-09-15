@@ -39,7 +39,7 @@ final class InstantRetryModuleTest extends TestCase
         $this->assertEquals(
             4,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('retried.synchronous', 4)
+                ->sendCommandWithRouting('retried.synchronous', 4)
                 ->sendQueryWithRouting('retried.getCallCount')
         );
     }
@@ -62,7 +62,7 @@ final class InstantRetryModuleTest extends TestCase
         $this->assertEquals(
             4,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('retried.nested.sync', 4)
+                ->sendCommandWithRouting('retried.nested.sync', 4)
                 ->sendQueryWithRouting('retried.getCallCount')
         );
     }
@@ -84,7 +84,7 @@ final class InstantRetryModuleTest extends TestCase
 
         $this->expectException(RuntimeException::class);
 
-        $ecotoneLite->sendCommandWithRoutingKey('retried.synchronous', 4);
+        $ecotoneLite->sendCommandWithRouting('retried.synchronous', 4);
     }
 
     public function test_retrying_with_command_bus_for_concrete_exception()
@@ -105,7 +105,7 @@ final class InstantRetryModuleTest extends TestCase
         $this->assertEquals(
             4,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('retried.synchronous', 4)
+                ->sendCommandWithRouting('retried.synchronous', 4)
                 ->sendQueryWithRouting('retried.getCallCount')
         );
     }
@@ -127,7 +127,7 @@ final class InstantRetryModuleTest extends TestCase
 
         $exceptionThrown = false;
         try {
-            $ecotoneLite->sendCommandWithRoutingKey('retried.synchronous', 2);
+            $ecotoneLite->sendCommandWithRouting('retried.synchronous', 2);
         } catch (RuntimeException $e) {
             $exceptionThrown = true;
             $this->assertInstanceOf(RuntimeException::class, $e);
@@ -159,7 +159,7 @@ final class InstantRetryModuleTest extends TestCase
         $this->assertEquals(
             4,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('retried.asynchronous', 4)
+                ->sendCommandWithRouting('retried.asynchronous', 4)
                 ->run('async', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup())
                 ->sendQueryWithRouting('retried.getCallCount')
         );
@@ -185,7 +185,7 @@ final class InstantRetryModuleTest extends TestCase
         $this->assertEquals(
             4,
             $ecotoneLite
-                ->sendCommandWithRoutingKey('retried.nested.async', 4)
+                ->sendCommandWithRouting('retried.nested.async', 4)
                 ->run('async', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup())
                 ->sendQueryWithRouting('retried.getCallCount')
         );
@@ -210,7 +210,7 @@ final class InstantRetryModuleTest extends TestCase
         $this->expectException(RuntimeException::class);
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('retried.asynchronous', 4)
+            ->sendCommandWithRouting('retried.asynchronous', 4)
             ->run('async', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
     }
 
@@ -229,7 +229,7 @@ final class InstantRetryModuleTest extends TestCase
                 ])
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('interceptor.after.retry', 3);
+        $ecotoneLite->sendCommandWithRouting('interceptor.after.retry', 3);
 
         $this->assertEquals(
             [
@@ -264,7 +264,7 @@ final class InstantRetryModuleTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('interceptor.after.retry.async', 3)
+            ->sendCommandWithRouting('interceptor.after.retry.async', 3)
             ->run('async', ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
 
         $this->assertEquals(

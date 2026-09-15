@@ -41,11 +41,11 @@ final class NestedDbalTransactionTest extends DbalMessagingTestCase
         );
 
         // Prepare schema
-        $ecotone->sendCommandWithRoutingKey('nested.prepare');
+        $ecotone->sendCommandWithRouting('nested.prepare');
         $logger->reset();
 
         // Execute nested call: outer sends inner; both should be within a single DBAL transaction
-        $ecotone->sendCommandWithRoutingKey('nested.outer');
+        $ecotone->sendCommandWithRouting('nested.outer');
 
         // Exactly one transaction should be started and committed
         self::assertSame(1, $logger->getStartedCount(), 'Expected only one DB transaction to start for nested command bus calls');

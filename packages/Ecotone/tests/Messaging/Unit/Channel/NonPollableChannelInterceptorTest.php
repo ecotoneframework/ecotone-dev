@@ -33,7 +33,7 @@ final class NonPollableChannelInterceptorTest extends TestCase
                 ])
         );
 
-        $ecotone->sendCommandWithRoutingKey(DirectChannelService::TRIGGER_ROUTING_KEY, 'first');
+        $ecotone->sendCommandWithRouting(DirectChannelService::TRIGGER_ROUTING_KEY, 'first');
 
         $this->assertSame(['first'], $service->handledDuringCommandHandling);
         $this->assertSame('handled-first', $service->replyDuringCommandHandling);
@@ -52,7 +52,7 @@ final class NonPollableChannelInterceptorTest extends TestCase
                 ])
         );
 
-        $ecotone->sendCommandWithRoutingKey(DirectChannelService::TRIGGER_OBJECT_ROUTING_KEY, 'second');
+        $ecotone->sendCommandWithRouting(DirectChannelService::TRIGGER_OBJECT_ROUTING_KEY, 'second');
 
         $this->assertSame([DirectChannelPayload::class], $service->handledPayloadTypes);
     }

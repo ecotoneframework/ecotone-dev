@@ -65,7 +65,7 @@ final class UserTest extends TestCase
         $this->assertTrue(
             EcotoneLite::bootstrapFlowTesting([User::class])
                 ->sendCommand(new RegisterUser($userId, "johny", $email, $phoneNumber))
-                ->sendCommandWithRoutingKey("user.block", metadata: ["aggregate.id" => $userId])
+                ->sendCommandWithRouting("user.block", metadata: ["aggregate.id" => $userId])
                 ->getAggregate(User::class, $userId)
                 ->isBlocked()
         );

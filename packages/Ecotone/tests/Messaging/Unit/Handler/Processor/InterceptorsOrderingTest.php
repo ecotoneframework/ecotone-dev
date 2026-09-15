@@ -27,7 +27,7 @@ class InterceptorsOrderingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), $stack],
-        )->sendCommandWithRoutingKey('commandEndpointReturning');
+        )->sendCommandWithRouting('commandEndpointReturning');
 
         self::assertEquals(
             [
@@ -49,7 +49,7 @@ class InterceptorsOrderingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), $stack],
-        )->sendCommandWithRoutingKey('commandEndpointVoid');
+        )->sendCommandWithRouting('commandEndpointVoid');
 
         self::assertEquals(
             [
@@ -168,7 +168,7 @@ class InterceptorsOrderingTest extends TestCase
             [new InterceptorOrderingInterceptors(), $callStack],
         );
 
-        $ecotone->sendCommandWithRoutingKey('endpoint', metadata: ['aggregate.id' => 'id']);
+        $ecotone->sendCommandWithRouting('endpoint', metadata: ['aggregate.id' => 'id']);
 
         self::assertEquals(
             [
@@ -189,7 +189,7 @@ class InterceptorsOrderingTest extends TestCase
         );
 
         $callStack->reset();
-        $ecotone->sendCommandWithRoutingKey('endpoint', metadata: ['aggregate.id' => 'id']);
+        $ecotone->sendCommandWithRouting('endpoint', metadata: ['aggregate.id' => 'id']);
         self::assertEquals(
             [
                 'beforeChangeHeaders',
@@ -218,7 +218,7 @@ class InterceptorsOrderingTest extends TestCase
             ->withStateFor(new InterceptorOrderingAggregate('existingAggregateId'));
 
         $ecotone
-            ->sendCommandWithRoutingKey('actionVoid', metadata: ['aggregate.id' => 'existingAggregateId']);
+            ->sendCommandWithRouting('actionVoid', metadata: ['aggregate.id' => 'existingAggregateId']);
 
         self::assertEquals(
             [
@@ -240,7 +240,7 @@ class InterceptorsOrderingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [InterceptorOrderingCase::class, InterceptorOrderingInterceptors::class],
             [new InterceptorOrderingCase(), new InterceptorOrderingInterceptors(), $stack],
-        )->sendCommandWithRoutingKey('commandWithOutputChannel');
+        )->sendCommandWithRouting('commandWithOutputChannel');
 
         self::assertEquals(
             [
@@ -315,7 +315,7 @@ class InterceptorsOrderingTest extends TestCase
         $callStack->reset();
 
         $ecotone
-            ->sendCommandWithRoutingKey('endpointWithOutput', metadata: ['aggregate.id' => 'existingAggregateId']);
+            ->sendCommandWithRouting('endpointWithOutput', metadata: ['aggregate.id' => 'existingAggregateId']);
 
         self::assertEquals(
             [
@@ -338,7 +338,7 @@ class InterceptorsOrderingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class, OutputHandler::class],
             [new InterceptorOrderingInterceptors(), $callStack, new OutputHandler()],
-        )->sendCommandWithRoutingKey('endpointFactoryWithOutput', metadata: ['aggregate.id' => 'id']);
+        )->sendCommandWithRouting('endpointFactoryWithOutput', metadata: ['aggregate.id' => 'id']);
 
         self::assertEquals(
             [
@@ -364,7 +364,7 @@ class InterceptorsOrderingTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             [InterceptorOrderingAggregate::class, InterceptorOrderingInterceptors::class, OutputHandler::class],
             [new InterceptorOrderingInterceptors(), $callStack, new OutputHandler()],
-        )->sendCommandWithRoutingKey('endpointFactoryWithOutput', metadata: ['aggregate.id' => 'id']);
+        )->sendCommandWithRouting('endpointFactoryWithOutput', metadata: ['aggregate.id' => 'id']);
 
         self::assertEquals(
             [

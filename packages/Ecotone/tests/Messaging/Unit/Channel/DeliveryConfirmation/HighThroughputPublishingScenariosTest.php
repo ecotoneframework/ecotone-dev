@@ -35,7 +35,7 @@ final class HighThroughputPublishingScenariosTest extends TestCase
         $operationsLog = new OperationsLog();
         $ecotoneLite = $this->bootstrapEcotone($operationsLog);
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.forward', 'espresso');
+        $ecotoneLite->sendCommandWithRouting('order.forward', 'espresso');
 
         $this->assertSame(
             [
@@ -111,7 +111,7 @@ final class HighThroughputPublishingScenariosTest extends TestCase
         assert($channel instanceof MessageChannelInterceptorAdapter);
         $channel->getInternalMessageChannel()->failDeliveriesWith('broker not available');
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.place', 'espresso');
+        $ecotoneLite->sendCommandWithRouting('order.place', 'espresso');
 
         $this->assertSame('transaction committed', $operationsLog->getOperations()[count($operationsLog->getOperations()) - 1]);
 
@@ -139,7 +139,7 @@ final class HighThroughputPublishingScenariosTest extends TestCase
         assert($channel instanceof MessageChannelInterceptorAdapter);
         $channel->getInternalMessageChannel()->failDeliveriesContaining('espresso-2', 'broker rejected message');
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.place', 'espresso');
+        $ecotoneLite->sendCommandWithRouting('order.place', 'espresso');
 
         $this->assertSame('transaction committed', $operationsLog->getOperations()[count($operationsLog->getOperations()) - 1]);
 

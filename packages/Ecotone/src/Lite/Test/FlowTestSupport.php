@@ -68,7 +68,7 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function sendCommandWithRoutingKey(string $routingKey, mixed $command = [], string $commandMediaType = MediaType::APPLICATION_X_PHP, array $metadata = []): self
+    public function sendCommandWithRouting(string $routingKey, mixed $command = [], string $commandMediaType = MediaType::APPLICATION_X_PHP, array $metadata = []): self
     {
         $this->commandBus->sendWithRouting($routingKey, $command, $commandMediaType, $metadata);
 
@@ -82,7 +82,7 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function publishEventWithRoutingKey(string $routingKey, mixed $event = [], string $eventMediaType = MediaType::APPLICATION_X_PHP, array $metadata = []): self
+    public function publishEventWithRouting(string $routingKey, mixed $event = [], string $eventMediaType = MediaType::APPLICATION_X_PHP, array $metadata = []): self
     {
         $this->eventBus->publishWithRouting($routingKey, $event, $eventMediaType, $metadata);
 

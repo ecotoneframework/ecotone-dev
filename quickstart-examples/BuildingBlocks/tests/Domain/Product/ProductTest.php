@@ -71,7 +71,7 @@ final class ProductTest extends TestCase
                     new ProductWasAdded($productId, 'Wooden table', Money::EUR(1000))
                 ])
                 // send product.approve command using routing key
-                ->sendCommandWithRoutingKey("product.approve", metadata: ["aggregate.id" => $productId])
+                ->sendCommandWithRouting("product.approve", metadata: ["aggregate.id" => $productId])
                 ->popRecordedEvents()
         );
     }

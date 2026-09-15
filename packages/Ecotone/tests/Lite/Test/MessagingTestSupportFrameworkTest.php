@@ -74,7 +74,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         );
 
         $orderId = 'someId';
-        $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId));
+        $ecotoneTestSupport->sendCommandWithRouting('order.register', new PlaceOrder($orderId));
 
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
@@ -166,7 +166,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders', conversionMediaType: MediaType::createApplicationXPHPArray()))
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder('someId'));
+        $ecotoneTestSupport->sendCommandWithRouting('order.register', new PlaceOrder('someId'));
 
         $this->assertEquals(
             [['orderId' => 'someId']],
@@ -496,7 +496,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
 
         $orderId = 'someId';
         $ecotoneTestSupport->changeTimeTo(new DateTimeImmutable('2026-01-01 12:00:00'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
+        $ecotoneTestSupport->sendCommandWithRouting('order.register', new PlaceOrder($orderId), metadata: [
             MessageHeaders::DELIVERY_DELAY => TimeSpan::withHours(1),
         ]);
 
@@ -521,7 +521,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         );
 
         $orderId = 'someId';
-        $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
+        $ecotoneTestSupport->sendCommandWithRouting('order.register', new PlaceOrder($orderId), metadata: [
             MessageHeaders::DELIVERY_DELAY => $delayTime = new DateTimeImmutable('+1 hour'),
         ]);
 
@@ -546,7 +546,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         );
 
         $orderId = 'someId';
-        $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
+        $ecotoneTestSupport->sendCommandWithRouting('order.register', new PlaceOrder($orderId), metadata: [
             MessageHeaders::TIMESTAMP => ($time = new DatePoint('2020-01-01 12:00:00'))->unixTime()->inSeconds(),
             MessageHeaders::DELIVERY_DELAY => $time->modify('-1 hour'),
         ]);
@@ -566,7 +566,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         );
 
         $orderId = 'someId';
-        $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
+        $ecotoneTestSupport->sendCommandWithRouting('order.register', new PlaceOrder($orderId), metadata: [
             MessageHeaders::DELIVERY_DELAY => $delayTime = new DateTimeImmutable('+1 hour'),
         ]);
 
@@ -591,7 +591,7 @@ final class MessagingTestSupportFrameworkTest extends TestCase
         );
 
         $orderId = 'someId';
-        $ecotoneTestSupport->sendCommandWithRoutingKey('order.register', new PlaceOrder($orderId), metadata: [
+        $ecotoneTestSupport->sendCommandWithRouting('order.register', new PlaceOrder($orderId), metadata: [
             MessageHeaders::DELIVERY_DELAY => new DateTimeImmutable('+1 hour'),
         ]);
 

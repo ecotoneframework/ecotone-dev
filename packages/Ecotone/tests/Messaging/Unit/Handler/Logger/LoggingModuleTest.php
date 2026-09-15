@@ -33,7 +33,7 @@ final class LoggingModuleTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('handler.fail', ['command' => 2])
+            ->sendCommandWithRouting('handler.fail', ['command' => 2])
             ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $this->assertCount(1, $loggerExample->getCritical());
@@ -50,7 +50,7 @@ final class LoggingModuleTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('handler.fail', ['command' => 2]);
+            ->sendCommandWithRouting('handler.fail', ['command' => 2]);
         $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());

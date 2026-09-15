@@ -173,7 +173,7 @@ final class IdentifierMappingTest extends TestCase
         $this->assertEquals(
             'ongoing',
             $ecotoneLite
-                ->sendCommandWithRoutingKey('startOrder', '123')
+                ->sendCommandWithRouting('startOrder', '123')
                 ->publishEvent(new \Test\Ecotone\Modelling\Fixture\IdentifierMapping\AttributeMapping\OrderStarted(
                     '',
                     'ongoing'
@@ -258,7 +258,7 @@ final class IdentifierMappingTest extends TestCase
 
         $this->assertTrue(
             $ecotoneLite
-                ->sendCommandWithRoutingKey('ticket.closeByMetadataOverride', metadata: [
+                ->sendCommandWithRouting('ticket.closeByMetadataOverride', metadata: [
                     AggregateMessage::OVERRIDE_AGGREGATE_IDENTIFIER => '123',
                 ])
                 ->getAggregate(Ticket::class, '123')

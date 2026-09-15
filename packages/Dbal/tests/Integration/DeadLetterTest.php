@@ -54,7 +54,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 1, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
-        $this->replyAllErrorMessages($ecotone);
+        $this->replayAllErrorMessages($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
@@ -84,7 +84,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 1, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
-        $this->replyAllErrorMessages($ecotone);
+        $this->replayAllErrorMessages($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
@@ -114,7 +114,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 2, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
-        $this->replyAllErrorMessagesById($ecotone);
+        $this->replayAllErrorMessagesById($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0, ErrorConfigurationContext::CUSTOM_GATEWAY_REFERENCE_NAME);
 
@@ -170,7 +170,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->assertErrorMessageCount($ecotone, 2);
         self::assertEquals(0, $doubleEventHandler->successfulCalls);
 
-        $this->replyAllErrorMessagesById($ecotone);
+        $this->replayAllErrorMessagesById($ecotone);
         $this->assertErrorMessageCount($ecotone, 0);
 
         $ecotone->run('async');
@@ -266,7 +266,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->assertSame([], $handler->processedPayloads);
 
         $handler->shouldFail = false;
-        $this->replyAllErrorMessages($ecotone);
+        $this->replayAllErrorMessages($ecotone);
 
         $this->assertErrorMessageCount($ecotone, 0);
         $this->assertSame(2, $handler->invocations, 'replyAll() must synchronously re-invoke the handler via MessagingEntrypoint — no second run() needed');
@@ -302,16 +302,16 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $gateway->delete(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
-    private function replyAllErrorMessagesById(FlowTestSupport $ecotone): void
+    private function replayAllErrorMessagesById(FlowTestSupport $ecotone): void
     {
         $gateway = $ecotone->getGateway(DeadLetterGateway::class);
 
-        $gateway->reply(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
+        $gateway->replay(array_map(fn (ErrorContext $errorContext) => $errorContext->getMessageId(), $gateway->list(100, 0)));
     }
 
-    private function replyAllErrorMessages(FlowTestSupport $ecotone): void
+    private function replayAllErrorMessages(FlowTestSupport $ecotone): void
     {
-        $ecotone->getGateway(DeadLetterGateway::class)->replyAll();
+        $ecotone->getGateway(DeadLetterGateway::class)->replayAll();
     }
 
     private function bootstrapEcotone(array $namespaces, array $services = [], array $extensionObjects = [], ?OrderService $orderService = null): FlowTestSupport

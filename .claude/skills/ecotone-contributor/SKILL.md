@@ -50,7 +50,7 @@ public function test_placing_order_publishes_event(): void
         }],
     );
 
-    $ecotoneLite->sendCommandWithRoutingKey('placeOrder', metadata: ['orderId' => '123', 'product' => 'Book']);
+    $ecotoneLite->sendCommandWithRouting('placeOrder', metadata: ['orderId' => '123', 'product' => 'Book']);
 
     $this->assertSame(
         'Book',

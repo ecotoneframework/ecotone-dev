@@ -29,7 +29,7 @@ final class DistributedDeadLetterTest extends AmqpMessagingTestCase
         $ticketService->run('ticket_service');
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_ERROR_TICKETS_COUNT));
 
-        $userService->sendCommandWithRoutingKey(UserService::CHANGE_BILLING_DETAILS, 'user_service');
+        $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'user_service');
 
         $ticketService->run('ticket_service');
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_ERROR_TICKETS_COUNT));

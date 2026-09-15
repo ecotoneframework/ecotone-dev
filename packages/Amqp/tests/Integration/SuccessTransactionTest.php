@@ -32,7 +32,7 @@ final class SuccessTransactionTest extends AmqpMessagingTestCase
         self::assertEquals(
             'window',
             $ecotone
-                ->sendCommandWithRoutingKey('order.register', 'window')
+                ->sendCommandWithRouting('order.register', 'window')
                 ->run('placeOrderEndpoint')
                 ->sendQueryWithRouting('order.getOrder')
         );

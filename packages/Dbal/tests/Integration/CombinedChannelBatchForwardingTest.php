@@ -72,9 +72,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -116,9 +116,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
         $this->assertNull($messaging->getMessageChannel('outbox')->receive());
@@ -152,9 +152,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -187,7 +187,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
         );
 
         for ($messageNumber = 0; $messageNumber < 300; $messageNumber++) {
-            $messaging->sendCommandWithRoutingKey('order.register', 'order-' . $messageNumber);
+            $messaging->sendCommandWithRouting('order.register', 'order-' . $messageNumber);
         }
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, maxExecutionTimeInMilliseconds: 30000));
@@ -279,9 +279,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 ]),
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -322,10 +322,10 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.registerStandard', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.registerStandard', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.registerPriority', 'flat white');
-        $messaging->sendCommandWithRoutingKey('order.registerPriority', 'cortado');
+        $messaging->sendCommandWithRouting('order.registerStandard', 'espresso');
+        $messaging->sendCommandWithRouting('order.registerStandard', 'latte');
+        $messaging->sendCommandWithRouting('order.registerPriority', 'flat white');
+        $messaging->sendCommandWithRouting('order.registerPriority', 'cortado');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -371,8 +371,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
 
         $messaging->run('orders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -413,9 +413,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.registerStandard', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.registerPriority', 'flat white');
-        $messaging->sendCommandWithRoutingKey('order.registerStandard', 'latte');
+        $messaging->sendCommandWithRouting('order.registerStandard', 'espresso');
+        $messaging->sendCommandWithRouting('order.registerPriority', 'flat white');
+        $messaging->sendCommandWithRouting('order.registerStandard', 'latte');
 
         $messaging->run('sharedOutboxPublisher', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -449,9 +449,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -489,7 +489,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
 
         $startedAt = microtime(true);
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 10000));
@@ -528,9 +528,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -567,9 +567,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $consumerStopped = false;
         try {
@@ -659,8 +659,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
 
-            $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-            $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+            $messaging->sendCommandWithRouting('order.register', 'espresso');
+            $messaging->sendCommandWithRouting('order.register', 'latte');
 
             $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -785,9 +785,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -818,9 +818,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
@@ -859,8 +859,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 licenceKey: LicenceTesting::VALID_LICENCE,
             );
 
-            $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-            $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+            $messaging->sendCommandWithRouting('order.register', 'espresso');
+            $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
             $messaging->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
 
@@ -902,8 +902,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $consumerStopped = false;
         try {
@@ -940,8 +940,8 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
 
         $this->claimSingleOutboxRowAsAnotherProcess('outbox', claimValidForSeconds: 3600);
         $messaging->run('outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
@@ -977,9 +977,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
     {
         $messaging = $this->bootstrapWithFailingTargetInterceptor(RuntimeException::class);
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
 
@@ -995,9 +995,9 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
     {
         $messaging = $this->bootstrapWithFailingTargetInterceptor(ConnectionException::class);
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso');
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte');
-        $messaging->sendCommandWithRoutingKey('order.register', 'cappuccino');
+        $messaging->sendCommandWithRouting('order.register', 'espresso');
+        $messaging->sendCommandWithRouting('order.register', 'latte');
+        $messaging->sendCommandWithRouting('order.register', 'cappuccino');
 
         try {
             $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));

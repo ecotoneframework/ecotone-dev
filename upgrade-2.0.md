@@ -593,6 +593,21 @@ rename test-support methods without aliases; the renamed methods are listed in e
   **How to adapt:** replace `getRecorded` with `popRecorded` (and `getRecordedEcotoneMessagesFrom` with
   `popRecordedMessagesFrom`); a `sed -i 's/getRecorded/popRecorded/g'` over the test suite covers it. If an aggregate
   declares its own events method, keep it: the `#[AggregateEvents]` attribute, not the name, is what Ecotone looks for.
+- **One naming rule for routing and dead-letter replay.** `FlowTestSupport` had `sendCommandWithRoutingKey()` and
+  `publishEventWithRoutingKey()` next to `sendQueryWithRouting()`, while the buses use `sendWithRouting()`. The dead
+  letter gateway had `reply()`/`replyAll()` while its console commands are `ecotone:deadletter:replay`/`replayAll`.
+
+  | 1.x / early 2.0 | 2.0 |
+  |---|---|
+  | `FlowTestSupport::sendCommandWithRoutingKey()` | `sendCommandWithRouting()` |
+  | `FlowTestSupport::publishEventWithRoutingKey()` | `publishEventWithRouting()` |
+  | `DeadLetterGateway::reply($messageId)` | `DeadLetterGateway::replay($messageId)` |
+  | `DeadLetterGateway::replyAll()` | `DeadLetterGateway::replayAll()` |
+  | `DbalDeadLetterBuilder::createReply()` / `createReplyAll()` | `createReplay()` / `createReplayAll()` |
+
+  The internal dead-letter channels are renamed with them (`ecotone.dbal.deadletter.replay`, `…replayAll`); console
+  command names are unchanged. **How to adapt:** rename the calls, e.g.
+  `sed -i 's/WithRoutingKey(/WithRouting(/g; s/->reply(/->replay(/g; s/->replyAll(/->replayAll(/g'`.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

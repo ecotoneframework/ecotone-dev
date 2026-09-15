@@ -128,7 +128,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
 
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
-        $userService->sendCommandWithRoutingKey(UserService::CHANGE_BILLING_DETAILS, 'change details');
+        $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'change details');
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
         $ticketService->run($sharedQueueChannel->getMessageChannelName(), ExecutionPollingMetadata::createWithTestingSetup());
@@ -157,7 +157,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             ]
         );
 
-        $userService->sendCommandWithRoutingKey(UserService::CHANGE_BILLING_DETAILS, 'change details');
+        $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'change details');
     }
 
     public function test_failing_on_distribution_to_not_existing_message_channel_service(): void

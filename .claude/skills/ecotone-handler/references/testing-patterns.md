@@ -33,7 +33,7 @@ public function test_command_handler_with_routing_key(): void
         [new OrderService()],
     );
 
-    $ecotone->sendCommandWithRoutingKey('order.place', ['orderId' => '123']);
+    $ecotone->sendCommandWithRouting('order.place', ['orderId' => '123']);
 
     $this->assertEquals('123', $ecotone->sendQueryWithRouting('order.get', metadata: ['aggregate.id' => '123']));
 }

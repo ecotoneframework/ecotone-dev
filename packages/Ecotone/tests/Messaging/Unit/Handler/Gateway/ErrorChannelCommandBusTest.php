@@ -140,7 +140,7 @@ final class ErrorChannelCommandBusTest extends TestCase
 
         $thrown = null;
         try {
-            $ecotoneLite->sendCommandWithRoutingKey('handler.level.error.channel.test', 'payload');
+            $ecotoneLite->sendCommandWithRouting('handler.level.error.channel.test', 'payload');
         } catch (RuntimeException $exception) {
             $thrown = $exception;
         }

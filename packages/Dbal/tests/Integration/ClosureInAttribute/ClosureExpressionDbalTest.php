@@ -47,11 +47,11 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('closureDedup.handle', 'test', metadata: ['orderId' => 'order-123']);
-        $ecotoneLite->sendCommandWithRoutingKey('closureDedup.handle', 'test', metadata: ['orderId' => 'order-123']);
+        $ecotoneLite->sendCommandWithRouting('closureDedup.handle', 'test', metadata: ['orderId' => 'order-123']);
+        $ecotoneLite->sendCommandWithRouting('closureDedup.handle', 'test', metadata: ['orderId' => 'order-123']);
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('closureDedup.getCallCount'));
 
-        $ecotoneLite->sendCommandWithRoutingKey('closureDedup.handle', 'test', metadata: ['orderId' => 'order-456']);
+        $ecotoneLite->sendCommandWithRouting('closureDedup.handle', 'test', metadata: ['orderId' => 'order-456']);
         $this->assertEquals(2, $ecotoneLite->sendQueryWithRouting('closureDedup.getCallCount'));
     }
 
@@ -67,8 +67,8 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('policyDedup.perCustomer', 'test', metadata: ['customerId' => 'customer-1', 'orderId' => 'order-1']);
-        $ecotoneLite->sendCommandWithRoutingKey('policyDedup.perCustomer', 'test', metadata: ['customerId' => 'customer-1', 'orderId' => 'order-2']);
+        $ecotoneLite->sendCommandWithRouting('policyDedup.perCustomer', 'test', metadata: ['customerId' => 'customer-1', 'orderId' => 'order-1']);
+        $ecotoneLite->sendCommandWithRouting('policyDedup.perCustomer', 'test', metadata: ['customerId' => 'customer-1', 'orderId' => 'order-2']);
 
         $this->assertSame(
             ['order-1'],
@@ -76,8 +76,8 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
             'DedupPolicy with customer scope was injected into closure, so both orders of same customer deduplicate to one'
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('policyDedup.perOrder', 'test', metadata: ['customerId' => 'customer-2', 'orderId' => 'order-3']);
-        $ecotoneLite->sendCommandWithRoutingKey('policyDedup.perOrder', 'test', metadata: ['customerId' => 'customer-2', 'orderId' => 'order-4']);
+        $ecotoneLite->sendCommandWithRouting('policyDedup.perOrder', 'test', metadata: ['customerId' => 'customer-2', 'orderId' => 'order-3']);
+        $ecotoneLite->sendCommandWithRouting('policyDedup.perOrder', 'test', metadata: ['customerId' => 'customer-2', 'orderId' => 'order-4']);
 
         $this->assertSame(
             ['order-3', 'order-4'],

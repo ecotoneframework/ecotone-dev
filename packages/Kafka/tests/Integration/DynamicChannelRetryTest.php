@@ -59,7 +59,7 @@ final class DynamicChannelRetryTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.dynamic', 'test_message');
+        $ecotoneTestSupport->sendCommandWithRouting('execute.dynamic', 'test_message');
 
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,

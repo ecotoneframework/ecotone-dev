@@ -63,9 +63,9 @@ public static function bootstrapFlowTesting(
 | Method | Description |
 |--------|-------------|
 | `sendCommand(object $command, array $metadata = [])` | Send command object |
-| `sendCommandWithRoutingKey(string $routingKey, mixed $command = [], ...)` | Send command by routing key |
+| `sendCommandWithRouting(string $routingKey, mixed $command = [], ...)` | Send command by routing key |
 | `publishEvent(object $event, array $metadata = [])` | Publish event object |
-| `publishEventWithRoutingKey(string $routingKey, mixed $event = [], ...)` | Publish event by routing key |
+| `publishEventWithRouting(string $routingKey, mixed $event = [], ...)` | Publish event by routing key |
 | `sendQuery(object $query, array $metadata = [], ...)` | Send query, returns result |
 | `sendQueryWithRouting(string $routingKey, mixed $query = [], ...)` | Send query by routing key |
 | `sendDirectToChannel(string $channel, mixed $payload = '', array $metadata = [])` | Send directly to channel |

@@ -65,9 +65,9 @@ class DbalDeadLetterConsoleCommand
         );
     }
 
-    public function reply(DeadLetterGateway $deadLetterGateway, string $messageId): void
+    public function replay(DeadLetterGateway $deadLetterGateway, string $messageId): void
     {
-        $deadLetterGateway->reply($messageId);
+        $deadLetterGateway->replay($messageId);
     }
 
     public function delete(DeadLetterGateway $deadLetterGateway, string $messageId): void
@@ -75,9 +75,9 @@ class DbalDeadLetterConsoleCommand
         $deadLetterGateway->delete($messageId);
     }
 
-    public function replyAll(DeadLetterGateway $deadLetterGateway): void
+    public function replayAll(DeadLetterGateway $deadLetterGateway): void
     {
-        $deadLetterGateway->replyAll();
+        $deadLetterGateway->replayAll();
     }
 
     private function convertTimestampToReadableFormat(int $timestamp)

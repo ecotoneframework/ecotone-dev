@@ -82,7 +82,7 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
 
         $this->expectException(PublishingFailedException::class);
 
-        $messaging->sendCommandWithRoutingKey('order.placeAllBatches', 'espresso');
+        $messaging->sendCommandWithRouting('order.placeAllBatches', 'espresso');
     }
 
     private function bootstrapPublisher(string $queueName): FlowTestSupport

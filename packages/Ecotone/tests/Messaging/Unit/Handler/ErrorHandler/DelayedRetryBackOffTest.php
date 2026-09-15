@@ -52,7 +52,7 @@ final class DelayedRetryBackOffTest extends TestCase
                 ]),
         );
 
-        $ecotone->publishEventWithRoutingKey('order.completed', 'order-1');
+        $ecotone->publishEventWithRouting('order.completed', 'order-1');
         $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $this->assertSame(4, $sender->attempts);
@@ -77,7 +77,7 @@ final class DelayedRetryBackOffTest extends TestCase
         $logger = StubLogger::create();
         $ecotone = $this->bootstrapAlwaysFailingSender($logger, deadLetter: true);
 
-        $ecotone->publishEventWithRoutingKey('order.completed', 'order-1');
+        $ecotone->publishEventWithRouting('order.completed', 'order-1');
         $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $deadLetterLines = array_values(array_filter($logger->getError(), fn (string $line) => str_contains($line, 'dead letter')));
@@ -89,7 +89,7 @@ final class DelayedRetryBackOffTest extends TestCase
     {
         $ecotone = $this->bootstrapAlwaysFailingSender(StubLogger::create(), deadLetter: false, maxRetries: 1);
 
-        $ecotone->publishEventWithRoutingKey('order.completed', 'order-1');
+        $ecotone->publishEventWithRouting('order.completed', 'order-1');
 
         $this->expectException(MessageHandlingException::class);
         $this->expectExceptionMessage('Message handling failed after 2 failed deliveries (1 initial + 1 retry). SMTP connection refused');

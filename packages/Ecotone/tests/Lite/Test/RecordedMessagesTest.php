@@ -24,12 +24,12 @@ final class RecordedMessagesTest extends TestCase
         $handler = $this->orderHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
 
-        $ecotone->sendCommandWithRoutingKey('order.place', 'order-1');
+        $ecotone->sendCommandWithRouting('order.place', 'order-1');
 
         $this->assertEquals([new OrderWasPlaced('order-1'), (object) ['notification' => 'order-1']], $ecotone->popRecordedEvents());
         $this->assertSame([], $ecotone->popRecordedEvents());
 
-        $ecotone->sendCommandWithRoutingKey('order.place', 'order-2');
+        $ecotone->sendCommandWithRouting('order.place', 'order-2');
 
         $this->assertEquals([new OrderWasPlaced('order-2'), (object) ['notification' => 'order-2']], $ecotone->popRecordedEvents());
     }
@@ -39,7 +39,7 @@ final class RecordedMessagesTest extends TestCase
         $handler = $this->orderHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
 
-        $ecotone->sendCommandWithRoutingKey('order.place', 'order-1');
+        $ecotone->sendCommandWithRouting('order.place', 'order-1');
 
         $this->assertEquals([new OrderWasPlaced('order-1')], $ecotone->popRecordedEventsOfType(OrderWasPlaced::class));
         $this->assertSame([], $ecotone->popRecordedEventsOfType(OrderWasPlaced::class));
@@ -51,7 +51,7 @@ final class RecordedMessagesTest extends TestCase
         $handler = $this->orderHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting([$handler::class], [$handler]);
 
-        $ecotone->sendCommandWithRoutingKey('order.place', 'order-1');
+        $ecotone->sendCommandWithRouting('order.place', 'order-1');
 
         $this->assertEquals([new PlaceOrder('order-1')], $ecotone->popRecordedCommandsOfType(PlaceOrder::class));
         $this->assertSame(['order-1'], $ecotone->popRecordedCommands());

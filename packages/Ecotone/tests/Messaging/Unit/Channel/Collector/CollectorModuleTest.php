@@ -127,14 +127,14 @@ final class CollectorModuleTest extends TestCase
         );
 
         try {
-            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
+            $ecotoneLite->sendCommandWithRouting('makeBet', true);
         } catch (RuntimeException) {
         }
 
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No message should not be sent due to exception');
 
         /** Previous messages should be cleared and not resent */
-        $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);
+        $ecotoneLite->sendCommandWithRouting('makeBet', false);
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
     }
@@ -151,7 +151,7 @@ final class CollectorModuleTest extends TestCase
         );
 
         try {
-            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
+            $ecotoneLite->sendCommandWithRouting('makeBet', true);
         } catch (RuntimeException) {
         }
 
@@ -173,13 +173,13 @@ final class CollectorModuleTest extends TestCase
             ]
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', true);
+        $ecotoneLite->sendCommandWithRouting('asyncMakeBet', true);
         $ecotoneLite->run('bets');
         $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive(), 'Message should be sent due to error channel');
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No message should not be sent due to exception');
 
         /** Previous messages should be cleared and not resent */
-        $ecotoneLite->sendCommandWithRoutingKey('asyncMakeBet', false);
+        $ecotoneLite->sendCommandWithRouting('asyncMakeBet', false);
         $ecotoneLite->run('bets');
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
@@ -197,14 +197,14 @@ final class CollectorModuleTest extends TestCase
         );
 
         try {
-            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
+            $ecotoneLite->sendCommandWithRouting('makeBet', true);
         } catch (RuntimeException) {
         }
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
 
         /** Previous messages should be cleared and not resent */
-        $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);
+        $ecotoneLite->sendCommandWithRouting('makeBet', false);
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
     }
@@ -221,14 +221,14 @@ final class CollectorModuleTest extends TestCase
         );
 
         try {
-            $ecotoneLite->sendCommandWithRoutingKey('makeBet', true);
+            $ecotoneLite->sendCommandWithRouting('makeBet', true);
         } catch (RuntimeException) {
         }
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
 
         /** Previous messages should be cleared and not resent */
-        $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);
+        $ecotoneLite->sendCommandWithRouting('makeBet', false);
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
     }
@@ -248,7 +248,7 @@ final class CollectorModuleTest extends TestCase
             ]
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);
+        $ecotoneLite->sendCommandWithRouting('makeBet', false);
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
@@ -268,14 +268,14 @@ final class CollectorModuleTest extends TestCase
         );
 
         try {
-            $ecotoneLite->sendCommandWithRoutingKey('makeBlindBet', true);
+            $ecotoneLite->sendCommandWithRouting('makeBlindBet', true);
         } catch (RuntimeException) {
         }
 
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was collected');
 
         /** Previous messages should be cleared and not resent */
-        $ecotoneLite->sendCommandWithRoutingKey('makeBlindBet', false);
+        $ecotoneLite->sendCommandWithRouting('makeBlindBet', false);
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
         $this->assertNull($ecotoneLite->getMessageChannel('bets')->receive(), 'No more messages should be collected');
     }
@@ -308,7 +308,7 @@ final class CollectorModuleTest extends TestCase
             [PollableChannelConfiguration::createWithDefaults('bets')->withCollector(true)]
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('makeBet', false);
+        $ecotoneLite->sendCommandWithRouting('makeBet', false);
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('bets')->receive(), 'Message was not collected');
     }
@@ -333,7 +333,7 @@ final class CollectorModuleTest extends TestCase
 
         try {
             $ecotoneLite
-                ->sendCommandWithRoutingKey('makeBet', false);
+                ->sendCommandWithRouting('makeBet', false);
         } catch (ConversionException) {
         }
 

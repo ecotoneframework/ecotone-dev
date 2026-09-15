@@ -42,7 +42,7 @@ class EndpointHeadersInterceptorTest extends TestCase
         );
 
         $headers = $ecotoneLite
-            ->sendCommandWithRoutingKey('addHeaders', metadata: [
+            ->sendCommandWithRouting('addHeaders', metadata: [
                 'user' => '1233',
             ])
             ->popRecordedMessagesFrom('async')[0]->getHeaders()->headers();
@@ -72,7 +72,7 @@ class EndpointHeadersInterceptorTest extends TestCase
         $command->timeToLive = 1001;
 
         $headers = $ecotoneLite
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'addHeadersWithExpression',
                 command: $command,
                 metadata: [
@@ -106,7 +106,7 @@ class EndpointHeadersInterceptorTest extends TestCase
         $this->expectException(ConfigurationException::class);
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'addHeadersWithExpression',
                 command: $command,
                 metadata: [
@@ -135,7 +135,7 @@ class EndpointHeadersInterceptorTest extends TestCase
         $this->expectException(ConfigurationException::class);
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'addHeadersWithExpression',
                 command: $command,
                 metadata: [
@@ -158,7 +158,7 @@ class EndpointHeadersInterceptorTest extends TestCase
         );
 
         $headers = $ecotoneLite
-            ->sendCommandWithRoutingKey('keepHeaders', metadata: [
+            ->sendCommandWithRouting('keepHeaders', metadata: [
                 MessageHeaders::DELIVERY_DELAY => $deliveryDelay = 1,
                 MessageHeaders::TIME_TO_LIVE => $timeToLive = TimeSpan::withSeconds(2),
             ])
@@ -182,7 +182,7 @@ class EndpointHeadersInterceptorTest extends TestCase
         );
 
         $headers = $ecotoneLite
-            ->sendCommandWithRoutingKey('keepHeaders')
+            ->sendCommandWithRouting('keepHeaders')
             ->popRecordedMessagesFrom('async')[0]->getHeaders()->headers();
 
         $this->assertEquals(1000, $headers[MessageHeaders::DELIVERY_DELAY]);
@@ -203,7 +203,7 @@ class EndpointHeadersInterceptorTest extends TestCase
         );
 
         $headers = $ecotoneLite
-            ->sendCommandWithRoutingKey('keepDeliveryDelayHeader', metadata: [
+            ->sendCommandWithRouting('keepDeliveryDelayHeader', metadata: [
                 MessageHeaders::DELIVERY_DELAY => $deliveryDelay = 1,
             ])
             ->popRecordedMessagesFrom('async')[0]->getHeaders()->headers();
@@ -226,7 +226,7 @@ class EndpointHeadersInterceptorTest extends TestCase
         );
 
         $headers = $ecotoneLite
-            ->sendCommandWithRoutingKey('keepTtlHeader', metadata: [
+            ->sendCommandWithRouting('keepTtlHeader', metadata: [
                 MessageHeaders::TIME_TO_LIVE => $timeToLive = 1,
             ])
             ->popRecordedMessagesFrom('async')[0]->getHeaders()->headers();
@@ -253,7 +253,7 @@ class EndpointHeadersInterceptorTest extends TestCase
         $command->timeToLive = 1001;
 
         $headers = $ecotoneLite
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'addHeadersWithExpression',
                 command: $command,
                 metadata: [
@@ -280,6 +280,6 @@ class EndpointHeadersInterceptorTest extends TestCase
 
         $this->expectException(ConfigurationException::class);
 
-        $ecotoneLite->sendCommandWithRoutingKey('addHeadersWithStringDelayExpression', command: $command);
+        $ecotoneLite->sendCommandWithRouting('addHeadersWithStringDelayExpression', command: $command);
     }
 }

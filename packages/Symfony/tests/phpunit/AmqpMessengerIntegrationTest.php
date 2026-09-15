@@ -51,7 +51,7 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
 
     public function test_single_command(): void
     {
-        $this->messaging->sendCommandWithRoutingKey('amqp.test.example_command', new AmqpExampleCommand('single_1'));
+        $this->messaging->sendCommandWithRouting('amqp.test.example_command', new AmqpExampleCommand('single_1'));
         $this->assertCount(0, $this->messaging->sendQueryWithRouting('amqp.consumer.getCommands'));
 
         $this->messaging->run($this->channelName, ExecutionPollingMetadata::createWithTestingSetup());
@@ -62,8 +62,8 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
 
     public function test_multiple_commands(): void
     {
-        $this->messaging->sendCommandWithRoutingKey('amqp.test.example_command', new AmqpExampleCommand('multi_1'));
-        $this->messaging->sendCommandWithRoutingKey('amqp.test.example_command', new AmqpExampleCommand('multi_2'));
+        $this->messaging->sendCommandWithRouting('amqp.test.example_command', new AmqpExampleCommand('multi_1'));
+        $this->messaging->sendCommandWithRouting('amqp.test.example_command', new AmqpExampleCommand('multi_2'));
         /** Consumer not yet run */
         $this->assertCount(0, $this->messaging->sendQueryWithRouting('amqp.consumer.getCommands'));
 

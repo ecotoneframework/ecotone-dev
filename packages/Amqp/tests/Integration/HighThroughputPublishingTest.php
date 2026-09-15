@@ -45,7 +45,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         $orderService = $this->createOrderService($channelName);
         $messaging = $this->bootstrapEcotone($channelName, $orderService, LicenceTesting::VALID_LICENCE);
 
-        $messaging->sendCommandWithRoutingKey('order.place', 'espresso');
+        $messaging->sendCommandWithRouting('order.place', 'espresso');
 
         $this->assertSame([], $messaging->sendQueryWithRouting('order.getReceived'));
 
@@ -156,7 +156,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
         };
         $messaging = $this->bootstrapPublisherWithVerificationChannel($queueName, $commandHandler);
 
-        $messaging->sendCommandWithRoutingKey('order.placeBatch', 'espresso');
+        $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
         $verificationChannel = $messaging->getMessageChannel('verificationChannel');
         $receivedPayloads = [
@@ -226,7 +226,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.place', 'espresso');
+        $messaging->sendCommandWithRouting('order.place', 'espresso');
 
         $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 10000));
 

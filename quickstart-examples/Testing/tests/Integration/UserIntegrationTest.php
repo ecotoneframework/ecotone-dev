@@ -34,7 +34,7 @@ final class UserIntegrationTest extends TestCase
             pathToRootCatalog: __DIR__,
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey("user.register", \json_encode([
+        $ecotoneLite->sendCommandWithRouting("user.register", \json_encode([
             "userId" => "7dd60feb-c23c-4ddb-9d53-5354349becaa",
             "name" => "johny",
             "email" => "test@wp.pl",

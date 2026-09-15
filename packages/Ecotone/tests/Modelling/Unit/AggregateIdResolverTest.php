@@ -25,7 +25,7 @@ class AggregateIdResolverTest extends TestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting([ScalarIdAggregate::class]);
 
-        $ecotone->sendCommandWithRoutingKey('scalarIdAggregate.create', 123);
+        $ecotone->sendCommandWithRouting('scalarIdAggregate.create', 123);
 
         $this->assertSame(123, $ecotone->getAggregate(ScalarIdAggregate::class, 123)->getId());
     }
@@ -35,7 +35,7 @@ class AggregateIdResolverTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting([StringableIdAggregate::class]);
 
         $id = Uuid::fromString('5495ec27-c286-48fe-aed4-2548c1113c37');
-        $ecotone->sendCommandWithRoutingKey('stringableIdAggregate.create', $id);
+        $ecotone->sendCommandWithRouting('stringableIdAggregate.create', $id);
 
         $this->assertNotNull($ecotone->getAggregate(StringableIdAggregate::class, $id->toString()));
     }
@@ -45,7 +45,7 @@ class AggregateIdResolverTest extends TestCase
         $this->expectException(NoCorrectIdentifierDefinedException::class);
 
         $ecotone = EcotoneLite::bootstrapFlowTesting([ScalarIdAggregate::class]);
-        $ecotone->sendCommandWithRoutingKey('scalarIdAggregate.create', new stdClass());
+        $ecotone->sendCommandWithRouting('scalarIdAggregate.create', new stdClass());
     }
 
     public function test_throwing_exception_if_aggregate_id_is_an_array(): void
@@ -53,7 +53,7 @@ class AggregateIdResolverTest extends TestCase
         $this->expectException(NoCorrectIdentifierDefinedException::class);
 
         $ecotone = EcotoneLite::bootstrapFlowTesting([ScalarIdAggregate::class]);
-        $ecotone->sendCommandWithRoutingKey('scalarIdAggregate.create', ['johny']);
+        $ecotone->sendCommandWithRouting('scalarIdAggregate.create', ['johny']);
     }
 }
 

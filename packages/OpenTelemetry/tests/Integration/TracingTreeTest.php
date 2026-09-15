@@ -82,7 +82,7 @@ final class TracingTreeTest extends TracingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
-            ->sendCommandWithRoutingKey('handleCommand');
+            ->sendCommandWithRouting('handleCommand');
 
         self::compareTreesByDetails(
             [

@@ -68,9 +68,9 @@ final class TestClockTest extends TestCase
         $ecotone->changeTimeTo(new DateTimeImmutable('2026-03-01 13:00:00'));
 
         $ecotone
-            ->publishEventWithRoutingKey('order.placed', 'order-1')
-            ->publishEventWithRoutingKey('order.placed', 'order-2')
-            ->publishEventWithRoutingKey('order.placed', 'order-3')
+            ->publishEventWithRouting('order.placed', 'order-1')
+            ->publishEventWithRouting('order.placed', 'order-2')
+            ->publishEventWithRouting('order.placed', 'order-3')
             ->run('async');
 
         $this->assertSame(
@@ -95,7 +95,7 @@ final class TestClockTest extends TestCase
         };
         $ecotone = $this->bootstrap($handler, $clock);
         $ecotone->changeTimeTo(new DateTimeImmutable('2026-03-01 12:00:00'));
-        $ecotone->publishEventWithRoutingKey('order.placed', 'order-1');
+        $ecotone->publishEventWithRouting('order.placed', 'order-1');
 
         $ecotone->advanceTimeBy(TimeSpan::withHours(23))->run('async');
         $this->assertSame([], $handler->expired);
@@ -128,8 +128,8 @@ final class TestClockTest extends TestCase
         };
         $ecotone = $this->bootstrap($handler, new StaticPsrClock());
         $ecotone->changeTimeTo(new DateTimeImmutable('2026-03-01 12:00:00'));
-        $ecotone->publishEventWithRoutingKey('order.placed', 'order-1');
-        $ecotone->publishEventWithRoutingKey('shipping.requested', 'order-1');
+        $ecotone->publishEventWithRouting('order.placed', 'order-1');
+        $ecotone->publishEventWithRouting('shipping.requested', 'order-1');
 
         $ecotone->changeTimeTo(new DateTimeImmutable('2026-03-02 13:00:00'))->run('async');
 

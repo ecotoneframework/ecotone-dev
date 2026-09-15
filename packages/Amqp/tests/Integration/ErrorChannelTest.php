@@ -36,7 +36,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
         );
 
         $ecotone
-            ->sendCommandWithRoutingKey('order.register', 'coffee')
+            ->sendCommandWithRouting('order.register', 'coffee')
             ->run('correctOrders')
             ->run('incorrectOrdersEndpoint')
         ;
@@ -81,7 +81,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
         );
 
         $ecotone
-            ->sendCommandWithRoutingKey('order.register', 'coffee')
+            ->sendCommandWithRouting('order.register', 'coffee')
             ->run(ErrorConfigurationContext::INPUT_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(1, 1000, false));
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
@@ -124,7 +124,7 @@ final class ErrorChannelTest extends AmqpMessagingTestCase
         );
 
         $ecotone
-            ->sendCommandWithRoutingKey('order.register', 'coffee')
+            ->sendCommandWithRouting('order.register', 'coffee')
             ->run('correctOrders')
         ;
 

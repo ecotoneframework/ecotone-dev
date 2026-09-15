@@ -30,7 +30,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
     {
         $ecotone = $this->bootstrapWithGrowingDelay();
 
-        $ecotone->sendCommandWithRoutingKey(GrowingDelayHandler::ROUTING_KEY, 'payload');
+        $ecotone->sendCommandWithRouting(GrowingDelayHandler::ROUTING_KEY, 'payload');
         $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
         /** @var PollableChannel $channel */
@@ -45,7 +45,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
     {
         $ecotone = $this->bootstrapWithGrowingDelay();
 
-        $ecotone->sendCommandWithRoutingKey(GrowingDelayHandler::ROUTING_KEY, 'payload');
+        $ecotone->sendCommandWithRouting(GrowingDelayHandler::ROUTING_KEY, 'payload');
         $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
@@ -72,7 +72,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey(DeadLetterRoutingHandler::ROUTING_KEY, 'payload');
+        $ecotone->sendCommandWithRouting(DeadLetterRoutingHandler::ROUTING_KEY, 'payload');
         $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
@@ -104,7 +104,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey(NoDeadLetterHandler::ROUTING_KEY, 'payload');
+        $ecotone->sendCommandWithRouting(NoDeadLetterHandler::ROUTING_KEY, 'payload');
         $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 

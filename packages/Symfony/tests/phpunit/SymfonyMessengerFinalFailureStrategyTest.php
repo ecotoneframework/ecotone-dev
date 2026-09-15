@@ -57,8 +57,8 @@ final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
                 ])
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.fail', new ExampleCommand('some_1'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.fail', new ExampleCommand('some_2'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.fail', new ExampleCommand('some_1'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.fail', new ExampleCommand('some_2'));
         $ecotoneTestSupport->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
 
         $messageChannel = $ecotoneTestSupport->getMessageChannel($channelName);

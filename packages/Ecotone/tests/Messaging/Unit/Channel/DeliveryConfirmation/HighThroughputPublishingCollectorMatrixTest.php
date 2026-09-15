@@ -27,7 +27,7 @@ final class HighThroughputPublishingCollectorMatrixTest extends TestCase
         $operationsLog = new OperationsLog();
         $ecotoneLite = $this->bootstrapEcotone($operationsLog, collectorEnabled: false);
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.place', 'espresso');
+        $ecotoneLite->sendCommandWithRouting('order.place', 'espresso');
 
         $this->assertSame(
             [
@@ -48,7 +48,7 @@ final class HighThroughputPublishingCollectorMatrixTest extends TestCase
         foreach ([true, false] as $collectorEnabled) {
             $ecotoneLite = $this->bootstrapEcotone(new OperationsLog(), $collectorEnabled);
 
-            $ecotoneLite->sendCommandWithRoutingKey('order.place', 'espresso');
+            $ecotoneLite->sendCommandWithRouting('order.place', 'espresso');
 
             $this->assertEquals(
                 [new OrderWasPlaced('espresso-1'), new OrderWasPlaced('espresso-2')],

@@ -24,7 +24,7 @@ final class MetadataEnricherTest extends TestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting([RevisionAggregate::class]);
 
-        $ecotone->sendCommandWithRoutingKey('revisionAggregate.createWithRevisionedEvent', 'agg-1');
+        $ecotone->sendCommandWithRouting('revisionAggregate.createWithRevisionedEvent', 'agg-1');
 
         $this->assertSame(2, $ecotone->popRecordedEventHeaders()[0]->get(MessageHeaders::REVISION));
     }
@@ -33,7 +33,7 @@ final class MetadataEnricherTest extends TestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting([RevisionAggregate::class]);
 
-        $ecotone->sendCommandWithRoutingKey('revisionAggregate.createWithUnrevisionedEvent', 'agg-2');
+        $ecotone->sendCommandWithRouting('revisionAggregate.createWithUnrevisionedEvent', 'agg-2');
 
         $this->assertSame(1, $ecotone->popRecordedEventHeaders()[0]->get(MessageHeaders::REVISION));
     }

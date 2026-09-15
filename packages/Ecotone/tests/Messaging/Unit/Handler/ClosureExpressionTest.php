@@ -38,7 +38,7 @@ final class ClosureExpressionTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('notification.send', 'hello', metadata: ['token' => 'abc']);
+        $ecotoneLite->sendCommandWithRouting('notification.send', 'hello', metadata: ['token' => 'abc']);
 
         $this->assertSame([['hello', 'ABC']], $ecotoneLite->sendQueryWithRouting('notification.getNotifications'));
     }
@@ -51,7 +51,7 @@ final class ClosureExpressionTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('notification.sendWithReversedToken', 'hello', metadata: ['token' => 'abc']);
+        $ecotoneLite->sendCommandWithRouting('notification.sendWithReversedToken', 'hello', metadata: ['token' => 'abc']);
 
         $this->assertSame([['hello', 'cba']], $ecotoneLite->sendQueryWithRouting('notification.getNotifications'));
     }
@@ -64,7 +64,7 @@ final class ClosureExpressionTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.total', ['items' => [100, 250]], metadata: ['fee' => 50]);
+        $ecotoneLite->sendCommandWithRouting('order.total', ['items' => [100, 250]], metadata: ['fee' => 50]);
 
         $this->assertSame(400, $ecotoneLite->sendQueryWithRouting('order.getTotal'));
     }
@@ -90,7 +90,7 @@ final class ClosureExpressionTest extends TestCase
         );
 
         $headers = $ecotoneLite
-            ->sendCommandWithRoutingKey('notification.delayed', new DelayCommand(1234))
+            ->sendCommandWithRouting('notification.delayed', new DelayCommand(1234))
             ->popRecordedMessagesFrom('async')[0]->getHeaders()->headers();
 
         $this->assertSame(1234, $headers[MessageHeaders::DELIVERY_DELAY]);
@@ -120,7 +120,7 @@ final class ClosureExpressionTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('placeOrderWithClosureFetch', new PlaceOrder('order-1', 'user-1', 'Laptop'));
+        $ecotoneLite->sendCommandWithRouting('placeOrderWithClosureFetch', new PlaceOrder('order-1', 'user-1', 'Laptop'));
 
         $this->assertSame(
             ['orderId' => 'order-1', 'userId' => 'user-1', 'userName' => 'John Doe'],

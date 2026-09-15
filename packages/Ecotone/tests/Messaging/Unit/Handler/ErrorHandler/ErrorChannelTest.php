@@ -40,7 +40,7 @@ final class ErrorChannelTest extends TestCase
         );
 
         $ecotone
-            ->sendCommandWithRoutingKey('order.register', 'coffee')
+            ->sendCommandWithRouting('order.register', 'coffee')
             ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
         ;
 
@@ -81,7 +81,7 @@ final class ErrorChannelTest extends TestCase
         );
 
         $ecotone
-            ->sendCommandWithRoutingKey('order.register', 'coffee')
+            ->sendCommandWithRouting('order.register', 'coffee')
             ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
         ;
 
@@ -127,7 +127,7 @@ final class ErrorChannelTest extends TestCase
         );
 
         $ecotone
-            ->sendCommandWithRoutingKey('order.register', 'coffee')
+            ->sendCommandWithRouting('order.register', 'coffee')
             ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
         ;
 
@@ -233,7 +233,7 @@ final class ErrorChannelTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey(AsyncFailingHandler::ROUTING_KEY_A, 'payload-a');
+        $ecotone->sendCommandWithRouting(AsyncFailingHandler::ROUTING_KEY_A, 'payload-a');
         $ecotone->run(AsyncFailingHandler::SHARED_ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,
             failAtError: false,
@@ -264,8 +264,8 @@ final class ErrorChannelTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey(AsyncFailingHandler::ROUTING_KEY_A, 'payload-a');
-        $ecotone->sendCommandWithRoutingKey(AsyncFailingHandler::ROUTING_KEY_B, 'payload-b');
+        $ecotone->sendCommandWithRouting(AsyncFailingHandler::ROUTING_KEY_A, 'payload-a');
+        $ecotone->sendCommandWithRouting(AsyncFailingHandler::ROUTING_KEY_B, 'payload-b');
 
         $ecotone->run(AsyncFailingHandler::SHARED_ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 2,
@@ -303,7 +303,7 @@ final class ErrorChannelTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey(AsyncFailingHandler::ROUTING_KEY_A, 'payload-a');
+        $ecotone->sendCommandWithRouting(AsyncFailingHandler::ROUTING_KEY_A, 'payload-a');
         $ecotone->run(AsyncFailingHandler::SHARED_ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,
             failAtError: false,
@@ -333,7 +333,7 @@ final class ErrorChannelTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey(DelayedRetryHandler::ROUTING_KEY_RECOVERS, 'payload');
+        $ecotone->sendCommandWithRouting(DelayedRetryHandler::ROUTING_KEY_RECOVERS, 'payload');
 
         $ecotone->run(DelayedRetryHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
             amountOfMessagesToHandle: 1,
@@ -366,7 +366,7 @@ final class ErrorChannelTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey(DelayedRetryHandler::ROUTING_KEY_DEAD_LETTER, 'payload');
+        $ecotone->sendCommandWithRouting(DelayedRetryHandler::ROUTING_KEY_DEAD_LETTER, 'payload');
 
         for ($i = 0; $i < 3; $i++) {
             $ecotone->run(DelayedRetryHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
@@ -401,7 +401,7 @@ final class ErrorChannelTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey(DelayedRetryHandler::ROUTING_KEY_OVERRIDE, 'payload');
+        $ecotone->sendCommandWithRouting(DelayedRetryHandler::ROUTING_KEY_OVERRIDE, 'payload');
 
         for ($i = 0; $i < 2; $i++) {
             $ecotone->run(DelayedRetryHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(

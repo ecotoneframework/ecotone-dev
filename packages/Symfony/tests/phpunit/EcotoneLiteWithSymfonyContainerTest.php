@@ -41,7 +41,7 @@ final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
         );
 
         $userId = '123';
-        $ecotoneTestSupport->sendCommandWithRoutingKey('user.register', $userId);
+        $ecotoneTestSupport->sendCommandWithRouting('user.register', $userId);
 
         /** @var UserRepository $userRepository */
         $userRepository = $ecotoneTestSupport->getGateway(UserRepository::class);
@@ -63,7 +63,7 @@ final class EcotoneLiteWithSymfonyContainerTest extends KernelTestCase
         $this->assertEquals(
             $amount,
             $ecotoneTestSupport
-                ->sendCommandWithRoutingKey('setAmount', ['amount' => $amount])
+                ->sendCommandWithRouting('setAmount', ['amount' => $amount])
                 ->sendQueryWithRouting('getAmount')
         );
         ;

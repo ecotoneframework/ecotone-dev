@@ -134,7 +134,7 @@ final class MessageBusTest extends TestCase
                 'lowerPriorityHandler',
             ],
             $ecotoneTestSupport
-                ->sendCommandWithRoutingKey('setup', 1)
+                ->sendCommandWithRouting('setup', 1)
                 ->sendQueryWithRouting('getTriggers')
         );
     }
@@ -156,7 +156,7 @@ final class MessageBusTest extends TestCase
                 'lowerPriorityHandler',
             ],
             $ecotoneTestSupport
-                ->sendCommandWithRoutingKey('setup', 1)
+                ->sendCommandWithRouting('setup', 1)
                 ->sendQueryWithRouting('getTriggers')
         );
     }
@@ -188,7 +188,7 @@ final class MessageBusTest extends TestCase
             ServiceConfiguration::createWithDefaults()->withModulePackages([])
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('outboxWithMultipleChannels', 1);
+        $ecotoneLite->sendCommandWithRouting('outboxWithMultipleChannels', 1);
         $this->assertEquals(
             0,
             $ecotoneLite->sendQueryWithRouting('getResult')
@@ -217,7 +217,7 @@ final class MessageBusTest extends TestCase
             ServiceConfiguration::createWithDefaults()->withModulePackages([])
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('outboxWithCombinedChannels', 1);
+        $ecotoneLite->sendCommandWithRouting('outboxWithCombinedChannels', 1);
         $this->assertEquals(
             0,
             $ecotoneLite->sendQueryWithRouting('getResult')
@@ -268,7 +268,7 @@ final class MessageBusTest extends TestCase
         self::assertEquals(
             [],
             $ecotoneLite
-                ->sendCommandWithRoutingKey('aggregate.create')
+                ->sendCommandWithRouting('aggregate.create')
                 ->popRecordedEvents()
         );
     }
@@ -485,7 +485,7 @@ final class MessageBusTest extends TestCase
                 ->withModulePackages([])
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('aggregate.create', 'test-id');
+        $ecotoneTestSupport->sendCommandWithRouting('aggregate.create', 'test-id');
 
         $orderEventOne = new OrderWasPlacedWithIdentifier('test-id');
         $orderEventTwo = new OrderWasRemovedWithIdentifier('test-id');
@@ -539,7 +539,7 @@ final class MessageBusTest extends TestCase
                 ->withModulePackages([])
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('aggregate.create', 'test-id');
+        $ecotoneTestSupport->sendCommandWithRouting('aggregate.create', 'test-id');
 
         $orderEventOne = new OrderWasPlacedWithIdentifierWithTarget('test-id');
         $orderEventTwo = new OrderWasRemovedWithIdentifier('test-id');

@@ -51,7 +51,7 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send a message
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.single', new TestCommand('test_message'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.single', new TestCommand('test_message'));
 
         // First run - should fail and trigger release (offset reset)
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
@@ -96,9 +96,9 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send three messages
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_1'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_2'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_3'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_1'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_2'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_3'));
 
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
@@ -136,9 +136,9 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send three messages
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_1'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_2'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_3'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_1'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_2'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_3'));
 
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
@@ -177,7 +177,7 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send a message
-        $ecotoneApp->sendCommandWithRoutingKey('execute.two_app', new TestCommand('app_test'));
+        $ecotoneApp->sendCommandWithRouting('execute.two_app', new TestCommand('app_test'));
 
         // First application run - should fail and reset offset
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
@@ -228,8 +228,8 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send two messages
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_1'));
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_2'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_1'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_2'));
 
         // First run - should process first message (fail and ignore), then process second message (succeed)
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
@@ -284,8 +284,8 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send two messages
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_1'));
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_2'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_1'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_2'));
 
         // First run - should process first message (fail and ignore), then process second message (succeed)
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(

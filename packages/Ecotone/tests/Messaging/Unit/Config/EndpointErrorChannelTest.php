@@ -34,7 +34,7 @@ final class EndpointErrorChannelTest extends TestCase
                 ]),
         );
 
-        $ecotone->sendCommandWithRoutingKey(ThrowingHandler::ROUTING_KEY, 'some');
+        $ecotone->sendCommandWithRouting(ThrowingHandler::ROUTING_KEY, 'some');
         $ecotone->run(ThrowingHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
         $this->assertNotNull($ecotone->receiveMessageFrom('appErrorChannel'));
@@ -54,7 +54,7 @@ final class EndpointErrorChannelTest extends TestCase
                 ]),
         );
 
-        $ecotone->sendCommandWithRoutingKey(ThrowingHandler::ROUTING_KEY, 'some');
+        $ecotone->sendCommandWithRouting(ThrowingHandler::ROUTING_KEY, 'some');
 
         $this->expectException(InvalidArgumentException::class);
 

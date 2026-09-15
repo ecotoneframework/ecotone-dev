@@ -33,9 +33,9 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapEcotone();
 
-        $ecotone->sendCommandWithRoutingKey(routingKey: 'placeOrder', command: 'milk', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
+        $ecotone->sendCommandWithRouting(routingKey: 'placeOrder', command: 'milk', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
         $ecotone->run(self::CHANNEL_NAME);
-        $ecotone->sendCommandWithRoutingKey(routingKey: 'placeOrder', command: 'milk', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
+        $ecotone->sendCommandWithRouting(routingKey: 'placeOrder', command: 'milk', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
         $ecotone->run(self::CHANNEL_NAME);
 
         $result = $ecotone->sendQueryWithRouting(routingKey: 'order.getRegistered');
@@ -60,9 +60,9 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapEcotone();
 
-        $ecotone->sendCommandWithRoutingKey(routingKey: 'placeOrder', command: 'milk', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
+        $ecotone->sendCommandWithRouting(routingKey: 'placeOrder', command: 'milk', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de99']);
         $ecotone->run(self::CHANNEL_NAME);
-        $ecotone->sendCommandWithRoutingKey(routingKey: 'placeOrder', command: 'cheese', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de98']);
+        $ecotone->sendCommandWithRouting(routingKey: 'placeOrder', command: 'cheese', metadata: [MessageHeaders::MESSAGE_ID => '3e84ff08-b755-4e16-b50d-94818bf9de98']);
         $ecotone->run(self::CHANNEL_NAME);
 
         $result = $ecotone->sendQueryWithRouting(routingKey: 'order.getRegistered');
@@ -77,12 +77,12 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         $sameDeduplicationKey = '3e84ff08-b755-4e16-b50d-94818bf9de99';
-        $ecotone->sendCommandWithRoutingKey(
+        $ecotone->sendCommandWithRouting(
             routingKey: 'placeOrderSynchronously1',
             command: 'milk',
             metadata: ['orderId1' => $sameDeduplicationKey]
         );
-        $ecotone->sendCommandWithRoutingKey(
+        $ecotone->sendCommandWithRouting(
             routingKey: 'placeOrderSynchronously1',
             command: 'cheese',
             metadata: ['orderId1' => $sameDeduplicationKey]
@@ -99,12 +99,12 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         $sameDeduplicationKey = '3e84ff08-b755-4e16-b50d-94818bf9de99';
-        $ecotone->sendCommandWithRoutingKey(
+        $ecotone->sendCommandWithRouting(
             routingKey: 'placeOrderSynchronously1',
             command: 'milk',
             metadata: ['orderId1' => $sameDeduplicationKey]
         );
-        $ecotone->sendCommandWithRoutingKey(
+        $ecotone->sendCommandWithRouting(
             routingKey: 'placeOrderSynchronously2',
             command: 'cheese',
             metadata: ['orderId2' => $sameDeduplicationKey]
@@ -121,12 +121,12 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         $sameDeduplicationKey = '3e84ff08-b755-4e16-b50d-94818bf9de99';
-        $ecotone->sendCommandWithRoutingKey(
+        $ecotone->sendCommandWithRouting(
             routingKey: 'placeOrderSynchronously1',
             command: 'milk',
             metadata: ['orderId1' => $sameDeduplicationKey]
         );
-        $ecotone->sendCommandWithRoutingKey(
+        $ecotone->sendCommandWithRouting(
             routingKey: 'placeOrderSynchronously3',
             command: 'cheese',
             metadata: ['orderId1' => $sameDeduplicationKey]
@@ -209,7 +209,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
         // Send command from instance 1 with transaction enabled
         // Deduplication should be inserted BEFORE handler due to transaction
-        $ecotone1->sendCommandWithRoutingKey(
+        $ecotone1->sendCommandWithRouting(
             routingKey: 'placeOrderSynchronously1',
             command: 'milk',
             metadata: ['orderId1' => $messageId]
@@ -217,7 +217,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
         // Send the same command from instance 2
         // This should be deduplicated and NOT execute the handler
-        $ecotone2->sendCommandWithRoutingKey(
+        $ecotone2->sendCommandWithRouting(
             routingKey: 'placeOrderSynchronously1',
             command: 'cheese',
             metadata: ['orderId1' => $messageId]
@@ -285,7 +285,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
         $messageId = '3e84ff08-b755-4e16-b50d-94818bf9de88';
 
         // Send command from instance 1 (handler executes FIRST, then deduplication inserted)
-        $ecotone1->sendCommandWithRoutingKey(
+        $ecotone1->sendCommandWithRouting(
             routingKey: 'placeOrderSynchronously1',
             command: 'milk',
             metadata: ['orderId1' => $messageId]
@@ -293,7 +293,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
         // Send the same command from instance 2
         // This should be deduplicated and NOT execute the handler
-        $ecotone2->sendCommandWithRoutingKey(
+        $ecotone2->sendCommandWithRouting(
             routingKey: 'placeOrderSynchronously1',
             command: 'cheese',
             metadata: ['orderId1' => $messageId]

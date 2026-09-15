@@ -218,9 +218,9 @@ final class EventStoreChannelAdapterTest extends TestCase
         );
 
         // When events are published via Event Bus (which triggers event handlers)
-        $ecotone->publishEventWithRoutingKey('ticket.registered', ['ticketId' => 'ticket-1'], metadata: [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
-        $ecotone->publishEventWithRoutingKey('ticket.registered', ['ticketId' => 'ticket-2'], metadata: [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']);
-        $ecotone->publishEventWithRoutingKey('ticket.closed', ['ticketId' => 'ticket-1'], metadata: [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEventWithRouting('ticket.registered', ['ticketId' => 'ticket-1'], metadata: [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEventWithRouting('ticket.registered', ['ticketId' => 'ticket-2'], metadata: [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']);
+        $ecotone->publishEventWithRouting('ticket.closed', ['ticketId' => 'ticket-1'], metadata: [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
 
         // Then normal event handler processes all events synchronously (event-driven by default)
         $counts = $ecotone->sendQueryWithRouting('getTicketCounts');

@@ -35,7 +35,7 @@ final class HeaderPropagationTest extends TestCase
         $correlationId = Uuid::v7()->toRfc4122();
 
         $headers = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'placeOrder',
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
@@ -57,7 +57,7 @@ final class HeaderPropagationTest extends TestCase
 
         $messageId = Uuid::v7()->toRfc4122();
         $headers = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'placeOrder',
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
@@ -78,7 +78,7 @@ final class HeaderPropagationTest extends TestCase
 
         $messageId = Uuid::v7()->toRfc4122();
         $headers = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'placeOrderAndPropagateMetadata',
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,

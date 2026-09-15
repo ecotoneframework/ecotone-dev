@@ -131,7 +131,7 @@ class ReferenceServiceConverterBuilderTest extends TestCase
         $this->expectException(MethodInvocationException::class);
         $this->expectExceptionMessage("Cannot resolve parameter 'data'");
 
-        $ecotone->sendCommandWithRoutingKey('test', $stringableObject);
+        $ecotone->sendCommandWithRouting('test', $stringableObject);
     }
 }
 

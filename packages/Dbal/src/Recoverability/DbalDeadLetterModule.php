@@ -72,8 +72,8 @@ class DbalDeadLetterModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(DbalDeadLetterConsoleCommand::class, new Definition(DbalDeadLetterConsoleCommand::class));
         $this->registerOneTimeCommand('list', self::LIST_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Lists dead letter messages');
         $this->registerOneTimeCommand('show', self::SHOW_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Shows details of given dead letter message');
-        $this->registerOneTimeCommand('reply', self::REPLAY_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays given dead letter message');
-        $this->registerOneTimeCommand('replyAll', self::REPLAY_ALL_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays all dead letter messages');
+        $this->registerOneTimeCommand('replay', self::REPLAY_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays given dead letter message');
+        $this->registerOneTimeCommand('replayAll', self::REPLAY_ALL_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Replays all dead letter messages');
         $this->registerOneTimeCommand('delete', self::DELETE_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Deletes given dead letter message');
         $this->registerOneTimeCommand('help', self::HELP_COMMAND_NAME, $messagingConfiguration, $interfaceToCallRegistry, 'Shows help for dead letter management commands');
 
@@ -125,8 +125,8 @@ class DbalDeadLetterModule implements AnnotationModule
             ->registerMessageHandler(DbalDeadLetterBuilder::createShow($referenceName, $connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createList($referenceName, $connectionFactoryReference))
             ->registerMessageHandler(DbalDeadLetterBuilder::createCount($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createReply($referenceName, $connectionFactoryReference))
-            ->registerMessageHandler(DbalDeadLetterBuilder::createReplyAll($referenceName, $connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createReplay($referenceName, $connectionFactoryReference))
+            ->registerMessageHandler(DbalDeadLetterBuilder::createReplayAll($referenceName, $connectionFactoryReference))
             ->registerGatewayBuilder(
                 GatewayProxyBuilder::create(
                     $referenceName,
@@ -167,7 +167,7 @@ class DbalDeadLetterModule implements AnnotationModule
                 GatewayProxyBuilder::create(
                     $referenceName,
                     DeadLetterGateway::class,
-                    'reply',
+                    'replay',
                     DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::REPLAY_CHANNEL)
                 )
             )
@@ -175,7 +175,7 @@ class DbalDeadLetterModule implements AnnotationModule
                 GatewayProxyBuilder::create(
                     $referenceName,
                     DeadLetterGateway::class,
-                    'replyAll',
+                    'replayAll',
                     DbalDeadLetterBuilder::getChannelName($referenceName, DbalDeadLetterBuilder::REPLAY_ALL_CHANNEL)
                 )
             )

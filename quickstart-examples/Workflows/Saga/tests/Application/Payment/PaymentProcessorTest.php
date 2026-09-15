@@ -27,7 +27,7 @@ final class PaymentProcessorTest extends TestCase
         $this->assertEquals(
             [new PaymentWasSuccessful('123')],
             $ecotoneLite
-                ->sendCommandWithRoutingKey('takePayment', new TakePayment('123', Money::EUR(100)))
+                ->sendCommandWithRouting('takePayment', new TakePayment('123', Money::EUR(100)))
                 ->popRecordedEvents(),
         );
     }
@@ -44,7 +44,7 @@ final class PaymentProcessorTest extends TestCase
         $this->assertEquals(
             [new PaymentFailed('123')],
             $ecotoneLite
-                ->sendCommandWithRoutingKey('takePayment', new TakePayment('123', Money::EUR(100)))
+                ->sendCommandWithRouting('takePayment', new TakePayment('123', Money::EUR(100)))
                 ->popRecordedEvents(),
         );
     }
@@ -61,9 +61,9 @@ final class PaymentProcessorTest extends TestCase
         $this->assertEquals(
             [new PaymentWasSuccessful('123')],
             $ecotoneLite
-                ->sendCommandWithRoutingKey('takePayment', new TakePayment('123', Money::EUR(100)))
+                ->sendCommandWithRouting('takePayment', new TakePayment('123', Money::EUR(100)))
                 ->discardRecordedMessages()
-                ->sendCommandWithRoutingKey('takePayment', new TakePayment('123', Money::EUR(100)))
+                ->sendCommandWithRouting('takePayment', new TakePayment('123', Money::EUR(100)))
                 ->popRecordedEvents(),
         );
     }

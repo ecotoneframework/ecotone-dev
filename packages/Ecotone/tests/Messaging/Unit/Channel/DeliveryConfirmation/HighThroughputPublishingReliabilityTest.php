@@ -77,7 +77,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
         assert($ordersChannel instanceof MessageChannelInterceptorAdapter);
         $ordersChannel->getInternalMessageChannel()->failDeliveriesWith('broker not available');
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.place', 'espresso');
+        $ecotoneLite->sendCommandWithRouting('order.place', 'espresso');
 
         $operations = $operationsLog->getOperations();
         $this->assertSame('transaction committed', $operations[count($operations) - 1]);
@@ -220,7 +220,7 @@ final class HighThroughputPublishingReliabilityTest extends TestCase
 
         $commandFailed = false;
         try {
-            $ecotoneLite->sendCommandWithRoutingKey('order.placeAllBatches', 'espresso');
+            $ecotoneLite->sendCommandWithRouting('order.placeAllBatches', 'espresso');
         } catch (PublishingFailedException) {
             $commandFailed = true;
         }

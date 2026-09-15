@@ -61,8 +61,8 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
             ['personId' => 101, 'personName' => 'Johny', 'exception' => true],
         ]);
@@ -118,8 +118,8 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         );
 
         // Send a command to ensure the deduplication table is created
-        $ecotoneLite->sendCommandWithRoutingKey('singeInternalCommand', ['personId' => 99, 'personName' => 'Johny', 'exception' => false]);
-        $ecotoneLite->sendCommandWithRoutingKey('singeInternalCommand', ['personId' => 100, 'personName' => 'Johny', 'exception' => false]);
+        $ecotoneLite->sendCommandWithRouting('singeInternalCommand', ['personId' => 99, 'personName' => 'Johny', 'exception' => false]);
+        $ecotoneLite->sendCommandWithRouting('singeInternalCommand', ['personId' => 100, 'personName' => 'Johny', 'exception' => false]);
 
         // Run with enough message handling attempts to process both commands
         // The second command will encounter a connection failure but should recover
@@ -165,7 +165,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         );
 
         // Send a command to ensure the deduplication table is created
-        $setupEcotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 98, 'personName' => 'Setup', 'exception' => false]]);
+        $setupEcotoneLite->sendCommandWithRouting('multipleInternalCommands', [['personId' => 98, 'personName' => 'Setup', 'exception' => false]]);
         $setupEcotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
         // Now create the actual test instance with the connection breaking module
@@ -192,7 +192,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             addInMemoryStateStoredRepository: false
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('singeInternalCommand', ['personId' => 100, 'personName' => 'Johny', 'exception' => true]);
+        $ecotoneLite->sendCommandWithRouting('singeInternalCommand', ['personId' => 100, 'personName' => 'Johny', 'exception' => true]);
 
         /** @var DeadLetterGateway $deadLetter */
         $deadLetter = $ecotoneLite->getGateway(DeadLetterGateway::class);
@@ -234,10 +234,10 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]], metadata: ['tenant' => 'tenant_a']);
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]], metadata: ['tenant' => 'tenant_a']);
 
         /** Failure scenario */
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
             ['personId' => 101, 'personName' => 'Johny', 'exception' => true],
         ], metadata: ['tenant' => 'tenant_a']);
@@ -261,7 +261,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $this->assertFalse($aggregateCommitted);
 
         /** Success scenario */
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
             ['personId' => 101, 'personName' => 'Johny', 'exception' => false],
         ], metadata: ['tenant' => 'tenant_a']);
@@ -291,8 +291,8 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
             ['personId' => 101, 'personName' => 'Johny', 'exception' => true],
         ]);
@@ -349,11 +349,11 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         );
 
         /** This ensures for mysql that deduplication table will be created in first run and solves implicit commit */
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]], metadata: ['tenant' => 'tenant_a']);
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]], metadata: ['tenant' => 'tenant_b']);
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]], metadata: ['tenant' => 'tenant_a']);
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]], metadata: ['tenant' => 'tenant_b']);
 
         /** Failure scenario */
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
             ['personId' => 101, 'personName' => 'Johny', 'exception' => true],
         ], metadata: ['tenant' => 'tenant_a']);
@@ -378,7 +378,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $this->assertFalse($aggregateCommitted);
 
         /** Success scenario */
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
             ['personId' => 101, 'personName' => 'Johny', 'exception' => false],
         ], metadata: ['tenant' => 'tenant_b']);
@@ -428,7 +428,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
             addInMemoryStateStoredRepository: false
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [
             ['personId' => 100, 'personName' => 'Johny', 'exception' => false],
             ['personId' => 101, 'personName' => 'Johny', 'exception' => true],
         ]);
@@ -485,7 +485,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ]),
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('dispatch.sql.command', 'test');
+        $ecotoneLite->sendCommandWithRouting('dispatch.sql.command', 'test');
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
         $this->assertSame(
@@ -527,7 +527,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ]),
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('dispatch.sql.command', 'test');
+        $ecotoneLite->sendCommandWithRouting('dispatch.sql.command', 'test');
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
         $this->assertSame(

@@ -34,7 +34,7 @@ final class HeaderPropagationTest extends TestCase
         $correlationId = Uuid::v7()->toRfc4122();
 
         $flowTestSupport = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'placeOrder',
                 Uuid::v7()->toRfc4122(),
                 metadata: [
@@ -67,7 +67,7 @@ final class HeaderPropagationTest extends TestCase
         $correlationId = Uuid::v7()->toRfc4122();
 
         $flowTestSupport = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'placeOrderAndPropagateMetadata',
                 Uuid::v7()->toRfc4122(),
                 metadata: [

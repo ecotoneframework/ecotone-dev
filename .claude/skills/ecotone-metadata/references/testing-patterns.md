@@ -4,7 +4,7 @@
 
 ```php
 $ecotone->sendCommand(new PlaceOrder('1'), metadata: ['userId' => '123']);
-$ecotone->sendCommandWithRoutingKey('placeOrder', metadata: ['userId' => '123']);
+$ecotone->sendCommandWithRouting('placeOrder', metadata: ['userId' => '123']);
 $ecotone->publishEvent(new OrderWasPlaced(), metadata: ['source' => 'test']);
 $ecotone->sendQuery(new GetOrder('1'), metadata: ['tenant' => 'acme']);
 ```
@@ -40,7 +40,7 @@ public function test_metadata_propagates_to_event_handlers(): void
         containerOrAvailableServices: [new OrderService()]
     );
 
-    $ecotone->sendCommandWithRoutingKey(
+    $ecotone->sendCommandWithRouting(
         'placeOrder',
         metadata: ['userId' => '123']
     );
@@ -66,7 +66,7 @@ public function test_correlation_id_propagates_to_events(): void
     $correlationId = Uuid::uuid4()->toString();
 
     $headers = $ecotone
-        ->sendCommandWithRoutingKey(
+        ->sendCommandWithRouting(
             'placeOrder',
             metadata: [
                 MessageHeaders::MESSAGE_ID => $messageId,
@@ -112,7 +112,7 @@ public function test_before_interceptor_enriches_headers(): void
         containerOrAvailableServices: [$handler, $interceptor],
     );
 
-    $ecotone->sendCommandWithRoutingKey('process');
+    $ecotone->sendCommandWithRouting('process');
 
     $this->assertEquals('interceptor', $handler->receivedHeaders['enrichedBy']);
 }
@@ -135,7 +135,7 @@ public function test_add_and_remove_headers(): void
     );
 
     $headers = $ecotoneLite
-        ->sendCommandWithRoutingKey('addHeaders', metadata: ['user' => '1233'])
+        ->sendCommandWithRouting('addHeaders', metadata: ['user' => '1233'])
         ->popRecordedMessagesFrom('async')[0]
         ->getHeaders()->headers();
 
@@ -166,7 +166,7 @@ public function test_metadata_propagates_to_async_handlers(): void
             ])
     );
 
-    $ecotone->sendCommandWithRoutingKey(
+    $ecotone->sendCommandWithRouting(
         'placeOrder',
         metadata: ['userId' => '123']
     );

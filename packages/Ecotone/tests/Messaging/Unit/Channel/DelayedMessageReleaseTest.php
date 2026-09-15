@@ -27,7 +27,7 @@ final class DelayedMessageReleaseTest extends TestCase
         $handler = new DelayedMessageHandler();
         $ecotone = $this->bootstrap($handler);
 
-        $ecotone->sendCommandWithRoutingKey(DelayedMessageHandler::ROUTING_KEY, 'a', metadata: [
+        $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'a', metadata: [
             MessageHeaders::DELIVERY_DELAY => 10_000,
         ]);
 
@@ -41,7 +41,7 @@ final class DelayedMessageReleaseTest extends TestCase
         $handler = new DelayedMessageHandler();
         $ecotone = $this->bootstrap($handler);
 
-        $ecotone->sendCommandWithRoutingKey(DelayedMessageHandler::ROUTING_KEY, 'a', metadata: [
+        $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'a', metadata: [
             MessageHeaders::DELIVERY_DELAY => 10_000,
         ]);
 
@@ -55,9 +55,9 @@ final class DelayedMessageReleaseTest extends TestCase
         $handler = new DelayedMessageHandler();
         $ecotone = $this->bootstrap($handler);
 
-        $ecotone->sendCommandWithRoutingKey(DelayedMessageHandler::ROUTING_KEY, 'first', metadata: [MessageHeaders::DELIVERY_DELAY => 3000]);
-        $ecotone->sendCommandWithRoutingKey(DelayedMessageHandler::ROUTING_KEY, 'second', metadata: [MessageHeaders::DELIVERY_DELAY => 2000]);
-        $ecotone->sendCommandWithRoutingKey(DelayedMessageHandler::ROUTING_KEY, 'third', metadata: [MessageHeaders::DELIVERY_DELAY => 1000]);
+        $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'first', metadata: [MessageHeaders::DELIVERY_DELAY => 3000]);
+        $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'second', metadata: [MessageHeaders::DELIVERY_DELAY => 2000]);
+        $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'third', metadata: [MessageHeaders::DELIVERY_DELAY => 1000]);
 
         $ecotone->advanceTimeBy(TimeSpan::withSeconds(1))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
         $this->assertSame(['third'], $handler->processed);

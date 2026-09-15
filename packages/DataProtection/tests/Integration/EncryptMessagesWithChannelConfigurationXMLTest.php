@@ -224,7 +224,7 @@ class EncryptMessagesWithChannelConfigurationXMLTest extends TestCase
         $ecotone = $this->bootstrapEcotone($channelProtectionConfiguration, $channel = TestQueueChannel::create('test'), $messageReceiver = new MessageReceiver());
 
         $ecotone
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 routingKey: 'command',
                 metadata: $metadataSent = [
                     'foo' => 'secret-value',
@@ -267,7 +267,7 @@ class EncryptMessagesWithChannelConfigurationXMLTest extends TestCase
         $ecotone = $this->bootstrapEcotone($channelProtectionConfiguration, $channel = TestQueueChannel::create('test'), $messageReceiver = new MessageReceiver());
 
         $ecotone
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 routingKey: 'command',
                 metadata: $metadataSent = [
                     'foo' => 'secret-value',
@@ -474,7 +474,7 @@ class EncryptMessagesWithChannelConfigurationXMLTest extends TestCase
         $ecotone = $this->bootstrapEcotone($channelProtectionConfiguration, $channel = TestQueueChannel::create('test'), $messageReceiver = new MessageReceiver());
 
         $ecotone
-            ->publishEventWithRoutingKey(
+            ->publishEventWithRouting(
                 routingKey: 'event',
                 metadata: $metadataSent = [
                     'foo' => 'secret-value',

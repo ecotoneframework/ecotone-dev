@@ -43,7 +43,7 @@ final class ChannelInterceptorAttributeTest extends TestCase
             [$interceptor, new AsyncCapturingHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey(AsyncCapturingHandler::ROUTING_KEY, 'hello');
+        $ecotone->sendCommandWithRouting(AsyncCapturingHandler::ROUTING_KEY, 'hello');
 
         $queuedMessage = $ecotone->getMessageChannel(AsyncCapturingHandler::CHANNEL)->receive();
         $this->assertSame('HELLO', $queuedMessage->getPayload());
@@ -57,7 +57,7 @@ final class ChannelInterceptorAttributeTest extends TestCase
             [new UppercasingInterceptor(), $handler],
         );
 
-        $ecotone->sendCommandWithRoutingKey(AsyncCapturingHandler::ROUTING_KEY, 'hello');
+        $ecotone->sendCommandWithRouting(AsyncCapturingHandler::ROUTING_KEY, 'hello');
         $ecotone->run(AsyncCapturingHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertSame('HELLO', $handler->received);

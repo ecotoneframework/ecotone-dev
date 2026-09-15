@@ -334,7 +334,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
         );
 
         $aggregate = $ecotoneLite
-            ->sendCommandWithRoutingKey('order.create', CreateOrderCommand::createWith(1, 1, 'Poland'))
+            ->sendCommandWithRouting('order.create', CreateOrderCommand::createWith(1, 1, 'Poland'))
             ->getAggregate(OrderWithManualVersioning::class, ['orderId' => 1]);
 
         $this->assertEquals(0, $aggregate->getAggregateVersion());
@@ -376,7 +376,7 @@ class SaveAggregateServiceBuilderTest extends TestCase
             $ecotoneLite
                 ->sendCommand(new StartJob($jobId))
                 ->discardRecordedMessages()
-                ->sendCommandWithRoutingKey('job.finish_and_start', new FinishJob($jobId), metadata: [
+                ->sendCommandWithRouting('job.finish_and_start', new FinishJob($jobId), metadata: [
                     'newJobId' => $newJobId,
                 ])
                 ->popRecordedEvents(),

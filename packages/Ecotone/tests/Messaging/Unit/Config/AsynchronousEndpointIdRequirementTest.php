@@ -76,7 +76,7 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
         $handler = new ExplicitIdCommandHandler();
         $ecotone = $this->bootstrap([ExplicitIdCommandHandler::class], [$handler]);
 
-        $ecotone->sendCommandWithRoutingKey('explicit.command', 'payload');
+        $ecotone->sendCommandWithRouting('explicit.command', 'payload');
         $ecotone->run(ExplicitIdCommandHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup());
 
         $this->assertSame('payload', $handler->received);

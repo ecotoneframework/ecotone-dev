@@ -165,7 +165,7 @@ final class ORMTest extends DbalMessagingTestCase
 
         /** For Tenant A */
         $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'), metadata: ['tenant' => 'tenant_a']);
-        $ecotone->sendCommandWithRoutingKey(Person::RENAME_COMMAND, 'Paul', metadata: ['aggregate.id' => 100, 'tenant' => 'tenant_a']);
+        $ecotone->sendCommandWithRouting(Person::RENAME_COMMAND, 'Paul', metadata: ['aggregate.id' => 100, 'tenant' => 'tenant_a']);
 
         self::assertEquals(
             'Paul',
@@ -188,7 +188,7 @@ final class ORMTest extends DbalMessagingTestCase
 
         /** For Tenant B */
         $ecotone->sendCommand(new RegisterPerson(1, 'Johnny'), metadata: ['tenant' => 'tenant_b']);
-        $ecotone->sendCommandWithRoutingKey(Person::RENAME_COMMAND, 'Paul', metadata: ['aggregate.id' => 1, 'tenant' => 'tenant_b']);
+        $ecotone->sendCommandWithRouting(Person::RENAME_COMMAND, 'Paul', metadata: ['aggregate.id' => 1, 'tenant' => 'tenant_b']);
 
         self::assertEquals(
             'Paul',
@@ -239,7 +239,7 @@ final class ORMTest extends DbalMessagingTestCase
         );
 
         $ecotone->sendCommand(new RegisterPerson(100, 'Johnny'));
-        $ecotone->sendCommandWithRoutingKey(Person::RENAME_COMMAND, 'Paul', metadata: ['aggregate.id' => 100]);
+        $ecotone->sendCommandWithRouting(Person::RENAME_COMMAND, 'Paul', metadata: ['aggregate.id' => 100]);
 
         self::assertEquals(
             'Paul',
@@ -335,7 +335,7 @@ final class ORMTest extends DbalMessagingTestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $ecotoneLite->sendCommandWithRoutingKey('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
+        $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
         $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, maxExecutionTimeInMilliseconds: 5000, failAtError: true));
     }
 

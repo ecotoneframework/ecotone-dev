@@ -37,7 +37,7 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
         $handler = new SingleHopAsyncHandler();
         $ecotone = $this->bootstrapSingleHop($handler);
 
-        $ecotone->sendCommandWithRoutingKey(SingleHopAsyncHandler::ROUTING_KEY, 2);
+        $ecotone->sendCommandWithRouting(SingleHopAsyncHandler::ROUTING_KEY, 2);
 
         $this->assertNull($handler->lastResult);
         $ecotone->run(SingleHopAsyncHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
@@ -75,7 +75,7 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
             ]),
         );
 
-        $ecotone->sendCommandWithRoutingKey(TwoHopAsyncHandler::ROUTING_KEY, 2);
+        $ecotone->sendCommandWithRouting(TwoHopAsyncHandler::ROUTING_KEY, 2);
 
         $this->assertNull($handler->lastResult);
         $ecotone->run(TwoHopAsyncHandler::CHANNEL_ONE, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
@@ -97,7 +97,7 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
             ]),
         );
 
-        $ecotone->sendCommandWithRoutingKey(ThreeHopAsyncHandler::ROUTING_KEY, 2);
+        $ecotone->sendCommandWithRouting(ThreeHopAsyncHandler::ROUTING_KEY, 2);
 
         $this->assertNull($handler->lastResult);
         $ecotone->run(ThreeHopAsyncHandler::CHANNEL_ONE, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));

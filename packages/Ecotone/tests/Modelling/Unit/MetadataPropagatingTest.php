@@ -42,7 +42,7 @@ final class MetadataPropagatingTest extends TestCase
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey(
+        $ecotoneTestSupport->sendCommandWithRouting(
             'placeOrder',
             metadata: [
                 'userId' => '123',
@@ -68,7 +68,7 @@ final class MetadataPropagatingTest extends TestCase
                 ])
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey(
+        $ecotoneTestSupport->sendCommandWithRouting(
             'placeOrder',
             metadata: [
                 'userId' => '123',
@@ -97,7 +97,7 @@ final class MetadataPropagatingTest extends TestCase
             $ecotoneTestSupport
                 ->withStateFor(Order::register(new PlaceOrder($orderId)))
                 ->discardRecordedMessages()
-                ->sendCommandWithRoutingKey('order.cancel_from_metadata', metadata: ['aggregate.id' => $orderId])
+                ->sendCommandWithRouting('order.cancel_from_metadata', metadata: ['aggregate.id' => $orderId])
                 ->run('orders')
                 ->popRecordedEventHeaders()[0]->headers()
         );
@@ -117,7 +117,7 @@ final class MetadataPropagatingTest extends TestCase
             $ecotoneTestSupport
                 ->withStateFor(Order::register(new PlaceOrder($orderId)))
                 ->discardRecordedMessages()
-                ->sendCommandWithRoutingKey('order.cancel_from_metadata', metadata: ['aggregate.id' => $orderId])
+                ->sendCommandWithRouting('order.cancel_from_metadata', metadata: ['aggregate.id' => $orderId])
                 ->run('orders')
                 ->popRecordedEventHeaders()[0]->headers()
         );
@@ -145,7 +145,7 @@ final class MetadataPropagatingTest extends TestCase
             $ecotoneTestSupport
                 ->withStateFor(Order::register(new PlaceOrder($orderId)))
                 ->discardRecordedMessages()
-                ->sendCommandWithRoutingKey('order.cancel_from_metadata', metadata: ['aggregate.id' => $orderId])
+                ->sendCommandWithRouting('order.cancel_from_metadata', metadata: ['aggregate.id' => $orderId])
                 ->run('outbox')
                 ->run('processing')
                 ->popRecordedEventHeaders()[0]->headers()
@@ -163,7 +163,7 @@ final class MetadataPropagatingTest extends TestCase
                 ])
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('sendNotificationViaCommandBus');
+        $ecotoneTestSupport->sendCommandWithRouting('sendNotificationViaCommandBus');
 
         $ecotoneTestSupport->run('orders', ExecutionPollingMetadata::createWithTestingSetup(1));
 

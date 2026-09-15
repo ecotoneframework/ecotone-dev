@@ -40,7 +40,7 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrap();
 
-        $ecotone->sendCommandWithRoutingKey('legacyOrder.place', new PlaceLegacyOrder('order-1'));
+        $ecotone->sendCommandWithRouting('legacyOrder.place', new PlaceLegacyOrder('order-1'));
 
         self::assertSame(
             1,
@@ -48,7 +48,7 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
         );
         self::assertFalse(self::tableExists($connection, 'ecotone_event_stream'));
 
-        $ecotone->sendCommandWithRoutingKey('legacyOrder.cancel', new CancelLegacyOrder('order-1'), metadata: ['aggregate.id' => 'order-1']);
+        $ecotone->sendCommandWithRouting('legacyOrder.cancel', new CancelLegacyOrder('order-1'), metadata: ['aggregate.id' => 'order-1']);
 
         self::assertSame('cancelled', $ecotone->sendQueryWithRouting('legacyOrder.getStatus', metadata: ['aggregate.id' => 'order-1']));
         self::assertSame(

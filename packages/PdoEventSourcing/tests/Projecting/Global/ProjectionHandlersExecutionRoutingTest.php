@@ -43,7 +43,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey('create', '123');
+        $ecotone->sendCommandWithRouting('create', '123');
 
         self::assertEquals(
             [new AnEvent('123')],
@@ -82,7 +82,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey('create', '123');
+        $ecotone->sendCommandWithRouting('create', '123');
 
         self::assertEquals(
             [new AnEvent('123')],
@@ -120,7 +120,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey('create', '123');
+        $ecotone->sendCommandWithRouting('create', '123');
 
         self::assertEquals(
             [new AnEvent('123'), ['id' => '123']],

@@ -31,7 +31,7 @@ final class AggregateCallingWithGatewayTest extends TestCase
 
         $bucketId = Uuid::uuid4();
 
-        $ecotone->sendCommandWithRoutingKey(Bucket::CREATE, $bucketId);
+        $ecotone->sendCommandWithRouting(Bucket::CREATE, $bucketId);
 
         $gateway = $ecotone->getGateway(BucketGateway::class);
 

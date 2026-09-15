@@ -32,7 +32,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
             runForProductionEventStore: true
         );
 
-        $ecotone->sendCommandWithRoutingKey('create', '123');
+        $ecotone->sendCommandWithRouting('create', '123');
 
         self::assertEquals(
             [new AnEvent('123')],

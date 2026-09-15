@@ -56,9 +56,9 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso', metadata: ['tenant' => 'tenant_a']);
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte', metadata: ['tenant' => 'tenant_a']);
-        $messaging->sendCommandWithRoutingKey('order.register', 'flat white', metadata: ['tenant' => 'tenant_b']);
+        $messaging->sendCommandWithRouting('order.register', 'espresso', metadata: ['tenant' => 'tenant_a']);
+        $messaging->sendCommandWithRouting('order.register', 'latte', metadata: ['tenant' => 'tenant_a']);
+        $messaging->sendCommandWithRouting('order.register', 'flat white', metadata: ['tenant' => 'tenant_b']);
 
         $this->assertSame(2, $this->amountOfOutboxRowsFor($this->connectionForTenantA()));
         $this->assertSame(1, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));

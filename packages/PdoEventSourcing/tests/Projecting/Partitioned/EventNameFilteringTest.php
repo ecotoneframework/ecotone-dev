@@ -39,7 +39,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertEquals(
             ['first_event:123', 'second_event:123'],
@@ -54,7 +54,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertEquals(
             ['first_event:123'],
@@ -69,7 +69,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertEquals(
             [['id' => '123', 'type' => 'first'], ['id' => '123', 'type' => 'second']],
@@ -84,7 +84,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertCount(
             2,
@@ -99,7 +99,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertEquals(
             ['first_event:123'],
@@ -114,7 +114,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
 
         $ecotone = $this->bootstrapEcotone([$projection]);
 
-        $ecotone->sendCommandWithRoutingKey('createMultiEvent', '123');
+        $ecotone->sendCommandWithRouting('createMultiEvent', '123');
 
         self::assertEquals(
             ['union:123', 'union:123'],

@@ -73,7 +73,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('doWork', 'test');
+        $ecotoneLite->sendCommandWithRouting('doWork', 'test');
         $ecotoneLite->run('async');
 
         $this->assertNotNull($collector->receivedAttribute);
@@ -115,7 +115,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('doWork', 'test');
+        $ecotoneLite->sendCommandWithRouting('doWork', 'test');
         $ecotoneLite->run('async');
 
         $this->assertNotNull($collector->receivedAttribute);
@@ -163,10 +163,10 @@ final class AsyncEndpointAnnotationTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('doWorkOne', 'test');
+        $ecotoneLite->sendCommandWithRouting('doWorkOne', 'test');
         $ecotoneLite->run('async');
 
-        $ecotoneLite->sendCommandWithRoutingKey('doWorkTwo', 'test');
+        $ecotoneLite->sendCommandWithRouting('doWorkTwo', 'test');
         $ecotoneLite->run('async');
 
         $this->assertCount(2, $collector->receivedAttributes);
@@ -207,7 +207,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('doWork', 'test');
+        $ecotoneLite->sendCommandWithRouting('doWork', 'test');
         $ecotoneLite->run('async');
 
         $this->assertNull($collector->receivedAttribute);
@@ -261,7 +261,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
                 ]))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('events'))
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('doWork', 'test');
+        $ecotoneLite->sendCommandWithRouting('doWork', 'test');
 
         try {
             $ecotoneLite->run('async');
@@ -302,7 +302,7 @@ final class AsyncEndpointAnnotationTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('doWork', 'test');
+        $ecotoneLite->sendCommandWithRouting('doWork', 'test');
 
         try {
             $ecotoneLite->run('async');

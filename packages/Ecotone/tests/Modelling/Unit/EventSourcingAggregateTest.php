@@ -58,7 +58,7 @@ final class EventSourcingAggregateTest extends TestCase
         $stdClass = new stdClass();
         $ecotoneLite
             ->sendCommand(new CreateAggregate(123))
-            ->sendCommandWithRoutingKey('aggregate.onlySideEffects', $stdClass, metadata: ['aggregate.id' => 123]);
+            ->sendCommandWithRouting('aggregate.onlySideEffects', $stdClass, metadata: ['aggregate.id' => 123]);
 
         $this->assertSame('test', $stdClass->name);
     }

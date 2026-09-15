@@ -650,6 +650,10 @@ rename test-support methods without aliases; the renamed methods are listed in e
   (`milliseconds`, `seconds`, `minutes`, `hours`, `days`) work next to `#[Delayed(new TimeSpan(hours: 24))]`. Passing both a
   `$time` and a named duration throws `#[Delayed] takes either $time or named durations (milliseconds, seconds, minutes,
   hours, days), not both.` **How to adapt:** nothing.
+- **New: `WithAggregateVersioning::getVersion()`.** Aggregates using the trait expose their current version. The version
+  also travels with every recorded event in the `MessageHeaders::EVENT_AGGREGATE_VERSION` header, including across
+  asynchronous channels, so a delayed handler can compare it with the aggregate's current version.
+  **How to adapt:** nothing; remove your own `getVersion()` accessor if it only returned the trait's property.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

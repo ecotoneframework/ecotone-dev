@@ -13,7 +13,9 @@ use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
+use Ecotone\Messaging\Handler\MessageHandlingException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -68,5 +70,57 @@ final class DelayedRetryBackOffTest extends TestCase
         $this->expectExceptionMessage('Retry initial delay must be 0 or greater, got -1 ms');
 
         RetryTemplateBuilder::fixedBackOff(-1);
+    }
+
+    public function test_dead_letter_log_counts_failed_deliveries_as_initial_delivery_plus_retries(): void
+    {
+        $logger = StubLogger::create();
+        $ecotone = $this->bootstrapAlwaysFailingSender($logger, deadLetter: true);
+
+        $ecotone->publishEventWithRoutingKey('order.completed', 'order-1');
+        $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+
+        $deadLetterLines = array_values(array_filter($logger->getError(), fn (string $line) => str_contains($line, 'dead letter')));
+        $this->assertCount(1, $deadLetterLines);
+        $this->assertMatchesRegularExpression('/^Sending message `[^`]+` to dead letter channel after 4 failed deliveries \\(1 initial \\+ 3 retries\\)\\. Due to: SMTP connection refused$/', $deadLetterLines[0]);
+    }
+
+    public function test_exhausted_retries_without_dead_letter_name_deliveries_and_retries(): void
+    {
+        $ecotone = $this->bootstrapAlwaysFailingSender(StubLogger::create(), deadLetter: false, maxRetries: 1);
+
+        $ecotone->publishEventWithRoutingKey('order.completed', 'order-1');
+
+        $this->expectException(MessageHandlingException::class);
+        $this->expectExceptionMessage('Message handling failed after 2 failed deliveries (1 initial + 1 retry). SMTP connection refused');
+
+        $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+    }
+
+    private function bootstrapAlwaysFailingSender(StubLogger $logger, bool $deadLetter, int $maxRetries = 3)
+    {
+        $sender = new class () {
+            #[Asynchronous('async')]
+            #[EventHandler('order.completed', endpointId: 'sendOrderConfirmation')]
+            public function send(string $orderId): void
+            {
+                throw new RuntimeException('SMTP connection refused');
+            }
+        };
+
+        return EcotoneLite::bootstrapFlowTesting(
+            [$sender::class],
+            [$sender, 'logger' => $logger],
+            ServiceConfiguration::createWithDefaults()
+                ->withDefaultErrorChannel('errorChannel')
+                ->withExtensionObjects([
+                    $deadLetter
+                        ? ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetryAttempts($maxRetries), 'deadLetter')
+                        : ErrorHandlerConfiguration::create('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetryAttempts($maxRetries)),
+                    InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
+                    SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
+                    SimpleMessageChannelBuilder::createQueueChannel('async'),
+                ]),
+        );
     }
 }

@@ -522,6 +522,13 @@ rename test-support methods without aliases; the renamed methods are listed in e
   into the dead letter. Negative delays still throw, naming the value
   (`Retry initial delay must be 0 or greater, got -1 ms`).
   **How to adapt:** nothing. Tests that advanced the clock only to get past a 1 ms back-off can use `0` instead.
+- **Retry exhaustion counts deliveries, not "retries".** With `maxRetryAttempts(3)` the handler is delivered 4 times
+  (1 initial + 3 retries), but the log said `retried maximum number of \`4\` times` and the exception said
+  `Message handling failed after 4 retry attempts`. They now read
+  `Sending message \`…\` to dead letter channel after 4 failed deliveries (1 initial + 3 retries). Due to: …`,
+  `No dead letter channel defined. Message failed after 4 failed deliveries (1 initial + 3 retries). …` and
+  `Message handling failed after 4 failed deliveries (1 initial + 3 retries). …`. The number of deliveries is unchanged.
+  **How to adapt:** update log-based alerts or tests that match the old texts.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

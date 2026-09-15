@@ -6,7 +6,6 @@ namespace Ecotone\Dbal\Database;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -55,7 +54,7 @@ final class EnqueueTableManager implements DbalTableManager
             return;
         }
 
-        SchemaManagerCompatibility::getSchemaManager($connection)->createTable($this->buildTableSchema());
+        $connection->createSchemaManager()->createTable($this->buildTableSchema());
     }
 
     public function dropTable(Connection $connection): void
@@ -101,6 +100,6 @@ final class EnqueueTableManager implements DbalTableManager
 
     public function isInitialized(Connection $connection): bool
     {
-        return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
+        return $connection->createSchemaManager()->tableExists($this->tableName);
     }
 }

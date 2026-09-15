@@ -6,7 +6,6 @@ namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\Database\DbalTableManager;
 use Ecotone\Messaging\Config\Container\Definition;
 
@@ -81,7 +80,7 @@ final class ProjectionStateTableManager implements DbalTableManager
 
     public function isInitialized(Connection $connection): bool
     {
-        return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
+        return $connection->createSchemaManager()->tableExists($this->tableName);
     }
 
     public function getDefinition(): Definition

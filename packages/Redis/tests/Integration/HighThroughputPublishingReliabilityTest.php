@@ -72,7 +72,7 @@ final class HighThroughputPublishingReliabilityTest extends ConnectionTestCase
             (ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::REDIS_PACKAGE, ])
                 ->withExtensionObjects([
-                    PollableChannelConfiguration::create(self::CHANNEL_NAME, RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build()),
+                    PollableChannelConfiguration::create(self::CHANNEL_NAME, RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build()),
                 ]))->addExtensionObject(RedisBackedMessageChannelBuilder::create(self::CHANNEL_NAME)->withHighThroughputPublishing()),
             licenceKey: LicenceTesting::VALID_LICENCE
         );

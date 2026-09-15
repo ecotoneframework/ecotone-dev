@@ -101,7 +101,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
                     $delayedRetry->initialDelayMs,
                     $delayedRetry->multiplier,
                     $delayedRetry->maxDelayMs,
-                    $delayedRetry->maxAttempts,
+                    $delayedRetry->maxRetries,
                 );
 
                 $perHandlerRetryConfigurations[] = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
@@ -126,7 +126,7 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
                 $delayedRetry->initialDelayMs,
                 $delayedRetry->multiplier,
                 $delayedRetry->maxDelayMs,
-                $delayedRetry->maxAttempts,
+                $delayedRetry->maxRetries,
             );
             $perHandlerRetryConfigurations[] = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
         }

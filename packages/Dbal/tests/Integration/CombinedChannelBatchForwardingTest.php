@@ -444,7 +444,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                     OutboxForwardingMessageChannel::create('orders', 'outbox', 'failingProcessing'),
                     DbalBackedMessageChannelBuilder::create('outbox'),
                     SimpleMessageChannelBuilder::create('failingProcessing', new FailOnceOnPayloadPollableChannel('cappuccino')),
-                    PollableChannelConfiguration::create('failingProcessing', RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build()),
+                    PollableChannelConfiguration::create('failingProcessing', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build()),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );

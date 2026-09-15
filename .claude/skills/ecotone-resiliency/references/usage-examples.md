@@ -12,8 +12,8 @@ class ResiliencyConfig
     {
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             'errorChannel',
-            RetryTemplateBuilder::exponentialBackoffWithMaxDelay(1000, 2, 30000)
-                ->maxRetryAttempts(5),
+            RetryTemplateBuilder::exponentialBackOffWithMaxDelay(1000, 2, 30000)
+                ->maxRetries(5),
             'dead_letter'
         );
     }
@@ -41,8 +41,8 @@ public function errorHandler(): ErrorHandlerConfiguration
 {
     return ErrorHandlerConfiguration::create(
         'errorChannel',
-        RetryTemplateBuilder::exponentialBackoff(1000, 2)
-            ->maxRetryAttempts(5)
+        RetryTemplateBuilder::exponentialBackOff(1000, 2)
+            ->maxRetries(5)
     );
 }
 ```

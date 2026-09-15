@@ -168,7 +168,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
                 ExceptionalQueueChannel::createWithExceptionOnSend('orders', 2),
             ],
             [
-                PollableChannelConfiguration::create('orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build()),
+                PollableChannelConfiguration::create('orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build()),
             ]
         );
 
@@ -266,7 +266,7 @@ final class PollableChannelSendRetriesModuleTest extends TestCase
                 PollableChannelConfiguration::create(
                     'orders',
                     RetryTemplateBuilder::fixedBackOff(1)
-                        ->maxRetryAttempts(2)
+                        ->maxRetries(2)
                         ->build()
                 )
                     ->withErrorChannel('deadLetter'),

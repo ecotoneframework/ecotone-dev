@@ -35,7 +35,7 @@ class TicketServiceMessagingConfiguration
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             self::ERROR_CHANNEL,
             RetryTemplateBuilder::fixedBackOff(1)
-                ->maxRetryAttempts(1),
+                ->maxRetries(1),
             self::DEAD_LETTER_CHANNEL
         );
     }

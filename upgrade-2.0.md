@@ -558,6 +558,20 @@ rename test-support methods without aliases; the renamed methods are listed in e
   messages in send order, so a 24-hour expiry sent before a 1-hour reminder ran first once both were due. It now delivers
   the earliest due message first (send order for equal due times), as a broker with delivery delay does.
   **How to adapt:** tests that asserted send order for messages with different delays assert due order instead.
+- **Retry builder names say what they count and in which unit.** `maxRetryAttempts(3)` read as "3 attempts in total",
+  but it allows 3 retries after the first delivery. `exponentialBackoff` was spelled differently from `fixedBackOff`, and
+  the delay parameters did not name their unit.
+
+  | 1.x / early 2.0 | 2.0 |
+  |---|---|
+  | `RetryTemplateBuilder::fixedBackOff(initialDelay: 1000)` | `RetryTemplateBuilder::fixedBackOff(delayInMilliseconds: 1000)` |
+  | `RetryTemplateBuilder::exponentialBackoff($initialDelay, $multiplier)` | `RetryTemplateBuilder::exponentialBackOff($initialDelayInMilliseconds, $multiplier)` |
+  | `RetryTemplateBuilder::exponentialBackoffWithMaxDelay($initialDelay, $multiplier, $maxDelay)` | `RetryTemplateBuilder::exponentialBackOffWithMaxDelay($initialDelayInMilliseconds, $multiplier, $maxDelayInMilliseconds)` |
+  | `->maxRetryAttempts(3)` | `->maxRetries(3)` |
+  | `#[DelayedRetry(initialDelayMs: 100, maxAttempts: 3)]` | `#[DelayedRetry(initialDelayMs: 100, maxRetries: 3)]` |
+
+  Behaviour is unchanged. **How to adapt:** rename the calls; positional arguments keep working, named arguments use the
+  new parameter names.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

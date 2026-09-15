@@ -106,7 +106,7 @@ final class SqsBackedMessageChannelTest extends ConnectionTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::SQS_PACKAGE, ])
                 ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
+                    RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
                 )
                 ->withExtensionObjects([
                     SqsBackedMessageChannelBuilder::create('async'),

@@ -52,8 +52,8 @@ final class GlobalPollableChannelConfiguration
 
     private static function defaultRetry(): RetryTemplate
     {
-        return RetryTemplateBuilder::exponentialBackoff(1, 20)
-            ->maxRetryAttempts(2)
+        return RetryTemplateBuilder::exponentialBackOff(1, 20)
+            ->maxRetries(2)
             ->build();
     }
 

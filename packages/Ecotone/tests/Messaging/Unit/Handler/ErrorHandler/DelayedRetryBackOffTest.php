@@ -12,8 +12,8 @@ use Ecotone\Api\InstantRetryConfiguration;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Handler\MessageHandlingException;
+use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Test\StubLogger;
 use PHPUnit\Framework\TestCase;
@@ -45,7 +45,7 @@ final class DelayedRetryBackOffTest extends TestCase
             ServiceConfiguration::createWithDefaults()
                 ->withDefaultErrorChannel('errorChannel')
                 ->withExtensionObjects([
-                    ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetryAttempts(3), 'deadLetter'),
+                    ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries(3), 'deadLetter'),
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
                     SimpleMessageChannelBuilder::createQueueChannel('async'),
@@ -61,7 +61,7 @@ final class DelayedRetryBackOffTest extends TestCase
 
     public function test_exponential_back_off_accepts_zero_initial_delay(): void
     {
-        $this->assertSame(0, RetryTemplateBuilder::exponentialBackoff(0, 2)->maxRetryAttempts(2)->build()->calculateNextDelay(2));
+        $this->assertSame(0, RetryTemplateBuilder::exponentialBackOff(0, 2)->maxRetries(2)->build()->calculateNextDelay(2));
     }
 
     public function test_negative_initial_delay_is_rejected_with_the_value(): void
@@ -115,8 +115,8 @@ final class DelayedRetryBackOffTest extends TestCase
                 ->withDefaultErrorChannel('errorChannel')
                 ->withExtensionObjects([
                     $deadLetter
-                        ? ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetryAttempts($maxRetries), 'deadLetter')
-                        : ErrorHandlerConfiguration::create('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetryAttempts($maxRetries)),
+                        ? ErrorHandlerConfiguration::createWithDeadLetterChannel('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries($maxRetries), 'deadLetter')
+                        : ErrorHandlerConfiguration::create('errorChannel', RetryTemplateBuilder::fixedBackOff(0)->maxRetries($maxRetries)),
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),
                     SimpleMessageChannelBuilder::createQueueChannel('deadLetter'),
                     SimpleMessageChannelBuilder::createQueueChannel('async'),

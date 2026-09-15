@@ -216,7 +216,7 @@ final class ErrorChannelCommandBusTest extends TestCase
 #[DelayedRetry(
     initialDelayMs: 1,
     multiplier: 1,
-    maxAttempts: 1,
+    maxRetries: 1,
     deadLetterChannel: 'gatewayRetryDeadLetter',
 )]
 interface DelayedRetryCommandBus extends \Ecotone\Api\CommandBus

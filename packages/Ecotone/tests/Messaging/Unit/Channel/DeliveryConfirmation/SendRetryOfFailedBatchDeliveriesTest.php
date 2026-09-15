@@ -72,7 +72,7 @@ final class SendRetryOfFailedBatchDeliveriesTest extends TestCase
     {
         return new SendRetryChannelInterceptor(
             'orders',
-            RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build(),
+            RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build(),
             null,
             new ErrorChannelService(
                 new LoggingService(),

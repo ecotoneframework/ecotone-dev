@@ -170,8 +170,8 @@ class DbalDeadLetterHandler
     {
         $this->initialize();
 
-        $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 3, 1000)
-            ->maxRetryAttempts(3)
+        $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 3, 1000)
+            ->maxRetries(3)
             ->build();
 
         $this->retryRunner->runWithRetry(function () use ($message) {

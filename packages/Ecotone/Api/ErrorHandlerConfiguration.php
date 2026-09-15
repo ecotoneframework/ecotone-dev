@@ -37,8 +37,8 @@ class ErrorHandlerConfiguration
     {
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             'errorChannel',
-            RetryTemplateBuilder::exponentialBackoff(1000, 10)
-                ->maxRetryAttempts(3),
+            RetryTemplateBuilder::exponentialBackOff(1000, 10)
+                ->maxRetries(3),
             'dbal_dead_letter'
         );
     }

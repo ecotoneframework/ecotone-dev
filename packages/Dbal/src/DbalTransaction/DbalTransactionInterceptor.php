@@ -75,8 +75,8 @@ class DbalTransactionInterceptor
         }
 
         foreach ($connections as $connection) {
-            $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 2, 1000)
-                ->maxRetryAttempts(2)
+            $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 2, 1000)
+                ->maxRetries(2)
                 ->build();
 
             $this->retryRunner->runWithRetry(function () use ($connection) {

@@ -141,7 +141,7 @@ final class GrowingDelayHandler
     public const ROUTING_KEY = 'growingDelay.fail';
 
     #[Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
-        new DelayedRetry(initialDelayMs: 10, multiplier: 2, maxAttempts: 5),
+        new DelayedRetry(initialDelayMs: 10, multiplier: 2, maxRetries: 5),
     ])]
     #[CommandHandler(self::ROUTING_KEY, 'growingDelayHandler')]
     public function handle(string $payload): void
@@ -163,7 +163,7 @@ final class DeadLetterRoutingHandler
     public const FAILURE_MESSAGE = 'always-fails-with-context';
 
     #[Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
-        new DelayedRetry(initialDelayMs: 1, multiplier: 1, maxAttempts: 1, deadLetterChannel: self::DEAD_LETTER_CHANNEL),
+        new DelayedRetry(initialDelayMs: 1, multiplier: 1, maxRetries: 1, deadLetterChannel: self::DEAD_LETTER_CHANNEL),
     ])]
     #[CommandHandler(self::ROUTING_KEY, 'deadLetterContextHandler')]
     public function handle(string $payload): void
@@ -183,7 +183,7 @@ final class NoDeadLetterHandler
     public const ROUTING_KEY = 'noDeadLetter.fail';
 
     #[Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
-        new DelayedRetry(initialDelayMs: 1, multiplier: 1, maxAttempts: 1),
+        new DelayedRetry(initialDelayMs: 1, multiplier: 1, maxRetries: 1),
     ])]
     #[CommandHandler(self::ROUTING_KEY, 'noDeadLetterHandler')]
     public function handle(string $payload): void

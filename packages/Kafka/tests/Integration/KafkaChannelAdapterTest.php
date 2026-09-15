@@ -542,10 +542,10 @@ final class KafkaChannelAdapterTest extends TestCase
                     // Configure delayed retry with exponential backoff
                     ErrorHandlerConfiguration::createWithDeadLetterChannel(
                         errorChannelName: 'delayedRetryChannel',
-                        delayedRetryTemplate: RetryTemplateBuilder::exponentialBackoff(
-                            initialDelay: 100,  // 100ms initial delay for testing
+                        delayedRetryTemplate: RetryTemplateBuilder::exponentialBackOff(
+                            initialDelayInMilliseconds: 100,  // 100ms initial delay for testing
                             multiplier: 2       // Each retry is 2x longer (100ms, 200ms, 400ms...)
-                        )->maxRetryAttempts(2), // Maximum 2 delayed retry attempts
+                        )->maxRetries(2), // Maximum 2 delayed retry attempts
                         deadLetterChannel: 'dbal_dead_letter'
                     ),
                     InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false),

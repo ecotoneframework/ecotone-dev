@@ -19,7 +19,7 @@ final class EcotoneConfiguration
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             'errorChannel',
             RetryTemplateBuilder::fixedBackOff(100)
-                ->maxRetryAttempts(3),
+                ->maxRetries(3),
             'dbal_dead_letter'
         );
     }

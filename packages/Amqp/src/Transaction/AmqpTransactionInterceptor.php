@@ -58,8 +58,8 @@ class AmqpTransactionInterceptor
         try {
             $this->isRunningTransaction = true;
             foreach ($connectionFactories as $connectionFactory) {
-                $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 10, 1000)
-                    ->maxRetryAttempts(2)
+                $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 10, 1000)
+                    ->maxRetries(2)
                     ->build();
 
                 $this->retryRunner->runWithRetry(function () use ($connectionFactory) {

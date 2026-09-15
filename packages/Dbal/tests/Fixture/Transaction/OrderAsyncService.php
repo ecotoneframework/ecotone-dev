@@ -59,7 +59,7 @@ class OrderAsyncService
 
     private function doesTableExists(\Doctrine\DBAL\Connection $connection)
     {
-        $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
+        $schemaManager = $connection->createSchemaManager();
 
         return $schemaManager->tablesExist(['orders']);
     }

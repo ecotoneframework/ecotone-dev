@@ -721,7 +721,7 @@ final class KafkaChannelAdapterTest extends TestCase
     private function cleanDeadLetterTable(DbalConnectionFactory $connectionFactory): void
     {
         $connection = $connectionFactory->createContext()->getDbalConnection();
-        $schemaManager = method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
+        $schemaManager = $connection->createSchemaManager();
         if ($schemaManager->tablesExist(['ecotone_error_messages'])) {
             $connection->executeStatement('DELETE FROM ecotone_error_messages');
         }

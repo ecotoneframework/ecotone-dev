@@ -67,11 +67,11 @@ class ChannelConfiguration
 ## 3. Delayed Messages
 
 ```php
-use Ecotone\Messaging\Attribute\Delayed;
+use Ecotone\Api\Delayed;
 
 class ReminderService
 {
-    #[Delayed(5000)]
+    #[Delayed(seconds: 5)]
     #[Asynchronous('reminders')]
     #[EventHandler(endpointId: 'sendReminder')]
     public function sendReminder(OrderWasPlaced $event): void { }

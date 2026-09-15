@@ -11,16 +11,12 @@ public function test_async_processing(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [NotificationHandler::class],
         containerOrAvailableServices: [new NotificationHandler()],
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->withExtensionObjects([
-                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-            ]),
     );
 
     $ecotone->publishEvent(new OrderWasPlaced('order-1'));
 
-    // Run the consumer
-    $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+    // Flow tests provide an in-memory delayable queue for 'notifications'; consume it explicitly
+    $ecotone->run('notifications');
 
     // Assert results
     $this->assertTrue($handler->wasProcessed);

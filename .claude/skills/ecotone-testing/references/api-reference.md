@@ -107,7 +107,7 @@ public static function bootstrapFlowTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `run(string $name, ?ExecutionPollingMetadata $meta = null)` | `self` | Run consumer/endpoint; delivers messages due at the test clock's current time |
+| `run(string $channelOrEndpointName, ?ExecutionPollingMetadata $meta = null)` | `self` | Run consumer; delivers messages due at the test clock's current time, earliest due first; never moves the clock |
 | `getMessageChannel(string $channelName)` | `MessageChannel` | Get channel instance |
 | `receiveMessageFrom(string $channelName)` | `?Message` | Receive from pollable channel |
 

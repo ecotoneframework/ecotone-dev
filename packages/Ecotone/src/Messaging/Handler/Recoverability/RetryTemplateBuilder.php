@@ -26,7 +26,7 @@ final class RetryTemplateBuilder implements DefinedObject
         Assert::isTrue($maxAttempts > 0 || is_null($maxAttempts), 'Max attempts must be greater than 0');
         Assert::isTrue($maxDelay > 0 || is_null($maxDelay), 'Max delay must be greater than 0');
         Assert::isTrue($multiplier > 0, 'Multiplier must be greater than 0');
-        Assert::isTrue($initialDelay > 0, 'Initial delay must be greater than 0');
+        Assert::isTrue($initialDelay >= 0, "Retry initial delay must be 0 or greater, got {$initialDelay} ms");
 
         $this->initialDelay = $initialDelay;
         $this->multiplier = $multiplier;

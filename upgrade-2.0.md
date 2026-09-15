@@ -7,11 +7,11 @@ the release; within a group the most impactful changes come first.
 Minimum requirements: PHP 8.2 (8.4 for the Tempest integration), Symfony 6.4+, Laravel 11+, Doctrine DBAL 4 and,
 where used, Doctrine ORM 3 with DoctrineBundle 2.12+. Laravel 9/10, DBAL 3 and ORM 2 are no longer supported.
 
-**Status of this guide.** Sections 1, 2, 3, 4, 5, 6, 7, 9, 11, 13 and 14 describe behaviour that is already in the
+**Status of this guide.** Sections 1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 14 and 15 describe behaviour that is already in the
 codebase. Sections 8 and 12 are **planned for 2.0 and not implemented yet** — they are marked individually below.
 Do not act on a planned section until it ships; the API it describes does not exist. Items marked **TODO** inside an
 implemented section are known gaps that are not done yet. Section 10 records behaviour that was considered for change
-and deliberately kept as it is. Section 15 lists the larger 2.0 work that is still to be done, each with the path to
+and deliberately kept as it is. Section 16 lists the larger 2.0 work that is still to be done, each with the path to
 its design and implementation plan in this repository.
 
 ---
@@ -159,7 +159,7 @@ table**. Aggregates that do not say otherwise all write to a single table, `ecot
 `prooph/pdo-event-store` (with `prooph/event-store` and `prooph/common`) is no longer a dependency.
 
 Tags, `AppendCondition` and Dynamic Consistency Boundary querying are **planned** on top of this layout; they are not
-part of 2.0 as shipped — see §15.
+part of 2.0 as shipped — see §16.
 
 **How to adapt:**
 
@@ -510,7 +510,20 @@ The full mapping is in `upgrade/namespace-map-2.0.csv`.
   `#[Presend]`. In 1.x the attribute existed but did nothing. Nothing to change unless you had it in code expecting it
   to be ignored; without a licence bootstrap throws `LicensingException`.
 
-## 15. Planned 2.0 work still to be done (TODO)
+## 15. Testing and developer-experience changes
+
+These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them
+rename test-support methods without aliases; the renamed methods are listed in each entry.
+
+- **Retries may use a zero back-off.** `RetryTemplateBuilder::fixedBackOff(0)`, an exponential back-off starting at `0`
+  and `#[DelayedRetry(initialDelayMs: 0)]` used to throw `Initial delay must be greater than 0`. A zero delay is now
+  accepted: the failed message is sent back to its channel without a delivery delay, so a single
+  `run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false))` walks it through every retry and
+  into the dead letter. Negative delays still throw, naming the value
+  (`Retry initial delay must be 0 or greater, got -1 ms`).
+  **How to adapt:** nothing. Tests that advanced the clock only to get past a 1 ms back-off can use `0` instead.
+
+## 16. Planned 2.0 work still to be done (TODO)
 
 These changes are designed but not implemented. Nothing here affects an upgrade today; each entry will become a
 normal section with "How to adapt" steps when it ships.

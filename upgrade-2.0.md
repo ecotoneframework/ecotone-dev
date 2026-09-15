@@ -654,6 +654,11 @@ rename test-support methods without aliases; the renamed methods are listed in e
   also travels with every recorded event in the `MessageHeaders::EVENT_AGGREGATE_VERSION` header, including across
   asynchronous channels, so a delayed handler can compare it with the aggregate's current version.
   **How to adapt:** nothing; remove your own `getVersion()` accessor if it only returned the trait's property.
+- **The Enterprise-only `#[EventSourcingHandler]` metadata parameter names the open-source alternative.** Without a
+  licence, a second parameter such as `#[Header(MessageHeaders::TIMESTAMP)] int $recordedAt` fails with `… is part of
+  Enterprise features. Without Enterprise, keep a single event parameter and carry the value you need (for example the
+  time of the change) in the event itself. To read metadata here, obtain Enterprise: https://docs.ecotone.tech/enterprise`.
+  **How to adapt:** nothing.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

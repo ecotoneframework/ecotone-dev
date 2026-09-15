@@ -11,7 +11,8 @@ where used, Doctrine ORM 3 with DoctrineBundle 2.12+. Laravel 9/10, DBAL 3 and O
 codebase. Sections 8 and 12 are **planned for 2.0 and not implemented yet** — they are marked individually below.
 Do not act on a planned section until it ships; the API it describes does not exist. Items marked **TODO** inside an
 implemented section are known gaps that are not done yet. Section 10 records behaviour that was considered for change
-and deliberately kept as it is.
+and deliberately kept as it is. Section 15 lists the larger 2.0 work that is still to be done, each with the path to
+its design and implementation plan in this repository.
 
 ---
 
@@ -158,7 +159,7 @@ table**. Aggregates that do not say otherwise all write to a single table, `ecot
 `prooph/pdo-event-store` (with `prooph/event-store` and `prooph/common`) is no longer a dependency.
 
 Tags, `AppendCondition` and Dynamic Consistency Boundary querying are **planned** on top of this layout; they are not
-part of 2.0 as shipped.
+part of 2.0 as shipped — see §15.
 
 **How to adapt:**
 
@@ -339,6 +340,11 @@ that type against them should expect them to change in minor versions.
 ## 8. Database tables are no longer created on the fly
 
 > **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
+>
+> **TODO** — design and implementation plan: `docs/superpowers/specs/2026-08-28-database-setup-cli-design.md`
+> (section "Implementation plan", 15 steps; research: `docs/superpowers/research/database-setup-cli/report.md`).
+> The plan's step for removing the implicit commit was blocked by the Prooph store creating a table per stream at
+> runtime; §4 removed that blocker. Awaiting maintainer answers to the plan's open questions.
 
 **Before:** `DbalTransactionInterceptor` and `DeduplicationInterceptor` created `ecotone_deduplication`, `ecotone_error_messages`,
 `ecotone_enqueue` etc. during the first message and on MySQL committed the surrounding transaction implicitly
@@ -395,6 +401,13 @@ whose `aggregate.id` is supplied by a `#[Before]` or `#[Presend]` interceptor ra
 ## 12. Framework configuration: `ServiceContext` only
 
 > **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
+>
+> **TODO** — design and implementation plan: `docs/superpowers/specs/2026-08-28-servicecontext-only-config-design.md`
+> (section "Implementation plan", 9 steps; research: `docs/superpowers/research/servicecontext-only-config/report.md`).
+> First part of the work: `ServiceConfiguration::mergeWith()` currently merges only the serialization media type and
+> error channel from `#[ServiceContext]`, so most values set there are ignored today. The final list of keys that stay
+> in framework config is decided in the plan and may differ from the list below. Awaiting maintainer answers to the
+> plan's open questions.
 
 **Before:** Symfony `config/packages/ecotone.yaml` and Laravel `config/ecotone.php` exposed most `ServiceConfiguration` options
 (`serviceName`, `defaultSerializationMediaType`, `defaultErrorChannel`, `skippedModulePackageNames`, `loadAppNamespaces`, ...).
@@ -496,6 +509,19 @@ The full mapping is in `upgrade/namespace-map-2.0.csv`.
   interceptor for that exact channel, with the same `changeHeaders` / `precedence` semantics as `#[Before]` /
   `#[Presend]`. In 1.x the attribute existed but did nothing. Nothing to change unless you had it in code expecting it
   to be ignored; without a licence bootstrap throws `LicensingException`.
+
+## 15. Planned 2.0 work still to be done (TODO)
+
+These changes are designed but not implemented. Nothing here affects an upgrade today; each entry will become a
+normal section with "How to adapt" steps when it ships.
+
+| Work | What it changes | Design and implementation plan |
+|---|---|---|
+| Database setup CLI, no implicit commit (§8) | Tables created only by `ecotone:migration:database:setup` or dumped SQL; one transaction per message on every driver; deduplication cleanup moved out of the handler transaction; `status` and `dump-sql` commands | `docs/superpowers/specs/2026-08-28-database-setup-cli-design.md` · research `docs/superpowers/research/database-setup-cli/report.md` |
+| `#[ServiceContext]`-only configuration (§12) | `ServiceContext` values are actually merged; framework config files keep only bootstrap keys | `docs/superpowers/specs/2026-08-28-servicecontext-only-config-design.md` · research `docs/superpowers/research/servicecontext-only-config/report.md` |
+| DCB event store (§4) | Tags per event, tag queries and `AppendCondition` with optimistic concurrency on top of `ecotone_event_stream`; SQL-side projection filtering | `docs/superpowers/specs/2026-08-22-dcb-event-store-design.md` (section "Implementation plan") · research `docs/superpowers/research/dcb-event-store/report.md`. Written before §4 shipped: its Prooph-removal, single-log and package parts are done or superseded, so refresh the plan against the current store before starting |
+| Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only; in-memory queue channels provided automatically for `#[Asynchronous]` handlers, still consumed with `run()` | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
+| Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 
 ---
 

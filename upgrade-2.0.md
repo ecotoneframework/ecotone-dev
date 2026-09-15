@@ -629,6 +629,14 @@ rename test-support methods without aliases; the renamed methods are listed in e
   concrete class in its __TypeId__ header. Type the parameter with a concrete class or a union of concrete classes, or
   send an object instead of an array.`
   **How to adapt:** nothing; one interface-typed handler can replace per-event copies written as a workaround.
+- **`AggregateNotFoundException` says which handler sent the command and why.** When a command sent from inside
+  another handler targeted a missing aggregate, the message named only the aggregate and identifiers, so finding the
+  saga or event handler that sent it meant searching the code. The message now continues with the causation chain:
+  `Aggregate App\Wallet for calling chargeFunds was not found using identifiers {"walletId":"wallet-404"}. Command
+  App\ChargeFunds was sent by App\WalletChargeHandler::onOrderCreated() while handling event App\OrderCreated, which was
+  published while handling command App\CreateOrder.` The exception class is unchanged; the original exception is its
+  `previous`. A command sent directly from the test or a controller keeps the short message.
+  **How to adapt:** tests asserting the exact message with `assertSame` switch to `assertStringStartsWith`.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

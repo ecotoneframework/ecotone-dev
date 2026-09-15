@@ -43,6 +43,11 @@ class GatewayInternalProcessor implements MessageProcessor, AroundInterceptable
     ) {
     }
 
+    public function getInterfaceToCallName(): string
+    {
+        return $this->interfaceToCallName;
+    }
+
     /**
      * @param Message $requestMessage
      * @return mixed

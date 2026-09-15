@@ -214,7 +214,7 @@ final class ErrorChannelCommandBusTest extends TestCase
  * @internal
  */
 #[DelayedRetry(
-    initialDelayMs: 1,
+    initialDelayInMilliseconds: 1,
     multiplier: 1,
     maxRetries: 1,
     deadLetterChannel: 'gatewayRetryDeadLetter',

@@ -454,7 +454,7 @@ final class ErrorChannelTest extends TestCase
     {
         $service = new class () {
             #[\Ecotone\Api\Asynchronous('asyncMisplacedDelayedRetry')]
-            #[\Ecotone\Api\DelayedRetry(initialDelayMs: 1, maxRetries: 2)]
+            #[\Ecotone\Api\DelayedRetry(initialDelayInMilliseconds: 1, maxRetries: 2)]
             #[\Ecotone\Api\CommandHandler('misplaced.delayedretry', 'misplacedDelayedRetryHandler')]
             public function handle(string $payload): void
             {
@@ -481,7 +481,7 @@ final class ErrorChannelTest extends TestCase
     public function test_delayed_retry_on_inbound_channel_adapter_throws_descriptive_error(): void
     {
         $service = new class () {
-            #[\Ecotone\Api\DelayedRetry(initialDelayMs: 1, maxRetries: 2)]
+            #[\Ecotone\Api\DelayedRetry(initialDelayInMilliseconds: 1, maxRetries: 2)]
             #[\Ecotone\Api\Scheduled('inboundDelayedRetryChannel', 'inboundDelayedRetry')]
             #[\Ecotone\Api\Poller(executionTimeLimitInMilliseconds: 1, handledMessageLimit: 1)]
             public function emit(): string
@@ -654,7 +654,7 @@ final class DelayedRetryHandler
     public bool $finallyHandled = false;
 
     #[\Ecotone\Api\Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
-        new \Ecotone\Api\DelayedRetry(initialDelayMs: 1, multiplier: 1, maxRetries: 3),
+        new \Ecotone\Api\DelayedRetry(initialDelayInMilliseconds: 1, multiplier: 1, maxRetries: 3),
     ])]
     #[\Ecotone\Api\CommandHandler(self::ROUTING_KEY_RECOVERS, 'retryRecovers')]
     public function recovers(string $payload): void
@@ -668,7 +668,7 @@ final class DelayedRetryHandler
 
     #[\Ecotone\Api\Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
         new \Ecotone\Api\DelayedRetry(
-            initialDelayMs: 1,
+            initialDelayInMilliseconds: 1,
             multiplier: 1,
             maxRetries: 2,
             deadLetterChannel: self::DEAD_LETTER_CHANNEL,
@@ -683,7 +683,7 @@ final class DelayedRetryHandler
 
     #[\Ecotone\Api\Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
         new \Ecotone\Api\DelayedRetry(
-            initialDelayMs: 1,
+            initialDelayInMilliseconds: 1,
             multiplier: 1,
             maxRetries: 1,
             deadLetterChannel: self::DEAD_LETTER_CHANNEL,

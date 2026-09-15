@@ -516,7 +516,7 @@ These changes make tests and error messages say what happens, so that failures p
 rename test-support methods without aliases; the renamed methods are listed in each entry.
 
 - **Retries may use a zero back-off.** `RetryTemplateBuilder::fixedBackOff(0)`, an exponential back-off starting at `0`
-  and `#[DelayedRetry(initialDelayMs: 0)]` used to throw `Initial delay must be greater than 0`. A zero delay is now
+  and `#[DelayedRetry(initialDelayInMilliseconds: 0)]` used to throw `Initial delay must be greater than 0`. A zero delay is now
   accepted: the failed message is sent back to its channel without a delivery delay, so a single
   `run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false))` walks it through every retry and
   into the dead letter. Negative delays still throw, naming the value
@@ -569,7 +569,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
   | `RetryTemplateBuilder::exponentialBackoff($initialDelay, $multiplier)` | `RetryTemplateBuilder::exponentialBackOff($initialDelayInMilliseconds, $multiplier)` |
   | `RetryTemplateBuilder::exponentialBackoffWithMaxDelay($initialDelay, $multiplier, $maxDelay)` | `RetryTemplateBuilder::exponentialBackOffWithMaxDelay($initialDelayInMilliseconds, $multiplier, $maxDelayInMilliseconds)` |
   | `->maxRetryAttempts(3)` | `->maxRetries(3)` |
-  | `#[DelayedRetry(initialDelayMs: 100, maxAttempts: 3)]` | `#[DelayedRetry(initialDelayMs: 100, maxRetries: 3)]` |
+  | `#[DelayedRetry(initialDelayMs: 100, maxDelayMs: 1000, maxAttempts: 3)]` | `#[DelayedRetry(initialDelayInMilliseconds: 100, maxDelayInMilliseconds: 1000, maxRetries: 3)]` |
 
   Behaviour is unchanged. **How to adapt:** rename the calls; positional arguments keep working, named arguments use the
   new parameter names.

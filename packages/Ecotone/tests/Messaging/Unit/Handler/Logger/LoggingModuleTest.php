@@ -34,7 +34,7 @@ final class LoggingModuleTest extends TestCase
 
         $ecotoneLite
             ->sendCommandWithRouting('handler.fail', ['command' => 2])
-            ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+            ->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $this->assertCount(1, $loggerExample->getCritical());
     }
@@ -51,7 +51,7 @@ final class LoggingModuleTest extends TestCase
 
         $ecotoneLite
             ->sendCommandWithRouting('handler.fail', ['command' => 2]);
-        $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run(self::CHANNEL_NAME, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());
         $this->assertCount(1, $loggerExample->getError());

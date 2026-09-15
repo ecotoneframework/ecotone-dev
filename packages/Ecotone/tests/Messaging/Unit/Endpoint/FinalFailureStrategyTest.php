@@ -38,7 +38,7 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->assertSame(
             InMemoryAcknowledgeStatus::IGNORED,
@@ -55,7 +55,7 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->assertSame(
             InMemoryAcknowledgeStatus::RESENT,
@@ -75,7 +75,7 @@ final class FinalFailureStrategyTest extends TestCase
         $this->expectExceptionMessage('Service failed');
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
     }
 
     public function test_successful_processing_always_acknowledges_message()
@@ -87,7 +87,7 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->assertSame(
             InMemoryAcknowledgeStatus::ACKED,
@@ -104,7 +104,7 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->assertSame(
             InMemoryAcknowledgeStatus::IGNORED,
@@ -121,7 +121,7 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: true));
 
         $this->assertSame(
             InMemoryAcknowledgeStatus::IGNORED,
@@ -138,7 +138,7 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->assertSame(
             InMemoryAcknowledgeStatus::IGNORED,
@@ -155,7 +155,7 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         $ecotoneTestSupport->sendDirectToChannel('executionChannel', 'some');
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->assertSame(
             InMemoryAcknowledgeStatus::RESENT,

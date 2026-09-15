@@ -31,7 +31,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
         $ecotone = $this->bootstrapWithGrowingDelay();
 
         $ecotone->sendCommandWithRouting(GrowingDelayHandler::ROUTING_KEY, 'payload');
-        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         /** @var PollableChannel $channel */
         $channel = $ecotone->getMessageChannel(GrowingDelayHandler::ASYNC_CHANNEL);
@@ -46,8 +46,8 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
         $ecotone = $this->bootstrapWithGrowingDelay();
 
         $ecotone->sendCommandWithRouting(GrowingDelayHandler::ROUTING_KEY, 'payload');
-        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
-        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         /** @var PollableChannel $channel */
         $channel = $ecotone->getMessageChannel(GrowingDelayHandler::ASYNC_CHANNEL);
@@ -73,8 +73,8 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
         );
 
         $ecotone->sendCommandWithRouting(DeadLetterRoutingHandler::ROUTING_KEY, 'payload');
-        $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
-        $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         /** @var PollableChannel $deadLetterChannel */
         $deadLetterChannel = $ecotone->getMessageChannel(DeadLetterRoutingHandler::DEAD_LETTER_CHANNEL);
@@ -105,13 +105,13 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
         );
 
         $ecotone->sendCommandWithRouting(NoDeadLetterHandler::ROUTING_KEY, 'payload');
-        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
-        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->expectException(MessageHandlingException::class);
         $this->expectExceptionMessage('Message handling failed on channel `noDeadLetterAsync` after 2 failed deliveries (1 initial + 1 retry)');
 
-        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
     }
 
     private function bootstrapWithGrowingDelay()

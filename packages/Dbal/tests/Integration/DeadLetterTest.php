@@ -257,8 +257,8 @@ final class DeadLetterTest extends DbalMessagingTestCase
         );
 
         $ecotone->run('failingInboundAdapter', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
 
         $this->assertErrorMessageCount($ecotone, 1);
@@ -273,8 +273,8 @@ final class DeadLetterTest extends DbalMessagingTestCase
         $this->assertSame(['first-payload'], $handler->processedPayloads, 'Replayed Message must carry the original payload back to the handler');
 
         $ecotone->run('failingInboundAdapter', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
 
         $this->assertSame(2, $handler->invocations, 'Subsequent polls must not re-process the replayed Message (emit() returns null after the first emission)');

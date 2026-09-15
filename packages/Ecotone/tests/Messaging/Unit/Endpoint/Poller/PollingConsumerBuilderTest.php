@@ -293,7 +293,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
             ->withChannel(SimpleMessageChannelBuilder::create($inputChannelName, $inputChannel))
             ->withPollingMetadata(
                 PollingMetadata::create($messageHandler->getEndpointId())
-                    ->withTestingSetup(failAtError: $stopOnFailure)
+                    ->withTestingSetup(stopOnError: $stopOnFailure)
             )
             ->withMessageHandler(
                 $messageHandler

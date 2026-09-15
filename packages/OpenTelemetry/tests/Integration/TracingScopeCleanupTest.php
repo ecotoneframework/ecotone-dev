@@ -227,7 +227,7 @@ final class TracingScopeCleanupTest extends TracingTestCase
         $ecotoneLite->sendCommandWithRouting('user.register', '1');
 
         [, $scopeNotices] = $this->invokeCapturingScopeNotices(
-            fn () => $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false))
+            fn () => $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false))
         );
 
         $this->assertSame([], $scopeNotices);

@@ -64,7 +64,7 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
 
         $ecotoneTestSupport->sendCommandWithRouting('execute.failing_command', new FailingCommand('some_1'));
         $ecotoneTestSupport->sendCommandWithRouting('execute.failing_command', new FailingCommand('some_2'));
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
         // For Laravel Queue, resend uses job->release() which puts message back in queue

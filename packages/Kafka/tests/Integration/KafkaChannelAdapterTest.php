@@ -64,7 +64,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->sendWithMetadata('exampleData', 'application/text', ['key' => 'value']);
 
         $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000
+            executionTimeLimitInMilliseconds: 30000
         ));
 
         $messages = $ecotoneLite->sendQueryWithRouting('getMessages');
@@ -90,7 +90,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->sendWithMetadata('exampleData', 'application/text', $metadata);
 
         $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000
+            executionTimeLimitInMilliseconds: 30000
         ));
 
         $messages = $ecotoneLite->sendQueryWithRouting('getMessages');
@@ -197,11 +197,11 @@ final class KafkaChannelAdapterTest extends TestCase
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
         $this->assertEquals([$payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
 
         // Test that message is not consumed again
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: true));
         $this->assertEquals([$payload], $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads'));
     }
 
@@ -231,14 +231,14 @@ final class KafkaChannelAdapterTest extends TestCase
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
         $messages = $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads');
         $this->assertCount(2, $messages);
         $this->assertEquals($payload, $messages[0]);
         $this->assertEquals($payload, $messages[1]);
 
         // Test that message is not consumed again
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: true));
         $messages = $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads');
         $this->assertCount(2, $messages);
     }
@@ -270,14 +270,14 @@ final class KafkaChannelAdapterTest extends TestCase
         $messagePublisher = $ecotoneLite->getGateway(MessagePublisher::class);
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
         $messages = $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads');
         $this->assertCount(2, $messages);
         $this->assertEquals($payload, $messages[0]);
         $this->assertEquals($payload, $messages[1]);
 
         // Test that message is not consumed again
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: true));
         $messages = $ecotoneLite->sendQueryWithRouting('consumer.getAttributeMessagePayloads');
         $this->assertCount(2, $messages);
 
@@ -316,7 +316,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaAdmin->getProducer($publisherReferenceName. '.handler')->flush(8000);
 
         $ecotoneLite->run($consumerReferenceName, ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000
+            executionTimeLimitInMilliseconds: 30000
         )->withStopOnError(false));
 
         $this->assertNotNull($ecotoneLite->getMessageChannel('customErrorChannel')->receive());
@@ -381,8 +381,8 @@ final class KafkaChannelAdapterTest extends TestCase
         $messagePublisher->send($payload);
 
         $ecotoneLite->run($consumerReferenceName, ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000,
-            failAtError: false,
+            executionTimeLimitInMilliseconds: 30000,
+            stopOnError: false,
         ));
 
         /** @var DeadLetterGateway $deadLetter */
@@ -393,8 +393,8 @@ final class KafkaChannelAdapterTest extends TestCase
         $this->assertEquals(0, $deadLetter->count());
 
         $ecotoneLite->run($consumerReferenceName, ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000,
-            failAtError: false,
+            executionTimeLimitInMilliseconds: 30000,
+            stopOnError: false,
         ));
 
         $processedMessages = $ecotoneLite->sendQueryWithRouting('consumer.getProcessedMessages');
@@ -457,8 +457,8 @@ final class KafkaChannelAdapterTest extends TestCase
         $messagePublisher->send($payload);
 
         $ecotoneLite->run('replayable_kafka_consumer', ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000,
-            failAtError: false,
+            executionTimeLimitInMilliseconds: 30000,
+            stopOnError: false,
         ));
 
         /** @var DeadLetterGateway $deadLetter */
@@ -475,8 +475,8 @@ final class KafkaChannelAdapterTest extends TestCase
         $this->assertSame([$payload], $handler->processedPayloads, 'Replayed Message must carry the original payload back to the handler');
 
         $ecotoneLite->run('replayable_kafka_consumer', ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000,
-            failAtError: false,
+            executionTimeLimitInMilliseconds: 30000,
+            stopOnError: false,
         ));
 
         $this->assertSame(2, $handler->invocations, 'Replayed Message must not be re-consumed from the Kafka topic (committed)');
@@ -512,7 +512,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->convertAndSend($stdClass);
 
         $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000
+            executionTimeLimitInMilliseconds: 30000
         ));
 
         $messages = $ecotoneLite->sendQueryWithRouting('getMessages');
@@ -558,7 +558,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $messagePublisher->sendWithMetadata($payload, metadata: ['fail' => true]);
 
         // First run: Instant retry (2 attempts: original + 1 retry)
-        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneLite->run($endpointId, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
         $attempts = $ecotoneLite->sendQueryWithRouting('consumer.getDelayedRetryAttempts');
         $this->assertCount(2, $attempts, 'Should have 2 attempts from instant retry (original + 1 instant retry)');
         $this->assertEquals($payload, $attempts[0]['payload']);
@@ -608,7 +608,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->sendWithMetadata('exampleData', 'application/text', ['key' => 'value']);
 
         $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000
+            executionTimeLimitInMilliseconds: 30000
         ));
 
         $messages = $ecotoneLite->sendQueryWithRouting('getMessages');
@@ -642,7 +642,7 @@ final class KafkaChannelAdapterTest extends TestCase
         $kafkaPublisher->sendWithMetadata('exampleData', 'application/text', ['key' => 'value']);
 
         $ecotoneLite->run('exampleConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            maxExecutionTimeInMilliseconds: 30000
+            executionTimeLimitInMilliseconds: 30000
         ));
 
         $messages = $ecotoneLite->sendQueryWithRouting('getMessages');

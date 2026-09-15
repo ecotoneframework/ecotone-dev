@@ -63,13 +63,13 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
         $this->assertSame(2, $this->amountOfOutboxRowsFor($this->connectionForTenantA()));
         $this->assertSame(1, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfOutboxRowsFor($this->connectionForTenantA()));
         $this->assertSame(1, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
         $this->assertSame(['flat white'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));

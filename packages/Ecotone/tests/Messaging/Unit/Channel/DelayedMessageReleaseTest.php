@@ -31,7 +31,7 @@ final class DelayedMessageReleaseTest extends TestCase
             MessageHeaders::DELIVERY_DELAY => 10_000,
         ]);
 
-        $ecotone->advanceTimeBy(TimeSpan::withSeconds(5))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->advanceTimeBy(TimeSpan::withSeconds(5))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->assertSame([], $handler->processed);
     }
@@ -45,7 +45,7 @@ final class DelayedMessageReleaseTest extends TestCase
             MessageHeaders::DELIVERY_DELAY => 10_000,
         ]);
 
-        $ecotone->advanceTimeBy(TimeSpan::withSeconds(10))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->advanceTimeBy(TimeSpan::withSeconds(10))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->assertSame(['a'], $handler->processed);
     }
@@ -59,13 +59,13 @@ final class DelayedMessageReleaseTest extends TestCase
         $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'second', metadata: [MessageHeaders::DELIVERY_DELAY => 2000]);
         $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'third', metadata: [MessageHeaders::DELIVERY_DELAY => 1000]);
 
-        $ecotone->advanceTimeBy(TimeSpan::withSeconds(1))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->advanceTimeBy(TimeSpan::withSeconds(1))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertSame(['third'], $handler->processed);
 
-        $ecotone->advanceTimeBy(TimeSpan::withSeconds(1))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->advanceTimeBy(TimeSpan::withSeconds(1))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertSame(['third', 'second'], $handler->processed);
 
-        $ecotone->advanceTimeBy(TimeSpan::withSeconds(1))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->advanceTimeBy(TimeSpan::withSeconds(1))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertSame(['third', 'second', 'first'], $handler->processed);
     }
 

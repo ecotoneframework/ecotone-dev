@@ -55,9 +55,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // First run - should fail and trigger release (offset reset)
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify handler was called once (and failed)
@@ -66,9 +66,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Second run - should succeed
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify handler was called twice (first failed, second succeeded)
@@ -102,9 +102,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 10,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 10,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify processing pattern:
@@ -142,9 +142,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 10,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 10,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify processing pattern:
@@ -181,9 +181,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // First application run - should fail and reset offset
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify first handler was called once
@@ -192,9 +192,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Second run - should succeed
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify second handler was called once
@@ -233,9 +233,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // First run - should process first message (fail and ignore), then process second message (succeed)
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior:
@@ -247,9 +247,9 @@ final class FinalFailureStrategyTest extends TestCase
         $this->assertEquals(['message_2'], $handler->getSuccessfulMessages()); // Only message_2 succeeded
 
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior is unchanged
@@ -289,9 +289,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // First run - should process first message (fail and ignore), then process second message (succeed)
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior:
@@ -322,9 +322,9 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior is unchanged

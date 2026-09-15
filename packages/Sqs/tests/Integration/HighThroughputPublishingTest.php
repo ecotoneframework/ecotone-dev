@@ -43,7 +43,7 @@ final class HighThroughputPublishingTest extends ConnectionTestCase
 
         $this->assertSame([], $messaging->sendQueryWithRouting('order.getReceived'));
 
-        $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 20000));
+        $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 20000));
 
         $receivedEvents = $messaging->sendQueryWithRouting('order.getReceived');
         sort($receivedEvents);

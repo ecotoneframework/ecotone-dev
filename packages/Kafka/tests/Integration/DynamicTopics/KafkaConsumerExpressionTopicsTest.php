@@ -51,8 +51,8 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
         $this->publishToTopic($topicName, 'order-placed');
 
         $ecotoneLite->run('dynamicTopicsConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 30000,
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 30000,
         ));
 
         $this->assertSame(
@@ -87,8 +87,8 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
         $this->publishToTopic($dynamicTopicName, 'dynamic-order-placed');
 
         $ecotoneLite->run('mixedTopicsConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 30000,
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 30000,
         ));
 
         $messages = $ecotoneLite->sendQueryWithRouting('mixedTopicsConsumer.getMessages');
@@ -123,8 +123,8 @@ final class KafkaConsumerExpressionTopicsTest extends TestCase
         $this->publishToTopic($topicName, 'order-placed-via-parameter');
 
         $ecotoneLite->run('parameterTopicsConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 30000,
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 30000,
         ));
 
         $this->assertSame(

@@ -53,7 +53,7 @@ final class DelayedRetryBackOffTest extends TestCase
         );
 
         $ecotone->publishEventWithRouting('order.completed', 'order-1');
-        $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $this->assertSame(4, $sender->attempts);
         $this->assertNotNull($ecotone->getMessageChannel('deadLetter')->receive());
@@ -78,7 +78,7 @@ final class DelayedRetryBackOffTest extends TestCase
         $ecotone = $this->bootstrapAlwaysFailingSender($logger, deadLetter: true);
 
         $ecotone->publishEventWithRouting('order.completed', 'order-1');
-        $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $deadLetterLines = array_values(array_filter($logger->getError(), fn (string $line) => str_contains($line, 'dead letter')));
         $this->assertCount(1, $deadLetterLines);
@@ -94,7 +94,7 @@ final class DelayedRetryBackOffTest extends TestCase
         $this->expectException(MessageHandlingException::class);
         $this->expectExceptionMessage('Message handling failed on channel `async` after 2 failed deliveries (1 initial + 1 retry). RuntimeException: SMTP connection refused');
 
-        $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
     }
 
     private function bootstrapAlwaysFailingSender(StubLogger $logger, bool $deadLetter, int $maxRetries = 3)

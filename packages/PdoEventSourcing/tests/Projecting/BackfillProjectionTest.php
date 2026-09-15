@@ -126,11 +126,11 @@ final class BackfillProjectionTest extends ProjectingTestCase
         $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_channel');
         self::assertCount(3, $messages);
 
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(4, $ecotone->sendQueryWithRouting('getBackfillTickets'));
 
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(5, $ecotone->sendQueryWithRouting('getBackfillTickets'));
     }
 
@@ -167,7 +167,7 @@ final class BackfillProjectionTest extends ProjectingTestCase
         $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_channel');
         self::assertCount(1, $messages);
 
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(5, $ecotone->sendQueryWithRouting('getBackfillTickets5'));
     }
 
@@ -234,7 +234,7 @@ final class BackfillProjectionTest extends ProjectingTestCase
         $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_global_channel');
         self::assertCount(1, $messages);
 
-        $ecotone->run('backfill_global_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_global_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(3, $ecotone->sendQueryWithRouting('getGlobalAsyncTickets'));
     }
 

@@ -67,12 +67,12 @@ final class AmqpMessengerIntegrationTest extends WebTestCase
         /** Consumer not yet run */
         $this->assertCount(0, $this->messaging->sendQueryWithRouting('amqp.consumer.getCommands'));
 
-        $this->messaging->run($this->channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->messaging->run($this->channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $commands = $this->messaging->sendQueryWithRouting('amqp.consumer.getCommands');
         $this->assertCount(1, $commands);
         $this->assertEquals('multi_1', $commands[0]['id']);
 
-        $this->messaging->run($this->channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $this->messaging->run($this->channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $commands = $this->messaging->sendQueryWithRouting('amqp.consumer.getCommands');
         $this->assertCount(2, $commands);
         $this->assertEquals('multi_1', $commands[0]['id']);

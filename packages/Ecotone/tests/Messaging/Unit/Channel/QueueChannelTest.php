@@ -67,7 +67,7 @@ class QueueChannelTest extends TestCase
         $ecotoneLite
             ->sendCommandWithRouting('call.service', 'fail_1')
             ->sendCommandWithRouting('call.service', 'success_1')
-            ->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 1000000, failAtError: false));
+            ->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 10, executionTimeLimitInMilliseconds: 1000000, stopOnError: false));
 
         $this->assertEquals(['fail_1', 'success_1', 'fail_1'], $failureService->messages);
     }
@@ -88,7 +88,7 @@ class QueueChannelTest extends TestCase
         $ecotoneLite
             ->sendCommandWithRouting('call.service', 'fail_1')
             ->sendCommandWithRouting('call.service', 'success_1')
-            ->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 1000000, failAtError: false));
+            ->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 10, executionTimeLimitInMilliseconds: 1000000, stopOnError: false));
 
         $this->assertEquals(['fail_1', 'fail_1', 'success_1'], $failureService->messages);
     }
@@ -109,7 +109,7 @@ class QueueChannelTest extends TestCase
         $ecotoneLite
             ->sendCommandWithRouting('call.service', 'fail_1')
             ->sendCommandWithRouting('call.service', 'success_1')
-            ->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 1000000, failAtError: false));
+            ->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 10, executionTimeLimitInMilliseconds: 1000000, stopOnError: false));
 
         $this->assertEquals(['fail_1', 'success_1'], $failureService->messages);
     }
@@ -132,7 +132,7 @@ class QueueChannelTest extends TestCase
             ->sendCommandWithRouting('call.service', 'success_1');
 
         try {
-            $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 1000000, failAtError: false));
+            $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 10, executionTimeLimitInMilliseconds: 1000000, stopOnError: false));
         } catch (Exception) {
             // we are expecting exception here
         }
@@ -140,7 +140,7 @@ class QueueChannelTest extends TestCase
         $this->assertEquals(['fail_1'], $failureService->messages);
 
         try {
-            $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10, maxExecutionTimeInMilliseconds: 1000000, failAtError: false));
+            $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 10, executionTimeLimitInMilliseconds: 1000000, stopOnError: false));
         } catch (Exception) {
             // we are expecting exception here
         }

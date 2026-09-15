@@ -251,9 +251,9 @@ final class RebuildProjectionTest extends ProjectingTestCase
         $messages = $ecotone->popRecordedMessagePayloadsFrom('rebuild_channel');
         self::assertCount(3, $messages);
 
-        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotone->run('rebuild_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(5, $ecotone->sendQueryWithRouting('getRebuildBatch2Tickets'));
     }
 
@@ -314,7 +314,7 @@ final class RebuildProjectionTest extends ProjectingTestCase
         $messages = $ecotone->popRecordedMessagePayloadsFrom('rebuild_global_channel');
         self::assertCount(1, $messages);
 
-        $ecotone->run('rebuild_global_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('rebuild_global_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(3, $ecotone->sendQueryWithRouting('getRebuildGlobalAsyncTickets'));
     }
 

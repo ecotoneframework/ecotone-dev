@@ -201,7 +201,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
             $ecotoneLite
                 ->publishEventWithRouting('order.was_placed', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
                 ->publishEventWithRouting('order.was_placed', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, maxExecutionTimeInMilliseconds: 1000000))
+                ->run($queueName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(4, executionTimeLimitInMilliseconds: 1000000))
                 ->sendQueryWithRouting('email_event_handler.getCallCount')
         );
     }

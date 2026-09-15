@@ -41,7 +41,7 @@ final class ErrorChannelTest extends TestCase
 
         $ecotone
             ->sendCommandWithRouting('order.register', 'coffee')
-            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
 
         // First attempt fails, message is sent to error channel for delayed retry
@@ -49,21 +49,21 @@ final class ErrorChannelTest extends TestCase
 
         // Second attempt (first delayed retry) - still fails
         $ecotone
-            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
 
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
         // Third attempt (second delayed retry)
         $ecotone
-            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
 
         $this->assertSame(3, $ecotone->sendQueryWithRouting('getCallCount'));
 
         $this->assertSame(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
         $ecotone
-            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
         $this->assertSame(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
@@ -82,7 +82,7 @@ final class ErrorChannelTest extends TestCase
 
         $ecotone
             ->sendCommandWithRouting('order.register', 'coffee')
-            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
 
         // First attempt fails, message is sent to error channel for delayed retry
@@ -90,19 +90,19 @@ final class ErrorChannelTest extends TestCase
 
         // Second attempt (first delayed retry) - still fails
         $ecotone
-            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
 
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
         // Third attempt (second delayed retry)
         $ecotone
-            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
 
         $this->assertSame(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
         $ecotone
-            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
         $this->assertSame(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
@@ -128,7 +128,7 @@ final class ErrorChannelTest extends TestCase
 
         $ecotone
             ->sendCommandWithRouting('order.register', 'coffee')
-            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run('correctOrders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
 
         // First attempt fails, message is sent to error channel for delayed retry
@@ -136,21 +136,21 @@ final class ErrorChannelTest extends TestCase
 
         // Second attempt (first delayed retry) - still fails
         $ecotone
-            ->run($errorChannelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run($errorChannelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
 
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
 
         // Third attempt (second delayed retry)
         $ecotone
-            ->run($errorChannelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false))
+            ->run($errorChannelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false))
         ;
 
         $this->assertSame(3, $ecotone->sendQueryWithRouting('getCallCount'));
 
         $this->assertSame(0, $ecotone->sendQueryWithRouting('getOrderAmount'));
         $ecotone
-            ->run($errorChannelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: true))
+            ->run($errorChannelName, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: true))
         ;
         $this->assertSame(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
     }
@@ -170,8 +170,8 @@ final class ErrorChannelTest extends TestCase
         );
 
         $ecotone->run(FailingScheduledExample::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
 
         /** @var PollableChannel $errorChannel */
@@ -212,8 +212,8 @@ final class ErrorChannelTest extends TestCase
         $this->expectExceptionMessage('does not contain information about origination channel from which it was polled');
 
         $ecotone->run(FailingScheduledExample::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
     }
 
@@ -235,8 +235,8 @@ final class ErrorChannelTest extends TestCase
 
         $ecotone->sendCommandWithRouting(AsyncFailingHandler::ROUTING_KEY_A, 'payload-a');
         $ecotone->run(AsyncFailingHandler::SHARED_ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
 
         /** @var PollableChannel $errorChannelA */
@@ -268,8 +268,8 @@ final class ErrorChannelTest extends TestCase
         $ecotone->sendCommandWithRouting(AsyncFailingHandler::ROUTING_KEY_B, 'payload-b');
 
         $ecotone->run(AsyncFailingHandler::SHARED_ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            failAtError: false,
+            handledMessageLimit: 2,
+            stopOnError: false,
         ));
 
         /** @var PollableChannel $errorChannelA */
@@ -305,8 +305,8 @@ final class ErrorChannelTest extends TestCase
 
         $ecotone->sendCommandWithRouting(AsyncFailingHandler::ROUTING_KEY_A, 'payload-a');
         $ecotone->run(AsyncFailingHandler::SHARED_ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
 
         /** @var PollableChannel $globalDefault */
@@ -336,15 +336,15 @@ final class ErrorChannelTest extends TestCase
         $ecotone->sendCommandWithRouting(DelayedRetryHandler::ROUTING_KEY_RECOVERS, 'payload');
 
         $ecotone->run(DelayedRetryHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
         $this->assertSame(1, $ecotone->sendQueryWithRouting('retryHandler.attemptsRecovers'));
         $this->assertFalse($ecotone->sendQueryWithRouting('retryHandler.finallyHandled'));
 
         $ecotone->run(DelayedRetryHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
         $this->assertSame(2, $ecotone->sendQueryWithRouting('retryHandler.attemptsRecovers'));
         $this->assertTrue($ecotone->sendQueryWithRouting('retryHandler.finallyHandled'));
@@ -370,8 +370,8 @@ final class ErrorChannelTest extends TestCase
 
         for ($i = 0; $i < 3; $i++) {
             $ecotone->run(DelayedRetryHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-                amountOfMessagesToHandle: 1,
-                failAtError: false,
+                handledMessageLimit: 1,
+                stopOnError: false,
             ));
         }
 
@@ -405,8 +405,8 @@ final class ErrorChannelTest extends TestCase
 
         for ($i = 0; $i < 2; $i++) {
             $ecotone->run(DelayedRetryHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-                amountOfMessagesToHandle: 1,
-                failAtError: false,
+                handledMessageLimit: 1,
+                stopOnError: false,
             ));
         }
 
@@ -522,8 +522,8 @@ final class ErrorChannelTest extends TestCase
         );
 
         $ecotone->run(InboundChannelAdapterWithInstantRetryAndErrorChannel::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
 
         $this->assertSame(3, $handler->invocations, 'Handler must be invoked once + retried twice (retryTimes: 2) before succeeding on the third attempt');
@@ -568,8 +568,8 @@ final class ErrorChannelTest extends TestCase
         );
 
         $ecotone->run(InboundChannelAdapterWithInstantRetryAndErrorChannel::ENDPOINT_ID, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            failAtError: false,
+            handledMessageLimit: 1,
+            stopOnError: false,
         ));
 
         $this->assertSame(3, $handler->invocations, 'Handler must be invoked once + retried twice before forwarding to Error Channel');

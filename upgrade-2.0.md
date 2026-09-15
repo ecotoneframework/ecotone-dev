@@ -367,13 +367,13 @@ transaction wraps the whole message on every driver. Deduplication cleanup runs 
 | JMS: serialize `null` properties | off | on | `JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false)` |
 | JMS: native enum support | off | on | `->withDefaultEnumSupport(false)` |
 | `SimpleMessageChannelBuilder::createQueueChannel()` delayable | `false` | `true` | `createQueueChannel('x', delayable: false)` |
-| `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(amountOfMessagesToHandle: 1)` |
+| `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(handledMessageLimit: 1)` |
 | Instant retries on asynchronous endpoints | disabled | enabled (3 attempts) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withModulePackages()` lists; with no call, all installed packages load | `ServiceConfiguration::withModulePackages([...])` |
 
 Test-suite impact of the new defaults:
 - A test that asserted "exactly one message handled per `run()`" now sees up to 100; pass
-  `ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1)` (or `--handledMessageLimit=1` on `ecotone:run`).
+  `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)` (or `--handledMessageLimit=1` on `ecotone:run`).
 - A test that expected the first consumer run to fail and a second run to succeed now sees the failure retried instantly inside the first
   run; disable it for that test with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
   or assert the retried outcome.
@@ -518,7 +518,7 @@ rename test-support methods without aliases; the renamed methods are listed in e
 - **Retries may use a zero back-off.** `RetryTemplateBuilder::fixedBackOff(0)`, an exponential back-off starting at `0`
   and `#[DelayedRetry(initialDelayMs: 0)]` used to throw `Initial delay must be greater than 0`. A zero delay is now
   accepted: the failed message is sent back to its channel without a delivery delay, so a single
-  `run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false))` walks it through every retry and
+  `run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false))` walks it through every retry and
   into the dead letter. Negative delays still throw, naming the value
   (`Retry initial delay must be 0 or greater, got -1 ms`).
   **How to adapt:** nothing. Tests that advanced the clock only to get past a 1 ms back-off can use `0` instead.
@@ -659,6 +659,19 @@ rename test-support methods without aliases; the renamed methods are listed in e
   Enterprise features. Without Enterprise, keep a single event parameter and carry the value you need (for example the
   time of the change) in the event itself. To read metadata here, obtain Enterprise: https://docs.ecotone.tech/enterprise`.
   **How to adapt:** nothing.
+- **Testing polling parameters use the names of the matching setters.** `createWithTestingSetup()` took
+  `amountOfMessagesToHandle` (a maximum, not an exact count), `maxExecutionTimeInMilliseconds` and `failAtError`, while the
+  same settings are `withHandledMessageLimit()`, `withExecutionTimeLimitInMilliseconds()` and `withStopOnError()` (and
+  `--handledMessageLimit` / `--stopOnError` on `ecotone:run`).
+
+  | 1.x / early 2.0 | 2.0 |
+  |---|---|
+  | `ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 500, failAtError: false)` | `createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 500, stopOnError: false)` |
+  | `ExecutionPollingMetadata::withTestingSetup(…)`, `PollingMetadata::withTestingSetup(…)`, `createWithFinishWhenNoMessages(failAtError:)` | the same new parameter names |
+  | `FlowTestSupport::run(name: 'async')` | `run(channelOrEndpointName: 'async')` |
+
+  **How to adapt:** only named arguments change; positional calls keep working.
+  `sed -i 's/amountOfMessagesToHandle:/handledMessageLimit:/g; s/maxExecutionTimeInMilliseconds:/executionTimeLimitInMilliseconds:/g; s/failAtError:/stopOnError:/g'`.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

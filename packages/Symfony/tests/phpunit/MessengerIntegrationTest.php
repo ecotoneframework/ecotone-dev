@@ -139,10 +139,10 @@ final class MessengerIntegrationTest extends WebTestCase
         );
 
         $messaging->sendCommandWithRouting('execute.fail', $messagePayload);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertCount(2, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -163,10 +163,10 @@ final class MessengerIntegrationTest extends WebTestCase
         );
 
         $messaging->sendCommandWithRouting('execute.fail', $messagePayload);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -283,13 +283,13 @@ final class MessengerIntegrationTest extends WebTestCase
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(
             [$messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')
         );
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(
             [$messagePayload, $messagePayload],
             $messaging->sendQueryWithRouting('consumer.getEvents')

@@ -171,7 +171,7 @@ public function test_metadata_propagates_to_async_handlers(): void
         metadata: ['userId' => '123']
     );
 
-    $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
+    $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
     $notifications = $ecotone->sendQueryWithRouting('getAllNotificationHeaders');
 
     $this->assertCount(2, $notifications);

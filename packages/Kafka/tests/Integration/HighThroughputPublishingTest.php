@@ -48,7 +48,7 @@ final class HighThroughputPublishingTest extends TestCase
 
         $this->assertSame([], $messaging->sendQueryWithRouting('order.getReceived'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 10000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 10000));
 
         $this->assertCount(3, $messaging->sendQueryWithRouting('order.getReceived'));
     }
@@ -174,7 +174,7 @@ final class HighThroughputPublishingTest extends TestCase
 
         $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
-        $messaging->run('batchOrdersConsumer', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, maxExecutionTimeInMilliseconds: 30000));
+        $messaging->run('batchOrdersConsumer', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2, executionTimeLimitInMilliseconds: 30000));
 
         $receivedPayloads = $messaging->sendQueryWithRouting('order.getReceivedBatchOrders');
         sort($receivedPayloads);

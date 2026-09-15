@@ -102,7 +102,7 @@ final class AmqpChannelRoutingTest extends AmqpMessagingTestCase
         $ecotoneLite->getMessagePublisher()->send('some');
 
         $ecotoneLite->run(TopicExchangeConsumers::WHITE_ENDPOINT_ID, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup());
-        $ecotoneLite->run(TopicExchangeConsumers::BLACK_ENDPOINT_ID, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(failAtError: false, amountOfMessagesToHandle: 1));
+        $ecotoneLite->run(TopicExchangeConsumers::BLACK_ENDPOINT_ID, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(stopOnError: false, handledMessageLimit: 1));
 
         $this->assertSame(['some'], $handler->whiteReceived);
         $this->assertSame([], $handler->blackReceived);

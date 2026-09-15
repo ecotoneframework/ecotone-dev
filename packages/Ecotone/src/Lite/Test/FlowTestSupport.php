@@ -146,13 +146,13 @@ final class FlowTestSupport
         return $messageChannel->receive();
     }
 
-    public function run(string $name, ?ExecutionPollingMetadata $executionPollingMetadata = null): self
+    public function run(string $channelOrEndpointName, ?ExecutionPollingMetadata $executionPollingMetadata = null): self
     {
-        $this->testSupportGateway->releaseMessagesAwaitingFor($name, $this->clock->now());
+        $this->testSupportGateway->releaseMessagesAwaitingFor($channelOrEndpointName, $this->clock->now());
         $staticClock = $this->staticClock();
         $staticClock?->pinCurrentTime();
         try {
-            $this->configuredMessagingSystem->run($name, $executionPollingMetadata);
+            $this->configuredMessagingSystem->run($channelOrEndpointName, $executionPollingMetadata);
         } finally {
             $staticClock?->returnToPinnedTime();
         }

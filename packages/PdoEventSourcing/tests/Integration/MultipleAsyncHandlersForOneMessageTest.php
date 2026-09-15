@@ -44,10 +44,10 @@ final class MultipleAsyncHandlersForOneMessageTest extends EventSourcingMessagin
         $ecotone->sendCommand(command: new ActionCommand('123'), metadata: ['call' => 1]);
         $ecotone->sendCommand(command: new ActionCommand('123'), metadata: ['call' => 2]);
 
-        $ecotone->run('testAggregate', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('testAggregate', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertEquals(1, $ecotone->getAggregate(TestAggregate::class, '123')->counter());
 
-        $ecotone->run('testAggregate', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('testAggregate', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertEquals(2, $ecotone->getAggregate(TestAggregate::class, '123')->counter());
     }
 }

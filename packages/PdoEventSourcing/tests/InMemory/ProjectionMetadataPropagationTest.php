@@ -38,17 +38,17 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
         );
 
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar', 'eventId' => 1]);
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
 
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 2, metadata: ['eventId' => 2]);
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
 
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 3, metadata: ['foo' => 'baz', 'eventId' => 3]);
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
     }
@@ -68,7 +68,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 2, metadata: ['eventId' => 2]);
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 3, metadata: ['foo' => 'baz', 'eventId' => 3]);
 
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 15, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 15, executionTimeLimitInMilliseconds: 5000));
 
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
@@ -86,19 +86,19 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
         );
 
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 1, metadata: ['foo' => 'bar']);
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
 
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
 
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 2);
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
 
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 2, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));
 
         $ecotoneLite->sendCommandWithRouting(routingKey: 'order.create', command: 3, metadata: ['foo' => 'baz']);
-        $ecotoneLite->run(name: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 4, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->run(channelOrEndpointName: OrderProjection::CHANNEL, executionPollingMetadata: ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 4, executionTimeLimitInMilliseconds: 5000));
 
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('foo_orders.count'));
         self::assertEquals(expected: 4, actual: $ecotoneLite->sendQueryWithRouting('getNotificationCountWithFoo'));

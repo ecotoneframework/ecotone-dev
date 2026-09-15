@@ -59,7 +59,7 @@ final class SymfonyMessengerFinalFailureStrategyTest extends WebTestCase
 
         $ecotoneTestSupport->sendCommandWithRouting('execute.fail', new ExampleCommand('some_1'));
         $ecotoneTestSupport->sendCommandWithRouting('execute.fail', new ExampleCommand('some_2'));
-        $ecotoneTestSupport->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneTestSupport->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $messageChannel = $ecotoneTestSupport->getMessageChannel($channelName);
         // For Symfony Messenger, resend uses transport->send() + transport->reject()

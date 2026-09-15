@@ -57,7 +57,7 @@ final class MultiTenantDeadLetterTest extends DbalMessagingTestCase
 
         $ecotoneLite->sendCommandWithRouting('order.place', 'milk', metadata: ['tenant' => 'tenant_a']);
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, maxExecutionTimeInMilliseconds: 1000, failAtError: false));
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2, executionTimeLimitInMilliseconds: 1000, stopOnError: false));
 
         $this->assertSame(1, $this->amountOfDeadLetterMessagesIn($this->connectionForTenantA()));
         $this->assertSame(0, $this->amountOfDeadLetterMessagesIn($this->connectionForTenantB()));

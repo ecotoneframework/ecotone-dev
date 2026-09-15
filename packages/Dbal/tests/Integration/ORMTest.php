@@ -336,7 +336,7 @@ final class ORMTest extends DbalMessagingTestCase
         $this->expectException(InvalidArgumentException::class);
 
         $ecotoneLite->sendCommandWithRouting('multipleInternalCommands', [['personId' => 99, 'personName' => 'Johny', 'exception' => false]]);
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, maxExecutionTimeInMilliseconds: 5000, failAtError: true));
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2, executionTimeLimitInMilliseconds: 5000, stopOnError: true));
     }
 
     private function bootstrapEcotone(array $namespaces = ['Test\Ecotone\Dbal\Fixture\ORM\Person']): FlowTestSupport

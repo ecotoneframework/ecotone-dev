@@ -73,7 +73,7 @@ class EventStreamingProjectionTest extends TestCase
         $this->assertCount(0, $projection->projectedUsers);
 
         // When we run the projection consumer (process 2 messages)
-        $ecotone->run('user_projection', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
+        $ecotone->run('user_projection', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
 
         // Then the projection should have projected the events
         $this->assertCount(2, $projection->projectedUsers);
@@ -135,7 +135,7 @@ class EventStreamingProjectionTest extends TestCase
         $this->assertCount(0, $projection->completedOrders);
 
         // When we run the projection consumer (process 3 messages)
-        $ecotone->run('order_projection', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3));
+        $ecotone->run('order_projection', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3));
 
         // Then the projection should have routed events to correct handlers
         $this->assertCount(2, $projection->createdOrders);
@@ -198,7 +198,7 @@ class EventStreamingProjectionTest extends TestCase
         $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
 
         // When we run the projection consumer (process 3 messages)
-        $ecotone->run('product_projection', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3));
+        $ecotone->run('product_projection', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3));
 
         // Then the projection should have projected the events
         $this->assertCount(2, $projection->projectedProducts);
@@ -271,7 +271,7 @@ class EventStreamingProjectionTest extends TestCase
         $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
 
         // When we run only the first projection consumer
-        $ecotone->run('product_list_projection', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3));
+        $ecotone->run('product_list_projection', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3));
 
         // Then only the first projection should have projected
         $this->assertCount(2, $productListProjection->productList);
@@ -279,7 +279,7 @@ class EventStreamingProjectionTest extends TestCase
         $this->assertCount(0, $productPriceProjection->productPrices);
 
         // When we run the second projection consumer
-        $ecotone->run('product_price_projection', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3));
+        $ecotone->run('product_price_projection', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3));
 
         // Then both projections should have projected independently
         $this->assertCount(2, $productListProjection->productList);
@@ -354,7 +354,7 @@ class EventStreamingProjectionTest extends TestCase
         $ecotone->run('event_store_feeder', ExecutionPollingMetadata::createWithTestingSetup());
 
         // And run the event streaming projection
-        $ecotone->run('streaming_product_list', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
+        $ecotone->run('streaming_product_list', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
 
         // Then event streaming projection should have processed the events from streaming channel
         $this->assertCount(2, $eventStreamingProjection->productList);

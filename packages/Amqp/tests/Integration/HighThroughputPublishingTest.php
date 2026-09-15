@@ -49,7 +49,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
 
         $this->assertSame([], $messaging->sendQueryWithRouting('order.getReceived'));
 
-        $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 10000));
+        $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 10000));
 
         $this->assertCount(3, $messaging->sendQueryWithRouting('order.getReceived'));
     }
@@ -228,7 +228,7 @@ final class HighThroughputPublishingTest extends AmqpMessagingTestCase
 
         $messaging->sendCommandWithRouting('order.place', 'espresso');
 
-        $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 10000));
+        $messaging->run('asyncOrdersChannel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 10000));
 
         $this->assertSame(
             ['espresso-1', 'espresso-2', 'espresso-3'],

@@ -114,7 +114,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 0);
 
-        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false);
+        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false);
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, $pollingMetadata);
         self::assertEquals(1, $ecotone->sendQueryWithRouting('getOrderAmount'));
@@ -165,7 +165,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
 
         $this->assertErrorMessageCount($ecotone, 0);
 
-        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false);
+        $pollingMetadata = ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false);
 
         $ecotone->run(ErrorConfigurationContext::ASYNC_REPLY_CHANNEL, $pollingMetadata);
         self::assertEquals(0, $ecotone->sendQueryWithRouting('getOrderAmount'));

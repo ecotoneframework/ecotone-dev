@@ -37,8 +37,8 @@ $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup());
 
 // Custom test setup
 $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(
-    amountOfMessagesToHandle: 1,
-    maxExecutionTimeInMilliseconds: 100
+    handledMessageLimit: 1,
+    executionTimeLimitInMilliseconds: 100
 ));
 ```
 

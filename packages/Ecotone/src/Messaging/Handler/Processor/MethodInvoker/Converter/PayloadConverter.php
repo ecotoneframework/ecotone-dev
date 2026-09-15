@@ -91,7 +91,7 @@ class PayloadConverter implements ParameterConverter
                     throw InvalidArgumentException::create("Can not call {$this->interfaceName} lack of information which type should be used to deserialization. Consider adding __TYPE__ header to indicate which union type it should be resolved to.");
                 }
 
-                throw InvalidArgumentException::create("Can not call {$this->interfaceName}. Lack of Media Type Converter for {$sourceMediaType}:{$sourceTypeDescriptor} to {$parameterMediaType}:{$parameterType}");
+                throw InvalidArgumentException::create("Can not call {$this->interfaceName}. Lack of Media Type Converter for {$sourceMediaType}:{$sourceTypeDescriptor} to {$parameterMediaType}:{$parameterType}" . $this->hintForNotInstantiableParameterType($parameterType));
             }
         }
         return $data;
@@ -124,7 +124,7 @@ class PayloadConverter implements ParameterConverter
             return '';
         }
 
-        return ". Parameter \${$this->parameterName} is typed with {$parameterType->toString()}, which cannot be instantiated, and the message does not name a concrete class in its __TypeId__ header. Type the parameter with a concrete class or a union of concrete classes, or send an object instead of an array.";
+        return ". Parameter \${$this->parameterName} is typed with {$parameterType->toString()}, which cannot be instantiated, and the message does not name a concrete class in its __TypeId__ header. Type the parameter with a concrete class or a union of concrete classes, or send an object instead of an array. If \${$this->parameterName} is a service rather than the message payload, mark it with #[Reference].";
     }
 
     private function isInterfaceOrAbstractClass(Type $type): bool

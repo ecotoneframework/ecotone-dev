@@ -637,6 +637,14 @@ rename test-support methods without aliases; the renamed methods are listed in e
   published while handling command App\CreateOrder.` The exception class is unchanged; the original exception is its
   `previous`. A command sent directly from the test or a controller keeps the short message.
   **How to adapt:** tests asserting the exact message with `assertSame` switch to `assertStringStartsWith`.
+- **A service parameter taken as the payload says so.** The first handler parameter without an attribute is the
+  message payload, so `#[CommandHandler('basket.clear')] public function clear(ClockInterface $clock)` tried to convert
+  the (empty) payload into `ClockInterface` and failed with a bare conversion error. The error now ends with
+  `If $clock is a service rather than the message payload, mark it with #[Reference].` (for aggregate handlers:
+  `Payload of the message sent to App\Basket could not be converted into Psr\Clock\ClockInterface, the type of the first
+  handler parameter without an attribute. If that parameter is a service rather than the message payload, mark it with
+  #[Reference].`). Parameter resolution is unchanged.
+  **How to adapt:** nothing; add `#[Reference]` where the message tells you to.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

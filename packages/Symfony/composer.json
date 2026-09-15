@@ -47,8 +47,8 @@
         "symfony/framework-bundle": "^6.4|^7.0|^8.0"
     },
     "require-dev": {
-        "doctrine/doctrine-bundle": "^2.7.2",
-        "doctrine/orm": "^2.11|^3.0",
+        "doctrine/doctrine-bundle": "^2.12",
+        "doctrine/orm": "^3.0",
         "ecotone/dbal": "~1.326.1",
         "ecotone/kafka": "~1.326.1",
         "ext-rdkafka": "*",

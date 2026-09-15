@@ -17,6 +17,7 @@ use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
+use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -136,13 +137,43 @@ class AsynchronousModule implements AnnotationModule
             $this->registerDefaultPollingMetadata($serviceConfiguration, $asyncChannels, $pollingMetadata, $polingChannelBuilders, $messagingConfiguration);
         }
         foreach ($this->streamSourcesAsyncEndpoints as $endpointChannel => $asyncChannels) {
+            $asyncChannels = is_array($asyncChannels) ? $asyncChannels : [$asyncChannels];
             $this->registerDefaultPollingMetadata($serviceConfiguration, $asyncChannels, $pollingMetadata, $polingChannelBuilders, $messagingConfiguration);
         }
     }
 
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        return [$this];
+        if (! $serviceConfiguration->isModulePackageEnabled(ModulePackageList::TEST_PACKAGE)) {
+            return [$this];
+        }
+
+        return array_merge([$this], $this->inMemoryChannelsForUnconfiguredAsynchronousChannels($serviceExtensions));
+    }
+
+    /**
+     * @param object[] $serviceExtensions
+     * @return SimpleMessageChannelBuilder[]
+     */
+    private function inMemoryChannelsForUnconfiguredAsynchronousChannels(array $serviceExtensions): array
+    {
+        $configuredChannelNames = array_map(
+            fn (MessageChannelBuilder $channelBuilder) => $channelBuilder->getMessageChannelName(),
+            ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $serviceExtensions)
+        );
+
+        $asynchronousChannelNames = [];
+        foreach ($this->resolveChannels($serviceExtensions) as $asyncChannels) {
+            $asynchronousChannelNames = array_merge($asynchronousChannelNames, $asyncChannels);
+        }
+        foreach ($this->streamSourcesAsyncEndpoints as $asyncChannels) {
+            $asynchronousChannelNames = array_merge($asynchronousChannelNames, is_array($asyncChannels) ? $asyncChannels : [$asyncChannels]);
+        }
+
+        return array_map(
+            fn (string $channelName) => SimpleMessageChannelBuilder::createQueueChannel($channelName),
+            array_values(array_diff(array_unique($asynchronousChannelNames), $configuredChannelNames))
+        );
     }
 
     public function getModulePackageName(): string

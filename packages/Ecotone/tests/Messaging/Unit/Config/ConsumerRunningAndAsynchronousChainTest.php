@@ -53,13 +53,14 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
         $ecotone->run('some');
     }
 
-    public function test_throws_at_bootstrap_when_asynchronous_channel_has_no_consumer_registered(): void
+    public function test_application_bootstrap_throws_when_asynchronous_channel_has_no_consumer_registered(): void
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        EcotoneLite::bootstrap(
             [UnregisteredAsyncChannelHandler::class],
             [new UnregisteredAsyncChannelHandler()],
+            ServiceConfiguration::createWithDefaults()->withModulePackages([]),
         );
     }
 

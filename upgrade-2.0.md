@@ -24,8 +24,10 @@ could disable it, and `EcotoneLite::bootstrapFlowTesting()` disabled it by defau
 (or a list of channel builders) was passed.
 
 **Now:** Asynchronous handling, pollable-channel serialization and send-retries are always loaded. An
-`#[Asynchronous]` handler is never executed inline — not in production, not in tests. The channel named in the
-attribute must exist, otherwise bootstrap fails with `ConfigurationException`.
+`#[Asynchronous]` handler is never executed inline — not in production, not in tests. In the application
+(`EcotoneLite::bootstrap()`, Symfony, Laravel, Tempest) the channel named in the attribute must be configured, otherwise
+bootstrap fails with `ConfigurationException`. In `EcotoneLite::bootstrapFlowTesting()` every `#[Asynchronous]` channel
+the test does not configure gets an in-memory, delayable queue channel, so the test only has to consume it with `run()`.
 
 **How to adapt:**
 
@@ -36,18 +38,16 @@ $ecotone->sendCommand(new PlaceOrder('1'));
 self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all')); // handler ran inline
 
 // 2.0 test
-$ecotone = EcotoneLite::bootstrapFlowTesting(
-    [OrderHandler::class],
-    [new OrderHandler()],
-    ServiceConfiguration::createWithDefaults()
-        ->withExtensionObjects([SimpleMessageChannelBuilder::createQueueChannel('orders')])
-);
+$ecotone = EcotoneLite::bootstrapFlowTesting([OrderHandler::class], [new OrderHandler()]);
 $ecotone->sendCommand(new PlaceOrder('1'));
 $ecotone->run('orders');                                            // consume the channel explicitly
 self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
 ```
 
-- Remove `enableAsynchronousProcessing` arguments; register the channel instead (extension object or `#[ServiceContext]`).
+- Remove `enableAsynchronousProcessing` arguments. Flow tests get an in-memory delayable queue for each `#[Asynchronous]`
+  channel; register a channel yourself (extension object or `#[ServiceContext]`) only when the test needs a different one
+  — for example `SimpleMessageChannelBuilder::createQueueChannel('orders', delayable: false)` or a DBAL/AMQP channel. A
+  configured channel replaces the provided one.
 - Remove `ModulePackageList::ASYNCHRONOUS_PACKAGE` from any skip list and delete calls to
   `ServiceConfiguration::createWithAsynchronicityOnly()`.
 - `withSkippedModulePackageNames([...])` is replaced by `withModulePackages([...])` listing the packages to **load**;
@@ -59,7 +59,7 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
   `ConfigurationException: Registered asynchronous endpoint \`orderHandler\`, however channel configuration for \`orders\` was not
   provided. Register it with SimpleMessageChannelBuilder::createQueueChannel('orders') as a ServiceConfiguration extension object
   or from a #[ServiceContext] method.`
-  Previously test bootstrap silently created an in-memory channel.
+  Flow tests (`bootstrapFlowTesting()`) do not throw this; they provide the in-memory channel instead.
 - Default queue channels are delayable (see §9); nothing to change unless you relied on delays being ignored.
 
 ## 2. Multi-tenancy requires Ecotone Enterprise
@@ -608,6 +608,15 @@ rename test-support methods without aliases; the renamed methods are listed in e
   The internal dead-letter channels are renamed with them (`ecotone.dbal.deadletter.replay`, `…replayAll`); console
   command names are unchanged. **How to adapt:** rename the calls, e.g.
   `sed -i 's/WithRoutingKey(/WithRouting(/g; s/->reply(/->replay(/g; s/->replyAll(/->replayAll(/g'`.
+- **A command or query sent to a handler that is not registered in a flow test names the class to register.** An
+  Ecotone Lite bootstrap registers only the classes it lists, but the error suggested a missing attribute:
+  `No Command Handler defined for it. Have you forgot to add #[CommandHandler] to method?`. In
+  `bootstrapFlowTesting()` Ecotone now looks up the handler in your autoloaded (non-vendor) namespaces and says
+  `Can't send command to App\Shipping\ReserveShippingSlot. It is handled by App\Shipping\ShippingSlotReservationHandler::reserve(),
+  which is not registered in this Ecotone Lite bootstrap. Add App\Shipping\ShippingSlotReservationHandler to the classesToResolve of
+  EcotoneLite::bootstrapFlowTesting(), or load its namespace with ServiceConfiguration::withNamespaces(['App\Shipping']).`
+  When no handler exists it says which attribute to add. Queries get the same message; the application bootstrap keeps
+  the previous text. **How to adapt:** nothing.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

@@ -109,7 +109,7 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
         $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
 
         $this->expectException(MessageHandlingException::class);
-        $this->expectExceptionMessage('Message handling failed after 2 failed deliveries (1 initial + 1 retry)');
+        $this->expectExceptionMessage('Message handling failed on channel `noDeadLetterAsync` after 2 failed deliveries (1 initial + 1 retry)');
 
         $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
     }

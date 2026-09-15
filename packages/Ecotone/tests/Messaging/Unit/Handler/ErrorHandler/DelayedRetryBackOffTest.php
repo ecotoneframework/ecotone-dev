@@ -92,7 +92,7 @@ final class DelayedRetryBackOffTest extends TestCase
         $ecotone->publishEventWithRouting('order.completed', 'order-1');
 
         $this->expectException(MessageHandlingException::class);
-        $this->expectExceptionMessage('Message handling failed after 2 failed deliveries (1 initial + 1 retry). SMTP connection refused');
+        $this->expectExceptionMessage('Message handling failed on channel `async` after 2 failed deliveries (1 initial + 1 retry). RuntimeException: SMTP connection refused');
 
         $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
     }

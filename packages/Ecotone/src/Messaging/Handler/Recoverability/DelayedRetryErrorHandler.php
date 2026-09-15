@@ -74,8 +74,10 @@ class DelayedRetryErrorHandler
 
                 throw MessageHandlingException::create(
                     sprintf(
-                        'Message handling failed after %s. %s',
+                        'Message handling failed on channel `%s` after %s. %s: %s',
+                        $failedMessage->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME),
                         $this->describeFailedDeliveries($retryNumber),
+                        $errorMessage->getExceptionClass(),
                         $errorMessage->getExceptionMessage()
                     )
                 );

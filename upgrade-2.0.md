@@ -527,7 +527,8 @@ rename test-support methods without aliases; the renamed methods are listed in e
   `Message handling failed after 4 retry attempts`. They now read
   `Sending message \`…\` to dead letter channel after 4 failed deliveries (1 initial + 3 retries). Due to: …`,
   `No dead letter channel defined. Message failed after 4 failed deliveries (1 initial + 3 retries). …` and
-  `Message handling failed after 4 failed deliveries (1 initial + 3 retries). …`. The number of deliveries is unchanged.
+  `Message handling failed on channel \`async\` after 4 failed deliveries (1 initial + 3 retries). RuntimeException: …`
+  (the exception now also names the channel and the original exception class). The number of deliveries is unchanged.
   **How to adapt:** update log-based alerts or tests that match the old texts.
 - **The test clock stays where the test put it.** After `changeTimeTo()`, `advanceTimeBy()` or a `StaticPsrClock` created
   with a fixed time, `run()` used to move the clock forward by its internal polling waits (about 1 ms per handled

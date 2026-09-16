@@ -263,7 +263,7 @@
             "php-http/discovery": false,
             "tbachert/spi": false
         },
-        "process-timeout": 600
+        "process-timeout": 3600
     },
     "minimum-stability": "dev",
     "prefer-stable": true

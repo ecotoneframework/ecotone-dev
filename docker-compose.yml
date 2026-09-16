@@ -1,6 +1,11 @@
 services:
   app:
-    image: simplycodedsoftware/php:8.5.3
+    image: ecotone/php:8.5.3-dev
+    build:
+      context: .docker/php
+      args:
+        BASE_IMAGE: simplycodedsoftware/php:8.5.3
+        INSTALL_SOCKETS: 1
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"
@@ -12,6 +17,8 @@ services:
     environment:
       COMPOSE_HTTP_TIMEOUT: 9999
       COMPOSER_ROOT_VERSION: 'dev-main'
+      XDEBUG_ENABLED: "0"
+      PHP_IDE_CONFIG: "serverName=ecotone"
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: pgsql://ecotone:secret@database:5432/ecotone?serverVersion=16
       SQLITE_DATABASE_DSN: sqlite:////tmp/ecotone_test.db
@@ -22,9 +29,29 @@ services:
       REDIS_DSN: redis://redis:6379
       KAFKA_DSN: kafka:9092
     env_file:
-      - ".env"
+      - path: ".env"
+        required: false
+    depends_on:
+      database:
+        condition: service_healthy
+      database-mysql:
+        condition: service_healthy
+      database-mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
   app8_2:
-    image: simplycodedsoftware/php:8.2.31
+    image: ecotone/php:8.2.31-dev
+    build:
+      context: .docker/php
+      args:
+        BASE_IMAGE: simplycodedsoftware/php:8.2.31
     volumes:
       - "$PWD:/data/app"
     working_dir: "/data/app"
@@ -36,6 +63,8 @@ services:
     environment:
       COMPOSE_HTTP_TIMEOUT: 9999
       COMPOSER_ROOT_VERSION: 'dev-main'
+      XDEBUG_ENABLED: "0"
+      PHP_IDE_CONFIG: "serverName=ecotone"
       RABBIT_HOST: "amqp://rabbitmq:5672"
       DATABASE_DSN: mysql://ecotone:secret@database-mysql:3306/ecotone?serverVersion=8.0
       SQLITE_DATABASE_DSN: sqlite:////tmp/ecotone_test.db
@@ -46,7 +75,23 @@ services:
       REDIS_DSN: redis://redis:6379
       KAFKA_DSN: kafka:9092
     env_file:
-      - ".env"
+      - path: ".env"
+        required: false
+    depends_on:
+      database:
+        condition: service_healthy
+      database-mysql:
+        condition: service_healthy
+      database-mariadb:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
   database:
     image: simplycodedsoftware/postgres:16.1
     environment:
@@ -54,6 +99,11 @@ services:
       POSTGRES_PASSWORD: "secret"
     ports:
       - "${POSTGRES_PORT:-0}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ecotone"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
   database-mysql:
     image: mysql:8.0
     environment:
@@ -63,6 +113,11 @@ services:
       MYSQL_DATABASE: "ecotone"
     ports:
       - "${MYSQL_PORT:-0}:3306"
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uecotone -psecret --silent"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
   database-mariadb:
     image: mariadb:11.4
     environment:
@@ -72,6 +127,11 @@ services:
       MARIADB_DATABASE: "ecotone"
     ports:
       - "${MARIADB_PORT:-0}:3306"
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
   rabbitmq:
     build: ./.docker/rabbitmq
     environment:
@@ -80,6 +140,11 @@ services:
     ports:
       - '${RABBITMQ_PORT:-0}:5672'
       - '${RABBITMQ_MGMT_PORT:-0}:15672'
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
   localstack:
     image: localstack/localstack:3.8
     environment:
@@ -90,10 +155,20 @@ services:
     ports:
       - "${LOCALSTACK_PORT:-0}:4566"            # LocalStack Gateway
 #      - "4510-4559:4510-4559"  # external services port range
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
   redis:
     image: redis:7-alpine
     ports:
       - '${REDIS_PORT:-0}:6379'
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
   collector:
     image: otel/opentelemetry-collector-contrib:0.73.0
     networks:
@@ -137,6 +212,11 @@ services:
       - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
     networks:
       - default
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 5s
+      retries: 40
   kafdrop:
     image: 'obsidiandynamics/kafdrop:latest'
     ports:

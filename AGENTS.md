@@ -2,6 +2,19 @@
 
 > Guidelines for AI agents contributing to or working with the Ecotone framework codebase.
 
+## Quick Start
+
+```bash
+# Bootstrap a fresh checkout — two commands, no .env to create, no flags to remember
+docker compose up -d
+docker compose exec app composer install
+
+# Run one package's full test suite
+docker compose exec app bash -lc "cd packages/PackageName && composer install && composer tests:ci"
+```
+
+See [Development Environment](#development-environment) and [Running Tests](#running-tests) below for details, and `docs/dev-environment-cold-start-findings.md` for the full list of gaps a fresh checkout used to hit.
+
 ## Project Overview
 
 Ecotone is the enterprise architecture layer for Laravel and Symfony.
@@ -42,15 +55,25 @@ Works with Symfony, Laravel, or standalone via Ecotone Lite (any PSR-11 containe
 ### Running Tests
 ```bash
 # Enter development container
-docker compose exec -u root app /bin/bash
+docker compose exec app /bin/bash
 
-# Run package tests
+# Run package tests — each package has its own vendor/, install it first
 cd packages/PackageName
+composer install
 composer tests:ci
 
 # Run specific test
 vendor/bin/phpunit --filter testMethodName tests/Path/To/TestFile.php
 ```
+
+Only use `-u root` for things that genuinely need elevated OS-level access. Running
+`composer install`/`composer tests:*` as root leaves the files it writes (`vendor/`, phpunit's
+cache) owned by root on the host, which then blocks the default non-root user (and your editor)
+from writing to them.
+
+The root `vendor/` (installed by the `composer install` above) is separate from each package's own `vendor/`.
+Ecotone's annotation finder always loads the monorepo root `vendor/autoload.php`, so keep the
+root install in sync even when you only intend to run one package's tests.
 
 ### Database-Specific Tests
 ```bash
@@ -124,14 +147,24 @@ class Order
 ## Development Environment
 
 ```bash
-# Start all containers
+# Start all containers — waits for every dependency's healthcheck before app/app8_2 start
 docker compose up -d
 
-# Enter dev container (use root for full access)
-docker compose exec -u root app /bin/bash
+# Install root dependencies
+docker compose exec app composer install
+
+# Enter dev container
+docker compose exec app /bin/bash
 
 # Verify lowest/highest dependencies
 composer update --prefer-lowest && vendor/bin/phpunit
 composer update --prefer-stable && vendor/bin/phpunit
 ```
+
+`docker compose up -d` builds a local image with `ext-sockets` baked in for the `app` service the
+first time it runs — the published `simplycodedsoftware/php:8.5.3` image doesn't have it — and
+blocks until every database/broker dependency reports healthy, so there is nothing to wait for
+manually afterwards. `.env` is optional: it is only read if present (`env_file: required: false`),
+so nothing needs to be created for a fresh checkout; copy `.env.dist` to `.env` only if you want to
+override a default (e.g. turn Xdebug on).
 

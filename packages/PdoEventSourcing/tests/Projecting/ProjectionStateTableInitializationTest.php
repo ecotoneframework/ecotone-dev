@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Polling;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -19,6 +18,7 @@ use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
@@ -59,8 +59,9 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         // Verify projection state table does not exist
         self::assertFalse($this->projectionStateTableExists());
 
-        // Triggering projection should fail because projection_state table doesn't exist
-        $this->expectException(TableNotFoundException::class);
+        // Triggering projection should fail with an actionable message because projection_state table doesn't exist
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(ProjectionStateTableManager::FEATURE_NAME);
 
         // Initialize projection and send events
         $ecotone->deleteProjection($projection::NAME)

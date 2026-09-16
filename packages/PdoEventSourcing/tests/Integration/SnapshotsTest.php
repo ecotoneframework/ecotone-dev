@@ -51,6 +51,7 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
                 ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withDocumentStore(),
                     EventSourcingConfiguration::createWithDefaults()
                         ->withSnapshotsFor(Ticket::class, 1)

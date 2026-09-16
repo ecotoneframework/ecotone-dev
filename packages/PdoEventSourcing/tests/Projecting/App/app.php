@@ -6,6 +6,7 @@
 declare(strict_types=1);
 
 use Composer\Autoload\ClassLoader;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
@@ -38,5 +39,6 @@ return EcotoneLite::bootstrap(
         ->withLicenceKey(LicenceTesting::VALID_LICENCE)
         ->withDefaultErrorChannel('errorChannel')
         ->withNamespaces(['Test\\Ecotone\\EventSourcing\\Projecting\\App'])
-        ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE]),
+        ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::JMS_CONVERTER_PACKAGE])
+        ->withExtensionObjects([DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)]),
 );

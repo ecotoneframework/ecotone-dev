@@ -13,8 +13,10 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\Dbal\WriteLock\MetadataLockStrategy;
 use Ecotone\EventSourcing\Dbal\WriteLock\NoLockStrategy;
 use Ecotone\EventSourcing\Dbal\WriteLock\PostgresAdvisoryLockStrategy;
@@ -25,6 +27,7 @@ use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -67,6 +70,7 @@ final class DbalEventStore implements EventStore
         private int $loadBatchSize,
         private bool $enableWriteLockStrategy,
         private bool $automaticTableInitialization,
+        private ?string $consoleInvocationPrefix = null,
     ) {
     }
 
@@ -85,9 +89,7 @@ final class DbalEventStore implements EventStore
             return;
         }
 
-        if ($this->automaticTableInitialization) {
-            $this->ensureTableExists($streamName);
-        }
+        $this->ensureTableExists($streamName);
 
         $connection = $this->connectionFor($streamName);
         $schema = EventStreamSchemaFactory::for($connection);
@@ -212,10 +214,7 @@ final class DbalEventStore implements EventStore
         }
 
         if (! $alwaysCreate && ! $this->automaticTableInitialization) {
-            throw new InvalidArgumentException(
-                "Event stream table `{$tableName}` for stream `{$streamName}` does not exist. "
-                . 'Run `ecotone:migration:database:setup` to create it.'
-            );
+            throw ConfigurationException::create(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix));
         }
 
         foreach (EventStreamSchemaFactory::for($connection)->createTableSql($tableName) as $statement) {

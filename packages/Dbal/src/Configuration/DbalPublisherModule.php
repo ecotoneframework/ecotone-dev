@@ -17,6 +17,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -50,11 +51,12 @@ class DbalPublisherModule implements AnnotationModule
         $registeredReferences = [];
         $applicationConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
         $dbalMessageChannels = ExtensionObjectResolver::resolve(DbalBackedMessageChannelBuilder::class, $extensionObjects);
         $dbalPublishers = ExtensionObjectResolver::resolve(DbalMessagePublisherConfiguration::class, $extensionObjects);
         $hasMessageQueues = ! empty($dbalMessageChannels) || ! empty($dbalPublishers);
         $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled();
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($applicationConfiguration);
 
         $messagingConfiguration->registerServiceDefinition(
             EnqueueTableManager::class,
@@ -62,6 +64,7 @@ class DbalPublisherModule implements AnnotationModule
                 EnqueueTableManager::DEFAULT_TABLE_NAME,
                 $hasMessageQueues,
                 $shouldAutoInitialize,
+                $consoleInvocationPrefix,
             ])
         );
 

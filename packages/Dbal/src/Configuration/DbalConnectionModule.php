@@ -39,7 +39,7 @@ class DbalConnectionModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(
             DbalConfiguration::class,
             $extensionObjects,
-            DbalConfiguration::createWithDefaults()
+            DbalConfiguration::createDefaultFor($extensionObjects)
         );
 
         $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionReference::DEFAULT];

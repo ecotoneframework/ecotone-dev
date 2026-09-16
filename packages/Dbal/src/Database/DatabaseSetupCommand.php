@@ -29,15 +29,21 @@ class DatabaseSetupCommand
         #[ConsoleParameterOption] bool|string $initialize = false,
         #[ConsoleParameterOption] bool|string $sql = false,
         #[ConsoleParameterOption] bool|string $onlyUsed = true,
+        #[ConsoleParameterOption] bool|string $missing = false,
     ): ?ConsoleCommandResultSet {
         // Normalize boolean parameters from CLI strings
         $initialize = $this->normalizeBoolean($initialize);
         $sql = $this->normalizeBoolean($sql);
         $onlyUsed = $this->normalizeBoolean($onlyUsed);
+        $missing = $this->normalizeBoolean($missing);
 
         // If specific feature names provided
         if (count($feature) > 0) {
             $rows = [];
+
+            if ($missing) {
+                $feature = $this->onlyMissingFeatures($feature);
+            }
 
             if ($sql) {
                 $statements = $this->databaseSetupManager->getCreateSqlStatementsForFeatures($feature);
@@ -75,11 +81,22 @@ class DatabaseSetupCommand
             );
         }
 
+        if ($missing) {
+            $featureNames = $this->onlyMissingFeatures($featureNames);
+        }
+
         if ($sql) {
-            $statements = $this->databaseSetupManager->getCreateSqlStatements($onlyUsed);
+            $statements = $this->databaseSetupManager->getCreateSqlStatementsForFeatures($featureNames);
             return ConsoleCommandResultSet::create(
                 ['SQL Statement'],
                 [[implode("\n", $statements)]]
+            );
+        }
+
+        if ($missing) {
+            return ConsoleCommandResultSet::create(
+                ['Feature'],
+                array_map(fn (string $feature) => [$feature], $featureNames)
             );
         }
 
@@ -104,6 +121,20 @@ class DatabaseSetupCommand
             ['Feature', 'Used', 'Initialized'],
             $rows
         );
+    }
+
+    /**
+     * @param string[] $featureNames
+     * @return string[]
+     */
+    private function onlyMissingFeatures(array $featureNames): array
+    {
+        $initializationStatus = $this->databaseSetupManager->getInitializationStatus();
+
+        return array_values(array_filter(
+            $featureNames,
+            fn (string $featureName) => ! ($initializationStatus[$featureName] ?? false)
+        ));
     }
 
     /**

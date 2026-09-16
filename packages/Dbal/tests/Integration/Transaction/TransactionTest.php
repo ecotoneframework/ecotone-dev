@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Transaction;
 
+use Doctrine\DBAL\Connection;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -47,10 +48,10 @@ final class TransactionTest extends DbalMessagingTestCase
 
     public function test_ordering_with_transaction_a_product_with_failure_so_the_order_should_never_be_committed_to_database_with_tenant_connection(): void
     {
-        $ecotone = $this->bootstrapEcotoneWithMultiTenantConnection();
+        $this->resetOrdersTable($this->connectionForTenantA()->createContext()->getDbalConnection());
+        $this->resetOrdersTable($this->connectionForTenantB()->createContext()->getDbalConnection());
 
-        $ecotone->sendCommandWithRouting('order.prepare', metadata: ['tenant' => 'tenant_a']);
-        $ecotone->sendCommandWithRouting('order.prepare', metadata: ['tenant' => 'tenant_b']);
+        $ecotone = $this->bootstrapEcotoneWithMultiTenantConnection();
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered', metadata: ['tenant' => 'tenant_a']));
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered', metadata: ['tenant' => 'tenant_b']));
@@ -205,6 +206,12 @@ final class TransactionTest extends DbalMessagingTestCase
             $ecotone->sendQueryWithRouting('hasOrder', 'transactional-order-id'),
             'Transactional command should rollback data'
         );
+    }
+
+    private function resetOrdersTable(Connection $connection): void
+    {
+        $connection->executeStatement('DROP TABLE IF EXISTS orders');
+        $connection->executeStatement('CREATE TABLE orders (id VARCHAR(255) PRIMARY KEY)');
     }
 
     private function bootstrapEcotone(): FlowTestSupport

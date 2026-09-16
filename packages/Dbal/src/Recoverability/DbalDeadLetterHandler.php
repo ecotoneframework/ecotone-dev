@@ -10,6 +10,7 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
@@ -51,10 +52,12 @@ class DbalDeadLetterHandler
      */
     public function list(int $limit, int $offset): array
     {
-        $this->initialize();
-
         if (! $this->doesDeadLetterTableExists()) {
-            return [];
+            if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+                return [];
+            }
+
+            $this->createDataBaseTable();
         }
 
         $messages = $this->getConnection()->createQueryBuilder()
@@ -205,11 +208,17 @@ class DbalDeadLetterHandler
 
     private function createDataBaseTable(): void
     {
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+        $connection = $this->getConnection();
+
+        if ($this->tableManager->isInitialized($connection)) {
             return;
         }
 
-        $this->tableManager->createTable($this->getConnection());
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        }
+
+        $this->tableManager->createTable($connection);
     }
 
     private function doesDeadLetterTableExists(): bool

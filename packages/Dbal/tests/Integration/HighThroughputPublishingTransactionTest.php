@@ -93,6 +93,7 @@ final class HighThroughputPublishingTransactionTest extends DbalMessagingTestCas
                     $channelBuilders,
                     [
                         DbalConfiguration::createWithDefaults()
+                            ->withAutomaticTableInitialization(true)
                             ->withTransactionOnCommandBus(true)
                             ->withTransactionOnAsynchronousEndpoints(true)
                             ->withDoctrineORMRepositories(true),

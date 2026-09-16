@@ -51,6 +51,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
@@ -105,6 +106,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
@@ -155,6 +157,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withDefaultErrorChannel('dbal_dead_letter')
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
@@ -181,6 +184,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withDefaultErrorChannel('dbal_dead_letter')
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
@@ -220,6 +224,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDefaultErrorChannel('nullChannel'),
                     \Ecotone\Api\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
@@ -281,6 +286,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
@@ -335,6 +341,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                         ->withDefaultErrorChannel('nullChannel'),
                     \Ecotone\Api\JMSConverter\JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false),
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDocumentStore(true, enableDocumentStoreStateStoredRepository: true),
@@ -419,6 +426,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withoutTransactionOnAsynchronousEndpoints(['async'])
                         ->withTransactionOnCommandBus(false)
                         ->withDoctrineORMRepositories(true),
@@ -475,6 +483,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false),
                     DbalBackedMessageChannelBuilder::create('async'),
@@ -518,6 +527,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnAsynchronousEndpoints(true)
                         ->withTransactionOnCommandBus(false),
                     DbalBackedMessageChannelBuilder::create('async'),

@@ -99,30 +99,8 @@ class DbalTransactionInterceptor
             $result = $methodInvocation->proceed();
 
             foreach ($connections as $connection) {
-                try {
-                    $connection->commit();
-                    $this->logger->info('Database Transaction committed', $message);
-                } catch (Exception $exception) {
-                    // Handle the case where a database did an implicit commit or the transaction is no longer active
-                    /** @TODO Ecotone 2.0 remove implicit commit and tables creation on fly, and provide CLI command instead */
-                    if (ImplicitCommit::isImplicitCommitException($exception, $connection)) {
-                        $this->logger->info(
-                            sprintf('Implicit Commit was detected, skipping manual one.'),
-                            $message,
-                            ['exception' => $exception],
-                        );
-
-                        try {
-                            $connection->rollBack();
-                        } catch (Exception) {
-                            // Ignore rollback errors after implicit commit
-                        };
-
-                        continue;
-                    }
-
-                    throw $exception;
-                }
+                $connection->commit();
+                $this->logger->info('Database Transaction committed', $message);
             }
         } catch (Throwable $exception) {
             foreach ($connections as $connection) {

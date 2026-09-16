@@ -49,7 +49,7 @@ class DbalTransactionModule implements AnnotationModule
     {
         $pointcut            = '(' . DbalTransaction::class . ')';
 
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
 
         if ($dbalConfiguration->isTransactionOnAsynchronousEndpoints()) {
             $pointcut .= '||(' . AsynchronousRunningEndpoint::class . ')';

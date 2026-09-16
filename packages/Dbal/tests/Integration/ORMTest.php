@@ -152,6 +152,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects(array_merge([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
                 ], [$multiTenantConfiguration]))
                 ->withNamespaces(array_merge($namespaces, [
@@ -227,6 +228,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
                 ])
                 ->withNamespaces(array_merge($namespaces, [
@@ -271,6 +273,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ->withNamespaces($namespaces)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates)
                         ->withClearAndFlushObjectManagerOnCommandBus(false)
                         ->withFlushWhenPersisting(false),
@@ -302,6 +305,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withDoctrineORMRepositories($enableDoctrineORMAggregates),
                 ])
                 ->withNamespaces($namespaces),
@@ -326,6 +330,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withDoctrineORMRepositories(true),
                     DbalBackedMessageChannelBuilder::create('async'),
                 ])
@@ -352,6 +357,7 @@ final class ORMTest extends DbalMessagingTestCase
                 ->withNamespaces($namespaces)
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withDoctrineORMRepositories(true, [Person::class]),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Database;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -22,6 +23,7 @@ class DeadLetterTableManager implements DbalTableManager
         private string $tableName,
         private bool $isUsed,
         private bool $shouldAutoInitialize,
+        private ?string $consoleInvocationPrefix = null,
     ) {
     }
 
@@ -44,7 +46,7 @@ class DeadLetterTableManager implements DbalTableManager
     {
         $table = $this->buildTableSchema();
 
-        return $connection->getDatabasePlatform()->getCreateTableSQL($table);
+        return DbalIdempotentDdl::withIfNotExists($connection->getDatabasePlatform()->getCreateTableSQL($table));
     }
 
     public function getDropTableSql(Connection $connection): string
@@ -54,11 +56,19 @@ class DeadLetterTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
-        if (self::isInitialized($connection)) {
+        if ($this->isInitialized($connection)) {
             return;
         }
 
-        $connection->createSchemaManager()->createTable($this->buildTableSchema());
+        try {
+            $connection->createSchemaManager()->createTable($this->buildTableSchema());
+        } catch (TableExistsException) {
+        }
+    }
+
+    public function getMissingTableInstructions(): string
+    {
+        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
     }
 
     public function dropTable(Connection $connection): void
@@ -86,7 +96,7 @@ class DeadLetterTableManager implements DbalTableManager
     {
         return new Definition(
             self::class,
-            [$this->tableName, $this->isUsed, $this->shouldAutoInitialize]
+            [$this->tableName, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]
         );
     }
 

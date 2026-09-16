@@ -246,6 +246,42 @@ final class DatabaseInitializationTest extends DbalMessagingTestCase
         self::assertTrue($this->tableExists(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE));
     }
 
+    public function test_database_setup_lists_only_missing_features(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['missing' => true]);
+
+        self::assertEquals(['Feature'], $result->getColumnHeaders());
+        $featureNames = array_column($result->getRows(), 0);
+        self::assertContains('dead_letter', $featureNames);
+    }
+
+    public function test_database_setup_excludes_already_initialized_features_from_missing_listing(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['feature' => ['dead_letter'], 'initialize' => true]);
+
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['missing' => true]);
+
+        $featureNames = array_column($result->getRows(), 0);
+        self::assertNotContains('dead_letter', $featureNames);
+    }
+
+    public function test_database_setup_returns_sql_only_for_missing_features(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['feature' => ['dead_letter'], 'initialize' => true]);
+
+        $result = $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['missing' => true, 'sql' => true]);
+
+        self::assertEquals(['SQL Statement'], $result->getColumnHeaders());
+        $allSql = implode(' ', array_column($result->getRows(), 0));
+        self::assertStringNotContainsString(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, $allSql);
+    }
+
     private function executeConsoleCommand(FlowTestSupport $ecotone, string $commandName, array $parameters): ConsoleCommandResultSet
     {
         /** @var ConsoleCommandRunner $runner */

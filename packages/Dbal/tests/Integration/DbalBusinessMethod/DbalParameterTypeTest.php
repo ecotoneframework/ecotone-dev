@@ -158,6 +158,7 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
                 ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withDoctrineORMRepositories(true, [Person::class]),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',

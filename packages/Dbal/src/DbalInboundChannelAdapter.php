@@ -8,6 +8,7 @@ use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;
 use Ecotone\Enqueue\InboundMessageConverter;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
 
 /**
@@ -31,12 +32,17 @@ class DbalInboundChannelAdapter extends EnqueueInboundChannelAdapter
     {
         /** @var DbalContext $context */
         $context = $this->connectionFactory->createContext();
+        $connection = $context->getDbalConnection();
 
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+        if ($this->tableManager->isInitialized($connection)) {
             return;
         }
 
-        $this->tableManager->createTable($context->getDbalConnection());
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        }
+
+        $this->tableManager->createTable($connection);
     }
 
     public function connectionException(): array

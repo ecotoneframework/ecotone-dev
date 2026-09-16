@@ -156,6 +156,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
                     $channelBuilders,
                     [
                         DbalConfiguration::createWithDefaults()
+                            ->withAutomaticTableInitialization(true)
                             ->withTransactionOnCommandBus(true)
                             ->withTransactionOnAsynchronousEndpoints(true)
                             ->withDoctrineORMRepositories(true),

@@ -30,6 +30,7 @@ class ErrorConfigurationContext
     public function dbalConfiguration()
     {
         return DbalConfiguration::createWithDefaults()
+            ->withAutomaticTableInitialization(true)
             ->withDeadLetter(true, 'managerRegistry')
             ->withDefaultConnectionReferenceNames(['managerRegistry']);
     }

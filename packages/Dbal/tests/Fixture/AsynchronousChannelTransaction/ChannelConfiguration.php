@@ -27,6 +27,7 @@ class ChannelConfiguration
                 ->setHandledMessageLimit(1)
                 ->setExecutionTimeLimitInMilliseconds(1000),
             DbalConfiguration::createWithDefaults()
+                ->withAutomaticTableInitialization(true)
                 ->withTransactionOnAsynchronousEndpoints(true)
                 ->withTransactionOnCommandBus(true)
                 ->withDefaultConnectionReferenceNames(['managerRegistry'])

@@ -63,4 +63,10 @@ interface DbalTableManager extends DefinedObject
      * This combines global DbalConfiguration setting with feature-specific config.
      */
     public function shouldBeInitializedAutomatically(): bool;
+
+    /**
+     * Message explaining how to create the table this manager owns, naming the exact
+     * command (or, without a console, the code) for the integration the application runs.
+     */
+    public function getMissingTableInstructions(): string;
 }

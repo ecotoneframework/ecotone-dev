@@ -12,6 +12,7 @@ use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -41,11 +42,13 @@ class DbalDocumentStoreModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
         $isDocumentStoreActive = $dbalConfiguration->isEnableDbalDocumentStore() && ! $dbalConfiguration->isInMemoryDocumentStore();
         // Combine both settings: global initialization and document store specific initialization
         $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled() && $dbalConfiguration->isInitializeDbalDocumentStore();
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
 
         // Register the DocumentStoreTableManager service
         $messagingConfiguration->registerServiceDefinition(
@@ -54,6 +57,7 @@ class DbalDocumentStoreModule implements AnnotationModule
                 DbalDocumentStore::ECOTONE_DOCUMENT_STORE,
                 $isDocumentStoreActive,
                 $shouldAutoInitialize,
+                $consoleInvocationPrefix,
             ])
         );
 
@@ -215,7 +219,7 @@ class DbalDocumentStoreModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createDefaultFor($serviceExtensions));
 
         $extensions = [
             new DbalTableManagerReference(DocumentStoreTableManager::class),

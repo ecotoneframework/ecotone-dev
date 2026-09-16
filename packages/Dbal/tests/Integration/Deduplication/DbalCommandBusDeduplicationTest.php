@@ -41,7 +41,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -69,7 +69,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -97,7 +97,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -125,7 +125,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -153,7 +153,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -181,7 +181,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -212,7 +212,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                 ])
             // No license key provided - should throw exception
         );
@@ -229,7 +229,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );
@@ -258,7 +258,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE
         );

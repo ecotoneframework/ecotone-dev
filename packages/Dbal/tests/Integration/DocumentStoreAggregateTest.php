@@ -45,6 +45,7 @@ final class DocumentStoreAggregateTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withDocumentStore(enableDocumentStoreStateStoredRepository: true, documentStoreRelatedAggregates: [Person::class]),
                 ]),
             pathToRootCatalog: __DIR__ . '/../../',

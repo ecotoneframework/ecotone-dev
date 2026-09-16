@@ -7,7 +7,6 @@ namespace Ecotone\Api\Sqs;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Ecotone\Sqs\SqsInboundChannelAdapterBuilder;
 use Ecotone\Sqs\SqsOutboundChannelAdapterBuilder;
-use Enqueue\Sqs\SqsConnectionFactory;
 
 /**
  * licence Apache-2.0
@@ -30,7 +29,7 @@ final class SqsBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
         );
     }
 
-    public static function create(string $channelName, string $connectionReferenceName = SqsConnectionFactory::class): self
+    public static function create(string $channelName, string $connectionReferenceName = SqsConnectionReference::DEFAULT): self
     {
         return new self($channelName, $connectionReferenceName);
     }

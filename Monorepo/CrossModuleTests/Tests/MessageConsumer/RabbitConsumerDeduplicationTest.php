@@ -16,9 +16,8 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
-use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
-use Interop\Amqp\AmqpConnectionFactory;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
+use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithCustomDeduplicationExample;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithDefaultDeduplicationExample2;
 use Monorepo\CrossModuleTests\Fixture\Deduplication\RabbitConsumerWithIndependentDeduplicationExample;
@@ -53,7 +52,6 @@ final class RabbitConsumerDeduplicationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RabbitConsumerWithCustomDeduplicationExample::class],
             [
-                AmqpConnectionFactory::class => $connectionFactory,
                 AmqpExtConnectionFactory::class => $connectionFactory,
                 AmqpLibConnectionFactory::class => $connectionFactory,
                 new RabbitConsumerWithCustomDeduplicationExample(),
@@ -126,7 +124,6 @@ final class RabbitConsumerDeduplicationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RabbitConsumerWithDefaultDeduplicationExample2::class],
             [
-                AmqpConnectionFactory::class => $connectionFactory,
                 AmqpExtConnectionFactory::class => $connectionFactory,
                 AmqpLibConnectionFactory::class => $connectionFactory,
                 new RabbitConsumerWithDefaultDeduplicationExample2(),
@@ -200,7 +197,6 @@ final class RabbitConsumerDeduplicationTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [RabbitConsumerWithIndependentDeduplicationExample::class],
             [
-                AmqpConnectionFactory::class => $connectionFactory,
                 AmqpExtConnectionFactory::class => $connectionFactory,
                 AmqpLibConnectionFactory::class => $connectionFactory,
                 new RabbitConsumerWithIndependentDeduplicationExample(),

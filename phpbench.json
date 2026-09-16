@@ -5,6 +5,7 @@
   "runner.path": "Monorepo/Benchmark",
   "runner.remote_script_path": ".phpbench/script",
   "runner.remote_script_remove": false,
+  "runner.env_enabled_providers": ["sampler", "opcache", "php", "uname", "unix_sysload"],
   "core.profiles": {
     "opcache_disabled": {
       "runner.php_config": {

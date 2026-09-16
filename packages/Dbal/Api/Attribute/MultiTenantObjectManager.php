@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api\Dbal;
+namespace Ecotone\Api\Dbal\Attribute;
 
 use Attribute;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]

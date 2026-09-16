@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api\Dbal;
+namespace Ecotone\Api\Dbal\ExtensionObject;
 
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Config\ConnectionReference;

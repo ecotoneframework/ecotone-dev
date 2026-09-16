@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api\Dbal;
+namespace Ecotone\Api\Dbal\Attribute;
 
 use Attribute;
-use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 
 #[Attribute(Attribute::TARGET_METHOD)]

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api\Dbal;
+namespace Ecotone\Api\Dbal\Attribute;
 
 use Attribute;
 use Closure;

@@ -1,8 +1,8 @@
 <?php
 
-namespace Ecotone\Api\Dbal;
+namespace Ecotone\Api\Dbal\ExtensionObject;
 
-use Ecotone\Api\DocumentStore;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
 use Ecotone\Messaging\Config\ConfigurationException;
 

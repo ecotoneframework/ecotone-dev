@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Api\Dbal;
+namespace Ecotone\Api\Dbal\Gateway;
 
 use Ecotone\Messaging\Handler\Recoverability\ErrorContext;
 use Ecotone\Messaging\Message;

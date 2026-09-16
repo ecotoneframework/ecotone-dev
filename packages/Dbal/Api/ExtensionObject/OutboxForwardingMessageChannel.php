@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api\Dbal;
+namespace Ecotone\Api\Dbal\ExtensionObject;
 
-use Ecotone\Api\CombinedMessageChannel;
+use Ecotone\Api\ExtensionObject\CombinedMessageChannel;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\OutboxForwardingChannel;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;

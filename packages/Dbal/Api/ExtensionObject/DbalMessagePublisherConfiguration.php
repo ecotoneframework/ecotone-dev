@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Api\Dbal;
+namespace Ecotone\Api\Dbal\ExtensionObject;
 
 use Ecotone\Dbal\DbalOutboundChannelAdapterBuilder;
 

@@ -496,6 +496,13 @@ The full mapping is in `upgrade/namespace-map-2.0.csv`.
   interceptor for that exact channel, with the same `changeHeaders` / `precedence` semantics as `#[Before]` /
   `#[Presend]`. In 1.x the attribute existed but did nothing. Nothing to change unless you had it in code expecting it
   to be ignored; without a licence bootstrap throws `LicensingException`.
+- **DBAL 3 compatibility layer removed (internal).** With DBAL 4 as the minimum (see the top of this guide),
+  `Ecotone\Dbal\Compatibility\QueryBuilderProxy` and `Ecotone\Dbal\Compatibility\SchemaManagerCompatibility` are gone,
+  together with the version checks around `getSchemaManager()`, `ArrayParameterType`, `ParameterType` and
+  `connect()`/`close()`; Ecotone calls DBAL 4 directly. Both classes were internal (`src/`, never part of `Api/`), so
+  there is nothing to change. If you referenced them anyway, use the native methods: `$connection->createQueryBuilder()`
+  with its own `executeQuery()` / `executeStatement()` / `fetch*()`, and
+  `$connection->createSchemaManager()->tableExists($table)`.
 
 ---
 

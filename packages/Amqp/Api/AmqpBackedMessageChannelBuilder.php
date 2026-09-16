@@ -5,7 +5,6 @@ namespace Ecotone\Api\Amqp;
 use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\Amqp\AmqpOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 /**
  * Class AmqpBackedMessageChannelBuilder
@@ -41,7 +40,7 @@ class AmqpBackedMessageChannelBuilder extends EnqueueMessageChannelBuilder
      */
     public static function create(
         string $channelName,
-        string $amqpConnectionReferenceName = AmqpConnectionFactory::class,
+        string $amqpConnectionReferenceName = AmqpConnectionReference::DEFAULT,
         ?string $queueName = null
     ) {
         return new self(

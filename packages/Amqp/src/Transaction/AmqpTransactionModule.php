@@ -6,6 +6,7 @@ use function array_map;
 
 use Ecotone\Amqp\Configuration\AmqpConfiguration;
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Amqp\AmqpConnectionReference;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -22,7 +23,6 @@ use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Recoverability\RetryRunner;
 use Ecotone\Messaging\Precedence;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 #[ModuleAnnotation]
 /**
@@ -47,7 +47,7 @@ class AmqpTransactionModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $connectionFactories = [AmqpConnectionFactory::class];
+        $connectionFactories = [AmqpConnectionReference::DEFAULT];
         $pointcut = AmqpTransaction::class;
         $amqpConfiguration = ExtensionObjectResolver::resolveUnique(AmqpConfiguration::class, $extensionObjects, AmqpConfiguration::createWithDefaults());
         ;

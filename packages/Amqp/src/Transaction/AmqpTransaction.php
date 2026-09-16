@@ -3,7 +3,7 @@
 namespace Ecotone\Amqp\Transaction;
 
 use Attribute;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Ecotone\Api\Amqp\AmqpConnectionReference;
 
 #[Attribute]
 /**
@@ -11,5 +11,5 @@ use Enqueue\AmqpExt\AmqpConnectionFactory;
  */
 class AmqpTransaction
 {
-    public $connectionReferenceNames = [AmqpConnectionFactory::class];
+    public $connectionReferenceNames = [AmqpConnectionReference::DEFAULT];
 }

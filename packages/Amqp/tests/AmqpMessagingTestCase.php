@@ -3,9 +3,9 @@
 namespace Test\Ecotone\Amqp;
 
 use AMQPQueueException;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpExtConnection;
+use Ecotone\Amqp\Connection\AmqpLibConnectionFactory as AmqpLibConnection;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnection;
-use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnection;
 use Interop\Amqp\AmqpConnectionFactory;
 use Interop\Amqp\Impl\AmqpQueue;
 use PHPUnit\Framework\TestCase;

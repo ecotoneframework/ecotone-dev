@@ -2,9 +2,9 @@
 
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
-use Ecotone\Api\EcotoneClockInterface;
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Endpoint\ConsumerLifecycle;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;

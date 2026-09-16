@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Monorepo\Benchmark;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Illuminate\Foundation\Http\Kernel as LaravelKernel;
 use Monorepo\ExampleApp\Common\Domain\Order\Command\PlaceOrder;
 use Monorepo\ExampleApp\Common\Domain\Order\ShippingAddress;

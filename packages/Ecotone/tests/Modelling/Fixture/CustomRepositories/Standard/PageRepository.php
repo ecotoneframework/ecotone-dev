@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\CustomRepositories\Standard;
 
-use Ecotone\Api\Repository;
+use Ecotone\Api\Attribute\Repository;
 use Test\Ecotone\Modelling\Fixture\CommandHandler\Aggregate\InMemoryStateStoredRepository;
 
 #[Repository]

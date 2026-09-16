@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;

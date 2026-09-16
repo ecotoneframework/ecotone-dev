@@ -52,7 +52,7 @@ final class TempestRepositoryIntegrationTest extends EcotoneIntegrationTestCase
 
     public function test_placing_an_order_with_tempest_model(): void
     {
-        $commandBus = $this->container->get(\Ecotone\Api\CommandBus::class);
+        $commandBus = $this->container->get(\Ecotone\Api\Gateway\CommandBus::class);
 
         $orderId = $commandBus->send(new PlaceOrder(userId: 'user-1', totalPrice: 100));
 
@@ -62,8 +62,8 @@ final class TempestRepositoryIntegrationTest extends EcotoneIntegrationTestCase
 
     public function test_state_change_round_trips_through_command_and_query_bus(): void
     {
-        $commandBus = $this->container->get(\Ecotone\Api\CommandBus::class);
-        $queryBus = $this->container->get(\Ecotone\Api\QueryBus::class);
+        $commandBus = $this->container->get(\Ecotone\Api\Gateway\CommandBus::class);
+        $queryBus = $this->container->get(\Ecotone\Api\Gateway\QueryBus::class);
 
         $orderId = $commandBus->send(new PlaceOrder(userId: 'user-1', totalPrice: 100));
 

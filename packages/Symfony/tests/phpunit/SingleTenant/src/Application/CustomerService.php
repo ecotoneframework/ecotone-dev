@@ -6,11 +6,11 @@ namespace Symfony\App\SingleTenant\Application;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\ORM\EntityManager;
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\Header;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Messaging\Support\Assert;
 use RuntimeException;
 use Symfony\App\SingleTenant\Application\Event\CustomerWasRegistered;

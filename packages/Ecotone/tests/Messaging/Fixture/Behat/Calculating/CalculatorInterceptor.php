@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\Calculating;
 
-use Ecotone\Api\After;
-use Ecotone\Api\Around;
-use Ecotone\Api\Before;
+use Ecotone\Api\Attribute\After;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Before;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 /**

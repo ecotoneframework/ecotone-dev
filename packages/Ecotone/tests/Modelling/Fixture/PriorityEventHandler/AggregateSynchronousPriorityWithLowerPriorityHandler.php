@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\PriorityEventHandler;
 
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\Identifier;
-use Ecotone\Api\Priority;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Priority;
 use Ecotone\Modelling\WithEvents;
 
 #[Aggregate]

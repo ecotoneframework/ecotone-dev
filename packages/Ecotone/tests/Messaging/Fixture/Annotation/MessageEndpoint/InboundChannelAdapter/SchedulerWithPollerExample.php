@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\InboundChannelAdapter;
 
-use Ecotone\Api\Poller;
-use Ecotone\Api\Scheduled;
+use Ecotone\Api\Attribute\Poller;
+use Ecotone\Api\Attribute\Scheduled;
 
 /**
  * licence Apache-2.0

@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Aggregate;
 
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Identifier;
-use Ecotone\Api\IgnorePayload;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\IgnorePayload;
 use stdClass;
 
 #[Aggregate]

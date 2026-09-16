@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test\Configuration;
 
-use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Scheduling\Clock;
 use Ecotone\Test\StaticPsrClock;

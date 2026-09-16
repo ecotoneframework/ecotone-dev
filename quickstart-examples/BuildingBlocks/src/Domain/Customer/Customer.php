@@ -6,9 +6,9 @@ namespace App\Domain\Customer;
 
 use App\Domain\Customer\Command\ChangeEmail;
 use App\Domain\Customer\Command\RegisterCustomer;
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\Identifier;
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ramsey\Uuid\UuidInterface;
 
 /**

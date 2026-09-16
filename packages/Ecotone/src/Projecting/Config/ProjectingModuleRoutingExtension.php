@@ -8,11 +8,11 @@ declare(strict_types=1);
 namespace Ecotone\Projecting\Config;
 
 use Closure;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\Polling;
-use Ecotone\Api\Projection;
-use Ecotone\Api\Streaming;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Modelling\Config\Routing\RoutingEvent;
 use Ecotone\Modelling\Config\Routing\RoutingEventHandler;

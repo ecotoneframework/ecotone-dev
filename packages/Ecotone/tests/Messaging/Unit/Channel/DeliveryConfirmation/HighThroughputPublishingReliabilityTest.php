@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\MessagePublisher;
-use Ecotone\Api\Reference;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\DeliveryFuture;

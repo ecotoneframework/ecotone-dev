@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\CommandHandler\MultiMethod;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\NotUniqueHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\NotUniqueHandler;
 
 /**
  * licence Apache-2.0

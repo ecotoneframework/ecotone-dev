@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Unit;
 
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -65,7 +65,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
             'done',
             EcotoneLite::bootstrapFlowTesting(
                 classesToResolve: [AsynchronousOrderFulfilment::class],
-                configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+                configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
             )
                 ->sendCommandWithRouting('order.start', $oderId = 100)
                 ->publishEvent(PaymentWasDoneEvent::create($oderId), metadata: ['paymentId' => $oderId])

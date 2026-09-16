@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\ApplicationContext {
-    use Ecotone\Api\MessageGateway;
+    use Ecotone\Api\Attribute\MessageGateway;
 
     /**
      * licence Apache-2.0

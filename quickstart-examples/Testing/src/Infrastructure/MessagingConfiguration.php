@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Testing\Infrastructure;
 
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 
 final class MessagingConfiguration

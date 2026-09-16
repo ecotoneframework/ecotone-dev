@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\MultiTenant;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
 
 /**
  * licence Apache-2.0

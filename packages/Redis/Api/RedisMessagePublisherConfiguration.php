@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Redis;
 
-use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Enqueue\Redis\RedisConnectionFactory;
 
 /**

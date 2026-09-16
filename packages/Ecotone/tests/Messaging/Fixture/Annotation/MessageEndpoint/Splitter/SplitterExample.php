@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Splitter;
 
-use Ecotone\Api\Payload;
-use Ecotone\Api\Splitter;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\Splitter;
 
 /**
  * licence Apache-2.0

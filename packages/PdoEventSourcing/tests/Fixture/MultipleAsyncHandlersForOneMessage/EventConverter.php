@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\MultipleAsyncHandlersForOneMessage;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 final class EventConverter
 {

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\ClosureInAttribute;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Deduplicated;
-use Ecotone\Api\Header;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

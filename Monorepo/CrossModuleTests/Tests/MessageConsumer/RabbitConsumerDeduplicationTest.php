@@ -6,15 +6,15 @@ namespace Monorepo\CrossModuleTests\Tests\MessageConsumer;
 
 use Ecotone\Amqp\AmqpQueue;
 use Ecotone\Api\Amqp\AmqpMessagePublisherConfiguration;
-use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Test\LicenceTesting;
 use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
 use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;

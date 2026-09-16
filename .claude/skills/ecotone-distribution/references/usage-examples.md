@@ -137,7 +137,7 @@ class InventoryHandler
 ## MessagePublisher with Metadata
 
 ```php
-use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\Gateway\MessagePublisher;
 
 class NotificationSender
 {

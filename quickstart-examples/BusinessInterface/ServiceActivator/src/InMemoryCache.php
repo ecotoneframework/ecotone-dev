@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\BusinessInterface;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\Attribute\ServiceActivator;
 
 final class InMemoryCache
 {

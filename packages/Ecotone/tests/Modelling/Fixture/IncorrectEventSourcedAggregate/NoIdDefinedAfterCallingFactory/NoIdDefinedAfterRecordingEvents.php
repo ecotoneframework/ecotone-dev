@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Modelling\Fixture\IncorrectEventSourcedAggregate\NoIdDefinedAfterCallingFactory;
 
-use Ecotone\Api\AggregateEvents;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventSourcingAggregate;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\AggregateEvents;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\Identifier;
 use stdClass;
 
 #[EventSourcingAggregate]

@@ -2,10 +2,10 @@
 
 namespace App\Microservices\Receiver;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Distributed;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 class OrderServiceReceiver
 {

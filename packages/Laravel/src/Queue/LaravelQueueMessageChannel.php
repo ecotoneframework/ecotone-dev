@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Laravel\Queue;
 
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
 use Ecotone\Messaging\Conversion\ConversionService;

@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration;
 
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\Dbal\DbalDeadLetterBuilder;
-use Ecotone\Api\Dbal\DeadLetterGateway;
-use Ecotone\Api\ErrorHandlerConfiguration;
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\InstantRetryConfiguration;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\Dbal\Gateway\DeadLetterGateway;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaConsumer;
 use Ecotone\Api\Kafka\KafkaHeader;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
-use Ecotone\Api\MessagePublisher;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
@@ -333,7 +333,7 @@ final class KafkaChannelAdapterTest extends TestCase
             private array $processedMessages = [];
 
             #[KafkaConsumer('kafka_consumer_attribute', 'testTopicDeadLetter')]
-            public function handle(#[\Ecotone\Api\Payload] string $payload): void
+            public function handle(#[\Ecotone\Api\Attribute\Payload] string $payload): void
             {
                 if ($this->failureCount < 1) {
                     $this->failureCount++;
@@ -415,7 +415,7 @@ final class KafkaChannelAdapterTest extends TestCase
             public array $processedPayloads = [];
 
             #[KafkaConsumer(self::ENDPOINT_ID, self::TOPIC_REFERENCE)]
-            public function handle(#[\Ecotone\Api\Payload] string $payload): void
+            public function handle(#[\Ecotone\Api\Attribute\Payload] string $payload): void
             {
                 $this->invocations++;
                 if ($this->shouldFail) {

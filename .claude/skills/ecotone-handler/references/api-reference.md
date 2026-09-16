@@ -2,7 +2,7 @@
 
 ## CommandHandler Attribute
 
-Source: `Ecotone\Api\CommandHandler`
+Source: `Ecotone\Api\Attribute\CommandHandler`
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
@@ -31,7 +31,7 @@ Parameters:
 
 ## EventHandler Attribute
 
-Source: `Ecotone\Api\EventHandler`
+Source: `Ecotone\Api\Attribute\EventHandler`
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
@@ -60,7 +60,7 @@ Parameters:
 
 ## QueryHandler Attribute
 
-Source: `Ecotone\Api\QueryHandler`
+Source: `Ecotone\Api\Attribute\QueryHandler`
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
@@ -83,7 +83,7 @@ Parameters:
 
 ## ServiceActivator Attribute
 
-Source: `Ecotone\Api\ServiceActivator`
+Source: `Ecotone\Api\Attribute\ServiceActivator`
 
 ```php
 #[Attribute(Attribute::TARGET_METHOD)]
@@ -108,7 +108,7 @@ Parameters:
 
 ## Header Parameter Attribute
 
-Source: `Ecotone\Api\Header`
+Source: `Ecotone\Api\Attribute\Header`
 
 ```php
 #[Attribute(Attribute::TARGET_PARAMETER)]

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\Retry;
 
-use Ecotone\Api\InstantRetry;
+use Ecotone\Api\Attribute\InstantRetry;
 
 /**
  * licence Enterprise

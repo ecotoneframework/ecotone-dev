@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\JMSConverter\Fixture\Configuration\Status;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 /**
  * licence Apache-2.0

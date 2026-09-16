@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Handler\Processor\MethodInvoker;
 
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Attribute\AsynchronousEndpointAttribute;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;

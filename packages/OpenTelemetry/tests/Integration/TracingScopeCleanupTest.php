@@ -6,14 +6,14 @@ namespace Test\Ecotone\OpenTelemetry\Integration;
 
 use const E_USER_NOTICE;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\DistributedServiceMap;
-use Ecotone\Api\EventBus;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Channel\AbstractChannelInterceptor;

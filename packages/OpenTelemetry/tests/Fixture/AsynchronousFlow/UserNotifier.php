@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Fixture\AsynchronousFlow;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
 
 /**
  * licence Apache-2.0

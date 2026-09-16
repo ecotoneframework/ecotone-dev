@@ -5,12 +5,12 @@
 ### Basic Projection with Lifecycle
 
 ```php
-use Ecotone\Api\Projection;
-use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\ProjectionInitialization;
-use Ecotone\Api\ProjectionDelete;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 #[Projection('ticket_list')]
 #[FromAggregateStream(Ticket::class)]
@@ -63,9 +63,9 @@ class TicketListProjection
 ### Partitioned Projection with State
 
 ```php
-use Ecotone\Api\Partitioned;
-use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\ProjectionState;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\ProjectionState;
 
 #[Partitioned]
 #[Projection('ticket_details')]
@@ -103,7 +103,7 @@ Partitioned projection rules:
 ### Polling Projection
 
 ```php
-use Ecotone\Api\Polling;
+use Ecotone\Api\Attribute\Polling;
 
 #[Polling('orderSummaryEndpoint')]
 #[Projection('order_summary')]
@@ -128,7 +128,7 @@ $ecotone->run('orderSummaryEndpoint', ExecutionPollingMetadata::createWithTestin
 ### Streaming Projection
 
 ```php
-use Ecotone\Api\Streaming;
+use Ecotone\Api\Projecting\Streaming;
 
 #[Streaming('dashboard_channel')]
 #[Projection('live_dashboard')]
@@ -164,7 +164,7 @@ Cannot be combined with `#[Partitioned]`.
 ### FromAggregateStream
 
 ```php
-use Ecotone\Api\FromAggregateStream;
+use Ecotone\Api\Projecting\FromAggregateStream;
 
 #[Projection('order_list')]
 #[FromAggregateStream(Order::class)]
@@ -206,9 +206,9 @@ class NotificationProjection
 ### Configuration Attributes
 
 ```php
-use Ecotone\Api\ProjectionExecution;
-use Ecotone\Api\ProjectionBackfill;
-use Ecotone\Api\ProjectionDeployment;
+use Ecotone\Api\Projecting\ProjectionExecution;
+use Ecotone\Api\Projecting\ProjectionBackfill;
+use Ecotone\Api\Projecting\ProjectionDeployment;
 
 // Batch size for event loading
 #[Projection('big_projection')]
@@ -241,8 +241,8 @@ class ProjectionV1Deploy { }
 ### Revision and NamedEvent
 
 ```php
-use Ecotone\Api\Revision;
-use Ecotone\Api\NamedEvent;
+use Ecotone\Api\Attribute\Revision;
+use Ecotone\Api\Attribute\NamedEvent;
 
 // Version 1 (default when no attribute)
 class PersonWasRegistered
@@ -280,7 +280,7 @@ class TicketWasRegistered
 Upcasters transform old event versions to the current schema:
 
 ```php
-use Ecotone\Api\Revision;
+use Ecotone\Api\Attribute\Revision;
 
 class PersonWasRegisteredUpcaster
 {

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Symfony\App\MultiTenant\Configuration;
 
-use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\Dbal\MultiTenantConfiguration;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
 
 /**

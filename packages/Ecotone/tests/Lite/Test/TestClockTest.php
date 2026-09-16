@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Test\Ecotone\Lite\Test;
 
 use DateTimeImmutable;
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\Delayed;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Delayed;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Scheduling\Duration;

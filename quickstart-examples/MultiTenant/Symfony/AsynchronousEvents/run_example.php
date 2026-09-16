@@ -2,8 +2,8 @@
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use App\MultiTenant\Configuration\Kernel;
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use PHPUnit\Framework\Assert;
 use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Input\ArrayInput;

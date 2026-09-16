@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Dbal\Fixture\AsynchronousHandler;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

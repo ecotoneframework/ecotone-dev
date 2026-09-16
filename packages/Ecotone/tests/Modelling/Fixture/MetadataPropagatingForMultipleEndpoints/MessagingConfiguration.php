@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\MetadataPropagatingForMultipleEndpoints;
 
-use Ecotone\Api\PollingMetadata;
-use Ecotone\Api\ServiceContext;
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 
 /**
  * licence Apache-2.0

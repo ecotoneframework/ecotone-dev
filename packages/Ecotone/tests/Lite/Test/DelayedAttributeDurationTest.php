@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Lite\Test;
 
 use DateTimeImmutable;
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\Delayed;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\Delayed;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\InvalidArgumentException;

@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Integration;
 
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use PHPUnit\Framework\TestCase;

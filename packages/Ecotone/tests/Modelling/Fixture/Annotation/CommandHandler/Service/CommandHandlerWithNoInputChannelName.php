@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\CommandHandler\Service;
 
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 
 /**
  * licence Apache-2.0

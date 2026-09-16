@@ -4,8 +4,8 @@ namespace Ecotone\Dbal\ObjectManager;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\Persistence\ManagerRegistry;
-use Ecotone\Api\Reference;
-use Ecotone\Api\WithoutDatabaseTransaction;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;

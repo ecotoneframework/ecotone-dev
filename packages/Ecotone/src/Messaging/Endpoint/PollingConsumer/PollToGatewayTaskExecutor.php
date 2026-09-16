@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\NonProxyGateway;
 use Ecotone\Messaging\Message;

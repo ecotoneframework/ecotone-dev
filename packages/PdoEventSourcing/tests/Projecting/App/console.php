@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-use Ecotone\Api\ProjectionRegistry;
+use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Support\ConcurrencyException;

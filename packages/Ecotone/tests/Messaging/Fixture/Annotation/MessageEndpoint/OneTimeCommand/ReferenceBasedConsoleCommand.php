@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand;
 
-use Ecotone\Api\ClassReference;
-use Ecotone\Api\ConsoleCommand;
+use Ecotone\Api\Attribute\ClassReference;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use stdClass;
 
 #[ClassReference('consoleCommand')]

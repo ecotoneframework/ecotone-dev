@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
-use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\CronIntegration\CronExpression;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Consumer;
 
-use Ecotone\Api\DocumentStore;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;
 
 /**

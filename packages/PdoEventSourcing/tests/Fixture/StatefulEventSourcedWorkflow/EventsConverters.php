@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class EventsConverters
 {

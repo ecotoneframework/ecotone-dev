@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Application;
 
-use Ecotone\Api\Header;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\QueryHandler;
 
 final class NotificationSender
 {

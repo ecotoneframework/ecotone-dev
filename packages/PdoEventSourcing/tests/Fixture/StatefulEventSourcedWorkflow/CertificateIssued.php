@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow;
 
-use Ecotone\Api\NamedEvent;
+use Ecotone\Api\Attribute\NamedEvent;
 
 #[NamedEvent(self::NAME)]
 class CertificateIssued

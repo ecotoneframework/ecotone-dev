@@ -2,9 +2,9 @@
 
 namespace App\EventSourcing\Infrastructure;
 
-use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 
 class EcotoneConfiguration
 {

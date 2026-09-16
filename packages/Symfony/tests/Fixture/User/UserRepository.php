@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Fixture\User;
 
-use Ecotone\Api\Identifier;
-use Ecotone\Api\Repository;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Repository;
 
 /**
  * licence Apache-2.0

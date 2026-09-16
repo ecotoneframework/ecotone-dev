@@ -2,8 +2,8 @@
 
 namespace Ecotone\Messaging\Config\Container;
 
-use Ecotone\Api\PollingMetadata;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Endpoint\EndpointRunner;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;

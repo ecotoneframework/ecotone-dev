@@ -6,8 +6,8 @@ namespace Integration;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
-use Ecotone\Api\ServiceConfiguration;
 use Ecotone\DataProtection\Configuration\DataProtectionConfiguration;
 use Ecotone\DataProtection\Encryption\Crypto;
 use Ecotone\DataProtection\Encryption\Key;

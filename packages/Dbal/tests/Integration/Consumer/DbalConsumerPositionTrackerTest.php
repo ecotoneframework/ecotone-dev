@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\Consumer;
 
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\DocumentStore;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Consumer\DbalConsumerPositionTracker;
 use Ecotone\Lite\EcotoneLite;

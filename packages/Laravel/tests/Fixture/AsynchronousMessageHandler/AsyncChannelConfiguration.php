@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Fixture\AsynchronousMessageHandler;
 
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Laravel\LaravelQueueMessageChannelBuilder;
-use Ecotone\Api\ServiceContext;
 
 /**
  * licence Apache-2.0

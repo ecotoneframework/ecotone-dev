@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\Config\Routing;
 
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Router\RouteSelector;

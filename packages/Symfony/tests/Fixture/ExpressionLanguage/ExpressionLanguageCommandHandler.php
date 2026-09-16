@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Fixture\ExpressionLanguage;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Payload;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

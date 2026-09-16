@@ -6,7 +6,7 @@ namespace Ecotone\Dbal\DbaBusinessMethod;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
-use Ecotone\Api\Dbal\DbalParameter;
+use Ecotone\Api\Dbal\Attribute\DbalParameter;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionContextExecutor;
 
 /**

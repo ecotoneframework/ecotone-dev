@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptingAggregate;
 
-use Ecotone\Api\Around;
-use Ecotone\Api\Before;
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Before;
+use Ecotone\Api\Attribute\CommandHandler;
 
 /**
  * licence Apache-2.0

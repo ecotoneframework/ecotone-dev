@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Integration\MultiTenant;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\Dbal\MultiTenantConfiguration;
-use Ecotone\Api\Dbal\MultiTenantConnection;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Dbal\Attribute\MultiTenantConnection;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;

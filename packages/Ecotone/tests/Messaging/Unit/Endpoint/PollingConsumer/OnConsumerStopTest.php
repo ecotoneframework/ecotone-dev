@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Endpoint\PollingConsumer;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\OnConsumerStop;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\OnConsumerStop;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 
@@ -24,7 +24,7 @@ final class OnConsumerStopTest extends TestCase
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [ConsumerStopHandler::class, AsyncCommandHandler::class],
             [new ConsumerStopHandler(), new AsyncCommandHandler()],
-            configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async_channel'))
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async_channel'))
         );
 
         // Send a command to async channel

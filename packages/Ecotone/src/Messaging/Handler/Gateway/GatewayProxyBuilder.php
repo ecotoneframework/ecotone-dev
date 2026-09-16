@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\Gateway;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\ChannelReference;
 use Ecotone\Messaging\Config\Container\CompilableBuilder;

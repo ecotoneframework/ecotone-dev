@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Handler\ClosureInAttribute;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Fetch;
-use Ecotone\Api\Payload;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Fetch;
+use Ecotone\Api\Attribute\Payload;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\PlaceOrder;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\User;
 use Test\Ecotone\Messaging\Fixture\FetchAggregate\UserNotFound;

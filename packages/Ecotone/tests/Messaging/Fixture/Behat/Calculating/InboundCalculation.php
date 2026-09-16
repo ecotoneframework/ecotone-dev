@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\Calculating;
 
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\Scheduled;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Scheduled;
 
 /**
  * licence Apache-2.0

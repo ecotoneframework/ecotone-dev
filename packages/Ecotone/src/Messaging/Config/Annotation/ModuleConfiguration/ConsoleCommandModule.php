@@ -6,9 +6,9 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\ConsoleCommand;
-use Ecotone\Api\ConsoleParameterOption;
-use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\ConsoleParameterOption;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand;
 
-use Ecotone\Api\ConsoleCommand;
-use Ecotone\Api\Header;
+use Ecotone\Api\Attribute\ConsoleCommand;
+use Ecotone\Api\Attribute\Header;
 
 /**
  * licence Apache-2.0

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\OneTimeCommand;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 use stdClass;
 
 /**

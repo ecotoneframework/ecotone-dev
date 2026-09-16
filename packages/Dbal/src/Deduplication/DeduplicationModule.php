@@ -3,11 +3,11 @@
 namespace Ecotone\Dbal\Deduplication;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\Deduplicated;
-use Ecotone\Api\EcotoneClockInterface;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;

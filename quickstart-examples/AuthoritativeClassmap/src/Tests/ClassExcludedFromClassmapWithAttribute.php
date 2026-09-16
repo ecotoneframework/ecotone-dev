@@ -3,7 +3,7 @@
 namespace App\Tests;
 
 use App\Domain\Event\CustomerRegistered;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
 
 class ClassExcludedFromClassmapWithAttribute
 {

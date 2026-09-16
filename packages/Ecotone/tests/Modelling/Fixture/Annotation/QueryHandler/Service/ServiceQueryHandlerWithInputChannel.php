@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\QueryHandler\Service;
 
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

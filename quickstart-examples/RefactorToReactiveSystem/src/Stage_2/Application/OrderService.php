@@ -9,9 +9,9 @@ use App\ReactiveSystem\Stage_2\Domain\Order\Event\OrderWasPlaced;
 use App\ReactiveSystem\Stage_2\Domain\Order\Order;
 use App\ReactiveSystem\Stage_2\Domain\Order\OrderRepository;
 use App\ReactiveSystem\Stage_2\Domain\Product\ProductRepository;
-use Ecotone\Api\Deduplicated;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventBus;
+use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Gateway\EventBus;
 use Ramsey\Uuid\UuidInterface;
 
 final class OrderService

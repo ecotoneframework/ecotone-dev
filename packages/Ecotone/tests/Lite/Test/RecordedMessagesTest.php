@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Lite\Test;
 
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventBus;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use stdClass;

@@ -2,7 +2,7 @@
 
 namespace TestingNamespace\Correct;
 
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 
 /**
  * licence Apache-2.0

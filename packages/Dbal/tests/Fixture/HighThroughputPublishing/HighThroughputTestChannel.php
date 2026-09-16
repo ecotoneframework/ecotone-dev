@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\HighThroughputPublishing;
 
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\BatchSupportingMessageChannel;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;

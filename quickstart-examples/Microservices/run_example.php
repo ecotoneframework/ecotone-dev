@@ -3,10 +3,10 @@
 use App\Microservices\Receiver\MessagingConfiguration;
 use App\Microservices\Receiver\OrderServiceReceiver;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\DistributedBus;
-use Ecotone\Api\QueryBus;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use PHPUnit\Framework\Assert;
 

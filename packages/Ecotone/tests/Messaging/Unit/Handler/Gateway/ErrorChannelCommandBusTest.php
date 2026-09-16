@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Messaging\Unit\Handler\Gateway;
 
-use Ecotone\Api\DelayedRetry;
-use Ecotone\Api\ErrorChannel;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\DelayedRetry;
+use Ecotone\Api\Attribute\ErrorChannel;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MessagingGatewayModule;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -118,7 +118,7 @@ final class ErrorChannelCommandBusTest extends TestCase
         $service = new class () {
             public bool $sideEffectExecuted = false;
 
-            #[\Ecotone\Api\CommandHandler('handler.level.error.channel.test')]
+            #[\Ecotone\Api\Attribute\CommandHandler('handler.level.error.channel.test')]
             #[ErrorChannel('handlerLevelErrorChannel')]
             public function handle(mixed $payload): void
             {
@@ -219,6 +219,6 @@ final class ErrorChannelCommandBusTest extends TestCase
     maxRetries: 1,
     deadLetterChannel: 'gatewayRetryDeadLetter',
 )]
-interface DelayedRetryCommandBus extends \Ecotone\Api\CommandBus
+interface DelayedRetryCommandBus extends \Ecotone\Api\Gateway\CommandBus
 {
 }

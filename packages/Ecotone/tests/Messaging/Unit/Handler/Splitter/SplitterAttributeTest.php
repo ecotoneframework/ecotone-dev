@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Splitter;
 
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\Splitter;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Splitter;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;

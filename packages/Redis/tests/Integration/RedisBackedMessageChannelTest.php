@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis\Integration;
 
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
-use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;

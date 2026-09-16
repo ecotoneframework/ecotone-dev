@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common;
 
-use Ecotone\Api\Converter;
-use Ecotone\Api\Presend;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Attribute\Presend;
 
 class Converters
 {

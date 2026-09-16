@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel\DeliveryConfirmation;
 
-use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\BatchMessage;
 use PHPUnit\Framework\TestCase;

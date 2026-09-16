@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Laravel\Application\Execution;
 
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Lite\Test\MessagingTestSupport;

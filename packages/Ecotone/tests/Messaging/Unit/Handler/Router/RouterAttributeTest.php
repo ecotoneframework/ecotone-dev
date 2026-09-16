@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\Router;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Router;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\DestinationResolutionException;
 use PHPUnit\Framework\TestCase;

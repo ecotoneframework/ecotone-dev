@@ -3,14 +3,14 @@
 namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\EventSourcing\Stream;
-use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\Projection;
-use Ecotone\Api\ProjectionDelete;
-use Ecotone\Api\ProjectionInitialization;
-use Ecotone\Api\ProjectionReset;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasRegistered;

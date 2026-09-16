@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptedQueryAggregate\AddFranchiseMargin;
 
-use Ecotone\Api\After;
+use Ecotone\Api\Attribute\After;
 
 /**
  * licence Apache-2.0

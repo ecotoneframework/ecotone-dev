@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Monorepo\CrossModuleTests\Fixture\Deduplication;
 
 use Ecotone\Api\Amqp\RabbitConsumer;
-use Ecotone\Api\Deduplicated;
-use Ecotone\Api\Payload;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\Deduplicated;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Enterprise

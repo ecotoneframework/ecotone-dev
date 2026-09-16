@@ -7,11 +7,11 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleAppEventSourcing\EcotoneProjection;
 
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\Projection;
-use Ecotone\Api\ProjectionDelete;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Attribute\QueryHandler;
 use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
 use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
 use Monorepo\ExampleAppEventSourcing\Common\PriceChange;

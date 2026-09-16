@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\User;
 
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Lite\Test\Configuration\InMemoryRepositoryBuilder;
 
 /**

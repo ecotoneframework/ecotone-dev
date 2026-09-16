@@ -2,9 +2,9 @@
 
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Attribute\CommandHandler;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 use Ramsey\Uuid\Uuid;
 

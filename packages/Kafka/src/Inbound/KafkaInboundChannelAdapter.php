@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Inbound;
 
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Kafka\Configuration\KafkaAdmin;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;

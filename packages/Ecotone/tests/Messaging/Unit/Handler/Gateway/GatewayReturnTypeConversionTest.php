@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
-use Ecotone\Api\Header;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\MessageGateway;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Message;
@@ -332,7 +332,7 @@ final class GeneratorEchoHandler
  */
 final class IntToStdClassConverter
 {
-    #[\Ecotone\Api\Converter]
+    #[\Ecotone\Api\Attribute\Converter]
     public function convert(int $value): stdClass
     {
         return self::convertOne($value);
@@ -352,7 +352,7 @@ final class IntToStdClassConverter
  *
  * @internal
  */
-#[\Ecotone\Api\MediaTypeConverter]
+#[\Ecotone\Api\Attribute\MediaTypeConverter]
 final class ArrayToJsonMediaTypeConverter implements \Ecotone\Messaging\Conversion\Converter
 {
     public function convert($source, \Ecotone\Messaging\Handler\Type $sourceType, MediaType $sourceMediaType, \Ecotone\Messaging\Handler\Type $targetType, MediaType $targetMediaType)

@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Dbal\Fixture\Deduplication;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

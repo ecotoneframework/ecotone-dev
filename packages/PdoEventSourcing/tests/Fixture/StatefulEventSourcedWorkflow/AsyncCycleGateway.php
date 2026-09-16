@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflow;
 
-use Ecotone\Api\BusinessMethod;
-use Ecotone\Api\Header;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Identifier;
 
 interface AsyncCycleGateway
 {

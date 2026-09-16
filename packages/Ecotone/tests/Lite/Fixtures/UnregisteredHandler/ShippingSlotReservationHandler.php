@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Lite\Fixtures\UnregisteredHandler;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Test\Ecotone\Lite\Fixtures\UnregisteredHandler\Command\ReserveShippingSlot;
 
 /**

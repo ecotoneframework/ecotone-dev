@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Distributed;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use InvalidArgumentException;
 
 /**

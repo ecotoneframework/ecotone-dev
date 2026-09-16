@@ -5,7 +5,7 @@
 Enable Doctrine ORM repositories so aggregates can be stored as Doctrine entities:
 
 ```php
-use Ecotone\Api\Dbal\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 
 class EcotoneConfiguration
 {
@@ -46,9 +46,9 @@ doctrine:
 
 ```php
 use Doctrine\ORM\Mapping as ORM;
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\Identifier;
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'orders')]
@@ -84,7 +84,7 @@ class Order
 ### Default Connection via ManagerRegistry
 
 ```php
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
 
 class EcotoneConfiguration
@@ -154,7 +154,7 @@ class ChannelConfiguration
 ### Using DBAL Channels Directly
 
 ```php
-use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 
 class ChannelConfiguration
 {
@@ -169,7 +169,7 @@ class ChannelConfiguration
 ## Multi-Tenant Configuration -- Full Example
 
 ```php
-use Ecotone\Api\Dbal\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 
 class EcotoneConfiguration
 {

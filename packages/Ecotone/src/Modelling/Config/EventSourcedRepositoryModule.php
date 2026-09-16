@@ -8,8 +8,8 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventSourcedRepositoryAdapterBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;

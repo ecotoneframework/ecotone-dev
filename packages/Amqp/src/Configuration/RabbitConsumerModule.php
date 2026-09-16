@@ -8,7 +8,7 @@ use Ecotone\Amqp\AmqpInboundChannelAdapterBuilder;
 use Ecotone\AnnotationFinder\AnnotatedMethod;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Amqp\RabbitConsumer;
-use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;

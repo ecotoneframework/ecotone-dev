@@ -3,8 +3,8 @@
 namespace Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Publisher;
 
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Api\DistributedServiceMap;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\TicketServiceMessagingConfiguration;
 
 /**

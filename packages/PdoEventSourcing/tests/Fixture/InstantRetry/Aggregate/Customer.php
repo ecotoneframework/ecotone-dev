@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\InstantRetry\Aggregate;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventSourcingAggregate;
-use Ecotone\Api\EventSourcingHandler;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\CustomerRegistered;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\RegisterCustomer;

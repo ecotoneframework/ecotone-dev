@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Logger;
 
-use Ecotone\Api\LogAfter;
+use Ecotone\Api\Attribute\LogAfter;
 use Ecotone\Messaging\Conversion\ArrayToJson\ArrayToJsonConverter;
 use Ecotone\Messaging\Conversion\AutoCollectionConversionService;
 use Ecotone\Messaging\Conversion\MediaType;

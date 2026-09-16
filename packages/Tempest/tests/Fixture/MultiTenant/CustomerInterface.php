@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Fixture\MultiTenant;
 
-use Ecotone\Api\Dbal\DbalWrite;
+use Ecotone\Api\Dbal\Attribute\DbalWrite;
 
 /**
  * licence Apache-2.0

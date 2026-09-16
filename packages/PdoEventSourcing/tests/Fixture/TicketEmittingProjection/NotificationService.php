@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Modelling\Event;
 

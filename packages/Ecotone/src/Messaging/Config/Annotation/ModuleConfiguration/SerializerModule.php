@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\SerializerGateway;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Gateway\SerializerGateway;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;

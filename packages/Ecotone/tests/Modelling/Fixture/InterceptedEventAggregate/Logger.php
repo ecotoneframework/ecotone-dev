@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptedEventAggregate;
 
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\EventSourcingAggregate;
-use Ecotone\Api\EventSourcingHandler;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Test\Ecotone\Modelling\Fixture\InterceptedCommandAggregate\EventWasLogged;
 use Test\Ecotone\Modelling\Fixture\InterceptedEventAggregate\VerifyAccessToSavingLogs\ValidateExecutor;

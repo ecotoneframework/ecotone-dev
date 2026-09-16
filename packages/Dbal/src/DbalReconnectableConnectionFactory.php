@@ -3,7 +3,7 @@
 namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\MultiTenant\HeaderBasedMultiTenantConnectionFactory;
 use Ecotone\Enqueue\ReconnectableConnectionFactory;

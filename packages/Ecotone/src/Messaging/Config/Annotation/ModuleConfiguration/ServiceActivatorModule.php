@@ -6,10 +6,10 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\Saga;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\Saga;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;

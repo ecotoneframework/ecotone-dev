@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Channel\PollableChannel\SendRetries;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;
 use Ecotone\Messaging\Channel\MessageChannelBuilder;
 use Ecotone\Messaging\Channel\PollableChannel\GlobalPollableChannelConfiguration;

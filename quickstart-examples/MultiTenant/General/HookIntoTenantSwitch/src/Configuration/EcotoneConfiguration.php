@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\MultiTenant\Configuration;
 
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\ServiceContext;
-use Ecotone\Api\Dbal\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 
 final readonly class EcotoneConfiguration
 {

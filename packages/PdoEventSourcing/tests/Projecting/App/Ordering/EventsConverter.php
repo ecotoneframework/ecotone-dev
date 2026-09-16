@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting\App\Ordering;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasCancelled;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasPlaced;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasReconfirmed;

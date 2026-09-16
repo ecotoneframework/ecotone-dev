@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator\AllConfigurationDefined;
 
-use Ecotone\Api\ConfigurationVariable;
-use Ecotone\Api\Header;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\Payload;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\ConfigurationVariable;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Messaging\Message;
 use stdClass;
 

@@ -20,8 +20,8 @@ Ecotone's asynchronous processing routes handler execution through message chann
 Routes handler execution through a message channel:
 
 ```php
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
 
 class NotificationService
 {
@@ -43,8 +43,8 @@ class NotificationService
 Channels are registered via `#[ServiceContext]` methods:
 
 ```php
-use Ecotone\Api\ServiceContext;
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 
 class ChannelConfiguration
 {
@@ -67,7 +67,7 @@ class ChannelConfiguration
 ## 3. Delayed Messages
 
 ```php
-use Ecotone\Api\Delayed;
+use Ecotone\Api\Attribute\Delayed;
 
 class ReminderService
 {
@@ -81,8 +81,8 @@ class ReminderService
 ## 4. Scheduling
 
 ```php
-use Ecotone\Api\Scheduled;
-use Ecotone\Api\Poller;
+use Ecotone\Api\Attribute\Scheduled;
+use Ecotone\Api\Attribute\Poller;
 
 class ReportGenerator
 {

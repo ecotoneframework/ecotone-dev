@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\Retry;
 
-use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Messaging\Message;
 
 /**

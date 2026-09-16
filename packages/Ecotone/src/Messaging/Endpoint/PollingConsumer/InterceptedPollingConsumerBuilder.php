@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging\Endpoint\PollingConsumer;
 
-use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Channel\DirectChannel;
 use Ecotone\Messaging\Channel\DynamicChannel\DynamicMessageChannelBuilder;

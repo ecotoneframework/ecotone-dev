@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Integration;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Conversion\ConversionException;

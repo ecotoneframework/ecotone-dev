@@ -6,11 +6,11 @@ namespace App\MultiTenant\Application;
 
 use App\MultiTenant\Application\Command\RegisterCustomer;
 use App\MultiTenant\Application\Event\CustomerWasRegistered;
-use Ecotone\Api\Header;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\EventBus;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Gateway\EventBus;
 use Illuminate\Support\Facades\DB;
 
 final readonly class CustomerService

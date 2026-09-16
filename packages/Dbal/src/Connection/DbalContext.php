@@ -6,7 +6,7 @@ namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Schema;
-use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\NativeClock;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;

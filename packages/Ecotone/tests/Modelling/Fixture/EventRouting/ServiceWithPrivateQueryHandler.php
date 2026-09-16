@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\EventRouting;
 
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * licence Apache-2.0

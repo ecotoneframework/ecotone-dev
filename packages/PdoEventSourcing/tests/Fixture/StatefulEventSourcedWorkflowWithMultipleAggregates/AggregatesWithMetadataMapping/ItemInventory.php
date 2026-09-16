@@ -2,12 +2,12 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\AggregatesWithMetadataMapping;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventSourcingAggregate;
-use Ecotone\Api\EventSourcingHandler;
-use Ecotone\Api\Identifier;
-use Ecotone\Api\Payload;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Payload;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Modelling\WithEvents;
 use Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common\InventoryStockIncreased;

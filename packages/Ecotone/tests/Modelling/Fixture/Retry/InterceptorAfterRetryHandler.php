@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\Retry;
 
-use Ecotone\Api\Around;
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Precedence;

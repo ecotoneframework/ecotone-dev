@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Store\Document;
 
-use Ecotone\Api\DocumentStore;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Store\Document\DocumentException;
 use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;

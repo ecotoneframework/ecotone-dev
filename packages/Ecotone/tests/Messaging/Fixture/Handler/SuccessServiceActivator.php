@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Handler;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Messaging\Message;
 
 /**

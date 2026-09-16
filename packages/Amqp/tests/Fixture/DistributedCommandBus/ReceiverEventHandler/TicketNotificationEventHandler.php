@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\DistributedCommandBus\ReceiverEventHandler;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\EcotoneClockInterface;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Messaging\Scheduling\Duration;
 use Test\Ecotone\Amqp\Fixture\DistributedCommandBus\Receiver\Event\TicketCreated;
 

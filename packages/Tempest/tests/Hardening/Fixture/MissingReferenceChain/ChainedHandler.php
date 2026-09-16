@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Tempest\Hardening\Fixture\MissingReferenceChain;
 
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 
 /**
  * licence Apache-2.0

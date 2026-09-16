@@ -3,7 +3,7 @@
 namespace Ecotone\Api\EventSourcing;
 
 use Attribute;
-use Ecotone\Api\Dbal\DbalConnectionReference;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Messaging\Support\Assert;
 
 use function sha1;

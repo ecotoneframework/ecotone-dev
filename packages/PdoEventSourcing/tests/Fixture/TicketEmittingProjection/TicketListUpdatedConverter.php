@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketEmittingProjection;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 /**
  * licence Apache-2.0

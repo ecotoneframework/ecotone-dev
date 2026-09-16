@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Fixture\Deduplication;
 
-use Ecotone\Api\MediaTypeConverter;
+use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\Type;
 

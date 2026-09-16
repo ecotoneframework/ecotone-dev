@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Messaging\Fixture\MessageConverter;
 
-use Ecotone\Api\Header;
-use Ecotone\Api\MessageGateway;
-use Ecotone\Api\Payload;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\Payload;
 use stdClass;
 
 /**

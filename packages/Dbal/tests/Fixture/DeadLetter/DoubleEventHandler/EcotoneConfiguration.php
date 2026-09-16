@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\DoubleEventHandler;
 
-use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Api\Dbal\DbalDeadLetterBuilder;
-use Ecotone\Api\PollingMetadata;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 
 /**
  * licence Apache-2.0

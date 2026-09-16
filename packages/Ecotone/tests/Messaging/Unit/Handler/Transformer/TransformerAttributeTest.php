@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Transformer;
 
-use Ecotone\Api\Header;
-use Ecotone\Api\Payload;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
-use Ecotone\Api\Transformer;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\Transformer;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
 use PHPUnit\Framework\TestCase;

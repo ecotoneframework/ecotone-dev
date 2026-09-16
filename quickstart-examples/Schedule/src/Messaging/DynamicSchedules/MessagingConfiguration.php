@@ -2,8 +2,8 @@
 
 namespace App\Schedule\Messaging\DynamicSchedules;
 
-use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Attribute\ServiceContext;
 
 class MessagingConfiguration
 {

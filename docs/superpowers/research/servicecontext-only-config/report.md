@@ -2,7 +2,7 @@
 
 Branch `dgafka/ecotone-2-0-work` @ `bcf4efc0`. Every claim below is cited `file:line` against that tree.
 Public API now lives under `Ecotone\Api\*` (`packages/<Pkg>/Api/`); `ServiceConfiguration` is
-`Ecotone\Api\ServiceConfiguration` at `packages/Ecotone/Api/ServiceConfiguration.php`.
+`Ecotone\Api\ExtensionObject\ServiceConfiguration` at `packages/Ecotone/Api/ServiceConfiguration.php`.
 
 ---
 
@@ -316,7 +316,7 @@ default-filling block at `:207-219` relies on `withConnectionRetryTemplate()` mu
 
 ### 3.1 `#[Environment]` filtering does work for `#[ServiceContext]` — confirmed
 
-`Ecotone\Api\Environment` (`packages/Ecotone/Api/Environment.php:7`) targets classes **and** methods.
+`Ecotone\Api\Attribute\Environment` (`packages/Ecotone/Api/Environment.php:7`) targets classes **and** methods.
 `FileSystemAnnotationFinder::__construct()` builds the ban list at `:79-130`: class-level `#[Environment]`
 removes the class from `registeredClasses` (`:84-90`); method-level wins over class-level (`:120-128`) and
 populates `$bannedEnvironmentClassMethods`. `findAnnotatedMethods()` — the method

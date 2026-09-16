@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler\CombinedConversion;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 /**
  * Class OrderConverter

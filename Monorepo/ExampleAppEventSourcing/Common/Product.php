@@ -6,10 +6,10 @@ use Monorepo\ExampleAppEventSourcing\Common\Command\ChangePrice;
 use Monorepo\ExampleAppEventSourcing\Common\Command\RegisterProduct;
 use Monorepo\ExampleAppEventSourcing\Common\Event\PriceWasChanged;
 use Monorepo\ExampleAppEventSourcing\Common\Event\ProductWasRegistered;
-use Ecotone\Api\Identifier;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventSourcingAggregate;
-use Ecotone\Api\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Modelling\WithAggregateVersioning;
 
 #[EventSourcingAggregate]

@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Scheduling;
 
-use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Test\StaticPsrClock;
 use Psr\Clock\ClockInterface as PsrClockInterface;
 

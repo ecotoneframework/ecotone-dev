@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;

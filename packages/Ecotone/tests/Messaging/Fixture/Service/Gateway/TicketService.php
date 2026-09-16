@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Service\Gateway;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Header;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use RuntimeException;
 
 /**

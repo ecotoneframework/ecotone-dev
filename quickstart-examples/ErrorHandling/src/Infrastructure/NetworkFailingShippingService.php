@@ -6,7 +6,7 @@ namespace App\Infrastructure;
 
 use App\Domain\Order;
 use App\Domain\ShippingService;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 final class NetworkFailingShippingService implements ShippingService
 {

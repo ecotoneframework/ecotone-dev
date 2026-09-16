@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\BatchForwarding;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
-use Ecotone\Api\Dbal\OutboxForwardingMessageChannel;
-use Ecotone\Api\EcotoneClockInterface;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\WithoutDatabaseTransaction;
-use Ecotone\Api\WithoutMessageCollector;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
+use Ecotone\Api\Attribute\WithoutMessageCollector;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;

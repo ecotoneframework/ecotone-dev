@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\HighThroughputPublishing;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\EventBus;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Gateway\EventBus;
 
 /**
  * licence Apache-2.0

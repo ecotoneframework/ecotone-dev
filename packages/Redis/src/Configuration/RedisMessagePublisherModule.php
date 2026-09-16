@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Redis\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\MessagePublisher;
-use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
-use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\Config\DeferredPublishingGatewayRegistration;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;

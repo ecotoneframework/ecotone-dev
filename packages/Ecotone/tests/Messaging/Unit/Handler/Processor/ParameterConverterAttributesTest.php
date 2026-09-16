@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\ConfigurationVariable;
-use Ecotone\Api\Header;
-use Ecotone\Api\Headers;
-use Ecotone\Api\Payload;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\ConfigurationVariable;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;

@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\Gateway;
 
-use Ecotone\Api\Header;
-use Ecotone\Api\Headers;
-use Ecotone\Api\MessageGateway;
-use Ecotone\Api\Payload;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\Payload;
 
 /**
  * licence Apache-2.0

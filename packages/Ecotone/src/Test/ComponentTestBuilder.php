@@ -3,11 +3,11 @@
 namespace Ecotone\Test;
 
 use Ecotone\AnnotationFinder\FileSystem\FileSystemAnnotationFinder;
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\EventBus;
-use Ecotone\Api\PollingMetadata;
-use Ecotone\Api\QueryBus;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Lite\InMemoryPSRContainer;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Lite\Test\MessagingTestSupport;

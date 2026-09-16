@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Projecting;
 
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\Partitioned;
-use Ecotone\Api\Polling;
-use Ecotone\Api\Projection;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
-use Ecotone\Api\Streaming;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\Streaming;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Consumer\ConsumerPositionTracker;

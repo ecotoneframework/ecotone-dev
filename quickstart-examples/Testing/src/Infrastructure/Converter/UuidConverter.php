@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Testing\Infrastructure\Converter;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 use Ramsey\Uuid\Uuid;
 use Ramsey\Uuid\UuidInterface;
 

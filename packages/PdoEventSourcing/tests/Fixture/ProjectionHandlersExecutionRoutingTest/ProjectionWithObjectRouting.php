@@ -7,9 +7,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\ProjectionHandlersExecutionRoutingTest;
 
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromStream;
-use Ecotone\Api\Projection;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
 
 #[Projection(self::NAME)]
 #[FromStream(AnAggregate::STREAM_NAME)]

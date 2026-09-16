@@ -4,11 +4,11 @@ namespace App\ReadModel\TicketCounterProjection;
 
 use App\Domain\Event\TicketWasRegistered;
 use App\Domain\Ticket;
-use Ecotone\Api\Projection;
-use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\ProjectionState;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\ProjectionState;
 use Ecotone\EventSourcing\EventStreamEmitter;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
 
 #[Projection(self::NAME)]
 #[FromAggregateStream(Ticket::class)]

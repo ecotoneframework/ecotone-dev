@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Symfony\App\SingleTenant\Application;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Reference;
 
 /**
  * licence Apache-2.0

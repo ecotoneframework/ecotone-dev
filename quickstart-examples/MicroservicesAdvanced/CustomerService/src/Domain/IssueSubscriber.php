@@ -5,9 +5,9 @@ namespace App\Microservices\CustomerService\Domain;
 use App\Microservices\CustomerService\Domain\Event\IssueWasClosed;
 use App\Microservices\CustomerService\Domain\Event\IssueWasReported;
 use App\Microservices\CustomerService\Infrastructure\EcotoneConfiguration;
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\DistributedBus;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Gateway\DistributedBus;
 
 #[Asynchronous(EcotoneConfiguration::ASYNCHRONOUS_CHANNEL)]
 class IssueSubscriber

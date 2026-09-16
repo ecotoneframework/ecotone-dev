@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Domain;
 
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Identifier;
 
 #[Aggregate]
 final class Order

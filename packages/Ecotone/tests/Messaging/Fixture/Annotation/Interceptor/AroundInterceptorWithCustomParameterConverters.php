@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\Interceptor;
 
-use Ecotone\Api\Around;
-use Ecotone\Api\Header;
-use Ecotone\Api\Headers;
-use Ecotone\Api\Payload;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\Payload;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use stdClass;
 

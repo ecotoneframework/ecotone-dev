@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Handler\ClosureInAttribute;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Delayed;
-use Ecotone\Api\Payload;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Delayed;
+use Ecotone\Api\Attribute\Payload;
 
 /**
  * licence Apache-2.0

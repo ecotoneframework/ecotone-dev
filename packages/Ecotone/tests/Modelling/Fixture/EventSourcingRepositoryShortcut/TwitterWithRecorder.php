@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut;
 
-use Ecotone\Api\EventSourcingAggregate;
-use Ecotone\Api\EventSourcingHandler;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Modelling\WithEvents;
 

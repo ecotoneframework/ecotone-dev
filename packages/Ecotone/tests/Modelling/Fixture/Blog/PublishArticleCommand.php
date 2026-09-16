@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Blog;
 
-use Ecotone\Api\TargetIdentifier;
+use Ecotone\Api\Attribute\TargetIdentifier;
 
 /**
  * Class PublishArticleCommand

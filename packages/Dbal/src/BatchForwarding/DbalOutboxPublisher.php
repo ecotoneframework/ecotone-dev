@@ -7,7 +7,7 @@ namespace Ecotone\Dbal\BatchForwarding;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
-use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Connection\DbalType;
 use Ecotone\Enqueue\CachedConnectionFactory;

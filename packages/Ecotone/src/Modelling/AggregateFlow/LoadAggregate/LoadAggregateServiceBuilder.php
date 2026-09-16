@@ -2,7 +2,7 @@
 
 namespace Ecotone\Modelling\AggregateFlow\LoadAggregate;
 
-use Ecotone\Api\TargetVersion;
+use Ecotone\Api\Attribute\TargetVersion;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;

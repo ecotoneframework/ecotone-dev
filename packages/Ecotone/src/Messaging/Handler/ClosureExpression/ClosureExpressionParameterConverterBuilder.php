@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Handler\ClosureExpression;
 
-use Ecotone\Api\Header;
-use Ecotone\Api\Payload;
-use Ecotone\Api\Reference as ReferenceAttribute;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\Reference as ReferenceAttribute;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;

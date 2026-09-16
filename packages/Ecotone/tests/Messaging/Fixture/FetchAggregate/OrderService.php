@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\FetchAggregate;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Fetch;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Fetch;
 
 /**
  * licence Enterprise

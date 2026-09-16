@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptedQueryAggregate\ProductToPriceExchange;
 
-use Ecotone\Api\Before;
+use Ecotone\Api\Attribute\Before;
 
 /**
  * licence Apache-2.0

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\JMSConverter\Integration;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\Projection;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Conversion\MediaType;

@@ -10,7 +10,7 @@ use Ecotone\Api\Sqs\SqsMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Sqs\Configuration\SqsMessageConsumerConfiguration;
-use Enqueue\Sqs\SqsConnectionFactory;
+use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Sqs\ConnectionTestCase;
 use Test\Ecotone\Sqs\Fixture\SqsConsumer\SqsConsumerExample;

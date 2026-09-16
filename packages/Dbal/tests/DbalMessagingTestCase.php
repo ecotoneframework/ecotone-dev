@@ -10,8 +10,8 @@ use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
+use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Test\ComponentTestBuilder;
-use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 

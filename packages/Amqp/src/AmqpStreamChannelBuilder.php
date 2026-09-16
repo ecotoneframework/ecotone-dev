@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Api\Amqp\AmqpConnectionReference;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
-use Enqueue\AmqpLib\AmqpConnectionFactory;
 
 /**
  * licence Enterprise
@@ -47,7 +47,7 @@ class AmqpStreamChannelBuilder extends EnqueueMessageChannelBuilder
     public static function create(
         string  $channelName,
         string  $startPosition = 'first',
-        string  $amqpConnectionReferenceName = AmqpConnectionFactory::class,
+        string  $amqpConnectionReferenceName = AmqpConnectionReference::DEFAULT_STREAM,
         ?string $queueName = null,
         ?string $messageGroupId = null
     ): self {

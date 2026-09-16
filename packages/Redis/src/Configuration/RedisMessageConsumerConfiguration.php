@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Redis\Configuration;
 
+use Ecotone\Api\Redis\RedisConnectionReference;
 use Ecotone\Enqueue\EnqueueMessageConsumerConfiguration;
 use Ecotone\Redis\RedisInboundChannelAdapterBuilder;
-use Enqueue\Redis\RedisConnectionFactory;
 
 /**
  * licence Apache-2.0
@@ -15,7 +15,7 @@ final class RedisMessageConsumerConfiguration extends EnqueueMessageConsumerConf
 {
     private bool $declareOnStartup = RedisInboundChannelAdapterBuilder::DECLARE_ON_STARTUP_DEFAULT;
 
-    public static function create(string $endpointId, string $queueName, string $connectionReferenceName = RedisConnectionFactory::class): self
+    public static function create(string $endpointId, string $queueName, string $connectionReferenceName = RedisConnectionReference::DEFAULT): self
     {
         return new self(
             $endpointId,

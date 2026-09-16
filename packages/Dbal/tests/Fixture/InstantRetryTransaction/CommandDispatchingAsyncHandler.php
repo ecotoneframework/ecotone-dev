@@ -10,7 +10,7 @@ use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
-use Interop\Queue\ConnectionFactory;
+use Ecotone\Enqueue\ConnectionFactory;
 
 /**
  * licence Apache-2.0

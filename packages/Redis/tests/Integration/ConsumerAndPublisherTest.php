@@ -10,7 +10,7 @@ use Ecotone\Api\Redis\RedisMessagePublisherConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Redis\Configuration\RedisMessageConsumerConfiguration;
-use Enqueue\Redis\RedisConnectionFactory;
+use Ecotone\Redis\Connection\RedisConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Redis\ConnectionTestCase;
 use Test\Ecotone\Redis\Fixture\RedisConsumer\RedisConsumerExample;

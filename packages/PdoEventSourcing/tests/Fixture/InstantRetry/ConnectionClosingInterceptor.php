@@ -10,7 +10,6 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Exception;
-use Interop\Queue\ConnectionFactory;
 
 /**
  * Around interceptor that closes DB connection after handler execution
@@ -23,8 +22,7 @@ final class ConnectionClosingInterceptor
     private int $callIndex = 0;
 
     /**
-     * @param ConnectionFactory[] $connectionFactories
-     * @param bool[]              $closeOnCall e.g. [true, false] means close after first call only
+     * @param bool[] $closeOnCall e.g. [true, false] means close after first call only
      */
     public function __construct(array $closeOnCall = [true])
     {

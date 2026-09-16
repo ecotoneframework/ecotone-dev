@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Redis;
 
+use Ecotone\Api\Redis\RedisConnectionReference;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
@@ -15,14 +16,13 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Enqueue\Redis\RedisConnectionFactory;
 
 /**
  * licence Apache-2.0
  */
 final class RedisInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapterBuilder
 {
-    public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = RedisConnectionFactory::class): self
+    public static function createWith(string $endpointId, string $queueName, ?string $requestChannelName, string $connectionReferenceName = RedisConnectionReference::DEFAULT): self
     {
         return new self($queueName, $endpointId, $requestChannelName, $connectionReferenceName);
     }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Sqs;
 
+use Ecotone\Api\Sqs\SqsConnectionReference;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
@@ -15,7 +16,6 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\LicensingException;
-use Enqueue\Sqs\SqsConnectionFactory;
 
 /**
  * licence Apache-2.0
@@ -33,7 +33,7 @@ final class SqsOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAdapt
         $this->initialize($connectionFactoryReferenceName);
     }
 
-    public static function create(string $queueName, string $connectionFactoryReferenceName = SqsConnectionFactory::class): self
+    public static function create(string $queueName, string $connectionFactoryReferenceName = SqsConnectionReference::DEFAULT): self
     {
         return new self($queueName, $connectionFactoryReferenceName);
     }

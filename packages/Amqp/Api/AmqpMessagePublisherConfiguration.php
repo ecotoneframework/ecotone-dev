@@ -4,7 +4,6 @@ namespace Ecotone\Api\Amqp;
 
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Messaging\Support\Assert;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 /**
  * Class RegisterAmqpPublisher
@@ -67,7 +66,7 @@ class AmqpMessagePublisherConfiguration
         $this->exchangeName = $exchangeName;
     }
 
-    public static function create(string $publisherReferenceName = MessagePublisher::class, string $exchangeName = '', ?string $outputDefaultConversionMediaType = null, string $connectionReference = AmqpConnectionFactory::class): self
+    public static function create(string $publisherReferenceName = MessagePublisher::class, string $exchangeName = '', ?string $outputDefaultConversionMediaType = null, string $connectionReference = AmqpConnectionReference::DEFAULT): self
     {
         return new self($connectionReference, $exchangeName, $outputDefaultConversionMediaType, $publisherReferenceName);
     }

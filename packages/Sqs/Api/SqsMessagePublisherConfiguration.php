@@ -6,7 +6,6 @@ namespace Ecotone\Api\Sqs;
 
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Messaging\Support\Assert;
-use Enqueue\Sqs\SqsConnectionFactory;
 
 /**
  * licence Apache-2.0
@@ -23,7 +22,7 @@ final class SqsMessagePublisherConfiguration
     {
     }
 
-    public static function create(string $publisherReferenceName = MessagePublisher::class, string $queueName = '', ?string $outputDefaultConversionMediaType = null, string $connectionReference = SqsConnectionFactory::class): self
+    public static function create(string $publisherReferenceName = MessagePublisher::class, string $queueName = '', ?string $outputDefaultConversionMediaType = null, string $connectionReference = SqsConnectionReference::DEFAULT): self
     {
         return new self($connectionReference, $queueName, $outputDefaultConversionMediaType, $publisherReferenceName);
     }

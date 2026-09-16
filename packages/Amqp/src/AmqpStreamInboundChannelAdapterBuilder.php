@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Amqp;
 
+use Ecotone\Api\Amqp\AmqpConnectionReference;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapterBuilder;
@@ -16,7 +17,6 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
-use Enqueue\AmqpLib\AmqpConnectionFactory;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -32,7 +32,7 @@ class AmqpStreamInboundChannelAdapterBuilder extends EnqueueInboundChannelAdapte
     private string $channelName;
     private string $messageGroupId;
 
-    public static function create(string $channelName, string $queueName, string $streamOffset, string $messageGroupId, string $amqpConnectionReferenceName = AmqpConnectionFactory::class): self
+    public static function create(string $channelName, string $queueName, string $streamOffset, string $messageGroupId, string $amqpConnectionReferenceName = AmqpConnectionReference::DEFAULT_STREAM): self
     {
         $instance = new self($queueName, $channelName, null, $amqpConnectionReferenceName);
         $instance->streamOffset = $streamOffset;

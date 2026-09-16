@@ -10,7 +10,7 @@ namespace App\Infrastructure;
 
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Interop\Queue\ConnectionFactory;
+use Ecotone\Enqueue\ConnectionFactory;
 use Tempest\Container\Container;
 use Tempest\Container\Initializer;
 use Tempest\Container\Singleton;

@@ -10,7 +10,6 @@ use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
 use Ecotone\Messaging\Support\Assert;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
 
 /**
  * licence Enterprise
@@ -22,7 +21,7 @@ final class RabbitConsumer extends MessageConsumer implements DefinedObject
         string $endpointId,
         private string $queueName,
         private FinalFailureStrategy $finalFailureStrategy = FinalFailureStrategy::STOP,
-        private string $connectionReference = AmqpConnectionFactory::class,
+        private string $connectionReference = AmqpConnectionReference::DEFAULT,
     ) {
         Assert::notNullAndEmpty($queueName, "Queue name can't be empty");
 

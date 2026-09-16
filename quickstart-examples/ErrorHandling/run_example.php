@@ -9,7 +9,8 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Ecotone\Amqp\AmqpQueue;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
@@ -21,8 +22,8 @@ $shippingService = new NetworkFailingShippingService();
 $ecotoneLite = EcotoneLite::bootstrap([ShippingService::class => $shippingService, NetworkFailingShippingService::class => $shippingService, DbalConnectionFactory::class => new DbalConnectionFactory(getenv('DATABASE_DSN') ? getenv('DATABASE_DSN') : 'pgsql://ecotone:secret@localhost:5432/ecotone'), AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : 'amqp://guest:guest@localhost:5672/%2f'])], serviceConfiguration: ServiceConfiguration::createWithDefaults()->withServiceName($serviceName)->withDefaultErrorChannel('errorChannel'), pathToRootCatalog: __DIR__);
 /** @var AmqpConnectionFactory $amqpConnectionFactory */
 $amqpConnectionFactory = $ecotoneLite->getServiceFromContainer(AmqpConnectionFactory::class);
-$amqpConnectionFactory->createContext()->deleteQueue(new \Interop\Amqp\Impl\AmqpQueue('orders'));
-$amqpConnectionFactory->createContext()->deleteQueue(new \Interop\Amqp\Impl\AmqpQueue('example_service'));
+$amqpConnectionFactory->createContext()->deleteQueue(AmqpQueue::createWith('orders')->toEnqueueQueue());
+$amqpConnectionFactory->createContext()->deleteQueue(AmqpQueue::createWith('example_service')->toEnqueueQueue());
 $ecotoneLite->getGatewayByName(DeadLetterGateway::class)->deleteAll();
 $executionPollingMetadata = ExecutionPollingMetadata::createWithDefaults()->withExecutionTimeLimitInMilliseconds(1000)->withHandledMessageLimit(1);
 

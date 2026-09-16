@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Api\Redis;
 
 use Ecotone\Api\Gateway\MessagePublisher;
-use Enqueue\Redis\RedisConnectionFactory;
 
 /**
  * licence Apache-2.0
@@ -20,7 +19,7 @@ final class RedisMessagePublisherConfiguration
     {
     }
 
-    public static function create(string $publisherReferenceName = MessagePublisher::class, string $queueName = '', ?string $outputDefaultConversionMediaType = null, string $connectionReference = RedisConnectionFactory::class): self
+    public static function create(string $publisherReferenceName = MessagePublisher::class, string $queueName = '', ?string $outputDefaultConversionMediaType = null, string $connectionReference = RedisConnectionReference::DEFAULT): self
     {
         return new self($connectionReference, $queueName, $outputDefaultConversionMediaType, $publisherReferenceName);
     }

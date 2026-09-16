@@ -5,8 +5,8 @@ namespace Test\Ecotone\EventSourcing;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
+use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
-use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
 

@@ -7,7 +7,6 @@ namespace Ecotone\Api\Redis;
 use Ecotone\Enqueue\EnqueueMessageChannelBuilder;
 use Ecotone\Redis\RedisInboundChannelAdapterBuilder;
 use Ecotone\Redis\RedisOutboundChannelAdapterBuilder;
-use Enqueue\Redis\RedisConnectionFactory;
 
 /**
  * licence Apache-2.0
@@ -30,7 +29,7 @@ final class RedisBackedMessageChannelBuilder extends EnqueueMessageChannelBuilde
         );
     }
 
-    public static function create(string $channelName, string $connectionReferenceName = RedisConnectionFactory::class): self
+    public static function create(string $channelName, string $connectionReferenceName = RedisConnectionReference::DEFAULT): self
     {
         return new self($channelName, $connectionReferenceName);
     }

@@ -2,14 +2,14 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptedQueryAggregate\AddVat;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 
 /**
  * licence Apache-2.0
  */
 class AddVatService
 {
-    #[ServiceActivator('addVat', 'addVatService')]
+    #[InternalHandler('addVat', endpointId: 'addVatService')]
     public function add(int $amount): int
     {
         return $amount * 2;

@@ -6,8 +6,8 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
 use Ecotone\Api\Header;
 use Ecotone\Api\Headers;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\Payload;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MethodInvocationException;
@@ -211,13 +211,13 @@ final class MethodResolutionHandler
     public const UNION_RETURN_CHANNEL = 'methodResolution.unionReturn';
     public const MULTIPLE_ORDERS_CHANNEL = 'methodResolution.multipleOrders';
 
-    #[ServiceActivator(self::PAYLOAD_ONLY_CHANNEL)]
+    #[InternalHandler(self::PAYLOAD_ONLY_CHANNEL)]
     public function payloadOnly(mixed $value): mixed
     {
         return $value;
     }
 
-    #[ServiceActivator(self::PAYLOAD_AND_HEADERS_CHANNEL)]
+    #[InternalHandler(self::PAYLOAD_AND_HEADERS_CHANNEL)]
     public function payloadAndHeaders(mixed $payload, #[Headers] array $headers): array
     {
         return [
@@ -226,7 +226,7 @@ final class MethodResolutionHandler
         ];
     }
 
-    #[ServiceActivator(self::THREE_ARGUMENTS_CHANNEL)]
+    #[InternalHandler(self::THREE_ARGUMENTS_CHANNEL)]
     public function threeArguments(
         #[Header('personSurname')] string $surname,
         #[Header('personAge')] int $age,
@@ -235,19 +235,19 @@ final class MethodResolutionHandler
         return $name . $surname . $age;
     }
 
-    #[ServiceActivator(self::ORDER_CHANNEL)]
+    #[InternalHandler(self::ORDER_CHANNEL)]
     public function processOrder(Order $order): OrderConfirmation
     {
         return (new OrderProcessor())->processOrder($order);
     }
 
-    #[ServiceActivator(self::STRING_CHANNEL)]
+    #[InternalHandler(self::STRING_CHANNEL)]
     public function receiveString(string $payload): string
     {
         return $payload;
     }
 
-    #[ServiceActivator(self::UNION_CHANNEL)]
+    #[InternalHandler(self::UNION_CHANNEL)]
     public function receiveUnion(stdClass|string $value): stdClass|string
     {
         return $value;
@@ -256,19 +256,19 @@ final class MethodResolutionHandler
     /**
      * @return string[]|stdClass[]
      */
-    #[ServiceActivator(self::COLLECTION_CHANNEL)]
+    #[InternalHandler(self::COLLECTION_CHANNEL)]
     public function receiveCollection(array $value): array
     {
         return $value;
     }
 
-    #[ServiceActivator(self::UNION_RETURN_CHANNEL)]
+    #[InternalHandler(self::UNION_RETURN_CHANNEL)]
     public function returnUnion(mixed $value): MethodResolutionHandler|stdClass
     {
         return $value;
     }
 
-    #[ServiceActivator(self::MULTIPLE_ORDERS_CHANNEL)]
+    #[InternalHandler(self::MULTIPLE_ORDERS_CHANNEL)]
     public function buyMultiple(array $value): array
     {
         return (new OrderProcessor())->buyMultiple(array_map(static fn (string $id) => Uuid::fromString($id), $value));

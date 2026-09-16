@@ -2,7 +2,7 @@
 
 namespace Fixture\Car;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 
 /**
  * licence Apache-2.0
@@ -14,19 +14,19 @@ class Car
      */
     private $speed = 0;
 
-    #[ServiceActivator(IncreaseSpeedGateway::CHANNEL_NAME)]
+    #[InternalHandler(IncreaseSpeedGateway::CHANNEL_NAME)]
     public function increaseSpeed(int $amount): void
     {
         $this->speed += $amount;
     }
 
-    #[ServiceActivator(StopGateway::CHANNEL_NAME)]
+    #[InternalHandler(StopGateway::CHANNEL_NAME)]
     public function stop(): void
     {
         $this->speed = 0;
     }
 
-    #[ServiceActivator(GetSpeedGateway::CHANNEL_NAME)]
+    #[InternalHandler(GetSpeedGateway::CHANNEL_NAME)]
     public function getCurrentSpeed(): int
     {
         return $this->speed;

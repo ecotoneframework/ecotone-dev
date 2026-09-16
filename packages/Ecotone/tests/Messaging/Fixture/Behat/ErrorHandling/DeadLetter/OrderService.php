@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\ErrorHandling\DeadLetter;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use InvalidArgumentException;
 
 /**
@@ -10,7 +10,7 @@ use InvalidArgumentException;
  */
 class OrderService
 {
-    #[ServiceActivator(ErrorConfigurationContext::INPUT_CHANNEL, 'orderService')]
+    #[InternalHandler(ErrorConfigurationContext::INPUT_CHANNEL, endpointId: 'orderService')]
     public function order(string $orderName): void
     {
         throw new InvalidArgumentException('exception');

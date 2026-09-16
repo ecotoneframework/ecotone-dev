@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Endpoint;
 
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Channel\PollableChannel\InMemory\InMemoryAcknowledgeStatus;
@@ -169,7 +169,7 @@ class FailingService
     private Message $message;
 
     #[Asynchronous('async')]
-    #[ServiceActivator('executionChannel', 'failing_service')]
+    #[InternalHandler('executionChannel', endpointId: 'failing_service')]
     public function handle(Message $message): void
     {
         $this->message = $message;
@@ -188,7 +188,7 @@ class SuccessService
     private Message $message;
 
     #[Asynchronous('async')]
-    #[ServiceActivator('executionChannel', 'success_service')]
+    #[InternalHandler('executionChannel', endpointId: 'success_service')]
     public function handle(Message $message): void
     {
         $this->message = $message;
@@ -207,7 +207,7 @@ class RejectingService
     private Message $message;
 
     #[Asynchronous('async')]
-    #[ServiceActivator('executionChannel', 'rejecting_service')]
+    #[InternalHandler('executionChannel', endpointId: 'rejecting_service')]
     public function handle(Message $message): void
     {
         $this->message = $message;
@@ -226,7 +226,7 @@ class ManualAckService
     private Message $message;
 
     #[Asynchronous('async')]
-    #[ServiceActivator('executionChannel', 'manual_ack_service')]
+    #[InternalHandler('executionChannel', endpointId: 'manual_ack_service')]
     public function handle(Message $message): void
     {
         $this->message = $message;

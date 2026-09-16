@@ -12,7 +12,6 @@ use Ecotone\Api\InternalHandler;
 use Ecotone\Api\Presend;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Api\Reference;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -75,15 +74,4 @@ final class MessageHandlerLogger
 
         return $methodInvocation->proceed();
     }
-
-    //    #[Around(pointcut: ServiceActivator::class)]
-    //    public function aroundServiceActivator(MethodInvocation $methodInvocation, Message $message, #[Reference] LoggingGateway $loggingGateway): mixed
-    //    {
-    //        $loggingGateway->info(
-    //            'Executing Service Activator ' . $methodInvocation->getName(),
-    //            $message
-    //        );
-    //
-    //        return $methodInvocation->proceed();
-    //    }
 }

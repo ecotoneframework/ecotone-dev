@@ -327,9 +327,35 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `ProjectionRunningConfiguration::with*()` / `get*()` typed helpers | removed with projection v1 (§3) |
 | `Module::canHandle()` | removed from the `Module` interface; modules receive every extension object and filter by `instanceof` inside `prepare()` |
 | `CronExpression::factory()` | `new CronExpression()` |
+| `#[ServiceActivator]` | `#[InternalHandler]` (same attribute, `InternalHandler` was its 2.0 name; §7a) |
 
 Kept (still deprecated, scheduled for a later minor): `ServiceActivatorBuilder` (use `MessageProcessorActivatorBuilder` in new modules),
 `MessagingSystemConfiguration::buildMessagingSystemFromConfiguration()`.
+
+### 7a. `#[ServiceActivator]` is gone — `#[InternalHandler]` is the only name
+
+**Before:** `#[InternalHandler]` (introduced earlier in 2.0) and `#[ServiceActivator]` were two names for the same
+attribute — `InternalHandler extends ServiceActivator` and both worked identically.
+
+**Now:** `Ecotone\Api\ServiceActivator` no longer exists. `#[InternalHandler]` is the only attribute.
+
+**How to adapt:**
+- Rename `#[ServiceActivator(...)]` to `#[InternalHandler(...)]` and update the `use` statement
+  (`Ecotone\Api\ServiceActivator` → `Ecotone\Api\InternalHandler`).
+- **Check positional arguments — the second one changed meaning.** `ServiceActivator`'s constructor was
+  `(inputChannelName, endpointId, outputChannelName, requiresReply, requiredInterceptorNames, changingHeaders)`.
+  `InternalHandler`'s is `(inputChannelName, outputChannelName, endpointId, requiredInterceptorNames, changingHeaders, requiresReply)`
+  — positional argument 2 is `outputChannelName` on `InternalHandler`, not `endpointId`. A call like
+  `#[ServiceActivator('orders.in', 'orders.processEndpoint')]` (channel + endpoint id) silently becomes
+  `#[InternalHandler('orders.in', 'orders.processEndpoint')]` (channel + **output channel**) if renamed blindly —
+  the endpoint id is lost and the second argument is now routed as an output channel instead. Use named arguments for
+  every argument after the first: `#[InternalHandler('orders.in', endpointId: 'orders.processEndpoint')]`.
+- `requiresReply` moved onto `InternalHandler` (it only existed on `ServiceActivator` before) and is still available
+  as a named argument: `#[InternalHandler('orders.in', requiresReply: true)]`.
+- Framework-internal cross-cutting concerns that target `InternalHandler::class` as a pointcut — the message-handler
+  execution log line and OpenTelemetry's per-handler tracing span — now also apply to any handler that used to be
+  `#[ServiceActivator]`-only and therefore invisible to them. If you assert on exact log/span sequences in tests that
+  exercise such a handler, expect the extra entries.
 
 If you implemented a custom `Module` / `AnnotationModule`, delete the `canHandle()` method and filter extension objects
 with `ExtensionObjectResolver::resolve(MyConfig::class, $extensionObjects)` inside `prepare()`. The base and marker
@@ -483,13 +509,13 @@ The full mapping is in `upgrade/namespace-map-2.0.csv`.
   check. Not done yet — the header still exists; nothing to change.
 - `ecotone/lite-application` package is discontinued; use `ecotone/ecotone` `EcotoneLite::bootstrap()`.
 - Laravel: `LaravelConnectionReference::defaultConnection()` resolves to the Ecotone DBAL factory (§5); `SHELL_VERBOSITY` handling in tests unchanged.
-- **`#[Asynchronous]` requires an explicit `endpointId` on `#[InternalHandler]` and `#[ServiceActivator]`**, as it
+- **`#[Asynchronous]` requires an explicit `endpointId` on `#[InternalHandler]`**, as it
   already did for `#[CommandHandler]`/`#[EventHandler]`. Before, a generated endpoint id was accepted and failed later
   with an unrelated missing-channel error. Bootstrap now throws a `ConfigurationException` naming the class and method,
   ending with `should have endpointId defined for handling asynchronously`.
   **How to adapt:** add it — `#[InternalHandler('orders.process', endpointId: 'orders.process.endpoint')]`, and use
   that id with `run()` / consumer commands.
-- **`changingHeaders: true` on `#[InternalHandler]` / `#[ServiceActivator]` requires an Enterprise licence.** In this
+- **`changingHeaders: true` on `#[InternalHandler]` requires an Enterprise licence.** In this
   mode the returned `array` is merged into the message headers, the payload is left untouched, and the message
   continues to `outputChannelName`. Without a licence bootstrap throws `LicensingException` naming the method.
   **How to adapt:** provide the licence key, or move the header enrichment into a `#[Before(changeHeaders: true)]`
@@ -707,7 +733,7 @@ normal section with "How to adapt" steps when it ships.
 7. Replace `AmqpDistributedBusConfiguration` with `DistributedServiceMap` (§6).
 8. Move v1 projections to `#[Projection]` + `#[FromAggregateStream]`/`#[FromStream]`, give `#[ProjectionState]` parameters a default, and run `ecotone:projection:rebuild` for former v1 projections (§3).
 9. Drop the persistence-strategy calls, and decide per aggregate whether it moves to `ecotone_event_stream` or stays on its 1.x table via `#[Stream(legacyStreamName: ...)]`; replace `#[FromStream(Aggregate::class)]` with `#[FromAggregateStream(Aggregate::class)]` (§4).
-10. Add an explicit `endpointId` to every `#[Asynchronous]` `#[InternalHandler]` / `#[ServiceActivator]` (§14).
+10. Rename `#[ServiceActivator]` to `#[InternalHandler]`, checking positional arguments (§7a). Add an explicit `endpointId` to every `#[Asynchronous]` `#[InternalHandler]` (§14).
 11. Review changed defaults (§9) and set explicit values where the old behaviour is required.
 12. Provide an Enterprise licence key if you use multi-tenancy (§2), `EventStreamEmitter::emit()` (§3), `changingHeaders: true` on internal handlers or `#[ChannelInterceptor]` (§14).
 13. Once they ship: move framework YAML/PHP config options into `#[ServiceContext]` (§12) and add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).

@@ -5,26 +5,32 @@ declare(strict_types=1);
 namespace Ecotone\Api;
 
 use Attribute;
+use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;
 
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
 /**
  * licence Apache-2.0
  */
-final class InternalHandler extends ServiceActivator
+class InternalHandler extends InputOutputEndpointAnnotation
 {
     public function __construct(
         string $inputChannelName,
         string $outputChannelName = '',
         string $endpointId = '',
         array $requiredInterceptorNames = [],
-        bool $changingHeaders = false,
+        private bool $changingHeaders = false,
+        private bool $requiresReply = false,
     ) {
-        parent::__construct(
-            inputChannelName: $inputChannelName,
-            endpointId: $endpointId,
-            outputChannelName: $outputChannelName,
-            requiredInterceptorNames: $requiredInterceptorNames,
-            changingHeaders: $changingHeaders,
-        );
+        parent::__construct($inputChannelName, $endpointId, $outputChannelName, $requiredInterceptorNames);
+    }
+
+    public function isChangingHeaders(): bool
+    {
+        return $this->changingHeaders;
+    }
+
+    public function isRequiresReply(): bool
+    {
+        return $this->requiresReply;
     }
 }

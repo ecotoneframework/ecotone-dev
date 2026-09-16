@@ -7,8 +7,8 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 use Ecotone\Api\Around;
 use Ecotone\Api\Header;
 use Ecotone\Api\Headers;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\MessageGateway;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -254,7 +254,7 @@ final class ReplyGatewayHandler
     public bool $sendOnlyCalled = false;
     public ?\Ecotone\Messaging\Message $lastMessage = null;
 
-    #[ServiceActivator(ReplyGateway::CHANNEL)]
+    #[InternalHandler(ReplyGateway::CHANNEL)]
     public function handle(\Ecotone\Messaging\Message $message): string
     {
         $this->sendOnlyCalled = true;
@@ -271,7 +271,7 @@ final class ReplyGatewayHandler
  */
 final class VoidReplyGatewayHandler
 {
-    #[ServiceActivator(ReplyGateway::CHANNEL)]
+    #[InternalHandler(ReplyGateway::CHANNEL)]
     public function handle(): void
     {
     }
@@ -284,13 +284,13 @@ final class VoidReplyGatewayHandler
  */
 final class ThrowingReplyGatewayHandler
 {
-    #[ServiceActivator(ReplyGateway::CHANNEL)]
+    #[InternalHandler(ReplyGateway::CHANNEL)]
     public function handle(): void
     {
         throw new RuntimeException('testing exception');
     }
 
-    #[ServiceActivator(ErrorChannelGateway::CHANNEL)]
+    #[InternalHandler(ErrorChannelGateway::CHANNEL)]
     public function handleErrorChannel(): void
     {
         throw new RuntimeException('testing exception');

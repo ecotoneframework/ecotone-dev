@@ -3,8 +3,8 @@
 namespace Ecotone\Modelling\MessageHandling\MetadataPropagator;
 
 use Closure;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\PropagateHeaders;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
@@ -94,7 +94,7 @@ class MessageHeadersPropagatorInterceptor
     /**
      * @return array<string, mixed>
      */
-    #[ServiceActivator(self::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL)]
+    #[InternalHandler(self::GET_CURRENTLY_PROPAGATED_HEADERS_CHANNEL)]
     public function getLastHeaders(): array
     {
         $headers = end($this->currentlyPropagatedHeaders);
@@ -106,19 +106,19 @@ class MessageHeadersPropagatorInterceptor
         return $headers;
     }
 
-    #[ServiceActivator(self::ENABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
+    #[InternalHandler(self::ENABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
     public function enablePollingConsumerPropagation(): void
     {
         $this->isPollingConsumer = true;
     }
 
-    #[ServiceActivator(self::DISABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
+    #[InternalHandler(self::DISABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
     public function disablePollingConsumerPropagation(): void
     {
         $this->isPollingConsumer = false;
     }
 
-    #[ServiceActivator(self::IS_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
+    #[InternalHandler(self::IS_POLLING_CONSUMER_PROPAGATION_CONTEXT)]
     public function isPollingConsumer(): bool
     {
         return $this->isPollingConsumer;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\Retry;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Messaging\Message;
 
 /**
@@ -14,7 +14,7 @@ class ErrorChannelHandler
 {
     private bool $errorHandled = false;
 
-    #[ServiceActivator('customErrorChannel')]
+    #[InternalHandler('customErrorChannel')]
     public function handle(Message $message): void
     {
         $this->errorHandled = true;

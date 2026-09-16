@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\Example;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use InvalidArgumentException;
 
 /**
@@ -20,7 +20,7 @@ class OrderService
 
     }
 
-    #[ServiceActivator(ErrorConfigurationContext::INPUT_CHANNEL, 'orderService')]
+    #[InternalHandler(ErrorConfigurationContext::INPUT_CHANNEL, endpointId: 'orderService')]
     public function order(string $orderName): void
     {
         $this->callCount += 1;
@@ -34,7 +34,7 @@ class OrderService
         throw new InvalidArgumentException('exception');
     }
 
-    #[ServiceActivator('getOrderAmount')]
+    #[InternalHandler('getOrderAmount')]
     public function getOrder(): int
     {
         return $this->placedOrders;

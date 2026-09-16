@@ -4,8 +4,8 @@ namespace Test\Ecotone\Amqp\Fixture\DistributedDeadLetter\Receiver;
 
 use Ecotone\Api\CommandHandler;
 use Ecotone\Api\Distributed;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\QueryHandler;
-use Ecotone\Api\ServiceActivator;
 use InvalidArgumentException;
 
 /**
@@ -31,7 +31,7 @@ class TicketServiceReceiver
         return count($this->tickets);
     }
 
-    #[ServiceActivator(TicketServiceMessagingConfiguration::DEAD_LETTER_CHANNEL)]
+    #[InternalHandler(TicketServiceMessagingConfiguration::DEAD_LETTER_CHANNEL)]
     public function registerErrorTicket(string $ticket): void
     {
         $this->tickets[] = $ticket;

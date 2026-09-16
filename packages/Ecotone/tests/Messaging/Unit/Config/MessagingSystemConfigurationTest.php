@@ -52,7 +52,6 @@ use Test\Ecotone\Messaging\Fixture\Handler\Gateway\MultipleMethodsGatewayExample
 use Test\Ecotone\Messaging\Fixture\Handler\NoReturnMessageHandler;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor\CallWithAnnotationFromMethodInterceptorExample;
 use Test\Ecotone\Messaging\Fixture\Handler\Processor\StubCallSavingService;
-use Test\Ecotone\Messaging\Fixture\InterceptedBridge\BridgeExampleIncomplete;
 use Test\Ecotone\Messaging\Fixture\SameChannelAndRouting\SomeTestCommandHandler;
 use Test\Ecotone\Messaging\Fixture\SameChannelAndRouting\SomeTestEventHandler;
 use Test\Ecotone\Messaging\Fixture\Service\CalculatingService;
@@ -1793,9 +1792,12 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
-            [BridgeExampleIncomplete::class],
-            [],
-        );
+        MessagingSystemConfiguration::prepareWithDefaultsForTesting()
+            ->registerMessageHandler(
+                ServiceActivatorBuilder::createWithDirectReference(CalculatingService::create(0), 'result')
+                    ->withInputChannelName('bridgeExample')
+                    ->withOutputMessageChannel('bridgeSum')
+            )
+            ->buildMessagingSystemFromConfiguration(InMemoryReferenceSearchService::createEmpty());
     }
 }

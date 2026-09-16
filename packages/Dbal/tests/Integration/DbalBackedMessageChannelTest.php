@@ -391,7 +391,10 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
                 ConnectionException::connectionRetryMessage(2, 3),
                 ConnectionException::connectionRetryMessage(3, 9),
             ],
-            $loggerExample->getInfo()
+            array_values(array_filter(
+                $loggerExample->getInfo(),
+                fn ($logEntry) => ! is_string($logEntry) || ! str_starts_with($logEntry, 'Executing Message Handler')
+            ))
         );
     }
 }

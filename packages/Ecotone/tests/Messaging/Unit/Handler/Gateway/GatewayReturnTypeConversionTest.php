@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
 use Ecotone\Api\Header;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\MessageGateway;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Message;
@@ -233,7 +233,7 @@ final class EchoMessageHandler
 {
     public const CHANNEL = 'gatewayReturnType.echo';
 
-    #[ServiceActivator(self::CHANNEL)]
+    #[InternalHandler(self::CHANNEL)]
     public function handle(Message $message): Message
     {
         return $message;
@@ -300,7 +300,7 @@ final class IterableEchoHandler
 {
     public const CHANNEL = 'gatewayReturnType.iterable';
 
-    #[ServiceActivator(self::CHANNEL)]
+    #[InternalHandler(self::CHANNEL)]
     public function handle(mixed $payload): iterable
     {
         return $payload;
@@ -316,7 +316,7 @@ final class GeneratorEchoHandler
 {
     public const CHANNEL = 'gatewayReturnType.generator';
 
-    #[ServiceActivator(self::CHANNEL)]
+    #[InternalHandler(self::CHANNEL)]
     public function handle(mixed $payload): iterable
     {
         foreach ($payload as $item) {

@@ -7,7 +7,7 @@ namespace Test\Ecotone\Amqp;
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\FinalFailureStrategy;
@@ -107,7 +107,7 @@ class FailingService
     private Message $message;
 
     #[Asynchronous('async')]
-    #[ServiceActivator('executionChannel', endpointId: 'failingServiceHandle')]
+    #[InternalHandler('executionChannel', endpointId: 'failingServiceHandle')]
     public function handle(Message $message): void
     {
         $this->message = $message;

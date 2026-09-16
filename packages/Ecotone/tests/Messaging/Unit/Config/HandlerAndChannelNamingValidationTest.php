@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -58,12 +58,12 @@ final class HandlerAndChannelNamingValidationTest extends TestCase
  */
 final class DuplicateEndpointIdHandlers
 {
-    #[ServiceActivator('channelOne', endpointId: 'duplicate')]
+    #[InternalHandler('channelOne', endpointId: 'duplicate')]
     public function handleOne(string $payload): void
     {
     }
 
-    #[ServiceActivator('channelTwo', endpointId: 'duplicate')]
+    #[InternalHandler('channelTwo', endpointId: 'duplicate')]
     public function handleTwo(string $payload): void
     {
     }
@@ -79,13 +79,13 @@ final class GeneratedEndpointIdHandlers
     /** @var string[] */
     public array $received = [];
 
-    #[ServiceActivator('channelOne')]
+    #[InternalHandler('channelOne')]
     public function handleOne(string $payload): void
     {
         $this->received[] = $payload;
     }
 
-    #[ServiceActivator('channelTwo')]
+    #[InternalHandler('channelTwo')]
     public function handleTwo(string $payload): void
     {
         $this->received[] = $payload;

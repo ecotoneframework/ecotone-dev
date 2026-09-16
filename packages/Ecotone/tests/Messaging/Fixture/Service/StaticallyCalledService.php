@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Service;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 
 /**
  * Class StaticallyCalledService
@@ -18,7 +18,7 @@ class StaticallyCalledService
     {
     }
 
-    #[ServiceActivator('run')]
+    #[InternalHandler('run')]
     public static function run(string $something): string
     {
         return $something;

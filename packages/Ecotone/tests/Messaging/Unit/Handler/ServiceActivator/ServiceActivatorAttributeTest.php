@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\ServiceActivator;
 
 use Ecotone\Api\Around;
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -70,13 +70,13 @@ final class ServiceActivatorHandler
     public const ARRAY_CHANNEL = 'serviceActivator.array';
     public const CHANGING_HEADERS_CHANNEL = 'serviceActivator.changingHeaders';
 
-    #[ServiceActivator(self::ARRAY_CHANNEL)]
+    #[InternalHandler(self::ARRAY_CHANNEL)]
     public function arrayReturnValue(string $payload): array
     {
         return ['some' => $payload];
     }
 
-    #[ServiceActivator(self::CHANGING_HEADERS_CHANNEL, changingHeaders: true)]
+    #[InternalHandler(self::CHANGING_HEADERS_CHANNEL, changingHeaders: true)]
     public function arrayReturnValueAsHeaders(string $payload): array
     {
         return ['some' => $payload];
@@ -92,7 +92,7 @@ final class MathHandler
 {
     public const MATH_CHANNEL = 'math.channel';
 
-    #[ServiceActivator(self::MATH_CHANNEL)]
+    #[InternalHandler(self::MATH_CHANNEL)]
     public function result(int $amount): int
     {
         return $amount;

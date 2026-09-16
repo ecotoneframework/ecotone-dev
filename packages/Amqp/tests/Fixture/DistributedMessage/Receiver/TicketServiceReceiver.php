@@ -3,8 +3,8 @@
 namespace Test\Ecotone\Amqp\Fixture\DistributedMessage\Receiver;
 
 use Ecotone\Api\Distributed;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\QueryHandler;
-use Ecotone\Api\ServiceActivator;
 
 /**
  * licence Apache-2.0
@@ -17,7 +17,7 @@ class TicketServiceReceiver
     private array $tickets = [];
 
     #[Distributed]
-    #[ServiceActivator(self::CREATE_TICKET_ENDPOINT)]
+    #[InternalHandler(self::CREATE_TICKET_ENDPOINT)]
     public function registerTicket(string $ticket): void
     {
         $this->tickets[] = $ticket;

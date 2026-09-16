@@ -10,7 +10,6 @@ use Ecotone\Api\EventHandler;
 use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Api\InternalHandler;
 use Ecotone\Api\QueryHandler;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -54,14 +53,6 @@ final class AsynchronousEndpointIdRequirementTest extends TestCase
         $this->expectExceptionMessageMatches('/GeneratedIdInternalHandlerClassLevel::handle::.*InternalHandler should have endpointId defined for handling asynchronously/');
 
         EcotoneLite::bootstrapFlowTesting([GeneratedIdInternalHandlerClassLevel::class], [new GeneratedIdInternalHandlerClassLevel()]);
-    }
-
-    public function test_service_activator_without_endpoint_id_throws(): void
-    {
-        $this->expectException(ConfigurationException::class);
-        $this->expectExceptionMessageMatches('/GeneratedIdServiceActivator::handle::.*ServiceActivator should have endpointId defined for handling asynchronously/');
-
-        EcotoneLite::bootstrapFlowTesting([GeneratedIdServiceActivator::class], [new GeneratedIdServiceActivator()]);
     }
 
     public function test_query_handler_without_endpoint_id_is_exempt(): void
@@ -178,20 +169,6 @@ final class GeneratedIdInternalHandlerMethodLevel
 final class GeneratedIdInternalHandlerClassLevel
 {
     #[InternalHandler('generatedId.internal.class.input')]
-    public function handle(string $payload): void
-    {
-    }
-}
-
-/**
- * licence Apache-2.0
- *
- * @internal
- */
-final class GeneratedIdServiceActivator
-{
-    #[Asynchronous('generatedId.serviceActivator.channel')]
-    #[ServiceActivator('generatedId.serviceActivator.input')]
     public function handle(string $payload): void
     {
     }

@@ -3,8 +3,8 @@
 namespace Test\Ecotone\Modelling\Fixture\InterceptedCommandAggregate;
 
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\QueryHandler;
-use Ecotone\Api\ServiceActivator;
 
 /**
  * licence Apache-2.0
@@ -15,7 +15,7 @@ class NotificationService
 
     private ?string $happenedAt = null;
 
-    #[ServiceActivator('notify')]
+    #[InternalHandler('notify')]
     public function notify(array $logs, array $metadata): void
     {
         $this->lastLog  = $logs[0];

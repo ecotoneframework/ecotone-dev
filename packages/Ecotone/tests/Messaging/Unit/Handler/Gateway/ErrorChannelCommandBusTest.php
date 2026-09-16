@@ -140,7 +140,7 @@ final class ErrorChannelCommandBusTest extends TestCase
 
         $thrown = null;
         try {
-            $ecotoneLite->sendCommandWithRoutingKey('handler.level.error.channel.test', 'payload');
+            $ecotoneLite->sendCommandWithRouting('handler.level.error.channel.test', 'payload');
         } catch (RuntimeException $exception) {
             $thrown = $exception;
         }
@@ -214,9 +214,9 @@ final class ErrorChannelCommandBusTest extends TestCase
  * @internal
  */
 #[DelayedRetry(
-    initialDelayMs: 1,
+    initialDelayInMilliseconds: 1,
     multiplier: 1,
-    maxAttempts: 1,
+    maxRetries: 1,
     deadLetterChannel: 'gatewayRetryDeadLetter',
 )]
 interface DelayedRetryCommandBus extends \Ecotone\Api\CommandBus

@@ -55,8 +55,8 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
         $ecotoneLite->run(
             $endpointId,
             ExecutionPollingMetadata::createWithTestingSetup(
-                amountOfMessagesToHandle: 10,
-                maxExecutionTimeInMilliseconds: 30000
+                handledMessageLimit: 10,
+                executionTimeLimitInMilliseconds: 30000
             )
         );
 
@@ -90,8 +90,8 @@ final class AmqpSignalHandlingTest extends AmqpMessagingTestCase
         $ecotoneLite->run(
             'async_commands_unique',
             ExecutionPollingMetadata::createWithTestingSetup(
-                amountOfMessagesToHandle: 10,
-                maxExecutionTimeInMilliseconds: 30000
+                handledMessageLimit: 10,
+                executionTimeLimitInMilliseconds: 30000
             )
         );
 

@@ -20,7 +20,7 @@ final class EcotoneConfiguration
         return [
             AmqpBackedMessageChannelBuilder::create('notification_channel'),
             PollingMetadata::create('notification_channel')
-                ->withTestingSetup(maxExecutionTimeInMilliseconds: 1000),
+                ->withTestingSetup(executionTimeLimitInMilliseconds: 1000),
         ];
     }
 

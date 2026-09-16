@@ -36,7 +36,7 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
             ],
         );
 
-        $ecotone->sendCommandWithRoutingKey('order.start', $orderId = 100);
+        $ecotone->sendCommandWithRouting('order.start', $orderId = 100);
         $ecotone->publishEvent(PaymentWasDoneEvent::create($orderId));
 
         $this->assertEquals('done', $ecotone->sendQueryWithRouting('order.status', metadata: ['aggregate.id' => $orderId]));
@@ -56,7 +56,7 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')),
         );
 
-        $ecotone->sendCommandWithRoutingKey('order.start', $orderId = 100);
+        $ecotone->sendCommandWithRouting('order.start', $orderId = 100);
         $ecotone->publishEvent(PaymentWasDoneEvent::create($orderId));
         $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(1));
 
@@ -75,7 +75,7 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
             ],
         );
 
-        $ecotone->sendCommandWithRoutingKey('order.start', $orderId = 100);
+        $ecotone->sendCommandWithRouting('order.start', $orderId = 100);
         $ecotone->publishEvent(PaymentWasDoneEvent::create($orderId));
 
         $this->assertEquals('done', $ecotone->sendQueryWithRouting('order.status', metadata: ['aggregate.id' => $orderId]));
@@ -95,7 +95,7 @@ final class AggregateIdentifierFromInterceptorMetadataTest extends BaseEcotoneTe
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async')),
         );
 
-        $ecotone->sendCommandWithRoutingKey('order.start', $orderId = 100);
+        $ecotone->sendCommandWithRouting('order.start', $orderId = 100);
         $ecotone->publishEvent(PaymentWasDoneEvent::create($orderId));
         $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup(1));
 

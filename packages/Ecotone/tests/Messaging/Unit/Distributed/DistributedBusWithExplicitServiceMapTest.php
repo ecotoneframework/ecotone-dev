@@ -128,7 +128,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
 
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
-        $userService->sendCommandWithRoutingKey(UserService::CHANGE_BILLING_DETAILS, 'change details');
+        $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'change details');
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
         $ticketService->run($sharedQueueChannel->getMessageChannelName(), ExecutionPollingMetadata::createWithTestingSetup());
@@ -157,7 +157,7 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
             ]
         );
 
-        $userService->sendCommandWithRoutingKey(UserService::CHANGE_BILLING_DETAILS, 'change details');
+        $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'change details');
     }
 
     public function test_failing_on_distribution_to_not_existing_message_channel_service(): void
@@ -801,8 +801,8 @@ final class DistributedBusWithExplicitServiceMapTest extends TestCase
         $publisherService->getDistributedBus()->publishEvent('distributed.event', 'event3');
 
         // Both consumers should receive all events independently
-        $consumerService1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10));
-        $consumerService2->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 10));
+        $consumerService1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 10));
+        $consumerService2->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 10));
 
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService1->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService2->sendQueryWithRouting('getConsumed2'));

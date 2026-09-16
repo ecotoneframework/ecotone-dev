@@ -40,7 +40,7 @@ class AggregateRepositoriesTest extends TestCase
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
             )
-            ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+            ->sendCommandWithRouting('order.register', new PlaceOrder('123'))
             ->run('orders')
             ->getAggregate(Order::class, '123')
         );
@@ -85,7 +85,7 @@ class AggregateRepositoriesTest extends TestCase
         self::expectException(InvalidArgumentException::class);
 
         $ecotone
-            ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+            ->sendCommandWithRouting('order.register', new PlaceOrder('123'))
             ->run('orders');
     }
 
@@ -100,7 +100,7 @@ class AggregateRepositoriesTest extends TestCase
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         )
-            ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+            ->sendCommandWithRouting('order.register', new PlaceOrder('123'))
             ->run('orders');
     }
 
@@ -130,7 +130,7 @@ class AggregateRepositoriesTest extends TestCase
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
             )
-                ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+                ->sendCommandWithRouting('order.register', new PlaceOrder('123'))
                 ->run('orders')
                 ->getAggregate(Order::class, '123')
         );
@@ -149,7 +149,7 @@ class AggregateRepositoriesTest extends TestCase
                 addInMemoryStateStoredRepository: false,
                 addInMemoryEventSourcedRepository: false,
             )
-                ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+                ->sendCommandWithRouting('order.register', new PlaceOrder('123'))
                 ->run('orders')
                 ->getAggregate(Order::class, '123')
         );
@@ -189,7 +189,7 @@ class AggregateRepositoriesTest extends TestCase
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         )
-            ->sendCommandWithRoutingKey('order.register', new PlaceOrder('123'))
+            ->sendCommandWithRouting('order.register', new PlaceOrder('123'))
             ->run('orders')
         ;
     }

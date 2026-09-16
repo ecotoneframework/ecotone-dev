@@ -640,7 +640,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'fail_order1');
 
         // Run consumer - should fail first time, then retry and succeed
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: false)->withExecutionTimeLimitInMilliseconds(1000));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withExecutionTimeLimitInMilliseconds(1000));
 
         // Verify the order was eventually processed
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
@@ -683,7 +683,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'order3');
 
         // Run consumer
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: false)->withExecutionTimeLimitInMilliseconds(1000));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withExecutionTimeLimitInMilliseconds(1000));
 
         // Verify all messages were processed in order
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
@@ -729,7 +729,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         }
 
         // Run consumer
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: false)->withExecutionTimeLimitInMilliseconds(1000));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withExecutionTimeLimitInMilliseconds(1000));
 
         // Verify all messages were processed
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
@@ -778,7 +778,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'order3');
 
         // Run consumer
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: false)->withExecutionTimeLimitInMilliseconds(5000));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withExecutionTimeLimitInMilliseconds(5000));
 
         // Verify all messages were processed
         // With RESEND: order1 succeeds, fail_order2 fails and goes to end, order3 succeeds, fail_order2 retried and succeeds
@@ -1006,31 +1006,31 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
 
         // Run consumer multiple times with single message limit
         // Message 1
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['order_1'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
         // Position should be committed at 1 (end of batch, even though commitInterval=3)
         $this->assertEquals('1', $sharedPositionTracker->loadPosition($consumerId));
 
         // Message 2
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['order_1', 'order_2'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
         // Position should be committed at 2 (end of batch)
         $this->assertEquals('2', $sharedPositionTracker->loadPosition($consumerId));
 
         // Message 3
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['order_1', 'order_2', 'order_3'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
         // Position should be committed at 3 (end of batch)
         $this->assertEquals('3', $sharedPositionTracker->loadPosition($consumerId));
 
         // Message 4
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['order_1', 'order_2', 'order_3', 'order_4'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
         // Position should be committed at 4 (end of batch)
         $this->assertEquals('4', $sharedPositionTracker->loadPosition($consumerId));
 
         // Message 5
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['order_1', 'order_2', 'order_3', 'order_4', 'order_5'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
         // Position should be committed at 5 (end of batch)
         $this->assertEquals('5', $sharedPositionTracker->loadPosition($consumerId));
@@ -1075,7 +1075,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $consumerId = $channelName;
 
         // Run consumer with execution time limit - should commit after each message
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 5, executionTimeLimitInMilliseconds: 5000));
 
         // Verify all messages were consumed
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
@@ -1125,7 +1125,7 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $consumerId = $channelName;
 
         // Run consumer with message limit - should commit after each message
-        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5, maxExecutionTimeInMilliseconds: 5000));
+        $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 5, executionTimeLimitInMilliseconds: 5000));
 
         // Verify all messages were consumed
         $orders = $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders');
@@ -1206,19 +1206,19 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $channel->send(MessageBuilder::withPayload('message3')->build());
 
         // Consumer1 consumes first message
-        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed1'));
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed2'));
 
         // Consumer2 consumes first two messages
-        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotoneLite->run('consumer2', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed1'));
         $this->assertEquals(['message1', 'message2'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed2'));
 
         // Consumer1 consumes second and third messages
-        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1', 'message2', 'message3'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed1'));
         $this->assertEquals(['message1', 'message2'], $ecotoneLite->getQueryBus()->sendWithRouting('getConsumed2'));
 
@@ -1363,8 +1363,8 @@ final class AmqpStreamChannelTest extends AmqpMessagingTestCase
         $publisherService->getDistributedBus()->publishEvent('distributed.event', 'event3');
 
         // Both consumers should receive all events independently
-        $consumerService1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 10000));
-        $consumerService2->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 10000));
+        $consumerService1->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 10000));
+        $consumerService2->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 10000));
 
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService1->getQueryBus()->sendWithRouting('getConsumed1'));
         $this->assertEquals(['event1', 'event2', 'event3'], $consumerService2->getQueryBus()->sendWithRouting('getConsumed2'));

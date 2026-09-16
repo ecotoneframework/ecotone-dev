@@ -207,13 +207,13 @@ final class MessagingSystemConfiguration implements Configuration
         if (! $serviceConfiguration->getConnectionRetryTemplate()) {
             if ($serviceConfiguration->isProductionConfiguration()) {
                 $serviceConfiguration->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackoff(1000, 3)
-                        ->maxRetryAttempts(5)
+                    RetryTemplateBuilder::exponentialBackOff(1000, 3)
+                        ->maxRetries(5)
                 );
             } else {
                 $serviceConfiguration->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackoff(100, 3)
-                        ->maxRetryAttempts(3)
+                    RetryTemplateBuilder::exponentialBackOff(100, 3)
+                        ->maxRetries(3)
                 );
             }
         }

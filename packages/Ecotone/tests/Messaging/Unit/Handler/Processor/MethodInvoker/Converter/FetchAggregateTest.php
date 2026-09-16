@@ -69,7 +69,7 @@ class FetchAggregateTest extends TestCase
         );
 
         $command = new PlaceOrder('order-123', '', 'Laptop');
-        $ecotoneLite->sendCommandWithRoutingKey('placeOrderWithHeaders', $command, metadata: [
+        $ecotoneLite->sendCommandWithRouting('placeOrderWithHeaders', $command, metadata: [
             'userId' => 'user-1',
         ]);
 
@@ -169,7 +169,7 @@ class FetchAggregateTest extends TestCase
         );
 
         $command = new ComplexCommand('johny@wp.pl');
-        $ecotoneLite->sendCommandWithRoutingKey('handleWithArrayIdentifiers', $command);
+        $ecotoneLite->sendCommandWithRouting('handleWithArrayIdentifiers', $command);
 
         $result = $complexService->getLastResult();
 

@@ -59,20 +59,20 @@ final class DynamicChannelRetryTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.dynamic', 'test_message');
+        $ecotoneTestSupport->sendCommandWithRouting('execute.dynamic', 'test_message');
 
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false,
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false,
         ));
 
         self::assertTrue($handler->failedOnce, 'Handler should have failed on first attempt');
 
         $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: true,
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: true,
         ));
 
         self::assertTrue($handler->succeeded, 'Handler should have succeeded on retry after resend');

@@ -61,8 +61,8 @@ class AcknowledgeConfirmationInterceptor
     private function handle(Message $message, MethodInvocation $methodInvocation, string $messageChannelName, PollingMetadata $pollingMetadata): void
     {
         $logger = $this->logger;
-        $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 10, 1000)
-            ->maxRetryAttempts(3)
+        $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 10, 1000)
+            ->maxRetries(3)
             ->build();
 
         /** @var AcknowledgementCallback $acknowledgementCallback */

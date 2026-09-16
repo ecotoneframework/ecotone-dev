@@ -40,7 +40,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             [new TicketWasRegistered($ticketId, 'johny', 'alert')],
             $ecotoneTestSupport
                 ->sendCommand(new RegisterTicket($ticketId, 'johny', 'alert'))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -56,7 +56,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             $ecotoneTestSupport
                 ->sendCommand(new RegisterTicket($ticketId, 'johny', 'alert'))
                 ->sendCommand(new CloseTicket($ticketId))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -74,7 +74,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
                 ->sendCommand(new RegisterTicket($ticketId, 'johny', 'alert'))
                 ->discardRecordedMessages()
                 ->sendCommand(new CloseTicket($ticketId))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -131,7 +131,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
                     new TicketWasRegistered($ticketId, 'Johny', 'alert'),
                     new AssignedPersonWasChanged($ticketId, 'Elvis'),
                 ])
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -150,7 +150,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
                 ->withEventsFor($ticketId, Ticket::class, [
                     new AssignedPersonWasChanged($ticketId, 'Elvis'),
                 ], 1)
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 

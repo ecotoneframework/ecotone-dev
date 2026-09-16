@@ -80,7 +80,7 @@ class SymfonyExpressionEvaluationAdapterTest extends TestCase
             ]
         );
 
-        $messaging->sendCommandWithRoutingKey('calculate', ['value' => 5]);
+        $messaging->sendCommandWithRouting('calculate', ['value' => 5]);
 
         $this->assertEquals(50, $messaging->sendQueryWithRouting('getResult'));
     }

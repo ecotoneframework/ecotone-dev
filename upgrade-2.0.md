@@ -7,11 +7,11 @@ the release; within a group the most impactful changes come first.
 Minimum requirements: PHP 8.2 (8.4 for the Tempest integration), Symfony 6.4+, Laravel 11+, Doctrine DBAL 4 and,
 where used, Doctrine ORM 3 with DoctrineBundle 2.12+. Laravel 9/10, DBAL 3 and ORM 2 are no longer supported.
 
-**Status of this guide.** Sections 1, 2, 3, 4, 5, 6, 7, 9, 11, 13 and 14 describe behaviour that is already in the
+**Status of this guide.** Sections 1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 14 and 15 describe behaviour that is already in the
 codebase. Sections 8 and 12 are **planned for 2.0 and not implemented yet** — they are marked individually below.
 Do not act on a planned section until it ships; the API it describes does not exist. Items marked **TODO** inside an
 implemented section are known gaps that are not done yet. Section 10 records behaviour that was considered for change
-and deliberately kept as it is. Section 15 lists the larger 2.0 work that is still to be done, each with the path to
+and deliberately kept as it is. Section 16 lists the larger 2.0 work that is still to be done, each with the path to
 its design and implementation plan in this repository.
 
 ---
@@ -24,8 +24,10 @@ could disable it, and `EcotoneLite::bootstrapFlowTesting()` disabled it by defau
 (or a list of channel builders) was passed.
 
 **Now:** Asynchronous handling, pollable-channel serialization and send-retries are always loaded. An
-`#[Asynchronous]` handler is never executed inline — not in production, not in tests. The channel named in the
-attribute must exist, otherwise bootstrap fails with `ConfigurationException`.
+`#[Asynchronous]` handler is never executed inline — not in production, not in tests. In the application
+(`EcotoneLite::bootstrap()`, Symfony, Laravel, Tempest) the channel named in the attribute must be configured, otherwise
+bootstrap fails with `ConfigurationException`. In `EcotoneLite::bootstrapFlowTesting()` every `#[Asynchronous]` channel
+the test does not configure gets an in-memory, delayable queue channel, so the test only has to consume it with `run()`.
 
 **How to adapt:**
 
@@ -36,18 +38,16 @@ $ecotone->sendCommand(new PlaceOrder('1'));
 self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all')); // handler ran inline
 
 // 2.0 test
-$ecotone = EcotoneLite::bootstrapFlowTesting(
-    [OrderHandler::class],
-    [new OrderHandler()],
-    ServiceConfiguration::createWithDefaults()
-        ->withExtensionObjects([SimpleMessageChannelBuilder::createQueueChannel('orders')])
-);
+$ecotone = EcotoneLite::bootstrapFlowTesting([OrderHandler::class], [new OrderHandler()]);
 $ecotone->sendCommand(new PlaceOrder('1'));
 $ecotone->run('orders');                                            // consume the channel explicitly
 self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
 ```
 
-- Remove `enableAsynchronousProcessing` arguments; register the channel instead (extension object or `#[ServiceContext]`).
+- Remove `enableAsynchronousProcessing` arguments. Flow tests get an in-memory delayable queue for each `#[Asynchronous]`
+  channel; register a channel yourself (extension object or `#[ServiceContext]`) only when the test needs a different one
+  — for example `SimpleMessageChannelBuilder::createQueueChannel('orders', delayable: false)` or a DBAL/AMQP channel. A
+  configured channel replaces the provided one.
 - Remove `ModulePackageList::ASYNCHRONOUS_PACKAGE` from any skip list and delete calls to
   `ServiceConfiguration::createWithAsynchronicityOnly()`.
 - `withSkippedModulePackageNames([...])` is replaced by `withModulePackages([...])` listing the packages to **load**;
@@ -59,7 +59,7 @@ self::assertCount(1, $ecotone->sendQueryWithRouting('orders.all'));
   `ConfigurationException: Registered asynchronous endpoint \`orderHandler\`, however channel configuration for \`orders\` was not
   provided. Register it with SimpleMessageChannelBuilder::createQueueChannel('orders') as a ServiceConfiguration extension object
   or from a #[ServiceContext] method.`
-  Previously test bootstrap silently created an in-memory channel.
+  Flow tests (`bootstrapFlowTesting()`) do not throw this; they provide the in-memory channel instead.
 - Default queue channels are delayable (see §9); nothing to change unless you relied on delays being ignored.
 
 ## 2. Multi-tenancy requires Ecotone Enterprise
@@ -159,7 +159,7 @@ table**. Aggregates that do not say otherwise all write to a single table, `ecot
 `prooph/pdo-event-store` (with `prooph/event-store` and `prooph/common`) is no longer a dependency.
 
 Tags, `AppendCondition` and Dynamic Consistency Boundary querying are **planned** on top of this layout; they are not
-part of 2.0 as shipped — see §15.
+part of 2.0 as shipped — see §16.
 
 **How to adapt:**
 
@@ -367,19 +367,19 @@ transaction wraps the whole message on every driver. Deduplication cleanup runs 
 | JMS: serialize `null` properties | off | on | `JMSConverterConfiguration::createWithDefaults()->withDefaultNullSerialization(false)` |
 | JMS: native enum support | off | on | `->withDefaultEnumSupport(false)` |
 | `SimpleMessageChannelBuilder::createQueueChannel()` delayable | `false` | `true` | `createQueueChannel('x', delayable: false)` |
-| `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(amountOfMessagesToHandle: 1)` |
+| `ExecutionPollingMetadata::createWithTestingSetup()` messages handled | 1 | 100 | `createWithTestingSetup(handledMessageLimit: 1)` |
 | Instant retries on asynchronous endpoints | disabled | enabled (3 attempts) | `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)` |
 | Module packages | all except explicitly skipped | Core + Asynchronous + what `withModulePackages()` lists; with no call, all installed packages load | `ServiceConfiguration::withModulePackages([...])` |
 
 Test-suite impact of the new defaults:
 - A test that asserted "exactly one message handled per `run()`" now sees up to 100; pass
-  `ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1)` (or `--handledMessageLimit=1` on `ecotone:run`).
+  `ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1)` (or `--handledMessageLimit=1` on `ecotone:run`).
 - A test that expected the first consumer run to fail and a second run to succeed now sees the failure retried instantly inside the first
   run; disable it for that test with `InstantRetryConfiguration::createWithDefaults()->withAsynchronousEndpointsRetry(false)`
   or assert the retried outcome.
 
 Delayable channels change in-memory behaviour: a message sent with `delay` is not visible to `run()` until the
-clock passes the delay. Use `$ecotone->run('x', ExecutionPollingMetadata::createWithTestingSetup(), releaseAwaitingFor: Duration::seconds(5))`
+clock passes the delay. Use `$ecotone->advanceTimeBy(Duration::seconds(5))->run('x')` (§15)
 or `TestConfiguration::createWithDefaults()->withSpyOnChannel()` to assert delayed messages.
 
 ## 10. Aggregate identifier resolution for queued messages (unchanged)
@@ -517,7 +517,170 @@ The full mapping is in `upgrade/namespace-map-2.0.csv`.
   with its own `executeQuery()` / `executeStatement()` / `fetch*()`, and
   `$connection->createSchemaManager()->tableExists($table)`.
 
-## 15. Planned 2.0 work still to be done (TODO)
+## 15. Testing and developer-experience changes
+
+These changes make tests and error messages say what happens, so that failures point at the real cause. Most of them
+rename test-support methods without aliases; the renamed methods are listed in each entry.
+
+- **Retries may use a zero back-off.** `RetryTemplateBuilder::fixedBackOff(0)`, an exponential back-off starting at `0`
+  and `#[DelayedRetry(initialDelayInMilliseconds: 0)]` used to throw `Initial delay must be greater than 0`. A zero delay is now
+  accepted: the failed message is sent back to its channel without a delivery delay, so a single
+  `run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false))` walks it through every retry and
+  into the dead letter. Negative delays still throw, naming the value
+  (`Retry initial delay must be 0 or greater, got -1 ms`).
+  **How to adapt:** nothing. Tests that advanced the clock only to get past a 1 ms back-off can use `0` instead.
+- **Retry exhaustion counts deliveries, not "retries".** With `maxRetryAttempts(3)` the handler is delivered 4 times
+  (1 initial + 3 retries), but the log said `retried maximum number of \`4\` times` and the exception said
+  `Message handling failed after 4 retry attempts`. They now read
+  `Sending message \`…\` to dead letter channel after 4 failed deliveries (1 initial + 3 retries). Due to: …`,
+  `No dead letter channel defined. Message failed after 4 failed deliveries (1 initial + 3 retries). …` and
+  `Message handling failed on channel \`async\` after 4 failed deliveries (1 initial + 3 retries). RuntimeException: …`
+  (the exception now also names the channel and the original exception class). The number of deliveries is unchanged.
+  **How to adapt:** update log-based alerts or tests that match the old texts.
+- **The test clock stays where the test put it.** After `changeTimeTo()`, `advanceTimeBy()` or a `StaticPsrClock` created
+  with a fixed time, `run()` used to move the clock forward by its internal polling waits (about 1 ms per handled
+  message and 10 ms at the end), so handlers recorded `13:00:00.010000` instead of `13:00:00.000000` and setting the same
+  time again failed. Now every message handled by `run()` sees the time the test set, and the clock is back at that time
+  when `run()` returns.
+  **How to adapt:** remove workarounds that shifted fixture times to get past the drift.
+- **`changeTimeTo()` accepts the current instant.** Setting the time it already shows is a no-op; only an earlier time
+  throws, now with `Cannot move time backwards: the test clock is at 2026-03-01 13:00:00.000000 and you requested
+  2026-03-01 12:00:00.000000. Request a later time, or use advanceTimeBy() to move forward relative to the current time.`
+  **How to adapt:** nothing.
+- **`advanceTimeTo(Duration)` is renamed `advanceTimeBy(TimeSpan|Duration)`, and `run()` no longer takes a time
+  argument.** The third argument of `run($name, $metadata, $releaseAwaitingFor)` released messages whose *original delay*
+  was at most the given span (or which were due at a given date) without moving the clock, so `run(…, 23h)` followed by
+  `run(…, 2h)` never released a 24-hour delay. Time now moves only through the clock, and `run()` delivers what is due
+  at the clock's current time.
+  **How to adapt:**
+
+  | 1.x / early 2.0 | 2.0 |
+  |---|---|
+  | `$ecotone->advanceTimeTo(Duration::seconds(5))` | `$ecotone->advanceTimeBy(Duration::seconds(5))` |
+  | `$ecotone->run('async', $metadata, TimeSpan::withHours(1))` | `$ecotone->advanceTimeBy(TimeSpan::withHours(1))->run('async', $metadata)` |
+  | `$ecotone->run('async', releaseAwaitingFor: $dateTime)` | `$ecotone->changeTimeTo($dateTime)->run('async')` |
+
+  A test that used the span as "release everything delayed by up to X" while keeping the clock still must now move the
+  clock; set a fixed time first (`changeTimeTo()`) so second-precision message timestamps do not make the release flaky.
+- **Due delayed messages are delivered in the order they became due.** The in-memory delayable channel handed out due
+  messages in send order, so a 24-hour expiry sent before a 1-hour reminder ran first once both were due. It now delivers
+  the earliest due message first (send order for equal due times), as a broker with delivery delay does.
+  **How to adapt:** tests that asserted send order for messages with different delays assert due order instead.
+- **Retry builder names say what they count and in which unit.** `maxRetryAttempts(3)` read as "3 attempts in total",
+  but it allows 3 retries after the first delivery. `exponentialBackoff` was spelled differently from `fixedBackOff`, and
+  the delay parameters did not name their unit.
+
+  | 1.x / early 2.0 | 2.0 |
+  |---|---|
+  | `RetryTemplateBuilder::fixedBackOff(initialDelay: 1000)` | `RetryTemplateBuilder::fixedBackOff(delayInMilliseconds: 1000)` |
+  | `RetryTemplateBuilder::exponentialBackoff($initialDelay, $multiplier)` | `RetryTemplateBuilder::exponentialBackOff($initialDelayInMilliseconds, $multiplier)` |
+  | `RetryTemplateBuilder::exponentialBackoffWithMaxDelay($initialDelay, $multiplier, $maxDelay)` | `RetryTemplateBuilder::exponentialBackOffWithMaxDelay($initialDelayInMilliseconds, $multiplier, $maxDelayInMilliseconds)` |
+  | `->maxRetryAttempts(3)` | `->maxRetries(3)` |
+  | `#[DelayedRetry(initialDelayMs: 100, maxDelayMs: 1000, maxAttempts: 3)]` | `#[DelayedRetry(initialDelayInMilliseconds: 100, maxDelayInMilliseconds: 1000, maxRetries: 3)]` |
+
+  Behaviour is unchanged. **How to adapt:** rename the calls; positional arguments keep working, named arguments use the
+  new parameter names.
+- **Recorded-message readers are named `pop*`, because they remove what they return.** `getRecordedEvents()` returned
+  the events recorded since the previous call and cleared the list, so asserting twice saw nothing the second time. The
+  destructive behaviour stays; the names now say it, and typed variants remove only messages of one class.
+
+  | 1.x / early 2.0 | 2.0 |
+  |---|---|
+  | `FlowTestSupport::getRecordedEvents()` | `popRecordedEvents()` |
+  | — | `popRecordedEventsOfType(OrderWasPlaced::class)` (removes only events of that class) |
+  | `FlowTestSupport::getRecordedEventHeaders()` / `getRecordedEventRouting()` | `popRecordedEventHeaders()` / `popRecordedEventRouting()` |
+  | `FlowTestSupport::getRecordedCommands()` | `popRecordedCommands()` |
+  | — | `popRecordedCommandsOfType(PlaceOrder::class)` |
+  | `FlowTestSupport::getRecordedCommandHeaders()` / `getRecordedCommandsWithRouting()` | `popRecordedCommandHeaders()` / `popRecordedCommandsWithRouting()` |
+  | `FlowTestSupport::getRecordedMessagePayloadsFrom($channel)` | `popRecordedMessagePayloadsFrom($channel)` |
+  | `FlowTestSupport::getRecordedEcotoneMessagesFrom($channel)` | `popRecordedMessagesFrom($channel)` |
+  | `MessagingTestSupport::getRecordedEvents()`, `getRecordedEventMessages()`, `getRecordedCommands()`, `getRecordedCommandMessages()`, `getRecordedQueries()`, `getRecordedQueryMessages()` | the same names with `pop` instead of `get` |
+  | `WithEvents::getRecordedEvents()` (aggregate trait, also clears) | `WithEvents::popRecordedEvents()` |
+
+  Events the test publishes itself are still recorded. `discardRecordedMessages()` is unchanged.
+  **How to adapt:** replace `getRecorded` with `popRecorded` (and `getRecordedEcotoneMessagesFrom` with
+  `popRecordedMessagesFrom`); a `sed -i 's/getRecorded/popRecorded/g'` over the test suite covers it. If an aggregate
+  declares its own events method, keep it: the `#[AggregateEvents]` attribute, not the name, is what Ecotone looks for.
+- **One naming rule for routing and dead-letter replay.** `FlowTestSupport` had `sendCommandWithRoutingKey()` and
+  `publishEventWithRoutingKey()` next to `sendQueryWithRouting()`, while the buses use `sendWithRouting()`. The dead
+  letter gateway had `reply()`/`replyAll()` while its console commands are `ecotone:deadletter:replay`/`replayAll`.
+
+  | 1.x / early 2.0 | 2.0 |
+  |---|---|
+  | `FlowTestSupport::sendCommandWithRoutingKey()` | `sendCommandWithRouting()` |
+  | `FlowTestSupport::publishEventWithRoutingKey()` | `publishEventWithRouting()` |
+  | `DeadLetterGateway::reply($messageId)` | `DeadLetterGateway::replay($messageId)` |
+  | `DeadLetterGateway::replyAll()` | `DeadLetterGateway::replayAll()` |
+  | `DbalDeadLetterBuilder::createReply()` / `createReplyAll()` | `createReplay()` / `createReplayAll()` |
+
+  The internal dead-letter channels are renamed with them (`ecotone.dbal.deadletter.replay`, `…replayAll`); console
+  command names are unchanged. **How to adapt:** rename the calls, e.g.
+  `sed -i 's/WithRoutingKey(/WithRouting(/g; s/->reply(/->replay(/g; s/->replyAll(/->replayAll(/g'`.
+- **A command or query sent to a handler that is not registered in a flow test names the class to register.** An
+  Ecotone Lite bootstrap registers only the classes it lists, but the error suggested a missing attribute:
+  `No Command Handler defined for it. Have you forgot to add #[CommandHandler] to method?`. In
+  `bootstrapFlowTesting()` Ecotone now looks up the handler in your autoloaded (non-vendor) namespaces and says
+  `Can't send command to App\Shipping\ReserveShippingSlot. It is handled by App\Shipping\ShippingSlotReservationHandler::reserve(),
+  which is not registered in this Ecotone Lite bootstrap. Add App\Shipping\ShippingSlotReservationHandler to the classesToResolve of
+  EcotoneLite::bootstrapFlowTesting(), or load its namespace with ServiceConfiguration::withNamespaces(['App\Shipping']).`
+  When no handler exists it says which attribute to add. Queries get the same message; the application bootstrap keeps
+  the previous text. **How to adapt:** nothing.
+- **Handlers typed on an interface or abstract class receive the concrete message after serialisation.** A handler
+  such as `#[Asynchronous('async')] #[EventHandler] onChange(BasketContentChanged $event)`, where `BasketContentChanged`
+  is an interface, worked in process but failed once the message crossed a serialising channel
+  (`… is an interface, and cannot be instantiated`); on an aggregate the same handler failed with the misleading
+  `identifier header is missing`, and a projection handler failed on stored events. Ecotone now deserialises into the
+  concrete class named by the message's `__TypeId__` header (or the stored event name for projections) whenever the
+  parameter type is an interface or abstract class the concrete class implements, and resolves aggregate identifiers from
+  the concrete payload. When no concrete class is known, the conversion error ends with
+  `Parameter $event is typed with …BasketContentChanged, which cannot be instantiated, and the message does not name a
+  concrete class in its __TypeId__ header. Type the parameter with a concrete class or a union of concrete classes, or
+  send an object instead of an array.`
+  **How to adapt:** nothing; one interface-typed handler can replace per-event copies written as a workaround.
+- **`AggregateNotFoundException` says which handler sent the command and why.** When a command sent from inside
+  another handler targeted a missing aggregate, the message named only the aggregate and identifiers, so finding the
+  saga or event handler that sent it meant searching the code. The message now continues with the causation chain:
+  `Aggregate App\Wallet for calling chargeFunds was not found using identifiers {"walletId":"wallet-404"}. Command
+  App\ChargeFunds was sent by App\WalletChargeHandler::onOrderCreated() while handling event App\OrderCreated, which was
+  published while handling command App\CreateOrder.` The exception class is unchanged; the original exception is its
+  `previous`. A command sent directly from the test or a controller keeps the short message.
+  **How to adapt:** tests asserting the exact message with `assertSame` switch to `assertStringStartsWith`.
+- **A service parameter taken as the payload says so.** The first handler parameter without an attribute is the
+  message payload, so `#[CommandHandler('basket.clear')] public function clear(ClockInterface $clock)` tried to convert
+  the (empty) payload into `ClockInterface` and failed with a bare conversion error. The error now ends with
+  `If $clock is a service rather than the message payload, mark it with #[Reference].` (for aggregate handlers:
+  `Payload of the message sent to App\Basket could not be converted into Psr\Clock\ClockInterface, the type of the first
+  handler parameter without an attribute. If that parameter is a service rather than the message payload, mark it with
+  #[Reference].`). Parameter resolution is unchanged.
+  **How to adapt:** nothing; add `#[Reference]` where the message tells you to.
+- **New: `#[Delayed]` accepts named durations.** `#[Delayed(hours: 24)]` and `#[Delayed(minutes: 30, seconds: 10)]`
+  (`milliseconds`, `seconds`, `minutes`, `hours`, `days`) work next to `#[Delayed(new TimeSpan(hours: 24))]`. Passing both a
+  `$time` and a named duration throws `#[Delayed] takes either $time or named durations (milliseconds, seconds, minutes,
+  hours, days), not both.` **How to adapt:** nothing.
+- **New: `WithAggregateVersioning::getVersion()`.** Aggregates using the trait expose their current version. The version
+  also travels with every recorded event in the `MessageHeaders::EVENT_AGGREGATE_VERSION` header, including across
+  asynchronous channels, so a delayed handler can compare it with the aggregate's current version.
+  **How to adapt:** nothing; remove your own `getVersion()` accessor if it only returned the trait's property.
+- **The Enterprise-only `#[EventSourcingHandler]` metadata parameter names the open-source alternative.** Without a
+  licence, a second parameter such as `#[Header(MessageHeaders::TIMESTAMP)] int $recordedAt` fails with `… is part of
+  Enterprise features. Without Enterprise, keep a single event parameter and carry the value you need (for example the
+  time of the change) in the event itself. To read metadata here, obtain Enterprise: https://docs.ecotone.tech/enterprise`.
+  **How to adapt:** nothing.
+- **Testing polling parameters use the names of the matching setters.** `createWithTestingSetup()` took
+  `amountOfMessagesToHandle` (a maximum, not an exact count), `maxExecutionTimeInMilliseconds` and `failAtError`, while the
+  same settings are `withHandledMessageLimit()`, `withExecutionTimeLimitInMilliseconds()` and `withStopOnError()` (and
+  `--handledMessageLimit` / `--stopOnError` on `ecotone:run`).
+
+  | 1.x / early 2.0 | 2.0 |
+  |---|---|
+  | `ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 500, failAtError: false)` | `createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 500, stopOnError: false)` |
+  | `ExecutionPollingMetadata::withTestingSetup(…)`, `PollingMetadata::withTestingSetup(…)`, `createWithFinishWhenNoMessages(failAtError:)` | the same new parameter names |
+  | `FlowTestSupport::run(name: 'async')` | `run(channelOrEndpointName: 'async')` |
+
+  **How to adapt:** only named arguments change; positional calls keep working.
+  `sed -i 's/amountOfMessagesToHandle:/handledMessageLimit:/g; s/maxExecutionTimeInMilliseconds:/executionTimeLimitInMilliseconds:/g; s/failAtError:/stopOnError:/g'`.
+
+## 16. Planned 2.0 work still to be done (TODO)
 
 These changes are designed but not implemented. Nothing here affects an upgrade today; each entry will become a
 normal section with "How to adapt" steps when it ships.

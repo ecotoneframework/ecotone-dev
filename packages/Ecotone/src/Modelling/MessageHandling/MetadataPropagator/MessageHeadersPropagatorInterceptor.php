@@ -9,6 +9,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Modelling\AggregateNotFoundException;
+use WeakMap;
 
 /**
  * licence Apache-2.0
@@ -20,7 +22,15 @@ class MessageHeadersPropagatorInterceptor
     public const DISABLE_POLLING_CONSUMER_PROPAGATION_CONTEXT = 'ecotone.disablePollingConsumerPropagation';
     public const IS_POLLING_CONSUMER_PROPAGATION_CONTEXT = 'ecotone.isPollingConsumerPropagation';
     private array $currentlyPropagatedHeaders = [];
+    /** @var MessageCausation[] */
+    private array $causationChain = [];
+    private WeakMap $exceptionsWithCausationChain;
     private bool $isPollingConsumer = false;
+
+    public function __construct()
+    {
+        $this->exceptionsWithCausationChain = new WeakMap();
+    }
 
     public function storeHeaders(MethodInvocation|Closure $methodInvocation, Message $message, ?PropagateHeaders $propagateHeaders = null)
     {
@@ -40,17 +50,36 @@ class MessageHeadersPropagatorInterceptor
         }
 
         $this->currentlyPropagatedHeaders[] = $userlandHeaders;
+        $this->causationChain[] = MessageCausation::from($methodInvocation, $message);
         try {
             if ($methodInvocation instanceof MethodInvocation) {
                 $reply = $methodInvocation->proceed();
             } else {
                 $reply = $methodInvocation();
             }
+        } catch (AggregateNotFoundException $exception) {
+            throw $this->withCausationChain($exception);
         } finally {
             array_pop($this->currentlyPropagatedHeaders);
+            array_pop($this->causationChain);
         }
 
         return $reply;
+    }
+
+    private function withCausationChain(AggregateNotFoundException $exception): AggregateNotFoundException
+    {
+        if (count($this->causationChain) < 2 || isset($this->exceptionsWithCausationChain[$exception])) {
+            return $exception;
+        }
+
+        $exceptionWithCausationChain = AggregateNotFoundException::createFromPreviousException(
+            $exception->getMessage() . '. ' . MessageCausation::describeChain($this->causationChain, $exception),
+            $exception
+        );
+        $this->exceptionsWithCausationChain[$exceptionWithCausationChain] = true;
+
+        return $exceptionWithCausationChain;
     }
 
     public function propagateHeaders(array $headers): array

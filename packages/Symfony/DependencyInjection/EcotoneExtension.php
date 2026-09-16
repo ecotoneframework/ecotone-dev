@@ -69,7 +69,7 @@ class EcotoneExtension extends Extension
             $retryTemplate            = $config['defaultConnectionExceptionRetry'];
             $serviceConfiguration = $serviceConfiguration
                 ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackoffWithMaxDelay(
+                    RetryTemplateBuilder::exponentialBackOffWithMaxDelay(
                         $retryTemplate['initialDelay'],
                         $retryTemplate['maxAttempts'],
                         $retryTemplate['multiplier']

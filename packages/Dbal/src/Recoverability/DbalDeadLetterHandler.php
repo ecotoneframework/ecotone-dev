@@ -117,27 +117,27 @@ class DbalDeadLetterHandler
             ->fetchOne();
     }
 
-    public function reply(string|array $messageId, MessagingEntrypointService $messagingEntrypoint): void
+    public function replay(string|array $messageId, MessagingEntrypointService $messagingEntrypoint): void
     {
         $this->initialize();
 
         if (is_string($messageId)) {
-            $this->replyWithoutInitialization($messageId, $messagingEntrypoint);
+            $this->replayWithoutInitialization($messageId, $messagingEntrypoint);
 
             return;
         }
 
         foreach ($messageId as $id) {
-            $this->replyWithoutInitialization($id, $messagingEntrypoint);
+            $this->replayWithoutInitialization($id, $messagingEntrypoint);
         }
     }
 
-    public function replyAll(MessagingEntrypointService $messagingEntrypoint): void
+    public function replayAll(MessagingEntrypointService $messagingEntrypoint): void
     {
         $this->initialize();
         while ($errorContexts = $this->list(100, 0)) {
             foreach ($errorContexts as $errorContext) {
-                $this->replyWithoutInitialization($errorContext->getMessageId(), $messagingEntrypoint);
+                $this->replayWithoutInitialization($errorContext->getMessageId(), $messagingEntrypoint);
             }
         }
     }
@@ -169,8 +169,8 @@ class DbalDeadLetterHandler
     {
         $this->initialize();
 
-        $retryStrategy = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(10, 3, 1000)
-            ->maxRetryAttempts(3)
+        $retryStrategy = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(10, 3, 1000)
+            ->maxRetries(3)
             ->build();
 
         $this->retryRunner->runWithRetry(function () use ($message) {
@@ -241,7 +241,7 @@ class DbalDeadLetterHandler
         }
     }
 
-    private function replyWithoutInitialization(string $messageId, MessagingEntrypointService $messagingEntrypoint): void
+    private function replayWithoutInitialization(string $messageId, MessagingEntrypointService $messagingEntrypoint): void
     {
         $message = $this->show($messageId);
         $hasPolledChannel = $message->getHeaders()->containsKey(MessageHeaders::POLLED_CHANNEL_NAME);

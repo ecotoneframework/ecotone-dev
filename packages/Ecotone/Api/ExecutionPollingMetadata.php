@@ -25,24 +25,24 @@ final class ExecutionPollingMetadata
     }
 
     /**
-     * @param int $amountOfMessagesToHandle how many messages should this consumer handle before exiting
-     * @param int $maxExecutionTimeInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
-     * @param bool $failAtError Should consumer stop when error occurs, if not message will be requeued and consumer will continue
+     * @param int $handledMessageLimit how many messages should this consumer handle before exiting
+     * @param int $executionTimeLimitInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
+     * @param bool $stopOnError Should consumer stop when error occurs, if not message will be requeued and consumer will continue
      * @return $this
      */
-    public static function createWithTestingSetup(int $amountOfMessagesToHandle = 100, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
+    public static function createWithTestingSetup(int $handledMessageLimit = 100, int $executionTimeLimitInMilliseconds = 100, bool $stopOnError = true): self
     {
-        return self::createWithDefaults()->withTestingSetup($amountOfMessagesToHandle, $maxExecutionTimeInMilliseconds, $failAtError);
+        return self::createWithDefaults()->withTestingSetup($handledMessageLimit, $executionTimeLimitInMilliseconds, $stopOnError);
     }
 
     /**
-     * @param bool $failAtError Should consumer stop when error occurs, if not message will be requeued and consumer will continue
+     * @param bool $stopOnError Should consumer stop when error occurs, if not message will be requeued and consumer will continue
      */
-    public static function createWithFinishWhenNoMessages(bool $failAtError = true): self
+    public static function createWithFinishWhenNoMessages(bool $stopOnError = true): self
     {
         return self::createWithDefaults()
             ->withFinishWhenNoMessages(true)
-            ->withStopOnError($failAtError)
+            ->withStopOnError($stopOnError)
             ->withExecutionTimeLimitInMilliseconds(0)
             ->withHandledMessageLimit(0);
     }
@@ -72,16 +72,16 @@ final class ExecutionPollingMetadata
     }
 
     /**
-     * @param int $amountOfMessagesToHandle how many messages should this consumer handle before exiting
-     * @param int $maxExecutionTimeInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
+     * @param int $handledMessageLimit how many messages should this consumer handle before exiting
+     * @param int $executionTimeLimitInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
      * @return $this
      */
-    public function withTestingSetup(int $amountOfMessagesToHandle = 100, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
+    public function withTestingSetup(int $handledMessageLimit = 100, int $executionTimeLimitInMilliseconds = 100, bool $stopOnError = true): self
     {
         return $this
-            ->withHandledMessageLimit($amountOfMessagesToHandle)
-            ->withStopOnError($failAtError)
-            ->withExecutionTimeLimitInMilliseconds($maxExecutionTimeInMilliseconds);
+            ->withHandledMessageLimit($handledMessageLimit)
+            ->withStopOnError($stopOnError)
+            ->withExecutionTimeLimitInMilliseconds($executionTimeLimitInMilliseconds);
     }
 
     public function withExecutionTimeLimitInMilliseconds(int $executionTimeLimitInMilliseconds): ExecutionPollingMetadata

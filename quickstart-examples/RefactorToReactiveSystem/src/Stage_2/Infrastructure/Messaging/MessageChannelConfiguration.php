@@ -35,7 +35,7 @@ final class MessageChannelConfiguration
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             "errorChannel",
             RetryTemplateBuilder::fixedBackOff(10)
-                ->maxRetryAttempts(2),
+                ->maxRetries(2),
             "dbal_dead_letter"
         );
     }

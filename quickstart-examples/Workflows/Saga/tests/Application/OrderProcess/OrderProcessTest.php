@@ -40,7 +40,7 @@ final class OrderProcessTest extends TestCase
 
         $this->assertEquals(
             new OrderProcessWasStarted($orderId),
-            $ecotoneLite->getRecordedEvents()[1]
+            $ecotoneLite->popRecordedEvents()[1]
         );
     }
 
@@ -80,7 +80,8 @@ final class OrderProcessTest extends TestCase
             OrderProcessStatus::CANCELLED,
             $ecotoneLite
                 ->publishEvent(new OrderWasPlaced($orderId))
-                ->run('async', new TimeSpan(hours: 1))
+                ->advanceTimeBy(new TimeSpan(hours: 1))
+                ->run('async')
                 ->sendQueryWithRouting('orderProcess.getStatus', metadata: ['aggregate.id' => $orderId])
         );
     }

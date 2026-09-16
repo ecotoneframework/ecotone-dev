@@ -33,7 +33,7 @@ final class ProductTest extends TestCase
                     Money::EUR(1000)
                 ))
                 // get events that have been recorded along the way
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -55,7 +55,7 @@ final class ProductTest extends TestCase
                     $productId,
                     Money::EUR(2000)
                 ))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -71,8 +71,8 @@ final class ProductTest extends TestCase
                     new ProductWasAdded($productId, 'Wooden table', Money::EUR(1000))
                 ])
                 // send product.approve command using routing key
-                ->sendCommandWithRoutingKey("product.approve", metadata: ["aggregate.id" => $productId])
-                ->getRecordedEvents()
+                ->sendCommandWithRouting("product.approve", metadata: ["aggregate.id" => $productId])
+                ->popRecordedEvents()
         );
     }
 }

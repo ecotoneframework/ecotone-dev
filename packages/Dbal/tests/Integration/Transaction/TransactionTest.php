@@ -33,12 +33,12 @@ final class TransactionTest extends DbalMessagingTestCase
     public function test_ordering_with_transaction_a_product_with_failure_so_the_order_should_never_be_committed_to_database(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $ecotone->sendCommandWithRoutingKey('order.prepare');
+        $ecotone->sendCommandWithRouting('order.prepare');
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
 
         try {
-            $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+            $ecotone->sendCommandWithRouting('order.register', 'milk');
         } catch (Exception) {
         }
 
@@ -49,18 +49,18 @@ final class TransactionTest extends DbalMessagingTestCase
     {
         $ecotone = $this->bootstrapEcotoneWithMultiTenantConnection();
 
-        $ecotone->sendCommandWithRoutingKey('order.prepare', metadata: ['tenant' => 'tenant_a']);
-        $ecotone->sendCommandWithRoutingKey('order.prepare', metadata: ['tenant' => 'tenant_b']);
+        $ecotone->sendCommandWithRouting('order.prepare', metadata: ['tenant' => 'tenant_a']);
+        $ecotone->sendCommandWithRouting('order.prepare', metadata: ['tenant' => 'tenant_b']);
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered', metadata: ['tenant' => 'tenant_a']));
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered', metadata: ['tenant' => 'tenant_b']));
 
         try {
-            $ecotone->sendCommandWithRoutingKey('order.register', 'milk', metadata: ['tenant' => 'tenant_a']);
+            $ecotone->sendCommandWithRouting('order.register', 'milk', metadata: ['tenant' => 'tenant_a']);
         } catch (Exception) {
         }
         try {
-            $ecotone->sendCommandWithRoutingKey('order.register', 'milk', metadata: ['tenant' => 'tenant_b']);
+            $ecotone->sendCommandWithRouting('order.register', 'milk', metadata: ['tenant' => 'tenant_b']);
         } catch (Exception) {
         }
 
@@ -91,14 +91,14 @@ final class TransactionTest extends DbalMessagingTestCase
         );
 
         try {
-            $ecotone->sendCommandWithRoutingKey('order.prepare');
+            $ecotone->sendCommandWithRouting('order.prepare');
         } catch (Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
 
         try {
-            $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+            $ecotone->sendCommandWithRouting('order.register', 'milk');
         } catch (Exception) {
         }
 
@@ -110,14 +110,14 @@ final class TransactionTest extends DbalMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
 
         try {
-            $ecotone->sendCommandWithRoutingKey('order.prepareWithFailure');
+            $ecotone->sendCommandWithRouting('order.prepareWithFailure');
         } catch (Exception) {
         }
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('order.getRegistered'));
 
         try {
-            $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+            $ecotone->sendCommandWithRouting('order.register', 'milk');
         } catch (Exception) {
         }
 
@@ -180,7 +180,7 @@ final class TransactionTest extends DbalMessagingTestCase
                 ->withEnvironment('prod')
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
         );
-        $ecotone->sendCommandWithRoutingKey('command.prepare');
+        $ecotone->sendCommandWithRouting('command.prepare');
         $this->assertSame(true, $consoleCommands->prepared, 'Preparation command should be executed');
 
         try {

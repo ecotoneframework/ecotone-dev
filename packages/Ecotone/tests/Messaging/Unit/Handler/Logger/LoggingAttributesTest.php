@@ -32,7 +32,7 @@ final class LoggingAttributesTest extends TestCase
             ['logger' => $logger, new LogBeforeHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('logBefore.handle', 'some-payload');
+        $ecotone->sendCommandWithRouting('logBefore.handle', 'some-payload');
 
         $matching = $logger->recordsWithMessage('some-payload');
         $this->assertCount(1, $matching);
@@ -62,7 +62,7 @@ final class LoggingAttributesTest extends TestCase
             ['logger' => $logger, new LogBeforeFullMessageHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('logBeforeFull.handle', 'some-payload');
+        $ecotone->sendCommandWithRouting('logBeforeFull.handle', 'some-payload');
 
         $matching = $logger->recordsWithMessage('some-payload');
         $this->assertCount(1, $matching);
@@ -78,7 +78,7 @@ final class LoggingAttributesTest extends TestCase
         );
 
         try {
-            $ecotone->sendCommandWithRoutingKey('logError.handle', 'some-payload');
+            $ecotone->sendCommandWithRouting('logError.handle', 'some-payload');
             $this->fail('Expected exception was not thrown');
         } catch (RuntimeException $exception) {
             $this->assertSame('handler failed', $exception->getMessage());

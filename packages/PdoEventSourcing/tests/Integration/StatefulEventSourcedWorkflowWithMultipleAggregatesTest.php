@@ -75,7 +75,7 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
                 new ItemWasAddedToBasket('basket-1', 'item-1', 4),
                 new ItemReserved('item-1', 4),
             ],
-            $ecotone->getRecordedEvents(),
+            $ecotone->popRecordedEvents(),
         );
     }
 
@@ -130,7 +130,7 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
                 new ItemWasAddedToBasket('basket-1', 'item-1', 4),
                 new ItemReserved('item-1', 4),
             ],
-            $ecotone->getRecordedEvents(),
+            $ecotone->popRecordedEvents(),
         );
     }
 }

@@ -70,11 +70,11 @@ final class DynamicStreamChannelRetryTest extends AmqpMessagingTestCase
 
         $ecotoneLite->getCommandBus()->sendWithRouting('execute.dynamic_stream', 'test_message');
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: false)->withExecutionTimeLimitInMilliseconds(5000));
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: false)->withExecutionTimeLimitInMilliseconds(5000));
 
         self::assertTrue($handler->failedOnce, 'Handler should have failed on first attempt');
 
-        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(failAtError: true)->withExecutionTimeLimitInMilliseconds(5000));
+        $ecotoneLite->run('async', ExecutionPollingMetadata::createWithFinishWhenNoMessages(stopOnError: true)->withExecutionTimeLimitInMilliseconds(5000));
 
         self::assertTrue($handler->succeeded, 'Handler should have succeeded on retry after resend');
     }

@@ -170,11 +170,11 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 ])
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('getResultOne', 2);
+        $ecotoneLite->sendCommandWithRouting('getResultOne', 2);
         $ecotoneLite->run('asyncOne');
         $this->assertEquals(4, $calculatingService->getLastResult());
 
-        $ecotoneLite->sendCommandWithRoutingKey('getResultTwo', 3);
+        $ecotoneLite->sendCommandWithRouting('getResultTwo', 3);
         $ecotoneLite->run('asyncTwo');
         $this->assertEquals(6, $calculatingService->getLastResult());
     }
@@ -1753,7 +1753,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 ])
         );
 
-        $ecotone->sendCommandWithRoutingKey('orders');
+        $ecotone->sendCommandWithRouting('orders');
         $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(1));
 
         $this->assertSame(1, $commandHandler->handled);
@@ -1773,7 +1773,7 @@ class MessagingSystemConfigurationTest extends MessagingTestCase
                 ])
         );
 
-        $ecotone->publishEventWithRoutingKey('orders');
+        $ecotone->publishEventWithRouting('orders');
         $ecotone->run('orders', ExecutionPollingMetadata::createWithTestingSetup(1));
 
         $this->assertSame(1, $eventHandler->handled);

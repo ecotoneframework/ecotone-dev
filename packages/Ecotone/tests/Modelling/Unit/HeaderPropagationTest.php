@@ -35,14 +35,14 @@ final class HeaderPropagationTest extends TestCase
         $correlationId = Uuid::v7()->toRfc4122();
 
         $headers = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'placeOrder',
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
                     MessageHeaders::MESSAGE_CORRELATION_ID => $correlationId,
                 ]
             )
-            ->getRecordedEventHeaders()[0];
+            ->popRecordedEventHeaders()[0];
 
         $this->assertNotSame($messageId, $headers->getMessageId());
         $this->assertSame($correlationId, $headers->getCorrelationId());
@@ -57,13 +57,13 @@ final class HeaderPropagationTest extends TestCase
 
         $messageId = Uuid::v7()->toRfc4122();
         $headers = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'placeOrder',
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
                 ]
             )
-            ->getRecordedEventHeaders()[0];
+            ->popRecordedEventHeaders()[0];
 
         $this->assertNotSame($messageId, $headers->getMessageId());
         $this->assertSame($messageId, $headers->getParentId());
@@ -78,13 +78,13 @@ final class HeaderPropagationTest extends TestCase
 
         $messageId = Uuid::v7()->toRfc4122();
         $headers = $ecotoneTestSupport
-            ->sendCommandWithRoutingKey(
+            ->sendCommandWithRouting(
                 'placeOrderAndPropagateMetadata',
                 metadata: [
                     MessageHeaders::MESSAGE_ID => $messageId,
                 ]
             )
-            ->getRecordedEventHeaders()[0];
+            ->popRecordedEventHeaders()[0];
 
         $this->assertSame($messageId, $headers->getMessageId());
         $this->assertNull($headers->getParentId());
@@ -101,7 +101,7 @@ final class HeaderPropagationTest extends TestCase
             'token' => '123',
         ]);
 
-        $headers = $ecotoneTestSupport->getRecordedEventHeaders()[0];
+        $headers = $ecotoneTestSupport->popRecordedEventHeaders()[0];
 
         $this->assertSame('123', $headers->get('token'));
     }
@@ -117,7 +117,7 @@ final class HeaderPropagationTest extends TestCase
             'token' => '123',
         ]);
 
-        $headers = $ecotoneTestSupport->getRecordedEventHeaders()[0];
+        $headers = $ecotoneTestSupport->popRecordedEventHeaders()[0];
 
         $this->assertFalse($headers->containsKey('token'));
     }
@@ -133,7 +133,7 @@ final class HeaderPropagationTest extends TestCase
             'token' => '123',
         ]);
 
-        $headers = $ecotoneTestSupport->getRecordedEventHeaders()[0];
+        $headers = $ecotoneTestSupport->popRecordedEventHeaders()[0];
 
         $this->assertSame('123', $headers->get('token'));
     }

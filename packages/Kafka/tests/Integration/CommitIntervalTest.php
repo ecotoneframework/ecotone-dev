@@ -54,7 +54,7 @@ final class CommitIntervalTest extends TestCase
         }
 
         // Run consumer - should process all 5
-        $ecotoneLite->run('kafka_consumer_default', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 5, maxExecutionTimeInMilliseconds: 20000));
+        $ecotoneLite->run('kafka_consumer_default', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 5, executionTimeLimitInMilliseconds: 20000));
 
         $messages = $ecotoneLite->sendQueryWithRouting('consumer.getMessages');
         $this->assertCount(5, $messages);

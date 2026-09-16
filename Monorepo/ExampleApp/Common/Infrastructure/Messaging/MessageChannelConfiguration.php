@@ -32,8 +32,8 @@ final class MessageChannelConfiguration
             // 3 retries for notifications
             ErrorHandlerConfiguration::createWithDeadLetterChannel(
                 'errorChannel',
-                RetryTemplateBuilder::exponentialBackoff(1000, 10)
-                    ->maxRetryAttempts(3),
+                RetryTemplateBuilder::exponentialBackOff(1000, 10)
+                    ->maxRetries(3),
                 'default_dead_letter'
             ),
             SimpleMessageChannelBuilder::createQueueChannel(

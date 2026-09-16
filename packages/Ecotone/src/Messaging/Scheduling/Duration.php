@@ -29,9 +29,9 @@ final class Duration
         return new self((int) round($seconds * 1_000_000));
     }
 
-    public static function minutes(int|float $seconds): self
+    public static function minutes(int|float $minutes): self
     {
-        return new self((int) round($seconds * 60 * 1_000_000));
+        return new self((int) round($minutes * 60 * 1_000_000));
     }
 
     public static function zero(): self

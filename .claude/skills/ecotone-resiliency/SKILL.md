@@ -22,15 +22,15 @@ use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
 // Fixed backoff: 1 second between retries, max 3 attempts
 $retry = RetryTemplateBuilder::fixedBackOff(1000)
-    ->maxRetryAttempts(3);
+    ->maxRetries(3);
 
 // Exponential backoff: 1s -> 10s -> 100s...
-$retry = RetryTemplateBuilder::exponentialBackoff(1000, 10)
-    ->maxRetryAttempts(5);
+$retry = RetryTemplateBuilder::exponentialBackOff(1000, 10)
+    ->maxRetries(5);
 
 // Exponential with max delay cap: 1s -> 2s -> 4s -> ... -> 60s -> 60s
-$retry = RetryTemplateBuilder::exponentialBackoffWithMaxDelay(1000, 2, 60000)
-    ->maxRetryAttempts(10);
+$retry = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(1000, 2, 60000)
+    ->maxRetries(10);
 ```
 
 ## 2. ErrorHandlerConfiguration
@@ -45,7 +45,7 @@ class ErrorConfig
     {
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             'errorChannel',
-            RetryTemplateBuilder::fixedBackOff(1000)->maxRetryAttempts(3),
+            RetryTemplateBuilder::fixedBackOff(1000)->maxRetries(3),
             'dead_letter'
         );
     }

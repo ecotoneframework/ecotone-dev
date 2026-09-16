@@ -119,7 +119,7 @@ Source: `Ecotone\Messaging\MessageHeaders`
 
 ## Recorded Headers API
 
-Available on `EcotoneLite` test instance via `getRecordedEventHeaders()` and `getRecordedCommandHeaders()`.
+Available on `EcotoneLite` test instance via `popRecordedEventHeaders()` and `popRecordedCommandHeaders()`.
 
 Each entry provides:
 

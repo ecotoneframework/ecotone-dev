@@ -33,12 +33,12 @@ final class DistributedCommandBusTest extends AmqpMessagingTestCase
             //            'logger' => new EchoLogger(),
         ]);
 
-        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 500));
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
-        $userService->sendCommandWithRoutingKey(UserService::CHANGE_BILLING_DETAILS, 'user_service');
+        $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'user_service');
 
-        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 500));
         self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
         self::assertEquals(
             ['User changed billing address'],
@@ -54,12 +54,12 @@ final class DistributedCommandBusTest extends AmqpMessagingTestCase
             //            'logger' => new EchoLogger(),
         ]);
 
-        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 500));
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
-        $userService->sendCommandWithRoutingKey(UserService::CHANGE_BILLING_DETAILS, 'user_service');
+        $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'user_service');
 
-        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 500));
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 500));
         self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
         $this->assertTrue($customDistributedBusInterceptor->wasCalled);
     }

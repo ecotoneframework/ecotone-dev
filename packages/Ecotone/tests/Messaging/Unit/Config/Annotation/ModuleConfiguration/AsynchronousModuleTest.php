@@ -86,7 +86,7 @@ final class AsynchronousModuleTest extends AnnotationConfigurationTestCase
             []
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('retried.asynchronous', 2);
+        $ecotoneLite->sendCommandWithRouting('retried.asynchronous', 2);
 
         $this->expectException(RuntimeException::class);
 

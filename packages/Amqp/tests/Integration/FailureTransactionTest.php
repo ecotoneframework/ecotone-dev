@@ -27,12 +27,12 @@ final class FailureTransactionTest extends AmqpMessagingTestCase
         );
 
         try {
-            $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+            $ecotone->sendCommandWithRouting('order.register', 'milk');
         } catch (Throwable) {
         }
 
         try {
-            $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+            $ecotone->sendCommandWithRouting('order.register', 'milk');
         } catch (Throwable) {
         }
 
@@ -52,7 +52,7 @@ final class FailureTransactionTest extends AmqpMessagingTestCase
 
         self::assertNull(
             $ecotone
-                ->sendCommandWithRoutingKey('order.register', 'window')
+                ->sendCommandWithRouting('order.register', 'window')
                 ->run('placeOrder')
                 ->run('placeOrder')
                 ->sendQueryWithRouting('order.getOrder')

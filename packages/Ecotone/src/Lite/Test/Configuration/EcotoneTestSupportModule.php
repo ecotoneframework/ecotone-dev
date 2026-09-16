@@ -7,6 +7,7 @@ namespace Ecotone\Lite\Test\Configuration;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\CommandBus;
 use Ecotone\Api\CommandHandler;
+use Ecotone\Api\EcotoneClockInterface;
 use Ecotone\Api\EventBus;
 use Ecotone\Api\EventHandler;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
@@ -19,6 +20,7 @@ use Ecotone\Api\TestConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\Lite\Test\MessagingTestSupport;
+use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -58,16 +60,18 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
     public const RECORD_COMMAND = 'recordCommand';
     public const RECORD_EVENT = 'recordEvent';
     public const RECORD_QUERY = 'recordQuery';
-    public const GET_RECORDED_EVENT_MESSAGES = 'getRecordedEventMessages';
-    public const GET_RECORDED_EVENTS = 'getRecordedEvents';
-    public const GET_RECORDED_COMMANDS = 'getRecordedCommands';
-    public const GET_RECORDED_COMMAND_MESSAGES = 'getRecordedCommandMessages';
-    public const GET_RECORDED_QUERIES = 'getRecordedQueries';
-    public const GET_RECORDED_QUERY_MESSAGES = 'getRecordedQueryMessages';
+    public const POP_RECORDED_EVENT_MESSAGES = 'popRecordedEventMessages';
+    public const POP_RECORDED_EVENTS = 'popRecordedEvents';
+    public const POP_RECORDED_COMMANDS = 'popRecordedCommands';
+    public const POP_RECORDED_EVENT_MESSAGES_OF_TYPE = 'popRecordedEventMessagesOfType';
+    public const POP_RECORDED_COMMAND_MESSAGES_OF_TYPE = 'popRecordedCommandMessagesOfType';
+    public const POP_RECORDED_COMMAND_MESSAGES = 'popRecordedCommandMessages';
+    public const POP_RECORDED_QUERIES = 'popRecordedQueries';
+    public const POP_RECORDED_QUERY_MESSAGES = 'popRecordedQueryMessages';
     public const DISCARD_MESSAGES = 'discardRecordedMessages';
     public const RELEASE_DELAYED_MESSAGES = 'releaseMessagesAwaitingFor';
-    public const GET_SPIED_CHANNEL_RECORDED_MESSAGE_PAYLOADS = 'getRecordedMessagePayloadsFrom';
-    public const GET_SPIED_CHANNEL_RECORDED_MESSAGES = 'getRecordedEcotoneMessagesFrom';
+    public const POP_SPIED_CHANNEL_RECORDED_MESSAGE_PAYLOADS = 'popRecordedMessagePayloadsFrom';
+    public const POP_SPIED_CHANNEL_RECORDED_MESSAGES = 'popRecordedMessagesFrom';
 
     private function __construct(private array $spiedChannels)
     {
@@ -135,6 +139,14 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 new Reference(InMemoryConsoleWriter::class),
             ])
         );
+
+        $messagingConfiguration->registerServiceDefinition(PinnedTestClockInterceptor::class, new Definition(PinnedTestClockInterceptor::class, [new Reference(EcotoneClockInterface::class)]));
+        $messagingConfiguration->registerAroundMethodInterceptor(AroundInterceptorBuilder::create(
+            PinnedTestClockInterceptor::class,
+            $interfaceToCallRegistry->getFor(PinnedTestClockInterceptor::class, 'handleAtPinnedTime'),
+            Precedence::TRACING_PRECEDENCE - 1,
+            AsynchronousRunningEndpoint::class,
+        ));
 
         $messagingConfiguration->registerServiceDefinition(MessageCollectorHandler::class, new Definition(MessageCollectorHandler::class));
         $this->registerMessageCollector($messagingConfiguration, $interfaceToCallRegistry);
@@ -266,34 +278,46 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 ->withInputChannelName(self::inputChannelName(self::RECORD_QUERY)))
             ->registerMessageHandler(ServiceActivatorBuilder::create(
                 MessageCollectorHandler::class,
-                self::GET_RECORDED_EVENTS
+                self::POP_RECORDED_EVENTS
             )
-                ->withInputChannelName(self::inputChannelName(self::GET_RECORDED_EVENTS)))
+                ->withInputChannelName(self::inputChannelName(self::POP_RECORDED_EVENTS)))
             ->registerMessageHandler(ServiceActivatorBuilder::create(
                 MessageCollectorHandler::class,
-                self::GET_RECORDED_EVENT_MESSAGES
+                self::POP_RECORDED_EVENT_MESSAGES
             )
-                ->withInputChannelName(self::inputChannelName(self::GET_RECORDED_EVENT_MESSAGES)))
+                ->withInputChannelName(self::inputChannelName(self::POP_RECORDED_EVENT_MESSAGES)))
             ->registerMessageHandler(ServiceActivatorBuilder::create(
                 MessageCollectorHandler::class,
-                self::GET_RECORDED_COMMANDS
+                self::POP_RECORDED_EVENT_MESSAGES_OF_TYPE
             )
-                ->withInputChannelName(self::inputChannelName(self::GET_RECORDED_COMMANDS)))
+                ->withMethodParameterConverters([PayloadBuilder::create('className')])
+                ->withInputChannelName(self::inputChannelName(self::POP_RECORDED_EVENT_MESSAGES_OF_TYPE)))
             ->registerMessageHandler(ServiceActivatorBuilder::create(
                 MessageCollectorHandler::class,
-                self::GET_RECORDED_COMMAND_MESSAGES
+                self::POP_RECORDED_COMMAND_MESSAGES_OF_TYPE
             )
-                ->withInputChannelName(self::inputChannelName(self::GET_RECORDED_COMMAND_MESSAGES)))
+                ->withMethodParameterConverters([PayloadBuilder::create('className')])
+                ->withInputChannelName(self::inputChannelName(self::POP_RECORDED_COMMAND_MESSAGES_OF_TYPE)))
             ->registerMessageHandler(ServiceActivatorBuilder::create(
                 MessageCollectorHandler::class,
-                self::GET_RECORDED_QUERIES
+                self::POP_RECORDED_COMMANDS
             )
-                ->withInputChannelName(self::inputChannelName(self::GET_RECORDED_QUERIES)))
+                ->withInputChannelName(self::inputChannelName(self::POP_RECORDED_COMMANDS)))
             ->registerMessageHandler(ServiceActivatorBuilder::create(
                 MessageCollectorHandler::class,
-                self::GET_RECORDED_QUERY_MESSAGES
+                self::POP_RECORDED_COMMAND_MESSAGES
             )
-                ->withInputChannelName(self::inputChannelName(self::GET_RECORDED_QUERY_MESSAGES)))
+                ->withInputChannelName(self::inputChannelName(self::POP_RECORDED_COMMAND_MESSAGES)))
+            ->registerMessageHandler(ServiceActivatorBuilder::create(
+                MessageCollectorHandler::class,
+                self::POP_RECORDED_QUERIES
+            )
+                ->withInputChannelName(self::inputChannelName(self::POP_RECORDED_QUERIES)))
+            ->registerMessageHandler(ServiceActivatorBuilder::create(
+                MessageCollectorHandler::class,
+                self::POP_RECORDED_QUERY_MESSAGES
+            )
+                ->withInputChannelName(self::inputChannelName(self::POP_RECORDED_QUERY_MESSAGES)))
             ->registerMessageHandler(ServiceActivatorBuilder::create(
                 MessageCollectorHandler::class,
                 self::DISCARD_MESSAGES
@@ -301,55 +325,67 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 ->withInputChannelName(self::inputChannelName(self::DISCARD_MESSAGES)))
             ->registerMessageHandler(ServiceActivatorBuilder::create(
                 MessageCollectorHandler::class,
-                self::GET_SPIED_CHANNEL_RECORDED_MESSAGE_PAYLOADS
+                self::POP_SPIED_CHANNEL_RECORDED_MESSAGE_PAYLOADS
             )
                 ->withMethodParameterConverters([
                     HeaderBuilder::create('channelName', 'ecotone.test_support_gateway.channel_name'),
                 ])
-                ->withInputChannelName(self::inputChannelName(self::GET_SPIED_CHANNEL_RECORDED_MESSAGE_PAYLOADS)))
+                ->withInputChannelName(self::inputChannelName(self::POP_SPIED_CHANNEL_RECORDED_MESSAGE_PAYLOADS)))
             ->registerMessageHandler(ServiceActivatorBuilder::create(
                 MessageCollectorHandler::class,
-                self::GET_SPIED_CHANNEL_RECORDED_MESSAGES
+                self::POP_SPIED_CHANNEL_RECORDED_MESSAGES
             )
                 ->withMethodParameterConverters([
                     HeaderBuilder::create('channelName', 'ecotone.test_support_gateway.channel_name'),
                 ])
-                ->withInputChannelName(self::inputChannelName(self::GET_SPIED_CHANNEL_RECORDED_MESSAGES)))
+                ->withInputChannelName(self::inputChannelName(self::POP_SPIED_CHANNEL_RECORDED_MESSAGES)))
             ->registerGatewayBuilder(GatewayProxyBuilder::create(
                 MessagingTestSupport::class,
                 MessagingTestSupport::class,
-                self::GET_RECORDED_EVENTS,
-                self::inputChannelName(self::GET_RECORDED_EVENTS)
+                self::POP_RECORDED_EVENTS,
+                self::inputChannelName(self::POP_RECORDED_EVENTS)
             ))
             ->registerGatewayBuilder(GatewayProxyBuilder::create(
                 MessagingTestSupport::class,
                 MessagingTestSupport::class,
-                self::GET_RECORDED_EVENT_MESSAGES,
-                self::inputChannelName(self::GET_RECORDED_EVENT_MESSAGES)
+                self::POP_RECORDED_EVENT_MESSAGES,
+                self::inputChannelName(self::POP_RECORDED_EVENT_MESSAGES)
             ))
             ->registerGatewayBuilder(GatewayProxyBuilder::create(
                 MessagingTestSupport::class,
                 MessagingTestSupport::class,
-                self::GET_RECORDED_COMMANDS,
-                self::inputChannelName(self::GET_RECORDED_COMMANDS)
+                self::POP_RECORDED_EVENT_MESSAGES_OF_TYPE,
+                self::inputChannelName(self::POP_RECORDED_EVENT_MESSAGES_OF_TYPE)
+            )->withParameterConverters([GatewayPayloadBuilder::create('className')]))
+            ->registerGatewayBuilder(GatewayProxyBuilder::create(
+                MessagingTestSupport::class,
+                MessagingTestSupport::class,
+                self::POP_RECORDED_COMMAND_MESSAGES_OF_TYPE,
+                self::inputChannelName(self::POP_RECORDED_COMMAND_MESSAGES_OF_TYPE)
+            )->withParameterConverters([GatewayPayloadBuilder::create('className')]))
+            ->registerGatewayBuilder(GatewayProxyBuilder::create(
+                MessagingTestSupport::class,
+                MessagingTestSupport::class,
+                self::POP_RECORDED_COMMANDS,
+                self::inputChannelName(self::POP_RECORDED_COMMANDS)
             ))
             ->registerGatewayBuilder(GatewayProxyBuilder::create(
                 MessagingTestSupport::class,
                 MessagingTestSupport::class,
-                self::GET_RECORDED_COMMAND_MESSAGES,
-                self::inputChannelName(self::GET_RECORDED_COMMAND_MESSAGES)
+                self::POP_RECORDED_COMMAND_MESSAGES,
+                self::inputChannelName(self::POP_RECORDED_COMMAND_MESSAGES)
             ))
             ->registerGatewayBuilder(GatewayProxyBuilder::create(
                 MessagingTestSupport::class,
                 MessagingTestSupport::class,
-                self::GET_RECORDED_QUERIES,
-                self::inputChannelName(self::GET_RECORDED_QUERIES)
+                self::POP_RECORDED_QUERIES,
+                self::inputChannelName(self::POP_RECORDED_QUERIES)
             ))
             ->registerGatewayBuilder(GatewayProxyBuilder::create(
                 MessagingTestSupport::class,
                 MessagingTestSupport::class,
-                self::GET_RECORDED_QUERY_MESSAGES,
-                self::inputChannelName(self::GET_RECORDED_QUERY_MESSAGES)
+                self::POP_RECORDED_QUERY_MESSAGES,
+                self::inputChannelName(self::POP_RECORDED_QUERY_MESSAGES)
             ))
             ->registerGatewayBuilder(GatewayProxyBuilder::create(
                 MessagingTestSupport::class,
@@ -360,16 +396,16 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             ->registerGatewayBuilder(GatewayProxyBuilder::create(
                 MessagingTestSupport::class,
                 MessagingTestSupport::class,
-                self::GET_SPIED_CHANNEL_RECORDED_MESSAGE_PAYLOADS,
-                self::inputChannelName(self::GET_SPIED_CHANNEL_RECORDED_MESSAGE_PAYLOADS)
+                self::POP_SPIED_CHANNEL_RECORDED_MESSAGE_PAYLOADS,
+                self::inputChannelName(self::POP_SPIED_CHANNEL_RECORDED_MESSAGE_PAYLOADS)
             )->withParameterConverters([
                 GatewayHeaderBuilder::create('channelName', 'ecotone.test_support_gateway.channel_name'),
             ]))
             ->registerGatewayBuilder(GatewayProxyBuilder::create(
                 MessagingTestSupport::class,
                 MessagingTestSupport::class,
-                self::GET_SPIED_CHANNEL_RECORDED_MESSAGES,
-                self::inputChannelName(self::GET_SPIED_CHANNEL_RECORDED_MESSAGES)
+                self::POP_SPIED_CHANNEL_RECORDED_MESSAGES,
+                self::inputChannelName(self::POP_SPIED_CHANNEL_RECORDED_MESSAGES)
             )->withParameterConverters([
                 GatewayHeaderBuilder::create('channelName', 'ecotone.test_support_gateway.channel_name'),
             ]))

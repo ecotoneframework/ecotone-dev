@@ -98,10 +98,10 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
 
                 $generatedErrorChannelName = DelayedRetry::generateChannelName($handlerEndpointId);
                 $retryTemplateBuilder = new RetryTemplateBuilder(
-                    $delayedRetry->initialDelayMs,
+                    $delayedRetry->initialDelayInMilliseconds,
                     $delayedRetry->multiplier,
-                    $delayedRetry->maxDelayMs,
-                    $delayedRetry->maxAttempts,
+                    $delayedRetry->maxDelayInMilliseconds,
+                    $delayedRetry->maxRetries,
                 );
 
                 $perHandlerRetryConfigurations[] = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
@@ -123,10 +123,10 @@ class ErrorHandlerModule extends NoExternalConfigurationModule implements Annota
 
             $generatedErrorChannelName = DelayedRetry::generateGatewayChannelName($gatewayInterfaceFqn);
             $retryTemplateBuilder = new RetryTemplateBuilder(
-                $delayedRetry->initialDelayMs,
+                $delayedRetry->initialDelayInMilliseconds,
                 $delayedRetry->multiplier,
-                $delayedRetry->maxDelayMs,
-                $delayedRetry->maxAttempts,
+                $delayedRetry->maxDelayInMilliseconds,
+                $delayedRetry->maxRetries,
             );
             $perHandlerRetryConfigurations[] = self::buildErrorHandlerConfig($generatedErrorChannelName, $retryTemplateBuilder, $delayedRetry->deadLetterChannel);
         }

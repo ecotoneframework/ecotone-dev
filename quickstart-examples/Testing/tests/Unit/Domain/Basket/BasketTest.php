@@ -30,7 +30,7 @@ final class BasketTest extends TestCase
             [new ProductWasAddedToBasket($userId, $productId, 500)],
             EcotoneLite::bootstrapFlowTesting([Basket::class], [ProductService::class => $productService])
                 ->sendCommand(new AddProductToBasket($userId, $productId))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -46,7 +46,7 @@ final class BasketTest extends TestCase
                 ->sendCommand(new AddProductToBasket($userId, $productId))
                 ->discardRecordedMessages()
                 ->sendCommand(new AddProductToBasket($userId, $productId))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -62,7 +62,7 @@ final class BasketTest extends TestCase
                 ->sendCommand(new AddProductToBasket($userId, $productId))
                 ->discardRecordedMessages()
                 ->sendCommand(new RemoveProductFromBasket($userId, $productId))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -91,7 +91,7 @@ final class BasketTest extends TestCase
             $testSupport
                 ->discardRecordedMessages()
                 ->sendCommand(new RemoveProductFromBasket($userId, $productId))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 
@@ -107,7 +107,7 @@ final class BasketTest extends TestCase
                 ->sendCommand(new AddProductToBasket($userId, $productId))
                 ->discardRecordedMessages()
                 ->sendCommand(new RemoveProductFromBasket($userId, Uuid::uuid4()))
-                ->getRecordedEvents()
+                ->popRecordedEvents()
         );
     }
 }

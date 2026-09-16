@@ -55,7 +55,7 @@ final class BusRoutingTest extends TestCase
         $handler = new RoutingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler]);
 
-        $ecotone->publishEventWithRoutingKey('test.named', 'payload');
+        $ecotone->publishEventWithRouting('test.named', 'payload');
 
         $this->assertContains('namedHandler', $handler->calls);
         $this->assertContains('wildcardHandler', $handler->calls);
@@ -66,7 +66,7 @@ final class BusRoutingTest extends TestCase
         $handler = new RoutingHandler();
         $ecotone = EcotoneLite::bootstrapFlowTesting([RoutingHandler::class], [$handler]);
 
-        $ecotone->publishEventWithRoutingKey('test.unknown', 'payload');
+        $ecotone->publishEventWithRouting('test.unknown', 'payload');
 
         $this->assertSame(['wildcardHandler'], $handler->calls);
     }

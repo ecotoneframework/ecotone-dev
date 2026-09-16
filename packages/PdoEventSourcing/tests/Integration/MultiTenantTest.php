@@ -65,8 +65,8 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
             metadata: ['tenant' => 'tenant_b']
         );
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 5000,
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 5000,
         ));
 
         self::assertEquals(
@@ -88,8 +88,8 @@ final class MultiTenantTest extends EventSourcingMessagingTestCase
         );
 
         $ecotone->run(InProgressTicketList::PROJECTION_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 5000,
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 5000,
         ));
 
         self::assertEquals(

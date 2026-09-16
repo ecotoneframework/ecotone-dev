@@ -21,7 +21,7 @@ public function test_distributed_command_handling(): void
         containerOrAvailableServices: [$handler],
     );
 
-    $ecotone->sendCommandWithRoutingKey('order.place', new PlaceOrder('order-1'));
+    $ecotone->sendCommandWithRouting('order.place', new PlaceOrder('order-1'));
 
     $this->assertNotNull($handler->received);
     $this->assertEquals('order-1', $handler->received->orderId);
@@ -49,7 +49,7 @@ public function test_distributed_event_publishing(): void
         containerOrAvailableServices: [$listener],
     );
 
-    $ecotone->publishEventWithRoutingKey('order.placed', new OrderWasPlaced('order-1'));
+    $ecotone->publishEventWithRouting('order.placed', new OrderWasPlaced('order-1'));
 
     $this->assertCount(1, $listener->events);
 }

@@ -22,10 +22,6 @@ public function test_async_event_processing(): void
     $ecotone = EcotoneLite::bootstrapFlowTesting(
         classesToResolve: [$handler::class],
         containerOrAvailableServices: [$handler],
-        configuration: ServiceConfiguration::createWithDefaults()
-            ->withExtensionObjects([
-                SimpleMessageChannelBuilder::createQueueChannel('notifications'),
-            ]),
     );
 
     $ecotone->publishEvent(new OrderWasPlaced('order-1'));
@@ -33,8 +29,8 @@ public function test_async_event_processing(): void
     // Not yet processed
     $this->assertEquals(0, $handler->processedCount);
 
-    // Run the consumer
-    $ecotone->run('notifications', ExecutionPollingMetadata::createWithTestingSetup());
+    // Run the consumer (the in-memory 'notifications' channel is provided by flow testing)
+    $ecotone->run('notifications');
 
     // Now processed
     $this->assertEquals(1, $handler->processedCount);
@@ -95,9 +91,10 @@ public function test_with_dbal_module(): void
 |---------|-------|-----|
 | "No handler found for message" | Handler class not in `classesToResolve` | Add class to first argument |
 | "Service not found in container" | Missing dependency | Add to `containerOrAvailableServices` |
-| "Channel not found" | Async channel not configured | Register the channel via `ServiceConfiguration::withExtensionObjects([SimpleMessageChannelBuilder::createQueueChannel('async')])` |
+| "It is handled by X::y(), which is not registered in this Ecotone Lite bootstrap" | Handler class not in `classesToResolve` | Add the named class or load its namespace |
+| "Cannot move time backwards" | `changeTimeTo()` earlier than the test clock | Use a later time or `advanceTimeBy()` |
 | Message not processed | Async handler not run | Call `$ecotone->run('channelName')` |
-| "Module not found" | Wrong `ModulePackageList` config | Check `allPackagesExcept()` includes needed modules |
+| "Module not found" | Wrong `ModulePackageList` config | Check `withModulePackages([...])` lists the needed packages |
 | Database errors | Missing DSN env vars | Run inside Docker container with env vars set |
 | Lowest dependency failures | API differences between versions | Test both `--prefer-lowest` and latest |
 

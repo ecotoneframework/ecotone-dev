@@ -103,8 +103,8 @@ final class KafkaTenantResolverTest extends TestCase
         $this->publishToTopic($tenantBTopic, 'payload_b');
 
         $ecotoneLite->run('tenantTopicConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 30000,
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 30000,
         ));
 
         $headersList = [];

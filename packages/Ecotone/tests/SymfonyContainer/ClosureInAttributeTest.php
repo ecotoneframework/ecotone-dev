@@ -28,7 +28,7 @@ final class ClosureInAttributeTest extends TestCase
             [new OrderService(), $lockingInterceptor],
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.place', 'coffee');
+        $ecotoneLite->sendCommandWithRouting('order.place', 'coffee');
 
         $this->assertSame(['coffee'], $ecotoneLite->sendQueryWithRouting('order.getOrders'));
         $this->assertSame(['order-lock'], $lockingInterceptor->getLockedResources());

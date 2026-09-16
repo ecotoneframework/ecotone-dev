@@ -88,7 +88,7 @@ class RoutingTest extends TestCase
         );
 
         $ecotoneLite
-            ->publishEventWithRoutingKey(GuestWasAddedToBook::EVENT_NAME, $event);
+            ->publishEventWithRouting(GuestWasAddedToBook::EVENT_NAME, $event);
         $ecotoneLite->run('async');
         $this->assertCount(1, $handler->getMessages());
     }

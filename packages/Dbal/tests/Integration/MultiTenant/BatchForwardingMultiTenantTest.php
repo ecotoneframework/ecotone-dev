@@ -56,20 +56,20 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.register', 'espresso', metadata: ['tenant' => 'tenant_a']);
-        $messaging->sendCommandWithRoutingKey('order.register', 'latte', metadata: ['tenant' => 'tenant_a']);
-        $messaging->sendCommandWithRoutingKey('order.register', 'flat white', metadata: ['tenant' => 'tenant_b']);
+        $messaging->sendCommandWithRouting('order.register', 'espresso', metadata: ['tenant' => 'tenant_a']);
+        $messaging->sendCommandWithRouting('order.register', 'latte', metadata: ['tenant' => 'tenant_a']);
+        $messaging->sendCommandWithRouting('order.register', 'flat white', metadata: ['tenant' => 'tenant_b']);
 
         $this->assertSame(2, $this->amountOfOutboxRowsFor($this->connectionForTenantA()));
         $this->assertSame(1, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
         $this->assertSame(['espresso', 'latte'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfOutboxRowsFor($this->connectionForTenantA()));
         $this->assertSame(1, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));
 
-        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, maxExecutionTimeInMilliseconds: 5000));
+        $messaging->run('outbox', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
         $this->assertSame(['flat white'], $this->payloadsOf($this->receiveAllFrom($messaging->getMessageChannel('orderProcessing'))));
         $this->assertSame(0, $this->amountOfOutboxRowsFor($this->connectionForTenantB()));

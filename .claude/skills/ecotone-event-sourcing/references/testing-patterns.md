@@ -7,7 +7,7 @@ $ecotone = EcotoneLite::bootstrapFlowTesting([Ticket::class]);
 
 $events = $ecotone
     ->sendCommand(new RegisterTicket('t-1', 'Bug'))
-    ->getRecordedEvents();
+    ->popRecordedEvents();
 
 $this->assertEquals([new TicketWasRegistered('t-1', 'Bug')], $events);
 ```
@@ -22,7 +22,7 @@ $events = $ecotone
         new TicketWasRegistered('t-1', 'Bug'),
     ])
     ->sendCommand(new CloseTicket('t-1'))
-    ->getRecordedEvents();
+    ->popRecordedEvents();
 
 $this->assertEquals([new TicketWasClosed('t-1')], $events);
 ```

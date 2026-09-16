@@ -38,7 +38,7 @@ final class HeaderConversionTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('withScalarConversion', metadata: [
+            ->sendCommandWithRouting('withScalarConversion', metadata: [
                 'token' => '537edce7-7e56-4777-b6ec-a012c40b9d1b',
             ])
             ->run('async');
@@ -62,7 +62,7 @@ final class HeaderConversionTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('withScalarConversion', metadata: [
+            ->sendCommandWithRouting('withScalarConversion', metadata: [
                 'token' => Uuid::fromString('537edce7-7e56-4777-b6ec-a012c40b9d1b'),
             ])
             ->run('async');
@@ -86,7 +86,7 @@ final class HeaderConversionTest extends TestCase
         );
 
         $ecotoneLite
-            ->sendCommandWithRoutingKey('withFallbackConversion', metadata: [
+            ->sendCommandWithRouting('withFallbackConversion', metadata: [
                 'tokens' => [1, 2, 3, 4, 5],
             ])
             ->run('async');
@@ -115,7 +115,7 @@ final class HeaderConversionTest extends TestCase
             [$handler],
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('withNullableEnumConversion', metadata: [
+        $ecotoneLite->sendCommandWithRouting('withNullableEnumConversion', metadata: [
             'deliveryMethod' => DeliveryMethod::Email->value,
         ]);
 

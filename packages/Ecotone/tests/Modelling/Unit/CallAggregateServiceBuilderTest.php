@@ -45,7 +45,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         )
-            ->sendCommandWithRoutingKey('doSomething', metadata: ['aggregate.id' => $id]);
+            ->sendCommandWithRouting('doSomething', metadata: ['aggregate.id' => $id]);
 
         $this->assertTrue(
             $ecotoneLite
@@ -121,7 +121,7 @@ class CallAggregateServiceBuilderTest extends TestCase
             EcotoneLite::bootstrapFlowTesting(
                 [AggregateWithoutMessageClassesExample::class],
             )
-                ->sendCommandWithRoutingKey('createAggregateNoParams', $id = 1)
+                ->sendCommandWithRouting('createAggregateNoParams', $id = 1)
                 ->sendQueryWithRouting('querySomething', metadata: ['aggregate.id' => $id])
         );
     }

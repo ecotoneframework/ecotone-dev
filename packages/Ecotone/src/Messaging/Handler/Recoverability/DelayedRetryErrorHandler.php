@@ -64,8 +64,8 @@ class DelayedRetryErrorHandler
             if (! $this->hasDeadLetterOutput) {
                 $logger->error(
                     sprintf(
-                        'No dead letter channel defined. Retried maximum number of `%s` times. Passing to final failure strategy. Due to: %s',
-                        $retryNumber,
+                        'No dead letter channel defined. Message failed after %s. Passing to final failure strategy. Due to: %s',
+                        $this->describeFailedDeliveries($retryNumber),
                         $errorMessage->getExceptionMessage()
                     ),
                     $failedMessage,
@@ -74,8 +74,10 @@ class DelayedRetryErrorHandler
 
                 throw MessageHandlingException::create(
                     sprintf(
-                        'Message handling failed after %d retry attempts. %s',
-                        $retryNumber,
+                        'Message handling failed on channel `%s` after %s. %s: %s',
+                        $failedMessage->getHeaders()->get(MessageHeaders::POLLED_CHANNEL_NAME),
+                        $this->describeFailedDeliveries($retryNumber),
+                        $errorMessage->getExceptionClass(),
                         $errorMessage->getExceptionMessage()
                     )
                 );
@@ -83,9 +85,9 @@ class DelayedRetryErrorHandler
 
             $logger->error(
                 sprintf(
-                    'Sending message `%s` to dead letter channel, as retried maximum number of `%s` times. Due to: %s',
+                    'Sending message `%s` to dead letter channel after %s. Due to: %s',
                     $failedMessage->getHeaders()->getMessageId(),
-                    $retryNumber,
+                    $this->describeFailedDeliveries($retryNumber),
                     $errorMessage->getExceptionMessage()
                 ),
                 $failedMessage,
@@ -118,6 +120,13 @@ class DelayedRetryErrorHandler
         );
 
         return null;
+    }
+
+    private function describeFailedDeliveries(int $failedDeliveries): string
+    {
+        $retries = $failedDeliveries - 1;
+
+        return sprintf('%d failed deliveries (1 initial + %d %s)', $failedDeliveries, $retries, $retries === 1 ? 'retry' : 'retries');
     }
 
     private function shouldBeSendToDeadLetter(int $retryNumber): bool

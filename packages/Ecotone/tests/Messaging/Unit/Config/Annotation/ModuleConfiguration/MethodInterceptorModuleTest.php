@@ -30,7 +30,7 @@ final class MethodInterceptorModuleTest extends AnnotationConfigurationTestCase
             configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
-        $ecootneLite->sendCommandWithRoutingKey('doSomethingAsync', new stdClass());
+        $ecootneLite->sendCommandWithRouting('doSomethingAsync', new stdClass());
         $this->assertNull($service->payload);
         $this->assertNull($service->consumerName);
 

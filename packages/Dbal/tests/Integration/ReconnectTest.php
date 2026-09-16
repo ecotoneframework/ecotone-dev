@@ -41,7 +41,7 @@ final class ReconnectTest extends DbalMessagingTestCase
         ]);
 
         self::assertCount(0, $ecotone
-            ->sendCommandWithRoutingKey('order.register', 'milk')
+            ->sendCommandWithRouting('order.register', 'milk')
             ->sendQueryWithRouting('order.getRegistered'));
 
         $connectionFactory->createContext()->getDbalConnection()->close();
@@ -75,7 +75,7 @@ final class ReconnectTest extends DbalMessagingTestCase
         ]);
 
         self::assertCount(0, $ecotone
-            ->sendCommandWithRoutingKey('order.register', 'milk', metadata: ['tenant' => 'tenant_a'])
+            ->sendCommandWithRouting('order.register', 'milk', metadata: ['tenant' => 'tenant_a'])
             ->sendQueryWithRouting('order.getRegistered', metadata: ['tenant' => 'tenant_a']));
 
         $connectionFactory->createContext()->getDbalConnection()->close();

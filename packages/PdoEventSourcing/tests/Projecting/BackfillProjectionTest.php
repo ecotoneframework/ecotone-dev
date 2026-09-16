@@ -123,14 +123,14 @@ final class BackfillProjectionTest extends ProjectingTestCase
 
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'batch2_async_projection']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_channel');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_channel');
         self::assertCount(3, $messages);
 
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(4, $ecotone->sendQueryWithRouting('getBackfillTickets'));
 
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(5, $ecotone->sendQueryWithRouting('getBackfillTickets'));
     }
 
@@ -164,10 +164,10 @@ final class BackfillProjectionTest extends ProjectingTestCase
 
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'batch5_async_projection']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_channel');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_channel');
         self::assertCount(1, $messages);
 
-        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(5, $ecotone->sendQueryWithRouting('getBackfillTickets5'));
     }
 
@@ -231,10 +231,10 @@ final class BackfillProjectionTest extends ProjectingTestCase
 
         self::assertCount(0, $ecotone->sendQueryWithRouting('getGlobalAsyncTickets'));
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_global_channel');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_global_channel');
         self::assertCount(1, $messages);
 
-        $ecotone->run('backfill_global_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotone->run('backfill_global_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertCount(3, $ecotone->sendQueryWithRouting('getGlobalAsyncTickets'));
     }
 

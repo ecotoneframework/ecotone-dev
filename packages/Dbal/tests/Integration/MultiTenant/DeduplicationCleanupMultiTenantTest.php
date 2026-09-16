@@ -51,11 +51,11 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
     {
         $ecotoneLite = $this->bootstrapEcotone();
 
-        $ecotoneLite->sendCommandWithRoutingKey(
+        $ecotoneLite->sendCommandWithRouting(
             'email_event_handler.handle_with_custom_deduplication_header',
             metadata: ['tenant' => 'tenant_a', 'emailId' => 'a-1']
         );
-        $ecotoneLite->sendCommandWithRoutingKey(
+        $ecotoneLite->sendCommandWithRouting(
             'email_event_handler.handle_with_custom_deduplication_header',
             metadata: ['tenant' => 'tenant_b', 'emailId' => 'b-1']
         );

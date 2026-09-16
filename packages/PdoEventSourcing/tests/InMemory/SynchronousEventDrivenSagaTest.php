@@ -45,13 +45,13 @@ final class SynchronousEventDrivenSagaTest extends TestCase
         self::assertEquals([
             new CreateBasket('1000'),
             new AddProduct('1000', 'chocolate'),
-        ], $testSupport->getRecordedCommands());
+        ], $testSupport->popRecordedCommands());
 
         self::assertEquals([
             new BasketWasCreated('1000'),
             new SagaStarted('1000'),
             new ProductWasAddedToBasket('1000', 'chocolate'),
-        ], $testSupport->getRecordedEvents());
+        ], $testSupport->popRecordedEvents());
 
         self::assertEquals(true, $testSupport->sendQueryWithRouting('isSagaStarted', '1000'));
 

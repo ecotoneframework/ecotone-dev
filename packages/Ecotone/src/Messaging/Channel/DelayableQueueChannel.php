@@ -72,26 +72,45 @@ final class DelayableQueueChannel implements PollableChannel, DefinedObject
      */
     public function receive(): ?Message
     {
-        $message = array_shift($this->queue);
-
-        if ($message !== null && $message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY)) {
-            if ($message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) > $this->getCurrentDeliveryTimeShift($message)) {
-                $nextAvailableMessage = $this->receive();
-                array_unshift($this->queue, $message);
-
-                if ($nextAvailableMessage === null) {
-                    return null;
-                }
-
-                $message = $nextAvailableMessage;
+        $earliestDuePosition = null;
+        $earliestDueAt = null;
+        foreach ($this->queue as $position => $message) {
+            if (! $this->isDue($message)) {
+                continue;
             }
 
-            return MessageBuilder::fromMessage($message)
-                ->removeHeader(MessageHeaders::DELIVERY_DELAY)
-                ->build();
+            $dueAt = $this->dueAtInMilliseconds($message);
+            if ($earliestDueAt === null || $dueAt < $earliestDueAt) {
+                $earliestDuePosition = $position;
+                $earliestDueAt = $dueAt;
+            }
         }
 
-        return $message;
+        if ($earliestDuePosition === null) {
+            return null;
+        }
+
+        $message = array_splice($this->queue, $earliestDuePosition, 1)[0];
+        if (! $message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY)) {
+            return $message;
+        }
+
+        return MessageBuilder::fromMessage($message)
+            ->removeHeader(MessageHeaders::DELIVERY_DELAY)
+            ->build();
+    }
+
+    private function isDue(Message $message): bool
+    {
+        return ! $message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY)
+            || $message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) <= $this->getCurrentDeliveryTimeShift($message);
+    }
+
+    private function dueAtInMilliseconds(Message $message): int
+    {
+        $delay = $message->getHeaders()->containsKey(MessageHeaders::DELIVERY_DELAY) ? $message->getHeaders()->get(MessageHeaders::DELIVERY_DELAY) : 0;
+
+        return $message->getHeaders()->getTimestamp() * 1000 + $delay;
     }
 
     /**

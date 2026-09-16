@@ -37,10 +37,10 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
         $handler = new SingleHopAsyncHandler();
         $ecotone = $this->bootstrapSingleHop($handler);
 
-        $ecotone->sendCommandWithRoutingKey(SingleHopAsyncHandler::ROUTING_KEY, 2);
+        $ecotone->sendCommandWithRouting(SingleHopAsyncHandler::ROUTING_KEY, 2);
 
         $this->assertNull($handler->lastResult);
-        $ecotone->run(SingleHopAsyncHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(SingleHopAsyncHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertSame(3, $handler->lastResult);
     }
 
@@ -53,13 +53,14 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
         $ecotone->run('some');
     }
 
-    public function test_throws_at_bootstrap_when_asynchronous_channel_has_no_consumer_registered(): void
+    public function test_application_bootstrap_throws_when_asynchronous_channel_has_no_consumer_registered(): void
     {
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        EcotoneLite::bootstrap(
             [UnregisteredAsyncChannelHandler::class],
             [new UnregisteredAsyncChannelHandler()],
+            ServiceConfiguration::createWithDefaults()->withModulePackages([]),
         );
     }
 
@@ -75,12 +76,12 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
             ]),
         );
 
-        $ecotone->sendCommandWithRoutingKey(TwoHopAsyncHandler::ROUTING_KEY, 2);
+        $ecotone->sendCommandWithRouting(TwoHopAsyncHandler::ROUTING_KEY, 2);
 
         $this->assertNull($handler->lastResult);
-        $ecotone->run(TwoHopAsyncHandler::CHANNEL_ONE, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(TwoHopAsyncHandler::CHANNEL_ONE, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertNull($handler->lastResult);
-        $ecotone->run(TwoHopAsyncHandler::CHANNEL_TWO, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(TwoHopAsyncHandler::CHANNEL_TWO, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertSame(3, $handler->lastResult);
     }
 
@@ -97,14 +98,14 @@ final class ConsumerRunningAndAsynchronousChainTest extends TestCase
             ]),
         );
 
-        $ecotone->sendCommandWithRoutingKey(ThreeHopAsyncHandler::ROUTING_KEY, 2);
+        $ecotone->sendCommandWithRouting(ThreeHopAsyncHandler::ROUTING_KEY, 2);
 
         $this->assertNull($handler->lastResult);
-        $ecotone->run(ThreeHopAsyncHandler::CHANNEL_ONE, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(ThreeHopAsyncHandler::CHANNEL_ONE, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertNull($handler->lastResult);
-        $ecotone->run(ThreeHopAsyncHandler::CHANNEL_TWO, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(ThreeHopAsyncHandler::CHANNEL_TWO, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertNull($handler->lastResult);
-        $ecotone->run(ThreeHopAsyncHandler::CHANNEL_THREE, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(ThreeHopAsyncHandler::CHANNEL_THREE, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertSame(3, $handler->lastResult);
     }
 

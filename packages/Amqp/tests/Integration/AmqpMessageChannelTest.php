@@ -161,13 +161,13 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         $this->assertEquals([], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
         $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(
-            maxExecutionTimeInMilliseconds: 2000,
+            executionTimeLimitInMilliseconds: 2000,
         ));
         /** Message should be consumed from the queue */
         $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
 
         $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(
-            maxExecutionTimeInMilliseconds: 2000,
+            executionTimeLimitInMilliseconds: 2000,
         ));
         /** Nothing should change, as we have not sent any new command message */
         $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
@@ -201,7 +201,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
         $ecotoneLite->getCommandBus()->sendWithRouting('order.register', 'milk');
 
         $ecotoneLite->run($channelName, ExecutionPollingMetadata::createWithDefaults()->withTestingSetup(
-            maxExecutionTimeInMilliseconds: 2000,
+            executionTimeLimitInMilliseconds: 2000,
         ));
         /** Message should be consumed from the queue */
         $this->assertEquals(['milk'], $ecotoneLite->getQueryBus()->sendWithRouting('order.getOrders'));
@@ -260,7 +260,7 @@ final class AmqpMessageChannelTest extends AmqpMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::AMQP_PACKAGE, ])
                 ->withConnectionRetryTemplate(
-                    RetryTemplateBuilder::exponentialBackoff(1, 3)->maxRetryAttempts(3)
+                    RetryTemplateBuilder::exponentialBackOff(1, 3)->maxRetries(3)
                 )
                 ->withExtensionObjects([
                     AmqpBackedMessageChannelBuilder::create('correctOrders'),

@@ -26,7 +26,7 @@ final class HighThroughputPublishingChannelTest extends TestCase
         $operationsLog = new OperationsLog();
         $ecotoneLite = $this->bootstrapEcotone($operationsLog);
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.place', 'espresso');
+        $ecotoneLite->sendCommandWithRouting('order.place', 'espresso');
 
         $this->assertSame(
             [
@@ -50,7 +50,7 @@ final class HighThroughputPublishingChannelTest extends TestCase
 
         $commandException = null;
         try {
-            $ecotoneLite->sendCommandWithRoutingKey('order.place', 'espresso');
+            $ecotoneLite->sendCommandWithRouting('order.place', 'espresso');
         } catch (PublishingFailedException $exception) {
             $commandException = $exception;
         }

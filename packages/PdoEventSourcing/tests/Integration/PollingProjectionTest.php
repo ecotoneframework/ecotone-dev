@@ -156,15 +156,15 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
         );
 
         $ecotoneLite->sendCommand(new CreateBasket('1000'));
-        $ecotoneLite->run(BasketList::PROJECTION_NAME, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 1000));
+        $ecotoneLite->run(BasketList::PROJECTION_NAME, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1000));
 
         self::assertEquals(['1000' => []], $ecotoneLite->sendQueryWithRouting('getALlBaskets'));
         self::assertEquals([], $ecotoneLite->sendQueryWithRouting('getALlProducts'));
 
         $ecotoneLite->sendCommand(new AddProduct('1000', 'milk'));
 
-        $ecotoneLite->run(BasketList::PROJECTION_NAME, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 1000));
-        $ecotoneLite->run(Products::PROJECTION_NAME, ExecutionPollingMetadata::createWithTestingSetup(maxExecutionTimeInMilliseconds: 1000));
+        $ecotoneLite->run(BasketList::PROJECTION_NAME, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1000));
+        $ecotoneLite->run(Products::PROJECTION_NAME, ExecutionPollingMetadata::createWithTestingSetup(executionTimeLimitInMilliseconds: 1000));
 
         self::assertEquals(['1000' => ['milk']], $ecotoneLite->sendQueryWithRouting('getALlBaskets'));
         self::assertEquals(['milk' => 1], $ecotoneLite->sendQueryWithRouting('getALlProducts'));

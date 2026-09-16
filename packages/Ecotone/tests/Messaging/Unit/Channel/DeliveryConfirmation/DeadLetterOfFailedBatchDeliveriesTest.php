@@ -53,7 +53,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
             [OrderService::class, AsyncOrderSubscriber::class],
             [new OrderService($operationsLog), new AsyncOrderSubscriber(), OperationsLog::class => $operationsLog],
             (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
-                PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build())
+                PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build())
                     ->withErrorChannel('dead_letters'),
             ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('dead_letters'))
         );
@@ -61,7 +61,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
         assert($ordersChannel instanceof MessageChannelInterceptorAdapter);
         $ordersChannel->getInternalMessageChannel()->failDeliveriesWith('broker not available');
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.place', 'espresso');
+        $ecotoneLite->sendCommandWithRouting('order.place', 'espresso');
 
         $deadLetteredPayloads = $this->receiveAllPayloads($ecotoneLite->getMessageChannel('dead_letters'));
         $this->assertCount(2, $deadLetteredPayloads);
@@ -79,7 +79,7 @@ final class DeadLetterOfFailedBatchDeliveriesTest extends TestCase
             [OrderService::class],
             [new OrderService($operationsLog), OperationsLog::class => $operationsLog],
             (ServiceConfiguration::createWithDefaults()->withExtensionObjects([
-                PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetryAttempts(1)->build())
+                PollableChannelConfiguration::create('async_orders', RetryTemplateBuilder::fixedBackOff(1)->maxRetries(1)->build())
                     ->withErrorChannel('dead_letters'),
             ]))->addExtensionObject(InMemoryHighThroughputPublishingChannelBuilder::create('async_orders'))->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('dead_letters'))
         );

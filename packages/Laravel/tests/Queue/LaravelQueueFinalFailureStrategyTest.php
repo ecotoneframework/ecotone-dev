@@ -62,9 +62,9 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
                 ])
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.failing_command', new FailingCommand('some_1'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.failing_command', new FailingCommand('some_2'));
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(failAtError: false));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.failing_command', new FailingCommand('some_1'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.failing_command', new FailingCommand('some_2'));
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(stopOnError: false));
 
         $messageChannel = $ecotoneTestSupport->getMessageChannel('async');
         // For Laravel Queue, resend uses job->release() which puts message back in queue
@@ -102,7 +102,7 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
                 ])
         );
 
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.delayed_command', new DelayedCommand('test_1'), metadata: [
+        $ecotoneTestSupport->sendCommandWithRouting('execute.delayed_command', new DelayedCommand('test_1'), metadata: [
             MessageHeaders::DELIVERY_DELAY => (new DateTimeImmutable())->modify('+1 second'),
         ]);
         sleep(2);

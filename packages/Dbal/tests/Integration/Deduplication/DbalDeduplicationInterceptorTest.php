@@ -58,8 +58,8 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
         $messageId = '1';
         $ecotoneLite
-            ->sendCommandWithRoutingKey('endpoint1', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-            ->sendCommandWithRoutingKey('endpoint2', metadata: [MessageHeaders::MESSAGE_ID => $messageId]);
+            ->sendCommandWithRouting('endpoint1', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+            ->sendCommandWithRouting('endpoint2', metadata: [MessageHeaders::MESSAGE_ID => $messageId]);
 
         $this->assertEquals(2, $ecotoneLite->sendQueryWithRouting('getCallCount'));
     }
@@ -92,8 +92,8 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
 
         $messageId = '1';
         $ecotoneLite
-            ->sendCommandWithRoutingKey('endpoint1', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
-            ->sendCommandWithRoutingKey('endpoint1', metadata: [MessageHeaders::MESSAGE_ID => $messageId]);
+            ->sendCommandWithRouting('endpoint1', metadata: [MessageHeaders::MESSAGE_ID => $messageId])
+            ->sendCommandWithRouting('endpoint1', metadata: [MessageHeaders::MESSAGE_ID => $messageId]);
 
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getCallCount'));
     }
@@ -125,15 +125,15 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
         );
 
         // First call with orderId header
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'test', metadata: ['orderId' => 'order-123']);
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'test', metadata: ['orderId' => 'order-123']);
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getCallCount'));
 
         // Second call with same orderId header (should be deduplicated)
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'test', metadata: ['orderId' => 'order-123']);
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'test', metadata: ['orderId' => 'order-123']);
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getCallCount'));
 
         // Third call with different orderId header (should be processed)
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'test', metadata: ['orderId' => 'order-456']);
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'test', metadata: ['orderId' => 'order-456']);
         $this->assertEquals(2, $ecotoneLite->sendQueryWithRouting('getCallCount'));
     }
 
@@ -164,15 +164,15 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
         );
 
         // First call with specific payload
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'unique-payload-1');
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'unique-payload-1');
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getCallCount'));
 
         // Second call with same payload (should be deduplicated)
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'unique-payload-1');
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'unique-payload-1');
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getCallCount'));
 
         // Third call with different payload (should be processed)
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'unique-payload-2');
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'unique-payload-2');
         $this->assertEquals(2, $ecotoneLite->sendQueryWithRouting('getCallCount'));
     }
 
@@ -203,15 +203,15 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
         );
 
         // First call
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'order-data', metadata: ['customerId' => 'customer-123']);
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'order-data', metadata: ['customerId' => 'customer-123']);
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getCallCount'));
 
         // Second call with same combination (should be deduplicated)
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'order-data', metadata: ['customerId' => 'customer-123']);
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'order-data', metadata: ['customerId' => 'customer-123']);
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getCallCount'));
 
         // Third call with different customer but same payload (should be processed)
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'order-data', metadata: ['customerId' => 'customer-456']);
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'order-data', metadata: ['customerId' => 'customer-456']);
         $this->assertEquals(2, $ecotoneLite->sendQueryWithRouting('getCallCount'));
     }
 
@@ -256,17 +256,17 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
         );
 
         // First call with tracking_one
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'test', metadata: ['orderId' => 'order-123']);
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'test', metadata: ['orderId' => 'order-123']);
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getTrackingOneCallCount'));
         $this->assertEquals(0, $ecotoneLite->sendQueryWithRouting('getTrackingTwoCallCount'));
 
         // Second call with same orderId but different tracking name (should be processed)
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint2', 'test', metadata: ['orderId' => 'order-123']);
+        $ecotoneLite->sendCommandWithRouting('endpoint2', 'test', metadata: ['orderId' => 'order-123']);
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getTrackingOneCallCount'));
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getTrackingTwoCallCount'));
 
         // Third call with same orderId and same tracking name as first (should be deduplicated)
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'test', metadata: ['orderId' => 'order-123']);
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'test', metadata: ['orderId' => 'order-123']);
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getTrackingOneCallCount'));
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getTrackingTwoCallCount'));
     }
@@ -305,11 +305,11 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
         );
 
         // First call with custom tracking name
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint1', 'test', metadata: ['orderId' => 'order-123']);
+        $ecotoneLite->sendCommandWithRouting('endpoint1', 'test', metadata: ['orderId' => 'order-123']);
         $this->assertEquals(1, $ecotoneLite->sendQueryWithRouting('getCallCount'));
 
         // Second call with same orderId and different endpoint but same tracking name (should be deduplicated)
-        $ecotoneLite->sendCommandWithRoutingKey('endpoint2', 'test', metadata: ['orderId' => 'order-123']);
+        $ecotoneLite->sendCommandWithRouting('endpoint2', 'test', metadata: ['orderId' => 'order-123']);
         $this->assertEquals(2, $ecotoneLite->sendQueryWithRouting('getCallCount'));
     }
 }

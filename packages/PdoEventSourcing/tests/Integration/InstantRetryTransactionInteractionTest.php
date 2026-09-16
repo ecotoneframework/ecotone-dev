@@ -102,7 +102,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
         $ecotone->sendCommand(new RegisterCustomer($id));
 
         try {
-            $ecotone->sendCommandWithRoutingKey('customer.create.via.caller', new RegisterCustomer($id));
+            $ecotone->sendCommandWithRouting('customer.create.via.caller', new RegisterCustomer($id));
             self::fail('Expected ConcurrencyException to be thrown');
         } catch (ConcurrencyException $e) {
             // ok

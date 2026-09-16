@@ -54,13 +54,13 @@ class EcotoneLiteTest extends TestCase
             [
                 'test1',
             ],
-            $ecotoneLite->getRecordedMessagePayloadsFrom('async1')
+            $ecotoneLite->popRecordedMessagePayloadsFrom('async1')
         );
         $this->assertEquals(
             [
                 'test2',
             ],
-            $ecotoneLite->getRecordedMessagePayloadsFrom('async2')
+            $ecotoneLite->popRecordedMessagePayloadsFrom('async2')
         );
     }
 

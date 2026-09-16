@@ -61,7 +61,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
             ->deleteProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(1, $ticketsCount);
@@ -99,7 +99,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             ->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(0, $ticketsCount);
@@ -140,7 +140,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         // Send events - should auto-initialize and process
         $ticketId = Uuid::v7()->toRfc4122();
         $ticketsCount = $ecotone->sendCommand(new CreateTicketCommand($ticketId))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(1, $ticketsCount, 'Projection should process events in auto mode');
@@ -177,7 +177,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         // Send events - should skip processing
         $ticketId = Uuid::v7()->toRfc4122();
         $ecotone->sendCommand(new CreateTicketCommand($ticketId))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
 
         self::assertSame(0, $projection->initCallCount, 'Init should not be called in skip mode');
     }
@@ -211,7 +211,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         // Send events first (should be skipped)
         $ticketId = Uuid::v7()->toRfc4122();
         $ecotone->sendCommand(new CreateTicketCommand($ticketId))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
 
         // Force execution - should initialize and process events
         $ticketsCount = $ecotone->triggerProjection($projection::NAME)
@@ -256,9 +256,9 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ticketsCount = $ecotone->sendCommand(new CreateTicketCommand($ticketId1))
             ->sendCommand(new CreateTicketCommand($ticketId2))
             ->sendCommand(new CreateTicketCommand($ticketId3))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1])
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2])
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId3])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId3])
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(3, $ticketsCount, 'All events should be processed');
@@ -293,7 +293,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         $ticketId1 = Uuid::v7()->toRfc4122();
         $ticketsCount1 = $ecotone1->sendCommand(new CreateTicketCommand($ticketId1))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1])
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(1, $ticketsCount1, 'First run should process events');
@@ -312,7 +312,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         $ticketId2 = Uuid::v7()->toRfc4122();
         $ticketsCount2 = $ecotone2->sendCommand(new CreateTicketCommand($ticketId2))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2])
             ->sendQueryWithRouting('getTicketsCount');
 
         // Should process new events but not re-initialize
@@ -352,8 +352,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         $ticketsCount = $ecotone->sendCommand(new CreateTicketCommand($ticketId1), ['tenantId' => 'tenant-1'])
             ->sendCommand(new CreateTicketCommand($ticketId2), ['tenantId' => 'tenant-2'])
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1, 'tenantId' => 'tenant-1'])
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2, 'tenantId' => 'tenant-2'])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1, 'tenantId' => 'tenant-1'])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2, 'tenantId' => 'tenant-2'])
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(2, $ticketsCount, 'Partitioned projection should process all events');
@@ -388,7 +388,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         for ($i = 1; $i <= 5; $i++) {
             $ticketId = Uuid::v7()->toRfc4122();
             $ecotone->sendCommand(new CreateTicketCommand($ticketId))
-                ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
+                ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId]);
         }
 
         // Trigger projection processing
@@ -520,7 +520,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
             ->deleteProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(1, $ticketsCount);
@@ -560,8 +560,8 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
 
         $ticketsCount = $ecotone->sendCommand(new CreateTicketCommand($ticketId1))
             ->sendCommand(new CreateTicketCommand($ticketId2))
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1])
-            ->sendCommandWithRoutingKey(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId1])
+            ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId2])
             ->sendQueryWithRouting('getTicketsCount');
 
         self::assertSame(2, $ticketsCount);

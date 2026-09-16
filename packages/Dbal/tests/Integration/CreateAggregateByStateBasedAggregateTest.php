@@ -101,7 +101,7 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
                 new CalendarCreated($calendarId),
                 new MeetingScheduled($calendarId, $meetingId),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         self::assertEquals(new Meeting($meetingId), $ecotone->getAggregate(Meeting::class, $meetingId));
@@ -133,7 +133,7 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
                 new MeetingScheduled($calendarId, $meetingId),
                 new MeetingCreated($meetingId),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         $meeting = $ecotone->getAggregate(MeetingWithInternalRecorder::class, $meetingId);
@@ -167,7 +167,7 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
                 new MeetingScheduled($calendarId, $meetingId),
                 new MeetingCreated($meetingId),
             ],
-            $ecotone->getRecordedEvents()
+            $ecotone->popRecordedEvents()
         );
 
         $meeting = $ecotone->getAggregate(MeetingWithEventSourcing::class, $meetingId);

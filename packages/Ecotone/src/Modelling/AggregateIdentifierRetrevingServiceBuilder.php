@@ -20,6 +20,8 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 
 use function is_null;
 
+use ReflectionClass;
+
 /**
  * Class AggregateMessageConversionServiceBuilder
  * @package Ecotone\Modelling
@@ -211,7 +213,7 @@ class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
                     }
                 }
 
-                if (is_null($handledMessageClassDefinition) && is_null($mappingKey)) {
+                if ((is_null($handledMessageClassDefinition) || $this->isInterfaceOrAbstractClass($handledMessageClassDefinition)) && is_null($mappingKey)) {
                     $messageIdentifiersMapping[$aggregateIdentifierName] = $aggregateIdentifierName;
                 } elseif (is_null($mappingKey) && ! $this->hasRuntimeIdentifierMapping($metadataIdentifierMapping, $aggregateIdentifierName) && ! $this->hasRuntimeIdentifierMapping($identifierMapping, $aggregateIdentifierName)) {
                     /** NO mapping available, identifier should come from message headers under "aggregate.id" */
@@ -223,6 +225,13 @@ class AggregateIdentifierRetrevingServiceBuilder implements CompilableBuilder
         }
 
         return $messageIdentifiersMapping;
+    }
+
+    private function isInterfaceOrAbstractClass(ClassDefinition $classDefinition): bool
+    {
+        $className = $classDefinition->getClassType()->toString();
+
+        return interface_exists($className) || (class_exists($className) && (new ReflectionClass($className))->isAbstract());
     }
 
     private function hasRuntimeIdentifierMapping(array $metadataIdentifierMapping, $aggregateIdentifierName): bool

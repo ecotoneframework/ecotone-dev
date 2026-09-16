@@ -47,7 +47,7 @@ class DeletedEventClassInStreamTest extends EventSourcingMessagingTestCase
                 ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE]),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE
-        )->sendCommandWithRoutingKey('create', ['id' => 'aggregate-1']);
+        )->sendCommandWithRouting('create', ['id' => 'aggregate-1']);
 
         // I append an unknown event to the same stream
         $ecotone->getGateway(EventStore::class)

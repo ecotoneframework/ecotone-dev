@@ -32,8 +32,8 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $ecotoneLite->run(
             'async',
             ExecutionPollingMetadata::createWithTestingSetup(
-                amountOfMessagesToHandle: 1,
-                maxExecutionTimeInMilliseconds: 1000
+                handledMessageLimit: 1,
+                executionTimeLimitInMilliseconds: 1000
             )
         );
 
@@ -57,8 +57,8 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $ecotoneLite->run(
             'async',
             ExecutionPollingMetadata::createWithTestingSetup(
-                amountOfMessagesToHandle: 10,
-                maxExecutionTimeInMilliseconds: 50
+                handledMessageLimit: 10,
+                executionTimeLimitInMilliseconds: 50
             )
         );
 
@@ -83,8 +83,8 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $ecotoneLite->run(
             'async',
             ExecutionPollingMetadata::createWithTestingSetup(
-                amountOfMessagesToHandle: 3,
-                maxExecutionTimeInMilliseconds: 0
+                handledMessageLimit: 3,
+                executionTimeLimitInMilliseconds: 0
             )
         );
 
@@ -108,8 +108,8 @@ final class MessageConsumerSignalHandlingTest extends TestCase
         $ecotoneLite->run(
             'async',
             ExecutionPollingMetadata::createWithTestingSetup(
-                amountOfMessagesToHandle: 10,
-                maxExecutionTimeInMilliseconds: 30000
+                handledMessageLimit: 10,
+                executionTimeLimitInMilliseconds: 30000
             )
         );
 

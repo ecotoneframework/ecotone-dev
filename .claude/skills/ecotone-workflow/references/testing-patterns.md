@@ -36,7 +36,7 @@ public function test_saga_completes_when_all_events_received(): void
         ->publishEvent(new OrderWasPlaced($orderId))
         ->publishEvent(new PaymentWasReceived($orderId))
         ->publishEvent(new ItemsWereShipped($orderId))
-        ->getRecordedEvents();
+        ->popRecordedEvents();
 
     $this->assertContainsEquals(new OrderWasFulfilled($orderId), $events);
 }
@@ -53,14 +53,14 @@ $saga = $ecotone->getSaga(OrderProcess::class, '123');
 $this->assertEquals(OrderStatus::PLACED, $saga->getStatus());
 ```
 
-## Testing Saga Events via getRecordedEvents()
+## Testing Saga Events via popRecordedEvents()
 
 ```php
 $ecotone = EcotoneLite::bootstrapFlowTesting([OrderProcess::class]);
 
 $events = $ecotone
     ->publishEvent(new OrderWasPlaced('123'))
-    ->getRecordedEvents();
+    ->popRecordedEvents();
 
 $this->assertEquals([new OrderProcessWasStarted('123')], $events);
 ```
@@ -127,7 +127,7 @@ public function test_saga_triggers_command_via_output_channel(): void
         $ecotone
             ->publishEvent(new OrderWasPlaced('123'))
             ->run('async')
-            ->getRecordedEventsByType(PaymentWasSuccessful::class)
+            ->popRecordedEventsOfType(PaymentWasSuccessful::class)
     );
 }
 ```

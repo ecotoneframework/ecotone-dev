@@ -206,7 +206,7 @@ final class SingleTenantTest extends TestCase
 
         self::assertCount(1, $this->deadLetterGateway->list(100, 0));
 
-        $this->deadLetterGateway->reply(array_values($this->deadLetterGateway->list(100, 0))[0]->getMessageId());
+        $this->deadLetterGateway->replay(array_values($this->deadLetterGateway->list(100, 0))[0]->getMessageId());
 
         $this->assertSame(
             0,

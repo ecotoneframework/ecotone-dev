@@ -9,6 +9,7 @@ use Closure;
 use DateTimeInterface;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Scheduling\TimeSpan;
+use Ecotone\Messaging\Support\Assert;
 
 #[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 /**
@@ -22,8 +23,19 @@ class Delayed extends AddHeader
     public function __construct(
         int|TimeSpan|DateTimeInterface|null $time = null,
         string|Closure|null $expression = null,
-        private readonly bool $shouldReplaceExistingHeader = true
+        private readonly bool $shouldReplaceExistingHeader = true,
+        int $milliseconds = 0,
+        int $seconds = 0,
+        int $minutes = 0,
+        int $hours = 0,
+        int $days = 0,
     ) {
+        $namedDuration = new TimeSpan($milliseconds, $seconds, $minutes, $hours, $days);
+        if ($namedDuration->toMilliseconds() > 0) {
+            Assert::isTrue($time === null && $expression === null, '#[Delayed] takes either $time or named durations (milliseconds, seconds, minutes, hours, days), not both.');
+            $time = $namedDuration;
+        }
+
         parent::__construct(MessageHeaders::DELIVERY_DELAY, $time, $expression);
     }
 

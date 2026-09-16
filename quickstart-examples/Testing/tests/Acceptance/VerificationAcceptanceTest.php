@@ -44,7 +44,7 @@ final class VerificationAcceptanceTest extends TestCase
                 ->discardRecordedMessages()
                 ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
                 ->run(MessagingConfiguration::ASYNCHRONOUS_MESSAGES, 1000 * 60 * 60 * 24)
-                ->getRecordedCommandsWithRouting()
+                ->popRecordedCommandsWithRouting()
         );
     }
 

@@ -157,7 +157,7 @@ class OutboxRelayBenchmark
         $context->purgeQueue($context->createQueue('benchmark_outbox'));
         $context->purgeQueue($context->createQueue('benchmark_target'));
 
-        $this->messaging->sendCommandWithRoutingKey('benchmark.relayOrder', self::MESSAGE_PAYLOAD);
+        $this->messaging->sendCommandWithRouting('benchmark.relayOrder', self::MESSAGE_PAYLOAD);
         $this->messaging->run('benchmark_outbox', ExecutionPollingMetadata::createWithFinishWhenNoMessages());
     }
 
@@ -174,7 +174,7 @@ class OutboxRelayBenchmark
     private function fillOutbox(): void
     {
         for ($messageNumber = 0; $messageNumber < self::AMOUNT_OF_RELAYED_MESSAGES; $messageNumber++) {
-            $this->messaging->sendCommandWithRoutingKey('benchmark.relayOrder', self::MESSAGE_PAYLOAD);
+            $this->messaging->sendCommandWithRouting('benchmark.relayOrder', self::MESSAGE_PAYLOAD);
         }
     }
 

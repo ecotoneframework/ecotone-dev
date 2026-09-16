@@ -36,8 +36,8 @@ class ErrorConfigurationContext
     {
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             self::ERROR_CHANNEL,
-            RetryTemplateBuilder::exponentialBackoff(1, 1)
-                ->maxRetryAttempts(2),
+            RetryTemplateBuilder::exponentialBackOff(1, 1)
+                ->maxRetries(2),
             self::DEAD_LETTER_CHANNEL
         );
     }

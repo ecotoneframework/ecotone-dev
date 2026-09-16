@@ -53,7 +53,7 @@ final class BatchMessageSendingTest extends TestCase
             configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('orders'))
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.placeAll', ['espresso', 'latte']);
+        $ecotoneLite->sendCommandWithRouting('order.placeAll', ['espresso', 'latte']);
 
         $this->assertSame('espresso', $ecotoneLite->receiveMessageFrom('orders')->getPayload());
         $this->assertSame('latte', $ecotoneLite->receiveMessageFrom('orders')->getPayload());
@@ -71,7 +71,7 @@ final class BatchMessageSendingTest extends TestCase
 
         $this->expectException(LicensingException::class);
 
-        $ecotoneLite->sendCommandWithRoutingKey('order.placeAll', ['espresso', 'latte']);
+        $ecotoneLite->sendCommandWithRouting('order.placeAll', ['espresso', 'latte']);
     }
 
     private function createOrderProcessor(): object

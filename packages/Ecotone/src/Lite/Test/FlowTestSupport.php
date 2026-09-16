@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Lite\Test;
 
 use DateTimeImmutable;
-use DateTimeInterface;
 use Ecotone\Api\CommandBus;
 use Ecotone\Api\DistributedBus;
 use Ecotone\Api\EcotoneClockInterface;
@@ -69,7 +68,7 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function sendCommandWithRoutingKey(string $routingKey, mixed $command = [], string $commandMediaType = MediaType::APPLICATION_X_PHP, array $metadata = []): self
+    public function sendCommandWithRouting(string $routingKey, mixed $command = [], string $commandMediaType = MediaType::APPLICATION_X_PHP, array $metadata = []): self
     {
         $this->commandBus->sendWithRouting($routingKey, $command, $commandMediaType, $metadata);
 
@@ -83,7 +82,7 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function publishEventWithRoutingKey(string $routingKey, mixed $event = [], string $eventMediaType = MediaType::APPLICATION_X_PHP, array $metadata = []): self
+    public function publishEventWithRouting(string $routingKey, mixed $event = [], string $eventMediaType = MediaType::APPLICATION_X_PHP, array $metadata = []): self
     {
         $this->eventBus->publishWithRouting($routingKey, $event, $eventMediaType, $metadata);
 
@@ -111,17 +110,17 @@ final class FlowTestSupport
     /**
      * @return mixed[]
      */
-    public function getRecordedMessagePayloadsFrom(string $channelName): array
+    public function popRecordedMessagePayloadsFrom(string $channelName): array
     {
-        return $this->testSupportGateway->getRecordedMessagePayloadsFrom($channelName);
+        return $this->testSupportGateway->popRecordedMessagePayloadsFrom($channelName);
     }
 
     /**
      * @return Message[]
      */
-    public function getRecordedEcotoneMessagesFrom(string $channelName): array
+    public function popRecordedMessagesFrom(string $channelName): array
     {
-        return $this->testSupportGateway->getRecordedEcotoneMessagesFrom($channelName);
+        return $this->testSupportGateway->popRecordedMessagesFrom($channelName);
     }
 
     public function getMessageChannel(string $channelName): MessageChannel|PollableChannel
@@ -147,13 +146,16 @@ final class FlowTestSupport
         return $messageChannel->receive();
     }
 
-    /**
-     * @param int|TimeSpan|DateTimeInterface $releaseAwaitingFor will release messages which are delayed for given time
-     */
-    public function run(string $name, ?ExecutionPollingMetadata $executionPollingMetadata = null, TimeSpan|DateTimeInterface|null $releaseAwaitingFor = null): self
+    public function run(string $channelOrEndpointName, ?ExecutionPollingMetadata $executionPollingMetadata = null): self
     {
-        $this->testSupportGateway->releaseMessagesAwaitingFor($name, $releaseAwaitingFor ?? $this->clock->now());
-        $this->configuredMessagingSystem->run($name, $executionPollingMetadata);
+        $this->testSupportGateway->releaseMessagesAwaitingFor($channelOrEndpointName, $this->clock->now());
+        $staticClock = $this->staticClock();
+        $staticClock?->pinCurrentTime();
+        try {
+            $this->configuredMessagingSystem->run($channelOrEndpointName, $executionPollingMetadata);
+        } finally {
+            $staticClock?->returnToPinnedTime();
+        }
 
         return $this;
     }
@@ -203,10 +205,10 @@ final class FlowTestSupport
     {
         $psrClock = $this->getStaticPsrClockFromContainer();
 
-        if ($psrClock->hasBeenChanged() && $time <= $psrClock->now()) {
+        if ($psrClock->hasBeenChanged() && $time < $psrClock->now()) {
             throw new InvalidArgumentException(
                 sprintf(
-                    'Cannot move time backwards. Current clock time: %s, requested time: %s',
+                    'Cannot move time backwards: the test clock is at %s and you requested %s. Request a later time, or use advanceTimeBy() to move forward relative to the current time.',
                     $psrClock->now()->format('Y-m-d H:i:s.u'),
                     $time->format('Y-m-d H:i:s.u')
                 )
@@ -218,14 +220,22 @@ final class FlowTestSupport
         return $this;
     }
 
-    public function advanceTimeTo(Duration $duration): self
+    public function advanceTimeBy(TimeSpan|Duration $span): self
     {
+        $duration = $span instanceof TimeSpan ? $span->toDuration() : $span;
         $psrClock = $this->getStaticPsrClockFromContainer();
         $psrClock->setCurrentTime(
             DateTimeImmutable::createFromInterface($psrClock->now())->modify("+{$duration->inMicroseconds()} microseconds")
         );
 
         return $this;
+    }
+
+    private function staticClock(): ?StaticPsrClock
+    {
+        $clock = $this->clock instanceof Clock ? $this->clock->internalClock() : null;
+
+        return $clock instanceof StaticPsrClock ? $clock : null;
     }
 
     private function getStaticPsrClockFromContainer(): StaticPsrClock
@@ -336,9 +346,29 @@ final class FlowTestSupport
      *
      * @return mixed[]
      */
-    public function getRecordedEvents(): array
+    public function popRecordedEvents(): array
     {
-        return $this->testSupportGateway->getRecordedEvents();
+        return $this->testSupportGateway->popRecordedEvents();
+    }
+
+    /**
+     * @template E
+     * @param class-string<E> $className
+     * @return E[]
+     */
+    public function popRecordedEventsOfType(string $className): array
+    {
+        return array_map(fn (Message $message) => $message->getPayload(), $this->testSupportGateway->popRecordedEventMessagesOfType($className));
+    }
+
+    /**
+     * @template C
+     * @param class-string<C> $className
+     * @return C[]
+     */
+    public function popRecordedCommandsOfType(string $className): array
+    {
+        return array_map(fn (Message $message) => $message->getPayload(), $this->testSupportGateway->popRecordedCommandMessagesOfType($className));
     }
 
     /**
@@ -346,9 +376,9 @@ final class FlowTestSupport
      *
      * @return MessageHeaders[]
      */
-    public function getRecordedEventHeaders(): array
+    public function popRecordedEventHeaders(): array
     {
-        return array_map(fn (Message $message) => $message->getHeaders(), $this->testSupportGateway->getRecordedEventMessages());
+        return array_map(fn (Message $message) => $message->getHeaders(), $this->testSupportGateway->popRecordedEventMessages());
     }
 
     /**
@@ -356,9 +386,9 @@ final class FlowTestSupport
      *
      * @return MessageHeaders[]
      */
-    public function getRecordedEventRouting(): array
+    public function popRecordedEventRouting(): array
     {
-        return array_map(fn (Message $message) => $message->getHeaders()->get('ecotone.modelling.bus.command_by_name'), $this->testSupportGateway->getRecordedEventMessages());
+        return array_map(fn (Message $message) => $message->getHeaders()->get('ecotone.modelling.bus.command_by_name'), $this->testSupportGateway->popRecordedEventMessages());
     }
 
     /**
@@ -366,9 +396,9 @@ final class FlowTestSupport
      *
      * @return mixed[]
      */
-    public function getRecordedCommands(): array
+    public function popRecordedCommands(): array
     {
-        return $this->testSupportGateway->getRecordedCommands();
+        return $this->testSupportGateway->popRecordedCommands();
     }
 
     /**
@@ -376,9 +406,9 @@ final class FlowTestSupport
      *
      * @return MessageHeaders[]
      */
-    public function getRecordedCommandHeaders(): array
+    public function popRecordedCommandHeaders(): array
     {
-        return array_map(fn (Message $message) => $message->getHeaders(), $this->testSupportGateway->getRecordedCommandMessages());
+        return array_map(fn (Message $message) => $message->getHeaders(), $this->testSupportGateway->popRecordedCommandMessages());
     }
 
     /**
@@ -387,10 +417,10 @@ final class FlowTestSupport
      * @return string[]
      * @throws MessagingException
      */
-    public function getRecordedCommandsWithRouting(): array
+    public function popRecordedCommandsWithRouting(): array
     {
         $commandWithRouting = [];
-        foreach ($this->getRecordedCommandHeaders() as $commandHeaders) {
+        foreach ($this->popRecordedCommandHeaders() as $commandHeaders) {
             if ($commandHeaders->containsKey(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME)) {
                 $command = [
                     $commandHeaders->get(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME),

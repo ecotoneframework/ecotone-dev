@@ -30,8 +30,8 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
     {
         $ecotone = $this->bootstrapWithGrowingDelay();
 
-        $ecotone->sendCommandWithRoutingKey(GrowingDelayHandler::ROUTING_KEY, 'payload');
-        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->sendCommandWithRouting(GrowingDelayHandler::ROUTING_KEY, 'payload');
+        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         /** @var PollableChannel $channel */
         $channel = $ecotone->getMessageChannel(GrowingDelayHandler::ASYNC_CHANNEL);
@@ -45,9 +45,9 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
     {
         $ecotone = $this->bootstrapWithGrowingDelay();
 
-        $ecotone->sendCommandWithRoutingKey(GrowingDelayHandler::ROUTING_KEY, 'payload');
-        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
-        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->sendCommandWithRouting(GrowingDelayHandler::ROUTING_KEY, 'payload');
+        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $ecotone->run(GrowingDelayHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         /** @var PollableChannel $channel */
         $channel = $ecotone->getMessageChannel(GrowingDelayHandler::ASYNC_CHANNEL);
@@ -72,9 +72,9 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey(DeadLetterRoutingHandler::ROUTING_KEY, 'payload');
-        $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
-        $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->sendCommandWithRouting(DeadLetterRoutingHandler::ROUTING_KEY, 'payload');
+        $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $ecotone->run(DeadLetterRoutingHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         /** @var PollableChannel $deadLetterChannel */
         $deadLetterChannel = $ecotone->getMessageChannel(DeadLetterRoutingHandler::DEAD_LETTER_CHANNEL);
@@ -104,14 +104,14 @@ final class DelayedRetryDelayAndDeadLetterTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->sendCommandWithRoutingKey(NoDeadLetterHandler::ROUTING_KEY, 'payload');
-        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
-        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->sendCommandWithRouting(NoDeadLetterHandler::ROUTING_KEY, 'payload');
+        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
+        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->expectException(MessageHandlingException::class);
-        $this->expectExceptionMessage('Message handling failed after 2 retry attempts');
+        $this->expectExceptionMessage('Message handling failed on channel `noDeadLetterAsync` after 2 failed deliveries (1 initial + 1 retry)');
 
-        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false));
+        $ecotone->run(NoDeadLetterHandler::ASYNC_CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
     }
 
     private function bootstrapWithGrowingDelay()
@@ -141,7 +141,7 @@ final class GrowingDelayHandler
     public const ROUTING_KEY = 'growingDelay.fail';
 
     #[Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
-        new DelayedRetry(initialDelayMs: 10, multiplier: 2, maxAttempts: 5),
+        new DelayedRetry(initialDelayInMilliseconds: 10, multiplier: 2, maxRetries: 5),
     ])]
     #[CommandHandler(self::ROUTING_KEY, 'growingDelayHandler')]
     public function handle(string $payload): void
@@ -163,7 +163,7 @@ final class DeadLetterRoutingHandler
     public const FAILURE_MESSAGE = 'always-fails-with-context';
 
     #[Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
-        new DelayedRetry(initialDelayMs: 1, multiplier: 1, maxAttempts: 1, deadLetterChannel: self::DEAD_LETTER_CHANNEL),
+        new DelayedRetry(initialDelayInMilliseconds: 1, multiplier: 1, maxRetries: 1, deadLetterChannel: self::DEAD_LETTER_CHANNEL),
     ])]
     #[CommandHandler(self::ROUTING_KEY, 'deadLetterContextHandler')]
     public function handle(string $payload): void
@@ -183,7 +183,7 @@ final class NoDeadLetterHandler
     public const ROUTING_KEY = 'noDeadLetter.fail';
 
     #[Asynchronous(self::ASYNC_CHANNEL, asynchronousExecution: [
-        new DelayedRetry(initialDelayMs: 1, multiplier: 1, maxAttempts: 1),
+        new DelayedRetry(initialDelayInMilliseconds: 1, multiplier: 1, maxRetries: 1),
     ])]
     #[CommandHandler(self::ROUTING_KEY, 'noDeadLetterHandler')]
     public function handle(string $payload): void

@@ -11,4 +11,9 @@ trait WithAggregateVersioning
 {
     #[Version]
     private int $version = 0;
+
+    public function getVersion(): int
+    {
+        return $this->version;
+    }
 }

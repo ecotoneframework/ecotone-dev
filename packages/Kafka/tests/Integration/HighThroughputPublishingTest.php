@@ -44,11 +44,11 @@ final class HighThroughputPublishingTest extends TestCase
         $orderService = $this->createOrderService($channelName);
         $messaging = $this->bootstrapEcotone($channelName, $orderService, ConnectionTestCase::getConnection());
 
-        $messaging->sendCommandWithRoutingKey('order.place', 'espresso');
+        $messaging->sendCommandWithRouting('order.place', 'espresso');
 
         $this->assertSame([], $messaging->sendQueryWithRouting('order.getReceived'));
 
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 3, maxExecutionTimeInMilliseconds: 10000));
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 3, executionTimeLimitInMilliseconds: 10000));
 
         $this->assertCount(3, $messaging->sendQueryWithRouting('order.getReceived'));
     }
@@ -66,7 +66,7 @@ final class HighThroughputPublishingTest extends TestCase
 
         $this->expectException(PublishingFailedException::class);
 
-        $messaging->sendCommandWithRoutingKey('order.place', 'espresso');
+        $messaging->sendCommandWithRouting('order.place', 'espresso');
     }
 
     public function test_high_throughput_publishing_requires_enterprise_licence(): void
@@ -172,9 +172,9 @@ final class HighThroughputPublishingTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $messaging->sendCommandWithRoutingKey('order.placeBatch', 'espresso');
+        $messaging->sendCommandWithRouting('order.placeBatch', 'espresso');
 
-        $messaging->run('batchOrdersConsumer', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2, maxExecutionTimeInMilliseconds: 30000));
+        $messaging->run('batchOrdersConsumer', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2, executionTimeLimitInMilliseconds: 30000));
 
         $receivedPayloads = $messaging->sendQueryWithRouting('order.getReceivedBatchOrders');
         sort($receivedPayloads);

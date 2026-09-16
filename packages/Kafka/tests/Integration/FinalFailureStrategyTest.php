@@ -51,13 +51,13 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send a message
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.single', new TestCommand('test_message'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.single', new TestCommand('test_message'));
 
         // First run - should fail and trigger release (offset reset)
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify handler was called once (and failed)
@@ -66,9 +66,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Second run - should succeed
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify handler was called twice (first failed, second succeeded)
@@ -96,15 +96,15 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send three messages
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_1'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_2'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_3'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_1'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_2'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_3'));
 
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 10,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 10,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify processing pattern:
@@ -136,15 +136,15 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send three messages
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_1'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_2'));
-        $ecotoneTestSupport->sendCommandWithRoutingKey('execute.three', new TestCommand('message_3'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_1'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_2'));
+        $ecotoneTestSupport->sendCommandWithRouting('execute.three', new TestCommand('message_3'));
 
         // Run consumer - should process first message, fail on second, and trigger release
         $ecotoneTestSupport->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 10,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 10,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify processing pattern:
@@ -177,13 +177,13 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send a message
-        $ecotoneApp->sendCommandWithRoutingKey('execute.two_app', new TestCommand('app_test'));
+        $ecotoneApp->sendCommandWithRouting('execute.two_app', new TestCommand('app_test'));
 
         // First application run - should fail and reset offset
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify first handler was called once
@@ -192,9 +192,9 @@ final class FinalFailureStrategyTest extends TestCase
 
         // Second run - should succeed
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 1,
-            maxExecutionTimeInMilliseconds: 10000,
-            failAtError: false
+            handledMessageLimit: 1,
+            executionTimeLimitInMilliseconds: 10000,
+            stopOnError: false
         ));
 
         // Verify second handler was called once
@@ -228,14 +228,14 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send two messages
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_1'));
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_2'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_1'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_2'));
 
         // First run - should process first message (fail and ignore), then process second message (succeed)
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior:
@@ -247,9 +247,9 @@ final class FinalFailureStrategyTest extends TestCase
         $this->assertEquals(['message_2'], $handler->getSuccessfulMessages()); // Only message_2 succeeded
 
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior is unchanged
@@ -284,14 +284,14 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         // Send two messages
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_1'));
-        $ecotoneApp->sendCommandWithRoutingKey('execute.ignore_test', new TestCommand('message_2'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_1'));
+        $ecotoneApp->sendCommandWithRouting('execute.ignore_test', new TestCommand('message_2'));
 
         // First run - should process first message (fail and ignore), then process second message (succeed)
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior:
@@ -322,9 +322,9 @@ final class FinalFailureStrategyTest extends TestCase
         );
 
         $ecotoneApp->run('kafka_channel', ExecutionPollingMetadata::createWithTestingSetup(
-            amountOfMessagesToHandle: 2,
-            maxExecutionTimeInMilliseconds: 20000,
-            failAtError: false
+            handledMessageLimit: 2,
+            executionTimeLimitInMilliseconds: 20000,
+            stopOnError: false
         ));
 
         // Verify behavior is unchanged

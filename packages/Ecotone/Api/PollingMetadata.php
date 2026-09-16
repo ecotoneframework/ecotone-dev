@@ -67,19 +67,19 @@ final class PollingMetadata implements DefinedObject
     }
 
     /**
-     * @param int $amountOfMessagesToHandle how many messages should this consumer handle before exiting
-     * @param int $maxExecutionTimeInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
+     * @param int $handledMessageLimit how many messages should this consumer handle before exiting
+     * @param int $executionTimeLimitInMilliseconds Maximum execution of running consumer. Take under that while debugging with xdebug it should be set to 0 to avoid exiting consumer to early.
      * @return $this
      */
-    public function withTestingSetup(int $amountOfMessagesToHandle = 1, int $maxExecutionTimeInMilliseconds = 100, bool $failAtError = true): self
+    public function withTestingSetup(int $handledMessageLimit = 1, int $executionTimeLimitInMilliseconds = 100, bool $stopOnError = true): self
     {
         $pollingMetadata = $this
-            ->setHandledMessageLimit($amountOfMessagesToHandle)
-            ->setStopOnError($failAtError);
+            ->setHandledMessageLimit($handledMessageLimit)
+            ->setStopOnError($stopOnError);
 
-        if ($maxExecutionTimeInMilliseconds) {
+        if ($executionTimeLimitInMilliseconds) {
             $pollingMetadata = $pollingMetadata
-                ->setExecutionTimeLimitInMilliseconds($maxExecutionTimeInMilliseconds);
+                ->setExecutionTimeLimitInMilliseconds($executionTimeLimitInMilliseconds);
         }
 
         return $pollingMetadata;

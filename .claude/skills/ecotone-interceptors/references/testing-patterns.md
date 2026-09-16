@@ -92,7 +92,7 @@ public function test_interceptor_modifies_headers(): void
         containerOrAvailableServices: [$handler, $interceptor],
     );
 
-    $ecotone->sendCommandWithRoutingKey('process');
+    $ecotone->sendCommandWithRouting('process');
 
     $this->assertEquals('interceptor', $handler->receivedHeaders['enrichedBy']);
 }

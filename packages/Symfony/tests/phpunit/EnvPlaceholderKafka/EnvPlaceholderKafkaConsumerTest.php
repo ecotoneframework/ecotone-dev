@@ -56,7 +56,7 @@ final class EnvPlaceholderKafkaConsumerTest extends TestCase
 
         $container->get(ConfiguredMessagingSystem::class)
             ->run('ordersKafkaConsumer', ExecutionPollingMetadata::createWithTestingSetup(
-                maxExecutionTimeInMilliseconds: 30000,
+                executionTimeLimitInMilliseconds: 30000,
             ));
 
         $this->assertSame(

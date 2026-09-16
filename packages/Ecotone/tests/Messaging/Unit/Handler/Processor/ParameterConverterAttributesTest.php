@@ -31,7 +31,7 @@ final class ParameterConverterAttributesTest extends TestCase
             [new RecordingParameterConverterHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('converter.payload', 100);
+        $ecotone->sendCommandWithRouting('converter.payload', 100);
 
         self::assertSame(100, $ecotone->sendQueryWithRouting('converter.lastValue'));
     }
@@ -43,7 +43,7 @@ final class ParameterConverterAttributesTest extends TestCase
             [new RecordingParameterConverterHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('converter.payloadExpression', 100);
+        $ecotone->sendCommandWithRouting('converter.payloadExpression', 100);
 
         self::assertSame('1001', $ecotone->sendQueryWithRouting('converter.lastValue'));
     }
@@ -55,7 +55,7 @@ final class ParameterConverterAttributesTest extends TestCase
             [new RecordingParameterConverterHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('converter.header', metadata: ['token' => 100]);
+        $ecotone->sendCommandWithRouting('converter.header', metadata: ['token' => 100]);
 
         self::assertSame(100, $ecotone->sendQueryWithRouting('converter.lastValue'));
     }
@@ -69,7 +69,7 @@ final class ParameterConverterAttributesTest extends TestCase
 
         $this->expectException(MethodInvocationException::class);
 
-        $ecotone->sendCommandWithRoutingKey('converter.header');
+        $ecotone->sendCommandWithRouting('converter.header');
     }
 
     public function test_optional_header_converter_is_null_when_header_is_missing(): void
@@ -79,7 +79,7 @@ final class ParameterConverterAttributesTest extends TestCase
             [new RecordingParameterConverterHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('converter.optionalHeader');
+        $ecotone->sendCommandWithRouting('converter.optionalHeader');
 
         self::assertNull($ecotone->sendQueryWithRouting('converter.lastValue'));
     }
@@ -91,7 +91,7 @@ final class ParameterConverterAttributesTest extends TestCase
             [new RecordingParameterConverterHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('converter.headerExpression', metadata: ['token' => 100]);
+        $ecotone->sendCommandWithRouting('converter.headerExpression', metadata: ['token' => 100]);
 
         self::assertSame('1001', $ecotone->sendQueryWithRouting('converter.lastValue'));
     }
@@ -103,7 +103,7 @@ final class ParameterConverterAttributesTest extends TestCase
             [new RecordingParameterConverterHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('converter.allHeaders', metadata: ['some' => 'test']);
+        $ecotone->sendCommandWithRouting('converter.allHeaders', metadata: ['some' => 'test']);
 
         $headers = $ecotone->sendQueryWithRouting('converter.lastValue');
         self::assertSame('test', $headers['some']);
@@ -117,7 +117,7 @@ final class ParameterConverterAttributesTest extends TestCase
             [new RecordingParameterConverterHandler(), 'referencedService' => $referencedService],
         );
 
-        $ecotone->sendCommandWithRoutingKey('converter.reference');
+        $ecotone->sendCommandWithRouting('converter.reference');
 
         self::assertSame($referencedService, $ecotone->sendQueryWithRouting('converter.lastValue'));
     }
@@ -130,7 +130,7 @@ final class ParameterConverterAttributesTest extends TestCase
             [new RecordingParameterConverterHandler(), 'referencedService' => $referencedService],
         );
 
-        $ecotone->sendCommandWithRoutingKey('converter.referenceExpression');
+        $ecotone->sendCommandWithRouting('converter.referenceExpression');
 
         self::assertSame('someName', $ecotone->sendQueryWithRouting('converter.lastValue'));
     }
@@ -143,7 +143,7 @@ final class ParameterConverterAttributesTest extends TestCase
             configurationVariables: ['appName' => 'ecotone-app'],
         );
 
-        $ecotone->sendCommandWithRoutingKey('converter.configurationVariable');
+        $ecotone->sendCommandWithRouting('converter.configurationVariable');
 
         self::assertSame('ecotone-app', $ecotone->sendQueryWithRouting('converter.lastValue'));
     }
@@ -155,7 +155,7 @@ final class ParameterConverterAttributesTest extends TestCase
             [new RecordingParameterConverterHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('converter.configurationVariableWithDefault');
+        $ecotone->sendCommandWithRouting('converter.configurationVariableWithDefault');
 
         self::assertSame('default-app', $ecotone->sendQueryWithRouting('converter.lastValue'));
     }
@@ -169,7 +169,7 @@ final class ParameterConverterAttributesTest extends TestCase
 
         $this->expectException(InvalidArgumentException::class);
 
-        $ecotone->sendCommandWithRoutingKey('converter.requiredMissing');
+        $ecotone->sendCommandWithRouting('converter.requiredMissing');
     }
 }
 

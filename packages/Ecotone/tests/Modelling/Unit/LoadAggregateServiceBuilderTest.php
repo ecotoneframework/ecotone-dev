@@ -53,7 +53,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
         $this->assertEquals(
             'done',
             EcotoneLite::bootstrapFlowTesting(classesToResolve: [OrderFulfilment::class])
-                ->sendCommandWithRoutingKey('order.start', $oderId = 100)
+                ->sendCommandWithRouting('order.start', $oderId = 100)
                 ->publishEvent(PaymentWasDoneEvent::create($oderId), metadata: ['paymentId' => $oderId])
                 ->sendQueryWithRouting('order.status', metadata: ['aggregate.id' => $oderId])
         );
@@ -67,7 +67,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
                 classesToResolve: [AsynchronousOrderFulfilment::class],
                 configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
             )
-                ->sendCommandWithRoutingKey('order.start', $oderId = 100)
+                ->sendCommandWithRouting('order.start', $oderId = 100)
                 ->publishEvent(PaymentWasDoneEvent::create($oderId), metadata: ['paymentId' => $oderId])
                 ->run('async')
                 ->sendQueryWithRouting('order.status', metadata: ['aggregate.id' => $oderId])
@@ -90,7 +90,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
         $this->assertFalse(
             EcotoneLite::bootstrapFlowTesting(classesToResolve: [Article::class])
                 ->sendCommand(PublishArticleCommand::createWith(1000, 'Some', 'bla bla'))
-                ->sendCommandWithRoutingKey('close', metadata: ['aggregate.id' => ['author' => 1000, 'title' => 'Some']])
+                ->sendCommandWithRouting('close', metadata: ['aggregate.id' => ['author' => 1000, 'title' => 'Some']])
                 ->getAggregate(Article::class, ['author' => 1000, 'title' => 'Some'])
                 ->isPublished()
         );
@@ -176,7 +176,7 @@ final class LoadAggregateServiceBuilderTest extends BaseEcotoneTestCase
         $this->expectException(AggregateNotFoundException::class);
 
         EcotoneLite::bootstrapFlowTesting(classesToResolve: [AggregateWithoutMessageClassesExample::class])
-            ->sendCommandWithRoutingKey('doSomething');
+            ->sendCommandWithRouting('doSomething');
     }
 
     public function test_throwing_exception_if_no_event_sourcing_handler_defined_for_event_sourced_aggregate()

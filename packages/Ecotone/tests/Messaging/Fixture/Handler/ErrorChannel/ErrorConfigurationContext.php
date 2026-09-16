@@ -22,8 +22,8 @@ class ErrorConfigurationContext
     {
         return ErrorHandlerConfiguration::create(
             self::ERROR_CHANNEL,
-            RetryTemplateBuilder::exponentialBackoff(1, 1)
-                ->maxRetryAttempts(2)
+            RetryTemplateBuilder::exponentialBackOff(1, 1)
+                ->maxRetries(2)
         );
     }
 

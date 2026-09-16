@@ -46,7 +46,7 @@ class HeaderConversionTest extends TestCase
         self::assertNull($playground->typeHintedBasicEnum);
         self::assertNull($playground->nonTypeHintedBasicEnum);
 
-        $ecotone->publishEventWithRoutingKey(
+        $ecotone->publishEventWithRouting(
             routingKey: 'message',
             event: new Message(),
             metadata: [
@@ -95,7 +95,7 @@ class HeaderConversionTest extends TestCase
         self::assertNull($playground->typeHintedBasicEnum);
         self::assertNull($playground->nonTypeHintedBasicEnum);
 
-        $ecotone->publishEventWithRoutingKey(
+        $ecotone->publishEventWithRouting(
             routingKey: 'message',
             event: new Message(),
             metadata: [

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel;
 
+use DateTimeImmutable;
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\CommandHandler;
 use Ecotone\Api\ExecutionPollingMetadata;
@@ -26,11 +27,11 @@ final class DelayedMessageReleaseTest extends TestCase
         $handler = new DelayedMessageHandler();
         $ecotone = $this->bootstrap($handler);
 
-        $ecotone->sendCommandWithRoutingKey(DelayedMessageHandler::ROUTING_KEY, 'a', metadata: [
+        $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'a', metadata: [
             MessageHeaders::DELIVERY_DELAY => 10_000,
         ]);
 
-        $ecotone->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false), TimeSpan::withSeconds(5));
+        $ecotone->advanceTimeBy(TimeSpan::withSeconds(5))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->assertSame([], $handler->processed);
     }
@@ -40,11 +41,11 @@ final class DelayedMessageReleaseTest extends TestCase
         $handler = new DelayedMessageHandler();
         $ecotone = $this->bootstrap($handler);
 
-        $ecotone->sendCommandWithRoutingKey(DelayedMessageHandler::ROUTING_KEY, 'a', metadata: [
+        $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'a', metadata: [
             MessageHeaders::DELIVERY_DELAY => 10_000,
         ]);
 
-        $ecotone->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false), TimeSpan::withSeconds(10));
+        $ecotone->advanceTimeBy(TimeSpan::withSeconds(10))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         $this->assertSame(['a'], $handler->processed);
     }
@@ -54,17 +55,17 @@ final class DelayedMessageReleaseTest extends TestCase
         $handler = new DelayedMessageHandler();
         $ecotone = $this->bootstrap($handler);
 
-        $ecotone->sendCommandWithRoutingKey(DelayedMessageHandler::ROUTING_KEY, 'first', metadata: [MessageHeaders::DELIVERY_DELAY => 3000]);
-        $ecotone->sendCommandWithRoutingKey(DelayedMessageHandler::ROUTING_KEY, 'second', metadata: [MessageHeaders::DELIVERY_DELAY => 2000]);
-        $ecotone->sendCommandWithRoutingKey(DelayedMessageHandler::ROUTING_KEY, 'third', metadata: [MessageHeaders::DELIVERY_DELAY => 1000]);
+        $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'first', metadata: [MessageHeaders::DELIVERY_DELAY => 3000]);
+        $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'second', metadata: [MessageHeaders::DELIVERY_DELAY => 2000]);
+        $ecotone->sendCommandWithRouting(DelayedMessageHandler::ROUTING_KEY, 'third', metadata: [MessageHeaders::DELIVERY_DELAY => 1000]);
 
-        $ecotone->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false), TimeSpan::withSeconds(1));
+        $ecotone->advanceTimeBy(TimeSpan::withSeconds(1))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertSame(['third'], $handler->processed);
 
-        $ecotone->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false), TimeSpan::withSeconds(2));
+        $ecotone->advanceTimeBy(TimeSpan::withSeconds(1))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertSame(['third', 'second'], $handler->processed);
 
-        $ecotone->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1, failAtError: false), TimeSpan::withSeconds(3));
+        $ecotone->advanceTimeBy(TimeSpan::withSeconds(1))->run(DelayedMessageHandler::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
         $this->assertSame(['third', 'second', 'first'], $handler->processed);
     }
 
@@ -76,7 +77,7 @@ final class DelayedMessageReleaseTest extends TestCase
             ServiceConfiguration::createWithDefaults()->withExtensionObjects([
                 SimpleMessageChannelBuilder::createQueueChannel(DelayedMessageHandler::CHANNEL, delayable: true),
             ]),
-        );
+        )->changeTimeTo(new DateTimeImmutable('2026-01-01 12:00:00'));
     }
 }
 

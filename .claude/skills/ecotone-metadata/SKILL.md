@@ -111,7 +111,7 @@ Command (userId=123) -> CommandHandler -> publishes Event -> EventHandler receiv
 - Interceptors with `changeHeaders: true` must return an array
 - Userland headers propagate automatically from commands to events
 - Framework headers do NOT propagate
-- Use `getRecordedEventHeaders()` / `getRecordedCommandHeaders()` to verify metadata in tests
+- Use `popRecordedEventHeaders()` / `popRecordedCommandHeaders()` to verify metadata in tests
 
 ## Additional resources
 

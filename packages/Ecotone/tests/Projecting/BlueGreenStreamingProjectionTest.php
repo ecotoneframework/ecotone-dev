@@ -78,13 +78,13 @@ final class BlueGreenStreamingProjectionTest extends TestCase
             ->setContentType(MediaType::createApplicationXPHP())
             ->build());
 
-        $ecotone->run('users_v1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
+        $ecotone->run('users_v1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
 
         self::assertCount(2, $v1->users);
         self::assertEquals('users_v1', $v1->receivedProjectionName);
         self::assertCount(0, $v2->users);
 
-        $ecotone->run('users_v2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
+        $ecotone->run('users_v2', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
 
         self::assertCount(2, $v2->users);
         self::assertEquals('users_v2', $v2->receivedProjectionName);

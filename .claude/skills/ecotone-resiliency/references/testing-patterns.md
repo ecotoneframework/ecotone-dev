@@ -53,7 +53,7 @@ public function test_error_handler_routes_to_dead_letter(): void
         {
             return ErrorHandlerConfiguration::createWithDeadLetterChannel(
                 'errorChannel',
-                RetryTemplateBuilder::fixedBackOff(0)->maxRetryAttempts(1),
+                RetryTemplateBuilder::fixedBackOff(0)->maxRetries(1),
                 'dead_letter'
             );
         }

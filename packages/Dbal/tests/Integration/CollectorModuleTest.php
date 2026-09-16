@@ -128,7 +128,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
         /** @var DeadLetterGateway $deadLetterGateway */
         $deadLetterGateway = $ecotoneLite->getGateway(DeadLetterGateway::class);
         foreach ($deadLetterGateway->list(1, 0) as $errorContext) {
-            $deadLetterGateway->reply($errorContext->getMessageId());
+            $deadLetterGateway->replay($errorContext->getMessageId());
         }
         $this->assertFalse($ecotoneLite->sendQueryWithRouting('notification.isNotified'));
 

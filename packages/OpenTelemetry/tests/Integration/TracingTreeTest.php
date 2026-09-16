@@ -82,7 +82,7 @@ final class TracingTreeTest extends TracingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::TRACING_PACKAGE])
         )
-            ->sendCommandWithRoutingKey('handleCommand');
+            ->sendCommandWithRouting('handleCommand');
 
         self::compareTreesByDetails(
             [
@@ -594,7 +594,7 @@ final class TracingTreeTest extends TracingTestCase
             ->sendCommand(new RegisterUser('1'), ['flowId' => '1'])
             ->sendCommand(new RegisterUser('2'), ['flowId' => '2']);
 
-        $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
+        $ecotoneLite->run('async_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
 
         $collectedTree = self::buildTree($exporter);
         self::compareTreesByDetails(

@@ -33,10 +33,10 @@ final class FlowTestSupportFrameworkTest extends TestCase
         $this->assertEquals(
             [['order.register'], ['order.register', '3']],
             $flowSupport
-                ->sendCommandWithRoutingKey('order.register', new PlaceOrder('1'))
-                ->sendCommandWithRoutingKey('order.register', new PlaceOrder('3'), metadata: ['aggregate.id' => '3'])
+                ->sendCommandWithRouting('order.register', new PlaceOrder('1'))
+                ->sendCommandWithRouting('order.register', new PlaceOrder('3'), metadata: ['aggregate.id' => '3'])
                 ->sendCommand(new PlaceOrder('2'))
-                ->getRecordedCommandsWithRouting()
+                ->popRecordedCommandsWithRouting()
         );
     }
 
@@ -49,7 +49,7 @@ final class FlowTestSupportFrameworkTest extends TestCase
         $this->assertTrue(
             $ecotoneTestSupport
                 ->withStateFor(Order::register(new PlaceOrder($orderId)))
-                ->sendCommandWithRoutingKey('order.cancel', metadata: ['aggregate.id' => $orderId])
+                ->sendCommandWithRouting('order.cancel', metadata: ['aggregate.id' => $orderId])
                 ->run('orders', ExecutionPollingMetadata::createWithTestingSetup())
                 ->getAggregate(Order::class, $orderId)
                 ->isCancelled()
@@ -63,7 +63,7 @@ final class FlowTestSupportFrameworkTest extends TestCase
         $this->assertEquals(
             1,
             $flowSupport
-                ->sendCommandWithRoutingKey('order.register', new PlaceOrder('1'))
+                ->sendCommandWithRouting('order.register', new PlaceOrder('1'))
                 ->run('orders', ExecutionPollingMetadata::createWithTestingSetup())
                 ->run('orders', ExecutionPollingMetadata::createWithTestingSetup())
                 ->getAggregate(Order::class, '1')

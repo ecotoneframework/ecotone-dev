@@ -74,7 +74,7 @@ class ProjectingTest extends TestCase
         $ecotone->withEvents([Event::createWithType('test-event', ['name' => 'Test'])]);
 
         // When event is published, triggering the projection
-        $ecotone->publishEventWithRoutingKey('trigger', []);
+        $ecotone->publishEventWithRouting('trigger', []);
 
         // Then it is not handled until async channel is run
         $this->assertCount(0, $projection->handledEvents);
@@ -138,7 +138,7 @@ class ProjectingTest extends TestCase
             Event::createWithType('test-event', ['name' => 'Test'], ['id' => '1']),
         );
 
-        $ecotone->publishEventWithRoutingKey('trigger', metadata: ['partitionHeader' => '1']);
+        $ecotone->publishEventWithRouting('trigger', metadata: ['partitionHeader' => '1']);
 
         $this->assertCount(2, $projection->handledEvents);
     }
@@ -200,7 +200,7 @@ class ProjectingTest extends TestCase
             Event::createWithType('test-event', ['name' => 'Test'], ['id' => '1']),
         );
 
-        $ecotone->publishEventWithRoutingKey('trigger', metadata: ['partitionHeader' => '1']);
+        $ecotone->publishEventWithRouting('trigger', metadata: ['partitionHeader' => '1']);
 
         $this->assertCount(0, $projection->handledEvents);
         $ecotone->run('async', ExecutionPollingMetadata::createWithTestingSetup());
@@ -246,7 +246,7 @@ class ProjectingTest extends TestCase
         ]);
         self::assertEquals([], $projection->projectedEvents);
 
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
         self::assertCount(2, $projection->projectedEvents);
     }
 
@@ -275,7 +275,7 @@ class ProjectingTest extends TestCase
         ]);
 
         // Event trigger should be skipped when not initialized
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
         self::assertCount(0, $projection->projectedEvents, 'Projection should not process events when automatic initialization is off');
 
         $ecotone->triggerProjection('projection_with_manual_initialization');
@@ -286,7 +286,7 @@ class ProjectingTest extends TestCase
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']),
             Event::createWithType($projection::TICKET_CREATED, [], [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-3']),
         ]);
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']);
         self::assertCount(3, $projection->projectedEvents, 'Projection should process events after manual initialization');
     }
 
@@ -325,7 +325,7 @@ class ProjectingTest extends TestCase
         ]);
 
         // Trigger the first event which should initialize the projection and process all events
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
 
         // The init method should only be called once due to initPartition concurrency protection
         self::assertEquals(1, $projection->initCallCount, 'Init should only be called once due to initPartition concurrency protection');
@@ -367,7 +367,7 @@ class ProjectingTest extends TestCase
         ]);
 
         // Trigger event - should auto-initialize and process events
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
 
         self::assertEquals(1, $projection->initCallCount, 'Init should be called once');
         self::assertCount(2, $projection->projectedEvents, 'All events should be processed in auto mode');
@@ -407,7 +407,7 @@ class ProjectingTest extends TestCase
         ]);
 
         // Trigger event - should skip processing since not initialized
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
 
         self::assertEquals(0, $projection->initCallCount, 'Init should not be called in skip mode');
         self::assertCount(0, $projection->projectedEvents, 'No events should be processed in skip mode');
@@ -448,9 +448,9 @@ class ProjectingTest extends TestCase
         ]);
 
         // Trigger multiple events - all should be skipped
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']);
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-3']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-2']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-3']);
 
         self::assertEquals(0, $projection->initCallCount, 'Init should not be called in skip mode');
         self::assertCount(0, $projection->projectedEvents, 'No events should be processed in skip mode');
@@ -491,8 +491,8 @@ class ProjectingTest extends TestCase
         ]);
 
         // Trigger first event - should auto-initialize and process all events
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1']);
 
         self::assertEquals(1, $projection->initCallCount, 'Init should be called once in auto mode');
         self::assertCount(3, $projection->projectedEvents, 'All events should be processed in auto mode');
@@ -532,7 +532,7 @@ class ProjectingTest extends TestCase
         ]);
 
         // Trigger event for first partition - should initialize and process all events
-        $ecotone->publishEventWithRoutingKey($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1', 'tenantId' => 'tenant-1']);
+        $ecotone->publishEventWithRouting($projection::TICKET_CREATED, [MessageHeaders::EVENT_AGGREGATE_ID => 'ticket-1', 'tenantId' => 'tenant-1']);
 
         self::assertEquals(1, $projection->initCallCount, 'Init should be called once for partitioned projection');
         self::assertCount(2, $projection->projectedEvents, 'All events should be processed for partitioned projection');
@@ -636,14 +636,14 @@ class ProjectingTest extends TestCase
             Event::createWithType('no-priority', []),
         ]);
 
-        $ecotone->publishEventWithRoutingKey('no-priority');
+        $ecotone->publishEventWithRouting('no-priority');
         self::assertEquals(['projectionA-no-priority', 'projectionB-no-priority'], $db);
 
         $db = [];
         $ecotone->withEvents([
             Event::createWithType('with-priority', []),
         ]);
-        $ecotone->publishEventWithRoutingKey('with-priority');
+        $ecotone->publishEventWithRouting('with-priority');
         self::assertEquals(['projectionB-with-priority', 'projectionA-with-priority'], $db);
     }
 
@@ -860,7 +860,7 @@ class ProjectingTest extends TestCase
         $ecotone->initializeProjection('userland_backfill_projection');
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'userland_backfill_projection']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_async');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_async');
         self::assertCount(2, $messages, 'Expected 2 batches for 3 partitions with batch size 2');
     }
 
@@ -918,7 +918,7 @@ class ProjectingTest extends TestCase
         $ecotone->initializeProjection('different_projection');
         $ecotone->runConsoleCommand('ecotone:projection:backfill', ['name' => 'different_projection']);
 
-        $messages = $ecotone->getRecordedMessagePayloadsFrom('backfill_async');
+        $messages = $ecotone->popRecordedMessagePayloadsFrom('backfill_async');
         self::assertCount(1, $messages, 'SinglePartitionProvider should produce exactly 1 batch');
     }
 

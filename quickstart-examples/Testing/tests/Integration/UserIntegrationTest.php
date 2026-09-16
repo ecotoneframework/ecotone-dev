@@ -34,7 +34,7 @@ final class UserIntegrationTest extends TestCase
             pathToRootCatalog: __DIR__,
         );
 
-        $ecotoneLite->sendCommandWithRoutingKey("user.register", \json_encode([
+        $ecotoneLite->sendCommandWithRouting("user.register", \json_encode([
             "userId" => "7dd60feb-c23c-4ddb-9d53-5354349becaa",
             "name" => "johny",
             "email" => "test@wp.pl",
@@ -49,7 +49,7 @@ final class UserIntegrationTest extends TestCase
                 PhoneNumber::create("148518518518")
             )],
             // Make use of Test Support Gateway to find published events
-            $ecotoneLite->getRecordedEvents()
+            $ecotoneLite->popRecordedEvents()
         );
     }
 }

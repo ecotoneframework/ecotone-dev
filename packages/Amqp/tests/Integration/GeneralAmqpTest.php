@@ -28,7 +28,7 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
             services: [new OrderService(), new OrderErrorHandler()],
         );
 
-        $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+        $ecotone->sendCommandWithRouting('order.register', 'milk');
         self::assertEquals(
             [],
             $ecotone->sendQueryWithRouting('order.getOrders')
@@ -50,11 +50,11 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
             amqpConfig: ['heartbeat' => 2]
         );
 
-        $ecotone->sendCommandWithRoutingKey('order.register', 'milk');
+        $ecotone->sendCommandWithRouting('order.register', 'milk');
         sleep(5);
-        $ecotone->sendCommandWithRoutingKey('order.register', 'salt');
+        $ecotone->sendCommandWithRouting('order.register', 'salt');
         sleep(5);
-        $ecotone->sendCommandWithRoutingKey('order.register', 'sunflower');
+        $ecotone->sendCommandWithRouting('order.register', 'sunflower');
         $ecotone->run('orders');
         $ecotone->run('orders');
         $ecotone->run('orders');
@@ -73,7 +73,7 @@ final class GeneralAmqpTest extends AmqpMessagingTestCase
         self::assertEquals(
             ['window'],
             $ecotone
-                ->sendCommandWithRoutingKey('addToBasket', 'window')
+                ->sendCommandWithRouting('addToBasket', 'window')
                 ->run('addToCart')
                 ->sendQueryWithRouting('getShoppingCartList')
         );

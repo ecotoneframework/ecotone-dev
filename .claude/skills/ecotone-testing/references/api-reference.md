@@ -63,9 +63,9 @@ public static function bootstrapFlowTesting(
 | Method | Description |
 |--------|-------------|
 | `sendCommand(object $command, array $metadata = [])` | Send command object |
-| `sendCommandWithRoutingKey(string $routingKey, mixed $command = [], ...)` | Send command by routing key |
+| `sendCommandWithRouting(string $routingKey, mixed $command = [], ...)` | Send command by routing key |
 | `publishEvent(object $event, array $metadata = [])` | Publish event object |
-| `publishEventWithRoutingKey(string $routingKey, mixed $event = [], ...)` | Publish event by routing key |
+| `publishEventWithRouting(string $routingKey, mixed $event = [], ...)` | Publish event by routing key |
 | `sendQuery(object $query, array $metadata = [], ...)` | Send query, returns result |
 | `sendQueryWithRouting(string $routingKey, mixed $query = [], ...)` | Send query by routing key |
 | `sendDirectToChannel(string $channel, mixed $payload = '', array $metadata = [])` | Send directly to channel |
@@ -74,13 +74,15 @@ public static function bootstrapFlowTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `getRecordedEvents()` | `mixed[]` | Events published via EventBus |
-| `getRecordedEventHeaders()` | `MessageHeaders[]` | Headers of recorded events |
-| `getRecordedCommands()` | `mixed[]` | Commands sent via CommandBus |
-| `getRecordedCommandHeaders()` | `MessageHeaders[]` | Headers of recorded commands |
-| `getRecordedCommandsWithRouting()` | `string[]` | Commands with routing keys |
-| `getRecordedMessagePayloadsFrom(string $channelName)` | `mixed[]` | Payloads from specific channel |
-| `getRecordedEcotoneMessagesFrom(string $channelName)` | `Message[]` | Full messages from channel |
+| `popRecordedEvents()` | `mixed[]` | Events published via EventBus since the last pop; removes them |
+| `popRecordedEventsOfType(string $className)` | `object[]` | Removes and returns only events of that class |
+| `popRecordedEventHeaders()` | `MessageHeaders[]` | Headers of recorded events |
+| `popRecordedCommands()` | `mixed[]` | Commands sent via CommandBus since the last pop; removes them |
+| `popRecordedCommandsOfType(string $className)` | `object[]` | Removes and returns only commands of that class |
+| `popRecordedCommandHeaders()` | `MessageHeaders[]` | Headers of recorded commands |
+| `popRecordedCommandsWithRouting()` | `string[]` | Commands with routing keys |
+| `popRecordedMessagePayloadsFrom(string $channelName)` | `mixed[]` | Payloads from specific channel |
+| `popRecordedMessagesFrom(string $channelName)` | `Message[]` | Full messages from channel |
 | `discardRecordedMessages()` | `self` | Clear all recorded messages |
 
 ### Aggregate & Saga State
@@ -105,7 +107,7 @@ public static function bootstrapFlowTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `run(string $name, ?ExecutionPollingMetadata $meta = null, TimeSpan\|DateTimeInterface\|null $releaseFor = null)` | `self` | Run consumer/endpoint |
+| `run(string $channelOrEndpointName, ?ExecutionPollingMetadata $meta = null)` | `self` | Run consumer; delivers messages due at the test clock's current time, earliest due first; never moves the clock |
 | `getMessageChannel(string $channelName)` | `MessageChannel` | Get channel instance |
 | `receiveMessageFrom(string $channelName)` | `?Message` | Receive from pollable channel |
 
@@ -123,8 +125,8 @@ public static function bootstrapFlowTesting(
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `changeTimeTo(DateTimeImmutable $time)` | `self` | Set clock to specific time |
-| `advanceTimeTo(Duration $duration)` | `self` | Advance clock by duration |
+| `changeTimeTo(DateTimeImmutable $time)` | `self` | Set clock to specific time (same or later instant) |
+| `advanceTimeBy(TimeSpan\|Duration $span)` | `self` | Move clock forward by span; calls add up |
 
 ### Infrastructure
 

@@ -76,7 +76,7 @@ final class ListingBasketProductsScenarioTest extends TestCase
                 ->sendCommand(new VerifyEmail($userId, VerificationToken::from($emailToken)))
                 ->sendCommand(new VerifyPhoneNumber($userId, VerificationToken::from($phoneNumberToken)))
                 ->sendCommand(new AddProductToBasket($userId, $productId))
-                ->sendCommandWithRoutingKey("order.placeOrder", metadata: ["aggregate.id" => $userId])
+                ->sendCommandWithRouting("order.placeOrder", metadata: ["aggregate.id" => $userId])
                 ->sendQueryWithRouting(CurrentBasketProjection::GET_CURRENT_BASKET_QUERY, $userId)
         );
     }

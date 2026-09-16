@@ -34,8 +34,8 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
     public const LIST_CHANNEL  = 'ecotone.dbal.deadletter.list';
     public const SHOW_CHANNEL       = 'ecotone.dbal.deadletter.show';
     public const COUNT_CHANNEL       = 'ecotone.dbal.deadletter.count';
-    public const REPLAY_CHANNEL     = 'ecotone.dbal.deadletter.reply';
-    public const REPLAY_ALL_CHANNEL = 'ecotone.dbal.deadletter.replyAll';
+    public const REPLAY_CHANNEL     = 'ecotone.dbal.deadletter.replay';
+    public const REPLAY_ALL_CHANNEL = 'ecotone.dbal.deadletter.replayAll';
     public const DELETE_CHANNEL     = 'ecotone.dbal.deadletter.delete';
     public const DELETE_ALL_CHANNEL     = 'ecotone.dbal.deadletter.deleteAll';
     public const STORE_CHANNEL     = 'dbal_dead_letter';
@@ -93,20 +93,20 @@ class DbalDeadLetterBuilder extends InputOutputMessageHandlerBuilder
         );
     }
 
-    public static function createReply(string $referenceName, string $connectionReferenceName): self
+    public static function createReplay(string $referenceName, string $connectionReferenceName): self
     {
         return new self(
-            'reply',
+            'replay',
             $connectionReferenceName,
             self::getChannelName($referenceName, self::REPLAY_CHANNEL),
             []
         );
     }
 
-    public static function createReplyAll(string $referenceName, string $connectionReferenceName): self
+    public static function createReplayAll(string $referenceName, string $connectionReferenceName): self
     {
         return new self(
-            'replyAll',
+            'replayAll',
             $connectionReferenceName,
             self::getChannelName($referenceName, self::REPLAY_ALL_CHANNEL),
             [

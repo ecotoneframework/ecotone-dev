@@ -75,7 +75,7 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
 
         // Verify it works
         $ecotoneLite->sendDirectToChannel('shared_channel', 'message1');
-        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed'));
     }
 
@@ -181,27 +181,27 @@ final class StreamingChannelConsumerRegistrationTest extends TestCase
         $ecotoneLite->sendDirectToChannel('shared_channel', 'message3');
 
         // Consumer 1 processes first message
-        $ecotoneLite->run('consumer_group_1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer_group_1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals([], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
 
         // Consumer 2 processes first message (should get the same message1 because it tracks its own position)
-        $ecotoneLite->run('consumer_group_2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer_group_2', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
 
         // Consumer 1 processes second message
-        $ecotoneLite->run('consumer_group_1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer_group_1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['message1'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
 
         // Consumer 2 processes second and third messages
-        $ecotoneLite->run('consumer_group_2', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 2));
+        $ecotoneLite->run('consumer_group_2', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
         $this->assertEquals(['message1', 'message2'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['message1', 'message2', 'message3'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
 
         // Consumer 1 processes third message
-        $ecotoneLite->run('consumer_group_1', ExecutionPollingMetadata::createWithTestingSetup(amountOfMessagesToHandle: 1));
+        $ecotoneLite->run('consumer_group_1', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $this->assertEquals(['message1', 'message2', 'message3'], $ecotoneLite->sendQueryWithRouting('getConsumed1'));
         $this->assertEquals(['message1', 'message2', 'message3'], $ecotoneLite->sendQueryWithRouting('getConsumed2'));
 

@@ -104,7 +104,7 @@ final class CustomRepositoriesTest extends BaseEcotoneTestCase
         );
 
         // We have provided multiple standard repositories, therefore there is single Event Sourced repository
-        $ecotoneLite->sendCommandWithRoutingKey('create.comment', '123');
+        $ecotoneLite->sendCommandWithRouting('create.comment', '123');
 
         $this->assertNotNull($ecotoneLite->getAggregate(Comment::class, '123'));
     }
@@ -114,7 +114,7 @@ final class CustomRepositoriesTest extends BaseEcotoneTestCase
         $this->assertEquals(
             $expectedAggregate,
             $ecotoneLite
-                ->sendCommandWithRoutingKey($creationMethod, '123')
+                ->sendCommandWithRouting($creationMethod, '123')
                 ->getAggregate($className, '123')
         );
 

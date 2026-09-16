@@ -39,7 +39,7 @@ final class SecondaryConnectionStreamTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true
         );
 
-        $ecotone->sendCommandWithRoutingKey('secondaryOrder.place', new PlaceSecondaryOrder('order-1'));
+        $ecotone->sendCommandWithRouting('secondaryOrder.place', new PlaceSecondaryOrder('order-1'));
 
         $primaryConnection = $this->connectionForTenantA()->createContext()->getDbalConnection();
         $secondaryConnection = $this->connectionForTenantB()->createContext()->getDbalConnection();
@@ -50,7 +50,7 @@ final class SecondaryConnectionStreamTest extends EventSourcingMessagingTestCase
             (int) $secondaryConnection->fetchOne('SELECT COUNT(*) FROM ' . $secondaryConnection->getDatabasePlatform()->quoteIdentifier(SecondaryOrder::STREAM))
         );
 
-        $ecotone->sendCommandWithRoutingKey('secondaryOrder.cancel', new CancelSecondaryOrder('order-1'), metadata: ['aggregate.id' => 'order-1']);
+        $ecotone->sendCommandWithRouting('secondaryOrder.cancel', new CancelSecondaryOrder('order-1'), metadata: ['aggregate.id' => 'order-1']);
 
         self::assertSame('cancelled', $ecotone->sendQueryWithRouting('secondaryOrder.getStatus', metadata: ['aggregate.id' => 'order-1']));
     }

@@ -170,7 +170,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                 ])
         );
 
-        $messaging->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
+        $messaging->sendCommandWithRouting('handler.fail', ['command' => 0]);
 
         $messaging->run($asyncChannelName);
 
@@ -196,7 +196,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
                 ])
         );
 
-        $messaging->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
+        $messaging->sendCommandWithRouting('handler.fail', ['command' => 0]);
 
         // process message, end up with error message
         $messaging->run($asyncChannelName);
@@ -227,7 +227,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
         );
 
         $originalNessage = MessageBuilder::withPayload('some')->build();
-        $messaging->sendCommandWithRoutingKey('handler.fail', ['command' => 0]);
+        $messaging->sendCommandWithRouting('handler.fail', ['command' => 0]);
 
         $messaging->run($asyncChannelName);
 
@@ -293,7 +293,7 @@ class PollingConsumerBuilderTest extends MessagingTestCase
             ->withChannel(SimpleMessageChannelBuilder::create($inputChannelName, $inputChannel))
             ->withPollingMetadata(
                 PollingMetadata::create($messageHandler->getEndpointId())
-                    ->withTestingSetup(failAtError: $stopOnFailure)
+                    ->withTestingSetup(stopOnError: $stopOnFailure)
             )
             ->withMessageHandler(
                 $messageHandler

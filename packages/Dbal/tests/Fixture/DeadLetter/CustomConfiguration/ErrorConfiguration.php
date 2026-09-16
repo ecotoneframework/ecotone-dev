@@ -20,8 +20,8 @@ final class ErrorConfiguration
     {
         return ErrorHandlerConfiguration::createWithDeadLetterChannel(
             self::ERROR_CHANNEL,
-            RetryTemplateBuilder::exponentialBackoff(1, 1)
-                ->maxRetryAttempts(1),
+            RetryTemplateBuilder::exponentialBackOff(1, 1)
+                ->maxRetries(1),
             DbalDeadLetterBuilder::STORE_CHANNEL
         );
     }

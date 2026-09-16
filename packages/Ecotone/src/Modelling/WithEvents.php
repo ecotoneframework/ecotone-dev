@@ -26,7 +26,7 @@ trait WithEvents
     }
 
     #[AggregateEvents]
-    public function getRecordedEvents(): array
+    public function popRecordedEvents(): array
     {
         if (! $this->recordedEvents) {
             return [];

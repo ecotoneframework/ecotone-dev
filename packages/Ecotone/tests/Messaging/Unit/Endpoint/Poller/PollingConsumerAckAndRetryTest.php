@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Endpoint\Poller;
 
 use Ecotone\Api\InstantRetryConfiguration;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\PollingMetadata;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -85,7 +85,7 @@ final class AlwaysThrowingHandler
 
     public int $calledTimes = 0;
 
-    #[ServiceActivator(self::CHANNEL, self::ENDPOINT_ID)]
+    #[InternalHandler(self::CHANNEL, endpointId: self::ENDPOINT_ID)]
     public function handle(string $payload): void
     {
         $this->calledTimes++;
@@ -106,7 +106,7 @@ final class NeverCalledHandler
 
     public bool $wasCalled = false;
 
-    #[ServiceActivator(self::CHANNEL, self::ENDPOINT_ID)]
+    #[InternalHandler(self::CHANNEL, endpointId: self::ENDPOINT_ID)]
     public function handle(string $payload): void
     {
         $this->wasCalled = true;

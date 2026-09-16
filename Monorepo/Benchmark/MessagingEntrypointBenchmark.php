@@ -3,7 +3,7 @@
 namespace Monorepo\Benchmark;
 
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
@@ -38,7 +38,7 @@ class MessagingEntrypointBenchmark
 
 class BenchmarkHandler
 {
-    #[ServiceActivator('benchmark_handler')]
+    #[InternalHandler('benchmark_handler')]
     public function handle(string $payload): string
     {
         return $payload;

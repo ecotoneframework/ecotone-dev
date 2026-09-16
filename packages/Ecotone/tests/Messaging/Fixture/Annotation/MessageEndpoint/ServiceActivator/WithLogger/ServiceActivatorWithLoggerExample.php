@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator\WithLogger;
 
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\LogAfter;
 use Ecotone\Api\LogBefore;
 use Ecotone\Api\LogError;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\Handler\Logger\LoggingLevel;
 
 /**
@@ -15,7 +15,7 @@ use Ecotone\Messaging\Handler\Logger\LoggingLevel;
  */
 class ServiceActivatorWithLoggerExample
 {
-    #[ServiceActivator('inputChannel', 'test-name')]
+    #[InternalHandler('inputChannel', endpointId: 'test-name')]
     #[
         LogBefore(LoggingLevel::INFO, true),
         LogAfter(LoggingLevel::INFO, true),

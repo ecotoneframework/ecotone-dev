@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\Calculating;
 
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\Scheduled;
-use Ecotone\Api\ServiceActivator;
 
 /**
  * licence Apache-2.0
@@ -19,7 +19,7 @@ class InboundCalculation
         return 5;
     }
 
-    #[ServiceActivator('calculateForInbound', outputChannelName: 'resultChannel')]
+    #[InternalHandler('calculateForInbound', outputChannelName: 'resultChannel')]
     public function calculate(int $number): int
     {
         return $number;

@@ -597,7 +597,7 @@ final class FailingScheduledExample
         return 'payload';
     }
 
-    #[\Ecotone\Api\ServiceActivator(self::REQUEST_CHANNEL)]
+    #[\Ecotone\Api\InternalHandler(self::REQUEST_CHANNEL)]
     public function handle(string $payload): void
     {
         throw new InvalidArgumentException('boom');
@@ -752,7 +752,7 @@ final class InboundChannelAdapterWithInstantRetryAndErrorChannel
         return 'payload';
     }
 
-    #[\Ecotone\Api\ServiceActivator(self::REQUEST_CHANNEL)]
+    #[\Ecotone\Api\InternalHandler(self::REQUEST_CHANNEL)]
     public function handle(string $payload): void
     {
         $this->invocations++;

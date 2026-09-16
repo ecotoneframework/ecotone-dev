@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\ErrorHandling\DeadLetter;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Messaging\Message;
 
 /**
@@ -17,13 +17,13 @@ class ErrorReceiver
      */
     private $errorOrder;
 
-    #[ServiceActivator(ErrorConfigurationContext::DEAD_LETTER_CHANNEL)]
+    #[InternalHandler(ErrorConfigurationContext::DEAD_LETTER_CHANNEL)]
     public function receiveError(Message $message): void
     {
         $this->errorOrder = $message->getPayload();
     }
 
-    #[ServiceActivator('getErrorMessage')]
+    #[InternalHandler('getErrorMessage')]
     public function getErrorOrder(): ?string
     {
         return $this->errorOrder ? $this->errorOrder : null;

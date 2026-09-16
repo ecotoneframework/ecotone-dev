@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -132,23 +132,23 @@ final class RequestReplyHandler
     public const NEXT_CHANNEL = 'requestReply.next';
     public const FINAL_CHANNEL = 'requestReply.final';
 
-    #[ServiceActivator(self::NO_REPLY_CHANNEL)]
+    #[InternalHandler(self::NO_REPLY_CHANNEL)]
     public function noReply(string $payload): void
     {
     }
 
-    #[ServiceActivator(self::WITH_OUTPUT_CHANNEL, outputChannelName: self::OUTPUT_CHANNEL)]
+    #[InternalHandler(self::WITH_OUTPUT_CHANNEL, outputChannelName: self::OUTPUT_CHANNEL)]
     public function withOutputChannel(string $payload): string
     {
         return 'some result';
     }
 
-    #[ServiceActivator(self::REQUIRED_REPLY_CHANNEL, requiresReply: true)]
+    #[InternalHandler(self::REQUIRED_REPLY_CHANNEL, requiresReply: true)]
     public function requiredReplyButNoneProduced(string $payload): void
     {
     }
 
-    #[ServiceActivator(self::NO_OUTPUT_CHANNEL)]
+    #[InternalHandler(self::NO_OUTPUT_CHANNEL)]
     public function noStaticOutputChannel(string $payload): string
     {
         return 'some result';

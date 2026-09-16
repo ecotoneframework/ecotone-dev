@@ -229,7 +229,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
                 return 'first-payload';
             }
 
-            #[\Ecotone\Api\ServiceActivator(self::REQUEST_CHANNEL)]
+            #[\Ecotone\Api\InternalHandler(self::REQUEST_CHANNEL)]
             public function handle(string $payload): void
             {
                 $this->invocations++;

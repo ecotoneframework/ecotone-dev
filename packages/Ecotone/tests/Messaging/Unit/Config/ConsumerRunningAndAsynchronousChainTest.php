@@ -7,7 +7,7 @@ namespace Test\Ecotone\Messaging\Unit\Config;
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\CommandHandler;
 use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -132,7 +132,7 @@ final class DirectlyConsumedHandler
 
     public bool $wasCalled = false;
 
-    #[ServiceActivator(self::CHANNEL)]
+    #[InternalHandler(self::CHANNEL)]
     public function handle(string $payload): void
     {
         $this->wasCalled = true;

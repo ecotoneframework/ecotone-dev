@@ -7,8 +7,8 @@ namespace Test\Ecotone\Messaging\Unit\Channel;
 use Ecotone\Api\ChannelInterceptor;
 use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Api\Header;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\Reference;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -159,7 +159,7 @@ final class CapturingHandler
     public mixed $received = null;
     public mixed $capturedHeader = null;
 
-    #[ServiceActivator(self::CHANNEL)]
+    #[InternalHandler(self::CHANNEL)]
     public function handle(mixed $payload, #[Header('enrichedHeader')] mixed $enrichedHeader = null): void
     {
         $this->received = $payload;
@@ -198,7 +198,7 @@ final class OrderCapturingHandler
 
     public array $received = [];
 
-    #[ServiceActivator(self::CHANNEL)]
+    #[InternalHandler(self::CHANNEL)]
     public function handle(mixed $payload, #[Header('order')] array $order = []): void
     {
         $this->received = $order;
@@ -218,13 +218,13 @@ final class TwoChannelHandler
     public mixed $receivedFromA = null;
     public mixed $receivedFromB = null;
 
-    #[ServiceActivator(self::CHANNEL_A)]
+    #[InternalHandler(self::CHANNEL_A)]
     public function handleA(mixed $payload): void
     {
         $this->receivedFromA = $payload;
     }
 
-    #[ServiceActivator(self::CHANNEL_B)]
+    #[InternalHandler(self::CHANNEL_B)]
     public function handleB(mixed $payload): void
     {
         $this->receivedFromB = $payload;

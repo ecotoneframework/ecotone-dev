@@ -21,3 +21,6 @@ services:
 
     Fixture\Car\CarService:
         public: true
+
+    OpenTelemetry\API\Trace\TracerProviderInterface:
+        class: OpenTelemetry\API\Trace\NoopTracerProvider

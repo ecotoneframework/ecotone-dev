@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Infrastructure;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Messaging\Support\ErrorMessage;
 use Ecotone\Api\QueryHandler;
 use Ecotone\Messaging\Message;
@@ -17,13 +17,13 @@ final class ErrorChannelService
         "customDeadLetter" => []
     ];
 
-    #[ServiceActivator("default_dead_letter")]
+    #[InternalHandler("default_dead_letter")]
     public function errorChannel(Message $errorMessage): void
     {
         $this->errorMessages["defaultDeadLetter"][] = $errorMessage;
     }
 
-    #[ServiceActivator("custom_dead_letter")]
+    #[InternalHandler("custom_dead_letter")]
     public function customErrorChannel(Message $errorMessage): void
     {
         $this->errorMessages["customDeadLetter"][] = $errorMessage;

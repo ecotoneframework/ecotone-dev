@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Endpoint\PollingConsumer;
 
 use Ecotone\Api\Asynchronous;
 use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
@@ -144,7 +144,7 @@ class TestMessageHandler
     private array $processedMessages = [];
 
     #[Asynchronous('async')]
-    #[ServiceActivator('handle_channel', 'test_handler')]
+    #[InternalHandler('handle_channel', endpointId: 'test_handler')]
     public function handle(string $message): void
     {
         $this->processedMessages[] = $message;
@@ -162,7 +162,7 @@ class SignalSendingMessageHandler
     private array $processedMessages = [];
 
     #[Asynchronous('async')]
-    #[ServiceActivator('handle_channel', 'signal_handler')]
+    #[InternalHandler('handle_channel', endpointId: 'signal_handler')]
     public function handle(string $message): void
     {
         $this->processedMessages[] = $message;

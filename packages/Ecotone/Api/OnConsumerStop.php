@@ -10,12 +10,12 @@ use Attribute;
 /**
  * licence Apache-2.0
  */
-class OnConsumerStop extends ServiceActivator
+class OnConsumerStop extends InternalHandler
 {
     public const CONSUMER_STOP_CHANNEL_NAME = 'ecotone.consumer_lifecycle.stop';
 
     public function __construct()
     {
-        parent::__construct(self::CONSUMER_STOP_CHANNEL_NAME, '', '', false, []);
+        parent::__construct(self::CONSUMER_STOP_CHANNEL_NAME);
     }
 }

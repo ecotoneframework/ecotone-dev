@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Splitter;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\Splitter;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -97,7 +97,7 @@ final class SplittingHandler
         return $message->getPayload();
     }
 
-    #[ServiceActivator(self::PAYLOAD_OUTPUT_CHANNEL)]
+    #[InternalHandler(self::PAYLOAD_OUTPUT_CHANNEL)]
     public function capturePayload(Message $message): void
     {
         $this->capturedPayloadMessages[] = $message;
@@ -116,7 +116,7 @@ final class SplittingHandler
         return $splitMessages;
     }
 
-    #[ServiceActivator(self::MESSAGES_OUTPUT_CHANNEL)]
+    #[InternalHandler(self::MESSAGES_OUTPUT_CHANNEL)]
     public function captureMessages(Message $message): void
     {
         $this->capturedMessagesMessages[] = $message;

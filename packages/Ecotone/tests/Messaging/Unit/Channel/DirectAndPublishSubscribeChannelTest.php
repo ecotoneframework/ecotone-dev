@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -72,7 +72,7 @@ final class DirectChannelHandler
 
     public bool $wasCalled = false;
 
-    #[ServiceActivator(self::CHANNEL)]
+    #[InternalHandler(self::CHANNEL)]
     public function handle(string $payload): void
     {
         $this->wasCalled = true;
@@ -91,13 +91,13 @@ final class PublishSubscribeChannelHandlers
     public bool $firstWasCalled = false;
     public bool $secondWasCalled = false;
 
-    #[ServiceActivator(self::CHANNEL, endpointId: 'firstSubscriber')]
+    #[InternalHandler(self::CHANNEL, endpointId: 'firstSubscriber')]
     public function handleFirst(string $payload): void
     {
         $this->firstWasCalled = true;
     }
 
-    #[ServiceActivator(self::CHANNEL, endpointId: 'secondSubscriber')]
+    #[InternalHandler(self::CHANNEL, endpointId: 'secondSubscriber')]
     public function handleSecond(string $payload): void
     {
         $this->secondWasCalled = true;

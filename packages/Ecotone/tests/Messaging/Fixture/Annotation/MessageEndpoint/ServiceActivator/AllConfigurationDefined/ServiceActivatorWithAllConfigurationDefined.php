@@ -4,9 +4,9 @@ namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActiv
 
 use Ecotone\Api\ConfigurationVariable;
 use Ecotone\Api\Header;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\Payload;
 use Ecotone\Api\Reference;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\Message;
 use stdClass;
 
@@ -15,7 +15,7 @@ use stdClass;
  */
 class ServiceActivatorWithAllConfigurationDefined
 {
-    #[ServiceActivator(
+    #[InternalHandler(
         endpointId: 'test-name',
         inputChannelName: 'inputChannel',
         outputChannelName: 'outputChannel',

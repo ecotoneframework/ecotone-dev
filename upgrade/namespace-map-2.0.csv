@@ -26,7 +26,7 @@ Ecotone\Messaging\Attribute\Poller,Ecotone\Api\Poller
 Ecotone\Messaging\Attribute\PropagateHeaders,Ecotone\Api\PropagateHeaders
 Ecotone\Messaging\Attribute\Router,Ecotone\Api\Router
 Ecotone\Messaging\Attribute\Scheduled,Ecotone\Api\Scheduled
-Ecotone\Messaging\Attribute\ServiceActivator,Ecotone\Api\ServiceActivator
+Ecotone\Messaging\Attribute\ServiceActivator,Ecotone\Api\InternalHandler
 Ecotone\Messaging\Attribute\ServiceContext,Ecotone\Api\ServiceContext
 Ecotone\Messaging\Attribute\Splitter,Ecotone\Api\Splitter
 Ecotone\Messaging\Attribute\Transformer,Ecotone\Api\Transformer

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -48,7 +48,7 @@ final class CollidingEndpointIdHandler
 {
     public const ENDPOINT_ID = 'order.register';
 
-    #[ServiceActivator('some', self::ENDPOINT_ID)]
+    #[InternalHandler('some', endpointId: self::ENDPOINT_ID)]
     public function handle(string $payload): void
     {
     }
@@ -63,7 +63,7 @@ final class SameChannelAndEndpointIdHandler
 {
     public const CHANNEL = 'order.register';
 
-    #[ServiceActivator(self::CHANNEL, self::CHANNEL)]
+    #[InternalHandler(self::CHANNEL, endpointId: self::CHANNEL)]
     public function handle(string $payload): void
     {
     }

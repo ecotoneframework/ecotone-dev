@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\Router;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
@@ -98,13 +98,13 @@ final class CustomRouterHandler
         return $this->channelsToPick;
     }
 
-    #[ServiceActivator('buyChannel')]
+    #[InternalHandler('buyChannel')]
     public function handleBuy(): void
     {
         $this->buyChannelCalled = true;
     }
 
-    #[ServiceActivator('sellChannel')]
+    #[InternalHandler('sellChannel')]
     public function handleSell(): void
     {
         $this->sellChannelCalled = true;
@@ -128,7 +128,7 @@ final class NotRequiredRouterHandler
         return [];
     }
 
-    #[ServiceActivator('buyChannel')]
+    #[InternalHandler('buyChannel')]
     public function handleBuy(): void
     {
         $this->buyChannelCalled = true;

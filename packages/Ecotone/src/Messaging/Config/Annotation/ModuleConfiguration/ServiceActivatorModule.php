@@ -7,9 +7,9 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration;
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Aggregate;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Api\Saga;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -36,7 +36,7 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
         $instance = parent::create($annotationRegistrationService, $interfaceToCallRegistry);
 
         foreach ($annotationRegistrationService->findAnnotatedMethods(static::getMessageHandlerAnnotation()) as $annotationRegistration) {
-            /** @var ServiceActivator $annotation */
+            /** @var InternalHandler $annotation */
             $annotation = $annotationRegistration->getAnnotationForMethod();
             if ($annotation->isChangingHeaders()) {
                 $instance->changingHeadersFindings[] = $annotationRegistration;
@@ -65,7 +65,7 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
             throw InvalidArgumentException::create("Message Handler or Service Activator works as stateless Handler and can't be used on Aggregate or Saga");
         }
 
-        /** @var ServiceActivator $annotation */
+        /** @var InternalHandler $annotation */
         $annotation = $annotationRegistration->getAnnotationForMethod();
 
         return ServiceActivatorBuilder::create(AnnotatedDefinitionReference::getReferenceFor($annotationRegistration), $interfaceToCallRegistry->getFor($annotationRegistration->getClassName(), $annotationRegistration->getMethodName()))
@@ -82,7 +82,7 @@ class ServiceActivatorModule extends MessageHandlerRegisterConfiguration
      */
     public static function getMessageHandlerAnnotation(): string
     {
-        return ServiceActivator::class;
+        return InternalHandler::class;
     }
 
     public function getModulePackageName(): string

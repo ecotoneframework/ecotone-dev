@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
 use Ecotone\Api\Headers;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\MessageGateway;
 use Ecotone\Api\Payload;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Message;
@@ -138,7 +138,7 @@ interface OneWayEchoGateway
  */
 final class EchoHandler
 {
-    #[ServiceActivator(EchoGateway::CHANNEL)]
+    #[InternalHandler(EchoGateway::CHANNEL)]
     public function handle(Message $message): Message
     {
         return $message;
@@ -154,7 +154,7 @@ final class CapturingOneWayHandler
 {
     public ?Message $receivedMessage = null;
 
-    #[ServiceActivator(OneWayEchoGateway::CHANNEL)]
+    #[InternalHandler(OneWayEchoGateway::CHANNEL)]
     public function handle(Message $message): void
     {
         $this->receivedMessage = $message;

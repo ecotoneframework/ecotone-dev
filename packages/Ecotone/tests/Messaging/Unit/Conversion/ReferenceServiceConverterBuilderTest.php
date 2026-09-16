@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Unit\Conversion;
 
 use Ecotone\Api\CommandHandler;
 use Ecotone\Api\Converter;
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -150,7 +150,7 @@ final class StdClassArrayHandler
     /**
      * @param stdClass[] $value
      */
-    #[ServiceActivator(self::CHANNEL)]
+    #[InternalHandler(self::CHANNEL)]
     public function handle(array $value): void
     {
         $this->received = $value;

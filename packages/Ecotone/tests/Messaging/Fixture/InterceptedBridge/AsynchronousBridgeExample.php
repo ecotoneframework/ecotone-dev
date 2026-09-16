@@ -6,7 +6,7 @@ namespace Test\Ecotone\Messaging\Fixture\InterceptedBridge;
 
 use Ecotone\Api\Around;
 use Ecotone\Api\Asynchronous;
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\ServiceContext;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
@@ -20,7 +20,7 @@ final class AsynchronousBridgeExample
     public int $result = 2;
 
     #[Asynchronous('async')]
-    #[ServiceActivator('bridgeExample', 'async_bridge_result', outputChannelName: 'bridgeSum')]
+    #[InternalHandler('bridgeExample', endpointId: 'async_bridge_result', outputChannelName: 'bridgeSum')]
     public function result(int $result): int
     {
         $this->result += $result;
@@ -28,7 +28,7 @@ final class AsynchronousBridgeExample
         return $this->result;
     }
 
-    #[ServiceActivator('bridgeSum')]
+    #[InternalHandler('bridgeSum')]
     public function sum(int $amount): int
     {
         $this->result += $amount;

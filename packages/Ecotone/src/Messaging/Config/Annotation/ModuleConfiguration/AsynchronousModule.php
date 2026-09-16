@@ -9,10 +9,10 @@ use Ecotone\Api\Asynchronous;
 use Ecotone\Api\CombinedMessageChannel;
 use Ecotone\Api\CommandHandler;
 use Ecotone\Api\EventHandler;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Api\ModuleAnnotation;
 use Ecotone\Api\PollingMetadata;
 use Ecotone\Api\QueryHandler;
-use Ecotone\Api\ServiceActivator;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;
@@ -69,7 +69,7 @@ class AsynchronousModule implements AnnotationModule
                     if ($endpoint->hasClassAnnotation(StreamBasedSource::class)) {
                         $streamSourcesAsyncEndpoints[$annotationForMethod->getEndpointId()] = $asyncClass->getChannelName();
                     } else {
-                        if ($annotationForMethod instanceof CommandHandler || $annotationForMethod instanceof EventHandler || $annotationForMethod instanceof ServiceActivator) {
+                        if ($annotationForMethod instanceof CommandHandler || $annotationForMethod instanceof EventHandler || $annotationForMethod instanceof InternalHandler) {
                             if ($annotationForMethod->isEndpointIdGenerated()) {
                                 throw ConfigurationException::create("{$endpoint} should have endpointId defined for handling asynchronously");
                             }
@@ -91,7 +91,7 @@ class AsynchronousModule implements AnnotationModule
                     if ($annotationForMethod instanceof QueryHandler) {
                         continue;
                     }
-                    if ($annotationForMethod instanceof CommandHandler || $annotationForMethod instanceof EventHandler || $annotationForMethod instanceof ServiceActivator) {
+                    if ($annotationForMethod instanceof CommandHandler || $annotationForMethod instanceof EventHandler || $annotationForMethod instanceof InternalHandler) {
                         if ($annotationForMethod->isEndpointIdGenerated()) {
                             throw ConfigurationException::create("{$endpoint} should have endpointId defined for handling asynchronously");
                         }

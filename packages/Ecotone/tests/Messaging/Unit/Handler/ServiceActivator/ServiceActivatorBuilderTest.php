@@ -16,7 +16,7 @@ use Test\Ecotone\Messaging\Unit\MessagingTestCase;
 
 /**
  * ServiceActivatorBuilder::withPassThroughMessageOnVoidInterface() has no
- * #[ServiceActivator] attribute equivalent -- the two tests below stay here.
+ * #[InternalHandler] attribute equivalent -- the two tests below stay here.
  * The interceptor chain, array-return, and changing-headers behaviour is
  * covered via the real attribute in ServiceActivatorAttributeTest.
  *

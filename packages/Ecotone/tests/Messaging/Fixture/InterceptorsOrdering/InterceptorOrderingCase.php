@@ -5,7 +5,6 @@ namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 use Ecotone\Api\CommandHandler;
 use Ecotone\Api\InternalHandler;
 use Ecotone\Api\Reference;
-use Ecotone\Api\ServiceActivator;
 
 /**
  * licence Apache-2.0
@@ -25,14 +24,14 @@ class InterceptorOrderingCase
         $stack->add('endpoint');
     }
 
-    #[ServiceActivator(inputChannelName: 'serviceEndpointReturning')]
+    #[InternalHandler(inputChannelName: 'serviceEndpointReturning')]
     public function serviceActivator(#[Reference] InterceptorOrderingStack $stack): string
     {
         $stack->add('endpoint');
         return 'something';
     }
 
-    #[ServiceActivator(inputChannelName: 'serviceEndpointVoid')]
+    #[InternalHandler(inputChannelName: 'serviceEndpointVoid')]
     public function voidEndpoint(#[Reference] InterceptorOrderingStack $stack): void
     {
         $stack->add('endpoint');

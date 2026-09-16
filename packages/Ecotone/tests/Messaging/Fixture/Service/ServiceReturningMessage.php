@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Service;
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\InternalHandler;
 use Ecotone\Messaging\Message;
 
 /**
@@ -36,7 +36,7 @@ class ServiceReturningMessage
         return new self($messageToReturn);
     }
 
-    #[ServiceActivator('get')]
+    #[InternalHandler('get')]
     public function get()
     {
         return $this->messageToReturn;

@@ -34,7 +34,7 @@ shared-framework issue, §5.3).
 Everything below Revision 2 was written against the tree as it stood on 2026-08-22. Three large merges have
 landed since: the public API moved to `Ecotone\Api\*` / `Ecotone\Api\<Package>\*` with the files living in
 `packages/<Pkg>/Api/` (`upgrade/namespace-map-2.0.csv`), the DBAL queue transport was internalised into
-`Ecotone\Dbal\Connection\*` with `Ecotone\Api\Dbal\DbalConnectionReference::DEFAULT`, and
+`Ecotone\Dbal\Connection\*` with `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference::DEFAULT`, and
 `ServiceConfiguration::withModulePackages()` replaced the skip lists. **Every path, class name and line
 number in this report has been re-checked against the current tree and corrected in place.** The headline
 conclusion is unchanged — the infrastructure exists, this is a default-flip plus gap-closing — but the
@@ -45,12 +45,12 @@ the design.
 
 | # | What moved | Old citation | Current citation |
 |---|---|---|---|
-| R-1 | `DatabaseSetupManager` | `packages/Dbal/src/Database/DatabaseSetupManager.php`, `Ecotone\Dbal\Database` | `packages/Dbal/Api/DatabaseSetupManager.php`, `Ecotone\Api\Dbal\DatabaseSetupManager`; ctor `:26-30`, `initializeAll()` `:81-92`, `getConnection()` `:235-241` |
-| R-2 | `DbalConfiguration` | `packages/Dbal/src/Configuration/DbalConfiguration.php` | `packages/Dbal/Api/DbalConfiguration.php`, `Ecotone\Api\Dbal\DbalConfiguration`; `$initializeDatabaseTables` `:54`, `withAutomaticTableInitialization()` `:369-375`, `isAutomaticTableInitializationEnabled()` `:377-380`, `createForTesting()` `:65-77`, `getMainConnectionOrDefault()` `:89-104`, `withDeduplication()` `:210`, `withDeadLetter()` `:221`, `withConsumerPositionTracking()` `:230`, `withDocumentStore()` `:241` |
+| R-1 | `DatabaseSetupManager` | `packages/Dbal/src/Database/DatabaseSetupManager.php`, `Ecotone\Dbal\Database` | `packages/Dbal/Api/DatabaseSetupManager.php`, `Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager`; ctor `:26-30`, `initializeAll()` `:81-92`, `getConnection()` `:235-241` |
+| R-2 | `DbalConfiguration` | `packages/Dbal/src/Configuration/DbalConfiguration.php` | `packages/Dbal/Api/DbalConfiguration.php`, `Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration`; `$initializeDatabaseTables` `:54`, `withAutomaticTableInitialization()` `:369-375`, `isAutomaticTableInitializationEnabled()` `:377-380`, `createForTesting()` `:65-77`, `getMainConnectionOrDefault()` `:89-104`, `withDeduplication()` `:210`, `withDeadLetter()` `:221`, `withConsumerPositionTracking()` `:230`, `withDocumentStore()` `:241` |
 | R-3 | `MultiTenantConfiguration` | `packages/Dbal/src/MultiTenant/MultiTenantConfiguration.php` | `packages/Dbal/Api/MultiTenantConfiguration.php`, `Ecotone\Api\Dbal`; ctor `:18-24`, factories `:29-40`, `getTenantToConnectionMapping()` `:55-58`. Mapping values are now `string\|ConnectionReference`, no longer plain strings — a `--tenant=` implementation must resolve both |
 | R-4 | `EventSourcingConfiguration` | `packages/PdoEventSourcing/src/EventSourcingConfiguration.php` | `packages/PdoEventSourcing/Api/EventSourcingConfiguration.php`, `Ecotone\Api\EventSourcing`; `withEventStreamTableName()` `:170`, `withProjectionsTableName()` `:177`, `create()` `:51` |
-| R-5 | `DbalConnectionReference` | `Ecotone\Dbal\DbalConnectionReference` | `Ecotone\Api\Dbal\DbalConnectionReference` (`packages/Dbal/Api/DbalConnectionReference.php:15`), `DEFAULT = Ecotone\Dbal\Connection\DbalConnectionFactory::class` |
-| R-6 | `#[ConsoleCommand]` / `#[ConsoleParameterOption]` | `Ecotone\Messaging\Attribute\*` | `Ecotone\Api\ConsoleCommand` / `Ecotone\Api\ConsoleParameterOption` (`packages/Ecotone/Api/`) |
+| R-5 | `DbalConnectionReference` | `Ecotone\Dbal\DbalConnectionReference` | `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference` (`packages/Dbal/Api/DbalConnectionReference.php:15`), `DEFAULT = Ecotone\Dbal\Connection\DbalConnectionFactory::class` |
+| R-6 | `#[ConsoleCommand]` / `#[ConsoleParameterOption]` | `Ecotone\Messaging\Attribute\*` | `Ecotone\Api\Attribute\ConsoleCommand` / `Ecotone\Api\Attribute\ConsoleParameterOption` (`packages/Ecotone/Api/`) |
 | R-7 | `#[WithTenantResolver]` | `packages/Dbal/src/Attribute/WithTenantResolver.php` | `packages/Dbal/Api/WithTenantResolver.php`, `Ecotone\Api\Dbal` |
 | R-8 | SQLite DSN parsing | `DbalConnectionFactory.php:11-13,22-23,73` | `packages/Dbal/src/Connection/DbalConnectionFactory.php:140-142` (scheme map), `:151`, `:280` |
 | R-9 | `DatabaseSetupModule` | `:47` (`[0]`), `:45`, `:78-94`, `:107-127`, `:56-59` | `:48`, `:46`, `:79-95`, `:108-128`, `:58-60` |
@@ -332,7 +332,7 @@ the handler transaction (§6).
 
 ### 1.3 What exists today — `DatabaseSetupManager` / `DatabaseSetupModule`
 
-`packages/Dbal/Api/DatabaseSetupManager.php` (260 lines, `Ecotone\Api\Dbal\DatabaseSetupManager`) is a working aggregator over
+`packages/Dbal/Api/DatabaseSetupManager.php` (260 lines, `Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager`) is a working aggregator over
 `DbalTableManager[]`:
 
 ```php
@@ -486,7 +486,7 @@ framework command):
 `ChannelSetupCommand`):
 
 ```php
-// packages/Ecotone/Api/ConsoleCommand.php  (Ecotone\Api\ConsoleCommand)
+// packages/Ecotone/Api/ConsoleCommand.php  (Ecotone\Api\Attribute\ConsoleCommand)
 #[Attribute(Attribute::TARGET_METHOD)]
 class ConsoleCommand
 {

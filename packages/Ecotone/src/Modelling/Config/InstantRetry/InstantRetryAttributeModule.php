@@ -3,10 +3,10 @@
 namespace Ecotone\Modelling\Config\InstantRetry;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\InstantRetry;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Attribute\InstantRetry;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;

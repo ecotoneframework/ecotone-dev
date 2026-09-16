@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\MessageEndpoint\ServiceActivator\WithLogger;
 
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\LogAfter;
-use Ecotone\Api\LogBefore;
-use Ecotone\Api\LogError;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\LogAfter;
+use Ecotone\Api\Attribute\LogBefore;
+use Ecotone\Api\Attribute\LogError;
 use Ecotone\Messaging\Handler\Logger\LoggingLevel;
 
 /**

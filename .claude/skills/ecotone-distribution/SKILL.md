@@ -20,8 +20,8 @@ Ecotone's distribution module enables communication between separate services (m
 Marks handlers as distributed -- receivable from other services:
 
 ```php
-use Ecotone\Api\Distributed;
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class OrderService
 {
@@ -39,7 +39,7 @@ class OrderService
 Interface for sending commands and events across services:
 
 ```php
-use Ecotone\Api\DistributedBus;
+use Ecotone\Api\Gateway\DistributedBus;
 
 class OrderSender
 {
@@ -69,7 +69,7 @@ class OrderSender
 Defines how commands are routed and which events are subscribed to:
 
 ```php
-use Ecotone\Api\DistributedServiceMap;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
 
 class DistributionConfig
 {
@@ -92,7 +92,7 @@ class DistributionConfig
 High-level interface for sending messages to channels:
 
 ```php
-use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\Gateway\MessagePublisher;
 
 class NotificationSender
 {

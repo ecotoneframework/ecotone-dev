@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\Example;
 
-use Ecotone\Api\MessageGateway;
+use Ecotone\Api\Attribute\MessageGateway;
 
 /**
  * licence Apache-2.0

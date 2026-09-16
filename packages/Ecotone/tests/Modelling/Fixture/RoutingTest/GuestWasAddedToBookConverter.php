@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\RoutingTest;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 use Test\Ecotone\Modelling\Fixture\NamedEvent\GuestWasAddedToBook;
 
 class GuestWasAddedToBookConverter

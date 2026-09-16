@@ -7,17 +7,17 @@ declare(strict_types=1);
 
 namespace Integration;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Converter;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\NamedEvent;
 use Ecotone\Api\EventSourcing\Stream;
-use Ecotone\Api\EventSourcingAggregate;
-use Ecotone\Api\EventSourcingHandler;
-use Ecotone\Api\FromStream;
-use Ecotone\Api\Identifier;
-use Ecotone\Api\NamedEvent;
-use Ecotone\Api\Projection;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;

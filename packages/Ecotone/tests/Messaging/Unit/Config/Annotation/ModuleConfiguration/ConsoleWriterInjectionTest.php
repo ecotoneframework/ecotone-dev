@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Config\Annotation\ModuleConfiguration;
 
-use Ecotone\Api\ConsoleCommand;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Console\ConsoleWriter;
 use Ecotone\Messaging\Console\DelegatingConsoleWriter;

@@ -2,7 +2,7 @@
 
 namespace Ecotone\Api\EventSourcing;
 
-use Ecotone\Api\Dbal\DbalConnectionReference;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore as EcotoneInMemoryEventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;

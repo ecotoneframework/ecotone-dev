@@ -2,7 +2,7 @@
 
 namespace Fixture\Car;
 
-use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 
 /**
  * licence Apache-2.0

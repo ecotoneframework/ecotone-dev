@@ -10,9 +10,9 @@ namespace Ecotone\Projecting\Config;
 use function array_map;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\Projection;
-use Ecotone\Api\StateStorage as StateStorageAttribute;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\StateStorage as StateStorageAttribute;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;

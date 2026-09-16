@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Router;
 
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\Priority;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Priority;
 use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 

@@ -5,7 +5,7 @@
 Source pattern: `Ecotone\Messaging\Transaction\TransactionInterceptor`
 
 ```php
-use Ecotone\Api\Around;
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Precedence;
 
@@ -30,8 +30,8 @@ class TransactionInterceptor
 ## Validation Interceptor (Before)
 
 ```php
-use Ecotone\Api\Before;
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\Before;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class ValidationInterceptor
 {
@@ -49,8 +49,8 @@ class ValidationInterceptor
 ## Audit Logging Interceptor (After)
 
 ```php
-use Ecotone\Api\After;
-use Ecotone\Api\Header;
+use Ecotone\Api\Attribute\After;
+use Ecotone\Api\Attribute\Header;
 
 class AuditInterceptor
 {
@@ -67,8 +67,8 @@ class AuditInterceptor
 ## Authorization Interceptor (Presend)
 
 ```php
-use Ecotone\Api\Presend;
-use Ecotone\Api\Header;
+use Ecotone\Api\Attribute\Presend;
+use Ecotone\Api\Attribute\Header;
 
 class AuthorizationInterceptor
 {
@@ -92,8 +92,8 @@ class AuthorizationInterceptor
 Targets a channel by name rather than a pointcut, so it runs for every message sent to that channel — including before a message is enqueued to an asynchronous channel. Requires an Ecotone Enterprise licence.
 
 ```php
-use Ecotone\Api\ChannelInterceptor;
-use Ecotone\Api\Headers;
+use Ecotone\Api\Attribute\ChannelInterceptor;
+use Ecotone\Api\Attribute\Headers;
 
 class OrdersChannelTenantInterceptor
 {
@@ -131,7 +131,7 @@ class SecondOrdersInterceptor
 ## Correlation ID Enrichment (Before with changeHeaders)
 
 ```php
-use Ecotone\Api\Before;
+use Ecotone\Api\Attribute\Before;
 
 class CorrelationIdInterceptor
 {
@@ -149,7 +149,7 @@ class CorrelationIdInterceptor
 ## Header Enrichment (Before with changeHeaders)
 
 ```php
-use Ecotone\Api\Before;
+use Ecotone\Api\Attribute\Before;
 
 class HeaderEnricher
 {
@@ -168,7 +168,7 @@ class HeaderEnricher
 ## Argument Modification (Around)
 
 ```php
-use Ecotone\Api\Around;
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 class EnrichmentInterceptor

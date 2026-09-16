@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Database;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Dbal\DatabaseSetupManager;
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\Dbal\DbalConnectionReference;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Service\Gateway;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\MessageGateway;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\MessageGateway;
 
 /**
  * licence Enterprise

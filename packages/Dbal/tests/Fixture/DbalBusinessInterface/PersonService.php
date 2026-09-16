@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
-use Ecotone\Api\Dbal\DbalParameter;
-use Ecotone\Api\Dbal\DbalWrite;
+use Ecotone\Api\Dbal\Attribute\DbalParameter;
+use Ecotone\Api\Dbal\Attribute\DbalWrite;
 use Ecotone\Messaging\Conversion\MediaType;
 
 /**

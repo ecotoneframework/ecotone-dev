@@ -3,8 +3,8 @@
 namespace App\Microservices\BackofficeService\Infrastructure;
 
 use Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder;
-use Ecotone\Api\ServiceContext;
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 
 class EcotoneConfiguration
 {

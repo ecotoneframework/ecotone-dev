@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\TicketProjectionState;
 
-use Ecotone\Api\ProjectionStateGateway;
+use Ecotone\Api\Projecting\ProjectionStateGateway;
 
 interface PartitionedCounterStateGateway
 {

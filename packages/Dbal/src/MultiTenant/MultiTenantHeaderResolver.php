@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\MultiTenant;
 
-use Ecotone\Api\Dbal\WithTenantResolver;
+use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ClosureExpression\ExecutorFor;
 use Ecotone\Messaging\Message;

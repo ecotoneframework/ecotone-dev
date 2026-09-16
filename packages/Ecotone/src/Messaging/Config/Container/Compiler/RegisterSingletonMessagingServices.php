@@ -2,8 +2,8 @@
 
 namespace Ecotone\Messaging\Config\Container\Compiler;
 
-use Ecotone\Api\EcotoneClockInterface;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PendingDeliveryRegistry;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;

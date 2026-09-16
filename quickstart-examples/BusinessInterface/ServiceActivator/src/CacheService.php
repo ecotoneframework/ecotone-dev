@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\BusinessInterface;
 
-use Ecotone\Api\BusinessMethod;
+use Ecotone\Api\Attribute\BusinessMethod;
 
 interface CacheService
 {

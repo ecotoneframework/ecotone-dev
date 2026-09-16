@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Reference;
 
 /**
  * licence Apache-2.0

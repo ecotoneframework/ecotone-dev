@@ -3,8 +3,8 @@
 namespace Test\Ecotone\EventSourcing\InMemory;
 
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;

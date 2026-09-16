@@ -7,8 +7,8 @@ namespace App\Workflow\Saga\Application\Payment;
 use App\Workflow\Saga\Application\Payment\Command\TakePayment;
 use App\Workflow\Saga\Application\Payment\Event\PaymentFailed;
 use App\Workflow\Saga\Application\Payment\Event\PaymentWasSuccessful;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventBus;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Gateway\EventBus;
 
 final readonly class PaymentService
 {

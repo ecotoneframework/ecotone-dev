@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Fixture\DbalBusinessInterface;
 
-use Ecotone\Api\Dbal\DbalQuery;
+use Ecotone\Api\Dbal\Attribute\DbalQuery;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 use Ecotone\Messaging\Conversion\MediaType;
 

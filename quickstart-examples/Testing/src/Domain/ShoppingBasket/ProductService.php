@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Testing\Domain\ShoppingBasket;
 
-use Ecotone\Api\BusinessMethod;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Identifier;
 use Ramsey\Uuid\UuidInterface;
 interface ProductService
 {

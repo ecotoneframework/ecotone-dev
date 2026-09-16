@@ -5,11 +5,11 @@
 Ecotone automatically registers `EloquentRepository` -- Eloquent models that extend `Model` are auto-detected as aggregates. No additional configuration is needed.
 
 ```php
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\Identifier;
-use Ecotone\Api\IdentifierMethod;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\IdentifierMethod;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Modelling\WithEvents;
 use Illuminate\Database\Eloquent\Model;
 
@@ -66,7 +66,7 @@ Key differences from regular aggregates:
 ### Default Connection
 
 ```php
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Laravel\LaravelConnectionReference;
 
 class EcotoneConfiguration
@@ -140,7 +140,7 @@ return [
 ### Using DBAL Channels Directly
 
 ```php
-use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 
 class ChannelConfiguration
 {
@@ -155,7 +155,7 @@ class ChannelConfiguration
 ## Multi-Tenant Configuration -- Full Example
 
 ```php
-use Ecotone\Api\Dbal\MultiTenantConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 
 class EcotoneConfiguration
 {

@@ -9,8 +9,8 @@ declare(strict_types=1);
 use App\Domain\Command\RegisterCustomer;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\QueryBus;
 use PHPUnit\Framework\Assert;
 use Tempest\Core\Tempest;
 

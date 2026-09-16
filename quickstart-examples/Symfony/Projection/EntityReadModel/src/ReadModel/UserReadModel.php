@@ -9,9 +9,9 @@ declare(strict_types=1);
 namespace App\ReadModel;
 
 use Doctrine\ORM\Mapping as ORM;
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Identifier;
 
 #[Aggregate]
 #[ORM\Entity]

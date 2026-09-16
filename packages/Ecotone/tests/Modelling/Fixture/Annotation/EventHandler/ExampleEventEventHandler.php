@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\Annotation\EventHandler;
 
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
 
 /**
  * licence Apache-2.0

@@ -2,7 +2,7 @@
 
 namespace Monorepo\ExampleAppEventSourcing\Common\Event;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class ProductWasRegistered
 {

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\WorkingWithAggregateDirectly;
 
-use Ecotone\Api\RelatedAggregate;
-use Ecotone\Api\Repository;
+use Ecotone\Api\Attribute\RelatedAggregate;
+use Ecotone\Api\Attribute\Repository;
 
 /**
  * Implementation will be auto-generated and this class will be available in your Dependency Container

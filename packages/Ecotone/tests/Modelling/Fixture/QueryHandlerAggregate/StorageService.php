@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\QueryHandlerAggregate;
 
-use Ecotone\Api\BusinessMethod;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Messaging\Message;
 
 interface StorageService

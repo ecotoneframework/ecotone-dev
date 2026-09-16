@@ -7,12 +7,12 @@ namespace App\ReadModel;
 use App\Domain\Product\Event\ProductWasAdded;
 use App\Domain\Product\Event\ProductWasApproved;
 use App\Domain\Product\Product;
-use Ecotone\Api\Projection;
-use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\Reference;
-use Ecotone\Api\DocumentStore;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 /**
  * @link https://docs.ecotone.tech/modelling/event-sourcing/setting-up-projections

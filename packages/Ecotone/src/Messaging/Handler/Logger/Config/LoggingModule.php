@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Handler\Logger\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\LogAfter;
-use Ecotone\Api\LogBefore;
-use Ecotone\Api\LogError;
-use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\Attribute\LogAfter;
+use Ecotone\Api\Attribute\LogBefore;
+use Ecotone\Api\Attribute\LogError;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;

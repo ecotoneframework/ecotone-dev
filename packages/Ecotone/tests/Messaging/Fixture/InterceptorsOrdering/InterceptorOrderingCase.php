@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Reference;
 
 /**
  * licence Apache-2.0

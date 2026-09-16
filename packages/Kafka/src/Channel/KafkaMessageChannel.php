@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Kafka\Channel;
 
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Kafka\Configuration\KafkaConsumerConfiguration;
 use Ecotone\Kafka\Inbound\KafkaInboundChannelAdapter;
 use Ecotone\Kafka\Outbound\KafkaOutboundChannelAdapter;

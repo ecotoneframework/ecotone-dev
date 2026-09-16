@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\Fixture\EventSourcedAggregateWithInternalEventRecorder;
 
-use Ecotone\Api\Repository;
+use Ecotone\Api\Attribute\Repository;
 
 interface JobRepositoryInterface
 {

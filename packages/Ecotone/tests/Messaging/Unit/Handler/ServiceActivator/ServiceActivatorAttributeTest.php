@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\ServiceActivator;
 
-use Ecotone\Api\Around;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Test\LicenceTesting;

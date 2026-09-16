@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Gateway;
 
-use Ecotone\Api\Header;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\MessageGateway;
-use Ecotone\Api\Payload;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\Payload;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Message;
 use PHPUnit\Framework\TestCase;

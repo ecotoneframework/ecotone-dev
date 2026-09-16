@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Integration\MultiTenant;
 
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\Dbal\MultiTenantConfiguration;
-use Ecotone\Api\Dbal\WithTenantResolver;
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\Headers;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Dbal\Attribute\WithTenantResolver;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Kafka\KafkaBrokerConfiguration;
 use Ecotone\Api\Kafka\KafkaConsumer;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Kafka\Configuration\TopicConfiguration;
 use Ecotone\Lite\EcotoneLite;

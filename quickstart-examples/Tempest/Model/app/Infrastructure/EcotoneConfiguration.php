@@ -8,7 +8,7 @@ declare(strict_types=1);
 
 namespace App\Infrastructure;
 
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Tempest\TempestConnectionReference;
 
 final readonly class EcotoneConfiguration

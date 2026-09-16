@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Fixture\InstantRetry\Nested;
 
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Gateway\CommandBus;
 use Test\Ecotone\EventSourcing\Fixture\InstantRetry\AggregateMessages\RegisterCustomer;
 
 final class CreateCustomerCaller

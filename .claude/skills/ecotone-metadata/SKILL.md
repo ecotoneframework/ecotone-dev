@@ -29,7 +29,7 @@ $queryBus->send(new GetOrder('1'), metadata: ['tenant' => 'acme']);
 ### Single Header with `#[Header]`
 
 ```php
-use Ecotone\Api\Header;
+use Ecotone\Api\Attribute\Header;
 
 #[EventHandler]
 public function audit(
@@ -44,7 +44,7 @@ public function audit(
 ### All Headers with `#[Headers]`
 
 ```php
-use Ecotone\Api\Headers;
+use Ecotone\Api\Attribute\Headers;
 
 #[CommandHandler('logCommand')]
 public function log(#[Headers] array $headers): void
@@ -68,8 +68,8 @@ public function handle($command, array $headers, EventBus $eventBus): void
 ## Enriching Metadata Declaratively
 
 ```php
-use Ecotone\Api\AddHeader;
-use Ecotone\Api\RemoveHeader;
+use Ecotone\Api\Attribute\AddHeader;
+use Ecotone\Api\Attribute\RemoveHeader;
 
 #[AddHeader('token', '123')]
 #[RemoveHeader('sensitiveData')]

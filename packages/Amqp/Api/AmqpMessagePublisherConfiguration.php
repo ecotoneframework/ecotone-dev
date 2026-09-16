@@ -2,7 +2,7 @@
 
 namespace Ecotone\Api\Amqp;
 
-use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Messaging\Support\Assert;
 use Enqueue\AmqpExt\AmqpConnectionFactory;
 

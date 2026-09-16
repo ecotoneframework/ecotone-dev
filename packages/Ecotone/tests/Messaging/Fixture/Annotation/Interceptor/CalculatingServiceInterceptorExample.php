@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Annotation\Interceptor;
 
-use Ecotone\Api\Around;
-use Ecotone\Api\ClassReference;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\ClassReference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 

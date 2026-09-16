@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\Fixture\StatefulEventSourcedWorkflowWithMultipleAggregates\Common;
 
-use Ecotone\Api\NamedEvent;
+use Ecotone\Api\Attribute\NamedEvent;
 
 #[NamedEvent('ItemReserved')]
 class ItemReserved

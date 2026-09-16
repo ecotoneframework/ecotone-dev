@@ -8,10 +8,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Projecting\Fixture;
 
 use Doctrine\DBAL\Connection;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\ProjectionDelete;
-use Ecotone\Api\ProjectionInitialization;
-use Ecotone\Api\ProjectionName;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\ProjectionName;
 use Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket\TicketCreated;
 
 abstract class DbalBlueGreenTicketProjection

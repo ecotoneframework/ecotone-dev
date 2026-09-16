@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\DataProtection\Fixture;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class CustomConverter
 {

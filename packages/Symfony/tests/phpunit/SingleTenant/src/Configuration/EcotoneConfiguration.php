@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Symfony\App\SingleTenant\Configuration;
 
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\Dbal\DbalDeadLetterBuilder;
-use Ecotone\Api\InstantRetryConfiguration;
-use Ecotone\Api\PollingMetadata;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Api\Symfony\SymfonyConnectionReference;
 use Ecotone\Api\Symfony\SymfonyMessengerMessageChannelBuilder;
 

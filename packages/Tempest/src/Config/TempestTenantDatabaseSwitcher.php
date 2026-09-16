@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Tempest\Config;
 
-use Ecotone\Api\Dbal\DbalConnectionReference;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\Tempest\TempestConnectionReference;
 use Ecotone\Messaging\Config\ConnectionReference;
 use Tempest\Container\GenericContainer;

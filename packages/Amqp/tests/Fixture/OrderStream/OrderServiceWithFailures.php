@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Amqp\Fixture\OrderStream;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use RuntimeException;
 
 #[Asynchronous('orders')]

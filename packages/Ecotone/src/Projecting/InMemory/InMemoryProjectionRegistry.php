@@ -7,8 +7,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Projecting\InMemory;
 
-use Ecotone\Api\ProjectingManager;
-use Ecotone\Api\ProjectionRegistry;
+use Ecotone\Api\Projecting\ProjectingManager;
+use Ecotone\Api\Projecting\ProjectionRegistry;
 use InvalidArgumentException;
 
 use function sprintf;

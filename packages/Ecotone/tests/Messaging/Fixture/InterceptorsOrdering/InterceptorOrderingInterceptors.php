@@ -2,12 +2,12 @@
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 
-use Ecotone\Api\After;
-use Ecotone\Api\Around;
-use Ecotone\Api\Before;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\Headers;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\After;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Before;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 /**

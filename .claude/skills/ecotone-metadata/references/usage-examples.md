@@ -3,8 +3,8 @@
 ## Accessing Single Header in Handler
 
 ```php
-use Ecotone\Api\Header;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\EventHandler;
 
 class NotificationService
 {
@@ -29,8 +29,8 @@ class NotificationService
 ## Accessing All Headers in Handler
 
 ```php
-use Ecotone\Api\Headers;
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class AuditService
 {
@@ -48,8 +48,8 @@ class AuditService
 When the handler has two parameters (first = payload, second = array), the second is auto-resolved as headers:
 
 ```php
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventBus;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Gateway\EventBus;
 
 class OrderService
 {
@@ -80,11 +80,11 @@ $queryBus->sendWithRouting('order.get', metadata: ['aggregate.id' => '123']);
 ## Declarative Header Enrichment
 
 ```php
-use Ecotone\Api\AddHeader;
-use Ecotone\Api\RemoveHeader;
-use Ecotone\Api\Delayed;
-use Ecotone\Api\Priority;
-use Ecotone\Api\TimeToLive;
+use Ecotone\Api\Attribute\AddHeader;
+use Ecotone\Api\Attribute\RemoveHeader;
+use Ecotone\Api\Attribute\Delayed;
+use Ecotone\Api\Attribute\Priority;
+use Ecotone\Api\Attribute\TimeToLive;
 
 // Static value
 #[AddHeader('source', 'api')]
@@ -118,9 +118,9 @@ public function process(): void { }
 ## Before Interceptor with `changeHeaders`
 
 ```php
-use Ecotone\Api\Before;
-use Ecotone\Api\Headers;
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\Before;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\CommandHandler;
 
 class MetadataEnricher
 {
@@ -143,7 +143,7 @@ class MetadataEnricher
 ## After Interceptor with `changeHeaders`
 
 ```php
-use Ecotone\Api\After;
+use Ecotone\Api\Attribute\After;
 
 class NotificationTimestampEnricher
 {
@@ -158,7 +158,7 @@ class NotificationTimestampEnricher
 ## Presend Interceptor with `changeHeaders`
 
 ```php
-use Ecotone\Api\Presend;
+use Ecotone\Api\Attribute\Presend;
 
 class PaymentEnricher
 {
@@ -260,7 +260,7 @@ class OrderService
 ## Disabling Propagation
 
 ```php
-use Ecotone\Api\PropagateHeaders;
+use Ecotone\Api\Attribute\PropagateHeaders;
 
 interface OrderGateway
 {

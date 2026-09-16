@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
-use Ecotone\Api\ProjectingManager;
-use Ecotone\Api\Projection;
-use Ecotone\Api\ProjectionRegistry;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Projecting\ProjectingManager;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;

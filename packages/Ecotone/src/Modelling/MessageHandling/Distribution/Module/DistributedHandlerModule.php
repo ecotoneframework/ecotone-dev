@@ -3,14 +3,14 @@
 namespace Ecotone\Modelling\MessageHandling\Distribution\Module;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Distributed;
-use Ecotone\Api\DistributedBusHeader;
-use Ecotone\Api\EventBus;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Distributed;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\DistributedBusHeader;
+use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;

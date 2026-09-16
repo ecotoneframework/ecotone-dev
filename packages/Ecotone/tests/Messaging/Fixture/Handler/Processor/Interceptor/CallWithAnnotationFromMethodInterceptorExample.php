@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor;
 
-use Ecotone\Api\Around;
-use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\InternalHandler;
 
 /**
  * Class CallWithAnnotationFromMethodInterceptorExample

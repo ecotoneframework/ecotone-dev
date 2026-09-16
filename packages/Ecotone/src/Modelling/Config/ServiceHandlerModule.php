@@ -3,13 +3,13 @@
 namespace Ecotone\Modelling\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\ChangingHeaders;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\ChangingHeaders;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;

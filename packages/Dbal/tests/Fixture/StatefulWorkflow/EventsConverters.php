@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Dbal\Fixture\StatefulWorkflow;
 
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class EventsConverters
 {

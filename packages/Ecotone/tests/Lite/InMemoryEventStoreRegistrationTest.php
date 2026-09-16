@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Lite;
 
-use Ecotone\Api\Converter;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\FromStream;
-use Ecotone\Api\Polling;
-use Ecotone\Api\Projection;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\StreamSource as StreamSourceAttribute;
+use Ecotone\Api\Attribute\Converter;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Polling;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\StreamSource as StreamSourceAttribute;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\Event;
 use Ecotone\Projecting\StreamPage;

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\MissingReference\Laravel\Shared;
 
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 
 /**
  * licence Apache-2.0

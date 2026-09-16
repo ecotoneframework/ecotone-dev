@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Poller;
 
-use Ecotone\Api\Poller;
-use Ecotone\Api\Scheduled;
+use Ecotone\Api\Attribute\Poller;
+use Ecotone\Api\Attribute\Scheduled;
 use Ecotone\Messaging\NullableMessageChannel;
 
 /**

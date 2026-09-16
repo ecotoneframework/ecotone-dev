@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptedBridge;
 
-use Ecotone\Api\Around;
-use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 /**

@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Service;
 
-use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 
 /**
  * Class StaticallyCalledService

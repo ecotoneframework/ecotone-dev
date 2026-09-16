@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\EventProjecting\PartitionedProjection\Infrastructure;
 
-use Ecotone\Api\Dbal\DbalConfiguration;
-use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 
 class EcotoneConfiguration
 {

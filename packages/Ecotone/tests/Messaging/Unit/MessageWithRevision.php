@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit;
 
-use Ecotone\Api\Revision;
+use Ecotone\Api\Attribute\Revision;
 
 #[Revision(2)]
 /**

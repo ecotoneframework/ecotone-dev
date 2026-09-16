@@ -7,7 +7,7 @@ namespace App\ReactiveSystem\Stage_3\Infrastructure\InMemory;
 use App\ReactiveSystem\Stage_3\Domain\Order\Order;
 use App\ReactiveSystem\Stage_3\Domain\Order\OrderRepository;
 use Ecotone\Messaging\Support\Assert;
-use Ecotone\Api\Repository;
+use Ecotone\Api\Attribute\Repository;
 use Ecotone\Modelling\StateStoredRepository;
 use Ramsey\Uuid\UuidInterface;
 

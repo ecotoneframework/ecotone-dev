@@ -2,7 +2,7 @@
 
 namespace App\Microservices\CustomerService\Domain;
 
-use Ecotone\Api\Repository;
+use Ecotone\Api\Attribute\Repository;
 use Ramsey\Uuid\UuidInterface;
 
 interface IssueRepository

@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\LateAggregateIdAssignation;
 
-use Ecotone\Api\Repository;
+use Ecotone\Api\Attribute\Repository;
 use Ecotone\Modelling\StateStoredRepository;
 use Symfony\Component\Uid\Uuid;
 

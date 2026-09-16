@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config;
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\Priority;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\Priority;
 use Ecotone\Messaging\Attribute\StreamBasedSource;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCall;

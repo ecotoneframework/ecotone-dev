@@ -2,8 +2,8 @@
 
 namespace Test\Ecotone\Modelling\Fixture\InterceptedCommandAggregate\AddNotificationTimestamp;
 
-use Ecotone\Api\After;
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\After;
+use Ecotone\Api\Attribute\CommandHandler;
 use Test\Ecotone\Modelling\Fixture\InterceptedCommandAggregate\Logger;
 
 /**

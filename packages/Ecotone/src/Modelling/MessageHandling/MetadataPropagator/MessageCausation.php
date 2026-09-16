@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\MessageHandling\MetadataPropagator;
 
 use Closure;
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\EventBus;
-use Ecotone\Api\QueryBus;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Messaging\Handler\Gateway\GatewayInternalProcessor;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;

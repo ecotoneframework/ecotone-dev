@@ -2,12 +2,12 @@
 
 namespace Ecotone\Messaging\Config;
 
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\DistributedBus;
-use Ecotone\Api\EventBus;
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\MessagePublisher;
-use Ecotone\Api\QueryBus;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\Api\Gateway\DistributedBus;
+use Ecotone\Api\Gateway\EventBus;
+use Ecotone\Api\Gateway\MessagePublisher;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Messaging\Config\Container\GatewayProxyMethodReference;
 use Ecotone\Messaging\Config\Container\GatewayProxyReference;
 use Ecotone\Messaging\Handler\Gateway\Gateway;

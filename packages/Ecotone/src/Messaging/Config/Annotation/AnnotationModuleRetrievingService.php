@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Messaging\Config\Annotation;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\ConfigurationVariable;
-use Ecotone\Api\ModuleAnnotation;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ConfigurationVariable;
+use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Module;
 use Ecotone\Messaging\Config\ModuleRetrievingService;

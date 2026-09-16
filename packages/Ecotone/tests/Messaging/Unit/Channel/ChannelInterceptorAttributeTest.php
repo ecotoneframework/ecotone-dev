@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Channel;
 
-use Ecotone\Api\ChannelInterceptor;
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\Header;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\Reference;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\Attribute\ChannelInterceptor;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Test\LicenceTesting;
@@ -179,8 +179,8 @@ final class AsyncCapturingHandler
 
     public mixed $received = null;
 
-    #[\Ecotone\Api\Asynchronous(self::CHANNEL)]
-    #[\Ecotone\Api\CommandHandler(self::ROUTING_KEY, 'channelInterceptorAsyncHandler')]
+    #[\Ecotone\Api\Attribute\Asynchronous(self::CHANNEL)]
+    #[\Ecotone\Api\Attribute\CommandHandler(self::ROUTING_KEY, 'channelInterceptorAsyncHandler')]
     public function handle(mixed $payload): void
     {
         $this->received = $payload;
@@ -239,13 +239,13 @@ final class TwoChannelHandler
 final class UppercasingInterceptor
 {
     #[ChannelInterceptor(CapturingHandler::CHANNEL)]
-    public function interceptCapturing(#[\Ecotone\Api\Payload] string $payload): string
+    public function interceptCapturing(#[\Ecotone\Api\Attribute\Payload] string $payload): string
     {
         return strtoupper($payload);
     }
 
     #[ChannelInterceptor(AsyncCapturingHandler::CHANNEL)]
-    public function interceptAsync(#[\Ecotone\Api\Payload] string $payload): string
+    public function interceptAsync(#[\Ecotone\Api\Attribute\Payload] string $payload): string
     {
         return strtoupper($payload);
     }
@@ -305,7 +305,7 @@ final class LowPrecedenceInterceptor
 final class ChannelAOnlyInterceptor
 {
     #[ChannelInterceptor(TwoChannelHandler::CHANNEL_A)]
-    public function intercept(#[\Ecotone\Api\Payload] string $payload): string
+    public function intercept(#[\Ecotone\Api\Attribute\Payload] string $payload): string
     {
         return strtoupper($payload);
     }
@@ -332,7 +332,7 @@ final class UppercaseService
 final class ReferenceAndHeaderUsingInterceptor
 {
     #[ChannelInterceptor(CapturingHandler::CHANNEL)]
-    public function intercept(#[\Ecotone\Api\Payload] string $payload, #[Header('suffix')] string $suffix, #[Reference] UppercaseService $service): string
+    public function intercept(#[\Ecotone\Api\Attribute\Payload] string $payload, #[Header('suffix')] string $suffix, #[Reference] UppercaseService $service): string
     {
         return $service->convert($payload) . $suffix;
     }

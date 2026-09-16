@@ -7,7 +7,7 @@ namespace Ecotone\Amqp;
 use AMQPChannelException;
 use AMQPConnectionException;
 use AMQPException;
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueHeader;
 use Ecotone\Enqueue\EnqueueInboundChannelAdapter;

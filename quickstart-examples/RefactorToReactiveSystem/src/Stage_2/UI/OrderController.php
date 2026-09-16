@@ -8,7 +8,7 @@ use App\ReactiveSystem\Stage_2\Application\OrderService;
 use App\ReactiveSystem\Stage_2\Application\PlaceOrder;
 use App\ReactiveSystem\Stage_2\Domain\Order\ShippingAddress;
 use App\ReactiveSystem\Stage_2\Infrastructure\Authentication\AuthenticationService;
-use Ecotone\Api\CommandBus;
+use Ecotone\Api\Gateway\CommandBus;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

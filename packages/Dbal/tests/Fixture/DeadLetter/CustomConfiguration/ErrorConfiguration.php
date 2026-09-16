@@ -2,10 +2,10 @@
 
 namespace Test\Ecotone\Dbal\Fixture\DeadLetter\CustomConfiguration;
 
-use Ecotone\Api\Dbal\DbalDeadLetterBuilder;
-use Ecotone\Api\ErrorHandlerConfiguration;
-use Ecotone\Api\PollingMetadata;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\Dbal\ExtensionObject\DbalDeadLetterBuilder;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 use Ecotone\Messaging\Handler\Recoverability\RetryTemplateBuilder;
 
 /**

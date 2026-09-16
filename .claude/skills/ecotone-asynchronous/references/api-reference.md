@@ -3,7 +3,7 @@
 ## #[Scheduled] Attribute
 
 ```php
-use Ecotone\Api\Scheduled;
+use Ecotone\Api\Attribute\Scheduled;
 
 #[Scheduled(
     requestChannelName: 'channelName',  // Channel to send the return value to
@@ -17,7 +17,7 @@ The method's return value is sent as a message to `requestChannelName`.
 ## #[Poller] Attribute
 
 ```php
-use Ecotone\Api\Poller;
+use Ecotone\Api\Attribute\Poller;
 
 #[Poller(
     cron: '',                           // Cron expression (e.g. '*/5 * * * *')
@@ -35,7 +35,7 @@ use Ecotone\Api\Poller;
 ## #[Priority] Attribute
 
 ```php
-use Ecotone\Api\Priority;
+use Ecotone\Api\Attribute\Priority;
 
 #[Priority(10)]
 ```
@@ -48,7 +48,7 @@ use Ecotone\Api\Priority;
 ## #[TimeToLive] Attribute
 
 ```php
-use Ecotone\Api\TimeToLive;
+use Ecotone\Api\Attribute\TimeToLive;
 use Ecotone\Messaging\Scheduling\TimeSpan;
 
 // Integer (milliseconds)
@@ -78,7 +78,7 @@ TimeSpan::withMinutes(5)
 ## PollingMetadata API
 
 ```php
-use Ecotone\Api\PollingMetadata;
+use Ecotone\Api\ExtensionObject\PollingMetadata;
 
 PollingMetadata::create('endpointId')
     ->setHandledMessageLimit(100)              // Stop after N messages
@@ -120,7 +120,7 @@ $channel = DynamicMessageChannelBuilder::createRoundRobin('orders', ['ch1', 'ch2
 ### SimpleMessageChannelBuilder
 
 ```php
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 
 // Queue channel (pollable, for async processing)
 SimpleMessageChannelBuilder::createQueueChannel('channel_name');
@@ -135,7 +135,7 @@ SimpleMessageChannelBuilder::createPublishSubscribeChannel('channel_name');
 ### DbalBackedMessageChannelBuilder
 
 ```php
-use Ecotone\Api\Dbal\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 
 // Basic DBAL channel
 DbalBackedMessageChannelBuilder::create('orders');

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Testing\Domain\ShoppingBasket;
 
-use Ecotone\Api\RelatedAggregate;
-use Ecotone\Api\Repository;
+use Ecotone\Api\Attribute\RelatedAggregate;
+use Ecotone\Api\Attribute\Repository;
 
 interface BasketRepository
 {

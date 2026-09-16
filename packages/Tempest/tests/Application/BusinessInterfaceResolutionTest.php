@@ -34,7 +34,7 @@ final class BusinessInterfaceResolutionTest extends EcotoneIntegrationTestCase
     {
         $counterGateway = $this->container->get(CounterGateway::class);
 
-        $commandBus = $this->container->get(\Ecotone\Api\CommandBus::class);
+        $commandBus = $this->container->get(\Ecotone\Api\Gateway\CommandBus::class);
         $commandBus->sendWithRouting('counter.increment');
 
         $this->assertSame(1, $counterGateway->get());

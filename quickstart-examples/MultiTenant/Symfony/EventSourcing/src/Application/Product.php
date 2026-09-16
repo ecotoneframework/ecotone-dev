@@ -8,11 +8,11 @@ use App\MultiTenant\Application\Command\RegisterProduct;
 use App\MultiTenant\Application\Command\UnregisterProduct;
 use App\MultiTenant\Application\Event\ProductWasRegistered;
 use App\MultiTenant\Application\Event\ProductWasUnregistered;
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\EventSourcingAggregate;
-use Ecotone\Api\EventSourcingHandler;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ramsey\Uuid\UuidInterface;
 

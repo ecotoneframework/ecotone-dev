@@ -3,7 +3,7 @@
 namespace Ecotone\Dbal\DbalTransaction;
 
 use Attribute;
-use Ecotone\Api\Dbal\DbalConnectionReference;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 
 #[Attribute]
 /**

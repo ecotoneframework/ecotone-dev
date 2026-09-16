@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Symfony\App\EnvPlaceholderKafka\Configuration;
 
+use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Kafka\KafkaPublisherConfiguration;
-use Ecotone\Api\ServiceContext;
 
 /**
  * licence Enterprise

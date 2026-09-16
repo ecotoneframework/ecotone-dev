@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modelling\Unit;
 
-use Ecotone\Api\SimpleMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;
 use Test\Ecotone\Modelling\Fixture\Workflow\Saga\AsynchronousPaymentHandler;
@@ -68,7 +68,7 @@ final class WorkflowTest extends TestCase
             [
                 AsynchronousPaymentHandler::class => new AsynchronousPaymentHandler(),
             ],
-            configuration: \Ecotone\Api\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
+            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('async'))
         );
 
         $orderId = '123';

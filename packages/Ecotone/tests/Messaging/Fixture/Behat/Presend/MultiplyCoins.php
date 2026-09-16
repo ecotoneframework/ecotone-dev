@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Fixture\Behat\Presend;
 
-use Ecotone\Api\Presend;
+use Ecotone\Api\Attribute\Presend;
 
 /**
  * licence Apache-2.0

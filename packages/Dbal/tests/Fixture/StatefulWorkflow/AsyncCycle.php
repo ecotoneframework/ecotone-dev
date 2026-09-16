@@ -2,13 +2,13 @@
 
 namespace Test\Ecotone\Dbal\Fixture\StatefulWorkflow;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Header;
-use Ecotone\Api\Identifier;
-use Ecotone\Api\Payload;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\Saga;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Saga;
 use Ecotone\Modelling\WithEvents;
 
 #[Saga]

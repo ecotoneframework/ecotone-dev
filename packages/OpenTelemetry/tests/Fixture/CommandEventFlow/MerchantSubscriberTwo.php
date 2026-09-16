@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Fixture\CommandEventFlow;
 
-use Ecotone\Api\CommandBus;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Gateway\CommandBus;
 
 /**
  * licence Apache-2.0

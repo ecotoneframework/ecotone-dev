@@ -8,10 +8,10 @@ declare(strict_types=1);
 namespace Ecotone\DataProtection\Configuration;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\DataProtection\Sensitive;
 use Ecotone\Api\DataProtection\WithEncryptionKey;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
-use Ecotone\Api\ModuleAnnotation;
 use Ecotone\DataProtection\Channel\OutboundDecryptionChannelBuilder;
 use Ecotone\DataProtection\Channel\OutboundEncryptionChannelBuilder;
 use Ecotone\DataProtection\Conversion\DataProtectionConversionServiceDecorator;

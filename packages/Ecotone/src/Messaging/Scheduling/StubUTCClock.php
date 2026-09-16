@@ -6,7 +6,7 @@ namespace Ecotone\Messaging\Scheduling;
 
 use DateTimeInterface;
 use DateTimeZone;
-use Ecotone\Api\EcotoneClockInterface;
+use Ecotone\Api\Gateway\EcotoneClockInterface;
 
 /**
  * @package Ecotone\Messaging\Scheduling

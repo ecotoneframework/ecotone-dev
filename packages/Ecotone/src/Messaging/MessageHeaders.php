@@ -2,7 +2,7 @@
 
 namespace Ecotone\Messaging;
 
-use Ecotone\Api\DistributedBusHeader;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;

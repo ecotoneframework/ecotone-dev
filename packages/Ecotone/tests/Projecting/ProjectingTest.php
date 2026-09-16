@@ -7,24 +7,24 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Projecting;
 
-use Ecotone\Api\Around;
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\ExecutionPollingMetadata;
-use Ecotone\Api\FromStream;
-use Ecotone\Api\Partitioned;
-use Ecotone\Api\PartitionProvider as PartitionProviderAttribute;
-use Ecotone\Api\Priority;
-use Ecotone\Api\Projection;
-use Ecotone\Api\ProjectionBackfill;
-use Ecotone\Api\ProjectionDeployment;
-use Ecotone\Api\ProjectionExecution;
-use Ecotone\Api\ProjectionFlush;
-use Ecotone\Api\ProjectionInitialization;
-use Ecotone\Api\ServiceConfiguration;
-use Ecotone\Api\SimpleMessageChannelBuilder;
-use Ecotone\Api\StateStorage;
-use Ecotone\Api\StreamSource as StreamSourceAttribute;
+use Ecotone\Api\Attribute\Around;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Priority;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Api\Projecting\FromStream;
+use Ecotone\Api\Projecting\Partitioned;
+use Ecotone\Api\Projecting\PartitionProvider as PartitionProviderAttribute;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\ProjectionBackfill;
+use Ecotone\Api\Projecting\ProjectionDeployment;
+use Ecotone\Api\Projecting\ProjectionExecution;
+use Ecotone\Api\Projecting\ProjectionFlush;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Projecting\StateStorage;
+use Ecotone\Api\Projecting\StreamSource as StreamSourceAttribute;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Endpoint\Interceptor\PcntlTerminationListener;
@@ -848,7 +848,7 @@ class ProjectingTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
             addInMemoryStateStoredRepository: false,
-            testConfiguration: \Ecotone\Api\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
+            testConfiguration: \Ecotone\Api\ExtensionObject\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
         );
 
         $streamSource->append(
@@ -912,7 +912,7 @@ class ProjectingTest extends TestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel('backfill_async')),
             addInMemoryStateStoredRepository: false,
-            testConfiguration: \Ecotone\Api\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
+            testConfiguration: \Ecotone\Api\ExtensionObject\TestConfiguration::createWithDefaults()->withSpyOnChannel('backfill_async')
         );
 
         $ecotone->initializeProjection('different_projection');

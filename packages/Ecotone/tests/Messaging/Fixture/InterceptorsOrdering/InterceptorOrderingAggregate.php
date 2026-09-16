@@ -2,11 +2,11 @@
 
 namespace Test\Ecotone\Messaging\Fixture\InterceptorsOrdering;
 
-use Ecotone\Api\Aggregate;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Headers;
-use Ecotone\Api\Identifier;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Reference;
 use Ecotone\Modelling\WithEvents;
 
 #[Aggregate]

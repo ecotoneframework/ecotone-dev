@@ -4,10 +4,10 @@ namespace App\EventSourcing;
 
 use App\EventSourcing\Event\PriceWasChanged;
 use App\EventSourcing\Event\ProductWasRegistered;
-use Ecotone\Api\Projection;
-use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 
 #[Projection("price_change_over_time")]
 #[FromAggregateStream(Product::class)]

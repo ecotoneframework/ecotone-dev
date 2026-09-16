@@ -1,6 +1,6 @@
 <?php
 
-use Ecotone\Api\ExecutionPollingMetadata;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Request;

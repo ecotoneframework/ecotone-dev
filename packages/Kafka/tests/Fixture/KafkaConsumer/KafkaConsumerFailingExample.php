@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Kafka\Fixture\KafkaConsumer;
 
+use Ecotone\Api\Attribute\Payload;
 use Ecotone\Api\Kafka\KafkaConsumer;
-use Ecotone\Api\Payload;
 use RuntimeException;
 
 /**

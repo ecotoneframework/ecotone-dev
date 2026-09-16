@@ -9,7 +9,7 @@ declare(strict_types=1);
 namespace App\Infrastructure;
 
 use Ecotone\Api\Laravel\LaravelConnectionReference;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 
 final readonly class EcotoneConfiguration
 {

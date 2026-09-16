@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Sqs\Fixture\SqsConsumer;
 
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 
 /**

@@ -5,7 +5,7 @@
 ### Basic Queries with Different FetchModes
 
 ```php
-use Ecotone\Api\Dbal\DbalQuery;
+use Ecotone\Api\Dbal\Attribute\DbalQuery;
 use Ecotone\Dbal\DbaBusinessMethod\FetchMode;
 
 interface ProductRepository
@@ -40,7 +40,7 @@ interface ProductRepository
 ### Write Operations
 
 ```php
-use Ecotone\Api\Dbal\DbalWrite;
+use Ecotone\Api\Dbal\Attribute\DbalWrite;
 
 interface ProductWriter
 {
@@ -64,7 +64,7 @@ interface ProductWriter
 ### Parameter Type Conversion
 
 ```php
-use Ecotone\Api\Dbal\DbalParameter;
+use Ecotone\Api\Dbal\Attribute\DbalParameter;
 
 interface AdvancedQueries
 {
@@ -115,7 +115,7 @@ interface SecondaryDbQueries
 ### JSON Converter
 
 ```php
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class JsonConverter
 {
@@ -140,7 +140,7 @@ class JsonConverter
 ### DTO Converter
 
 ```php
-use Ecotone\Api\Converter;
+use Ecotone\Api\Attribute\Converter;
 
 class ProductConverter
 {
@@ -171,7 +171,7 @@ class ProductConverter
 ### BusinessMethod with ServiceActivator
 
 ```php
-use Ecotone\Api\BusinessMethod;
+use Ecotone\Api\Attribute\BusinessMethod;
 
 interface CacheService
 {
@@ -182,7 +182,7 @@ interface CacheService
     public function get(string $key): ?string;
 }
 
-use Ecotone\Api\ServiceActivator;
+use Ecotone\Api\Attribute\ServiceActivator;
 
 class InMemoryCache
 {
@@ -205,8 +205,8 @@ class InMemoryCache
 ### BusinessMethod with Aggregate
 
 ```php
-use Ecotone\Api\BusinessMethod;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Identifier;
 
 interface ProductService
 {
@@ -220,10 +220,10 @@ interface ProductService
     public function getPrice(#[Identifier] string $productId): float;
 }
 
-use Ecotone\Api\EventSourcingAggregate;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Attribute\Identifier;
 
 #[EventSourcingAggregate]
 class Product
@@ -255,8 +255,8 @@ class Product
 ### BusinessMethod with Headers and Routing
 
 ```php
-use Ecotone\Api\BusinessMethod;
-use Ecotone\Api\Header;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Header;
 
 interface CacheService
 {
@@ -267,8 +267,8 @@ interface CacheService
     public function get(string $key, #[Header('cache.type')] CacheType $type): ?string;
 }
 
-use Ecotone\Api\Router;
-use Ecotone\Api\Header;
+use Ecotone\Api\Attribute\Router;
+use Ecotone\Api\Attribute\Header;
 
 class CachingRouter
 {
@@ -288,8 +288,8 @@ class CachingRouter
 BusinessMethod interfaces can be injected as parameters into handler methods. Ecotone resolves the auto-generated proxy and passes it in.
 
 ```php
-use Ecotone\Api\BusinessMethod;
-use Ecotone\Api\Identifier;
+use Ecotone\Api\Attribute\BusinessMethod;
+use Ecotone\Api\Attribute\Identifier;
 use Ramsey\Uuid\UuidInterface;
 
 interface ProductService
@@ -304,9 +304,9 @@ interface UserService
     public function isUserVerified(#[Identifier] UuidInterface $userId): bool;
 }
 
-use Ecotone\Api\EventSourcingAggregate;
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Reference;
 
 #[EventSourcingAggregate]
 class Basket

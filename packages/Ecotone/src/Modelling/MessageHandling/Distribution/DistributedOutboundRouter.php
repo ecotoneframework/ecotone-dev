@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\MessageHandling\Distribution;
 
-use Ecotone\Api\DistributedBusHeader;
-use Ecotone\Api\DistributedServiceMap;
-use Ecotone\Api\Header;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\ExtensionObject\DistributedServiceMap;
+use Ecotone\Api\Gateway\DistributedBusHeader;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 

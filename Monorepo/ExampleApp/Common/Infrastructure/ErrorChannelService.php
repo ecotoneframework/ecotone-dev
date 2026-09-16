@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Monorepo\ExampleApp\Common\Infrastructure;
 
-use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Messaging\Support\ErrorMessage;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Messaging\Message;
 
 final class ErrorChannelService

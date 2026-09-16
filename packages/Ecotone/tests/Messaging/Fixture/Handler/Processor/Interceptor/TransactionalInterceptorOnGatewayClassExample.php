@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Handler\Processor\Interceptor;
 
-use Ecotone\Api\MessageGateway;
+use Ecotone\Api\Attribute\MessageGateway;
 use Ecotone\Messaging\Transaction\Transactional;
 
 #[Transactional(['transactionFactory'])]

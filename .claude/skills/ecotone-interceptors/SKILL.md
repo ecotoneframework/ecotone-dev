@@ -29,7 +29,7 @@ Execution order: Presend -> Before -> Around -> handler -> Around end -> After
 ## Before Interceptor
 
 ```php
-use Ecotone\Api\Before;
+use Ecotone\Api\Attribute\Before;
 
 class ValidationInterceptor
 {
@@ -44,7 +44,7 @@ class ValidationInterceptor
 ## After Interceptor
 
 ```php
-use Ecotone\Api\After;
+use Ecotone\Api\Attribute\After;
 
 class AuditInterceptor
 {
@@ -59,7 +59,7 @@ class AuditInterceptor
 ## Around Interceptor
 
 ```php
-use Ecotone\Api\Around;
+use Ecotone\Api\Attribute\Around;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 
 class TransactionInterceptor
@@ -85,7 +85,7 @@ class TransactionInterceptor
 ## Presend Interceptor
 
 ```php
-use Ecotone\Api\Presend;
+use Ecotone\Api\Attribute\Presend;
 
 class AuthorizationInterceptor
 {
@@ -104,7 +104,7 @@ class AuthorizationInterceptor
 `#[ChannelInterceptor]` targets a channel by **name** instead of a pointcut against handlers — it runs for every message sent to that channel, regardless of which handler(s) receive it, including before a message is enqueued to an asynchronous channel.
 
 ```php
-use Ecotone\Api\ChannelInterceptor;
+use Ecotone\Api\Attribute\ChannelInterceptor;
 
 class OrdersChannelInterceptor
 {

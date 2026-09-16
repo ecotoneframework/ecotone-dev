@@ -14,12 +14,12 @@ use App\Domain\Event\UserWasRegistered;
 use App\Domain\User;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
-use Ecotone\Api\FromAggregateStream;
-use Ecotone\Api\ProjectionDelete;
-use Ecotone\Api\ProjectionInitialization;
-use Ecotone\Api\EventHandler;
-use Ecotone\Api\QueryHandler;
-use Ecotone\Api\Projection;
+use Ecotone\Api\Projecting\FromAggregateStream;
+use Ecotone\Api\Projecting\ProjectionDelete;
+use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\Projecting\Projection;
 use Interop\Queue\ConnectionFactory;
 
 #[Projection('user_list_database')]

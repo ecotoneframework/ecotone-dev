@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Logger;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\LogAfter;
-use Ecotone\Api\LogBefore;
-use Ecotone\Api\LogError;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\LogAfter;
+use Ecotone\Api\Attribute\LogBefore;
+use Ecotone\Api\Attribute\LogError;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Handler\Logger\LoggingLevel;
 use PHPUnit\Framework\TestCase;

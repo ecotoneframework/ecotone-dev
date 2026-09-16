@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Messaging\Fixture\FetchAggregate;
 
-use Ecotone\Api\Repository;
+use Ecotone\Api\Attribute\Repository;
 use Ecotone\Modelling\StateStoredRepository;
 
 #[Repository]

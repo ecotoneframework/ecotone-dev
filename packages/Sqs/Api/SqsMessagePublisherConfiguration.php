@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\Sqs;
 
-use Ecotone\Api\MessagePublisher;
+use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Messaging\Support\Assert;
 use Enqueue\Sqs\SqsConnectionFactory;
 

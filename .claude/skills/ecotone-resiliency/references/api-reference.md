@@ -40,7 +40,7 @@ $retry = RetryTemplateBuilder::exponentialBackOffWithMaxDelay(
 ## ErrorHandlerConfiguration API
 
 ```php
-use Ecotone\Api\ErrorHandlerConfiguration;
+use Ecotone\Api\ExtensionObject\ErrorHandlerConfiguration;
 ```
 
 ### With Dead Letter Channel
@@ -99,7 +99,7 @@ AmqpBackedMessageChannelBuilder::create('orders')
 ## #[InstantRetry] Attribute (Enterprise)
 
 ```php
-use Ecotone\Api\InstantRetry;
+use Ecotone\Api\Attribute\InstantRetry;
 
 // Retry on any exception
 #[InstantRetry(retryTimes: 3)]
@@ -114,7 +114,7 @@ use Ecotone\Api\InstantRetry;
 ## #[ErrorChannel] Attribute (Enterprise)
 
 ```php
-use Ecotone\Api\ErrorChannel;
+use Ecotone\Api\Attribute\ErrorChannel;
 
 #[ErrorChannel('orders_error')]
 ```

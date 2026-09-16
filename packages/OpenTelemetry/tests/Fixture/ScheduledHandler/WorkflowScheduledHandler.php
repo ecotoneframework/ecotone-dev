@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\OpenTelemetry\Fixture\ScheduledHandler;
 
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\Poller;
-use Ecotone\Api\Scheduled;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Poller;
+use Ecotone\Api\Attribute\Scheduled;
 
 /**
  * licence Apache-2.0

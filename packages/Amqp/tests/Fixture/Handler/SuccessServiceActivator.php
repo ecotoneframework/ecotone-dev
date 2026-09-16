@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Amqp\Fixture\Handler;
 
-use Ecotone\Api\Asynchronous;
-use Ecotone\Api\InternalHandler;
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Messaging\Message;
 
 /**

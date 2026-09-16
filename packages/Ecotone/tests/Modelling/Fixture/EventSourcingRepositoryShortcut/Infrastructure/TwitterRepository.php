@@ -2,7 +2,7 @@
 
 namespace Test\Ecotone\Modelling\Fixture\EventSourcingRepositoryShortcut\Infrastructure;
 
-use Ecotone\Api\Repository;
+use Ecotone\Api\Attribute\Repository;
 use Ecotone\Modelling\InMemoryEventSourcedRepository;
 
 #[Repository]

@@ -85,7 +85,7 @@ with `fromStreams`/`fromCategories`/`fromAll`, `ProjectionManager`, `ProjectionR
 `ecotone:es:*` console commands, `FlowTestSupport::initializeProjection()`, `resetProjection()`,
 `stopProjection()`, `deleteProjection()`, `triggerProjection()`), and the new v2 (`Ecotone\Api\ProjectionV2`).
 
-**Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Projection`). v1's
+**Now:** Only the new system exists and it is called `#[Projection]` (`Ecotone\Api\Projecting\Projection`). v1's
 Prooph-based projection runtime, its lifecycle configuration classes and its `ecotone:es:*` console commands are
 gone entirely. Projection state lives in the v2 state table (`ecotone_projection_state`), not the Prooph
 `projections` table. The event *store* is a separate change — see §4, where Prooph goes away entirely.
@@ -118,7 +118,7 @@ final class OrderListProjection { #[EventHandler] public function when(OrderPlac
   separate projections; and Prooph's `MetadataMatcher` filtering and configurable `GapDetection` retry schedule on
   projections — gap handling is built in (`GapAwarePosition`) and has no user configuration.
 - Code that injected the v1 `ProjectionManager` gateway (`Ecotone\EventSourcing\ProjectionManager`) injects
-  `Ecotone\Api\ProjectionRegistry` instead and works with `ProjectionRegistry::get('order_list')`, which returns a
+  `Ecotone\Api\Projecting\ProjectionRegistry` instead and works with `ProjectionRegistry::get('order_list')`, which returns a
   `ProjectingManager`: `init()`, `execute()`, `executeWithReset()`, `prepareRebuild()`, `prepareBackfill()` and
   `delete()` cover initialise, run, reset, rebuild, backfill and delete.
 - Replace `ProjectionRunningConfiguration` / `ProjectionSetupConfiguration` / `ProjectionLifeCycleConfiguration`
@@ -254,7 +254,7 @@ are distinct on all three engines.
 
 **Now:** The queue transport classes live in `Ecotone\Dbal\Connection` (`DbalConnectionFactory`, `DbalContext`, `DbalProducer`,
 `DbalConsumer`, `ManagerRegistryConnectionFactory`, …) and still implement the `queue-interop` interfaces. The default connection
-reference name is `Ecotone\Api\Dbal\DbalConnectionReference::DEFAULT` (which equals `Ecotone\Dbal\Connection\DbalConnectionFactory::class`);
+reference name is `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference::DEFAULT` (which equals `Ecotone\Dbal\Connection\DbalConnectionFactory::class`);
 `DbalConnectionReference::defaultConnection()` returns the reference object. Framework references keep their factories
 (`SymfonyConnectionReference::createForManagerRegistry('default')`, `LaravelConnectionReference::defaultConnection()`,
 `TempestConnectionReference::default()`) and resolve to the new default. The `enqueue/dbal` composer replacement/conflict and the
@@ -316,7 +316,7 @@ routing wildcards are unchanged (`*` matches a single dotted segment).
 | `StandardRepository` interface | `StateStoredRepository` (same methods) |
 | `EcotoneLite::bootstrapForTesting()`, `EcotoneLiteConfiguration`, `ecotone/lite-application` package | `EcotoneLite::bootstrapFlowTesting()` / `EcotoneLite::bootstrap()` |
 | `MethodInvocation::getInterfaceToCall()`, `MethodInvocation::replaceArgument()` | `getObjectToInvokeOn()` / `getMethodName()`; pass changed values by returning a new message or header from `#[Before]` / `#[Presend]` |
-| `Ecotone\Messaging\Gateway\Converter\Serializer` | `Ecotone\Api\SerializerGateway` |
+| `Ecotone\Messaging\Gateway\Converter\Serializer` | `Ecotone\Api\Gateway\SerializerGateway` |
 | `Type::STRING`, `Type::ARRAY`, `Type::OBJECT` | `Type::string()`, `Type::array()`, `Type::object()` |
 | `Clock::get()` static access | inject `EcotoneClockInterface` |
 | `FlowTestSupport::releaseAwaitingMessagesAndRunConsumer()` | `run()` |
@@ -460,45 +460,60 @@ final class EcotoneConfiguration
 
 Delete the corresponding keys from `ecotone.yaml` / `config/ecotone.php`; the bundle/provider rejects unknown keys.
 
-## 13. Public API moved to `Api` namespaces
+## 13. Public API moved to `Api` namespaces, split into `Attribute` / `ExtensionObject` / `Gateway` / module sub-namespaces
 
 **Before:** User-facing attributes and configuration objects lived in module namespaces
 (`Ecotone\Messaging\Attribute\*`, `Ecotone\Modelling\Attribute\*`, `Ecotone\Projecting\Attribute\*`, `Ecotone\Dbal\Attribute\*`,
 `Ecotone\Messaging\Config\ServiceConfiguration`, `Ecotone\Dbal\Configuration\DbalConfiguration`, ...).
 
 **Now:** Everything you are meant to reference from application code — attributes, `#[ServiceContext]` extension
-objects, and gateways/buses alike — is flattened directly under a single `Ecotone\Api` namespace:
-- core classes → `Ecotone\Api\<ClassName>` (e.g. `Ecotone\Api\CommandHandler`, `Ecotone\Api\ServiceConfiguration`,
-  `Ecotone\Api\CommandBus`, `Ecotone\Api\QueryBus`, `Ecotone\Api\EventBus`, `Ecotone\Api\DistributedBus`,
-  `Ecotone\Api\MessagePublisher`, `Ecotone\Api\Projection`)
-- package classes → `Ecotone\Api\<Package>\<ClassName>` (e.g. `Ecotone\Api\Dbal\DbalWrite`,
+objects, and gateways/buses alike — lives under `Ecotone\Api`, organized by kind:
+- attributes that are cross-cutting messaging/modelling vocabulary → `Ecotone\Api\Attribute\*`
+  (e.g. `Ecotone\Api\Attribute\CommandHandler`, `Ecotone\Api\Attribute\EventHandler`, `Ecotone\Api\Attribute\Asynchronous`,
+  `Ecotone\Api\Attribute\Aggregate`, `Ecotone\Api\Attribute\Saga`, `Ecotone\Api\Attribute\Header`)
+- configuration/extension-object value objects → `Ecotone\Api\ExtensionObject\*`
+  (e.g. `Ecotone\Api\ExtensionObject\ServiceConfiguration`, `Ecotone\Api\ExtensionObject\PollingMetadata`,
+  `Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder`, `Ecotone\Api\ExtensionObject\DistributedServiceMap`)
+- gateway interfaces → `Ecotone\Api\Gateway\*`
+  (e.g. `Ecotone\Api\Gateway\CommandBus`, `Ecotone\Api\Gateway\EventBus`, `Ecotone\Api\Gateway\QueryBus`,
+  `Ecotone\Api\Gateway\DistributedBus`, `Ecotone\Api\Gateway\DocumentStore`, `Ecotone\Api\Gateway\MessagePublisher`)
+- classes that belong to a feature sub-module → `Ecotone\Api\<Module>\*`, flat inside the module with **no** further
+  `Attribute`/`ExtensionObject`/`Gateway` segment (e.g. `Ecotone\Api\Projecting\Projection`,
+  `Ecotone\Api\Projecting\ProjectionDelete`, `Ecotone\Api\Projecting\ProjectingManager`) — a module-scoped class stays
+  flat inside its module even when it would otherwise be an attribute or extension object
+- classes belonging to another Composer package → `Ecotone\Api\<Package>\*`, and only split into kind sub-namespaces
+  when that package's own `Api` dir mixes enough kinds to warrant it — today only `Dbal` does
+  (`Ecotone\Api\Dbal\Attribute\DbalWrite`, `Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration`,
+  `Ecotone\Api\Dbal\Gateway\DeadLetterGateway`); every other package (`Amqp`, `Kafka`, `Redis`, `Sqs`, `Symfony`,
+  `Laravel`, `Tempest`, `DataProtection`, `JMSConverter`, `EventSourcing`) stays flat, e.g.
   `Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder`, `Ecotone\Api\Kafka\KafkaMessageChannelBuilder`,
   `Ecotone\Api\Laravel\LaravelConnectionReference`, `Ecotone\Api\Symfony\SymfonyConnectionReference`,
   `Ecotone\Api\Tempest\TempestConnectionReference`, `Ecotone\Api\EventSourcing\EventSourcingConfiguration`,
   `Ecotone\Api\JMSConverter\JMSConverterConfiguration`, `Ecotone\Api\Redis\*`, `Ecotone\Api\Sqs\*`,
-  `Ecotone\Api\DataProtection\*`)
-
-There is no `Attribute` / `ExtensionObject` / `Gateway` mid-level segment — the category a class falls into does not
-appear in its namespace.
+  `Ecotone\Api\DataProtection\*`
 
 Classes outside `Api` are `@internal` and may change in minor versions. `DistributedServiceMap` and `DistributedBusHeader` (formerly
-`Ecotone\Modelling\Api\Distribution\*`) fold into the flat core namespace as `Ecotone\Api\DistributedServiceMap` /
-`Ecotone\Api\DistributedBusHeader`; `KafkaHeader` (formerly `Ecotone\Kafka\Api\KafkaHeader`) becomes
-`Ecotone\Api\Kafka\KafkaHeader`, consistent with every other Kafka class.
+`Ecotone\Modelling\Api\Distribution\*`) become `Ecotone\Api\ExtensionObject\DistributedServiceMap` and
+`Ecotone\Api\Gateway\DistributedBusHeader`; `KafkaHeader` (formerly `Ecotone\Kafka\Api\KafkaHeader`) becomes
+`Ecotone\Api\Kafka\KafkaHeader`, consistent with every other Kafka class (Kafka's `Api` dir is small enough to stay flat).
 
 **How to adapt:** Replace the imports using the full old → new mapping in
 [`upgrade/namespace-map-2.0.csv`](https://github.com/ecotoneframework/ecotone-dev/blob/2.0/upgrade/namespace-map-2.0.csv)
-(two columns, `old_fqcn,new_fqcn`) — a find-and-replace or `sed` over your `use` statements covers it. Examples:
+(two columns, `old_fqcn,new_fqcn`) — a find-and-replace or `sed` over your `use` statements covers it. The full
+judgement-call reasoning behind each placement (which attributes stayed cross-cutting vs. became module-scoped, and
+why only `Dbal` split into kind sub-namespaces) is recorded in
+[`docs/superpowers/specs/2026-09-16-api-namespace-layout-mapping.md`](https://github.com/ecotoneframework/ecotone-dev/blob/2.0/docs/superpowers/specs/2026-09-16-api-namespace-layout-mapping.md).
+Examples:
 
 | 1.x | 2.0 |
 |---|---|
-| `Ecotone\Modelling\Attribute\CommandHandler` | `Ecotone\Api\CommandHandler` |
-| `Ecotone\Messaging\Attribute\Asynchronous` | `Ecotone\Api\Asynchronous` |
-| `Ecotone\Projecting\Attribute\ProjectionV2` | `Ecotone\Api\Projection` |
-| `Ecotone\Messaging\Config\ServiceConfiguration` | `Ecotone\Api\ServiceConfiguration` |
-| `Ecotone\Dbal\Configuration\DbalConfiguration` | `Ecotone\Api\Dbal\DbalConfiguration` |
+| `Ecotone\Modelling\Attribute\CommandHandler` | `Ecotone\Api\Attribute\CommandHandler` |
+| `Ecotone\Messaging\Attribute\Asynchronous` | `Ecotone\Api\Attribute\Asynchronous` |
+| `Ecotone\Projecting\Attribute\ProjectionV2` | `Ecotone\Api\Projecting\Projection` |
+| `Ecotone\Messaging\Config\ServiceConfiguration` | `Ecotone\Api\ExtensionObject\ServiceConfiguration` |
+| `Ecotone\Dbal\Configuration\DbalConfiguration` | `Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration` |
 | `Ecotone\Amqp\AmqpBackedMessageChannelBuilder` | `Ecotone\Api\Amqp\AmqpBackedMessageChannelBuilder` |
-| `Ecotone\Modelling\CommandBus` | `Ecotone\Api\CommandBus` |
+| `Ecotone\Modelling\CommandBus` | `Ecotone\Api\Gateway\CommandBus` |
 
 The full mapping is in `upgrade/namespace-map-2.0.csv`.
 
@@ -530,7 +545,7 @@ The full mapping is in `upgrade/namespace-map-2.0.csv`.
   return type says. If you worked around it by converting in the caller, remove that step.
 - **`#[LogBefore]` / `#[LogAfter]` work.** In 1.x they threw on the first handler call and were unusable; they now log
   the payload (and headers with `logFullMessage: true`) through the configured PSR logger. They moved, with
-  `#[LogError]`, to `Ecotone\Api\LogBefore`, `Ecotone\Api\LogAfter` and `Ecotone\Api\LogError` (§13).
+  `#[LogError]`, to `Ecotone\Api\Attribute\LogBefore`, `Ecotone\Api\Attribute\LogAfter` and `Ecotone\Api\Attribute\LogError` (§13).
 - **New, Enterprise: `#[ChannelInterceptor('channelName')]`.** A method with this attribute runs as a pre-send
   interceptor for that exact channel, with the same `changeHeaders` / `precedence` semantics as `#[Before]` /
   `#[Presend]`. In 1.x the attribute existed but did nothing. Nothing to change unless you had it in code expecting it

@@ -2,7 +2,7 @@
 
 ## #[Saga] Attribute
 
-Source: `Ecotone\Api\Saga`
+Source: `Ecotone\Api\Attribute\Saga`
 
 Class-level attribute. Extends `Aggregate` -- sagas are stored and loaded like aggregates.
 
@@ -17,7 +17,7 @@ class MyProcess
 
 ## #[EventSourcingSaga] Attribute
 
-Source: `Ecotone\Api\EventSourcingSaga`
+Source: `Ecotone\Api\Attribute\EventSourcingSaga`
 
 Class-level attribute. Extends `EventSourcingAggregate` -- saga state rebuilt from events.
 
@@ -57,7 +57,7 @@ Methods:
 
 ## #[InternalHandler] Attribute
 
-Source: `Ecotone\Api\InternalHandler`
+Source: `Ecotone\Api\Attribute\InternalHandler`
 
 Extends `ServiceActivator`. For internal message routing not exposed via bus.
 
@@ -83,13 +83,13 @@ By default (`changingHeaders: false`), if the handler returns `null`, the chain 
 
 ### Header-changer mode (`changingHeaders: true`, Enterprise)
 
-Source: `Ecotone\Api\ServiceActivator` / `Ecotone\Api\InternalHandler`
+Source: `Ecotone\Api\Attribute\ServiceActivator` / `Ecotone\Api\Attribute\InternalHandler`
 
 With `changingHeaders: true`, the handler's return value is treated as headers to merge, not as the new payload:
 
 ```php
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\Header;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Header;
 
 class EnrichWithTenant
 {
@@ -109,7 +109,7 @@ class EnrichWithTenant
 
 ## #[Orchestrator] Attribute (Enterprise)
 
-Source: `Ecotone\Api\Orchestrator`
+Source: `Ecotone\Api\Attribute\Orchestrator`
 
 Method-level attribute. Returns array of channel names (routing slip).
 
@@ -130,12 +130,12 @@ Parameters:
 
 ## #[OrchestratorGateway] Attribute (Enterprise)
 
-Source: `Ecotone\Api\OrchestratorGateway`
+Source: `Ecotone\Api\Attribute\OrchestratorGateway`
 
 Method-level attribute on interface methods. Creates business interface gateway.
 
 ```php
-use Ecotone\Api\OrchestratorGateway;
+use Ecotone\Api\Attribute\OrchestratorGateway;
 
 interface MyWorkflowProcess
 {

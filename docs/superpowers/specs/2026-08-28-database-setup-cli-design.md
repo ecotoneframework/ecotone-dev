@@ -304,7 +304,7 @@ Application wiring follows the existing `#[ServiceContext]` convention:
 ```php
 use Ecotone\Api\Dbal\AutoCreateLevel;
 use Ecotone\Api\Dbal\DatabaseSetupConfiguration;
-use Ecotone\Api\ServiceContext;
+use Ecotone\Api\Attribute\ServiceContext;
 
 final class EcotoneConfiguration
 {
@@ -451,7 +451,7 @@ ecotone:migration:database:status --strict
 Without `--strict` it prints the same information as a table and exits normally.
 
 Usage is identical across frameworks — command registration is fully generic. A module only needs a
-`#[ConsoleCommand]` method (`Ecotone\Api\ConsoleCommand`); Laravel iterates every registered
+`#[ConsoleCommand]` method (`Ecotone\Api\Attribute\ConsoleCommand`); Laravel iterates every registered
 `ConsoleCommandConfiguration` and builds an Artisan command (`EcotoneProvider.php:126-170`), Symfony does the
 equivalent (`EcotoneExtension.php:152`), Tempest generates proxies (`MessagingSystemInitializer.php:76`,
 `ConsoleCommandProxyGenerator.php:115-170`). No framework-specific code is written for any command in this
@@ -748,7 +748,7 @@ top of the guide (`upgrade-2.0.md:9-11`) must drop §8 from the "planned" list w
 > // 2.0 — None is the default. Opt back into auto-create only where you want it:
 > use Ecotone\Api\Dbal\AutoCreateLevel;
 > use Ecotone\Api\Dbal\DatabaseSetupConfiguration;
-> use Ecotone\Api\ServiceContext;
+> use Ecotone\Api\Attribute\ServiceContext;
 >
 > final class EcotoneConfiguration
 > {

@@ -5,11 +5,11 @@ namespace App\ReadModel\WalletBalance;
 use App\Domain\Event\MoneyWasAddedToWallet;
 use App\Domain\Event\MoneyWasSubtractedFromWallet;
 use App\Domain\Wallet;
-use Ecotone\Api\Projection;
-use Ecotone\Api\FromAggregateStream;
+use Ecotone\Api\Projecting\Projection;
+use Ecotone\Api\Projecting\FromAggregateStream;
 use Ecotone\EventSourcing\EventStreamEmitter;
-use Ecotone\Api\DocumentStore;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Gateway\DocumentStore;
+use Ecotone\Api\Attribute\EventHandler;
 
 #[Projection(self::PROJECTION_NAME)]
 #[FromAggregateStream(Wallet::class)]

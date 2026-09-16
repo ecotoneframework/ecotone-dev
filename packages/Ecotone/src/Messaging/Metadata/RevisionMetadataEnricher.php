@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Messaging\Metadata;
 
-use Ecotone\Api\Revision;
+use Ecotone\Api\Attribute\Revision;
 use Ecotone\Messaging\MessageHeaders;
 use ReflectionAttribute;
 use ReflectionObject;

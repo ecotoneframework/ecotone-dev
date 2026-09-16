@@ -6,8 +6,8 @@ namespace Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ChannelInterce
 
 use Ecotone\AnnotationFinder\AnnotatedFinding;
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\ChannelInterceptor;
-use Ecotone\Api\ModuleAnnotation;
+use Ecotone\Api\Attribute\ChannelInterceptor;
+use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Messaging\Config\Annotation\AnnotatedDefinitionReference;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\MethodInterceptor\BeforeSendChannelInterceptorBuilder;

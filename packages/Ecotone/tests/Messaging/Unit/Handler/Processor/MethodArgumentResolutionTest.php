@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Messaging\Unit\Handler\Processor;
 
-use Ecotone\Api\Header;
-use Ecotone\Api\Headers;
-use Ecotone\Api\InternalHandler;
-use Ecotone\Api\Payload;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\Attribute\Payload;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Handler\MethodInvocationException;

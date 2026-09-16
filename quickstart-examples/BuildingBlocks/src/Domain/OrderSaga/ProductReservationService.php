@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\OrderSaga;
 
-use Ecotone\Api\CommandHandler;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ramsey\Uuid\UuidInterface;
 
 class ProductReservationService

@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\SymfonyContainer;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\SymfonyContainer\ContainerCacheLayout;
 use PHPUnit\Framework\TestCase;
 

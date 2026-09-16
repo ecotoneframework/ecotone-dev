@@ -8,13 +8,13 @@ use App\Workflow\Saga\Application\OrderProcess\OrderProcessStatus;
 
 final readonly class Converter
 {
-    #[\Ecotone\Api\Converter]
+    #[\Ecotone\Api\Attribute\Converter]
     public function fromStatus(OrderProcessStatus $status): string
     {
         return $status->value;
     }
 
-    #[\Ecotone\Api\Converter]
+    #[\Ecotone\Api\Attribute\Converter]
     public function toStatus(string $status): OrderProcessStatus
     {
         return OrderProcessStatus::from($status);

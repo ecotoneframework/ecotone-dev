@@ -2,9 +2,9 @@
 
 namespace Test\Ecotone\Messaging\Fixture\Distributed\DistributedCommandBus\Publisher;
 
-use Ecotone\Api\CommandHandler;
-use Ecotone\Api\DistributedBus;
-use Ecotone\Api\Reference;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Gateway\DistributedBus;
 use Test\Ecotone\Messaging\Fixture\Distributed\DistributedCommandBus\Receiver\TicketServiceReceiver;
 use Test\Ecotone\Messaging\Fixture\Distributed\TestServiceName;
 

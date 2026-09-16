@@ -3,7 +3,7 @@
 namespace App\ReadModel;
 
 use App\ReadModel\WalletBalance\WalletBalanceWasChanged;
-use Ecotone\Api\EventHandler;
+use Ecotone\Api\Attribute\EventHandler;
 
 final class NotificationService
 {

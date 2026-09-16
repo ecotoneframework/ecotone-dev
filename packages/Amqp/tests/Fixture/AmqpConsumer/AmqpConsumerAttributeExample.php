@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\Amqp\Fixture\AmqpConsumer;
 
 use Ecotone\Api\Amqp\RabbitConsumer;
-use Ecotone\Api\Header;
-use Ecotone\Api\Payload;
-use Ecotone\Api\QueryHandler;
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Payload;
+use Ecotone\Api\Attribute\QueryHandler;
 use RuntimeException;
 
 /**

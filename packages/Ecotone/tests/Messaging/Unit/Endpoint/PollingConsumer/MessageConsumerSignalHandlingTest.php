@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Messaging\Unit\Endpoint\PollingConsumer;
 
 use Ecotone\Api\Attribute\Asynchronous;
-use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Attribute\InternalHandler;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Lite\EcotoneLite;
 use PHPUnit\Framework\TestCase;

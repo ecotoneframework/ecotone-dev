@@ -247,28 +247,59 @@ CREATE INDEX ... ON ecotone_event_stream
 The unique index is what enforces optimistic concurrency; rows without aggregate metadata do not collide because NULLs
 are distinct on all three engines.
 
-## 5. DBAL connections: Ecotone classes replace the Enqueue ones
+## 5. Connections: Ecotone classes replace the Enqueue ones (DBAL, AMQP, SQS, Redis)
 
-**Before:** Connections were referenced by `Enqueue\Dbal\DbalConnectionFactory::class` (a vendored copy of
-`enqueue/dbal`, exposed through composer `replace`). `DbalConnection::fromDsn()` returned an Enqueue factory.
+**Before:** Every transport's connection was referenced by the underlying `php-enqueue/*` package's own class name —
+`Enqueue\Dbal\DbalConnectionFactory::class`, `Enqueue\AmqpExt\AmqpConnectionFactory::class` /
+`Enqueue\AmqpLib\AmqpConnectionFactory::class`, `Enqueue\Sqs\SqsConnectionFactory::class`,
+`Enqueue\Redis\RedisConnectionFactory::class`. Application code constructed and registered those Enqueue classes
+directly, and every channel builder / attribute defaulted its `$connectionReferenceName` (or `$connectionReference`)
+parameter to one of those Enqueue class names.
 
-**Now:** The queue transport classes live in `Ecotone\Dbal\Connection` (`DbalConnectionFactory`, `DbalContext`, `DbalProducer`,
-`DbalConsumer`, `ManagerRegistryConnectionFactory`, …) and still implement the `queue-interop` interfaces. The default connection
-reference name is `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference::DEFAULT` (which equals `Ecotone\Dbal\Connection\DbalConnectionFactory::class`);
-`DbalConnectionReference::defaultConnection()` returns the reference object. Framework references keep their factories
-(`SymfonyConnectionReference::createForManagerRegistry('default')`, `LaravelConnectionReference::defaultConnection()`,
-`TempestConnectionReference::default()`) and resolve to the new default. The `enqueue/dbal` composer replacement/conflict and the
-`enqueue/dsn` dependency of `ecotone/dbal` are removed.
+**Now:** Every transport has an Ecotone-owned connection factory (internalised from the matching `php-enqueue/*`
+package, MIT-licensed, with a `code comes from https://github.com/php-enqueue/...` attribution comment) plus an
+Ecotone-owned `<Package>ConnectionReference` in that package's `Api/` namespace, mirroring `DbalConnectionReference`.
+The reference name a user ever needs to type is one of these Ecotone classes; every default parameter across the
+framework now points at `<Package>ConnectionReference::DEFAULT` instead of an Enqueue class name. Internally, the
+factories still implement `Interop\Queue\ConnectionFactory` (`Interop\Amqp\AmqpConnectionFactory` for AMQP) — that
+seam is unchanged and is what lets the underlying transport be replaced later without a user-facing change.
+
+| Package | Before (Enqueue class you typed) | Now (Ecotone class you type) | Default reference name |
+|---|---|---|---|
+| DBAL | `Enqueue\Dbal\DbalConnectionFactory` | `Ecotone\Dbal\Connection\DbalConnectionFactory` | `Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference::DEFAULT` |
+| AMQP (default, `ext-amqp`) | `Enqueue\AmqpExt\AmqpConnectionFactory` | `Ecotone\Amqp\Connection\AmqpExtConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT` |
+| AMQP (RabbitMQ Streams, `php-amqplib`) | `Enqueue\AmqpLib\AmqpConnectionFactory` | `Ecotone\Amqp\Connection\AmqpLibConnectionFactory` | `Ecotone\Api\Amqp\AmqpConnectionReference::DEFAULT_STREAM` |
+| SQS | `Enqueue\Sqs\SqsConnectionFactory` | `Ecotone\Sqs\Connection\SqsConnectionFactory` | `Ecotone\Api\Sqs\SqsConnectionReference::DEFAULT` |
+| Redis | `Enqueue\Redis\RedisConnectionFactory` | `Ecotone\Redis\Connection\RedisConnectionFactory` | `Ecotone\Api\Redis\RedisConnectionReference::DEFAULT` |
+
+`DbalConnectionReference::defaultConnection()`, `AmqpConnectionReference::defaultConnection()` /
+`defaultStreamConnection()`, `SqsConnectionReference::defaultConnection()` and `RedisConnectionReference::defaultConnection()`
+each return the reference object, mirroring `SymfonyConnectionReference`, `LaravelConnectionReference` and
+`TempestConnectionReference`, which already resolved to `DbalConnectionReference::DEFAULT` and are unaffected by this
+change.
 
 **How to adapt:**
-- Replace `use Enqueue\Dbal\DbalConnectionFactory;` with `use Ecotone\Dbal\Connection\DbalConnectionFactory;` in service definitions
-  (Symfony `services.yaml`, Laravel providers, `EcotoneLite` service arrays), e.g.
-  `[DbalConnectionReference::DEFAULT => DbalConnection::fromDsn(getenv('DATABASE_DSN'))]` or `DbalConnectionFactory::class => ...`.
-- Container service ids / reference names that were the literal string `Enqueue\Dbal\DbalConnectionFactory` must be renamed to
-  `DbalConnectionReference::DEFAULT`; Ecotone no longer looks up the old id.
-- `DbalConnection::fromDsn()` / `fromConnectionFactory()` return the Ecotone classes; type-hints on `Enqueue\Dbal\*` must be updated.
-- Custom code relying on `Interop\Queue\Context` from the DBAL connection should use `Ecotone\Dbal\Connection\DbalContext`.
-- AMQP, SQS and Redis packages still use `queue-interop` / `enqueue/*`; nothing changes there.
+- Replace the `use Enqueue\...\...ConnectionFactory;` import with the matching `Ecotone\...\Connection\...ConnectionFactory`
+  one from the table above. The constructor signature (DSN string, config array, or an already-connected client where
+  the transport supports it — e.g. an `Aws\Sqs\SqsClient` or `Enqueue\Redis\Redis` instance) is unchanged.
+- Container service ids / reference names that were the literal string `Enqueue\...\...ConnectionFactory` must be renamed
+  to `<Package>ConnectionReference::DEFAULT` (or `AmqpConnectionReference::DEFAULT_STREAM` for RabbitMQ Streams via
+  `AmqpStreamChannelBuilder` / `AmqpStreamInboundChannelAdapterBuilder`); Ecotone no longer looks up the old id.
+  ```php
+  // 1.x
+  [Enqueue\AmqpExt\AmqpConnectionFactory::class => new Enqueue\AmqpExt\AmqpConnectionFactory(['dsn' => $dsn])]
+
+  // 2.0
+  [AmqpConnectionReference::DEFAULT => new AmqpExtConnectionFactory(['dsn' => $dsn])]
+  ```
+- Code that reaches into a transport's `Context` / `Consumer` / `Producer` / `Destination` / `Message` classes (e.g.
+  `Enqueue\AmqpExt\AmqpContext`, `Enqueue\Sqs\SqsContext`, `Enqueue\Redis\RedisContext`,
+  `Ecotone\Dbal\Connection\DbalContext`) is unaffected — only the `ConnectionFactory` class itself moved into Ecotone's
+  namespace for DBAL, AMQP, SQS and Redis alike. `Interop\Queue\Context` type-hints on a DBAL connection should use
+  `Ecotone\Dbal\Connection\DbalContext` as before.
+- `enqueue/amqp-ext`, `enqueue/amqp-lib`, `enqueue/amqp-tools`, `enqueue/sqs`, `enqueue/redis` and `enqueue/dsn` remain
+  composer dependencies of their respective packages and are used internally — unlike `enqueue/dbal`, which was dropped
+  entirely when DBAL was internalised. Only the class you reference in your own configuration changed.
 
 ## 6. AMQP Distributed Bus removed
 

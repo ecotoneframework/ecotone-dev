@@ -155,3 +155,8 @@ Ecotone\Modelling\Api\Distribution\DistributedServiceMap,Ecotone\Api\ExtensionOb
 Ecotone\Modelling\Api\Distribution\DistributedBusHeader,Ecotone\Api\Gateway\DistributedBusHeader
 Ecotone\Kafka\Api\KafkaHeader,Ecotone\Api\Kafka\KafkaHeader
 Ecotone\EventSourcing\Config\ProophProjectingModule,Ecotone\EventSourcing\Config\EventSourcingProjectingModule
+Enqueue\Dbal\DbalConnectionFactory,Ecotone\Dbal\Connection\DbalConnectionFactory
+Enqueue\AmqpExt\AmqpConnectionFactory,Ecotone\Amqp\Connection\AmqpExtConnectionFactory
+Enqueue\AmqpLib\AmqpConnectionFactory,Ecotone\Amqp\Connection\AmqpLibConnectionFactory
+Enqueue\Sqs\SqsConnectionFactory,Ecotone\Sqs\Connection\SqsConnectionFactory
+Enqueue\Redis\RedisConnectionFactory,Ecotone\Redis\Connection\RedisConnectionFactory

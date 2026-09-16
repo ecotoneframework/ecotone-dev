@@ -9,7 +9,7 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Messaging\MessageHeaders;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use PHPUnit\Framework\Assert;
 use Ramsey\Uuid\Uuid;

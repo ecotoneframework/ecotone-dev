@@ -7,14 +7,14 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Api\Gateway\QueryBus;
-use Enqueue\AmqpExt\AmqpConnectionFactory;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory as AmqpConnectionFactory;
 use PHPUnit\Framework\Assert;
 
 require __DIR__ . "/vendor/autoload.php";
 
 // Receiver
 $receiver = EcotoneLite::bootstrap(
-    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
+    [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
     serviceConfiguration: ServiceConfiguration::createWithDefaults()
         ->withServiceName(MessagingConfiguration::SERVICE_NAME)
         ->withNamespaces(["App\Microservices\Receiver"])
@@ -27,7 +27,7 @@ $queryBus = $receiver->getQueryBus();
 
 // Publisher
 $publisher = EcotoneLite::bootstrap(
-    [Enqueue\AmqpExt\AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
+    [AmqpConnectionFactory::class => new AmqpConnectionFactory(['dsn' => getenv('RABBIT_HOST') ? getenv('RABBIT_HOST') : "amqp://guest:guest@localhost:5672/%2f"])],
     serviceConfiguration: ServiceConfiguration::createWithDefaults()
             ->withServiceName(\App\Microservices\Publisher\MessagingConfiguration::SERVICE_NAME)
             ->withNamespaces(["App\Microservices\Publisher"])

@@ -7,14 +7,13 @@ namespace Ecotone\Dbal\Connection;
 use Doctrine\DBAL\Connection;
 use Doctrine\Persistence\ManagerRegistry;
 use Exception;
-use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 
 /**
  * licence MIT
  * code comes from https://github.com/php-enqueue/dbal
  */
-class ManagerRegistryConnectionFactory implements ConnectionFactory
+class ManagerRegistryConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
     /**
      * @var ManagerRegistry

@@ -43,11 +43,7 @@ abstract class AmqpMessagingTestCase extends TestCase
     {
         $connectionFactory = $this->getCachedConnectionFactory($config);
 
-        // Provide both the interface and both concrete implementations
-        // Even though only AmqpExt is installed, some modules (like AmqpTransactionModule)
-        // default to AmqpLib, so we need to provide it as well
         return [
-            AmqpConnectionFactory::class => $connectionFactory,
             AmqpExtConnection::class => $connectionFactory,
             AmqpLibConnection::class => $connectionFactory,
         ];

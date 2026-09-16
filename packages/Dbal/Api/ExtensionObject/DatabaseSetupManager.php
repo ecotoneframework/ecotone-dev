@@ -8,9 +8,9 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DbalTableManager;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
+use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;
-use Interop\Queue\ConnectionFactory;
 use InvalidArgumentException;
 
 /**

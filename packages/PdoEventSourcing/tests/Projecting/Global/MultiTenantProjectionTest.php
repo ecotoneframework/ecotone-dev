@@ -25,6 +25,7 @@ use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -33,7 +34,6 @@ use Ecotone\Test\LicenceTesting;
 
 use function get_class;
 
-use Interop\Queue\ConnectionFactory;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\CloseTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Command\RegisterTicket;
 use Test\Ecotone\EventSourcing\Fixture\Ticket\Event\TicketWasClosed;

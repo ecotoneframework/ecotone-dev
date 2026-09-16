@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Redis;
 
+use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Redis\Connection\RedisConnectionFactory;
-use Interop\Queue\ConnectionFactory;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -9,7 +9,6 @@ use Enqueue\Redis\PhpRedis;
 use Enqueue\Redis\PRedis;
 use Enqueue\Redis\Redis;
 use Enqueue\Redis\RedisContext;
-use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use LogicException;
 
@@ -17,7 +16,7 @@ use LogicException;
  * licence MIT
  * code comes from https://github.com/php-enqueue/redis
  */
-class RedisConnectionFactory implements ConnectionFactory
+class RedisConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
     /**
      * @var array

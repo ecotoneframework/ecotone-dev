@@ -7,7 +7,6 @@ namespace Ecotone\Dbal\Connection;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\DriverManager;
 use Exception;
-use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use LogicException;
 use Throwable;
@@ -16,7 +15,7 @@ use Throwable;
  * licence MIT
  * code comes from https://github.com/php-enqueue/dbal
  */
-class DbalConnectionFactory implements ConnectionFactory
+class DbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
     /**
      * @var array

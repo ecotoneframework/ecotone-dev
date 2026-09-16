@@ -9,7 +9,6 @@ use Aws\Sqs\SqsClient as AwsSqsClient;
 use Enqueue\Dsn\Dsn;
 use Enqueue\Sqs\SqsClient;
 use Enqueue\Sqs\SqsContext;
-use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 use LogicException;
 
@@ -17,7 +16,7 @@ use LogicException;
  * licence MIT
  * code comes from https://github.com/php-enqueue/sqs
  */
-class SqsConnectionFactory implements ConnectionFactory
+class SqsConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
     /**
      * @var array

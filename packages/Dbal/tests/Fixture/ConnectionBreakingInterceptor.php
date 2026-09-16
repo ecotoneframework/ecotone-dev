@@ -7,9 +7,9 @@ namespace Test\Ecotone\Dbal\Fixture;
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
+use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
-use Interop\Queue\ConnectionFactory;
 
 /**
  * An interceptor that can break database connections at specific points in the transaction lifecycle

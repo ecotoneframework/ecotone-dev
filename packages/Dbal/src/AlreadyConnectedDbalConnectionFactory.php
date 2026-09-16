@@ -6,13 +6,12 @@ namespace Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Connection\DbalContext;
-use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
 
 /**
  * licence Apache-2.0
  */
-final class AlreadyConnectedDbalConnectionFactory implements ConnectionFactory
+final class AlreadyConnectedDbalConnectionFactory implements \Ecotone\Enqueue\ConnectionFactory
 {
     /**
      * @param string[] $config

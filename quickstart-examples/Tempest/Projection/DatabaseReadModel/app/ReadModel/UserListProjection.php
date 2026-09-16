@@ -20,7 +20,7 @@ use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Projecting\Projection;
-use Interop\Queue\ConnectionFactory;
+use Ecotone\Enqueue\ConnectionFactory;
 
 #[Projection('user_list_database')]
 #[FromAggregateStream(User::class)]

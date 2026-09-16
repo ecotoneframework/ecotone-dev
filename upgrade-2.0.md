@@ -679,12 +679,16 @@ rename test-support methods without aliases; the renamed methods are listed in e
 
   **How to adapt:** only named arguments change; positional calls keep working.
   `sed -i 's/amountOfMessagesToHandle:/handledMessageLimit:/g; s/maxExecutionTimeInMilliseconds:/executionTimeLimitInMilliseconds:/g; s/failAtError:/stopOnError:/g'`.
-- **Contributor-only: fresh checkouts of `ecotone-dev` now bootstrap with one command.** `bin/setup`
-  creates `.env`, starts Docker Compose (building a local image with `ext-sockets` for the `app`
-  service — the published `simplycodedsoftware/php:8.5.3` image doesn't have it) and runs the root
-  `composer install`; per-package `composer install` is now documented as an explicit step before
-  `composer tests:ci`. See `docs/dev-environment-cold-start-findings.md` for the full list of gaps
-  this closed. This only affects working on the `ecotone-dev` monorepo itself.
+- **Contributor-only: fresh checkouts of `ecotone-dev` now bootstrap with two commands everyone
+  already knows.** `docker compose up -d` builds a local image with `ext-sockets` baked in for the
+  `app` service (the published `simplycodedsoftware/php:8.5.3` image doesn't have it) and blocks
+  until every database/broker dependency's healthcheck passes; `.env` is optional, not required;
+  `composer install` (run without `-u root`, so `vendor/` stays owned by your own user) finishes
+  the bootstrap. Per-package `composer install` is now documented as an explicit step before
+  `composer tests:ci`, and `packages/DataProtection/tests/before-tests.sh` no longer silently
+  fails to create its fixture when run from a different working directory. See
+  `docs/dev-environment-cold-start-findings.md` for the full list of gaps this closed. This only
+  affects working on the `ecotone-dev` monorepo itself.
   **How to adapt:** nothing; application code using the published packages is unaffected.
 
 ## 16. Planned 2.0 work still to be done (TODO)

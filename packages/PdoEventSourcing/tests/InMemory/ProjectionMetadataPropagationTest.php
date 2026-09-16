@@ -7,7 +7,6 @@ namespace Test\Ecotone\EventSourcing\InMemory;
 use Ecotone\Api\ExecutionPollingMetadata;
 use Ecotone\Api\ServiceConfiguration;
 use Ecotone\Api\SimpleMessageChannelBuilder;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -109,7 +108,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
         /** @var DbalConnectionFactory $connectionFactory */
         $connectionFactory = $this->getConnectionFactory();
         $connection = $connectionFactory->createContext()->getDbalConnection();
-        if (SchemaManagerCompatibility::tableExists($connection, OrderProjection::TABLE)) {
+        if ($connection->createSchemaManager()->tableExists(OrderProjection::TABLE)) {
             $connection->delete(OrderProjection::TABLE, ['1' => '1']);
         }
 

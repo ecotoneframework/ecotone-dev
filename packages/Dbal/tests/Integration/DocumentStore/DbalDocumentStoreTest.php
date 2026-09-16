@@ -413,9 +413,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
     private function cleanUpTables(): void
     {
         $connection = $this->getConnection();
-        $schemaManager = method_exists($connection, 'createSchemaManager')
-            ? $connection->createSchemaManager()
-            : $connection->getSchemaManager();
+        $schemaManager = $connection->createSchemaManager();
 
         foreach ($schemaManager->listTableNames() as $tableName) {
             if ($tableName === DbalDocumentStore::ECOTONE_DOCUMENT_STORE) {

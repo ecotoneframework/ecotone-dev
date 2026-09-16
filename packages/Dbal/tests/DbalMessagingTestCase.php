@@ -188,8 +188,8 @@ abstract class DbalMessagingTestCase extends TestCase
         );
     }
 
-    private static function getSchemaManager(Connection $connection): ?\Doctrine\DBAL\Schema\AbstractSchemaManager
+    private static function getSchemaManager(Connection $connection): \Doctrine\DBAL\Schema\AbstractSchemaManager
     {
-        return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
+        return $connection->createSchemaManager();
     }
 }

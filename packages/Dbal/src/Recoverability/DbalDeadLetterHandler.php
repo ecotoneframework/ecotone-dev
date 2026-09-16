@@ -8,7 +8,6 @@ use DateTime;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DeadLetterTableManager;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -58,7 +57,7 @@ class DbalDeadLetterHandler
             return [];
         }
 
-        $messages = (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
+        $messages = $this->getConnection()->createQueryBuilder()
             ->select('*')
             ->from($this->getTableName())
             ->setMaxResults($limit)
@@ -79,7 +78,7 @@ class DbalDeadLetterHandler
     {
         $this->initialize();
 
-        $message = (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
+        $message = $this->getConnection()->createQueryBuilder()
             ->select('*')
             ->from($this->getTableName())
             ->andWhere('message_id = :messageId')
@@ -111,7 +110,7 @@ class DbalDeadLetterHandler
             return 0;
         }
 
-        return (int) (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
+        return (int) $this->getConnection()->createQueryBuilder()
             ->select('count(*)')
             ->from($this->getTableName())
             ->executeQuery()
@@ -218,7 +217,7 @@ class DbalDeadLetterHandler
         $connection = $this->getConnection();
         $schemaManager = $connection->createSchemaManager();
 
-        return $schemaManager->tablesExist([$this->getTableName()]);
+        return $schemaManager->tableExists($this->getTableName());
     }
 
     private function getConnection(): Connection
@@ -282,7 +281,7 @@ class DbalDeadLetterHandler
 
     private function deleteGivenMessage(array|string $messageId): void
     {
-        (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
+        $this->getConnection()->createQueryBuilder()
             ->delete($this->getTableName())
             ->andWhere('message_id = :messageId')
             ->setParameter('messageId', $messageId, Types::TEXT)

@@ -7,7 +7,6 @@ namespace Ecotone\Dbal\Database;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Messaging\Config\Container\Definition;
 
 /**
@@ -55,7 +54,7 @@ class DeduplicationTableManager implements DbalTableManager
             return;
         }
 
-        SchemaManagerCompatibility::getSchemaManager($connection)->createTable($this->buildTableSchema());
+        $connection->createSchemaManager()->createTable($this->buildTableSchema());
     }
 
     public function dropTable(Connection $connection): void
@@ -71,7 +70,7 @@ class DeduplicationTableManager implements DbalTableManager
 
     public function isInitialized(Connection $connection): bool
     {
-        return SchemaManagerCompatibility::tableExists($connection, $this->tableName);
+        return $connection->createSchemaManager()->tableExists($this->tableName);
     }
 
     public function shouldBeInitializedAutomatically(): bool

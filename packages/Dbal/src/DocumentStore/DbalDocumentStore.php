@@ -4,9 +4,9 @@ namespace Ecotone\Dbal\DocumentStore;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\DriverException;
+use Doctrine\DBAL\Query\QueryBuilder;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Api\DocumentStore;
-use Ecotone\Dbal\Compatibility\QueryBuilderProxy;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
@@ -172,7 +172,7 @@ final class DbalDocumentStore implements DocumentStore
             return 0;
         }
 
-        $select = (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
+        $select = $this->getConnection()->createQueryBuilder()
             ->select('COUNT(document_id)')
             ->from($this->getTableName())
             ->andWhere('collection = :collection')
@@ -275,9 +275,9 @@ final class DbalDocumentStore implements DocumentStore
         return $rowsAffected;
     }
 
-    private function getDocumentsFor(string $collectionName): mixed
+    private function getDocumentsFor(string $collectionName): QueryBuilder
     {
-        return (new QueryBuilderProxy($this->getConnection()->createQueryBuilder()))
+        return $this->getConnection()->createQueryBuilder()
             ->select('document', 'document_type')
             ->from($this->getTableName())
             ->andWhere('collection = :collection')

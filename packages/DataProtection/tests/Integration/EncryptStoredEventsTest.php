@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Integration;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Schema\AbstractSchemaManager;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\JMSConverter\JMSConverterConfiguration;
 use Ecotone\Api\ServiceConfiguration;
@@ -98,16 +97,10 @@ class EncryptStoredEventsTest extends TestCase
 
     private static function clearDataTables(Connection $connection): void
     {
-        foreach (self::getSchemaManager($connection)->listTableNames() as $tableName) {
+        foreach ($connection->createSchemaManager()->listTableNames() as $tableName) {
             $sql = 'DROP TABLE ' . $tableName;
 
             $connection->executeQuery($sql);
         }
-    }
-
-    protected static function getSchemaManager(Connection $connection): AbstractSchemaManager
-    {
-        // Handle both DBAL 3.x (getSchemaManager) and 4.x (createSchemaManager)
-        return method_exists($connection, 'getSchemaManager') ? $connection->getSchemaManager() : $connection->createSchemaManager();
     }
 }

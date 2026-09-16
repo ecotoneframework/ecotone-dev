@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\Connection;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\RetryableException;
 use Ecotone\Messaging\Scheduling\DatePoint;
@@ -47,7 +48,7 @@ trait DbalConsumerHelperTrait
             ->andWhere('delivery_id IS NULL')
             ->addOrderBy('priority', 'asc')
             ->addOrderBy('published_at', 'asc')
-            ->setParameter('queues', $queues, class_exists('\Doctrine\DBAL\ArrayParameterType') ? \Doctrine\DBAL\ArrayParameterType::STRING : (defined('\Doctrine\DBAL\Connection::PARAM_STR_ARRAY') ? Connection::PARAM_STR_ARRAY : 'string[]'))
+            ->setParameter('queues', $queues, ArrayParameterType::STRING)
             ->setParameter('delayedUntil', $now->unixTime()->inSeconds(), DbalType::INTEGER)
             ->setMaxResults(1);
 
@@ -63,9 +64,7 @@ trait DbalConsumerHelperTrait
 
         while ($this->now() < $endAt) {
             try {
-                $result = method_exists($select, 'execute') ?
-                    $select->execute()->fetch() :
-                    $select->executeQuery()->fetchAssociative();
+                $result = $select->executeQuery()->fetchAssociative();
                 if (empty($result)) {
                     return null;
                 }
@@ -73,10 +72,7 @@ trait DbalConsumerHelperTrait
                 $update
                     ->setParameter('messageId', $result['id'], DbalType::GUID);
 
-                // In DBAL 4.x, execute() is replaced with executeStatement()
-                $executeResult = method_exists($update, 'execute') ?
-                    $update->execute() :
-                    $update->executeStatement();
+                $executeResult = $update->executeStatement();
                 if ($executeResult) {
                     $deliveredMessage = $this->getConnection()->createQueryBuilder()
                         ->select('*')
@@ -125,12 +121,7 @@ trait DbalConsumerHelperTrait
         ;
 
         try {
-            // In DBAL 4.x, execute() is replaced with executeStatement()
-            if (method_exists($update, 'execute')) {
-                $update->execute();
-            } else {
-                $update->executeStatement();
-            }
+            $update->executeStatement();
 
             $this->redeliverMessagesLastExecutedAt = $now;
         } catch (RetryableException $e) {
@@ -158,12 +149,7 @@ trait DbalConsumerHelperTrait
         ;
 
         try {
-            // In DBAL 4.x, execute() is replaced with executeStatement()
-            if (method_exists($delete, 'execute')) {
-                $delete->execute();
-            } else {
-                $delete->executeStatement();
-            }
+            $delete->executeStatement();
         } catch (RetryableException $e) {
             // maybe next time we'll get more luck
         }

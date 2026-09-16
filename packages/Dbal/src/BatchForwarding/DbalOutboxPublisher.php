@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Dbal\BatchForwarding;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Api\EcotoneClockInterface;
@@ -365,10 +366,8 @@ final class DbalOutboxPublisher
         return $unwrappedChannel instanceof BatchSupportingMessageChannel && $unwrappedChannel->supportsBatchMessages();
     }
 
-    private function arrayOfStringsParameterType(): mixed
+    private function arrayOfStringsParameterType(): ArrayParameterType
     {
-        return class_exists('\Doctrine\DBAL\ArrayParameterType')
-            ? \Doctrine\DBAL\ArrayParameterType::STRING
-            : (defined('\Doctrine\DBAL\Connection::PARAM_STR_ARRAY') ? Connection::PARAM_STR_ARRAY : 'string[]');
+        return ArrayParameterType::STRING;
     }
 }

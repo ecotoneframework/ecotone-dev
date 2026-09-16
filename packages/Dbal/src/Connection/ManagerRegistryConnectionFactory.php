@@ -9,7 +9,6 @@ use Doctrine\Persistence\ManagerRegistry;
 use Exception;
 use Interop\Queue\ConnectionFactory;
 use Interop\Queue\Context;
-use ReflectionMethod;
 
 /**
  * licence MIT
@@ -71,19 +70,7 @@ class ManagerRegistryConnectionFactory implements ConnectionFactory
 
         // Ensure the connection is established
         try {
-            // In DBAL 3.x, connect() is public
-            if (method_exists($connection, 'connect') && is_callable([$connection, 'connect'])) {
-                $reflection = new ReflectionMethod($connection, 'connect');
-                if ($reflection->isPublic()) {
-                    $connection->connect();
-                } else {
-                    // In DBAL 4.x, connect() is protected, so we'll use a different approach
-                    $connection->getNativeConnection();
-                }
-            } else {
-                // Fallback for any other case
-                $connection->getNativeConnection();
-            }
+            $connection->getNativeConnection();
         } catch (Exception $e) {
             // Connection failed, but we've already tried our best
         }

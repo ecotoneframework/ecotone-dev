@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Connection;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Schema\Schema;
 use Ecotone\Api\EcotoneClockInterface;
-use Ecotone\Dbal\Compatibility\SchemaManagerCompatibility;
 use Ecotone\Messaging\Scheduling\NativeClock;
 use Interop\Queue\Consumer;
 use Interop\Queue\Context;
@@ -228,13 +228,13 @@ class DbalContext implements Context
     public function createDataBaseTable(): void
     {
         $connection = $this->getDbalConnection();
-        $tableExists = SchemaManagerCompatibility::tableExists($connection, $this->getTableName());
+        $schemaManager = $connection->createSchemaManager();
 
-        if ($tableExists) {
+        if ($schemaManager->tableExists($this->getTableName())) {
             return;
         }
 
-        $table = SchemaManagerCompatibility::getTableToCreate($connection, $this->getTableName());
+        $table = (new Schema())->createTable($this->getTableName());
 
         $table->addColumn('id', 'guid', ['length' => 16, 'fixed' => true]);
         $table->addColumn('published_at', 'bigint');
@@ -255,7 +255,6 @@ class DbalContext implements Context
         $table->addIndex(['time_to_live', 'delivery_id']);
         $table->addIndex(['delivery_id']);
 
-        $schemaManager = SchemaManagerCompatibility::getSchemaManager($connection);
         $schemaManager->createTable($table);
     }
 

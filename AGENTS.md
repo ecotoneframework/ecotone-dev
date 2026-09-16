@@ -2,6 +2,18 @@
 
 > Guidelines for AI agents contributing to or working with the Ecotone framework codebase.
 
+## Quick Start
+
+```bash
+# One-time, idempotent bootstrap of a fresh checkout — no .env to create, no flags to remember
+bin/setup
+
+# Run one package's full test suite
+docker compose exec -u root app bash -lc "cd packages/PackageName && composer install && composer tests:ci"
+```
+
+See [Development Environment](#development-environment) and [Running Tests](#running-tests) below for details, and `docs/dev-environment-cold-start-findings.md` for the full list of gaps a fresh checkout used to hit.
+
 ## Project Overview
 
 Ecotone is the enterprise architecture layer for Laravel and Symfony.
@@ -44,13 +56,18 @@ Works with Symfony, Laravel, or standalone via Ecotone Lite (any PSR-11 containe
 # Enter development container
 docker compose exec -u root app /bin/bash
 
-# Run package tests
+# Run package tests — each package has its own vendor/, install it first
 cd packages/PackageName
+composer install
 composer tests:ci
 
 # Run specific test
 vendor/bin/phpunit --filter testMethodName tests/Path/To/TestFile.php
 ```
+
+The root `vendor/` (installed by `bin/setup`) is separate from each package's own `vendor/`.
+Ecotone's annotation finder always loads the monorepo root `vendor/autoload.php`, so keep the
+root install in sync even when you only intend to run one package's tests.
 
 ### Database-Specific Tests
 ```bash
@@ -124,8 +141,8 @@ class Order
 ## Development Environment
 
 ```bash
-# Start all containers
-docker compose up -d
+# One-time, idempotent bootstrap of a fresh checkout
+bin/setup
 
 # Enter dev container (use root for full access)
 docker compose exec -u root app /bin/bash
@@ -134,4 +151,9 @@ docker compose exec -u root app /bin/bash
 composer update --prefer-lowest && vendor/bin/phpunit
 composer update --prefer-stable && vendor/bin/phpunit
 ```
+
+`bin/setup` creates `.env` from `.env.dist` if missing, starts the Docker Compose stack (building
+a local image with `ext-sockets` for the `app` service — the published `simplycodedsoftware/php:8.5.3`
+image doesn't have it), waits for the default Postgres database, and runs the root `composer install`.
+It is safe to re-run at any time.
 

@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#
+# One-shot, idempotent bootstrap: takes a fresh checkout of ecotone-dev to
+# "ready to run tests" with no manual steps.
+#
+# Usage: bin/setup
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+if [ ! -f .env ]; then
+    cp .env.dist .env
+    echo "Created .env from .env.dist"
+fi
+
+# In a git worktree, .git is a file pointing at a path outside this directory
+# (the main checkout's .git/worktrees/<name>), so it isn't reachable through
+# the $PWD bind mount below. Mirror the real, shared .git dir at the same
+# absolute host path inside the container so git keeps working there too.
+export GIT_COMMON_DIR="$(cd "$(git rev-parse --git-common-dir 2>/dev/null || echo .git)" && pwd)"
+
+docker compose up -d
+
+# The bind-mounted repo is usually owned by a different uid than the container
+# expects, which makes git refuse to touch it ("dubious ownership") the first
+# time any composer/git command walks a path-repo package. Silence it up front
+# so that harmless warning never reads like a real failure.
+docker compose exec -T -u root app git config --global --add safe.directory /data/app
+docker compose exec -T -u root app8_2 git config --global --add safe.directory /data/app
+
+echo "Waiting for the default Postgres database to accept connections..."
+for _ in $(seq 1 60); do
+    if docker compose exec -T database pg_isready -U ecotone >/dev/null 2>&1; then
+        break
+    fi
+    sleep 1
+done
+
+docker compose exec -T -u root app composer install
+
+cat <<'EOF'
+
+Environment is ready.
+
+Run a package's full test suite:
+  docker compose exec -u root app bash -lc "cd packages/<PackageName> && composer install && composer tests:ci"
+
+Run the whole monorepo suite (slow):
+  docker compose exec -u root app composer tests:ci
+EOF

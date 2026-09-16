@@ -1,8 +1,16 @@
 services:
   app:
-    image: simplycodedsoftware/php:8.5.3
+    image: ecotone/php:8.5.3-sockets
+    build:
+      context: .docker/php
+      args:
+        BASE_IMAGE: simplycodedsoftware/php:8.5.3
     volumes:
       - "$PWD:/data/app"
+      # Mirrors the real .git dir at the same absolute host path so that a git
+      # worktree checkout (whose .git file points outside $PWD) still resolves.
+      # No-op for a plain clone: $PWD/.git is already inside the mount above.
+      - "${GIT_COMMON_DIR:-$PWD/.git}:${GIT_COMMON_DIR:-$PWD/.git}"
     working_dir: "/data/app"
     command: sleep 99999
     user: "${USER_PID:-1000}:${USER_PID:-1000}"
@@ -22,11 +30,13 @@ services:
       REDIS_DSN: redis://redis:6379
       KAFKA_DSN: kafka:9092
     env_file:
-      - ".env"
+      - path: ".env"
+        required: false
   app8_2:
     image: simplycodedsoftware/php:8.2.31
     volumes:
       - "$PWD:/data/app"
+      - "${GIT_COMMON_DIR:-$PWD/.git}:${GIT_COMMON_DIR:-$PWD/.git}"
     working_dir: "/data/app"
     command: sleep 99999
     user: "${USER_PID:-1000}:${USER_PID:-1000}"
@@ -46,7 +56,8 @@ services:
       REDIS_DSN: redis://redis:6379
       KAFKA_DSN: kafka:9092
     env_file:
-      - ".env"
+      - path: ".env"
+        required: false
   database:
     image: simplycodedsoftware/postgres:16.1
     environment:

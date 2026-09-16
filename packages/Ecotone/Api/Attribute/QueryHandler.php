@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\Attribute;
 
 use Attribute;
 use Ecotone\Messaging\Attribute\InputOutputEndpointAnnotation;

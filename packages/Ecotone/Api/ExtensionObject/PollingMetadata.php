@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Messaging\Config\Container\DefinedObject;
 use Ecotone\Messaging\Config\Container\Definition;

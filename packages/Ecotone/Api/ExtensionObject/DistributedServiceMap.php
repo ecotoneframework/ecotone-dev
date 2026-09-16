@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\ExtensionObject;
 
 use function array_key_exists;
 
+use Ecotone\Api\Attribute\Asynchronous;
+use Ecotone\Api\Gateway\DistributedBus;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\DefinedObject;

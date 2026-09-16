@@ -5,9 +5,10 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\Projecting;
 
 use Attribute;
+use Ecotone\Api\Attribute\Header;
 use Ecotone\Messaging\MessageHeaders;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]

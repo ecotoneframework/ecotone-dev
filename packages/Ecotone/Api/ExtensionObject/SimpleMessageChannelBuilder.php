@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\ExtensionObject;
 
 use Ecotone\Messaging\Channel\DelayableQueueChannel;
 use Ecotone\Messaging\Channel\DirectChannel;

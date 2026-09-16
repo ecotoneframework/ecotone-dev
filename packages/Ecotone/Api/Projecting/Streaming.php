@@ -5,7 +5,7 @@
  */
 declare(strict_types=1);
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\Projecting;
 
 use Attribute;
 

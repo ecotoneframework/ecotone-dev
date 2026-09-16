@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\Gateway;
 
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Future;

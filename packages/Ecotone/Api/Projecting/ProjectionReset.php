@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\Projecting;
 
 use Attribute;
 

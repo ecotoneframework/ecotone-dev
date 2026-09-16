@@ -1,8 +1,9 @@
 <?php
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\Attribute;
 
 use Attribute;
+use Ecotone\Api\Gateway\DistributedBus;
 
 #[Attribute]
 /**

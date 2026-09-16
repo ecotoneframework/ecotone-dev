@@ -1,6 +1,6 @@
 <?php
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\Gateway;
 
 use Ecotone\Messaging\Conversion\MediaType;
 

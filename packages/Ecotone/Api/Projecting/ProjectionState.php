@@ -1,8 +1,9 @@
 <?php
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\Projecting;
 
 use Attribute;
+use Ecotone\Api\Attribute\Header;
 use Ecotone\Projecting\ProjectingHeaders;
 
 #[Attribute(Attribute::TARGET_PARAMETER)]

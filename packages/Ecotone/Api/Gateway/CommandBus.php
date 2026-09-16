@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\Gateway;
 
+use Ecotone\Api\Attribute\Header;
+use Ecotone\Api\Attribute\Headers;
+use Ecotone\Api\Attribute\MessageGateway;
+use Ecotone\Api\Attribute\Payload;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\Config\MessageBusChannel;

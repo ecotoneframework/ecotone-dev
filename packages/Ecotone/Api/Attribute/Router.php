@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ecotone\Api;
+namespace Ecotone\Api\Attribute;
 
 use Attribute;
 use Ecotone\Messaging\Attribute\EndpointAnnotation;

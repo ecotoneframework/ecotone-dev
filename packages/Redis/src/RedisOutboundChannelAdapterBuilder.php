@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Redis;
 
+use Ecotone\Api\Redis\RedisConnectionReference;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapterBuilder;
 use Ecotone\Enqueue\HttpReconnectableConnectionFactory;
@@ -13,7 +14,6 @@ use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Support\LicensingException;
-use Enqueue\Redis\RedisConnectionFactory;
 
 /**
  * licence Apache-2.0
@@ -27,7 +27,7 @@ final class RedisOutboundChannelAdapterBuilder extends EnqueueOutboundChannelAda
         $this->initialize($connectionFactoryReferenceName);
     }
 
-    public static function createWith(string $queueName, string $connectionFactoryReferenceName = RedisConnectionFactory::class): self
+    public static function createWith(string $queueName, string $connectionFactoryReferenceName = RedisConnectionReference::DEFAULT): self
     {
         return new self(
             $queueName,

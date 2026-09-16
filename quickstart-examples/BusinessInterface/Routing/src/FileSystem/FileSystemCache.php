@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace App\BusinessInterface\FileSystem;
 
 use App\BusinessInterface\CachedItem;
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\InternalHandler;
 
 final readonly class FileSystemCache
 {
-    #[ServiceActivator('cache.set.file_system')]
+    #[InternalHandler('cache.set.file_system')]
     public function set(CachedItem $item): void
     {
         file_put_contents('/tmp/' . $item->key, $item->value);
     }
 
-    #[ServiceActivator('cache.get.file_system')]
+    #[InternalHandler('cache.get.file_system')]
     public function get(string $key): ?string
     {
         $data = @file_get_contents('/tmp/' . $key);

@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\ReactiveSystem\Stage_2\Infrastructure\Messaging;
 
-use Ecotone\Api\Attribute\ServiceActivator;
+use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Messaging\Support\ErrorMessage;
 
 final class ErrorHandler
 {
-    #[ServiceActivator("finalErrorChannel")]
+    #[InternalHandler("finalErrorChannel")]
     public function handle(ErrorMessage $message): void
     {
         echo "Message failed";

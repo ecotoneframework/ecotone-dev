@@ -36,6 +36,7 @@ use ReflectionMethod;
 class FileSystemAnnotationFinder implements AnnotationFinder
 {
     private const FILE_EXTENSION = 'php';
+    private const FILE_CONTENT_HASH_ALGORITHM = 'xxh128';
     public const         CLASS_NAMESPACE_REGEX = "#namespace[\s]*([^\n\s\(\)\[\]\{\}\$]*);#";
 
     /**
@@ -571,12 +572,12 @@ class FileSystemAnnotationFinder implements AnnotationFinder
 
         foreach ($this->registeredClasses() as $class) {
             $filePath = (new ReflectionClass($class))->getFileName();
-            $fileSha .= $class . sha1_file($filePath);
+            $fileSha .= $class . hash_file(self::FILE_CONTENT_HASH_ALGORITHM, $filePath);
         }
 
         $composerLockPath = rtrim($pathToRootCatalog, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'composer.lock';
         if (file_exists($composerLockPath)) {
-            $fileSha .= sha1_file($composerLockPath);
+            $fileSha .= hash_file(self::FILE_CONTENT_HASH_ALGORITHM, $composerLockPath);
         }
 
         $fileSha .= sha1(serialize($serviceConfiguration));

@@ -60,6 +60,10 @@ class FileSystemAnnotationFinder implements AnnotationFinder
      * @var array<string, array<string>>
      */
     private array $cachedClassesWithAnnotatedProperties = [];
+    /**
+     * @var array<int, array{0: class-string, 1: string, 2: bool, 3: object[], 4: object[]}>|null
+     */
+    private ?array $methodsWithAnnotations = null;
     private AnnotationResolver $annotationResolver;
     private IsAbstract $isAbstractAnnotation;
 
@@ -322,57 +326,73 @@ class FileSystemAnnotationFinder implements AnnotationFinder
     public function findAnnotatedMethods(string $methodAnnotationClassName): array
     {
         $registrations = [];
-        foreach ($this->findAnnotatedClasses('*') as $className) {
-            $reflectionClass = new ReflectionClass($className);
-            foreach ($reflectionClass->getMethods() as $reflectionMethod) {
-                $method = $reflectionMethod->getName();
-                if ($this->isMethodBannedFromCurrentEnvironment($className, $method)) {
-                    continue;
-                }
-                $classAnnotations = $this->getCachedAnnotationsForClass($className);
-
-                if ($this->isAbstractClass($classAnnotations)) {
-                    continue;
-                }
-
-                $methodAnnotations = $this->getCachedMethodAnnotations($className, $method);
-                foreach ($methodAnnotations as $methodAnnotation) {
-                    if (get_class($methodAnnotation) === $methodAnnotationClassName || $methodAnnotation instanceof $methodAnnotationClassName) {
-                        // Validate that endpoint annotations are on public methods
-                        if (
-                            ($methodAnnotation instanceof IdentifiedAnnotation
-                                || $methodAnnotation instanceof MessageConsumer)
-                            && ! $reflectionMethod->isPublic()
-                        ) {
-                            $handlerType = match (true) {
-                                $methodAnnotation instanceof CommandHandler => 'Command handler',
-                                $methodAnnotation instanceof EventHandler => 'Event handler',
-                                $methodAnnotation instanceof QueryHandler => 'Query handler',
-                                $methodAnnotation instanceof MessageConsumer => 'Message consumer',
-                                default => 'Handler',
-                            };
-                            throw ConfigurationException::create(sprintf('%s attribute on %s::%s should be placed on public method, to be available for execution.', $handlerType, $className, $method));
-                        }
-
-                        if (! $reflectionMethod->isPublic()) {
-                            continue;
-                        }
-
-                        $annotationRegistration = AnnotatedMethod::create(
-                            $methodAnnotation,
-                            $className,
-                            $method,
-                            $classAnnotations,
-                            $methodAnnotations
-                        );
-
-                        $registrations[] = $annotationRegistration;
+        foreach ($this->getMethodsWithAnnotations() as [$className, $method, $isPublic, $classAnnotations, $methodAnnotations]) {
+            foreach ($methodAnnotations as $methodAnnotation) {
+                if (get_class($methodAnnotation) === $methodAnnotationClassName || $methodAnnotation instanceof $methodAnnotationClassName) {
+                    // Validate that endpoint annotations are on public methods
+                    if (
+                        ($methodAnnotation instanceof IdentifiedAnnotation
+                            || $methodAnnotation instanceof MessageConsumer)
+                        && ! $isPublic
+                    ) {
+                        $handlerType = match (true) {
+                            $methodAnnotation instanceof CommandHandler => 'Command handler',
+                            $methodAnnotation instanceof EventHandler => 'Event handler',
+                            $methodAnnotation instanceof QueryHandler => 'Query handler',
+                            $methodAnnotation instanceof MessageConsumer => 'Message consumer',
+                            default => 'Handler',
+                        };
+                        throw ConfigurationException::create(sprintf('%s attribute on %s::%s should be placed on public method, to be available for execution.', $handlerType, $className, $method));
                     }
+
+                    if (! $isPublic) {
+                        continue;
+                    }
+
+                    $registrations[] = AnnotatedMethod::create(
+                        $methodAnnotation,
+                        $className,
+                        $method,
+                        $classAnnotations,
+                        $methodAnnotations
+                    );
                 }
             }
         }
 
         return $registrations;
+    }
+
+    /**
+     * @return array<int, array{0: class-string, 1: string, 2: bool, 3: object[], 4: object[]}>
+     */
+    private function getMethodsWithAnnotations(): array
+    {
+        if ($this->methodsWithAnnotations !== null) {
+            return $this->methodsWithAnnotations;
+        }
+
+        $this->methodsWithAnnotations = [];
+        foreach ($this->registeredClasses as $className) {
+            $classAnnotations = $this->getCachedAnnotationsForClass($className);
+            if ($this->isAbstractClass($classAnnotations)) {
+                continue;
+            }
+
+            foreach ((new ReflectionClass($className))->getMethods() as $reflectionMethod) {
+                $method = $reflectionMethod->getName();
+                if ($this->isMethodBannedFromCurrentEnvironment($className, $method)) {
+                    continue;
+                }
+
+                $methodAnnotations = $this->getCachedMethodAnnotations($className, $method);
+                if ($methodAnnotations !== []) {
+                    $this->methodsWithAnnotations[] = [$className, $method, $reflectionMethod->isPublic(), $classAnnotations, $methodAnnotations];
+                }
+            }
+        }
+
+        return $this->methodsWithAnnotations;
     }
 
     private function isMethodBannedFromCurrentEnvironment(string $className, string $methodName): bool

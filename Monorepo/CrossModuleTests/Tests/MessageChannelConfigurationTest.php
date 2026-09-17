@@ -21,11 +21,10 @@ use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\Redis\RedisBackedMessageChannelBuilder;
 use Ecotone\Api\Sqs\SqsBackedMessageChannelBuilder;
 use Ecotone\Test\LicenceTesting;
-use Enqueue\AmqpExt\AmqpConnectionFactory as AmqpExtConnectionFactory;
-use Enqueue\AmqpLib\AmqpConnectionFactory as AmqpLibConnectionFactory;
-use Enqueue\Redis\RedisConnectionFactory;
-use Enqueue\Sqs\SqsConnectionFactory;
-use Interop\Amqp\AmqpConnectionFactory;
+use Ecotone\Amqp\Connection\AmqpExtConnectionFactory;
+use Ecotone\Amqp\Connection\AmqpLibConnectionFactory;
+use Ecotone\Redis\Connection\RedisConnectionFactory;
+use Ecotone\Sqs\Connection\SqsConnectionFactory;
 use Monorepo\ExampleApp\ExampleAppCaseTrait;
 use Monorepo\ExampleApp\Symfony\Kernel;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -252,7 +251,6 @@ final class MessageChannelConfigurationTest extends TestCase
             AmqpBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(100),
             [
-                AmqpConnectionFactory::class => $amqpConnectionFactory,
                 AmqpExtConnectionFactory::class => $amqpConnectionFactory,
                 AmqpLibConnectionFactory::class => $amqpConnectionFactory,
             ],

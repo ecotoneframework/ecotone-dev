@@ -762,6 +762,19 @@ rename test-support methods without aliases; the renamed methods are listed in e
   `docs/dev-environment-cold-start-findings.md` for the full list of gaps this closed. This only
   affects working on the `ecotone-dev` monorepo itself.
   **How to adapt:** nothing; application code using the published packages is unaffected.
+- **Bootstrap is faster; nothing in configuration or behaviour changes.** Measured on the monorepo example
+  application: cached `EcotoneLite::bootstrap()` takes less than half the time (2.4 ms → 1.0 ms with opcache,
+  3.0 ms → 1.4 ms without), a Laravel boot in a non-cached environment is 17–25% faster, and an uncached bootstrap — what `EcotoneLite::bootstrapFlowTesting()` does inside the
+  Ecotone test suites — is about 40% faster (16.4 ms → 10.0 ms). Compiled Symfony and Laravel production containers were already not on this path and are unchanged. Four internal changes produce this: `#[Environment]` filtering no
+  longer instantiates every method attribute, annotated methods are indexed once per annotation finder, the use
+  statements of a class file are parsed once per bootstrap, and the cache fingerprint of class files and
+  `composer.lock` uses `xxh128` instead of `sha1`. Every one of them keeps its state inside objects created for a single
+  bootstrap, so two bootstraps in one process (two tests, two tenants) still never see each other's configuration.
+  The fingerprint remains content-based: changing any registered class file or `composer.lock` still rebuilds the cache.
+  The only visible effect is that the hashed sub-directory name under the Lite cache directory changes once, so the
+  first 2.0 bootstrap rebuilds the container and the directory written by the previous version is left unused.
+  Method and measurements are in `docs/bootstrap-performance-2.0.md`.
+  **How to adapt:** nothing. Optionally delete old `ecotone/<hash>` directories from the Lite cache directory once.
 
 ## 16. Planned 2.0 work still to be done (TODO)
 

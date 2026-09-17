@@ -21,7 +21,9 @@ use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
 use Ecotone\Messaging\Attribute\MessageConsumer;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\InvalidArgumentException;
+use ReflectionAttribute;
 use ReflectionClass;
+use ReflectionMethod;
 
 /**
  * Class FileSystemAnnotationRegistrationService
@@ -91,40 +93,24 @@ class FileSystemAnnotationFinder implements AnnotationFinder
         }
 
         foreach ($this->registeredClasses as $className) {
-            foreach (get_class_methods($className) as $method) {
-                $classAnnotations = array_values(
-                    array_filter(
-                        array_map(
-                            function (object $annotation) {
-                                if ($annotation instanceof Environment) {
-                                    return $annotation;
-                                }
-                            },
-                            $this->getCachedAnnotationsForClass($className)
-                        )
-                    )
-                );
-                $methodAnnotations = array_values(
-                    array_filter(
-                        array_map(
-                            function (object $annotation) {
-                                if ($annotation instanceof Environment) {
-                                    return $annotation;
-                                }
-                            },
-                            $this->getCachedMethodAnnotations($className, $method)
-                        )
-                    )
-                );
+            $classEnvironment = null;
+            foreach ($this->getCachedAnnotationsForClass($className) as $classAnnotation) {
+                if ($classAnnotation instanceof Environment) {
+                    $classEnvironment = $classAnnotation;
+                    break;
+                }
+            }
+            $isClassBanned = $classEnvironment !== null && ! in_array($environmentName, $classEnvironment->getNames());
 
-                if ($methodAnnotations) {
-                    if (! in_array($environmentName, $methodAnnotations[0]->getNames())) {
-                        $this->bannedEnvironmentClassMethods[$className][$method] = true;
+            foreach ((new ReflectionClass($className))->getMethods(ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
+                $methodEnvironments = $reflectionMethod->getAttributes(Environment::class, ReflectionAttribute::IS_INSTANCEOF);
+
+                if ($methodEnvironments !== []) {
+                    if (! in_array($environmentName, $methodEnvironments[0]->newInstance()->getNames())) {
+                        $this->bannedEnvironmentClassMethods[$className][$reflectionMethod->getName()] = true;
                     }
-                } elseif ($classAnnotations) {
-                    if (! in_array($environmentName, $classAnnotations[0]->getNames())) {
-                        $this->bannedEnvironmentClassMethods[$className][$method] = true;
-                    }
+                } elseif ($isClassBanned) {
+                    $this->bannedEnvironmentClassMethods[$className][$reflectionMethod->getName()] = true;
                 }
             }
         }

@@ -44,7 +44,7 @@ class InterfaceToCall
         return self::createWithAnnotationFinder($interface, $methodName, $annotationParser);
     }
 
-    public static function createWithAnnotationFinder(string|object $interfaceOrObjectName, string $methodName, AnnotationResolver $annotationParser): self
+    public static function createWithAnnotationFinder(string|object $interfaceOrObjectName, string $methodName, AnnotationResolver $annotationParser, ?TypeResolver $typeResolver = null): self
     {
         $interfaceName = $interfaceOrObjectName;
         if (is_object($interfaceOrObjectName)) {
@@ -55,7 +55,7 @@ class InterfaceToCall
         $classAnnotations = $annotationParser->getAnnotationsForClass($interfaceName);
 
         try {
-            $typeResolver        = TypeResolver::createWithAnnotationParser($annotationParser);
+            $typeResolver ??= TypeResolver::createWithAnnotationParser($annotationParser);
             try {
                 $reflectionClass = new ReflectionClass($interfaceName);
                 $reflectionMethod = $reflectionClass->getMethod($methodName);

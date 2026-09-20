@@ -63,7 +63,7 @@ final class RabbitConsumerDeduplicationTest extends TestCase
                     ModulePackageList::DBAL_PACKAGE,
                 ])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -135,7 +135,7 @@ final class RabbitConsumerDeduplicationTest extends TestCase
                     ModulePackageList::DBAL_PACKAGE,
                 ])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)
@@ -208,7 +208,7 @@ final class RabbitConsumerDeduplicationTest extends TestCase
                     ModulePackageList::DBAL_PACKAGE,
                 ])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                     AmqpQueue::createWith($queueName),
                     AmqpMessagePublisherConfiguration::create()
                         ->withAutoDeclareQueueOnSend(true)

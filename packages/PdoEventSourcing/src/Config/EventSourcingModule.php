@@ -114,15 +114,23 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $streamTableRegistry = $this->buildStreamTableRegistry($eventSourcingConfiguration);
         $messagingConfiguration->registerServiceDefinition(StreamTableRegistry::class, $streamTableRegistry->getDefinition());
 
-        $messagingConfiguration->registerServiceDefinition(
-            EventStreamTableManager::class,
-            new Definition(EventStreamTableManager::class, [
-                $streamTableRegistry->tablesFor($eventSourcingConfiguration->getConnectionReferenceName()),
-                true,
-                $dbalConfiguration->isAutomaticTableInitializationEnabled(),
-                $consoleInvocationPrefix,
-            ])
-        );
+        foreach ($this->connectionReferenceNames($streamTableRegistry, $eventSourcingConfiguration) as $connectionReferenceName) {
+            $tableNames = $streamTableRegistry->tablesFor($connectionReferenceName);
+            if ($tableNames === []) {
+                continue;
+            }
+
+            $messagingConfiguration->registerServiceDefinition(
+                self::eventStreamTableManagerReferenceName($connectionReferenceName, $eventSourcingConfiguration),
+                new Definition(EventStreamTableManager::class, [
+                    $tableNames,
+                    true,
+                    $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+                    $consoleInvocationPrefix,
+                    $connectionReferenceName,
+                ])
+            );
+        }
 
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
@@ -217,11 +225,35 @@ class EventSourcingModule extends NoExternalConfigurationModule
         return $connectionReferenceNames;
     }
 
+    private static function eventStreamTableManagerReferenceName(string $connectionReferenceName, EventSourcingConfiguration $eventSourcingConfiguration): string
+    {
+        if ($connectionReferenceName === $eventSourcingConfiguration->getConnectionReferenceName()) {
+            return EventStreamTableManager::class;
+        }
+
+        return EventStreamTableManager::class . '.' . $connectionReferenceName;
+    }
+
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
+        $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $serviceExtensions, EventSourcingConfiguration::createWithDefaults());
+        $streamTableRegistry = $this->buildStreamTableRegistry($eventSourcingConfiguration);
+
+        $tableManagerReferences = [];
+        foreach ($this->connectionReferenceNames($streamTableRegistry, $eventSourcingConfiguration) as $connectionReferenceName) {
+            if ($streamTableRegistry->tablesFor($connectionReferenceName) === []) {
+                continue;
+            }
+
+            $tableManagerReferences[] = new DbalTableManagerReference(
+                self::eventStreamTableManagerReferenceName($connectionReferenceName, $eventSourcingConfiguration),
+                $connectionReferenceName
+            );
+        }
+
         return [
             ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
-            new DbalTableManagerReference(EventStreamTableManager::class),
+            ...$tableManagerReferences,
         ];
     }
 

@@ -58,6 +58,7 @@ class DbalDocumentStoreModule implements AnnotationModule
                 $isDocumentStoreActive,
                 $shouldAutoInitialize,
                 $consoleInvocationPrefix,
+                $dbalConfiguration->getDocumentStoreConnectionReference(),
             ])
         );
 
@@ -222,7 +223,7 @@ class DbalDocumentStoreModule implements AnnotationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createDefaultFor($serviceExtensions));
 
         $extensions = [
-            new DbalTableManagerReference(DocumentStoreTableManager::class),
+            new DbalTableManagerReference(DocumentStoreTableManager::class, $dbalConfiguration->getDocumentStoreConnectionReference()),
         ];
 
         if ($dbalConfiguration->isEnableDocumentStoreStateStoredRepository()) {

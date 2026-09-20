@@ -66,6 +66,7 @@ class DbalDeadLetterModule implements AnnotationModule
                 $isDeadLetterEnabled,
                 $shouldAutoInitialize,
                 $consoleInvocationPrefix,
+                $connectionFactoryReference,
             ])
         );
 
@@ -92,8 +93,10 @@ class DbalDeadLetterModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createDefaultFor($serviceExtensions));
+
         return [
-            new DbalTableManagerReference(DeadLetterTableManager::class),
+            new DbalTableManagerReference(DeadLetterTableManager::class, $dbalConfiguration->getDeadLetterConnectionReference()),
         ];
     }
 

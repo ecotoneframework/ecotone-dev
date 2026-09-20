@@ -19,6 +19,7 @@ class ChannelConfiguration
     {
         return [
             DbalConfiguration::createWithDefaults()
+                ->withAutomaticTableInitialization(true)
                 ->withDeduplication(true),
             DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME)
                 ->withReceiveTimeout(1),

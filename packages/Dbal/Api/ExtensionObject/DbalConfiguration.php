@@ -2,6 +2,8 @@
 
 namespace Ecotone\Api\Dbal\ExtensionObject;
 
+use Ecotone\Api\Dbal\AutoCreateLevel;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Deduplication\DeduplicationModule;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -51,7 +53,7 @@ class DbalConfiguration
     private int $minimumTimeToRemoveMessageInMilliseconds = DeduplicationModule::REMOVE_MESSAGE_AFTER_7_DAYS;
     private int $deduplicationRemovalBatchSize = 1000;
 
-    private bool $initializeDatabaseTables = true;
+    private AutoCreateLevel $autoCreateLevel = AutoCreateLevel::None;
 
     private function __construct()
     {
@@ -73,7 +75,27 @@ class DbalConfiguration
             ->withClearAndFlushObjectManagerOnAsynchronousEndpoints(false)
             ->withClearAndFlushObjectManagerOnCommandBus(false)
             ->withClearAndFlushObjectManagerOnProjectionBatch(false)
-            ->withDocumentStore(true, true);
+            ->withDocumentStore(true, true)
+            ->withAutoCreateLevel(AutoCreateLevel::CreateOnly);
+    }
+
+    /**
+     * Resolves the implicit default used by every module when no explicit `DbalConfiguration` extension
+     * object is registered at all. Identical to createWithDefaults(), except AutoCreateLevel is CreateOnly
+     * when an EcotoneLite test bootstrap (TestConfiguration) is present, so zero-config tests keep working
+     * without disabling transactions/deduplication/dead-letter the way createForTesting() does.
+     *
+     * @param object[] $extensionObjects
+     */
+    public static function createDefaultFor(array $extensionObjects): self
+    {
+        foreach ($extensionObjects as $extensionObject) {
+            if ($extensionObject instanceof TestConfiguration) {
+                return self::createWithDefaults()->withAutoCreateLevel(AutoCreateLevel::CreateOnly);
+            }
+        }
+
+        return self::createWithDefaults();
     }
 
     public function getDeduplicationConnectionReference(): string
@@ -363,19 +385,28 @@ class DbalConfiguration
     }
 
     /**
-     * Controls whether database tables are automatically initialized on first use.
-     * When set to false, tables must be created manually using `ecotone:migration:database:setup --initialize`.
+     * @deprecated Use withAutoCreateLevel(AutoCreateLevel::CreateOnly / AutoCreateLevel::None) instead.
      */
     public function withAutomaticTableInitialization(bool $enabled): self
     {
-        $self = clone $this;
-        $self->initializeDatabaseTables = $enabled;
-
-        return $self;
+        return $this->withAutoCreateLevel(AutoCreateLevel::fromBoolean($enabled));
     }
 
     public function isAutomaticTableInitializationEnabled(): bool
     {
-        return $this->initializeDatabaseTables;
+        return $this->autoCreateLevel->isCreateOnly();
+    }
+
+    public function withAutoCreateLevel(AutoCreateLevel $autoCreateLevel): self
+    {
+        $self = clone $this;
+        $self->autoCreateLevel = $autoCreateLevel;
+
+        return $self;
+    }
+
+    public function getAutoCreateLevel(): AutoCreateLevel
+    {
+        return $this->autoCreateLevel;
     }
 }

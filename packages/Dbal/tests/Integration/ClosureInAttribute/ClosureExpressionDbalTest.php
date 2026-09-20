@@ -169,6 +169,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
                         DbalConnectionFactory::class,
                     ),
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnCommandBus(false)
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withClearAndFlushObjectManagerOnCommandBus(false)

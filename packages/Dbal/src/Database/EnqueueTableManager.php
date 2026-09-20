@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Database;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\TableExistsException;
 use Doctrine\DBAL\Schema\Table;
 use Ecotone\Messaging\Config\Container\Definition;
 
@@ -20,6 +21,7 @@ final class EnqueueTableManager implements DbalTableManager
         private string $tableName,
         private bool $isUsed,
         private bool $shouldAutoInitialize,
+        private ?string $consoleInvocationPrefix = null,
     ) {
     }
 
@@ -40,12 +42,17 @@ final class EnqueueTableManager implements DbalTableManager
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->shouldAutoInitialize]);
+        return new Definition(self::class, [$this->tableName, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]);
     }
 
     public function shouldBeInitializedAutomatically(): bool
     {
         return $this->shouldAutoInitialize;
+    }
+
+    public function getMissingTableInstructions(): string
+    {
+        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
     }
 
     public function createTable(Connection $connection): void
@@ -54,7 +61,10 @@ final class EnqueueTableManager implements DbalTableManager
             return;
         }
 
-        $connection->createSchemaManager()->createTable($this->buildTableSchema());
+        try {
+            $connection->createSchemaManager()->createTable($this->buildTableSchema());
+        } catch (TableExistsException) {
+        }
     }
 
     public function dropTable(Connection $connection): void
@@ -64,7 +74,7 @@ final class EnqueueTableManager implements DbalTableManager
 
     public function getCreateTableSql(Connection $connection): array
     {
-        return $connection->getDatabasePlatform()->getCreateTableSQL($this->buildTableSchema());
+        return DbalIdempotentDdl::withIfNotExistsAll($connection->getDatabasePlatform()->getCreateTableSQL($this->buildTableSchema()));
     }
 
     private function buildTableSchema(): Table

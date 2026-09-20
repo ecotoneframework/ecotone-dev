@@ -7,8 +7,8 @@ the release; within a group the most impactful changes come first.
 Minimum requirements: PHP 8.2 (8.4 for the Tempest integration), Symfony 6.4+, Laravel 11+, Doctrine DBAL 4 and,
 where used, Doctrine ORM 3 with DoctrineBundle 2.12+. Laravel 9/10, DBAL 3 and ORM 2 are no longer supported.
 
-**Status of this guide.** Sections 1, 2, 3, 4, 5, 6, 7, 9, 11, 13, 14 and 15 describe behaviour that is already in the
-codebase. Sections 8 and 12 are **planned for 2.0 and not implemented yet** — they are marked individually below.
+**Status of this guide.** Sections 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 13, 14 and 15 describe behaviour that is already in
+the codebase. Section 12 is **planned for 2.0 and not implemented yet** — it is marked individually below.
 Do not act on a planned section until it ships; the API it describes does not exist. Items marked **TODO** inside an
 implemented section are known gaps that are not done yet. Section 10 records behaviour that was considered for change
 and deliberately kept as it is. Section 16 lists the larger 2.0 work that is still to be done, each with the path to
@@ -396,26 +396,78 @@ that type against them should expect them to change in minor versions.
 
 ## 8. Database tables are no longer created on the fly
 
-> **Planned — not implemented yet.** The behaviour below is not in the codebase; nothing to do at this point.
->
-> **TODO** — design and implementation plan: `docs/superpowers/specs/2026-08-28-database-setup-cli-design.md`
-> (section "Implementation plan", 15 steps; research: `docs/superpowers/research/database-setup-cli/report.md`).
-> The plan's step for removing the implicit commit was blocked by the Prooph store creating a table per stream at
-> runtime; §4 removed that blocker. Awaiting maintainer answers to the plan's open questions.
+**Before:** `DbalTransactionInterceptor` and `DeduplicationInterceptor` created `ecotone_deduplication`,
+`ecotone_error_messages`, `enqueue` and the rest during the first message. On MySQL and MariaDB that `CREATE TABLE`
+statement commits the surrounding transaction implicitly, so Ecotone carried a workaround
+(`ImplicitCommit::isImplicitCommitException()`) that string-matched the driver's error message and swallowed the
+resulting commit failure. Deduplication additionally special-cased PostgreSQL, because only there could it insert its
+row before running the handler without risking that insert being committed early by a table-creation statement later
+in the same transaction.
 
-**Before:** `DbalTransactionInterceptor` and `DeduplicationInterceptor` created `ecotone_deduplication`, `ecotone_error_messages`,
-`ecotone_enqueue` etc. during the first message and on MySQL committed the surrounding transaction implicitly
-(`@TODO Ecotone 2.0 remove implicit commit`). PostgreSQL received a special-case branch.
+**Now:** Ecotone never issues DDL while handling a message. Tables are created only through the CLI, through the
+`DatabaseSetupManager` gateway, or by your own migration tool. `ImplicitCommit` is gone, `DbalTransactionInterceptor`
+raises a hard error again if a commit genuinely fails, and one transaction wraps the whole message on every driver —
+including MySQL and MariaDB. Deduplication's concurrency guarantee (a handler running twice for the same message
+collides on the primary key instead of running twice) now works on every driver, not just PostgreSQL. Deduplication
+cleanup runs on its own endpoint, outside your handler's transaction, so it no longer holds row locks while your
+handler runs.
 
-**Now:** Tables are created only through the CLI (or your own migrations). Interceptors never commit implicitly; one
-transaction wraps the whole message on every driver. Deduplication cleanup runs outside the handler transaction
-(scheduled job), so it no longer holds row locks while your handler runs.
+Behaviour is controlled by `AutoCreateLevel`:
+
+- `AutoCreateLevel::None` — the new default, everywhere except test bootstraps. Ecotone never issues DDL; a missing
+  table raises a `ConfigurationException` naming the feature, the table, and the exact command (or, without a
+  console, the code) to run for the integration your application is running under.
+- `AutoCreateLevel::CreateOnly` — create missing tables, never alter or drop an existing one. This is what 1.x always
+  did, under a new name. `EcotoneLite::bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()` use it by
+  default, so in-memory and SQLite tests are unaffected.
 
 **How to adapt:**
-- Run `ecotone:migration:database:setup` on deploy, or `ecotone:migration:database:dump-sql` to produce SQL for Doctrine Migrations / Laravel migrations.
-- `EcotoneLite::bootstrapFlowTesting*()` still prepares tables automatically for in-memory/test connections. For integration tests
-  against a real database call `$ecotone->getGateway(DatabaseSetupManager::class)->setup()` once in `setUp()`.
-- Remove any code that relied on the implicit commit (e.g. MySQL DDL during a handler).
+
+```php
+// 1.x — nothing to configure; tables appeared on first use.
+
+// 2.0 — None is the default everywhere outside test bootstraps. Opt back into auto-create where you want it:
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\Attribute\ServiceContext;
+
+final class EcotoneConfiguration
+{
+    #[ServiceContext]
+    public function databaseSetup(): DbalConfiguration
+    {
+        return DbalConfiguration::createWithDefaults()
+            ->withAutomaticTableInitialization(true); // AutoCreateLevel::CreateOnly
+    }
+}
+```
+
+- Add `ecotone:migration:database:setup --initialize` to your deploy pipeline (or `--feature=deduplication,dead_letter`
+  for a subset).
+  - Symfony: `bin/console ecotone:migration:database:setup --initialize`
+  - Laravel: `php artisan ecotone:migration:database:setup --initialize`
+  - Tempest: `./tempest ecotone:migration:database:setup --initialize`
+  - EcotoneLite / standalone: `$messagingSystem->getServiceFromContainer(DatabaseSetupManager::class)->initializeAll();`
+- Add `--missing` to list only the tables that do not exist yet, instead of every used feature. Combine it with
+  `--sql` (`ecotone:migration:database:setup --missing --sql`) to get `CREATE TABLE` statements for only what's
+  missing — the shape you want when pasting into an existing migration, rather than dumping SQL for tables you
+  already created.
+- Or generate SQL for your own migration tool: `ecotone:migration:database:setup --sql`, optionally with
+  `--feature=` or `--missing`, and paste the output into a Doctrine Migrations / Laravel migration.
+- For integration tests against a real database, call
+  `$ecotone->getGateway(DatabaseSetupManager::class)->initializeAll();` once in `setUp()`. `EcotoneLite` in-memory and
+  SQLite bootstraps do not need this.
+- Deduplication cleanup: run the endpoint with `ecotone:run ecotone.deduplication.cleanup` on a schedule (a
+  Kubernetes CronJob, Supervisor timer, or your own scheduler), or keep using
+  `ecotone:deduplication:remove-expired-messages` if you already trigger it from your own cron. Both call the same
+  code; neither runs inside your handler's transaction any more.
+- `DbalConfiguration::withAutomaticTableInitialization(bool)` still works: `true` maps to `AutoCreateLevel::CreateOnly`,
+  `false` to `AutoCreateLevel::None`.
+- `EventSourcingConfiguration::withInitializeEventStoreOnStart(bool)` is deprecated in favour of
+  `DbalConfiguration::withAutomaticTableInitialization()` / `AutoCreateLevel`. It still works unchanged (it is
+  combined with the `DbalConfiguration` setting for the event store's own tables), but new code should configure
+  auto-create through `DbalConfiguration` only.
+- Remove any application code that relied on the implicit commit (for example, DDL issued from inside a handler on
+  MySQL) — it is no longer swallowed, and a genuinely failing commit now throws.
 
 ## 9. Changed defaults
 
@@ -783,7 +835,6 @@ normal section with "How to adapt" steps when it ships.
 
 | Work | What it changes | Design and implementation plan |
 |---|---|---|
-| Database setup CLI, no implicit commit (§8) | Tables created only by `ecotone:migration:database:setup` or dumped SQL; one transaction per message on every driver; deduplication cleanup moved out of the handler transaction; `status` and `dump-sql` commands | `docs/superpowers/specs/2026-08-28-database-setup-cli-design.md` · research `docs/superpowers/research/database-setup-cli/report.md` |
 | `#[ServiceContext]`-only configuration (§12) | `ServiceContext` values are actually merged; framework config files keep only bootstrap keys | `docs/superpowers/specs/2026-08-28-servicecontext-only-config-design.md` · research `docs/superpowers/research/servicecontext-only-config/report.md` |
 | DCB event store (§4) | Tags per event, tag queries and `AppendCondition` with optimistic concurrency on top of `ecotone_event_stream`; SQL-side projection filtering | `docs/superpowers/specs/2026-08-22-dcb-event-store-design.md` (section "Implementation plan") · research `docs/superpowers/research/dcb-event-store/report.md`. Written before §4 shipped: its Prooph-removal, single-log and package parts are done or superseded, so refresh the plan against the current store before starting |
 | Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only; in-memory queue channels provided automatically for `#[Asynchronous]` handlers, still consumed with `run()` | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |

@@ -12,6 +12,7 @@ use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\PollableChannel\Serialization\OutboundMessageConverter;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
@@ -46,12 +47,19 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
     {
         /** @var DbalContext $context */
         $context = $this->connectionFactory->createContext();
+        $connection = $context->getDbalConnection();
 
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+        if ($this->tableManager->isInitialized($connection)) {
+            $context->createQueue($this->queueName);
+
             return;
         }
 
-        $this->tableManager->createTable($context->getDbalConnection());
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        }
+
+        $this->tableManager->createTable($connection);
         $context->createQueue($this->queueName);
     }
 

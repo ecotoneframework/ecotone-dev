@@ -4,7 +4,6 @@ namespace Ecotone\Dbal\Deduplication;
 
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Doctrine\DBAL\Types\Types;
 use Ecotone\Api\Attribute\Deduplicated;
 use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
@@ -15,6 +14,7 @@ use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Attribute\IdentifiedAnnotation;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ClosureExpression\ExecutorFor;
 use Ecotone\Messaging\Handler\Logger\LoggingGateway;
@@ -98,8 +98,7 @@ class DeduplicationInterceptor
         }
 
         try {
-            /** @TODO Ecotone 2.0 remove postgres check - when getting rid of implicit commit for MySQL */
-            $isTransactionActive = $connection->isTransactionActive() && $connection->getDatabasePlatform() instanceof PostgreSQLPlatform;
+            $isTransactionActive = $connection->isTransactionActive();
             // ensure that concurrent message handling will fail before proceeding
             if ($isTransactionActive) {
                 $this->insertHandledMessage($connectionFactory, $messageId, $consumerEndpointId, $routingSlip);
@@ -125,7 +124,10 @@ class DeduplicationInterceptor
     public function removeExpiredMessages(): void
     {
         $connectionFactory = $this->connection;
-        $this->createDataBaseTable($connectionFactory);
+
+        if (! $this->tableManager->isInitialized($this->getConnection($connectionFactory))) {
+            return;
+        }
 
         while ($messageIds = $this->getMessageIdsToRemoval($connectionFactory)) {
             $this->getConnection($connectionFactory)->createQueryBuilder()
@@ -165,11 +167,16 @@ class DeduplicationInterceptor
 
     private function createDataBaseTable(ConnectionFactory $connectionFactory): void
     {
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+        $connection = $this->getConnection($connectionFactory);
+
+        if ($this->tableManager->isInitialized($connection)) {
             return;
         }
 
-        $connection = $this->getConnection($connectionFactory);
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        }
+
         $this->tableManager->createTable($connection);
         $this->logger->info('Deduplication table was created');
     }

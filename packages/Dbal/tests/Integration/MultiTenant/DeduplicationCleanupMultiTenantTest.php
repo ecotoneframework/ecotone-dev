@@ -8,6 +8,7 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Database\DeduplicationTableManager;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -33,8 +34,9 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
         parent::setUp();
 
         foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
-            $connectionFactory->createContext()->getDbalConnection()
-                ->executeStatement('DROP TABLE IF EXISTS ecotone_deduplication');
+            $connection = $connectionFactory->createContext()->getDbalConnection();
+            $connection->executeStatement('DROP TABLE IF EXISTS ecotone_deduplication');
+            (new DeduplicationTableManager('ecotone_deduplication', true, true, null))->createTable($connection);
         }
     }
 
@@ -97,6 +99,7 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
                         ],
                     ),
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withDeduplication(true, expirationTime: 1),
                     DbalBackedMessageChannelBuilder::create('email'),
                 ]),

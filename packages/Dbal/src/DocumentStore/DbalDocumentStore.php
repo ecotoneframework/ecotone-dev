@@ -10,6 +10,7 @@ use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\DocumentStoreTableManager;
 use Ecotone\Enqueue\CachedConnectionFactory;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Conversion\ConversionException;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -194,11 +195,18 @@ final class DbalDocumentStore implements DocumentStore
 
     private function createDataBaseTable(): void
     {
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+        $connection = $this->getConnection();
+
+        if ($this->doesTableExists()) {
             return;
         }
 
-        $this->tableManager->createTable($this->getConnection());
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        }
+
+        $this->tableManager->createTable($connection);
+        $this->initialized[spl_object_id($connection)] = true;
     }
 
     private function getConnection(): Connection
@@ -211,9 +219,6 @@ final class DbalDocumentStore implements DocumentStore
 
     private function doesTableExists(): bool
     {
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
-            return true;
-        }
         $connection = $this->getConnection();
 
         if (isset($this->initialized[spl_object_id($connection)])) {

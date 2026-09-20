@@ -31,6 +31,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -220,8 +221,10 @@ class EventSourcingProjectingModule implements AnnotationModule
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
         $multiTenantConfigurations = ExtensionObjectResolver::resolve(MultiTenantConfiguration::class, $extensionObjects);
 
         if (! empty($multiTenantConfigurations) && ! empty($this->projectionNames) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
@@ -241,6 +244,7 @@ class EventSourcingProjectingModule implements AnnotationModule
                 ProjectionStateTableManager::DEFAULT_TABLE_NAME,
                 $hasProjections,
                 $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+                $consoleInvocationPrefix,
             ])
         );
 

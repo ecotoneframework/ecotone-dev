@@ -15,6 +15,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -50,11 +51,13 @@ class DbalDeadLetterModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $isDeadLetterEnabled = $dbalConfiguration->isDeadLetterEnabled();
         $customDeadLetterGateways = ExtensionObjectResolver::resolve(CustomDeadLetterGateway::class, $extensionObjects);
         $connectionFactoryReference     = $dbalConfiguration->getDeadLetterConnectionReference();
         $shouldAutoInitialize = $dbalConfiguration->isAutomaticTableInitializationEnabled();
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
 
         $messagingConfiguration->registerServiceDefinition(
             DeadLetterTableManager::class,
@@ -62,6 +65,7 @@ class DbalDeadLetterModule implements AnnotationModule
                 DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE,
                 $isDeadLetterEnabled,
                 $shouldAutoInitialize,
+                $consoleInvocationPrefix,
             ])
         );
 

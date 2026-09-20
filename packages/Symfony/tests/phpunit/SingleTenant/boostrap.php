@@ -3,6 +3,7 @@
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Schema\Table;
 use Doctrine\DBAL\Types\Types;
+use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Symfony\Component\HttpKernel\Kernel;
 
@@ -16,6 +17,8 @@ function runMigrationForSymfony(Kernel $kernel): void
     }
 
     migrateSymfonyForSingleTenant($connection);
+
+    $kernel->getContainer()->get(DatabaseSetupManager::class)->initializeAll(false);
 }
 
 function migrateSymfonyForSingleTenant(Connection $connection): void

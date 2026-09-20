@@ -184,6 +184,7 @@ final class MultiTenantConnectionFactoryTest extends TestCase
                         ? MultiTenantConfiguration::createWithDefaultConnection($tenantHeaderName, $tenantConnectionMapping, $defaultConnectionName, DbalConnectionFactory::class)
                         : MultiTenantConfiguration::create($tenantHeaderName, $tenantConnectionMapping, DbalConnectionFactory::class),
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnCommandBus(false)
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withDeduplication(false),

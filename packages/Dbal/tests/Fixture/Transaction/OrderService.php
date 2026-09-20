@@ -5,6 +5,7 @@ namespace Test\Ecotone\Dbal\Fixture\Transaction;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
 use InvalidArgumentException;
@@ -17,6 +18,7 @@ class OrderService
     public const ORDER_TABLE = 'orders';
 
     #[CommandHandler('order.prepare')]
+    #[WithoutDatabaseTransaction]
     public function prepare(#[Reference(DbalConnectionFactory::class)] ConnectionFactory $connectionFactory)
     {
         $connection = $connectionFactory->createContext()->getDbalConnection();

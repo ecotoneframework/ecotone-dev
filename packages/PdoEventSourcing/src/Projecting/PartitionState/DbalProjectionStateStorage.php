@@ -14,6 +14,7 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Projecting\NoOpTransaction;
 use Ecotone\Projecting\ProjectionInitializationStatus;
 use Ecotone\Projecting\ProjectionPartitionState;
@@ -198,22 +199,30 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
 
     public function createSchema(): void
     {
-        if (! $this->tableManager->shouldBeInitializedAutomatically() || $this->isInitialized()) {
+        if ($this->isInitialized()) {
             return;
         }
 
         $connection = $this->getConnection();
 
-        // Delegate to table manager - single source of truth for schema
-        if (! $this->tableManager->isInitialized($connection)) {
-            $this->tableManager->createTable($connection);
+        if ($this->tableManager->isInitialized($connection)) {
+            $this->markInitialized();
+
+            return;
         }
 
+        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        }
+
+        $this->tableManager->createTable($connection);
         $this->markInitialized();
     }
 
     public function beginTransaction(): Transaction
     {
+        $this->createSchema();
+
         $connection = $this->getConnection();
         if ($connection->isTransactionActive()) {
             return new NoOpTransaction();

@@ -178,6 +178,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnCommandBus(true)
                         ->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
@@ -197,6 +198,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnCommandBus(true)
                         ->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
@@ -255,6 +257,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),
@@ -274,6 +277,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     \Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnCommandBus(false)
                         ->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create(self::CHANNEL_NAME),

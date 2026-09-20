@@ -58,6 +58,11 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $this->inMemoryEventStore;
     }
 
+    /**
+     * @deprecated Use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration::withAutomaticTableInitialization()
+     *             (AutoCreateLevel) instead. This flag is combined with that setting for the event store's
+     *             tables specifically and will be removed once AutoCreateLevel gains per-feature granularity.
+     */
     public function withInitializeEventStoreOnStart(bool $isInitializedOnStartup): static
     {
         $this->initializeEventStoreOnStart = $isInitializedOnStartup;

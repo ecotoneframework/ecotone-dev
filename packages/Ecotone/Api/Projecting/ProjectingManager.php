@@ -81,6 +81,10 @@ class ProjectingManager
 
     public function executePartitionBatch(?string $partitionKeyValue = null, bool $canInitialize = false, bool $shouldReset = false): int
     {
+        if ($canInitialize) {
+            $this->ensurePartitionInitialized($partitionKeyValue);
+        }
+
         $transaction = $this->getProjectionStateStorage()->beginTransaction();
         try {
             $projectionState = $this->loadOrInitializePartitionState($partitionKeyValue, $canInitialize);
@@ -277,14 +281,27 @@ class ProjectingManager
         }
 
         if ($canInitialize) {
-            $projectionState = $storage->initPartition($this->projectionName, $partitionKey);
-            if ($projectionState) {
-                $this->projectorExecutor->init();
-            } else {
-                $projectionState = $storage->loadPartition($this->projectionName, $partitionKey);
-            }
-            return $projectionState;
+            return $storage->initPartition($this->projectionName, $partitionKey)
+                ?? $storage->loadPartition($this->projectionName, $partitionKey);
         }
         return null;
+    }
+
+    /**
+     * The projector's own #[ProjectionInitialization] handler may run arbitrary SQL, DDL included.
+     * It must run before any database transaction is open: on MySQL, DDL issued mid-transaction
+     * triggers an implicit commit, leaving the transaction object out of sync with the actual
+     * connection state and the later explicit commit failing with "no active transaction".
+     */
+    private function ensurePartitionInitialized(?string $partitionKeyValue): void
+    {
+        $storage = $this->getProjectionStateStorage();
+        if ($storage->loadPartition($this->projectionName, $partitionKeyValue, lock: false) !== null) {
+            return;
+        }
+
+        if ($storage->initPartition($this->projectionName, $partitionKeyValue) !== null) {
+            $this->projectorExecutor->init();
+        }
     }
 }

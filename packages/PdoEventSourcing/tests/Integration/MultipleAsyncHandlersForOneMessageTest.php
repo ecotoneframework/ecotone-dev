@@ -34,7 +34,7 @@ final class MultipleAsyncHandlersForOneMessageTest extends EventSourcingMessagin
                 ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
                 ->withNamespaces(['Test\Ecotone\Modelling\Fixture\MultipleAsyncHandlersForOneMessage'])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults(),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
                     EventSourcingConfiguration::createWithDefaults(),
                     SimpleMessageChannelBuilder::createQueueChannel('testAggregate'),
                 ]),

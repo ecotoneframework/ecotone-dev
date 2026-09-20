@@ -100,7 +100,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                     DbalBackedMessageChannelBuilder::create($queueName),
                 ])
         );
@@ -128,7 +128,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime: 60000),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true, expirationTime: 60000),
                     DbalBackedMessageChannelBuilder::create($queueName),
                 ])
         );
@@ -159,7 +159,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true, expirationTime: 1, removalBatchSize: 1),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true, expirationTime: 1, removalBatchSize: 1),
                     DbalBackedMessageChannelBuilder::create($queueName),
                 ])
         );
@@ -190,7 +190,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(false),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(false),
                     DbalBackedMessageChannelBuilder::create($queueName),
                 ])
         );

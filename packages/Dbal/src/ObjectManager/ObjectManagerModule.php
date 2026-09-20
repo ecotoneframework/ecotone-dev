@@ -43,7 +43,7 @@ class ObjectManagerModule implements AnnotationModule
      */
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
 
         $pointcut = [];
         if ($dbalConfiguration->isClearObjectManagerOnAsynchronousEndpoints()) {
@@ -84,7 +84,7 @@ class ObjectManagerModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createWithDefaults());
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createDefaultFor($serviceExtensions));
         $repositories = [];
 
         if ($dbalConfiguration->isDoctrineORMRepositoriesEnabled()) {

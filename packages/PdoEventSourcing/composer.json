@@ -52,7 +52,8 @@
         }
     },
     "require": {
-        "ecotone/dbal": "~1.326.1"
+        "ecotone/dbal": "~1.326.1",
+        "ramsey/uuid": "^4.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.5|^11.0|^12.0",

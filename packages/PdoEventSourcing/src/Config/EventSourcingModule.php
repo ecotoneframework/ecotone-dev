@@ -27,6 +27,7 @@ use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConsoleInvocationResolver;
 use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -104,7 +105,9 @@ class EventSourcingModule extends NoExternalConfigurationModule
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
         $eventSourcingConfiguration = ExtensionObjectResolver::resolveUnique(EventSourcingConfiguration::class, $extensionObjects, EventSourcingConfiguration::createWithDefaults());
-        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createWithDefaults());
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
+        $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
+        $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
 
         $messagingConfiguration->registerServiceDefinition(EventSourcingConfiguration::class, DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
 
@@ -117,13 +120,14 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $streamTableRegistry->tablesFor($eventSourcingConfiguration->getConnectionReferenceName()),
                 true,
                 $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+                $consoleInvocationPrefix,
             ])
         );
 
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
 
-        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $dbalConfiguration);
+        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $dbalConfiguration, $consoleInvocationPrefix);
         $this->registerEventStore($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerEventStreamEmitter($messagingConfiguration, $eventSourcingConfiguration);
     }
@@ -152,6 +156,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         EventSourcingConfiguration $eventSourcingConfiguration,
         StreamTableRegistry $streamTableRegistry,
         DbalConfiguration $dbalConfiguration,
+        ?string $consoleInvocationPrefix,
     ): void {
         $messagingConfiguration->registerServiceDefinition(
             EventSerializer::class,
@@ -191,6 +196,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $eventSourcingConfiguration->getLoadBatchSize(),
                 $eventSourcingConfiguration->isWriteLockStrategyEnabled(),
                 $eventSourcingConfiguration->isInitializedOnStart() && $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+                $consoleInvocationPrefix,
             ])
         );
     }

@@ -12,6 +12,7 @@ use Ecotone\Api\Dbal\ExtensionObject\OutboxForwardingMessageChannel;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
+use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -26,6 +27,11 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
 {
     public function test_each_run_publishes_batch_from_next_tenant_outbox_in_round_robin(): void
     {
+        foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
+            (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true, null))
+                ->createTable($connectionFactory->createContext()->getDbalConnection());
+        }
+
         $orderService = new class () {
             #[Asynchronous('orders')]
             #[CommandHandler('order.register', endpointId: 'orderRegisterEndpoint')]

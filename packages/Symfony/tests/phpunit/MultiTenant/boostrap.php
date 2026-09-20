@@ -1,6 +1,9 @@
 <?php
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\Database\DeduplicationTableManager;
+use Ecotone\Dbal\Database\EnqueueTableManager;
+use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Symfony\Component\HttpKernel\Kernel;
 
@@ -47,4 +50,7 @@ function migrateSymfony(Connection $connection): void
                 customer_id INTEGER PRIMARY KEY
             )
         SQL);
+
+    (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
+    (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
 }

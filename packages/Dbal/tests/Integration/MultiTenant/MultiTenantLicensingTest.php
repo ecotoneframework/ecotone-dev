@@ -39,6 +39,7 @@ final class MultiTenantLicensingTest extends TestCase
                         DbalConnectionFactory::class,
                     ),
                     DbalConfiguration::createWithDefaults()
+                        ->withAutomaticTableInitialization(true)
                         ->withTransactionOnCommandBus(false)
                         ->withTransactionOnAsynchronousEndpoints(false)
                         ->withDeduplication(false),

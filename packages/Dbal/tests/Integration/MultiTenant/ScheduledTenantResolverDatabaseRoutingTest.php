@@ -153,6 +153,7 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
                 ],
             ),
             DbalConfiguration::createWithDefaults()
+                ->withAutomaticTableInitialization(true)
                 ->withTransactionOnCommandBus(false)
                 ->withTransactionOnAsynchronousEndpoints(false)
                 ->withClearAndFlushObjectManagerOnCommandBus(false)

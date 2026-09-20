@@ -468,6 +468,12 @@ final class EcotoneConfiguration
   auto-create through `DbalConfiguration` only.
 - Remove any application code that relied on the implicit commit (for example, DDL issued from inside a handler on
   MySQL) — it is no longer swallowed, and a genuinely failing commit now throws.
+- `#[ProjectionInitialization]` handlers now run **before** the projection-state transaction is opened, instead of
+  inside it. Previously a partition's first batch opened the transaction and then called your initialization handler
+  from within it, so DDL in that handler triggered MySQL's implicit commit and broke the later commit. Your handler
+  may still create its read-model tables, but it is no longer covered by the projection-state transaction: if
+  initialization succeeds and the batch then fails, the initialization is not rolled back. Make initialization
+  idempotent — `CREATE TABLE IF NOT EXISTS` rather than a bare `CREATE TABLE` — since it may be re-attempted.
 
 ## 9. Changed defaults
 

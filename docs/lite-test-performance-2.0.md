@@ -33,3 +33,15 @@ available, so the existing collection strategy remains unchanged.
 Establish core/full suite baselines; profile repeated bootstrap-and-message workloads; measure bootstrap and
 execution benchmarks with both opcache profiles; investigate safe sharing and GC memory/time tradeoffs;
 accept only demonstrated improvements with isolation tests; rerun full verification and document upgrade impact.
+
+## First suite baseline
+
+CPU 2, Xdebug unloaded, opcache CLI disabled: `vendor/bin/phpunit --no-coverage --testsuite "Core tests"`
+passed with 1,368 tests, 2,295 assertions and one skip. Bash wall clock: **24.713 s**; PHPUnit-reported
+runtime: 24.492 s; peak allocated memory: **62.50 MB**. Raw output is in
+[baseline-core-off.log](benchmarks/lite-test-2.0/baseline-core-off.log).
+This is one baseline sample, not a comparative performance claim.
+
+The full baseline discovers **3,876 tests**, rather than the historical report's 3,859, at the supplied base.
+It is still running. An unrelated Composer installation briefly appeared on the host during this run;
+retain this caveat when interpreting its eventual wall time.

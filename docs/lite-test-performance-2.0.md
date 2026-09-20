@@ -45,3 +45,9 @@ This is one baseline sample, not a comparative performance claim.
 The full baseline discovers **3,876 tests**, rather than the historical report's 3,859, at the supplied base.
 It is still running. An unrelated Composer installation briefly appeared on the host during this run;
 retain this caveat when interpreting its eventual wall time.
+
+The first full-suite wall-time sample is **rejected**: external PHPUnit processes (observed PIDs 1957825 and
+1975073) started while it was running. It remains useful as a correctness run only. The coordinator was notified
+and a quiet measurement window requested; no speed or GC-memory conclusions can be drawn from this run.
+Code inspection also found explicit collection after each consumed message in `PollToGatewayTaskExecutor::execute`;
+this is an execution-path candidate requiring its own memory evidence, separate from Lite bootstrap collection.

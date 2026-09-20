@@ -31,6 +31,7 @@ class InterfaceToCallRegistry
      */
     private array $classDefinitions = [];
     private ?AnnotationResolver $annotationResolver;
+    private ?TypeResolver $typeResolver = null;
     private ?self $preparedInterfaceToCallRegistry = null;
     private bool $isLocked;
 
@@ -101,7 +102,7 @@ class InterfaceToCallRegistry
             $interfaceToCall = $this->preparedInterfaceToCallRegistry->getFor($interfaceName, $methodName);
         } else {
             if ($this->annotationResolver) {
-                $interfaceToCall = InterfaceToCall::createWithAnnotationFinder($interfaceName, $methodName, $this->annotationResolver);
+                $interfaceToCall = InterfaceToCall::createWithAnnotationFinder($interfaceName, $methodName, $this->annotationResolver, $this->typeResolverForAnnotationResolver());
             } else {
                 $interfaceToCall = InterfaceToCall::create($interfaceName, $methodName);
             }
@@ -119,7 +120,7 @@ class InterfaceToCallRegistry
         }
 
         if ($this->annotationResolver) {
-            $classDefinition = ClassDefinition::createUsingAnnotationParser($classType, $this->annotationResolver);
+            $classDefinition = ClassDefinition::createUsingAnnotationParser($classType, $this->annotationResolver, $this->typeResolverForAnnotationResolver());
         } else {
             $classDefinition = ClassDefinition::createFor($classType);
         }
@@ -127,6 +128,11 @@ class InterfaceToCallRegistry
         $this->classDefinitions[$classType->toString()] = $classDefinition;
 
         return $classDefinition;
+    }
+
+    private function typeResolverForAnnotationResolver(): TypeResolver
+    {
+        return $this->typeResolver ??= TypeResolver::createWithAnnotationParser($this->annotationResolver);
     }
 
     public function getForAllPublicMethodOf(string|object $interfaceName): iterable

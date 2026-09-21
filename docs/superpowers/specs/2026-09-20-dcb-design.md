@@ -226,6 +226,16 @@ default `utf8mb4_0900_ai_ci` would merge `course:ABC` with `course:abc`. Worst-c
   took in the append that wrote the event — a per-tag sequence that is the same across every stream, which is what
   orders a model's events when they come from more than one table (§4.5a). Filter-only tags store 0.
 - `ecotone_event_tag_coverage` is the guard against deciding on an incomplete index (§4.8).
+- **Only tagged events are indexed.** An event whose class declares no `#[EventTag]` — by default, every aggregate
+  event in an existing application — writes nothing to either table; aggregates keep loading through their own
+  columns and never need their id as a tag. A tagged event writes one index row per tag value. *Estimated, not
+  measured:* on PostgreSQL an index row is roughly 110 bytes of heap plus about as much in the primary key, so
+  ~220 bytes per tag per event — 10 million events with two tags each ≈ 4–5 GB, against typically 10–20 GB for
+  those events' own rows. InnoDB clusters the table on its primary key, so roughly half that. The `stream` string is
+  the fattest part of the row (about a fifth of it for `ecotone_event_stream`, a third for a 41-character legacy
+  `_<sha1>` name); replacing it with a small integer from a lookup table is a known optimisation, deliberately not
+  taken in the first cut — it costs a join and debuggability — and is to be decided on measurements from task 5.
+  The counter table holds one ~100-byte row per distinct counted tag *value*: a million customers is ~100–200 MB.
 - No foreign keys. `EventStore::delete($stream)` deletes that stream's index rows in the same transaction — without
   this, a re-created stream restarts `no` at 1 and stale rows join to unrelated events (every test suite that resets
   streams would hit it). Counters are left: a stale counter can only cause one spurious retry.
@@ -453,6 +463,10 @@ model the expression returns a map (`"{'course': payload.courseId, 'student': pa
 already accepts for multi-identifier aggregates. An array value selects several values of one key. A tag that
 cannot be resolved is a bootstrap error when statically knowable, otherwise an exception naming model, tag and
 message.
+
+**A tag value that resolves to `null`** (an order placed without a coupon) follows the rule `#[Fetch]` already
+applies to aggregates: a nullable parameter (`?CouponRedemptions $coupon`) receives `null` and contributes nothing
+to the boundary; a non-nullable one throws, naming the model and the tag.
 
 **Where models can be injected**
 
@@ -702,13 +716,35 @@ final class CustomerCouponUse {                       // criterion: customer:<id
 #[EventSourcingAggregate]
 final class Order {
     #[CommandHandler]
-    public static function place(PlaceOrder $c, CouponRedemptions $coupon, CustomerCouponUse $usage): array {
-        if ($coupon->isExhausted()) { throw new CouponExhausted(); }
-        if ($usage->alreadyUsed())  { throw new CouponAlreadyUsedByCustomer(); }
-        return [new OrderPlaced($c->orderId, $c->customerId, $c->couponCode)];
+    public static function place(PlaceOrder $c, ?CouponRedemptions $coupon, ?CustomerCouponUse $usage): array {
+        if ($coupon?->isExhausted()) { throw new CouponExhausted(); }
+        if ($usage?->alreadyUsed())  { throw new CouponAlreadyUsedByCustomer(); }
+        return [new OrderPlaced($c->orderId, $c->customerId, $c->couponCode)];   // no coupon → models are null
     }
 }
 ```
+
+**How `SUMMER24` gets from the command into the models, and from the event into the index.** Both directions use
+the same attribute and nothing else. At bootstrap the framework builds two maps by reading `#[EventTag]`:
+
+| Class | Map entry |
+|---|---|
+| event `CouponIssued` | key `coupon` ← property `code` |
+| event `OrderPlaced` | key `customer` ← `customerId`; key `coupon` ← `couponCode` |
+| model `CouponRedemptions` | key `coupon` → property `couponCode` |
+| model `CustomerCouponUse` | key `customer` → `customerId`; key `coupon` → `couponCode` |
+
+The **key** is always the literal in the attribute. The **value** is whatever the property holds at that moment.
+On an event the attribute means *publish this value under this key*; on a model it means *select the events whose
+key has this value*.
+
+`PlaceOrder('o-1', 'alice', 'SUMMER24')` arrives → routed to `Order::place` → the handler's parameters include two
+`#[DecisionModel]` classes → for each model tag the framework looks on the command for a property of the same name
+(`couponCode`, `customerId`) → finds `SUMMER24` and `alice` → instantiates the models and writes those values into
+their tagged properties → captures counters, reads the index for `coupon:SUMMER24` and `customer:alice`, folds.
+When the handler returns `OrderPlaced('o-1', 'alice', 'SUMMER24')`, the store looks the class up in the event map,
+reads `customerId` and `couponCode` off the object — before it is serialized — and gets the two rows to write:
+`(customer, alice)` and `(coupon, SUMMER24)`. A `null` property writes no row.
 
 **① The coupon is issued** (event 1, written through a handler that injected `CouponRedemptions` to refuse a
 duplicate issue — captured version 0, so the guarded step is the `INSERT`).

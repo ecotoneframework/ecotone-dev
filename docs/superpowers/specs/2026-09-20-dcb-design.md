@@ -852,6 +852,29 @@ If T1 rolls back, T2 finds 7 and proceeds. PostgreSQL `READ COMMITTED` re-checks
 against the newly committed row; an InnoDB `UPDATE` is a current read regardless of the transaction's snapshot.
 No raised isolation level, no advisory lock, no `SELECT … FOR UPDATE`.
 
+**Two tables, two write patterns — and why the counter is an `UPDATE`.** `ecotone_event_tags` is a *list*: which
+events carry a tag. It is append-only; every tagged event INSERTs its rows and nothing is ever updated — an update
+would erase the earlier events from the boundary. `ecotone_event_tag_versions` is a *register*: one row per tag
+value, INSERTed the first time the value appears and UPDATEd in place ever after.
+
+The obvious alternative is to make the register insert-only as well — put `UNIQUE (tag_key, tag_value,
+tag_version)` on the index, let a conditional writer insert `captured + 1`, and treat a unique violation as the
+conflict. That is exactly how aggregates work today, it would remove a table, and it was considered seriously.
+It fails on one case aggregates never have: **a writer with no expected version.** Every aggregate save knows the
+version it loaded. A tagged event appended by a handler that injected no model does not know the tag's version —
+and it has no condition, so it must never fail. Insert-only, it has to compute `MAX(tag_version) + 1` and insert
+it, racing every other such writer for the same number: on PostgreSQL the loser's unique violation aborts its
+whole transaction (or needs a savepoint-and-retry loop inside the store); on InnoDB `INSERT … SELECT MAX()` takes
+next-key locks on the very gap both writers then insert into — the textbook deadlock. With a register the same
+writer runs `version = version + 1`, which cannot fail and cannot deadlock; it only queues. Filter-only tags
+(which carry no version) would also break the unique key.
+
+Nothing is given up for it. An insert of a duplicate key waits for the uncommitted first inserter exactly as an
+`UPDATE` waits for the uncommitted first updater, so lock reach and lock duration are identical; the register is
+no more "pessimistic" than the aggregate's unique index. The one real cost is PostgreSQL's: each in-place update
+leaves a dead tuple. `version` is not indexed, so these are HOT updates, `fillfactor = 70` leaves room for them on
+the page, and autovacuum reclaims them — and the table is tiny.
+
 **The honest cost against constraint 1.** The only lock is the row lock the write itself takes, held to commit —
 the same *kind* of lock today's unique-index insert takes. But not the same *reach*: today a writer waits only on a
 writer of the identical `(type, id, version)` — one it truly conflicts with. A counter also queues **unconditional**
@@ -1146,4 +1169,5 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-21 | **All of DCB is under the Enterprise licence** | **Maintainer** | Business decision. Consequences worked through in §4.9: bootstrap `LicensingException`, own `event_tags` setup feature active only when tags are declared, open-core append path unchanged |
 | 2026-09-21 | **A decision model is a standalone reusable class, injected into message handlers; consistency covers whatever a handler injects** | **Maintainer** | Reuse across handlers without duplicating folds. Falls out better than revision 2: one model = one criterion, handler = OR of its models, so `#[MatchingTags]` and the per-handler-boundary machinery disappear; and injecting a model into an aggregate handler gives existing applications an adoption path without touching constraint 2 |
 | 2026-09-21 | Cross-stream models ordered by a per-tag `tag_version` stored in the index, not by `created_at`; cross-connection models rejected at bootstrap | Claude, answering the maintainer's question | `created_at` is application-assigned and coarse; the counter is already a commit-ordered per-tag sequence across streams, so exact order costs one column |
+| 2026-09-21 | The tag index is insert-only; the per-tag counter is updated in place rather than being an insert-only unique key like the aggregate version | Claude, answering the maintainer's question | Writers with no condition have no expected version: insert-only makes them race for `MAX + 1` (transaction abort on PostgreSQL, gap-lock deadlock on InnoDB); `version = version + 1` cannot fail. Lock reach and duration are identical either way |
 | — | Part 5, decisions 2–7 | **open** | |

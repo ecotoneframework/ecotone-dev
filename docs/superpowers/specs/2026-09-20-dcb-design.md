@@ -664,6 +664,142 @@ those the rule is documented. Cross-database consistency is a saga, not a consis
 Multi-tenancy is the same rule seen from the other side: each tenant's connection has its own tag tables, and a
 boundary lives inside one tenant.
 
+#### 4.5b Worked example — a coupon limited to two redemptions
+
+A shop issues coupon `SUMMER24`, valid for **2 orders in total** and **once per customer**. Orders are an ordinary
+event-sourced aggregate. The limit spans all orders, so no `Order` instance can own it.
+
+```php
+final readonly class CouponIssued {
+    public function __construct(#[EventTag('coupon')] public string $code, public int $limit) {}
+}
+final readonly class OrderPlaced {
+    public function __construct(
+        public string $orderId,
+        #[EventTag('customer')] public string $customerId,
+        #[EventTag('coupon')]   public ?string $couponCode,
+    ) {}
+}
+
+#[DecisionModel]
+final class CouponRedemptions {                       // criterion: coupon:<code>
+    #[EventTag('coupon')] private string $couponCode;
+    private int $limit = 0; private int $used = 0;
+    #[EventSourcingHandler] public function issued(CouponIssued $e): void { $this->limit = $e->limit; }
+    #[EventSourcingHandler] public function redeemed(OrderPlaced $e): void { $this->used++; }
+    public function isExhausted(): bool { return $this->used >= $this->limit; }
+}
+
+#[DecisionModel]
+final class CustomerCouponUse {                       // criterion: customer:<id> AND coupon:<code>
+    #[EventTag('customer')] private string $customerId;   // declared first → the guard tag
+    #[EventTag('coupon')]   private string $couponCode;
+    private bool $used = false;
+    #[EventSourcingHandler] public function redeemed(OrderPlaced $e): void { $this->used = true; }
+    public function alreadyUsed(): bool { return $this->used; }
+}
+
+#[EventSourcingAggregate]
+final class Order {
+    #[CommandHandler]
+    public static function place(PlaceOrder $c, CouponRedemptions $coupon, CustomerCouponUse $usage): array {
+        if ($coupon->isExhausted()) { throw new CouponExhausted(); }
+        if ($usage->alreadyUsed())  { throw new CouponAlreadyUsedByCustomer(); }
+        return [new OrderPlaced($c->orderId, $c->customerId, $c->couponCode)];
+    }
+}
+```
+
+**① The coupon is issued** (event 1, written through a handler that injected `CouponRedemptions` to refuse a
+duplicate issue — captured version 0, so the guarded step is the `INSERT`).
+
+`ecotone_event_stream`
+
+| no | event_name | payload | aggregate_id / version |
+|---|---|---|---|
+| 1 | CouponIssued | `{code: SUMMER24, limit: 2}` | *null / null* |
+
+`ecotone_event_tags`
+
+| tag_key | tag_value | stream | event_no | tag_version |
+|---|---|---|---|---|
+| coupon | SUMMER24 | ecotone_event_stream | 1 | 1 |
+
+`ecotone_event_tag_versions`
+
+| tag_key | tag_value | version |
+|---|---|---|
+| coupon | SUMMER24 | **1** |
+
+**② Alice places order `o-1` with the coupon.** Nothing is locked during a–c.
+
+| Step | SQL | Result |
+|---|---|---|
+| a. capture | `SELECT … FROM ecotone_event_tag_versions WHERE (tag_key,tag_value) IN ((coupon,SUMMER24),(customer,alice))` | coupon:SUMMER24 = **1**, customer:alice = **0** (no row) |
+| b. read index | `… FROM ecotone_event_tags WHERE (tag_key,tag_value) IN (…) GROUP BY stream, event_no` | event 1 — has `coupon`, not `customer` |
+| c. fold + decide | `CouponRedemptions`: limit 2, used 0. `CustomerCouponUse` needs both tags → event 1 not applied → unused | returns `OrderPlaced(o-1, alice, SUMMER24)` |
+| d. guard, sorted | `UPDATE … SET version = version+1 WHERE coupon/SUMMER24 AND version = 1` | **1 row** → 2 |
+| | `INSERT … (customer, alice, 1) ON CONFLICT DO NOTHING` | **1 row** |
+| e. event | `INSERT INTO ecotone_event_stream …` with `_aggregate_id = o-1`, `_aggregate_version = 1` | no = 2; the aggregate unique index is checked here, as today |
+| f. index | two rows for event 2 | |
+| g. `COMMIT` | | row locks from step d released |
+
+`ecotone_event_tags` now:
+
+| tag_key | tag_value | stream | event_no | tag_version |
+|---|---|---|---|---|
+| coupon | SUMMER24 | ecotone_event_stream | 1 | 1 |
+| coupon | SUMMER24 | ecotone_event_stream | 2 | 2 |
+| customer | alice | ecotone_event_stream | 2 | 1 |
+
+`ecotone_event_tag_versions`: coupon:SUMMER24 = **2**, customer:alice = **1**.
+
+**③ Bob (`o-2`) and Carol (`o-3`) race for the last redemption.**
+
+| | Bob | Carol |
+|---|---|---|
+| capture | coupon = **2**, customer:bob = 0 | coupon = **2**, customer:carol = 0 |
+| read + fold | used 1 of 2 → OK | used 1 of 2 → OK |
+| guard `coupon` | `UPDATE … WHERE version = 2` → 1 row (now 3, uncommitted) | `UPDATE … WHERE version = 2` → **blocks on Bob's row** |
+| | inserts customer:bob, event 3, index rows | *waiting* |
+| | `COMMIT` | unblocked; the database re-checks `version = 2` against the committed row: it is 3 → **0 rows** |
+| | | `ConcurrencyException`. Carol has inserted **nothing** — no event, no `no` burned, no customer row. Rollback |
+| | | **retry** (automatic, new transaction): capture coupon = 3 → read events 1, 2, 3 → used 2 of 2 → `CouponExhausted` |
+
+Carol gets a business answer, not a technical one. Had Bob's transaction rolled back instead, Carol's `UPDATE`
+would have found version 2 and gone through.
+
+Final state:
+
+`ecotone_event_stream`
+
+| no | event_name | aggregate_id / version |
+|---|---|---|
+| 1 | CouponIssued | *null / null* |
+| 2 | OrderPlaced (alice) | o-1 / 1 |
+| 3 | OrderPlaced (bob) | o-2 / 1 |
+
+`ecotone_event_tags`
+
+| tag_key | tag_value | event_no | tag_version |
+|---|---|---|---|
+| coupon | SUMMER24 | 1 | 1 |
+| coupon | SUMMER24 | 2 | 2 |
+| coupon | SUMMER24 | 3 | 3 |
+| customer | alice | 2 | 1 |
+| customer | bob | 3 | 1 |
+
+`ecotone_event_tag_versions`: coupon:SUMMER24 = **3**, customer:alice = 1, customer:bob = 1.
+
+**What the example shows.** *Two guards, side by side:* the counter protects the coupon limit; the aggregate's
+unique index still protects each `Order` (two commands racing on `o-1` collide on `(Order, o-1, version)` exactly
+as today). *Disjoint decisions never wait:* an order using `WINTER24` touches `coupon:WINTER24` — a different row.
+*An unrelated event with a shared tag does cost a retry:* a `CustomerAddressChanged` tagged `customer:bob`
+committing during Bob's decision would bump `customer:bob` and send Bob round once more — the over-approximation,
+and the reason to tag only what a decision needs. *Unconditional writers count too:* if `OrderPlaced` were recorded
+by a handler that injected no model, step d would be an unguarded `version = version + 1` — and Carol would still
+be stopped.
+
 **Why this is optimistic, and atomic.** Nothing is locked while the model reads and decides. Check and write are
 one statement: the `UPDATE` finds the row, verifies `version = :captured` and changes it. Two subscriptions racing
 for the last seat of `c1`:

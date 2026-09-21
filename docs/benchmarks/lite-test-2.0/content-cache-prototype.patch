@@ -1,18 +1,9 @@
 --- a/packages/Ecotone/src/Messaging/Handler/TypeResolver.php
 +++ b/packages/Ecotone/src/Messaging/Handler/TypeResolver.php
-@@ -48,6 +48,8 @@
-      * @var array<string, array<string, string>>
-      */
-     private array $useStatementsByFileName = [];
+@@ -50,0 +51,2 @@
 +    private static array $sharedStatements = [];
 +    private static int $sharedBytes = 0;
- 
-     private function __construct(AnnotationResolver $annotationParser)
-     {
-@@ -336,7 +338,20 @@
- 
-         $classContents = file_get_contents($fileName);
- 
+@@ -339 +341,14 @@
 -        return $this->useStatementsByFileName[$fileName] = array_merge($this->getSingleUseStatements($classContents), $this->getGroupUseStatements($classContents));
 +        $key = hash('xxh128', $classContents);
 +        if (isset(self::$sharedStatements[$key]) && self::$sharedStatements[$key][0] === $classContents) {
@@ -28,6 +19,3 @@
 +            self::$sharedBytes += strlen($classContents);
 +        }
 +        return $this->useStatementsByFileName[$fileName] = $statements;
-     }
- 
-     private function getGroupUseStatements(string $classContents): array

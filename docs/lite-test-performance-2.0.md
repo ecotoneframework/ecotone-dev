@@ -88,3 +88,14 @@ suppressed bootstrap collection peak at **16 MiB allocated**. The unchanged poli
 10,000 times at bootstrap and 30,000 times after async messages; suppressing bootstrap collection
 moves reclamation to the async path. These runs overlap the coordinator gate, so their elapsed
 and collector times are diagnostic only. Bootstrap-only memory comparisons are still running.
+
+The content-cache prototype passes the full core correctness run: **1,370 tests, 2,302 assertions,
+one skip**, with 64.50 MB peak reported by PHPUnit. That run overlaps the coordinator gate;
+its runtime is excluded from every speed comparison.
+
+All four 10,000-iteration bootstrap-only memory probes completed. Allocated peaks are 14 MiB
+(always), 14 MiB (never), 16 MiB (every 32 calls), and 14 MiB (at least 1,000 GC roots).
+Used-memory peaks are respectively 13,106,408; 13,809,104; 14,601,512; and 13,106,456 bytes.
+The root-threshold variant collected on every bootstrap in this workload, so it skipped no work.
+Automatic PHP GC stayed enabled in all variants. These are workload-specific bounds, not a promise
+about applications holding much larger object graphs; actual core-suite memory checks follow.

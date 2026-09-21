@@ -129,3 +129,23 @@ with CPU 2, Xdebug unloaded, opcache CLI disabled, and the configured 384 MiB li
 Every sample reports **62.50 MiB**, 1,370 tests, 2,302 assertions and one skip. The overlap monitor
 recorded no external test/benchmark processes. Raw logs and command receipts are `merged-core-off-r*`.
 The full merged baseline is running and discovers **3,888 tests** across the complete configuration.
+
+## Accepted bootstrap comparison and full-suite wall time
+
+The exact `bench_bootstrap_send_assert` comparison used adjacent CPU-2 runs, Xdebug unloaded,
+300 revolutions, three iterations, five warmups, and no overlap. Opcache disabled measured
+**21.037 ms ±0.78%** before versus **20.838 ms ±0.54%** with the content-addressed prototype
+(−0.95%). Opcache enabled measured **20.769 ms ±1.26%** versus **20.494 ms ±0.82%** (−1.32%).
+Both changes are below the evidence threshold and do not justify shipping the prototype.
+
+The merged full suite passed **3,888 tests, 216,354 assertions, 39 skipped and 35 risky** in
+**1,953.634 s** wall time, with no overlap detected. The old 3,876-test, 12-error run remains
+rejected historical data. The current full run changed generated Symfony reference files again;
+they are restored before committing this report. The coordinator's older full-suite timing is
+not a valid before/after comparator because it predates the merged database setup and had an
+untouched-base fixture failure.
+
+The steady-state execution subject was too noisy at 3,000 revolutions (19.38% rstdev for always
+collection), so no execution speed claim is made. Its memory stress result is the accepted decision:
+per-message collection remains enabled because never-collect exhausted 384 MiB at 5,545 cycles,
+while always-collect stayed at 14 MiB.

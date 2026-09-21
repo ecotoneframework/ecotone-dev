@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<phpbench xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.7.0">
+  <suite tag="" context="" date="2026-09-21T10:00:08+00:00" config-path="/data/app/phpbench.json" uuid="1352839e9761ac17e7839d2cd461b0ed51e88527">
+    <env>
+      <uname>
+        <value name="os" type="string">Linux</value>
+        <value name="host" type="string">727acfdc6713</value>
+        <value name="release" type="string">7.0.0-31-generic</value>
+        <value name="version" type="string">#31~24.04.1-Ubuntu SMP PREEMPT_DYNAMIC Mon Aug 10 09:38:02 UTC 2</value>
+        <value name="machine" type="string">x86_64</value>
+      </uname>
+      <php>
+        <value name="xdebug" type="boolean"></value>
+        <value name="version" type="string">8.5.3</value>
+        <value name="ini" type="boolean"></value>
+        <value name="extensions" type="string">Core, date, lexbor, openssl, pcre, sqlite3, zlib, ctype, curl, uri, json, fileinfo, filter, hash, iconv, SPL, mbstring, Zend OPcache, session, standard, PDO, pdo_sqlite, Phar, posix, random, readline, Reflection, libxml, SimpleXML, tokenizer, dom, xml, xmlreader, xmlwriter, mysqlnd, amqp, bcmath, gd, grpc, intl, opentelemetry, pcntl, pdo_mysql, pdo_pgsql, pgsql, protobuf, rdkafka, redis, sockets, sodium, zip</value>
+      </php>
+      <opcache>
+        <value name="extension_loaded" type="boolean">1</value>
+        <value name="enabled" type="boolean"></value>
+      </opcache>
+      <unix-sysload>
+        <value name="l1" type="double">3.3330078125</value>
+        <value name="l5" type="double">4.28857421875</value>
+        <value name="l15" type="double">4.4189453125</value>
+      </unix-sysload>
+      <sampler>
+        <value name="nothing" type="double">0.0059604644775391</value>
+        <value name="md5" type="double">0.1068115234375</value>
+        <value name="file_rw" type="double">0.50210952758789</value>
+      </sampler>
+    </env>
+    <benchmark class="\Monorepo\Benchmark\LiteFlowTestingBenchmark">
+      <subject name="bench_bus_execution">
+        <executor name="remote">
+          <parameter name="php_config" type="collection"/>
+          <parameter name="safe_parameters" value="1" type="boolean"/>
+          <parameter name="executor" value="remote" type="string"/>
+        </executor>
+        <variant sleep="0" output-time-unit="microseconds" output-time-precision="" output-mode="time" revs="3000" warmup="5" retry-threshold="">
+          <parameter-set name=""/>
+          <iteration time-net="1078830" time-revs="3000" time-avg="359.61" mem-peak="12697360" mem-real="14680064" mem-final="12240792" comp-z-value="1.4046403129246" comp-deviation="27.22662014452"/>
+          <iteration time-net="755907" time-revs="3000" time-avg="251.969" mem-peak="12697360" mem-real="14680064" mem-final="12240792" comp-z-value="-0.56005563706131" comp-deviation="-10.855748585427"/>
+          <iteration time-net="709141" time-revs="3000" time-avg="236.38033333333" mem-peak="12697360" mem-real="14680064" mem-final="12240792" comp-z-value="-0.84458467586325" comp-deviation="-16.370871559092"/>
+          <stats max="359.61" mean="282.65311111111" min="236.38033333333" mode="251.81418590998" rstdev="19.3833395596" stdev="54.78761230244" sum="847.95933333333" variance="3001.6824618025"/>
+        </variant>
+      </subject>
+    </benchmark>
+    <result key="time" class="PhpBench\Model\Result\TimeResult"/>
+    <result key="mem" class="PhpBench\Model\Result\MemoryResult"/>
+    <result key="comp" class="PhpBench\Model\Result\ComputedResult"/>
+  </suite>
+</phpbench>

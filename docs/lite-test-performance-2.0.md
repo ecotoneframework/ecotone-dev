@@ -51,3 +51,5 @@ The first full-suite wall-time sample is **rejected**: external PHPUnit processe
 and a quiet measurement window requested; no speed or GC-memory conclusions can be drawn from this run.
 Code inspection also found explicit collection after each consumed message in `PollToGatewayTaskExecutor::execute`;
 this is an execution-path candidate requiring its own memory evidence, separate from Lite bootstrap collection.
+
+The run completed in 1,900.852 seconds wall time but failed on the untouched base: 3,876 tests, 12 errors, 39 skipped and 35 risky. The errors were concentrated in cross-module/example integration tests, including a missing `Monorepo/ExampleAppEventSourcing/Laravel/.env` warning and generated Symfony reference changes. Because the failure occurred before framework edits and concurrent PHPUnit processes were present, this run is not a valid before/after suite baseline. The focused resolver isolation regression test passes (2 tests, 4 assertions), but no process-wide cache was introduced.

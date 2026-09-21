@@ -3,6 +3,7 @@
 namespace Test\Ecotone\Messaging\Unit\Handler;
 
 use Ecotone\Messaging\Handler\InterfaceParameter;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Handler\TypeResolver;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -18,6 +19,25 @@ use Test\Ecotone\AnnotationFinder\Fixture\Usage\Attribute\TestingNamespace\Corre
  */
 class TypeResolverTest extends TestCase
 {
+    public function test_new_resolver_reads_changed_use_statements_from_the_same_file(): void
+    {
+        $fileName = tempnam(sys_get_temp_dir(), 'ecotone-use-statements-');
+        $contents = "<?php\nuse DateTime as ImportedType;\nreturn new class { /** @return ImportedType[] */ public function values(): array { return []; } };";
+        try {
+            file_put_contents($fileName, $contents);
+            $reflection = new ReflectionClass(require $fileName);
+            self::assertEquals(Type::create('array<DateTime>'), TypeResolver::create()->getReturnType($reflection, 'values'));
+
+            file_put_contents($fileName, str_replace('use DateTime ', 'use DateTimeImmutable ', $contents));
+            self::assertEquals(Type::create('array<DateTimeImmutable>'), TypeResolver::create()->getReturnType($reflection, 'values'));
+
+            file_put_contents($fileName, $contents);
+            self::assertEquals(Type::create('array<DateTime>'), TypeResolver::create()->getReturnType($reflection, 'values'));
+        } finally {
+            unlink($fileName);
+        }
+    }
+
     public function test_it_can_resolve_promoted_properties(): void
     {
         $typeResolver = TypeResolver::create();

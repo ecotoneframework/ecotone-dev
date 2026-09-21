@@ -173,8 +173,10 @@ when the writer *commits*, whatever `no` the writer was handed. This is also Mar
 
 ### 4.1 Shape in one paragraph
 
-A **decision model** is a throwaway aggregate: rebuilt for one command from the events selected *by tag* instead of
-by aggregate id, asked to decide, and discarded. `ecotone_event_stream` does not change. Two side tables are
+A **decision model** is a small reusable class that answers one question about the past, rebuilt on demand from
+the events selected *by tag* instead of by aggregate id. Message handlers — on services, on aggregates — declare
+the models they need as parameters; the framework loads them and guarantees the events the handler returns are
+appended only if none of those models has gone stale. `ecotone_event_stream` does not change. Two side tables are
 added: **`ecotone_event_tags`** (which event carries which tag — for reads) and **`ecotone_event_tag_versions`**
 (one counter per tag value — for conflict detection). Events declare tags with `#[EventTag]`. Every append bumps
 the counters of the tags it carries, then writes the events and their tag rows. A decision model's events are
@@ -304,135 +306,220 @@ A filter-only tag is indexed and never counted. A decision model that depends on
 
 ### 4.4 Decision models
 
-A student may subscribe if the course has room and the student has fewer than five courses. Two entities, one
-decision, no aggregate that owns it:
+*Revision 3 — maintainer direction, 2026-09-21: a decision model is a standalone, reusable class, like an
+aggregate, and is **injected into message handlers**. Whatever a handler injects, the framework keeps consistent.*
+
+**A decision model is one question about the past, answered by folding events selected by tag.** It owns state and
+the methods that read it. It does not own the command.
 
 ```php
-use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
-use Ecotone\Api\Attribute\MatchingTags;
 
 #[DecisionModel]
-final class CourseSubscription
+final class CourseCapacity
+{
+    #[EventTag('course')] private string $courseId;
+
+    private int $capacity = 0;
+    private int $seatsTaken = 0;
+
+    #[EventSourcingHandler]
+    public function defined(CourseDefined $event): void { $this->capacity = $event->capacity; }
+
+    #[EventSourcingHandler]
+    public function capacityChanged(CourseCapacityChanged $event): void { $this->capacity = $event->capacity; }
+
+    #[EventSourcingHandler]
+    public function seatTaken(StudentSubscribedToCourse $event): void { $this->seatsTaken++; }
+
+    public function hasFreeSeat(): bool { return $this->seatsTaken < $this->capacity; }
+}
+
+#[DecisionModel]
+final class StudentCourses
+{
+    #[EventTag('student')] private string $studentId;
+
+    private int $courses = 0;
+
+    #[EventSourcingHandler]
+    public function joined(StudentSubscribedToCourse $event): void { $this->courses++; }
+
+    public function canJoinAnother(): bool { return $this->courses < 5; }
+}
+
+#[DecisionModel]
+final class StudentSubscription
 {
     #[EventTag('course')]  private string $courseId;
     #[EventTag('student')] private string $studentId;
 
-    private int $capacity = 0;
-    private int $seatsTaken = 0;
-    private int $coursesOfStudent = 0;
-    private bool $alreadySubscribed = false;
+    private bool $exists = false;
 
+    #[EventSourcingHandler]
+    public function subscribed(StudentSubscribedToCourse $event): void { $this->exists = true; }
+
+    public function exists(): bool { return $this->exists; }
+}
+```
+
+The handler is an ordinary message handler that asks for the models it needs:
+
+```php
+final class CourseSubscriptions
+{
     #[CommandHandler]
-    public function subscribe(SubscribeStudentToCourse $command): array
-    {
-        if ($this->alreadySubscribed) {
+    public function subscribe(
+        SubscribeStudentToCourse $command,
+        CourseCapacity $course,
+        StudentCourses $student,
+        StudentSubscription $subscription,
+    ): array {
+        if ($subscription->exists()) {
             return [];
         }
-        if ($this->seatsTaken >= $this->capacity) {
+        if (! $course->hasFreeSeat()) {
             throw new CourseIsFull($command->courseId);
         }
-        if ($this->coursesOfStudent >= 5) {
+        if (! $student->canJoinAnother()) {
             throw new StudentHasTooManyCourses($command->studentId);
         }
 
         return [new StudentSubscribedToCourse($command->courseId, $command->studentId)];
     }
 
-    #[EventSourcingHandler]
-    public function courseDefined(CourseDefined $event): void
+    #[CommandHandler]
+    public function changeCapacity(ChangeCourseCapacity $command, CourseCapacity $course): array
     {
-        $this->capacity = $event->capacity;
-    }
+        if ($course->seatsTaken() > $command->capacity) {
+            throw new CapacityBelowSubscriptions();
+        }
 
-    #[EventSourcingHandler, MatchingTags('course')]
-    public function seatTaken(StudentSubscribedToCourse $event): void
-    {
-        $this->seatsTaken++;
-    }
-
-    #[EventSourcingHandler, MatchingTags('student')]
-    public function courseJoined(StudentSubscribedToCourse $event): void
-    {
-        $this->coursesOfStudent++;
-    }
-
-    #[EventSourcingHandler, MatchingTags('course', 'student')]
-    public function subscribed(StudentSubscribedToCourse $event): void
-    {
-        $this->alreadySubscribed = true;
+        return [new CourseCapacityChanged($command->courseId, $command->capacity)];
     }
 }
 ```
 
-No query object, no event store call, no append condition, **and no `if ($event->courseId === $this->courseId)`**.
-That last point is where this beats every other single-class DCB API (Gember, Axon's `State` entities and Backslash
-all make the user hand-filter inside the fold; forget one `if` and the model silently counts the wrong rows). The
-composed-projection libraries (wwwision, patchlevel) avoid it only by making the user assemble projections and a
-query by hand. Sending the command is unchanged: `$commandBus->send(new SubscribeStudentToCourse('c1', 's1'))`.
+`CourseCapacity` is written once and used by both handlers. No query object, no store call, no append condition,
+no `if ($event->courseId === $this->courseId)` — and **no `#[MatchingTags]` either**: revision 2 needed it only
+because one class was answering three questions at once. Split into one class per question, the rule becomes
+small enough to say in a sentence:
 
-**Each `#[EventSourcingHandler]` is a small projection; the boundary is the union of what the handlers ask for.**
+> **A model is one criterion: all of its tags, AND-ed, with the event types it handles. A handler's consistency
+> boundary is the OR of the models it injects.**
 
-| Handler | Criterion it contributes |
+| Injected model | Criterion |
 |---|---|
-| `courseDefined(CourseDefined)` — no `#[MatchingTags]` | every model tag the event class declares: `course:<courseId> ∧ CourseDefined` |
-| `seatTaken` — `MatchingTags('course')` | `course:<courseId> ∧ StudentSubscribedToCourse` |
-| `courseJoined` — `MatchingTags('student')` | `student:<studentId> ∧ StudentSubscribedToCourse` |
-| `subscribed` — `MatchingTags('course','student')` | `course:<courseId> ∧ student:<studentId> ∧ StudentSubscribedToCourse` — subsumed by the two above, dropped |
+| `CourseCapacity` | `course:<courseId> ∧ {CourseDefined, CourseCapacityChanged, StudentSubscribedToCourse}` |
+| `StudentCourses` | `student:<studentId> ∧ {StudentSubscribedToCourse}` |
+| `StudentSubscription` | `course:<courseId> ∧ student:<studentId> ∧ {StudentSubscribedToCourse}` |
 
-Criteria are OR-ed — the dcb.events query shape, including AND within a criterion, which the first draft could not
-express. On replay a handler runs only when the event's values for its listed keys equal the model's. Handlers
-without `#[MatchingTags]` on an event class that declares *several* of the model's tags run when **any** matches.
-A handled event declaring none of the model's tags, or an interface/union handler parameter (its event types
-cannot be enumerated), is a bootstrap `ConfigurationException`.
+This is exactly the dcb.events query shape, and it is what wwwision and patchlevel make users assemble by hand from
+projection objects. Here the type-hint *is* the assembly. The boundary is per handler by construction —
+`changeCapacity` depends on one tag, `subscribe` on two — which revision 2 had to bolt on.
 
-**Tag values come from the command** in the order aggregates resolve `#[Identifier]`: a command property named like
-the model's tagged property; then a command property carrying the same `#[EventTag]` key; then `identifierMapping`
-/ `identifierMetadataMapping` on `#[CommandHandler]`. An array value selects several values of one key.
+**How it runs.** For a handler with injected models the framework: resolves every model's tag values from the
+message → captures all their counters in one statement → reads the index once for all criteria → loads each
+matching event once and applies it to every model whose criterion it matches → invokes the handler → appends the
+returned events under the condition built from *all* injected models → publishes them on the event bus with the
+usual metadata propagation. Three models cost the same three statements as one.
 
-**The boundary is computed per `#[CommandHandler]`, not per class.** A model with `subscribe` and
-`changeCapacity` shares the `capacity` fold; `ChangeCourseCapacity` cannot supply `student`, so that tag's handlers
-and criteria are simply not part of that handler's boundary. One class per decision would duplicate folds — that is
-where the boilerplate really accumulates.
+**Tag values come from the message** the way aggregate identifiers do: a message property named like the model's
+tagged property; then a message property carrying the same `#[EventTag]` key; then an explicit expression, reusing
+the attribute that already injects aggregates into handlers (`#[Fetch]`, Enterprise, `FetchAggregateConverter`):
 
-**Escape hatch**, for a boundary the derivation cannot express:
+```php
+#[CommandHandler]
+public function transfer(
+    TransferMoney $command,
+    #[Fetch('payload.fromAccountId')] AccountBalance $from,
+    #[Fetch('payload.toAccountId')]   AccountBalance $to,
+): array {
+    if ($from->balance() < $command->amount) {
+        throw new InsufficientFunds();
+    }
+
+    return [new MoneyTransferred($command->fromAccountId, $command->toAccountId, $command->amount)];
+}
+```
+
+The same model class twice, with different values — the case convention alone cannot resolve. For a multi-tag
+model the expression returns a map (`"{'course': payload.courseId, 'student': payload.studentId}"`), as `#[Fetch]`
+already accepts for multi-identifier aggregates. An array value selects several values of one key. A tag that
+cannot be resolved is a bootstrap error when statically knowable, otherwise an exception naming model, tag and
+message.
+
+**Where models can be injected**
+
+| Handler | Returned array | Consistency |
+|---|---|---|
+| `#[CommandHandler]` / `#[EventHandler]` on a service | appended as events under the condition | guaranteed for those events |
+| `#[CommandHandler]` on a `#[DecisionModel]` class | same — the boundary is `$this` plus any injected models | same. Kept so the single-class shape of revision 2 still works for a decision nobody else shares; it is the same mechanism, not a second one |
+| `#[QueryHandler]` | the reply, untouched | none needed — a live, always-current read of "how many seats are left" with no projection to maintain |
+| `#[CommandHandler]` on an `#[EventSourcingAggregate]` | the aggregate's events, saved as today **and** under the models' condition | both checks, one transaction — see below |
+
+A handler that injects a model and also declares `outputChannelName` is a bootstrap `ConfigurationException`: its
+return value cannot mean two things. `return []` is a no-op. **Consistency protects the events the handler
+returns** — a handler that reads a model and then writes somewhere else (a state-stored entity, an HTTP call) has
+read a consistent snapshot but has no guarantee at write time, and the docs must say so plainly.
+
+**Aggregates can inject decision models.** This is the adoption path for every existing application, and the thing
+the 1.x-user review asked for:
+
+```php
+#[EventSourcingAggregate]
+final class Order
+{
+    #[CommandHandler]
+    public static function place(PlaceOrder $command, CouponRedemptions $coupon): array
+    {
+        if ($command->couponCode !== null && $coupon->isExhausted()) {
+            throw new CouponExhausted();
+        }
+
+        return [new OrderPlaced($command->orderId, $command->couponCode)];   // OrderPlaced: #[EventTag('coupon')]
+    }
+}
+```
+
+`Order` stays an aggregate: id, `#[Version]`, unique index, partitioned projections, all as today — constraint 2 is
+untouched. The injected model adds a *second* guard on the same append: the events are saved with their aggregate
+version **and** on the condition that `coupon:<code>` has not moved. Either check failing raises
+`ConcurrencyException`. Mechanically the condition travels to `EventSourcedRepository::save()` in its `$metadata`
+argument and is stripped before persisting, so that interface does not change. Because the recorded events carry
+aggregate metadata, the projection invariant of §4.6 never triggers for them.
+
+**Rules.** A model class has a public no-argument constructor (what `EventSourcingHandlerExecutor` requires of
+aggregates). Every `#[EventSourcingHandler]` event class must declare all of the model's tag keys — otherwise the
+model could never receive it; bootstrap `ConfigurationException`. Interface or union handler parameters are
+rejected for the same reason. A model with no tagged property is allowed only if it handles events carrying a
+class-level `#[EventTag(…, value: …)]` (the gapless-sequence case). Pointcuts target `DecisionModel::class`.
+`#[Reference]`, `#[Header]` and `#[Asynchronous]` work as on any handler; models are loaded when the handler
+runs, after the channel.
+
+**Escape hatch**, for a boundary no model expresses — a static method on the handler's class:
 
 ```php
 #[DecisionBoundary]
-public static function boundary(RateCourse $command): EventCriteria
-{
-    return EventCriteria::tags(['course' => $command->courseId, 'student' => $command->studentId])
-            ->ofTypes(StudentSubscribedToCourse::class)
-        ->or(EventCriteria::tag('course', $command->courseId)->ofTypes(CourseRated::class));
-}
+public static function boundary(RateCourse $command): EventCriteria { /* … */ }
 ```
-
-**Also supported**, because aggregates support them and users will expect it: `#[Reference]` and `#[Header]`
-parameters on the handler; `return []` as a no-op; `#[QueryHandler]` on a model (read, fold, reply — no condition,
-for pure validation); `#[EventHandler]` on a model (a policy that decides when an event arrives);
-`#[Asynchronous]` (tags are resolved before the channel, as aggregate identifiers are); `#[Stream]` on the model to
-choose where its events go (default `ecotone_event_stream`). The class needs a public no-argument constructor —
-the same rule `EventSourcingHandlerExecutor` applies to aggregates. Pointcuts target `DecisionModel::class`.
-
-**Lifecycle:** resolve tags → capture counters → load and fold matching events → invoke handler → append returned
-events under the condition → publish them on the event bus, with the same metadata propagation aggregate events
-get. Decision-model events carry no aggregate id, type or version (§4.6).
 
 **Testing** needs nothing new — tags are on the events:
 
 ```php
-EcotoneLite::bootstrapFlowTesting([CourseSubscription::class])
+EcotoneLite::bootstrapFlowTesting([CourseSubscriptions::class, CourseCapacity::class, StudentCourses::class, StudentSubscription::class])
     ->withEvents([new CourseDefined('c1', capacity: 1), new StudentSubscribedToCourse('c1', 's1')])
     ->sendCommand(new SubscribeStudentToCourse('c1', 's2'));   // expects CourseIsFull
 ```
 
+and a model is a plain class, so its fold is unit-testable with `new CourseCapacity()` and no framework at all.
 `InMemoryEventStore` implements the full contract — index, counters bumped on *every* append, compare-then-append
 — so flow tests exercise real conditional-append semantics without a database. A conflict is forced
 deterministically by injecting a service that appends a competing event on first call.
 
-**Without the class**, the same machinery is a gateway:
+**Without any class**, the same machinery is a gateway:
 
 ```php
 $decision = $taggedEventStore->load(
@@ -445,9 +532,11 @@ $taggedEventStore->appendTo('ecotone_event_stream', [new StudentSubscribedToCour
 `load()` returns the events **and** the ready-made condition; user code never touches a version.
 `TaggedEventStore` is a **new** interface beside `Ecotone\EventSourcing\EventStore`, which stays exactly as upgrade
 guide §4 promised. Both live in core (`packages/Ecotone`), as do the attributes — `InMemoryEventStore` and the
-decision-model flow are core, and core cannot depend on `PdoEventSourcing`. This follows the precedent that put
-`EventSourcingAggregate` in `Ecotone\Api\Attribute`. Only schema, DBAL implementation and the console commands
-live in `PdoEventSourcing`.
+decision-model flow are core, and core cannot depend on `PdoEventSourcing`. Only schema, DBAL implementation and
+the console commands live in `PdoEventSourcing`.
+
+**Where events go:** `ecotone_event_stream`, or the `#[Stream]` on the handler's class; for an aggregate, the
+aggregate's stream. Events returned by a non-aggregate handler carry no aggregate id, type or version (§4.6).
 
 ### 4.5 Concurrency, in full
 
@@ -579,8 +668,9 @@ already retry three times by default.
 **What the user sees** on exhaustion: the model class, the tag `key:value`, captured vs. current version, attempts
 made — not a database error string. Each retry logs at info.
 
-**Known over-approximation.** Counters are per tag, not per tag-and-type. An AND criterion is guarded by one of its
-tags — the first listed, so list the most selective first. Any event sharing a counted tag with an in-flight
+**Known over-approximation.** Counters are per tag, not per tag-and-type. A multi-tag model (an AND criterion) is
+guarded by one of its tags — the first declared, so declare the most selective first. When a handler injects
+several models, a tag already guarded by another model is not guarded twice. Any event sharing a counted tag with an in-flight
 decision forces that decision to retry, even one of a type the model ignores. It never lets a real conflict
 through. A precise re-check is possible later on PostgreSQL only (a count-based one is unsound on InnoDB: the count
 is a snapshot read and cannot see the commit that failed the guard).
@@ -711,8 +801,7 @@ it filters by event name and aggregate type, does not depend on tags or on a lic
 | Replacing `MetadataMatcher` / the `EventStore` interface | §4 promised it unchanged |
 | Tag-partitioned projections | Follow-up; made sound by counters-first ordering |
 | Decision-model snapshots | Follow-up; same |
-| Composable decision state — `#[DecisionState]` classes injected into a handler | Follow-up. Per-handler boundaries keep it additive |
-| An aggregate command handler saving under a tag condition | Asked for by the 1.x-user review; it blends the two concurrency mechanisms constraint 2 keeps apart. Needs its own discussion |
+| An OR *inside* one model (`#[MatchingTags]` from revision 2) | Removed. Two questions are two models; the OR happens where they are injected |
 | Precise (type-aware) conflict re-check | PostgreSQL only; measure first |
 | SQL-side projection filtering | Enabled by this, specified in §4.6, separate work item |
 
@@ -726,7 +815,8 @@ it filters by event name and aggregate type, does not depend on tags or on a lic
 | 2 | **Boundaries span streams** (counters keyed by tag only). | Yes. Without it the feature is greenfield-only: 1.x users' invariants span two `_<sha1>` tables by construction. Cost: cross-stream event order is `created_at`, and a tag reused in two unrelated streams shares a counter (spurious retries only) |
 | 3 | **Coverage guard on by default.** | Yes. The alternative is a silent wrong decision. Cost: one deploy step when tags change on recorded events |
 | 4 | **Automatic retry** through the existing instant-retry interceptor, no new attribute parameter. | Yes |
-| 5 | **Names**: `#[EventTag]`, `#[DecisionModel]`, `#[MatchingTags]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`. | `EventTag` over `Tag` (self-describing; `Tag` collides with Symfony and OpenAPI attributes; Axon and patchlevel use it). `EventCriteria` over `EventQuery` ("query" already means a CQRS message here). `MatchingTags` is the one I am least sure of |
+| 5 | **Names**: `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`; `#[Fetch]` reused for explicit tag mapping. | `EventTag` over `Tag` (self-describing; `Tag` collides with Symfony and OpenAPI attributes; Axon and patchlevel use it). `EventCriteria` over `EventQuery` ("query" already means a CQRS message here). `#[MatchingTags]` is gone |
+| 7 | **A returned array from a service handler that injects a model is appended as events.** Today a service handler's return goes to the reply/output channel. | Yes — the model parameter is the explicit opt-in, and a marker attribute would be boilerplate on every handler. `outputChannelName` + injected model is a bootstrap error. The cost: such a command handler cannot also return a value to its caller, as with event-sourced aggregates |
 | 6 | **Filter-only tags** declared per key in `EventSourcingConfiguration`, in the first cut. | Yes — the Architect wanted it in the first cut, the Tech Lead wanted it per key not per usage; this is both |
 
 ## Part 6 — Implementation plan
@@ -762,16 +852,22 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
    succeed; opposite-order multi-tag appends do not deadlock; aggregate save `{A,B}` vs. model on `{B}` do not
    deadlock; the InnoDB own-bump snapshot hazard throws; deadlock and lock-timeout codes surface as
    `ConcurrencyException`; cross-stream boundary reads both tables.
-6. **Core — `DecisionModelModule`, default derivation.** `RoutingEventHandler` like `AggregrateModule`; chain
-   `ResolveTags → Load → Call → Append`; reuse `EventSourcingHandlerExecutorBuilder`,
-   `SaveAggregateServiceTemplate::buildEcotoneEvents`, `CallAggregateServiceBuilder`; skip the class in
-   `ServiceHandlerModule`; strip the tag header from published metadata. Tests: the canonical example; business
-   exception; `[]` no-op; events reach an `#[EventHandler]` and a saga; metadata propagates; `#[Reference]`;
-   `#[Asynchronous]` + `run()`; pointcut on `DecisionModel::class`; `#[QueryHandler]`/`#[EventHandler]` on a
-   model; unresolvable tag; constructor rule.
-7. **Core — `#[MatchingTags]`, per-handler boundary, `#[DecisionBoundary]`.** Tests: the rating example — an
-   unrelated subscription does not conflict, an unrelated rating does; two command handlers with different
-   boundaries; transfer with one key twice; interface handler parameter rejected; subsumed criterion dropped.
+6. **Core — `#[DecisionModel]` classes injected into service handlers.** A `DecisionModelModule`; per handler,
+   the chain `ResolveTags → LoadModels (one capture, one index read, each event applied to every matching model) →
+   Call → AppendUnderCondition`; models reach the method through a parameter converter, as
+   `FetchAggregateConverter` does for aggregates; reuse `EventSourcingHandlerExecutorBuilder` and
+   `SaveAggregateServiceTemplate::buildEcotoneEvents`. Tests: the three-model course example; one model reused by
+   two handlers with different boundaries; a multi-tag (AND) model; business exception; `[]` no-op; events reach an
+   `#[EventHandler]` and a saga; metadata propagates; `#[Reference]`; `#[Asynchronous]` + `run()`; pointcut on
+   `DecisionModel::class`; `#[QueryHandler]` with a model replies and appends nothing; `#[EventHandler]` with a
+   model; `outputChannelName` + model rejected; handled event missing a model tag rejected; interface parameter
+   rejected; constructor rule; unresolvable tag.
+7. **Core — explicit mapping, on-model handlers, aggregates.** `#[Fetch]` on a model parameter (single value and
+   map); the same model class injected twice (transfer); array tag values; `#[CommandHandler]` on a
+   `#[DecisionModel]` class; `#[DecisionBoundary]`; **a model injected into an `#[EventSourcingAggregate]`
+   command handler** — condition carried through `save()`'s `$metadata`, stripped before persisting. Tests: the
+   `Order` + `CouponRedemptions` example — a concurrent redemption fails the save, a concurrent unrelated order
+   does not, the aggregate version check still fires independently, partitioned projections still see the events.
 8. **Core — `DecisionModelConcurrencyException` and default command-bus retry.** Tests: injected conflict
    succeeds on the second pass; exhaustion message contents; no retry inside an outer transaction; the user's
    `InstantRetryConfiguration` wins.
@@ -827,4 +923,5 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-20 | DCB sits alongside aggregates | follows from the above | |
 | 2026-09-20 | Axon's conflict-table design, with a version counter instead of a position marker | Claude, from Part 3 | Position markers need commit-ordered positions; Axon's way of getting them breaks constraints 1 and 4 |
 | 2026-09-21 | **All of DCB is under the Enterprise licence** | **Maintainer** | Business decision. Consequences worked through in §4.9: bootstrap `LicensingException`, own `event_tags` setup feature active only when tags are declared, open-core append path unchanged |
-| — | Part 5, decisions 2–6 | **open** | |
+| 2026-09-21 | **A decision model is a standalone reusable class, injected into message handlers; consistency covers whatever a handler injects** | **Maintainer** | Reuse across handlers without duplicating folds. Falls out better than revision 2: one model = one criterion, handler = OR of its models, so `#[MatchingTags]` and the per-handler-boundary machinery disappear; and injecting a model into an aggregate handler gives existing applications an adoption path without touching constraint 2 |
+| — | Part 5, decisions 2–7 | **open** | |

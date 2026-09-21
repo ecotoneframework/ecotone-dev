@@ -99,3 +99,9 @@ Used-memory peaks are respectively 13,106,408; 13,809,104; 14,601,512; and 13,10
 The root-threshold variant collected on every bootstrap in this workload, so it skipped no work.
 Automatic PHP GC stayed enabled in all variants. These are workload-specific bounds, not a promise
 about applications holding much larger object graphs; actual core-suite memory checks follow.
+
+Actual core-suite memory checks pass with all four bootstrap GC policies: 1,370 tests,
+2,302 assertions, one skip, **62.50 MiB allocated peak** in each run. Each process reaches
+746 bootstrap and 447 async collection call sites. Total PHP GC runs are 1,575 (always),
+1,143 (never), 1,161 (every32), and 1,565 (roots1000). All elapsed times remain excluded
+because the coordinator's full-suite gate is running concurrently.

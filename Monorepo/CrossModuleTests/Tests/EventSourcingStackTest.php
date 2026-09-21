@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Monorepo\CrossModuleTests\Tests;
 
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Config\ConfiguredMessagingSystem;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Api\Gateway\CommandBus;
@@ -29,6 +33,28 @@ final class EventSourcingStackTest extends FullAppTestCase
             ModulePackageList::EVENT_SOURCING_PACKAGE,
             ModulePackageList::JMS_CONVERTER_PACKAGE,
         ];
+    }
+
+    /**
+     * Symfony, Laravel and Lite all point at the same DATABASE_DSN, so the tables this scenario
+     * needs only have to be provisioned once here rather than in each executeFor*() implementation.
+     */
+    public static function setUpBeforeClass(): void
+    {
+        parent::setUpBeforeClass();
+
+        $connection = (new DbalConnectionFactory(getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone'))
+            ->createContext()
+            ->getDbalConnection();
+
+        foreach ([
+            new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true, true),
+            new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true, true),
+        ] as $tableManager) {
+            if (! $tableManager->isInitialized($connection)) {
+                $tableManager->createTable($connection);
+            }
+        }
     }
 
     public function executeForSymfony(ContainerInterface $container, \Symfony\Component\HttpKernel\Kernel $kernel): void

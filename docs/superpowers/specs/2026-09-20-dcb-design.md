@@ -227,8 +227,10 @@ default `utf8mb4_0900_ai_ci` would merge `course:ABC` with `course:abc`. Worst-c
 - Tag values are validated in PHP before they reach SQL: non-empty, ≤ 255 characters, no trailing whitespace
   (`utf8mb4_bin` is PAD SPACE — `'abc'` equals `'abc '` on MySQL but not on PostgreSQL). Non-strict MySQL would
   otherwise truncate silently and the decision would silently miss events.
-- All three tables register under the existing `event_stream` feature of `ecotone:migration:database:setup`
-  (so `--sql` prints them for a DBA), obey §8, and inherit §4's open TODO for non-default connections.
+- All three tables register with `ecotone:migration:database:setup` under their **own feature, `event_tags`**,
+  whose table manager reports `isUsed()` only when the application declares an `#[EventTag]`. DCB is Enterprise
+  (§4.10): an open-core application never sees these tables in its setup output or its database. `--sql` prints
+  them for a DBA; they obey §8 and inherit §4's open TODO for non-default connections.
 
 ### 4.3 Declaring tags
 
@@ -674,7 +676,33 @@ the same problem projections have. A payload that no longer deserializes is repo
 under `--skip-undeserializable`. Coverage rows are written last. There is no index on `event_name`, so a large
 stream is a full scan: hours on tens of millions of rows, once.
 
-### 4.9 Deliberately not in this plan
+### 4.9 Licence — DCB is Enterprise
+
+Maintainer decision (2026-09-21): **the whole of DCB is under the Enterprise licence** — `#[EventTag]`,
+`#[DecisionModel]`, `#[MatchingTags]`, `#[DecisionBoundary]`, `TaggedEventStore`, `EventCriteria`,
+`AppendCondition`, the tag tables and the console commands. Every new class carries `licence Enterprise`.
+
+Gated the way projections' enterprise features already are (`ProjectingModule.php:69-72`), at bootstrap, in the
+module's `prepare()`:
+
+- Any `#[EventTag]` or `#[DecisionModel]` found while `isRunningForEnterpriseLicence()` is false →
+  `LicensingException` naming the class and the feature. Failing at bootstrap rather than on first command matters
+  here: an application that *silently ignored* `#[EventTag]` without a licence would record events with no index
+  rows, and would need a backfill the day the licence is added.
+- `TaggedEventStore` is registered unconditionally (the project rule: no nullable services, gate at runtime) and
+  throws `LicensingException` from `load()` and the conditional `appendTo()` without a licence.
+- Consequences that fall out for free: an open-core application has no tags, so **the append path is byte-for-byte
+  today's single INSERT** — no counter statements, no own-transaction wrapper, no tag tables. The store's
+  behaviour for existing users does not change at all.
+- Tests use the existing `LicenceTesting::VALID_LICENCE` with `EcotoneLite::bootstrapFlowTesting(...,
+  enterpriseLicenceKey: ...)`.
+- The 1.x expand-first runbook (§4.7) is unaffected: the DDL is published in the docs, and creating three unused
+  tables needs no licence.
+
+What stays open-core: nothing in this plan. SQL-side projection filtering (§4.6) is a separate work item and, where
+it filters by event name and aggregate type, does not depend on tags or on a licence.
+
+### 4.10 Deliberately not in this plan
 
 | Item | Why |
 |---|---|
@@ -694,7 +722,7 @@ stream is a full scan: hours on tens of millions of rows, once.
 
 | # | Decision | Recommendation |
 |---|---|---|
-| 1 | **Licence.** | Store level, `#[EventTag]` **and** `#[DecisionModel]`: Apache-2.0 — the adoption comparison you want cannot happen behind a licence, and open core already includes event-sourced aggregates. Enterprise, following `#[Partitioned]`: tag-partitioned projections, composable `#[DecisionState]`, decision snapshots, per-model retry tuning. **Yours to call** |
+| 1 | ~~**Licence.**~~ | **Decided 2026-09-21: all of DCB is Enterprise** — §4.9. (My recommendation had been Apache-2.0 for the base layer; overruled, and the design is simpler for it: one gate, and zero change to the open-core append path) |
 | 2 | **Boundaries span streams** (counters keyed by tag only). | Yes. Without it the feature is greenfield-only: 1.x users' invariants span two `_<sha1>` tables by construction. Cost: cross-stream event order is `created_at`, and a tag reused in two unrelated streams shares a counter (spurious retries only) |
 | 3 | **Coverage guard on by default.** | Yes. The alternative is a silent wrong decision. Cost: one deploy step when tags change on recorded events |
 | 4 | **Automatic retry** through the existing instant-retry interceptor, no new attribute parameter. | Yes |
@@ -706,7 +734,10 @@ stream is a full scan: hours on tens of millions of rows, once.
 One worker session per task, test-first, sequential, in docker. Core tests use inline anonymous classes. Tasks 6–8
 depend only on task 2, so the user-facing layer can be reviewed on the in-memory store while 3–5 proceed.
 
-1. **Core — `#[EventTag]` and the tag registry.** `packages/Ecotone/Api/Attribute/EventTag.php`,
+0. **Every task:** new classes carry `licence Enterprise`; tests bootstrap with `LicenceTesting::VALID_LICENCE`.
+1. **Core — `#[EventTag]`, the tag registry, and the licence gate.** `LicensingException` at bootstrap when an
+   `#[EventTag]` or `#[DecisionModel]` exists without an Enterprise licence (test it first — it is the cheapest
+   test in the plan and every later task depends on it). `packages/Ecotone/Api/Attribute/EventTag.php`,
    `src/EventSourcing/Tagging/*`, a module scanning with `findClassesWithAnnotatedProperties`. Tests: property,
    promoted parameter, method, class-level literal; repeated key; array value; `null` skipped; non-scalar type and
    invalid value (empty, > 255, trailing space) rejected; filter-only keys from `EventSourcingConfiguration`.
@@ -715,10 +746,13 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
    store so a model can see aggregate facts in core-only tests. Tests: OR and AND criteria; type filter; an event
    matching two criteria is returned once; conditional append succeeds/fails; an unconditional `appendTo`
    invalidates a held condition; a disjoint tag does not; `delete()` clears the index.
-3. **PdoEventSourcing — schema.** Tag schema classes per platform, table manager under `event_stream`, §8
-   behaviour, per-tenant ensure. Tests: setup creates and lists all three tables and prints them with `--sql`;
+3. **PdoEventSourcing — schema.** Tag schema classes per platform, table manager under its own `event_tags`
+   feature with `isUsed()` true only when tags are declared, §8 behaviour, per-tenant ensure. Tests: an
+   application with no `#[EventTag]` lists and creates no tag tables; with tags, setup creates and lists all three
+   and prints them with `--sql`;
    missing table → `ConfigurationException` naming the command; `utf8mb4_bin` keeps `ABC` ≠ `abc`.
-4. **PdoEventSourcing — every `appendTo` bumps counters and writes index rows.** Counters first, merged sorted
+4. **PdoEventSourcing — every `appendTo` bumps counters and writes index rows.** First test: with no tags
+   declared, `appendTo` issues exactly the one INSERT it issues today. Then: counters first, merged sorted
    pass, own transaction when none is active, `event_id` sub-select, tag carrier through `SerializingEventStore`,
    `delete()` cleanup. Tests on PostgreSQL, MySQL, MariaDB, inspecting the tables directly: tagged aggregate
    events; untagged aggregates write nothing; works under `#[WithoutDatabaseTransaction]` and rolls back whole.
@@ -747,7 +781,7 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
     coverage; changing a class's tags trips it; backfill is idempotent, resumable, bumps counters so an in-flight
     condition fails; automatic initialization backfills implicitly; `verify-schema` catches a wrong collation and a
     missing relaxation.
-11. **Symfony and Laravel smoke tests, licence gates, docs** — `upgrade-2.0.md` §4/§13/§16, the namespace-map CSV,
+11. **Symfony and Laravel smoke tests, docs** — `upgrade-2.0.md` §4/§13/§16, the namespace-map CSV,
     the runbook of §4.7 per engine and layout, a contention guide, the `ecotone-event-sourcing` skill.
 
 ## Part 7 — Review record
@@ -792,4 +826,5 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-20 | Optimistic only; aggregates keep id/version and the unique index; aggregate fields nullable with an explicit projection invariant; schema upgradable while on 1.x | **Maintainer** | Part 2 |
 | 2026-09-20 | DCB sits alongside aggregates | follows from the above | |
 | 2026-09-20 | Axon's conflict-table design, with a version counter instead of a position marker | Claude, from Part 3 | Position markers need commit-ordered positions; Axon's way of getting them breaks constraints 1 and 4 |
-| — | Part 5, decisions 1–6 | **open** | |
+| 2026-09-21 | **All of DCB is under the Enterprise licence** | **Maintainer** | Business decision. Consequences worked through in §4.9: bootstrap `LicensingException`, own `event_tags` setup feature active only when tags are declared, open-core append path unchanged |
+| — | Part 5, decisions 2–6 | **open** | |

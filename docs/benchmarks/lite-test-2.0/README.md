@@ -38,3 +38,7 @@ packages/Ecotone/src/Messaging/Handler/TypeResolver.php < docs/benchmarks/lite-t
 copy that file to the app container, and set `LITE_RESOLVER_PROBE=/tmp/TypeResolver-content-probe.php`
 for the benchmark bootstrap or workload runner. The source file remains unchanged.
 For PHPUnit isolation checks, load the copy using `php -d auto_prepend_file=/tmp/TypeResolver-content-probe.php`.
+
+Set `LITE_CYCLIC_PAYLOAD=1` with `bench_bus_execution` to create an unreachable 64 KiB
+self-referential object after each command. This is a stress case for handlers retaining cyclic
+payload graphs, not the ordinary benchmark workload. Use `-d memory_limit=384M` and 10,000 cycles.

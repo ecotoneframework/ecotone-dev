@@ -112,3 +112,11 @@ collection 100,000 times but reclaims only 171 cycles; every32 also reclaims 171
 3,125 async collections, while roots1000 collects once on the async path. This fixed-handler
 workload creates few cycles, so it cannot establish a universal memory bound for user handlers.
 Execution timing comparisons are still pending a quiet host.
+
+A separate execution stress case creates one unreachable 64 KiB cyclic payload per command,
+then publishes and consumes an async event. At 10,000 cycles and the suite's 384 MiB limit,
+always-collect peaks at **14 MiB**, every32 at **16 MiB**, and roots1000 at **60 MiB**.
+Never-collect exhausts **384 MiB after 5,545 completed async cycles**, before automatic GC's
+root threshold is reached. This deliberately adversarial workload demonstrates why the earlier
+low-cycle memory result cannot justify removing per-message collection. Retain the execution
+GC default; any opt-in policy would need an explicit memory/throughput contract outside this task.

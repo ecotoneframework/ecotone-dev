@@ -22,6 +22,7 @@ use PhpBench\Attributes\Iterations;
 use PhpBench\Attributes\Revs;
 use PhpBench\Attributes\Warmup;
 use PHPUnit\Framework\Assert;
+use stdClass;
 
 /**
  * licence Apache-2.0
@@ -34,7 +35,11 @@ final class LiteFlowTestingBenchmark
 
     public function setUpExecution(): void
     {
-        $handler = new class () {
+        $handler = new class ((bool) getenv('LITE_CYCLIC_PAYLOAD')) {
+            public function __construct(private bool $cyclicPayload)
+            {
+            }
+
             public int $commands = 0;
             public int $notifications = 0;
 
@@ -42,6 +47,11 @@ final class LiteFlowTestingBenchmark
             public function execute(string $payload): void
             {
                 ++$this->commands;
+                if ($this->cyclicPayload) {
+                    $cycle = new stdClass();
+                    $cycle->self = $cycle;
+                    $cycle->payload = str_repeat('x', 65536);
+                }
             }
 
             #[Asynchronous('execution')]

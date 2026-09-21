@@ -105,8 +105,7 @@ final class LaravelQueueFinalFailureStrategyTest extends TestCase
         $ecotoneTestSupport->sendCommandWithRouting('execute.delayed_command', new DelayedCommand('test_1'), metadata: [
             MessageHeaders::DELIVERY_DELAY => (new DateTimeImmutable())->modify('+1 second'),
         ]);
-        sleep(2);
-        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup());
+        $ecotoneTestSupport->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
 
         $this->assertEquals(['test_1'], $delayedService->getMessages());
     }

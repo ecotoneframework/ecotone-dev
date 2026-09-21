@@ -1,0 +1,49 @@
+PHPUnit 12.5.35 by Sebastian Bergmann and contributors.
+
+Runtime:       PHP 8.5.3
+Configuration: /data/app/phpunit.xml.dist
+
+FF.                                                                 3 / 3 (100%)
+
+Time: 00:00.006, Memory: 20.00 MB
+
+There were 2 failures:
+
+1) Test\Ecotone\Messaging\Unit\Handler\TypeResolverTest::test_new_resolver_reads_changed_use_statements_from_the_same_file
+Failed asserting that two objects are equal.
+--- Expected
++++ Actual
+@@ @@
+ Ecotone\Messaging\Handler\Type\GenericType Object (
+     'genericTypes' => Array (
+         0 => Ecotone\Messaging\Handler\Type\ObjectType Object (
+-            'className' => 'DateTimeImmutable'
++            'className' => 'DateTime'
+             'isAttribute' => null
+         )
+     )
+     'type' => Ecotone\Messaging\Handler\Type\BuiltinType Object (...)
+ )
+
+/data/app/packages/Ecotone/tests/Messaging/Unit/Handler/TypeResolverTest.php:32
+
+2) Test\Ecotone\Messaging\Unit\Handler\TypeResolverTest::test_new_resolver_reads_same_size_source_changes_with_unchanged_timestamp
+Failed asserting that two objects are equal.
+--- Expected
++++ Actual
+@@ @@
+ Ecotone\Messaging\Handler\Type\GenericType Object (
+     'genericTypes' => Array (
+         0 => Ecotone\Messaging\Handler\Type\ObjectType Object (
+-            'className' => 'stdClass'
++            'className' => 'DateTime'
+             'isAttribute' => null
+         )
+     )
+     'type' => Ecotone\Messaging\Handler\Type\BuiltinType Object (...)
+ )
+
+/data/app/packages/Ecotone/tests/Messaging/Unit/Handler/TypeResolverTest.php:57
+
+FAILURES!
+Tests: 3, Assertions: 7, Failures: 2.

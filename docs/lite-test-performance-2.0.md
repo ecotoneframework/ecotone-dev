@@ -75,3 +75,16 @@ The original per-resolver filename memo remains, preserving its existing within-
 The prototype passes the existing changed-source isolation regression (2 tests, 4 assertions overall).
 This establishes a plausible narrow subset, not a performance result or permission to share attributes.
 Neither the cache prototype nor a GC policy change is in framework source.
+
+The cache prototype also passes a forced-digest-collision run (3 tests, 8 assertions):
+exact source comparison prevents alias reuse when two different sources have the same key.
+A filename-only negative control fails both source-change regressions, including the test
+that preserves size and mtime. The benchmark tooling and patch live in
+[the diagnostic artifact directory](benchmarks/lite-test-2.0/README.md).
+
+First memory-only evidence, 10,000 fresh flow-testing bootstraps with three synchronous commands,
+three queued events, `run()`, queries and assertions per bootstrap: both the unchanged policy and
+suppressed bootstrap collection peak at **16 MiB allocated**. The unchanged policy explicitly collects
+10,000 times at bootstrap and 30,000 times after async messages; suppressing bootstrap collection
+moves reclamation to the async path. These runs overlap the coordinator gate, so their elapsed
+and collector times are diagnostic only. Bootstrap-only memory comparisons are still running.

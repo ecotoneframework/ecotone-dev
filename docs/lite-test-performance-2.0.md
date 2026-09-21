@@ -53,3 +53,25 @@ Code inspection also found explicit collection after each consumed message in `P
 this is an execution-path candidate requiring its own memory evidence, separate from Lite bootstrap collection.
 
 The run completed in 1,900.852 seconds wall time but failed on the untouched base: 3,876 tests, 12 errors, 39 skipped and 35 risky. The errors were concentrated in cross-module/example integration tests, including a missing `Monorepo/ExampleAppEventSourcing/Laravel/.env` warning and generated Symfony reference changes. Because the failure occurred before framework edits and concurrent PHPUnit processes were present, this run is not a valid before/after suite baseline. The focused resolver isolation regression test passes (2 tests, 4 assertions), but no process-wide cache was introduced.
+
+## Resumed investigation on the merged head
+
+Merged `dgafka/ecotone-2-0-work` at `e91c711d` into this branch as `1630d730`.
+The old 24.713-second core sample predates the database setup changes and is historical only.
+Restored both generated Symfony `config/reference.php` files. No package-local `vendor/`
+directories were present; refreshed the root autoloader and regenerated the DataProtection fixture.
+The current root PHPUnit configuration actually lists 15 suites; the final full run will use all of them.
+
+The coordinator's PHPUnit gate was still active when work resumed, so no new timing samples have
+been accepted yet. The prepared measurement runner refuses external PHPUnit/phpbench processes
+and monitors for overlap during a run. Xdebug is confirmed absent from the private ini environment.
+Long-run memory-only probes omit elapsed time while the gate is active.
+
+A diagnostic resolver prototype shares only parsed string arrays, keyed by `xxh128` of the bytes
+already read for each new resolver. Exact source comparison protects against digest collisions.
+It retains at most 256 entries and 1 MiB of source text, clearing before exceeding either bound;
+array overhead is additional but bounded by those entries and their source-derived contents.
+The original per-resolver filename memo remains, preserving its existing within-resolver semantics.
+The prototype passes the existing changed-source isolation regression (2 tests, 4 assertions overall).
+This establishes a plausible narrow subset, not a performance result or permission to share attributes.
+Neither the cache prototype nor a GC policy change is in framework source.

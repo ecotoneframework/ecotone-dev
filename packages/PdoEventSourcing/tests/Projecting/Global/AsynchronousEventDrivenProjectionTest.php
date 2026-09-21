@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
+use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\Projecting\FromAggregateStream;
@@ -44,7 +45,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
             ->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
-        $ecotone->run($projection::CHANNEL);
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
 
@@ -52,7 +53,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
         self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
 
-        $ecotone->run($projection::CHANNEL);
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
         self::assertEquals([], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
@@ -67,7 +68,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
             ->initializeProjection($projection::NAME);
 
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
-        $ecotone->run($projection::CHANNEL);
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
 
         self::assertEquals([
             ['ticket_id' => '123', 'ticket_type' => 'alert'],
@@ -78,7 +79,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->resetProjection($projection::NAME)
             ->triggerProjection($projection::NAME);
 
-        $ecotone->run($projection::CHANNEL);
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
 
         self::assertEquals([
             ['ticket_id' => '123', 'ticket_type' => 'alert'],
@@ -106,10 +107,10 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new RegisterTicket('6', 'Maik', 'info'));
         $ecotone->sendCommand(new RegisterTicket('7', 'Jack', 'warning'));
 
-        $ecotone->run($projection::CHANNEL);
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 7));
         $ecotone->resetProjection($projection::NAME)
             ->triggerProjection($projection::NAME);
-        $ecotone->run($projection::CHANNEL);
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 7));
 
         self::assertEquals([
             ['ticket_id' => '1', 'ticket_type' => 'alert'],
@@ -142,7 +143,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
         $currentTime = microtime(true);
-        $ecotone->run($projection::CHANNEL);
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $finishTime = microtime(true);
 
         // well below the default 1s polling timeout, proving the run does not wait for it (CI runners can be slow)
@@ -171,7 +172,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
 
         $currentTime = microtime(true);
-        $ecotone->run($projection::CHANNEL);
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         $finishTime = microtime(true);
 
         // around ~300 ms as default testing setup is 100ms (however connection and set up might take longer)
@@ -192,7 +193,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $ecotone->sendCommand(new RegisterTicket('1', 'Marcus', 'alert'));
         $ecotone->sendCommand(new RegisterTicket('2', 'Andrew', 'alert'));
 
-        $ecotone->run($projection::CHANNEL);
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
         $ecotone->deleteProjection($projection::NAME);
 
         self::assertFalse(
@@ -209,7 +210,7 @@ final class AsynchronousEventDrivenProjectionTest extends ProjectingTestCase
         );
 
         $ecotone->triggerProjection($projection::NAME);
-        $ecotone->run($projection::CHANNEL);
+        $ecotone->run($projection::CHANNEL, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 2));
 
         self::assertEquals(
             [

@@ -24,6 +24,7 @@ class DeadLetterTableManager implements DbalTableManager
         private bool $isUsed,
         private bool $shouldAutoInitialize,
         private ?string $consoleInvocationPrefix = null,
+        private ?string $connectionReferenceName = null,
     ) {
     }
 
@@ -68,7 +69,7 @@ class DeadLetterTableManager implements DbalTableManager
 
     public function getMissingTableInstructions(): string
     {
-        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
+        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix, $this->connectionReferenceName);
     }
 
     public function dropTable(Connection $connection): void
@@ -96,7 +97,7 @@ class DeadLetterTableManager implements DbalTableManager
     {
         return new Definition(
             self::class,
-            [$this->tableName, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]
+            [$this->tableName, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix, $this->connectionReferenceName]
         );
     }
 

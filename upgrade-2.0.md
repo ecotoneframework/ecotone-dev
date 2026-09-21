@@ -215,12 +215,11 @@ part of 2.0 as shipped — see §16.
   it no longer invents a `projection_<name>` stream. `linkTo($streamName, ...)` still takes an explicit target, but the
   stream must be declared by a `#[Stream]` attribute somewhere — an unknown name is a configuration error instead of a
   table created behind your back.
-- **Tables are declared, not discovered.** Every stream table on the default connection is registered with
-  `ecotone:migration:database:setup` under the `event_stream` feature. In tests and dev (`DbalConfiguration` automatic
-  table initialization) a missing table is still created on first write.
-  **TODO:** `ecotone:migration:database:setup` drives only the default connection, so a stream declared with a
-  non-default `connectionReferenceName` is not created by the command yet — it is created on first write when automatic
-  table initialization is on, otherwise create it yourself.
+- **Tables are declared, not discovered.** Every stream table — including one declared with a non-default
+  `connectionReferenceName` — is registered with `ecotone:migration:database:setup` under the `event_stream` feature,
+  grouped by the connection it lives on; see §8 for the `--connection` option and how the missing-table error names the
+  right connection and command. In tests and dev (`DbalConfiguration` automatic table initialization) a missing table
+  is still created on first write, on whichever connection the stream is declared for.
 - `EventStreamingChannelAdapter::create(fromStream: ...)` takes a stream name, not an aggregate class; pass
   `aggregateType:` to filter.
 - Custom implementations of `Ecotone\EventSourcing\EventStore` are unaffected — the interface did not change.
@@ -474,6 +473,51 @@ final class EcotoneConfiguration
   may still create its read-model tables, but it is no longer covered by the projection-state transaction: if
   initialization succeeds and the batch then fails, the initialization is not rolled back. Make initialization
   idempotent — `CREATE TABLE IF NOT EXISTS` rather than a bare `CREATE TABLE` — since it may be re-attempted.
+
+### 8a. The setup CLI covers every connection Ecotone knows about at configuration time
+
+**Before (early 2.0):** `ecotone:migration:database:setup` was wired to a single `DatabaseSetupManager`, bound to
+whichever connection `DbalConfiguration::withDefaultConnectionReferenceNames()` (or the DBAL default) resolved to. A
+feature declared on any other connection — most commonly an event stream declared with
+`#[Stream('orders_stream', connectionReferenceName: 'secondary')]` — was written to and read from correctly, but its
+table was invisible to the command: absent from the status table, `--sql`, and `--missing`, and the missing-table
+`ConfigurationException` told you to run a command that only ever touched the default connection.
+
+**Now:** Ecotone builds one `DatabaseSetupManager` per connection it can see declared in your configuration — the
+default connection(s), plus the connection named by every feature that accepts a `connectionReferenceName`
+(`#[Stream]`, `DbalConfiguration::withDeduplication()`, `withDeadLetter()`, `withDocumentStore()`) — and a
+`DatabaseSetupManagerRegistry` that holds all of them. `DatabaseSetupManager::class` still resolves to the default
+connection's manager for backward compatibility.
+
+- **Status output names the connection.** `ecotone:migration:database:setup` (and `--sql`, `--missing`) now show a
+  `Connection` column; the same feature name can appear more than once, once per connection it is declared on.
+- **`--connection=<reference>`** scopes any invocation (status, `--sql`, `--missing`, `--initialize`, and
+  `ecotone:migration:database:delete`) to one connection. Omitting it covers every connection Ecotone knows about —
+  the default invocation does not silently skip a secondary connection any more.
+  ```
+  bin/console ecotone:migration:database:setup --initialize --feature=event_stream --connection=secondary
+  ```
+- **The missing-table exception names the connection** whenever the table is not on the default one, and its
+  suggested command carries the matching `--connection=` flag (or, without a console, calls
+  `DatabaseSetupManagerRegistry::getManagerFor('secondary')` instead of the default-connection-only
+  `DatabaseSetupManager`):
+  ```
+  The 'orders_stream' table required by the 'event_stream' feature does not exist on connection 'secondary'.
+  Run:
+    bin/console ecotone:migration:database:setup --initialize --feature=event_stream --connection=secondary
+  ```
+- **What is out of scope: multi-tenant connections.** A tenant's connection (`MultiTenantConfiguration` /
+  `HeaderBasedMultiTenantConnectionFactory`) is resolved per message from a tenant header at runtime — there is no
+  active header outside message processing, so the CLI (and the setup manager it builds) cannot open that connection
+  to create or inspect tables on it. Pointing a feature's `connectionReferenceName` at a multi-tenant reference is not
+  supported by `ecotone:migration:database:setup`; provision each underlying per-tenant database yourself (loop your
+  own tenant list and run the migration tool against each physical connection, or call
+  `DatabaseSetupManager::getCreateSqlStatementsForFeatures()` against a `ConnectionFactory` you construct for that
+  tenant) rather than expecting the CLI to enumerate tenants for you.
+- This generalizes beyond event streams: any table manager whose feature is configured on a non-default connection —
+  today that is deduplication, dead letter and the document store, alongside event streams — is now covered the same
+  way. `message_queue` (DBAL-backed channels/publishers) and `projection_state` are still tied to the default
+  connection; they do not yet accept a per-feature `connectionReferenceName`.
 
 ## 9. Changed defaults
 

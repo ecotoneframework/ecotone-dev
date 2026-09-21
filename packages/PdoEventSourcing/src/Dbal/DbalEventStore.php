@@ -214,7 +214,12 @@ final class DbalEventStore implements EventStore
         }
 
         if (! $alwaysCreate && ! $this->automaticTableInitialization) {
-            throw ConfigurationException::create(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix));
+            throw ConfigurationException::create(MissingTableInstructions::build(
+                EventStreamTableManager::FEATURE_NAME,
+                $tableName,
+                $this->consoleInvocationPrefix,
+                $this->streamTableRegistry->connectionReferenceFor($streamName)
+            ));
         }
 
         foreach (EventStreamSchemaFactory::for($connection)->createTableSql($tableName) as $statement) {

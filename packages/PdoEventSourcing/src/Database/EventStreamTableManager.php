@@ -25,6 +25,7 @@ final class EventStreamTableManager implements DbalTableManager
         private bool  $isUsed,
         private bool  $shouldAutoInitialize,
         private ?string $consoleInvocationPrefix = null,
+        private ?string $connectionReferenceName = null,
     ) {
     }
 
@@ -98,7 +99,7 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function getDefinition(): Definition
     {
-        return new Definition(self::class, [$this->tableNames, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]);
+        return new Definition(self::class, [$this->tableNames, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix, $this->connectionReferenceName]);
     }
 
     public function shouldBeInitializedAutomatically(): bool
@@ -108,6 +109,6 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function getMissingTableInstructions(): string
     {
-        return MissingTableInstructions::build(self::FEATURE_NAME, implode(', ', $this->tableNames), $this->consoleInvocationPrefix);
+        return MissingTableInstructions::build(self::FEATURE_NAME, implode(', ', $this->tableNames), $this->consoleInvocationPrefix, $this->connectionReferenceName);
     }
 }

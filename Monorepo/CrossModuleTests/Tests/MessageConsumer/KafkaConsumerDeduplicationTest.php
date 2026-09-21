@@ -61,7 +61,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                     ModulePackageList::DBAL_PACKAGE,
                 ])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                     TopicConfiguration::createWithReferenceName('deduplication_topic', $topicName),
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),
@@ -130,7 +130,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                     ModulePackageList::DBAL_PACKAGE,
                 ])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                     TopicConfiguration::createWithReferenceName('default_deduplication_topic', $topicName),
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),
@@ -199,7 +199,7 @@ final class KafkaConsumerDeduplicationTest extends TestCase
                     ModulePackageList::DBAL_PACKAGE,
                 ])
                 ->withExtensionObjects([
-                    DbalConfiguration::createWithDefaults()->withDeduplication(true),
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)->withDeduplication(true),
                     TopicConfiguration::createWithReferenceName('deduplication_topic', $topicName),
                     KafkaPublisherConfiguration::createWithDefaults($topicName)
                         ->withHeaderMapper('*'),

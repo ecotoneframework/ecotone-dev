@@ -105,3 +105,10 @@ Actual core-suite memory checks pass with all four bootstrap GC policies: 1,370 
 746 bootstrap and 447 async collection call sites. Total PHP GC runs are 1,575 (always),
 1,143 (never), 1,161 (every32), and 1,565 (roots1000). All elapsed times remain excluded
 because the coordinator's full-suite gate is running concurrently.
+
+Execution memory checks repeat 100,000 command/event/async/query cycles after one bootstrap.
+All four async GC policies peak at **14 MiB allocated**. The always policy calls explicit async
+collection 100,000 times but reclaims only 171 cycles; every32 also reclaims 171 cycles with
+3,125 async collections, while roots1000 collects once on the async path. This fixed-handler
+workload creates few cycles, so it cannot establish a universal memory bound for user handlers.
+Execution timing comparisons are still pending a quiet host.

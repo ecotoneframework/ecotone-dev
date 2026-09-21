@@ -313,8 +313,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload, metadata: [
             MessageHeaders::DELIVERY_DELAY => 1000,
         ]);
-        sleep(2);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 
@@ -335,8 +334,7 @@ final class MessengerIntegrationTest extends WebTestCase
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload, metadata: [
             MessageHeaders::DELIVERY_DELAY => (new DateTimeImmutable())->modify('+1 second'),
         ]);
-        sleep(2);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 }

@@ -358,8 +358,7 @@ final class LaravelQueueIntegrationTest extends TestCase
         $messaging->sendCommandWithRouting('execute.example_command', $messagePayload, metadata: [
             MessageHeaders::DELIVERY_DELAY => 1000,
         ]);
-        sleep(2);
-        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup());
+        $messaging->run($channelName, ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, executionTimeLimitInMilliseconds: 5000));
         $this->assertCount(1, $messaging->sendQueryWithRouting('consumer.getMessages'));
     }
 

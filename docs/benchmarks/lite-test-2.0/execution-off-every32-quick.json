@@ -1,0 +1,33 @@
+{
+  "label": "execution-off-every32-quick",
+  "command": [
+    "docker",
+    "compose",
+    "exec",
+    "-T",
+    "-e",
+    "PHP_INI_SCAN_DIR=/tmp/lite-speed-ini",
+    "-e",
+    "ASYNC_GC_POLICY=every32",
+    "app",
+    "taskset",
+    "-c",
+    "2",
+    "php",
+    "vendor/bin/phpbench",
+    "run",
+    "Monorepo/Benchmark/LiteFlowTestingBenchmark.php",
+    "--profile=opcache_disabled",
+    "--bootstrap=docs/benchmarks/lite-test-2.0/benchmark-bootstrap.php",
+    "--filter=bench_bus_execution$",
+    "--revs=3000",
+    "--iterations=3",
+    "--warmup=5",
+    "--report=github-report",
+    "--dump-file=docs/benchmarks/lite-test-2.0/execution-off-every32-quick.xml"
+  ],
+  "seconds": 2.0688152679940686,
+  "exit_code": 0,
+  "contamination": [],
+  "accepted": true
+}

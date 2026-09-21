@@ -30,12 +30,12 @@ final class DistributedEventBusTest extends AmqpMessagingTestCase
         $userService = $this->bootstrapEcotone('user_service', ['Test\Ecotone\Amqp\Fixture\DistributedEventBus\Publisher'], [new UserService()]);
         $ticketService = $this->bootstrapEcotone('ticket_service', ['Test\Ecotone\Amqp\Fixture\DistributedEventBus\Receiver'], [new TicketServiceReceiver()]);
 
-        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
         $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'user_service');
 
-        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
         self::assertEquals(
             ['ticket was created'],
@@ -55,14 +55,14 @@ final class DistributedEventBusTest extends AmqpMessagingTestCase
             [new TicketServiceReceiver(), new TicketNotificationSubscriber()]
         );
 
-        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketServiceReceiver::GET_TICKETS_COUNT));
 
         $userService->sendCommandWithRouting(UserService::CHANGE_BILLING_DETAILS, 'user_service');
 
-        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup());
+        $ticketService->run('ticket_service', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketNotificationSubscriber::GET_TICKET_NOTIFICATION_COUNT));
-        $ticketService->run('notification_channel');
+        $ticketService->run('notification_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketNotificationSubscriber::GET_TICKET_NOTIFICATION_COUNT));
     }
 
@@ -94,7 +94,7 @@ final class DistributedEventBusTest extends AmqpMessagingTestCase
 
         $ticketService->run('ticket_service');
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketNotificationSubscriber::GET_TICKET_NOTIFICATION_COUNT));
-        $ticketService->run('notification_channel');
+        $ticketService->run('notification_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertEquals(1, $ticketService->sendQueryWithRouting(TicketNotificationSubscriber::GET_TICKET_NOTIFICATION_COUNT));
     }
 
@@ -127,7 +127,7 @@ final class DistributedEventBusTest extends AmqpMessagingTestCase
 
         $ticketService->run('ticket_service');
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketNotificationSubscriber::GET_TICKET_NOTIFICATION_COUNT));
-        $ticketService->run('notification_channel');
+        $ticketService->run('notification_channel', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1));
         self::assertEquals(0, $ticketService->sendQueryWithRouting(TicketNotificationSubscriber::GET_TICKET_NOTIFICATION_COUNT));
     }
 

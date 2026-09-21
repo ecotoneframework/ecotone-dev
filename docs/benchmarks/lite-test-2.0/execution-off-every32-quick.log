@@ -1,0 +1,16 @@
+PHPBench (1.7.0) running benchmarks... #standwithukraine
+with configuration file: /data/app/phpbench.json
+with PHP version 8.5.3, xdebug ❌, opcache ❌
+
+\Monorepo\Benchmark\LiteFlowTestingBenchmark
+
+[0G    bench_bus_execution.....................I0 [0G    bench_bus_execution.....................I1 [0G    bench_bus_execution.....................I2 - Mo170.153μs (±13.91%)
+
+Subjects: 1, Assertions: 0, Failures: 0, Errors: 0
+Dumped result to docs/benchmarks/lite-test-2.0/execution-off-every32-quick.xml
++--------------------------+---------------------+------+-----+----------+-----------+---------+
+| benchmark                | subject             | revs | its | mem_peak | mode      | rstdev  |
++--------------------------+---------------------+------+-----+----------+-----------+---------+
+| LiteFlowTestingBenchmark | bench_bus_execution | 3000 | 3   | 12.685mb | 170.153μs | ±13.91% |
++--------------------------+---------------------+------+-----+----------+-----------+---------+
+

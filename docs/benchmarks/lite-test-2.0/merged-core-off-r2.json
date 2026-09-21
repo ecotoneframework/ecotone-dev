@@ -1,0 +1,26 @@
+{
+  "label": "merged-core-off-r2",
+  "command": [
+    "docker",
+    "compose",
+    "exec",
+    "-T",
+    "-e",
+    "PHP_INI_SCAN_DIR=/tmp/lite-speed-ini",
+    "app",
+    "taskset",
+    "-c",
+    "2",
+    "php",
+    "-d",
+    "opcache.enable_cli=0",
+    "vendor/bin/phpunit",
+    "--no-coverage",
+    "--testsuite",
+    "Core tests"
+  ],
+  "seconds": 22.110221651993925,
+  "exit_code": 0,
+  "contamination": [],
+  "accepted": true
+}

@@ -1,0 +1,24 @@
+{
+  "label": "merged-full-off",
+  "command": [
+    "docker",
+    "compose",
+    "exec",
+    "-T",
+    "-e",
+    "PHP_INI_SCAN_DIR=/tmp/lite-speed-ini",
+    "app",
+    "taskset",
+    "-c",
+    "2",
+    "php",
+    "-d",
+    "opcache.enable_cli=0",
+    "vendor/bin/phpunit",
+    "--no-coverage"
+  ],
+  "seconds": 1953.6340824969957,
+  "exit_code": 0,
+  "contamination": [],
+  "accepted": true
+}

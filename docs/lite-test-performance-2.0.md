@@ -120,3 +120,12 @@ Never-collect exhausts **384 MiB after 5,545 completed async cycles**, before au
 root threshold is reached. This deliberately adversarial workload demonstrates why the earlier
 low-cycle memory result cannot justify removing per-message collection. Retain the execution
 GC default; any opt-in policy would need an explicit memory/throughput contract outside this task.
+
+## Clean merged-head baseline
+
+After the coordinator gate exited, the host had no PHP test processes. Three core-suite samples
+with CPU 2, Xdebug unloaded, opcache CLI disabled, and the configured 384 MiB limit all passed:
+**21.958 s, 22.110 s, 22.042 s** wall time; mean **22.037 s**, relative standard deviation **0.28%**.
+Every sample reports **62.50 MiB**, 1,370 tests, 2,302 assertions and one skip. The overlap monitor
+recorded no external test/benchmark processes. Raw logs and command receipts are `merged-core-off-r*`.
+The full merged baseline is running and discovers **3,888 tests** across the complete configuration.

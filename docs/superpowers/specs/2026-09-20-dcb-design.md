@@ -193,7 +193,8 @@ CREATE TABLE ecotone_event_tags (
     tag_key    VARCHAR(100) NOT NULL,
     tag_value  VARCHAR(255) NOT NULL,
     stream     VARCHAR(128) NOT NULL,
-    event_no   BIGINT       NOT NULL,
+    event_no    BIGINT       NOT NULL,
+    tag_version BIGINT       NOT NULL,
     PRIMARY KEY (tag_key, tag_value, stream, event_no)
 );
 
@@ -219,9 +220,11 @@ default `utf8mb4_0900_ai_ci` would merge `course:ABC` with `course:abc`. Worst-c
 - **One pair per connection; counters are not keyed by stream.** On 1.x every aggregate type lives in its own
   `_<sha1>` table, and upgrade guide §4 tells users to leave them there. A cross-aggregate invariant — the whole
   point of DCB — therefore spans tables. The index records *which* table each event is in; the counter is about the
-  tag alone. **A boundary may span every stream on one connection.** It cannot span connections: there is no
-  transaction to hold it.
-- `stream` is the physical table name. `event_no` is that table's `no`.
+  tag alone. **A boundary may span every stream on one connection** (§4.5a). It cannot span connections: there is
+  no transaction to hold it.
+- `stream` is the physical table name. `event_no` is that table's `no`. `tag_version` is the value the tag's counter
+  took in the append that wrote the event — a per-tag sequence that is the same across every stream, which is what
+  orders a model's events when they come from more than one table (§4.5a). Filter-only tags store 0.
 - `ecotone_event_tag_coverage` is the guard against deciding on an incomplete index (§4.8).
 - No foreign keys. `EventStore::delete($stream)` deletes that stream's index rows in the same transaction — without
   this, a re-created stream restarts `no` at 1 and stale rows join to unrelated events (every test suite that resets
@@ -553,7 +556,7 @@ SELECT tag_key, tag_value, version FROM ecotone_event_tag_versions
 WHERE (tag_key, tag_value) IN ((:k1, :v1), (:k2, :v2));
 
 -- 2. which events, in which stream, matching which criterion
-SELECT stream, event_no,
+SELECT stream, event_no, MAX(tag_version) ...,   -- per guard tag, see §4.5a
        MAX(CASE WHEN tag_key = :k1 AND tag_value = :v1 THEN 1 ELSE 0 END) AS has_t1,
        MAX(CASE WHEN tag_key = :k2 AND tag_value = :v2 THEN 1 ELSE 0 END) AS has_t2
 FROM ecotone_event_tags
@@ -568,8 +571,8 @@ WHERE no IN (:nos) AND event_name IN (:types) ORDER BY no;
 Statement 2 drives from the primary key and yields each event **once**, however many criteria it matches — a
 `UNION` would double-apply `StudentSubscribedToCourse(c1, s1)`, and `DISTINCT` over `payload` fails outright on
 PostgreSQL (`json` has no equality operator). Criteria with event-type and AND conditions are evaluated in PHP from
-the flags. Order: `no` within a stream; across streams `created_at`, then stream name — the rule multi-stream
-projections already use.
+the flags. Each model is folded in the order of **its own guard tag's `tag_version`, then `event_no`** — exact
+commit order for that tag, across streams (§4.5a).
 
 Capture-before-read matters. A writer committing between the statements makes the events *newer* than the captured
 version: a spurious retry, safe. The opposite order pairs a newer version with older events and **misses** the
@@ -601,9 +604,13 @@ ON CONFLICT (tag_key, tag_value) DO UPDATE SET version = ecotone_event_tag_versi
 INSERT INTO <stream> (event_id, event_name, payload, metadata, created_at) VALUES ...;
 
 -- C. tag index, resolving no by the unique event_id
-INSERT INTO ecotone_event_tags (tag_key, tag_value, stream, event_no)
-SELECT :k, :v, :stream, no FROM <stream> WHERE event_id = :eventId;
+INSERT INTO ecotone_event_tags (tag_key, tag_value, stream, event_no, tag_version)
+SELECT :k, :v, :stream, no, :newVersion FROM <stream> WHERE event_id = :eventId;
 ```
+
+`:newVersion` is known without another read on the guarded path (`captured + 1`); on the unconditional path it
+comes from `RETURNING version` (PostgreSQL, MariaDB) or a plain `SELECT` of the row the transaction has just
+written (MySQL — a transaction always sees its own write).
 
 **Counters first, events second.** Three reasons. (1) A lost condition has written nothing — no burned `no` for
 `GapAwarePosition` to chase, and nothing for an outer transaction to commit by accident if user code swallows the
@@ -616,6 +623,46 @@ while a model conditioned on `{B}` whose event carries `{A, B}` would lock B→A
 the `event_id` sub-select rather than `LAST_INSERT_ID() + i`, which breaks under Galera and group replication
 (`auto_increment_increment ≠ 1`). The guarded check is a plain `UPDATE`, identical on all engines and immune to
 MySQL's `CLIENT_FOUND_ROWS` affected-rows semantics.
+
+#### 4.5a Models fed from different event streams
+
+*Maintainer question, 2026-09-21.* The common 1.x case: `CourseDefined` was recorded by a `Course` aggregate into
+`_<sha1('Course')>`, `StudentSubscribedToCourse` lives in `ecotone_event_stream`, and `CourseCapacity` folds both.
+Or a handler injects `CouponRedemptions` (coupon stream) and `CustomerCredit` (customer stream) together.
+
+**Same connection — yes, fully, and nothing extra to configure.**
+
+- *Conflict detection never looks at streams.* The counter is keyed by tag alone and lives in one table per
+  connection. Whichever stream an append targets, it bumps the counters of its tags **in the same database
+  transaction** as its event insert. A handler's condition is one set of guarded `UPDATE`s on that one table,
+  whatever mix of streams its models read. The proof in this section does not change by a word.
+- *Discovery is from data.* The index query is not filtered by stream; its rows say which tables hold matching
+  events. Nobody declares which streams a model reads.
+- *Order is exact, per model.* Revision 2 ordered cross-stream events by `created_at`. That is not good enough:
+  `created_at` is application-assigned, often at one-second resolution, and a fold like "capacity changed, then a
+  seat was taken" is order-sensitive. But counters-first ordering already serialises every append of a tag behind
+  that tag's row lock, **across all streams** — so the counter value an append produced is a gapless, commit-ordered
+  sequence for that tag. Storing it in the index row (`tag_version`) costs one column and gives each model a total
+  order over its events no matter how many tables they came from: `ORDER BY tag_version, event_no` (one append goes
+  to one stream, so `event_no` orders within it). A multi-tag model uses its guard tag's version. Models in one
+  handler are folded independently, each in its own order.
+- *Backfilled history* has no commit order to recover. The backfill assigns `tag_version` in
+  `(created_at, stream, no)` order — the best available, the same rule multi-stream projections use today — and
+  everything appended afterwards is exact.
+
+**Different connections — no, and it must fail loudly rather than quietly.** A stream declared with
+`#[Stream(connectionReferenceName: 'other')]` lives in another database: there is no transaction that can hold a
+counter update there and an event insert here, and its index rows are in *its* connection's tag tables, so a model
+loaded for a handler writing to the default connection would simply not see those events — a silent wrong decision,
+the failure mode this design refuses everywhere else. So: a handler's models are loaded from, and its condition
+enforced on, the connection of the stream the handler appends to. At bootstrap, every event class a model handles is
+traced to the aggregates that record it (their `#[EventSourcingHandler]`s reveal this) and to their `#[Stream]`
+connection; a model injected into a handler whose write stream is on a different connection is a
+`ConfigurationException` naming both. Events recorded only by service handlers cannot be traced statically; for
+those the rule is documented. Cross-database consistency is a saga, not a consistency boundary.
+
+Multi-tenancy is the same rule seen from the other side: each tenant's connection has its own tag tables, and a
+boundary lives inside one tenant.
 
 **Why this is optimistic, and atomic.** Nothing is locked while the model reads and decides. Check and write are
 one statement: the `UPDATE` finds the row, verifies `version = :captured` and changes it. Two subscriptions racing
@@ -799,7 +846,7 @@ it filters by event name and aggregate type, does not depend on tags or on a lic
 | `pg_snapshot_xmin` gap detection | Independent of tags. Own design |
 | UUID v7 for the store's fallback id | One-line change, unrelated |
 | Replacing `MetadataMatcher` / the `EventStore` interface | §4 promised it unchanged |
-| Tag-partitioned projections | Follow-up; made sound by counters-first ordering |
+| Tag-partitioned projections | Follow-up; `tag_version` is the per-tag position they need |
 | Decision-model snapshots | Follow-up; same |
 | An OR *inside* one model (`#[MatchingTags]` from revision 2) | Removed. Two questions are two models; the OR happens where they are injected |
 | Precise (type-aware) conflict re-check | PostgreSQL only; measure first |
@@ -812,7 +859,7 @@ it filters by event name and aggregate type, does not depend on tags or on a lic
 | # | Decision | Recommendation |
 |---|---|---|
 | 1 | ~~**Licence.**~~ | **Decided 2026-09-21: all of DCB is Enterprise** — §4.9. (My recommendation had been Apache-2.0 for the base layer; overruled, and the design is simpler for it: one gate, and zero change to the open-core append path) |
-| 2 | **Boundaries span streams** (counters keyed by tag only). | Yes. Without it the feature is greenfield-only: 1.x users' invariants span two `_<sha1>` tables by construction. Cost: cross-stream event order is `created_at`, and a tag reused in two unrelated streams shares a counter (spurious retries only) |
+| 2 | **Boundaries span streams** (counters keyed by tag only). | Yes. Without it the feature is greenfield-only: 1.x users' invariants span two `_<sha1>` tables by construction. Order across streams is exact per tag via `tag_version` (§4.5a). Cost: one extra column in the index; a tag reused in two unrelated streams shares a counter (spurious retries only); different *connections* remain out of reach and fail at bootstrap |
 | 3 | **Coverage guard on by default.** | Yes. The alternative is a silent wrong decision. Cost: one deploy step when tags change on recorded events |
 | 4 | **Automatic retry** through the existing instant-retry interceptor, no new attribute parameter. | Yes |
 | 5 | **Names**: `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`; `#[Fetch]` reused for explicit tag mapping. | `EventTag` over `Tag` (self-describing; `Tag` collides with Symfony and OpenAPI attributes; Axon and patchlevel use it). `EventCriteria` over `EventQuery` ("query" already means a CQRS message here). `#[MatchingTags]` is gone |
@@ -851,7 +898,9 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
    counter; conflict on a never-written tag; loser wrote nothing and burned no `no`; rollback lets the waiter
    succeed; opposite-order multi-tag appends do not deadlock; aggregate save `{A,B}` vs. model on `{B}` do not
    deadlock; the InnoDB own-bump snapshot hazard throws; deadlock and lock-timeout codes surface as
-   `ConcurrencyException`; cross-stream boundary reads both tables.
+   `ConcurrencyException`; a model fed from two stream tables folds in commit order even when `created_at` ties or
+   disagrees; an append to stream A fails a condition held by a model that only ever read stream B; a model traced
+   to a stream on another connection is rejected at bootstrap.
 6. **Core — `#[DecisionModel]` classes injected into service handlers.** A `DecisionModelModule`; per handler,
    the chain `ResolveTags → LoadModels (one capture, one index read, each event applied to every matching model) →
    Call → AppendUnderCondition`; models reach the method through a parameter converter, as
@@ -924,4 +973,5 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-20 | Axon's conflict-table design, with a version counter instead of a position marker | Claude, from Part 3 | Position markers need commit-ordered positions; Axon's way of getting them breaks constraints 1 and 4 |
 | 2026-09-21 | **All of DCB is under the Enterprise licence** | **Maintainer** | Business decision. Consequences worked through in §4.9: bootstrap `LicensingException`, own `event_tags` setup feature active only when tags are declared, open-core append path unchanged |
 | 2026-09-21 | **A decision model is a standalone reusable class, injected into message handlers; consistency covers whatever a handler injects** | **Maintainer** | Reuse across handlers without duplicating folds. Falls out better than revision 2: one model = one criterion, handler = OR of its models, so `#[MatchingTags]` and the per-handler-boundary machinery disappear; and injecting a model into an aggregate handler gives existing applications an adoption path without touching constraint 2 |
+| 2026-09-21 | Cross-stream models ordered by a per-tag `tag_version` stored in the index, not by `created_at`; cross-connection models rejected at bootstrap | Claude, answering the maintainer's question | `created_at` is application-assigned and coarse; the counter is already a commit-ordered per-tag sequence across streams, so exact order costs one column |
 | — | Part 5, decisions 2–7 | **open** | |

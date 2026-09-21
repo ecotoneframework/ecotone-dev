@@ -80,6 +80,7 @@ class DeduplicationModule implements AnnotationModule
                 $isDeduplicatedEnabled,
                 $shouldAutoInitialize,
                 $consoleInvocationPrefix,
+                $connectionFactory,
             ])
         );
 
@@ -138,8 +139,10 @@ class DeduplicationModule implements AnnotationModule
      */
     public function getModuleExtensions(ServiceConfiguration $serviceConfiguration, array $serviceExtensions): array
     {
+        $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $serviceExtensions, DbalConfiguration::createDefaultFor($serviceExtensions));
+
         return [
-            new DbalTableManagerReference(DeduplicationTableManager::class),
+            new DbalTableManagerReference(DeduplicationTableManager::class, $dbalConfiguration->getDeduplicationConnectionReference()),
         ];
     }
 

@@ -7,6 +7,7 @@ namespace Ecotone\Dbal\Database;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
+use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManagerRegistry;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -45,34 +46,50 @@ class DatabaseSetupModule implements AnnotationModule
 
         $tableManagerReferences = ExtensionObjectResolver::resolve(DbalTableManagerReference::class, $extensionObjects);
 
-        $connectionReference = $dbalConfiguration->getDefaultConnectionReferenceNames()[0] ?? DbalConnectionReference::DEFAULT;
+        $defaultConnectionReference = $dbalConfiguration->getDefaultConnectionReferenceNames()[0] ?? DbalConnectionReference::DEFAULT;
 
-        $tableManagerRefs = array_map(
-            fn (DbalTableManagerReference $ref) => new Reference($ref->getReferenceName()),
-            $tableManagerReferences
-        );
+        $tableManagerRefsByConnection = [$defaultConnectionReference => []];
+        foreach ($tableManagerReferences as $tableManagerReference) {
+            $tableManagerRefsByConnection[$tableManagerReference->getConnectionReferenceName()][] = new Reference($tableManagerReference->getReferenceName());
+        }
+
+        $managerReferencesByConnection = [];
+        foreach ($tableManagerRefsByConnection as $connectionReferenceName => $tableManagerRefs) {
+            $setupManagerReferenceName = self::setupManagerReferenceName($connectionReferenceName);
+            $managerReferencesByConnection[$connectionReferenceName] = new Reference($setupManagerReferenceName);
+
+            $messagingConfiguration->registerServiceDefinition(
+                $setupManagerReferenceName,
+                new Definition(DatabaseSetupManager::class, [
+                    new Definition(DbalReconnectableConnectionFactory::class, [
+                        new Reference($connectionReferenceName),
+                    ]),
+                    $tableManagerRefs,
+                ])
+            );
+        }
 
         $messagingConfiguration->registerServiceDefinition(
             DatabaseSetupManager::class,
-            new Definition(DatabaseSetupManager::class, [
-                new Definition(DbalReconnectableConnectionFactory::class, [
-                    new Reference($connectionReference),
-                ]),
-                $tableManagerRefs,
-            ])
+            new Reference(self::setupManagerReferenceName($defaultConnectionReference))
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
+            DatabaseSetupManagerRegistry::class,
+            new Definition(DatabaseSetupManagerRegistry::class, [$managerReferencesByConnection])
         );
 
         $messagingConfiguration->registerServiceDefinition(
             DatabaseSetupCommand::class,
             new Definition(DatabaseSetupCommand::class, [
-                new Reference(DatabaseSetupManager::class),
+                new Reference(DatabaseSetupManagerRegistry::class),
             ])
         );
 
         $messagingConfiguration->registerServiceDefinition(
             DatabaseDeleteCommand::class,
             new Definition(DatabaseDeleteCommand::class, [
-                new Reference(DatabaseSetupManager::class),
+                new Reference(DatabaseSetupManagerRegistry::class),
             ])
         );
 
@@ -103,6 +120,11 @@ class DatabaseSetupModule implements AnnotationModule
     public function getModulePackageName(): string
     {
         return ModulePackageList::DBAL_PACKAGE;
+    }
+
+    private static function setupManagerReferenceName(string $connectionReferenceName): string
+    {
+        return DatabaseSetupManager::class . '.' . $connectionReferenceName;
     }
 
     private function registerConsoleCommand(

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Dbal\Unit\Database;
 
+use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use PHPUnit\Framework\TestCase;
 
@@ -53,5 +54,42 @@ final class MissingTableInstructionsTest extends TestCase
         $this->assertStringContainsString("getCreateSqlStatementsForFeatures(['message_queue'])", $message);
         $this->assertStringNotContainsString('bin/console', $message);
         $this->assertStringNotContainsString('artisan', $message);
+    }
+
+    public function test_default_connection_message_stays_unchanged(): void
+    {
+        $message = MissingTableInstructions::build('deduplication', 'ecotone_deduplication', 'bin/console', DbalConnectionReference::DEFAULT);
+
+        $this->assertStringNotContainsString('--connection=', $message);
+        $this->assertStringNotContainsString('on connection', $message);
+    }
+
+    public function test_non_default_connection_is_named_in_the_message(): void
+    {
+        $message = MissingTableInstructions::build('event_stream', 'secondary_connection_stream', null, 'secondary_connection');
+
+        $this->assertStringContainsString("on connection 'secondary_connection'", $message);
+    }
+
+    public function test_non_default_connection_adds_connection_option_to_console_commands(): void
+    {
+        $message = MissingTableInstructions::build('event_stream', 'secondary_connection_stream', 'bin/console', 'secondary_connection');
+
+        $this->assertStringContainsString('bin/console ecotone:migration:database:setup --initialize --feature=event_stream --connection=secondary_connection', $message);
+        $this->assertStringContainsString('bin/console ecotone:migration:database:setup --sql --feature=event_stream --connection=secondary_connection', $message);
+    }
+
+    public function test_non_default_connection_uses_registry_in_the_programmatic_snippet(): void
+    {
+        $message = MissingTableInstructions::build('event_stream', 'secondary_connection_stream', null, 'secondary_connection');
+
+        $this->assertStringContainsString(
+            "getServiceFromContainer(\\Ecotone\\Api\\Dbal\\ExtensionObject\\DatabaseSetupManagerRegistry::class)->getManagerFor('secondary_connection')->initialize('event_stream')",
+            $message
+        );
+        $this->assertStringContainsString(
+            "getManagerFor('secondary_connection')->getCreateSqlStatementsForFeatures(['event_stream'])",
+            $message
+        );
     }
 }

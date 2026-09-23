@@ -24,6 +24,11 @@ final class EventCriteria
         return new self([['name' => $name, 'value' => $value]]);
     }
 
+    public static function any(): self
+    {
+        return new self([]);
+    }
+
     public function andTag(string $name, string $value): self
     {
         return new self([...$this->tags, ['name' => $name, 'value' => $value]], $this->eventTypes);

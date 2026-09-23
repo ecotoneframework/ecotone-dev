@@ -11,6 +11,8 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
+use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Modelling\DecisionModel\DecisionModelAppendConditionCollector;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\Repository\AggregateRepository;
 
@@ -27,6 +29,7 @@ final class SaveAggregateService implements MessageProcessor
         private PropertyReaderAccessor $propertyReaderAccessor,
         private AggregateResolver $aggregateResolver,
         private EventBus $eventBus,
+        private DecisionModelAppendConditionCollector $decisionModelAppendConditionCollector,
     ) {
 
     }
@@ -35,6 +38,11 @@ final class SaveAggregateService implements MessageProcessor
     {
         $resolvedAggregates = $this->aggregateResolver->resolve($message);
         $metadata = MessageHeaders::unsetNonUserKeys($message->getHeaders()->headers());
+
+        $appendCondition = $this->decisionModelAppendConditionCollector->consume($message->getHeaders()->getMessageId());
+        if (! $appendCondition->isEmpty()) {
+            $metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION] = $appendCondition;
+        }
 
         if (! $resolvedAggregates) {
             return MessageBuilder::fromMessage($message)->build();

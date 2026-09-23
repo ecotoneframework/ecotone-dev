@@ -12,7 +12,6 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
-use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;
 use Throwable;
 
@@ -64,8 +63,13 @@ final class DecisionModelAppendInterceptor
             return $result;
         }
 
+        $streamName = DecisionModelStreamResolver::resolveFor(
+            $methodInvocation->getObjectToInvokeOn(),
+            $methodInvocation->getMethodName(),
+        );
+
         $this->taggedEventStore->appendTo(
-            AggregateDefinitionResolver::DEFAULT_STREAM,
+            $streamName,
             $events,
             $appendCondition->isEmpty() ? null : $appendCondition,
         );

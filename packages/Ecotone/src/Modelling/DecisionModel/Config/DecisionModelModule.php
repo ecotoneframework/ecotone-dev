@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\DecisionModel\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
@@ -36,6 +37,9 @@ use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionRegistry;
 use Ecotone\Modelling\DecisionModel\DecisionModelExecutorRegistry;
 use Ecotone\Modelling\DecisionModel\DecisionModelReflection;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
+
+use ReflectionAttribute;
+use ReflectionClass;
 
 use function array_keys;
 use function array_map;
@@ -160,6 +164,10 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
             foreach ($annotationFinder->findAnnotatedMethods($handlerAnnotationClass) as $annotatedMethod) {
                 $className = $annotatedMethod->getClassName();
                 $methodName = $annotatedMethod->getMethodName();
+
+                if ((new ReflectionClass($className))->getAttributes(Aggregate::class, ReflectionAttribute::IS_INSTANCEOF) !== []) {
+                    continue;
+                }
 
                 $interfaceToCall = $interfaceToCallRegistry->getFor($className, $methodName);
 

@@ -483,7 +483,7 @@ to the boundary; a non-nullable one throws, naming the model and the tag.
 | Handler | Returned array | Consistency |
 |---|---|---|
 | `#[CommandHandler]` / `#[EventHandler]` on a service | appended as events under the condition | guaranteed for those events |
-| `#[CommandHandler]` on a `#[DecisionModel]` class | same — the boundary is `$this` plus any injected models | same. Kept so the single-class shape of revision 2 still works for a decision nobody else shares; it is the same mechanism, not a second one |
+| `#[CommandHandler]` on a `#[DecisionModel]` class | **not supported** (maintainer, 2026-09-23) | one shape only: models are injected, they never own commands |
 | `#[QueryHandler]` | the reply, untouched | none needed — a live, always-current read of "how many seats are left" with no projection to maintain |
 | `#[CommandHandler]` on an `#[EventSourcingAggregate]` | the aggregate's events, saved as today **and** under the models' condition | both checks, one transaction — see below |
 
@@ -1075,6 +1075,7 @@ it filters by event name and aggregate type, does not depend on tags or on a lic
 | Replacing `MetadataMatcher` / the `EventStore` interface | §4 promised it unchanged |
 | Tag-partitioned projections | Follow-up; `tag_version` is the per-tag position they need |
 | Decision-model snapshots | Follow-up; same |
+| `#[CommandHandler]` directly on a `#[DecisionModel]` class | Dropped 2026-09-23 after wave 1: one shape only, models are injected |
 | An OR *inside* one model (`#[MatchingTags]` from revision 2) | Removed. Two questions are two models; the OR happens where they are injected |
 | Runtime backfill-coverage guard | Declined by the maintainer (2026-09-23); an operator rule instead |
 | Automatic retry registration | Declined by the maintainer (2026-09-23); users configure `InstantRetryConfiguration` / `#[InstantRetry]` |

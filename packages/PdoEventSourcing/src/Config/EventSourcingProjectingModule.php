@@ -313,7 +313,7 @@ class EventSourcingProjectingModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(
             EventStoreAggregateStreamSource::class,
             new Definition(EventStoreAggregateStreamSource::class, [
-                new Reference('Ecotone\EventSourcing\EventStore'),
+                new Reference(EventStoreReference::EVENT_STORE_INSTANCE),
                 new Reference(StreamFilterRegistry::class),
                 $this->partitionedProjectionNames,
             ])

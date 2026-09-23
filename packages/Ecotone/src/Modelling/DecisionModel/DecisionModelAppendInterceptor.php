@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
@@ -15,11 +16,17 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;
 use Throwable;
 
+use function get_class;
+use function is_object;
+
 /**
  * licence Enterprise
  */
 final class DecisionModelAppendInterceptor
 {
+    /**
+     * @param array<string, string> $decisionBoundaryMethods keyed by "Class::method", value is the boundary method name on that same class
+     */
     public function __construct(
         private readonly TaggedEventStore $taggedEventStore,
         private readonly DecisionModelAppendConditionCollector $collector,
@@ -28,6 +35,7 @@ final class DecisionModelAppendInterceptor
         private readonly EventMapper $eventMapper,
         private readonly EcotoneClockInterface $clock,
         private readonly EventBus $eventBus,
+        private readonly array $decisionBoundaryMethods = [],
     ) {
     }
 
@@ -44,6 +52,7 @@ final class DecisionModelAppendInterceptor
         }
 
         $appendCondition = $this->collector->consume($messageId);
+        $appendCondition = $this->mergeDecisionBoundaryCondition($methodInvocation, $appendCondition);
 
         if ($result === null || $result === []) {
             return $result;
@@ -79,5 +88,25 @@ final class DecisionModelAppendInterceptor
         }
 
         return $result;
+    }
+
+    private function mergeDecisionBoundaryCondition(MethodInvocation $methodInvocation, AppendCondition $appendCondition): AppendCondition
+    {
+        $objectToInvokeOn = $methodInvocation->getObjectToInvokeOn();
+        $className = is_object($objectToInvokeOn) ? get_class($objectToInvokeOn) : $objectToInvokeOn;
+        $key = $className . '::' . $methodInvocation->getMethodName();
+
+        if (! isset($this->decisionBoundaryMethods[$key])) {
+            return $appendCondition;
+        }
+
+        $boundaryMethodName = $this->decisionBoundaryMethods[$key];
+        $arguments = $methodInvocation->getArguments();
+        $command = $arguments[0] ?? null;
+
+        $criteria = $className::{$boundaryMethodName}($command);
+        $loadedEvents = $this->taggedEventStore->load($criteria);
+
+        return $appendCondition->mergeWith($loadedEvents->appendCondition);
     }
 }

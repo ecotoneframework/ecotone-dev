@@ -7,6 +7,7 @@ namespace Ecotone\Modelling\DecisionModel\Config;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
@@ -58,11 +59,13 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
      * @param class-string[] $decisionModelClasses
      * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[]}> $rawDefinitions
      * @param array<array{class: class-string, method: string}> $appendEligibleMethods
+     * @param array<string, string> $decisionBoundaryMethods keyed by "Class::method", value is the boundary method name on that same class
      */
     private function __construct(
         private readonly array $decisionModelClasses,
         private readonly array $rawDefinitions,
         private readonly array $appendEligibleMethods,
+        private readonly array $decisionBoundaryMethods,
     ) {
     }
 
@@ -84,9 +87,11 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
             ];
         }
 
-        $appendEligibleMethods = self::findAppendEligibleMethods($annotationRegistrationService, $interfaceToCallRegistry);
+        $decisionBoundaryMethods = self::findDecisionBoundaryMethods($annotationRegistrationService, $interfaceToCallRegistry);
 
-        return new self($decisionModelClasses, $rawDefinitions, $appendEligibleMethods);
+        $appendEligibleMethods = self::findAppendEligibleMethods($annotationRegistrationService, $interfaceToCallRegistry, $decisionBoundaryMethods);
+
+        return new self($decisionModelClasses, $rawDefinitions, $appendEligibleMethods, $decisionBoundaryMethods);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -136,6 +141,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                 Reference::to(EventMapper::class),
                 Reference::to(EcotoneClockInterface::class),
                 Reference::to(EventBus::class),
+                $this->decisionBoundaryMethods,
             ]),
         );
 
@@ -155,9 +161,10 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
     }
 
     /**
+     * @param array<string, string> $decisionBoundaryMethods
      * @return array<array{class: class-string, method: string}>
      */
-    private static function findAppendEligibleMethods(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    private static function findAppendEligibleMethods(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry, array $decisionBoundaryMethods): array
     {
         $pairs = [];
         foreach ([CommandHandler::class, EventHandler::class] as $handlerAnnotationClass) {
@@ -166,6 +173,11 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                 $methodName = $annotatedMethod->getMethodName();
 
                 if ((new ReflectionClass($className))->getAttributes(Aggregate::class, ReflectionAttribute::IS_INSTANCEOF) !== []) {
+                    continue;
+                }
+
+                if (isset($decisionBoundaryMethods[$className . '::' . $methodName])) {
+                    $pairs[] = ['class' => $className, 'method' => $methodName];
                     continue;
                 }
 
@@ -186,5 +198,47 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         }
 
         return $pairs;
+    }
+
+    /**
+     * @return array<string, string> keyed by "Class::method" (the target handler), value is the boundary method name
+     */
+    private static function findDecisionBoundaryMethods(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    {
+        $boundariesByClass = [];
+        foreach ($annotationFinder->findAnnotatedMethods(DecisionBoundary::class) as $annotatedMethod) {
+            $className = $annotatedMethod->getClassName();
+            $boundaryMethodName = $annotatedMethod->getMethodName();
+
+            $boundaryInterfaceToCall = $interfaceToCallRegistry->getFor($className, $boundaryMethodName);
+            $firstParameterTypeHint = $boundaryInterfaceToCall->getInterfaceParameterAmount() > 0
+                ? $boundaryInterfaceToCall->getFirstParameter()->getTypeHint()
+                : null;
+
+            $boundariesByClass[$className][$firstParameterTypeHint] = $boundaryMethodName;
+        }
+
+        $decisionBoundaryMethods = [];
+        foreach ([CommandHandler::class, EventHandler::class] as $handlerAnnotationClass) {
+            foreach ($annotationFinder->findAnnotatedMethods($handlerAnnotationClass) as $annotatedMethod) {
+                $className = $annotatedMethod->getClassName();
+                $methodName = $annotatedMethod->getMethodName();
+
+                if (! isset($boundariesByClass[$className])) {
+                    continue;
+                }
+
+                $interfaceToCall = $interfaceToCallRegistry->getFor($className, $methodName);
+                $firstParameterTypeHint = $interfaceToCall->getInterfaceParameterAmount() > 0
+                    ? $interfaceToCall->getFirstParameter()->getTypeHint()
+                    : null;
+
+                if (isset($boundariesByClass[$className][$firstParameterTypeHint])) {
+                    $decisionBoundaryMethods[$className . '::' . $methodName] = $boundariesByClass[$className][$firstParameterTypeHint];
+                }
+            }
+        }
+
+        return $decisionBoundaryMethods;
     }
 }

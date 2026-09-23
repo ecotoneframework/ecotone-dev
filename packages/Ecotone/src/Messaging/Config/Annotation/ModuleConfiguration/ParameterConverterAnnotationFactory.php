@@ -29,6 +29,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadExpressio
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Modelling\DecisionModel\DecisionModelConverterBuilder;
+use Ecotone\Modelling\DecisionModel\DecisionModelReflection;
 
 /**
  * Class ParameterConverterAnnotationFactory
@@ -139,6 +141,10 @@ class ParameterConverterAnnotationFactory
                         : null,
                 );
             }
+        }
+
+        if ($interfaceParameter->isClassOrInterface() && DecisionModelReflection::isDecisionModel($interfaceParameter->getTypeHint())) {
+            return DecisionModelConverterBuilder::create($interfaceParameter);
         }
 
         return $interfaceParameter->isMessage() ? MessageConverterBuilder::create($interfaceParameter->getName()) : null;

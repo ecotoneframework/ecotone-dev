@@ -85,18 +85,17 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
     {
         $this->createSchema();
 
-        $connection = $this->getConnection();
         $tableName = $this->getTableName();
         $query = <<<SQL
             SELECT last_position, user_state, metadata FROM {$tableName}
             WHERE projection_name = :projectionName AND partition_key = :partitionKey
             SQL;
 
-        if ($lock && ! $connection->getDatabasePlatform() instanceof SQLitePlatform) {
+        if ($lock && ! $this->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             $query .= ' FOR UPDATE';
         }
 
-        $row = $connection->fetchAssociative($query, [
+        $row = $this->getConnection()->fetchAssociative($query, [
             'projectionName' => $projectionName,
             'partitionKey' => $partitionKey ?? '',
         ]);

@@ -214,7 +214,14 @@ CREATE TABLE ecotone_event_tag_coverage (
 ```
 
 MySQL / MariaDB: identical shape, `ENGINE=InnoDB ROW_FORMAT=DYNAMIC`, **`COLLATE utf8mb4_bin`** — the server
-default `utf8mb4_0900_ai_ci` would merge `course:ABC` with `course:abc`. Worst-case primary key is
+default `utf8mb4_0900_ai_ci` would merge `course:ABC` with `course:abc`. SQLite (supported engine, maintainer
+2026-09-23): identical shape, `TEXT`/`INTEGER`, default `BINARY` collation (byte-exact, no PAD SPACE); needs
+3.24+ for `ON CONFLICT DO UPDATE` and 3.35+ for `RETURNING`. There is **no SQLite stream schema today** — the
+store has Postgres, MySQL and MariaDB classes only — so a `SqliteEventStreamSchema` (`no INTEGER PRIMARY KEY
+AUTOINCREMENT`, expression indexes over `json_extract(metadata, '$._aggregate_id')` …) is a prerequisite that
+this plan adds to task 3. SQLite serialises writers, so the guarded `UPDATE` never blocks — a loser gets 0 rows
+immediately — and lock contention cannot be tested there; `busy_timeout` must be set or a second connection sees
+`SQLITE_BUSY`, which is mapped to `ConcurrencyException` like the other engines' lock errors. Worst-case primary key is
 400 + 1020 + 512 + 8 bytes, inside InnoDB's 3072-byte limit and PostgreSQL's btree tuple limit.
 
 - **One pair per connection; counters are not keyed by stream.** On 1.x every aggregate type lives in its own
@@ -890,15 +897,16 @@ no index entries, so untagged aggregates pay nothing). Compared honestly:
 | Read, PostgreSQL | PK range scan + join | `metadata->'_tags' @> '{"coupon":["SUMMER24"]}'` on a GIN index — good |
 | Read, MySQL | same | multi-valued index over `CAST(metadata->'$._tags' AS CHAR ARRAY)` + `MEMBER OF` — **8.0.17+ only** |
 | Read, MariaDB | same | **no multi-valued JSON index exists** → full scan of the stream table per decision |
+| Read, SQLite | same | **no indexable containment on JSON arrays** (`json_each` cannot use an index) → full scan |
 | Backfill (1.x history, tags added later) | INSERT only; event rows untouched | **`UPDATE` of every matching event row** — rewrites immutable events, a full tuple copy per row on PostgreSQL (bloat, TOAST churn, GIN rebuild); tens of millions of rows |
 | Cross-stream models (§4.5a) | one query, discovers streams from data | one query **per declared stream table**, union in PHP; per-tag order needs `_tag_versions` in `metadata` too |
 | Stream table | untouched | new expression index on the hottest table, incl. legacy `_<sha1>` tables (allowed by constraint 4, but each is a separate DDL) |
 | Cleanup on `delete()` | one DELETE | none needed |
 
-**Verdict: keep the side table.** MariaDB cannot serve the read at all, the backfill would rewrite immutable event
-rows, and cross-stream reads become N queries. The register table is the concurrency mechanism in both designs and
-is identical. If MariaDB were dropped as a target and PostgreSQL were the only engine that mattered, tags-in-
-metadata would be the leaner choice; that is a product decision, recorded as Open Decision 8.
+**Verdict: keep the side table — decided 2026-09-23.** MariaDB and SQLite cannot serve the read at all, the
+backfill would rewrite immutable event rows, and cross-stream reads become N queries. The register table is the
+concurrency mechanism in both designs and is identical. The maintainer confirmed SQLite as a supported engine,
+which closes the question (Open Decision 8).
 
 **The honest cost against constraint 1.** The only lock is the row lock the write itself takes, held to commit —
 the same *kind* of lock today's unique-index insert takes. But not the same *reach*: today a writer waits only on a
@@ -1083,7 +1091,7 @@ it filters by event name and aggregate type, does not depend on tags or on a lic
 | 3 | **Coverage guard on by default.** | Yes. The alternative is a silent wrong decision. Cost: one deploy step when tags change on recorded events |
 | 4 | **Automatic retry** through the existing instant-retry interceptor, no new attribute parameter. | Yes |
 | 5 | **Names**: `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`; `#[Fetch]` reused for explicit tag mapping. | `EventTag` over `Tag` (self-describing; `Tag` collides with Symfony and OpenAPI attributes; Axon and patchlevel use it). `EventCriteria` over `EventQuery` ("query" already means a CQRS message here). `#[MatchingTags]` is gone |
-| 8 | **Tag index as a side table vs. tags in `metadata` with a JSON index.** | Side table, because of MariaDB (no JSON multi-valued index), the backfill (never rewrite event rows) and cross-stream reads — §4.5. Revisit only if MariaDB stops being a supported engine |
+| ~~8~~ | ~~Tag index as a side table vs. tags in `metadata`~~ | **Decided 2026-09-23: side table.** SQLite is a supported engine and, like MariaDB, cannot index JSON array membership |
 | 7 | **A returned array from a service handler that injects a model is appended as events.** Today a service handler's return goes to the reply/output channel. | Yes — the model parameter is the explicit opt-in, and a marker attribute would be boilerplate on every handler. `outputChannelName` + injected model is a bootstrap error. The cost: such a command handler cannot also return a value to its caller, as with event-sourced aggregates |
 | 6 | **Filter-only tags** declared per key in `EventSourcingConfiguration`, in the first cut. | Yes — the Architect wanted it in the first cut, the Tech Lead wanted it per key not per usage; this is both |
 
@@ -1104,7 +1112,7 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
    store so a model can see aggregate facts in core-only tests. Tests: OR and AND criteria; type filter; an event
    matching two criteria is returned once; conditional append succeeds/fails; an unconditional `appendTo`
    invalidates a held condition; a disjoint tag does not; `delete()` clears the index.
-3. **PdoEventSourcing — schema.** Tag schema classes per platform, table manager under its own `event_tags`
+3. **PdoEventSourcing — schema.** A `SqliteEventStreamSchema` for the stream table first (none exists), then tag schema classes for all four platforms, table manager under its own `event_tags`
    feature with `isUsed()` true only when tags are declared, §8 behaviour, per-tenant ensure. Tests: an
    application with no `#[EventTag]` lists and creates no tag tables; with tags, setup creates and lists all three
    and prints them with `--sql`;
@@ -1115,7 +1123,8 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
    `delete()` cleanup. Tests on PostgreSQL, MySQL, MariaDB, inspecting the tables directly: tagged aggregate
    events; untagged aggregates write nothing; works under `#[WithoutDatabaseTransaction]` and rolls back whole.
 5. **PdoEventSourcing — `load(criteria)` and conditional append. The riskiest task** — it must prove real
-   concurrency on three engines, which no in-memory test can. Two-connection tests: conflict on an existing
+   concurrency on PostgreSQL, MySQL and MariaDB (SQLite serialises writers, so it can only prove the 0-rows path
+   and `SQLITE_BUSY` mapping), which no in-memory test can. Two-connection tests: conflict on an existing
    counter; conflict on a never-written tag; loser wrote nothing and burned no `no`; rollback lets the waiter
    succeed; opposite-order multi-tag appends do not deadlock; aggregate save `{A,B}` vs. model on `{B}` do not
    deadlock; the InnoDB own-bump snapshot hazard throws; deadlock and lock-timeout codes surface as
@@ -1197,4 +1206,5 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-21 | Cross-stream models ordered by a per-tag `tag_version` stored in the index, not by `created_at`; cross-connection models rejected at bootstrap | Claude, answering the maintainer's question | `created_at` is application-assigned and coarse; the counter is already a commit-ordered per-tag sequence across streams, so exact order costs one column |
 | 2026-09-21 | The tag index is insert-only; the per-tag counter is updated in place rather than being an insert-only unique key like the aggregate version | Claude, answering the maintainer's question | Writers with no condition have no expected version: insert-only makes them race for `MAX + 1` (transaction abort on PostgreSQL, gap-lock deadlock on InnoDB); `version = version + 1` cannot fail. Lock reach and duration are identical either way |
 | 2026-09-23 | Guarded in-place `UPDATE` confirmed as the locking mechanism; per-event index rows kept for the read side (vs. tags in `metadata`) | Claude, answering the maintainer | MariaDB has no way to index JSON array membership; backfill must not rewrite event rows; cross-stream discovery. Open Decision 8 |
-| — | Part 5, decisions 2–8 | **open** | |
+| 2026-09-23 | **SQLite is a supported engine**; tag index stays a side table | **Maintainer** / follows | SQLite cannot index JSON array membership either; a SQLite stream schema becomes a prerequisite (task 3) |
+| — | Part 5, decisions 2–7 | **open** | |

@@ -1137,7 +1137,7 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
    invalidates a held condition; a disjoint tag does not; `delete()` clears the index.
 3. **PdoEventSourcing — schema.** A `SqliteEventStreamSchema` for the stream table first (none exists), then tag schema classes for all four platforms, table manager under its own `event_tags`
    feature with `isUsed()` true only when tags are declared, §8 behaviour, per-tenant ensure. Tests: an
-   application with no `#[EventTag]` lists and creates no tag tables; with tags, setup creates and lists all three
+   application with no `#[EventTag]` lists and creates no tag tables; with tags, setup creates and lists both
    and prints them with `--sql`;
    missing table → `ConfigurationException` naming the command; `utf8mb4_bin` keeps `ABC` ≠ `abc`.
 4. **PdoEventSourcing — every `appendTo` bumps counters and writes index rows.** First test: with no tags

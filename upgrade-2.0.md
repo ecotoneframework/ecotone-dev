@@ -158,8 +158,9 @@ table**. Aggregates that do not say otherwise all write to a single table, `ecot
 `no` sequence. There is no `event_streams` catalogue and no sha1 hashing. `Prooph\*` classes are no longer available and
 `prooph/pdo-event-store` (with `prooph/event-store` and `prooph/common`) is no longer a dependency.
 
-Tags, `AppendCondition` and Dynamic Consistency Boundary querying are **planned** on top of this layout; they are not
-part of 2.0 as shipped — see §16.
+Tags, `AppendCondition` and Dynamic Consistency Boundary querying are built on top of this layout — see the DCB
+subsection below. The DBAL-backed persistence for tags (the side tables, backfill and verify-schema commands) is a
+separate, still-in-progress unit — see §16.
 
 **How to adapt:**
 
@@ -246,6 +247,151 @@ CREATE INDEX ... ON ecotone_event_stream
 
 The unique index is what enforces optimistic concurrency; rows without aggregate metadata do not collide because NULLs
 are distinct on all three engines.
+
+### Dynamic Consistency Boundary (DCB) — decision models, Enterprise
+
+**Before:** No cross-aggregate consistency mechanism existed; enforcing an invariant that spans more than one
+aggregate instance (a coupon redemption limit, a unique username) meant either a saga with compensating actions or a
+pessimistic lock outside Ecotone's control.
+
+**Now:** Events tagged with `#[EventTag]` are indexed by tag, and small reusable **decision model** classes — folded
+on demand from the events matching a tag, like an aggregate but keyed by tag instead of identity — can be injected
+into `#[CommandHandler]`/`#[EventHandler]`/`#[QueryHandler]` methods, on service classes and
+`#[EventSourcingAggregate]`s alike. The framework captures every injected model's tag version before folding it, and
+appends the handler's returned events only if none of those versions moved since — a
+`DecisionModelConcurrencyException` (extends `ConcurrencyException`) otherwise. This is entirely additive: an
+application with no `#[EventTag]` sees no behaviour change, no new tables, and the append path stays today's single
+`INSERT`.
+
+**Retry — read this before using decision models.** A `DecisionModelConcurrencyException` always means *the command
+should run again*; nothing retries it automatically. Configure retry explicitly:
+
+```php
+#[ServiceContext]
+public function retry(): InstantRetryConfiguration
+{
+    return InstantRetryConfiguration::createWithDefaults()
+        ->withCommandBusRetry(true, 3, [DecisionModelConcurrencyException::class]);
+}
+```
+
+or, Enterprise, on a custom command bus interface:
+
+```php
+#[InstantRetry(retryTimes: 3, exceptions: [DecisionModelConcurrencyException::class])]
+interface MyCommandBus extends CommandBus {}
+```
+
+Without retry configured, a conflict surfaces to the caller as a technical exception naming the tag and the captured
+vs. current version — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
+fires inside an already-open database transaction; that transaction is already unsafe to continue.
+
+**How to adapt:**
+
+- Tag an event: promoted constructor parameter, property, method (for a computed/hashed value), or class-level with
+  a literal `value:` (for a decision with no natural entity):
+
+  ```php
+  final readonly class StudentSubscribedToCourse
+  {
+      public function __construct(
+          #[EventTag('course')]  public string $courseId,
+          #[EventTag('student')] public string $studentId,
+      ) {}
+  }
+  ```
+
+  The same key may repeat across properties (a transfer's two accounts) and a property may be an array of scalars
+  (each value indexed separately). Values are scalar, `Stringable`, or arrays of those; `null` means no tag.
+- Declare a decision model with `#[DecisionModel]` and fold it with `#[EventSourcingHandler]`, exactly like an
+  aggregate, with a public no-argument constructor:
+
+  ```php
+  #[DecisionModel]                        // tag names default to the intersection of handled events' own tags
+  final class CourseCapacity
+  {
+      private int $capacity = 0;
+      private int $seatsTaken = 0;
+
+      #[EventSourcingHandler]
+      public function defined(CourseDefined $event): void { $this->capacity = $event->capacity; }
+
+      #[EventSourcingHandler]
+      public function seatTaken(StudentSubscribedToCourse $event): void { $this->seatsTaken++; }
+
+      public function hasFreeSeat(): bool { return $this->seatsTaken < $this->capacity; }
+  }
+  ```
+
+  Give `tags: [...]` explicitly when the default intersection isn't the question being asked (e.g.
+  `#[DecisionModel(tags: ['student'])]` to scope by student alone). Every event the model handles must carry every
+  one of the model's tag names — a bootstrap `ConfigurationException` otherwise.
+- Inject the model into a handler by type-hint — no attribute needed, the same way an aggregate is loaded:
+
+  ```php
+  #[CommandHandler]
+  public function subscribe(SubscribeStudentToCourse $command, CourseCapacity $course): array
+  {
+      if (! $course->hasFreeSeat()) { throw new CourseIsFull($command->courseId); }
+      return [new StudentSubscribedToCourse($command->courseId, $command->studentId)];
+  }
+  ```
+
+  Tag values come from the message by name: a property carrying `#[EventTag('course')]`, else a property named
+  `course`/`courseId`/`course_id`. A nullable parameter (`?CourseCapacity`) receives `null`, contributing nothing to
+  the boundary, when the value can't be resolved that way; a non-nullable one throws, naming the model and the tag.
+  Use `#[Fetch('payload.fromAccountId')]` for explicit mapping — needed to inject the same model class twice (a
+  transfer's two accounts) or when the property-name convention doesn't apply; a multi-tag model's `#[Fetch]`
+  expression returns a map (`"{'customer': payload.customerId, 'coupon': payload.couponCode}"`).
+  `#[DecisionBoundary]` on a static method of the same class, taking the same command, is the escape hatch for a
+  boundary no model expresses.
+- Only a `#[CommandHandler]`/`#[EventHandler]` that injects a model appends and publishes its returned events;
+  `#[QueryHandler]` replies as always, appending nothing. `return []` is a no-op. `outputChannelName` keeps working
+  on a model-injecting handler: events are appended and published, then forwarded as today.
+- Injected into an `#[EventSourcingAggregate]` command handler, a model adds a *second* guard on the same save —
+  both the aggregate's own version check and the tag condition must pass:
+
+  ```php
+  #[EventSourcingAggregate]
+  final class Order
+  {
+      #[CommandHandler]
+      public static function place(PlaceOrder $command, ?CouponRedemptions $coupon): array
+      {
+          if ($coupon?->isExhausted()) { throw new CouponExhausted(); }
+          return [new OrderPlaced($command->orderId, $command->couponCode)];
+      }
+  }
+  ```
+
+  This is the adoption path for an existing application: an aggregate stays exactly as it is and gains a
+  cross-aggregate invariant by injecting one model.
+- The default stream is `ecotone_event_stream`; `#[Stream]` now also works on the handler *method*, and wins over a
+  class-level `#[Stream]`.
+- A tag that would queue most writers (a low-cardinality key like `tenant` or `region`) should be declared
+  filter-only — indexed for reads, never counted, so it can't become a bottleneck:
+
+  ```php
+  #[ServiceContext]
+  public function eventSourcing(): BaseEventSourcingConfiguration
+  {
+      return BaseEventSourcingConfiguration::withDefaults()->withFilterOnlyTags(['tenant']);
+  }
+  ```
+
+  A decision model scoped by a filter-only tag name is a bootstrap `ConfigurationException`.
+- **Licence.** The whole of DCB — `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `TaggedEventStore`,
+  `EventCriteria`, `AppendCondition` — is Enterprise. Any `#[EventTag]` or `#[DecisionModel]` found without an
+  Enterprise licence is a `LicensingException` at bootstrap, before any message is handled.
+- Without any class, the same machinery is a gateway: `TaggedEventStore::load(EventCriteria::tag('course',
+  $courseId)->ofTypes(...))` returns the matching events and a ready-made `AppendCondition` for
+  `TaggedEventStore::appendTo($stream, $events, $condition)`.
+- **What's shipped today, what isn't yet.** `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
+  `TaggedEventStore`, `EventCriteria`, `AppendCondition`, the licence gate, and the full injection/append/retry
+  mechanism above are implemented and tested against `InMemoryEventStore` — `EcotoneLite::bootstrapFlowTesting()`
+  already exercises real conditional-append semantics, with no database. The DBAL-backed store (the
+  `ecotone_tagged_events` / `ecotone_tag_versions` tables, `ecotone:event-store:backfill-tags`,
+  `ecotone:event-store:verify-schema`) is a separate unit; see §16.
 
 ## 5. Connections: Ecotone classes replace the Enqueue ones (DBAL, AMQP, SQS, Redis)
 
@@ -581,6 +727,13 @@ objects, and gateways/buses alike — lives under `Ecotone\Api`, organized by ki
   `Ecotone\Api\JMSConverter\JMSConverterConfiguration`, `Ecotone\Api\Redis\*`, `Ecotone\Api\Sqs\*`,
   `Ecotone\Api\DataProtection\*`
 
+New classes, not renamed from 1.x, follow the same rules: DCB's attributes (`#[EventTag]`, `#[DecisionModel]`,
+`#[DecisionBoundary]` — cross-cutting modelling vocabulary, same precedent as `#[EventSourcingAggregate]`) are
+`Ecotone\Api\Attribute\*`; its core interfaces and value objects (`TaggedEventStore`, `EventCriteria`,
+`AppendCondition`, `DecisionModelConcurrencyException`) are module-scoped, `Ecotone\Api\EventSourcing\*` — living in
+core (`packages/Ecotone`) even though that namespace is also where `PdoEventSourcing`'s own `Api` classes
+(`EventSourcingConfiguration`, `Stream`) live; Composer merges both packages' directories under the one namespace.
+
 Classes outside `Api` are `@internal` and may change in minor versions. `DistributedServiceMap` and `DistributedBusHeader` (formerly
 `Ecotone\Modelling\Api\Distribution\*`) become `Ecotone\Api\ExtensionObject\DistributedServiceMap` and
 `Ecotone\Api\Gateway\DistributedBusHeader`; `KafkaHeader` (formerly `Ecotone\Kafka\Api\KafkaHeader`) becomes
@@ -842,7 +995,7 @@ normal section with "How to adapt" steps when it ships.
 | Work | What it changes | Design and implementation plan |
 |---|---|---|
 | `#[ServiceContext]`-only configuration (§12) | `ServiceContext` values are actually merged; framework config files keep only bootstrap keys | `docs/superpowers/specs/2026-08-28-servicecontext-only-config-design.md` · research `docs/superpowers/research/servicecontext-only-config/report.md` |
-| DCB — decision models (§4, Enterprise) | `#[EventTag]` on events, `#[DecisionModel]` classes injected into command handlers (services and aggregates), optimistic tag-version conflict detection on top of `ecotone_event_stream` via two side tables (`ecotone_tagged_events`, `ecotone_tag_versions`); `ecotone:event-store:backfill-tags`; store cleanups (no write-lock strategy, one DDL path, no Prooph remnants) | `docs/superpowers/specs/2026-09-20-dcb-design.md` — agreed design, decision log and implementation plan (Part 6). Supersedes `2026-08-22-dcb-event-store-design.md` |
+| DCB — DBAL-backed tag persistence (§4, Enterprise) | The `#[EventTag]`/`#[DecisionModel]`/`#[DecisionBoundary]` injection mechanism itself has **shipped in core** — see the DCB subsection of §4. What's still planned: the DBAL-backed tag tables (`ecotone_tagged_events`, `ecotone_tag_versions`) so tag conflict detection works against a real database (today it is proven against `InMemoryEventStore` only), `ecotone:event-store:backfill-tags`, `ecotone:event-store:verify-schema`, and the store cleanups from Part 4½ (no write-lock strategy, one DDL path, no Prooph remnants) | `docs/superpowers/specs/2026-09-20-dcb-design.md` — agreed design, decision log and implementation plan (Part 6, tasks 0a and 3–5, 9–10). Supersedes `2026-08-22-dcb-event-store-design.md` |
 | Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only; in-memory queue channels provided automatically for `#[Asynchronous]` handlers, still consumed with `run()` | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
 | Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 | `ecotone:describe` introspection | A read-only API and console command that prints how messaging is configured: channels (type, delayable, consumer command), asynchronous endpoints (channel, delay, retry and dead letter), the error channel policy, converters, projections with their commands, and how each handler resolves its aggregate or saga identifier. Answers the question coding agents ask in almost every session without reading configuration files | Not designed yet — to be discussed. Input: agent benchmark findings (catalogue item A6, "How is messaging configured here?") |

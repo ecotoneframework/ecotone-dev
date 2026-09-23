@@ -1,3 +1,5 @@
+> **Superseded** by `2026-09-20-dcb-design.md` (2026-09-23). Kept for the mechanism analysis; its store, migration and API sections describe a Prooph-era store that no longer exists.
+
 # DCB Event Store — 2.0 Design (Group D)
 
 Status: draft — awaiting maintainer approval

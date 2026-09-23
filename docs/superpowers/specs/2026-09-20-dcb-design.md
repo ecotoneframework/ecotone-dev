@@ -1,6 +1,6 @@
 # DCB on `ecotone_event_stream` — 2.0 Design
 
-Status: **in discussion** — solution drafted and reviewed (Architect, Tech Lead, 1.x user); maintainer decisions open in Part 5
+Status: **agreed** (2026-09-23) — every decision in Part 5 is closed; Part 6 is the implementation plan
 Date: 2026-09-20
 Supersedes: `docs/superpowers/specs/2026-08-22-dcb-event-store-design.md` (written before §4 of the upgrade guide shipped)
 Research still valid: `docs/superpowers/research/dcb-event-store/report.md` (prior art and mechanism analysis; its
@@ -204,14 +204,11 @@ CREATE TABLE ecotone_event_tag_versions (
     version    BIGINT       NOT NULL,
     PRIMARY KEY (tag_key, tag_value)
 ) WITH (fillfactor = 70);
-
-CREATE TABLE ecotone_event_tag_coverage (
-    event_name  VARCHAR(255) NOT NULL,
-    tags_hash   CHAR(40)     NOT NULL,
-    covered_at  TIMESTAMP(6) NOT NULL,
-    PRIMARY KEY (event_name, tags_hash)
-);
 ```
+
+*(Final names per Part 4½ #4: `ecotone_tagged_events` with `tag_name`/`stream_name`/`tag_sequence`, and
+`ecotone_tag_versions` with `tag_name`. The DDL above keeps the draft names for continuity with the worked
+examples.)*
 
 MySQL / MariaDB: identical shape, `ENGINE=InnoDB ROW_FORMAT=DYNAMIC`, **`COLLATE utf8mb4_bin`** — the server
 default `utf8mb4_0900_ai_ci` would merge `course:ABC` with `course:abc`. SQLite (supported engine, maintainer
@@ -232,7 +229,6 @@ immediately — and lock contention cannot be tested there; `busy_timeout` must 
 - `stream` is the physical table name. `event_no` is that table's `no`. `tag_version` is the value the tag's counter
   took in the append that wrote the event — a per-tag sequence that is the same across every stream, which is what
   orders a model's events when they come from more than one table (§4.5a). Filter-only tags store 0.
-- `ecotone_event_tag_coverage` is the guard against deciding on an incomplete index (§4.8).
 - **Only tagged events are indexed.** An event whose class declares no `#[EventTag]` — by default, every aggregate
   event in an existing application — writes nothing to either table; aggregates keep loading through their own
   columns and never need their id as a tag. A tagged event writes one index row per tag value. *Estimated, not
@@ -249,7 +245,7 @@ immediately — and lock contention cannot be tested there; `busy_timeout` must 
 - Tag values are validated in PHP before they reach SQL: non-empty, ≤ 255 characters, no trailing whitespace
   (`utf8mb4_bin` is PAD SPACE — `'abc'` equals `'abc '` on MySQL but not on PostgreSQL). Non-strict MySQL would
   otherwise truncate silently and the decision would silently miss events.
-- All three tables register with `ecotone:migration:database:setup` under their **own feature, `event_tags`**,
+- Both tables register with `ecotone:migration:database:setup` under their **own feature, `event_tags`**,
   whose table manager reports `isUsed()` only when the application declares an `#[EventTag]`. DCB is Enterprise
   (§4.10): an open-core application never sees these tables in its setup output or its database. `--sql` prints
   them for a DBA; they obey §8 and inherit §4's open TODO for non-default connections.
@@ -935,18 +931,18 @@ them across two appends in one transaction, nor InnoDB's three-way duplicate-ins
 tag (the hot path of every uniqueness claim). MySQL 1213/1205, MariaDB 1020, PostgreSQL 40P01/40001 are mapped to
 `ConcurrencyException`. Today only `UniqueConstraintViolationException` is (`DbalEventStore.php:122`).
 
-**Retry.** A `ConcurrencyException` from a decision model always means *run the command again*. The retry must
-wrap the transaction — inside it, InnoDB re-reads the same snapshot forever. Ecotone already has the right piece:
-`InstantRetryInterceptor` sits at precedence −2002, outside the transaction interceptor at −2000, and steps aside
-when already inside a transaction. So: `DecisionModelConcurrencyException extends ConcurrencyException`, and when
-any `#[DecisionModel]` exists and the user has not configured command-bus retry, that interceptor is registered on
-`CommandBus` for this exception only, three attempts. Tuning stays in `InstantRetryConfiguration`. A decision-model
-command sent from *inside* another message's transaction is not retried — the exception surfaces and the outer
-message fails, because on PostgreSQL the outer transaction cannot be continued anyway. Asynchronous endpoints
-already retry three times by default.
+**Retry — configured by the user, not by the framework (maintainer, 2026-09-23).** A
+`DecisionModelConcurrencyException extends ConcurrencyException` always means *run the command again*, and the
+retry must wrap the transaction — inside it, InnoDB re-reads the same snapshot forever and PostgreSQL's transaction
+is already aborted. Ecotone's existing pieces are the right ones and sit in the right place:
+`InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 3, [DecisionModelConcurrencyException::class])`
+or Enterprise `#[InstantRetry]` on the bus; both run at precedence −2002, outside the transaction interceptor at
+−2000. Nothing is registered automatically. The docs must carry this in the first paragraph of the DCB page,
+because under any contention an unretried decision model surfaces a technical exception where the user expects a
+business answer. Asynchronous endpoints already retry three times by default.
 
-**What the user sees** on exhaustion: the model class, the tag `key:value`, captured vs. current version, attempts
-made — not a database error string. Each retry logs at info.
+**What the user sees** on a conflict: the model class, the tag `name:value`, captured vs. current version — not a
+database error string.
 
 **Known over-approximation.** Counters are per tag, not per tag-and-type. A multi-tag model (an AND criterion) is
 guarded by one of its tags — the first declared, so declare the most selective first. When a handler injects
@@ -996,7 +992,7 @@ between while still listing it as a gap.)
 | 3 | on 1.x, **rarely** | Relax a 1.x table — see below | only permits more | until the first aggregate-less row |
 | 4 | | Deploy 2.0 to **every** node | | redeploy 1.x |
 | 5 | on 2.0 | Release adding `#[EventTag]` to events; deploy to every node | | |
-| 6 | on 2.0 | `ecotone:event-store:backfill-tags` | | re-runnable |
+| 6 | on 2.0 | `ecotone:event-store:backfill-tags`, and **wait for it to finish** | | re-runnable |
 | 7 | on 2.0 | Release adding the `#[DecisionModel]` | | |
 
 **Step 3 is only for a 1.x table a decision model *writes into*.** Because boundaries span streams, a model can
@@ -1021,30 +1017,28 @@ it prints the exact `ALTER`. `--sql` emits the statements for a DBA.
 **Mixed writers are unsupported on tagged events.** A 1.x node — or a 2.0 node running code from before an
 `#[EventTag]` was added — appends without index rows or counter bumps, and a decision model would approve what it
 should reject. That is why the release order above separates *every node on 2.0* → *tags* → *backfill* → *model*,
-and why the guard in §4.8 exists: the rule is enforced, not just written down. Rolling code back to 1.x after
-decision models ran means re-running the backfill before rolling forward.
+It is an operator rule, documented in the upgrade guide and the DCB page, **not enforced at runtime**
+(maintainer, 2026-09-23): the user completes the backfill, then starts using decision models. Rolling code back to
+1.x after decision models ran means re-running the backfill before rolling forward.
 
-### 4.8 The coverage guard and the backfill
+### 4.8 The backfill
 
 Events recorded before their class declared its current tags — every 1.x event, and any event tagged later — have
-no index rows. A model deciding on them reads too little and approves wrongly, **silently**. So:
+no index rows, and a model deciding on them would read too little. The user runs the backfill and starts using
+decision models once it has completed. There is no runtime guard and no coverage table (maintainer, 2026-09-23:
+the framework does not track backfill state; a Part 7 recommendation for a guard was declined).
 
-- `ecotone_event_tag_coverage` holds one row per `(event_name, hash of the class's tag declaration)`, written when
-  the index is known complete for that pair.
-- A decision model checks, once per process, that every event type in its boundary has a current row. If not it
-  throws a `ConfigurationException` naming the event and the command. Changing a class's `#[EventTag]`s changes the
-  hash and trips the guard again — the "a year from now" case.
-- With automatic table initialization (tests, dev) the backfill runs implicitly on a miss. In production it is a
-  deploy step.
-
-`ecotone:event-store:backfill-tags [--stream=] [--event=] [--batch-size=500] [--sleep-ms=] [--dry-run]`:
-walks each stream by `no`; per batch, in **one transaction**, bumps the affected counters in sorted order and
-inserts the missing index rows (idempotent on the primary key) — the bump invalidates any in-flight decision, and
-small batches keep hot counters held briefly. Progress is persisted per stream, so it resumes. It stops behind the
-gap-aware horizon and finishes with a second pass, because a lower `no` can commit after the cursor passed it —
-the same problem projections have. A payload that no longer deserializes is reported with its `no` and skipped only
-under `--skip-undeserializable`. Coverage rows are written last. There is no index on `event_name`, so a large
-stream is a full scan: hours on tens of millions of rows, once.
+`ecotone:event-store:backfill-tags [--stream=] [--event=] [--batch-size=500] [--dry-run]` follows the shape of the
+projection backfill (`ProjectingConsoleCommands::backfillProjection` → `ProjectingManager::prepareBackfill()`): a
+`#[ConsoleCommand]` that splits the work into batches, executed synchronously by default or handed to an
+asynchronous channel when one is configured (`EventSourcingConfiguration::withTagBackfillChannel('backfill')`,
+mirroring `#[ProjectionBackfill(asyncChannelName:)]`), so a large stream is processed by workers rather than one
+console process. Per batch, in one transaction: walk the stream by `no`, deserialize events whose class declares
+tags, bump the affected counters in sorted order and insert the missing index rows (idempotent on the primary key,
+so re-running is safe). `tag_sequence` for backfilled rows is assigned in `(created_at, stream, no)` order. A
+payload that no longer deserializes is reported with its `no` and skipped only under `--skip-undeserializable`.
+Progress is per-batch: the command prints the last `no` processed per stream, and `--from-no=` resumes. There is
+no index on `event_name`, so a large stream is a full scan: hours on tens of millions of rows, once.
 
 ### 4.9 Licence — DCB is Enterprise
 
@@ -1082,6 +1076,8 @@ it filters by event name and aggregate type, does not depend on tags or on a lic
 | Tag-partitioned projections | Follow-up; `tag_version` is the per-tag position they need |
 | Decision-model snapshots | Follow-up; same |
 | An OR *inside* one model (`#[MatchingTags]` from revision 2) | Removed. Two questions are two models; the OR happens where they are injected |
+| Runtime backfill-coverage guard | Declined by the maintainer (2026-09-23); an operator rule instead |
+| Automatic retry registration | Declined by the maintainer (2026-09-23); users configure `InstantRetryConfiguration` / `#[InstantRetry]` |
 | Precise (type-aware) conflict re-check | PostgreSQL only; measure first |
 | SQL-side projection filtering | Enabled by this, specified in §4.6, separate work item |
 
@@ -1102,18 +1098,18 @@ Not DCB, but the maintainer wants the store left clean by the same work. Each is
 | 7 | **`EcotoneLite` integration tests proving the optimistic lock.** | Pattern already in the codebase: `packages/Dbal/tests/Integration/DeduplicationModuleTest.php:141` — two `DbalConnectionFactory`s on one DSN, two `bootstrapFlowTesting` instances, `SET lock_timeout` / `innodb_lock_wait_timeout` on the second so a blocked statement fails fast instead of hanging the test. Plan task 5 adopts it verbatim. | |
 | 8 | **Models declare tag names; `#[EventTag]` only on events.** | §4.4 revision 4. Default = intersection of handled events' tags (not union — reasoning in §4.4). | |
 
-## Part 5 — Open decisions for the maintainer
+## Part 5 — Decisions (all closed 2026-09-23)
 
-| # | Decision | Recommendation |
+| # | Decision | Outcome |
 |---|---|---|
-| 1 | ~~**Licence.**~~ | **Decided 2026-09-21: all of DCB is Enterprise** — §4.9. (My recommendation had been Apache-2.0 for the base layer; overruled, and the design is simpler for it: one gate, and zero change to the open-core append path) |
-| 2 | **Boundaries span streams** (counters keyed by tag only). | Yes. Without it the feature is greenfield-only: 1.x users' invariants span two `_<sha1>` tables by construction. Order across streams is exact per tag via `tag_version` (§4.5a). Cost: one extra column in the index; a tag reused in two unrelated streams shares a counter (spurious retries only); different *connections* remain out of reach and fail at bootstrap |
-| 3 | **Coverage guard on by default.** | Yes. The alternative is a silent wrong decision. Cost: one deploy step when tags change on recorded events |
-| 4 | **Automatic retry** through the existing instant-retry interceptor, no new attribute parameter. | Yes |
-| 5 | **Names**: `#[EventTag]`, `#[DecisionModel(tags:)]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`; `#[Fetch]` reused for explicit tag mapping; tables per Part 4½ #4. | `EventTag` over `Tag` (self-describing; `Tag` collides with Symfony and OpenAPI attributes; Axon and patchlevel use it). `EventCriteria` over `EventQuery` ("query" already means a CQRS message here). `#[MatchingTags]` is gone |
-| ~~8~~ | ~~Tag index as a side table vs. tags in `metadata`~~ | **Decided 2026-09-23: side table.** SQLite is a supported engine and, like MariaDB, cannot index JSON array membership |
-| ~~7~~ | ~~Returned array from a model-injecting handler~~ | **Decided 2026-09-23:** appended as events; all other handlers unchanged; `outputChannelName` still honoured afterwards |
-| 6 | **Filter-only tags** declared per key in `EventSourcingConfiguration`, in the first cut. | Yes — the Architect wanted it in the first cut, the Tech Lead wanted it per key not per usage; this is both |
+| 1 | Licence | **Enterprise**, all of DCB (§4.9) |
+| 2 | Boundaries span streams | **Yes** — counters keyed by tag only (§4.5a) |
+| 3 | Backfill coverage guard | **No guard.** `backfill-tags` command shipped, modelled on the projection backfill; the user waits for completion before enabling decision models (§4.8) |
+| 4 | Automatic retry | **No.** Each user configures retries (`InstantRetryConfiguration` / `#[InstantRetry]`); documented up front (§4.5) |
+| 5 | Names | `#[EventTag]`, `#[DecisionModel(tags:)]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`, `#[Fetch]` for explicit mapping; tables `ecotone_tagged_events`, `ecotone_tag_versions` |
+| 6 | Filter-only tags | **Yes**, per key in `EventSourcingConfiguration::withFilterOnlyTags()` |
+| 7 | Returned array from a model-injecting handler | Appended as events; other handlers unchanged; output channel honoured |
+| 8 | Tag index as side table | **Yes** — MariaDB and SQLite cannot index JSON array membership |
 
 ## Part 6 — Implementation plan
 
@@ -1176,15 +1172,17 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
    command handler** — condition carried through `save()`'s `$metadata`, stripped before persisting. Tests: the
    `Order` + `CouponRedemptions` example — a concurrent redemption fails the save, a concurrent unrelated order
    does not, the aggregate version check still fires independently, partitioned projections still see the events.
-8. **Core — `DecisionModelConcurrencyException` and default command-bus retry.** Tests: injected conflict
-   succeeds on the second pass; exhaustion message contents; no retry inside an outer transaction; the user's
-   `InstantRetryConfiguration` wins.
+8. **Core — `DecisionModelConcurrencyException` and the retry story.** No automatic registration. Tests: with
+   `InstantRetryConfiguration` command-bus retry on that exception, an injected conflict succeeds on the second
+   pass; without it the exception surfaces with model, tag and versions in the message; no retry inside an outer
+   transaction; `#[InstantRetry]` (Enterprise) works the same.
 9. **PdoEventSourcing — decision model end to end on DBAL.** `#[Stream]` on a model; a 1.x-shaped table raising
    the `ConfigurationException` that quotes the `ALTER`; the append-time projection invariant; multi-tenant.
-10. **PdoEventSourcing — coverage guard, `backfill-tags`, `verify-schema`.** Tests: model refuses without
-    coverage; changing a class's tags trips it; backfill is idempotent, resumable, bumps counters so an in-flight
-    condition fails; automatic initialization backfills implicitly; `verify-schema` catches a wrong collation and a
-    missing relaxation.
+10. **PdoEventSourcing — `backfill-tags` and `verify-schema`.** Backfill shaped like `ProjectingManager::
+    prepareBackfill()` (batches; sync or via a configured async channel). Tests: idempotent re-run; `--from-no`
+    resumes; a backfilled batch bumps counters so an in-flight condition fails; `tag_sequence` order for backfilled
+    rows; `--dry-run` counts; undeserializable payload reported; `verify-schema` catches a wrong collation and a
+    missing NOT NULL relaxation.
 11. **Symfony and Laravel smoke tests, docs** — `upgrade-2.0.md` §4/§13/§16, the namespace-map CSV,
     the runbook of §4.7 per engine and layout, a contention guide, the `ecotone-event-sourcing` skill.
 
@@ -1238,4 +1236,4 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-23 | **SQLite is a supported engine**; tag index stays a side table | **Maintainer** / follows | SQLite cannot index JSON array membership either; a SQLite stream schema becomes a prerequisite (task 3) |
 | 2026-09-23 | Eight directives — Part 4½: no Prooph/BSD, one DDL path, no write-lock strategy, new table/column names, licence check, `#[Stream]` on handler methods, two-connection `EcotoneLite` lock tests, **models declare tag names and `#[EventTag]` lives on events only** | **Maintainer** | Default tag names = intersection of handled events' tags (Claude: union would scope `CouponRedemptions` by customer) |
 | 2026-09-23 | One stream schema, aggregate fields always nullable, unique index kept; **stream column names unchanged** — only the new tag tables get new names; only model-injecting handlers append their return, output channel kept | **Maintainer** | Part 4½ #2, #4, #6; closes Open Decision 7. A full stream rename was proposed and withdrawn the same day: one layout for default and legacy tables beats two |
-| — | Part 5, decisions 2–6 | **open** | |
+| 2026-09-23 | Boundaries span streams — yes; no runtime backfill guard, user waits for `backfill-tags`; no automatic retry, users configure it; names and filter-only tags as proposed | **Maintainer** | Closes Part 5. Claude's recommendations on 3 and 4 (guard on by default, retry registered automatically) were declined: the maintainer prefers explicit operator control over framework-enforced safety here — documented loudly instead |

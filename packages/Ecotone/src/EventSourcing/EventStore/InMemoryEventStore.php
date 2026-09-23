@@ -4,14 +4,26 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\EventStore;
 
+use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
+use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Event;
 
+use function array_intersect_key;
+use function array_map;
+use function array_values;
+use function explode;
 use function in_array;
 use function is_array;
+use function is_object;
+use function ksort;
 use function preg_match;
+use function uasort;
 
 /**
  * In-memory implementation of EventStore for testing purposes
@@ -21,6 +33,23 @@ final class InMemoryEventStore implements EventStore
 {
     private array $streams = [];
 
+    /**
+     * @var array<string, array<string, array<array{stream: string, eventNo: int, tagVersion: int}>>>
+     */
+    private array $tagIndex = [];
+
+    /**
+     * @var array<string, int>
+     */
+    private array $tagVersions = [];
+
+    private readonly EventTagRegistry $eventTagRegistry;
+
+    public function __construct(?EventTagRegistry $eventTagRegistry = null)
+    {
+        $this->eventTagRegistry = $eventTagRegistry ?? EventTagRegistry::createEmpty();
+    }
+
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
     {
         if (isset($this->streams[$streamName])) {
@@ -28,26 +57,105 @@ final class InMemoryEventStore implements EventStore
         }
 
         $this->streams[$streamName] = [
-            'events' => $this->convertToEvents($streamEvents),
+            'events' => [],
             'metadata' => $streamMetadata,
         ];
+
+        $this->doAppend($streamName, $streamEvents, null);
     }
 
-    public function appendTo(string $streamName, array $streamEvents): void
+    public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void
     {
         if (! isset($this->streams[$streamName])) {
-            $this->create($streamName, $streamEvents);
-            return;
+            $this->streams[$streamName] = [
+                'events' => [],
+                'metadata' => [],
+            ];
         }
 
-        foreach ($this->convertToEvents($streamEvents) as $event) {
-            $this->streams[$streamName]['events'][] = $event;
+        $this->doAppend($streamName, $streamEvents, $appendCondition);
+    }
+
+    public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents
+    {
+        $capturedTags = [];
+        foreach ($criteria as $criterion) {
+            foreach ($criterion->tags() as $tag) {
+                $key = $this->tagVersionKey($tag['name'], $tag['value']);
+                if (! isset($capturedTags[$key])) {
+                    $capturedTags[$key] = [
+                        'name' => $tag['name'],
+                        'value' => $tag['value'],
+                        'expectedVersion' => $this->currentTagVersion($tag['name'], $tag['value']),
+                    ];
+                }
+            }
         }
+
+        $matched = [];
+        foreach ($criteria as $criterion) {
+            $tags = $criterion->tags();
+            if ($tags === []) {
+                continue;
+            }
+
+            $refSets = null;
+            foreach ($tags as $tag) {
+                $refs = $this->tagIndex[$tag['name']][$tag['value']] ?? [];
+                $keyed = [];
+                foreach ($refs as $ref) {
+                    $keyed[$ref['stream'] . "\0" . $ref['eventNo']] = $ref;
+                }
+
+                $refSets = $refSets === null ? $keyed : array_intersect_key($refSets, $keyed);
+            }
+            $refSets ??= [];
+
+            $primaryTag = $tags[0];
+            $primaryRefsByKey = [];
+            foreach ($this->tagIndex[$primaryTag['name']][$primaryTag['value']] ?? [] as $ref) {
+                $primaryRefsByKey[$ref['stream'] . "\0" . $ref['eventNo']] = $ref;
+            }
+
+            foreach ($refSets as $refKey => $ref) {
+                $event = $this->streams[$ref['stream']]['events'][$ref['eventNo'] - 1] ?? null;
+                if ($event === null || ! $criterion->matchesEventType($event->getEventName())) {
+                    continue;
+                }
+
+                $tagVersion = $primaryRefsByKey[$refKey]['tagVersion'] ?? $ref['tagVersion'];
+
+                if (! isset($matched[$refKey]) || $matched[$refKey]['tagVersion'] > $tagVersion) {
+                    $matched[$refKey] = [
+                        'eventNo' => $ref['eventNo'],
+                        'tagVersion' => $tagVersion,
+                        'event' => $event,
+                    ];
+                }
+            }
+        }
+
+        uasort($matched, static function (array $a, array $b): int {
+            return $a['tagVersion'] <=> $b['tagVersion'] ?: $a['eventNo'] <=> $b['eventNo'];
+        });
+
+        $events = array_values(array_map(static fn (array $match) => $match['event'], $matched));
+
+        return new LoadedEvents($events, AppendCondition::fromCapturedVersions(array_values($capturedTags)));
     }
 
     public function delete(string $streamName): void
     {
         unset($this->streams[$streamName]);
+
+        foreach ($this->tagIndex as $tagName => $tagValues) {
+            foreach ($tagValues as $tagValue => $refs) {
+                $this->tagIndex[$tagName][$tagValue] = array_values(array_filter(
+                    $refs,
+                    static fn (array $ref): bool => $ref['stream'] !== $streamName
+                ));
+            }
+        }
     }
 
     public function hasStream(string $streamName): bool
@@ -62,42 +170,84 @@ final class InMemoryEventStore implements EventStore
         ?MetadataMatcher $metadataMatcher = null,
         bool $deserialize = true
     ): iterable {
-        if ($fromNumber < 1) {
-            throw new InvalidArgumentException('fromNumber must be >= 1');
-        }
+        return $this->loadEvents($streamName, $fromNumber, $count, $metadataMatcher);
+    }
 
-        if ($count !== null && $count < 1) {
-            throw new InvalidArgumentException('count must be >= 1 or null');
-        }
+    /**
+     * @param Event[]|object[]|array[] $streamEvents
+     */
+    private function doAppend(string $streamName, array $streamEvents, ?AppendCondition $appendCondition): void
+    {
+        $events = $this->convertToEvents($streamEvents);
 
-        if (! isset($this->streams[$streamName])) {
-            return [];
-        }
-
-        if ($metadataMatcher === null) {
-            $metadataMatcher = new MetadataMatcher();
-        }
-
-        $found = 0;
-        $result = [];
-
-        foreach ($this->streams[$streamName]['events'] as $key => $event) {
-            $position = $key + 1;
-
-            if ($position >= $fromNumber
-                && $this->matchesMetadata($metadataMatcher, $event->getMetadata())
-                && $this->matchesEventProperty($metadataMatcher, $event)
-            ) {
-                ++$found;
-                $result[] = $event;
-
-                if ($found === $count) {
-                    break;
-                }
+        $perEventTags = [];
+        $tagsInvolved = [];
+        foreach ($events as $event) {
+            $payload = $event->getPayload();
+            $tags = is_object($payload) ? $this->eventTagRegistry->tagsFor($payload) : [];
+            $perEventTags[] = $tags;
+            foreach ($tags as $tag) {
+                $tagsInvolved[$this->tagVersionKey($tag['name'], $tag['value'])] = $tag;
             }
         }
 
-        return $result;
+        if ($appendCondition !== null) {
+            foreach ($appendCondition->expectedTagVersions() as $expected) {
+                $current = $this->currentTagVersion($expected['name'], $expected['value']);
+                if ($current !== $expected['expectedVersion']) {
+                    throw DecisionModelConcurrencyException::forConflict(
+                        $expected['name'],
+                        $expected['value'],
+                        $expected['expectedVersion'],
+                        $current,
+                    );
+                }
+
+                $tagsInvolved[$this->tagVersionKey($expected['name'], $expected['value'])] = [
+                    'name' => $expected['name'],
+                    'value' => $expected['value'],
+                ];
+            }
+        }
+
+        ksort($tagsInvolved);
+        $newVersions = [];
+        foreach ($tagsInvolved as $key => $tag) {
+            $newVersions[$key] = $this->bumpTagVersion($tag['name'], $tag['value']);
+        }
+
+        $startingIndex = count($this->streams[$streamName]['events']);
+        foreach ($events as $i => $event) {
+            $this->streams[$streamName]['events'][] = $event;
+            $eventNo = $startingIndex + $i + 1;
+
+            foreach ($perEventTags[$i] as $tag) {
+                $key = $this->tagVersionKey($tag['name'], $tag['value']);
+                $this->tagIndex[$tag['name']][$tag['value']][] = [
+                    'stream' => $streamName,
+                    'eventNo' => $eventNo,
+                    'tagVersion' => $newVersions[$key],
+                ];
+            }
+        }
+    }
+
+    private function tagVersionKey(string $name, string $value): string
+    {
+        return $name . "\0" . $value;
+    }
+
+    private function currentTagVersion(string $name, string $value): int
+    {
+        return $this->tagVersions[$this->tagVersionKey($name, $value)] ?? 0;
+    }
+
+    private function bumpTagVersion(string $name, string $value): int
+    {
+        $key = $this->tagVersionKey($name, $value);
+        $this->tagVersions[$key] = ($this->tagVersions[$key] ?? 0) + 1;
+
+        return $this->tagVersions[$key];
     }
 
     public function loadReverse(
@@ -184,6 +334,50 @@ final class InMemoryEventStore implements EventStore
                 $result[] = Event::create($event);
             }
         }
+        return $result;
+    }
+
+    private function loadEvents(
+        string $streamName,
+        int $fromNumber = 1,
+        ?int $count = null,
+        ?MetadataMatcher $metadataMatcher = null,
+    ): iterable {
+        if ($fromNumber < 1) {
+            throw new InvalidArgumentException('fromNumber must be >= 1');
+        }
+
+        if ($count !== null && $count < 1) {
+            throw new InvalidArgumentException('count must be >= 1 or null');
+        }
+
+        if (! isset($this->streams[$streamName])) {
+            return [];
+        }
+
+        if ($metadataMatcher === null) {
+            $metadataMatcher = new MetadataMatcher();
+        }
+
+        $found = 0;
+        $result = [];
+
+        foreach ($this->streams[$streamName]['events'] as $key => $event) {
+            $position = $key + 1;
+
+            if ($position >= $fromNumber
+                && $this->matchesMetadata($metadataMatcher, $event->getMetadata())
+                && $this->matchesEventProperty($metadataMatcher, $event)
+            ) {
+                ++$found;
+                $result[] = $event;
+
+                if ($found === $count) {
+                    break;
+                }
+            }
+        }
+
         return $result;
     }
 

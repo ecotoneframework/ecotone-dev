@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
+use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
@@ -19,6 +20,8 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
+use Ecotone\EventSourcing\EventStore\InMemoryTaggedEventStore;
+use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -436,12 +439,17 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             // Register InMemoryEventStore as the primary definition
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class),
+                new Definition(InMemoryEventStore::class, [new Reference(EventTagRegistry::class)]),
             );
             // Register EventStore as a reference to InMemoryEventStore (same instance)
             $messagingConfiguration->registerServiceDefinition(
                 EventStore::class,
                 new Reference(InMemoryEventStore::class),
+            );
+            // Register TaggedEventStore as an adapter sharing the InMemoryEventStore instance
+            $messagingConfiguration->registerServiceDefinition(
+                TaggedEventStore::class,
+                new Definition(InMemoryTaggedEventStore::class, [new Reference(InMemoryEventStore::class)]),
             );
             $registerInMemoryEventStoreStreamSource = true;
         } else {

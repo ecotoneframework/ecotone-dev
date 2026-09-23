@@ -9,7 +9,7 @@ use Ecotone\Messaging\MessagingException;
 /**
  * licence Apache-2.0
  */
-final class ConcurrencyException extends MessagingException
+class ConcurrencyException extends MessagingException
 {
     protected static function errorCode(): int
     {

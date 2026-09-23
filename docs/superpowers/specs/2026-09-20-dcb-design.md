@@ -875,6 +875,31 @@ no more "pessimistic" than the aggregate's unique index. The one real cost is Po
 leaves a dead tuple. `version` is not indexed, so these are HOT updates, `fillfactor = 70` leaves room for them on
 the page, and autovacuum reclaims them — and the table is tiny.
 
+**Alternative reviewed (maintainer, 2026-09-23): drop the per-event index rows, keep only the guarded `UPDATE`.**
+The guarded `UPDATE … WHERE version = :captured → 0 rows = conflict` *is* the design's locking mechanism, and it
+already creates no row per action: `ecotone_event_tag_versions` has one row per tag value, updated in place. The
+per-event rows are in the *other* table, and they exist for the read side only — the store has to find the events
+a model folds. Removing them means storing tags on the event row instead, in `metadata` (`_tags: {coupon:
+[SUMMER24], customer: [alice]}`), indexed by an expression index on `metadata->'_tags'` (rows without tags produce
+no index entries, so untagged aggregates pay nothing). Compared honestly:
+
+| | Side table (current) | Tags in `metadata` + JSON index |
+|---|---|---|
+| Storage | ~220 B per tag per event (PostgreSQL) | Smaller — GIN posting lists are compact; no `stream`/`event_no` duplication |
+| Write | one multi-row INSERT per append | nothing extra — `metadata` is written anyway; GIN maintenance per insert |
+| Read, PostgreSQL | PK range scan + join | `metadata->'_tags' @> '{"coupon":["SUMMER24"]}'` on a GIN index — good |
+| Read, MySQL | same | multi-valued index over `CAST(metadata->'$._tags' AS CHAR ARRAY)` + `MEMBER OF` — **8.0.17+ only** |
+| Read, MariaDB | same | **no multi-valued JSON index exists** → full scan of the stream table per decision |
+| Backfill (1.x history, tags added later) | INSERT only; event rows untouched | **`UPDATE` of every matching event row** — rewrites immutable events, a full tuple copy per row on PostgreSQL (bloat, TOAST churn, GIN rebuild); tens of millions of rows |
+| Cross-stream models (§4.5a) | one query, discovers streams from data | one query **per declared stream table**, union in PHP; per-tag order needs `_tag_versions` in `metadata` too |
+| Stream table | untouched | new expression index on the hottest table, incl. legacy `_<sha1>` tables (allowed by constraint 4, but each is a separate DDL) |
+| Cleanup on `delete()` | one DELETE | none needed |
+
+**Verdict: keep the side table.** MariaDB cannot serve the read at all, the backfill would rewrite immutable event
+rows, and cross-stream reads become N queries. The register table is the concurrency mechanism in both designs and
+is identical. If MariaDB were dropped as a target and PostgreSQL were the only engine that mattered, tags-in-
+metadata would be the leaner choice; that is a product decision, recorded as Open Decision 8.
+
 **The honest cost against constraint 1.** The only lock is the row lock the write itself takes, held to commit —
 the same *kind* of lock today's unique-index insert takes. But not the same *reach*: today a writer waits only on a
 writer of the identical `(type, id, version)` — one it truly conflicts with. A counter also queues **unconditional**
@@ -1058,6 +1083,7 @@ it filters by event name and aggregate type, does not depend on tags or on a lic
 | 3 | **Coverage guard on by default.** | Yes. The alternative is a silent wrong decision. Cost: one deploy step when tags change on recorded events |
 | 4 | **Automatic retry** through the existing instant-retry interceptor, no new attribute parameter. | Yes |
 | 5 | **Names**: `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`; `#[Fetch]` reused for explicit tag mapping. | `EventTag` over `Tag` (self-describing; `Tag` collides with Symfony and OpenAPI attributes; Axon and patchlevel use it). `EventCriteria` over `EventQuery` ("query" already means a CQRS message here). `#[MatchingTags]` is gone |
+| 8 | **Tag index as a side table vs. tags in `metadata` with a JSON index.** | Side table, because of MariaDB (no JSON multi-valued index), the backfill (never rewrite event rows) and cross-stream reads — §4.5. Revisit only if MariaDB stops being a supported engine |
 | 7 | **A returned array from a service handler that injects a model is appended as events.** Today a service handler's return goes to the reply/output channel. | Yes — the model parameter is the explicit opt-in, and a marker attribute would be boilerplate on every handler. `outputChannelName` + injected model is a bootstrap error. The cost: such a command handler cannot also return a value to its caller, as with event-sourced aggregates |
 | 6 | **Filter-only tags** declared per key in `EventSourcingConfiguration`, in the first cut. | Yes — the Architect wanted it in the first cut, the Tech Lead wanted it per key not per usage; this is both |
 
@@ -1170,4 +1196,5 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-21 | **A decision model is a standalone reusable class, injected into message handlers; consistency covers whatever a handler injects** | **Maintainer** | Reuse across handlers without duplicating folds. Falls out better than revision 2: one model = one criterion, handler = OR of its models, so `#[MatchingTags]` and the per-handler-boundary machinery disappear; and injecting a model into an aggregate handler gives existing applications an adoption path without touching constraint 2 |
 | 2026-09-21 | Cross-stream models ordered by a per-tag `tag_version` stored in the index, not by `created_at`; cross-connection models rejected at bootstrap | Claude, answering the maintainer's question | `created_at` is application-assigned and coarse; the counter is already a commit-ordered per-tag sequence across streams, so exact order costs one column |
 | 2026-09-21 | The tag index is insert-only; the per-tag counter is updated in place rather than being an insert-only unique key like the aggregate version | Claude, answering the maintainer's question | Writers with no condition have no expected version: insert-only makes them race for `MAX + 1` (transaction abort on PostgreSQL, gap-lock deadlock on InnoDB); `version = version + 1` cannot fail. Lock reach and duration are identical either way |
-| — | Part 5, decisions 2–7 | **open** | |
+| 2026-09-23 | Guarded in-place `UPDATE` confirmed as the locking mechanism; per-event index rows kept for the read side (vs. tags in `metadata`) | Claude, answering the maintainer | MariaDB has no way to index JSON array membership; backfill must not rewrite event rows; cross-stream discovery. Open Decision 8 |
+| — | Part 5, decisions 2–8 | **open** | |

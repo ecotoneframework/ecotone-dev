@@ -15,11 +15,9 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
 {
     public const INITIALIZE_ON_STARTUP = true;
     public const LOAD_BATCH_SIZE = 1000;
-    public const DEFAULT_ENABLE_WRITE_LOCK_STRATEGY = false;
 
     private bool $initializeEventStoreOnStart = self::INITIALIZE_ON_STARTUP;
     private int $loadBatchSize = self::LOAD_BATCH_SIZE;
-    private bool $enableWriteLockStrategy = self::DEFAULT_ENABLE_WRITE_LOCK_STRATEGY;
     private string $eventStreamTableName = StreamTableRegistry::DEFAULT_STREAM;
     private string $eventStoreReferenceName;
     private string $connectionReferenceName;
@@ -77,13 +75,6 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
         return $this;
     }
 
-    public function withWriteLockStrategy(bool $enableWriteLockStrategy): static
-    {
-        $this->enableWriteLockStrategy = $enableWriteLockStrategy;
-
-        return $this;
-    }
-
     public function withEventStreamTableName(string $eventStreamTableName): static
     {
         $this->eventStreamTableName = $eventStreamTableName;
@@ -99,11 +90,6 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     public function getLoadBatchSize(): int
     {
         return $this->loadBatchSize;
-    }
-
-    public function isWriteLockStrategyEnabled(): bool
-    {
-        return $this->enableWriteLockStrategy;
     }
 
     public function getEventStreamTableName(): string

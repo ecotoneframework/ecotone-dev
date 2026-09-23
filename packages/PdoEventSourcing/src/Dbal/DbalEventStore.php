@@ -11,16 +11,11 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
-use Ecotone\EventSourcing\Dbal\WriteLock\MetadataLockStrategy;
-use Ecotone\EventSourcing\Dbal\WriteLock\NoLockStrategy;
-use Ecotone\EventSourcing\Dbal\WriteLock\PostgresAdvisoryLockStrategy;
-use Ecotone\EventSourcing\Dbal\WriteLock\WriteLockStrategy;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\FieldType;
@@ -44,9 +39,6 @@ use function json_encode;
 
 use Ramsey\Uuid\Uuid;
 
-use function sha1;
-use function substr;
-
 /**
  * licence BSD-3-Clause
  * code comes from https://github.com/prooph/pdo-event-store
@@ -68,7 +60,6 @@ final class DbalEventStore implements EventStore
         private array $connectionFactories,
         private EventSerializer $eventSerializer,
         private int $loadBatchSize,
-        private bool $enableWriteLockStrategy,
         private bool $automaticTableInitialization,
         private ?string $consoleInvocationPrefix = null,
     ) {
@@ -111,18 +102,10 @@ final class DbalEventStore implements EventStore
             }
         }
 
-        $lockStrategy = $this->writeLockStrategyFor($connection);
-        $lockName = '_' . substr(sha1($tableName), 0, 32) . '_write_lock';
-        if (! $lockStrategy->getLock($connection, $lockName)) {
-            throw new ConcurrencyException('Failed to acquire write lock for stream ' . $streamName);
-        }
-
         try {
             $connection->executeStatement($sql, $parameters);
         } catch (UniqueConstraintViolationException $exception) {
             throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
-        } finally {
-            $lockStrategy->releaseLock($connection, $lockName);
         }
     }
 
@@ -334,16 +317,5 @@ final class DbalEventStore implements EventStore
         $context = (new DbalReconnectableConnectionFactory($connectionFactory))->createContext();
 
         return $context->getDbalConnection();
-    }
-
-    private function writeLockStrategyFor(Connection $connection): WriteLockStrategy
-    {
-        if (! $this->enableWriteLockStrategy) {
-            return new NoLockStrategy();
-        }
-
-        return $connection->getDatabasePlatform() instanceof PostgreSQLPlatform
-            ? new PostgresAdvisoryLockStrategy()
-            : new MetadataLockStrategy();
     }
 }

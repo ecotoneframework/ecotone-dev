@@ -509,7 +509,10 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         } catch (RetryableException $exception) {
             throw new ConcurrencyException($exception->getMessage(), 0, $exception);
         } catch (DriverExceptionInterface $exception) {
-            if ($exception->getCode() === 1020) {
+            // MariaDB 1020 (innodb_snapshot_isolation "Record has changed since last read")
+            // and PostgreSQL 55P03 (lock_not_available, from SET lock_timeout) are not mapped
+            // to a typed DBAL exception -- both mean "someone else is holding this row".
+            if ($exception->getCode() === 1020 || $exception->getSQLState() === '55P03') {
                 throw new ConcurrencyException($exception->getMessage(), 0, $exception);
             }
 

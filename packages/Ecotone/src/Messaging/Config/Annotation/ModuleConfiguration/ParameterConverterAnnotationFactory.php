@@ -29,6 +29,8 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadExpressio
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodArgumentsFactory;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Modelling\DecisionModel\DecisionModelConverterBuilder;
+use Ecotone\Modelling\DecisionModel\DecisionModelReflection;
 
 /**
  * Class ParameterConverterAnnotationFactory
@@ -131,14 +133,24 @@ class ParameterConverterAnnotationFactory
                     throw ConfigurationException::create(sprintf('Closure expression inside %s attribute is not supported for parameter `%s` in this context.', get_class($annotation), $interfaceParameter->getName()));
                 }
 
+                $attributeDeclaration = $expression instanceof Closure
+                    ? new AttributeDeclaration(get_class($annotation), $relatedClassInterface->getInterfaceName(), $relatedClassInterface->getMethodName(), $interfaceParameter->getName())
+                    : null;
+
+                if ($interfaceParameter->isClassOrInterface() && DecisionModelReflection::isDecisionModel($interfaceParameter->getTypeHint())) {
+                    return DecisionModelConverterBuilder::create($interfaceParameter, $expression, $attributeDeclaration);
+                }
+
                 return FetchAggregateConverterBuilder::create(
                     $interfaceParameter,
                     $expression,
-                    $expression instanceof Closure
-                        ? new AttributeDeclaration(get_class($annotation), $relatedClassInterface->getInterfaceName(), $relatedClassInterface->getMethodName(), $interfaceParameter->getName())
-                        : null,
+                    $attributeDeclaration,
                 );
             }
+        }
+
+        if ($interfaceParameter->isClassOrInterface() && DecisionModelReflection::isDecisionModel($interfaceParameter->getTypeHint())) {
+            return DecisionModelConverterBuilder::create($interfaceParameter);
         }
 
         return $interfaceParameter->isMessage() ? MessageConverterBuilder::create($interfaceParameter->getName()) : null;

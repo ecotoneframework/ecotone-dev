@@ -7,8 +7,15 @@ namespace Ecotone\Modelling;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\Repository;
+use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\InMemoryEventStore as ConditionalInMemoryEventStore;
+use Ecotone\EventSourcing\EventStore\MetadataMatcher;
+use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 
 /**
  * Class InMemoryEventSourcedRepository
@@ -27,8 +34,11 @@ class InMemoryEventSourcedRepository implements EventSourcedRepository
     private array $eventsPerAggregate;
     private ?array $aggregateTypes;
 
-    public function __construct(array $eventsPerAggregate = [], ?array $aggregateTypes = [])
-    {
+    public function __construct(
+        array $eventsPerAggregate = [],
+        ?array $aggregateTypes = [],
+        private readonly ?EventStore $eventStore = null,
+    ) {
         $this->eventsPerAggregate = $eventsPerAggregate;
         $this->aggregateTypes = $aggregateTypes;
     }
@@ -72,6 +82,10 @@ class InMemoryEventSourcedRepository implements EventSourcedRepository
      */
     public function findBy(string $aggregateClassName, array $identifiers, int $fromVersion = 1): EventStream
     {
+        if ($this->eventStore !== null) {
+            return $this->findByViaEventStore($aggregateClassName, $identifiers, $fromVersion);
+        }
+
         $key = $this->getKey($identifiers);
 
         if (isset($this->eventsPerAggregate[$aggregateClassName][$key])) {
@@ -92,6 +106,12 @@ class InMemoryEventSourcedRepository implements EventSourcedRepository
      */
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
+        if ($this->eventStore !== null) {
+            $this->saveViaEventStore($aggregateClassName, $events, $metadata);
+
+            return;
+        }
+
         $key = $this->getKey($identifiers);
 
         if (! isset($this->eventsPerAggregate[$aggregateClassName][$key])) {
@@ -101,6 +121,48 @@ class InMemoryEventSourcedRepository implements EventSourcedRepository
         }
 
         $this->eventsPerAggregate[$aggregateClassName][$key] = array_merge($this->eventsPerAggregate[$aggregateClassName][$key], $events);
+    }
+
+    private function findByViaEventStore(string $aggregateClassName, array $identifiers, int $fromVersion): EventStream
+    {
+        $aggregateId = reset($identifiers);
+
+        $metadataMatcher = (new MetadataMatcher())
+            ->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_TYPE, Operator::EQUALS, $aggregateClassName)
+            ->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_ID, Operator::EQUALS, $aggregateId);
+
+        if ($fromVersion > 0) {
+            $metadataMatcher = $metadataMatcher->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_VERSION, Operator::GREATER_THAN_EQUALS, $fromVersion);
+        }
+
+        $streamEvents = $this->eventStore->load(AggregateDefinitionResolver::DEFAULT_STREAM, 1, null, $metadataMatcher);
+
+        if ($streamEvents === []) {
+            return EventStream::createEmpty();
+        }
+
+        return EventStream::createWith(
+            $streamEvents[array_key_last($streamEvents)]->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION],
+            $streamEvents,
+        );
+    }
+
+    private function saveViaEventStore(string $aggregateClassName, array $events, array $metadata): void
+    {
+        $appendCondition = $metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION] ?? null;
+        unset($metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION]);
+
+        if ($this->eventStore instanceof ConditionalInMemoryEventStore) {
+            $this->eventStore->appendTo(
+                AggregateDefinitionResolver::DEFAULT_STREAM,
+                $events,
+                $appendCondition instanceof AppendCondition ? $appendCondition : null,
+            );
+
+            return;
+        }
+
+        $this->eventStore->appendTo(AggregateDefinitionResolver::DEFAULT_STREAM, $events);
     }
 
     private function getKey(array $identifiers): string

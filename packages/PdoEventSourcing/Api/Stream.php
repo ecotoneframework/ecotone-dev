@@ -8,7 +8,7 @@ use Ecotone\Messaging\Support\Assert;
 
 use function sha1;
 
-#[Attribute(Attribute::TARGET_CLASS)]
+#[Attribute(Attribute::TARGET_CLASS | Attribute::TARGET_METHOD)]
 /**
  * licence Apache-2.0
  */

@@ -30,6 +30,7 @@ use Ecotone\Messaging\Scheduling\TimeSpan;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Config\AggregrateModule;
 use Ecotone\Modelling\Config\MessageBusChannel;
@@ -178,7 +179,7 @@ final class FlowTestSupport
      */
     public function withEvents(array $events): self
     {
-        return $this->withEventStream('default', $events);
+        return $this->withEventStream(AggregateDefinitionResolver::DEFAULT_STREAM, $events);
     }
 
     public function deleteEventStream(string $streamName): self

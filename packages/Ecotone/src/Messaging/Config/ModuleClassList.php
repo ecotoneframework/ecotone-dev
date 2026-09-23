@@ -25,6 +25,8 @@ use Ecotone\Dbal\ObjectManager\ObjectManagerModule;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterModule;
 use Ecotone\EventSourcing\Config\EventSourcingModule;
 use Ecotone\EventSourcing\Config\EventSourcingProjectingModule;
+use Ecotone\EventSourcing\Tagging\Config\EventTaggingModule;
+use Ecotone\Modelling\DecisionModel\Config\DecisionModelModule;
 use Ecotone\JMSConverter\Configuration\JMSConverterConfigurationModule;
 use Ecotone\JMSConverter\Configuration\JMSDefaultSerialization;
 use Ecotone\Kafka\Configuration\KafkaModule;
@@ -96,6 +98,8 @@ class ModuleClassList
         DistributedBusWithServiceMapModule::class,
         AggregrateModule::class,
         ServiceHandlerModule::class,
+        EventTaggingModule::class,
+        DecisionModelModule::class,
         MessageHandlerRoutingModule::class,
         MethodInterceptorModule::class,
         ChannelInterceptorModule::class,

@@ -15,6 +15,7 @@ use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\AggregateStreamMapping;
 use Ecotone\EventSourcing\AggregateTypeMapping;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
@@ -24,6 +25,8 @@ use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\SerializingEventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\EventSourcing\Tagging\EventTagRegistry;
+use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -65,6 +68,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         private AggregateTypeMapping $aggregateTypeMapping,
         private array $streamAttributes,
         private array $projectionStreamMapping,
+        private bool $hasEventTagsDeclared,
     ) {
     }
 
@@ -98,7 +102,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             AggregateStreamMapping::createWith($aggregateToStreamMapping),
             AggregateTypeMapping::createWith($aggregateTypeMapping),
             $streamAttributes,
-            $projectionStreamMapping
+            $projectionStreamMapping,
+            EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService) !== [],
         );
     }
 
@@ -119,6 +124,15 @@ class EventSourcingModule extends NoExternalConfigurationModule
             new Definition(EventStreamTableManager::class, [
                 $streamTableRegistry->tablesFor($eventSourcingConfiguration->getConnectionReferenceName()),
                 true,
+                $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+                $consoleInvocationPrefix,
+            ])
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
+            TagTableManager::class,
+            new Definition(TagTableManager::class, [
+                $this->hasEventTagsDeclared,
                 $dbalConfiguration->isAutomaticTableInitializationEnabled(),
                 $consoleInvocationPrefix,
             ])
@@ -196,6 +210,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $eventSourcingConfiguration->getLoadBatchSize(),
                 $eventSourcingConfiguration->isInitializedOnStart() && $dbalConfiguration->isAutomaticTableInitializationEnabled(),
                 $consoleInvocationPrefix,
+                new Reference(EventTagRegistry::class),
             ])
         );
     }
@@ -221,6 +236,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         return [
             ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
             new DbalTableManagerReference(EventStreamTableManager::class),
+            new DbalTableManagerReference(TagTableManager::class),
         ];
     }
 

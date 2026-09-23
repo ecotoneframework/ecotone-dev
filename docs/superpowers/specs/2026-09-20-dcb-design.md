@@ -305,7 +305,8 @@ final readonly class InvoiceIssued
   resolved by event name if the class is known, and otherwise carry no tags.
 - Tags are not copied into `metadata`. The index is the single source, so a backfill never rewrites an event.
 - `#[EventTag]` works on any event, including those recorded by an `#[EventSourcingAggregate]`. That is how a
-  decision model includes aggregate-produced facts in its boundary.
+  decision model includes aggregate-produced facts in its boundary. It is the **only** place the attribute
+  appears; models are scoped by tag names (§4.4), commands may carry it to say which property supplies a value.
 - Tags are stored in plaintext beside the payload and appear in diagnostics. Do not tag personal data directly —
   tag a hash through a method.
 
@@ -327,7 +328,9 @@ A filter-only tag is indexed and never counted. A decision model that depends on
 ### 4.4 Decision models
 
 *Revision 3 — maintainer direction, 2026-09-21: a decision model is a standalone, reusable class, like an
-aggregate, and is **injected into message handlers**. Whatever a handler injects, the framework keeps consistent.*
+aggregate, and is **injected into message handlers**. Whatever a handler injects, the framework keeps consistent.
+Revision 4 — maintainer direction, 2026-09-23: a model declares the **names** of the tags that scope it, not
+properties holding their values; `#[EventTag]` appears on events only.*
 
 **A decision model is one question about the past, answered by folding events selected by tag.** It owns state and
 the methods that read it. It does not own the command.
@@ -337,11 +340,9 @@ use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 
-#[DecisionModel]
+#[DecisionModel]                                   // tags inferred: 'course' (see below)
 final class CourseCapacity
 {
-    #[EventTag('course')] private string $courseId;
-
     private int $capacity = 0;
     private int $seatsTaken = 0;
 
@@ -357,11 +358,9 @@ final class CourseCapacity
     public function hasFreeSeat(): bool { return $this->seatsTaken < $this->capacity; }
 }
 
-#[DecisionModel]
+#[DecisionModel(tags: ['student'])]               // explicit: the only handled event carries 'course' too
 final class StudentCourses
 {
-    #[EventTag('student')] private string $studentId;
-
     private int $courses = 0;
 
     #[EventSourcingHandler]
@@ -370,12 +369,9 @@ final class StudentCourses
     public function canJoinAnother(): bool { return $this->courses < 5; }
 }
 
-#[DecisionModel]
+#[DecisionModel]                                   // tags inferred: 'course' AND 'student'
 final class StudentSubscription
 {
-    #[EventTag('course')]  private string $courseId;
-    #[EventTag('student')] private string $studentId;
-
     private bool $exists = false;
 
     #[EventSourcingHandler]
@@ -423,12 +419,22 @@ final class CourseSubscriptions
 ```
 
 `CourseCapacity` is written once and used by both handlers. No query object, no store call, no append condition,
-no `if ($event->courseId === $this->courseId)` — and **no `#[MatchingTags]` either**: revision 2 needed it only
-because one class was answering three questions at once. Split into one class per question, the rule becomes
-small enough to say in a sentence:
+no `if ($event->courseId === $this->courseId)`, and the model holds **only the state it needs** — it never carries
+`$courseId` unless one of its own `#[EventSourcingHandler]`s chooses to assign it from an event. `#[EventTag]` has
+exactly one meaning, on events: *publish this value under this name*. A model is scoped by tag **names**:
 
-> **A model is one criterion: all of its tags, AND-ed, with the event types it handles. A handler's consistency
-> boundary is the OR of the models it injects.**
+> **A model is one criterion: its tag names, AND-ed, with the event types it handles. The names come from
+> `#[DecisionModel(tags: [...])]`, or by default are the tags that _every_ handled event carries. A handler's
+> consistency boundary is the OR of the models it injects.**
+
+**Why the default is the intersection, not the union.** `CouponRedemptions` (§4.5b) folds `CouponIssued`
+(`coupon`) and `OrderPlaced` (`customer`, `coupon`). The union would scope it by `customer` *and* `coupon` — a
+different, wrong question ("this customer's redemptions"), and one the command could not always answer. The
+intersection, `coupon`, is the largest set of names every handled event can be matched on, which is exactly the
+rule a model must satisfy anyway (a handled event that lacks one of the model's tags could never reach it). When
+the intersection is not what is wanted — `StudentCourses` handles only `StudentSubscribedToCourse`, whose tags are
+`course` and `student`, but the question is about the student alone — `tags:` says so, and a listed name absent
+from any handled event is a bootstrap `ConfigurationException`.
 
 | Injected model | Criterion |
 |---|---|
@@ -446,9 +452,10 @@ matching event once and applies it to every model whose criterion it matches →
 returned events under the condition built from *all* injected models → publishes them on the event bus with the
 usual metadata propagation. Three models cost the same three statements as one.
 
-**Tag values come from the message** the way aggregate identifiers do: a message property named like the model's
-tagged property; then a message property carrying the same `#[EventTag]` key; then an explicit expression, reusing
-the attribute that already injects aggregates into handlers (`#[Fetch]`, Enterprise, `FetchAggregateConverter`):
+**Tag values come from the message** by tag *name*, the way aggregate identifiers do: a message property carrying
+`#[EventTag('course')]`; else a message property named `course`, `courseId` or `course_id`; else an explicit
+expression, reusing the attribute that already injects aggregates into handlers (`#[Fetch]`, Enterprise,
+`FetchAggregateConverter`):
 
 ```php
 #[CommandHandler]
@@ -466,8 +473,8 @@ public function transfer(
 ```
 
 The same model class twice, with different values — the case convention alone cannot resolve. For a multi-tag
-model the expression returns a map (`"{'course': payload.courseId, 'student': payload.studentId}"`), as `#[Fetch]`
-already accepts for multi-identifier aggregates. An array value selects several values of one key. A tag that
+model the expression returns a map keyed by tag name, as `#[Fetch]` already accepts for multi-identifier
+aggregates. An array value selects several values of one key. A tag that
 cannot be resolved is a bootstrap error when statically knowable, otherwise an exception naming model, tag and
 message.
 
@@ -516,8 +523,10 @@ argument and is stripped before persisting, so that interface does not change. B
 aggregate metadata, the projection invariant of §4.6 never triggers for them.
 
 **Rules.** A model class has a public no-argument constructor (what `EventSourcingHandlerExecutor` requires of
-aggregates). Every `#[EventSourcingHandler]` event class must declare all of the model's tag keys — otherwise the
-model could never receive it; bootstrap `ConfigurationException`. Interface or union handler parameters are
+aggregates). Every `#[EventSourcingHandler]` event class must declare all of the model's tag names — otherwise the
+model could never receive it; bootstrap `ConfigurationException` (the inferred default satisfies this by
+construction). A model that needs a tag value in its state assigns it in a handler (`$this->courseId =
+$event->courseId`) — the framework never writes into a model. Interface or union handler parameters are
 rejected for the same reason. A model with no tagged property is allowed only if it handles events carrying a
 class-level `#[EventTag(…, value: …)]` (the gapless-sequence case). Pointcuts target `DecisionModel::class`.
 `#[Reference]`, `#[Header]` and `#[Asynchronous]` work as on any handler; models are loaded when the handler
@@ -559,8 +568,9 @@ guide §4 promised. Both live in core (`packages/Ecotone`), as do the attributes
 decision-model flow are core, and core cannot depend on `PdoEventSourcing`. Only schema, DBAL implementation and
 the console commands live in `PdoEventSourcing`.
 
-**Where events go:** `ecotone_event_stream`, or the `#[Stream]` on the handler's class; for an aggregate, the
-aggregate's stream. Events returned by a non-aggregate handler carry no aggregate id, type or version (§4.6).
+**Where events go:** the default stream, or a `#[Stream]` on the handler's class or — new, maintainer 2026-09-23
+— on the **handler method** itself (`Stream` gains `TARGET_METHOD`; the method wins over the class); for an
+aggregate, the aggregate's stream. Events returned by a non-aggregate handler carry no aggregate id, type or version (§4.6).
 
 ### 4.5 Concurrency, in full
 
@@ -702,19 +712,16 @@ final readonly class OrderPlaced {
     ) {}
 }
 
-#[DecisionModel]
+#[DecisionModel]                                      // tags inferred: coupon (the only tag both events carry)
 final class CouponRedemptions {                       // criterion: coupon:<code>
-    #[EventTag('coupon')] private string $couponCode;
     private int $limit = 0; private int $used = 0;
     #[EventSourcingHandler] public function issued(CouponIssued $e): void { $this->limit = $e->limit; }
     #[EventSourcingHandler] public function redeemed(OrderPlaced $e): void { $this->used++; }
     public function isExhausted(): bool { return $this->used >= $this->limit; }
 }
 
-#[DecisionModel]
-final class CustomerCouponUse {                       // criterion: customer:<id> AND coupon:<code>
-    #[EventTag('customer')] private string $customerId;   // declared first → the guard tag
-    #[EventTag('coupon')]   private string $couponCode;
+#[DecisionModel(tags: ['customer', 'coupon'])]      // criterion: customer:<id> AND coupon:<code>; first = guard tag
+final class CustomerCouponUse {
     private bool $used = false;
     #[EventSourcingHandler] public function redeemed(OrderPlaced $e): void { $this->used = true; }
     public function alreadyUsed(): bool { return $this->used; }
@@ -731,24 +738,21 @@ final class Order {
 }
 ```
 
-**How `SUMMER24` gets from the command into the models, and from the event into the index.** Both directions use
-the same attribute and nothing else. At bootstrap the framework builds two maps by reading `#[EventTag]`:
+**How `SUMMER24` gets from the command to the models, and from the event into the index.** At bootstrap the
+framework reads `#[EventTag]` off the event classes and derives each model's tag names:
 
-| Class | Map entry |
+| Class | Derived |
 |---|---|
-| event `CouponIssued` | key `coupon` ← property `code` |
-| event `OrderPlaced` | key `customer` ← `customerId`; key `coupon` ← `couponCode` |
-| model `CouponRedemptions` | key `coupon` → property `couponCode` |
-| model `CustomerCouponUse` | key `customer` → `customerId`; key `coupon` → `couponCode` |
-
-The **key** is always the literal in the attribute. The **value** is whatever the property holds at that moment.
-On an event the attribute means *publish this value under this key*; on a model it means *select the events whose
-key has this value*.
+| event `CouponIssued` | `coupon` ← property `code` |
+| event `OrderPlaced` | `customer` ← `customerId`; `coupon` ← `couponCode` |
+| model `CouponRedemptions` | names: `{coupon}` — intersection of its handled events' tags |
+| model `CustomerCouponUse` | names: `{customer, coupon}` — declared |
 
 `PlaceOrder('o-1', 'alice', 'SUMMER24')` arrives → routed to `Order::place` → the handler's parameters include two
-`#[DecisionModel]` classes → for each model tag the framework looks on the command for a property of the same name
-(`couponCode`, `customerId`) → finds `SUMMER24` and `alice` → instantiates the models and writes those values into
-their tagged properties → captures counters, reads the index for `coupon:SUMMER24` and `customer:alice`, folds.
+`#[DecisionModel]` classes → for each model tag *name* the framework looks on the command for a property carrying
+`#[EventTag('coupon')]`, else one named `coupon`/`couponCode` → finds `SUMMER24` and `alice` → captures counters,
+reads the index for `coupon:SUMMER24` and `customer:alice`, instantiates the models with `new`, and folds. The
+models receive nothing but events.
 When the handler returns `OrderPlaced('o-1', 'alice', 'SUMMER24')`, the store looks the class up in the event map,
 reads `customerId` and `couponCode` off the object — before it is serialized — and gets the two rows to write:
 `(customer, alice)` and `(coupon, SUMMER24)`. A `null` property writes no row.
@@ -1082,6 +1086,21 @@ it filters by event name and aggregate type, does not depend on tags or on a lic
 
 ---
 
+## Part 4½ — Store cleanups pulled into scope (maintainer, 2026-09-23)
+
+Not DCB, but the maintainer wants the store left clean by the same work. Each is a plan task.
+
+| # | Directive | What it means in code | Note |
+|---|---|---|---|
+| 1 | **Remove every Prooph mention and the BSD attribution.** | `DbalEventStore`, `EventStreamSchema` and the three platform schema classes carry `licence BSD-3-Clause / code comes from prooph/pdo-event-store`. | Honest caveat: the *DDL* in those classes is currently near-verbatim Prooph, and BSD-3 requires the notice on redistributed copies of *their* code. Dropping the header is legitimate once the classes are rewritten — which #2 and #4 do anyway: new table names, new column names, our own DDL. Do #2/#4 first, then delete the headers; the `MetadataMatcher`/`FieldType`/`Operator` trio is also Prooph vocabulary and goes with `WriteLockStrategy` |
+| 2 | **One way to create stream tables.** | `EventStore::create()` today creates a table on demand (`ensureTableExists(alwaysCreate: true)`) beside the table manager — two paths. Keep the table manager (+ automatic initialization in tests/dev) as the only path; `create()` and `hasStream()` stop touching DDL. | Interpretation to confirm — see reply |
+| 3 | **Delete `WriteLockStrategy`.** | `Dbal/WriteLock/*` (advisory lock / `GET_LOCK` around the insert) and `enableWriteLockStrategy` on `EventSourcingConfiguration` go. Concurrency is the aggregate unique index and, for DCB, the tag counter. | It was opt-in and off by default, so the default behaviour does not change; it was Prooph's way to reduce `no` gaps, which `GapAwarePosition` already handles |
+| 4 | **New, accurate names for the new tables and columns.** | Proposed: `ecotone_tagged_events (tag_name, tag_value, stream_name, event_no, tag_sequence)`, `ecotone_tag_versions (tag_name, tag_value, version)`, `ecotone_tag_coverage (event_name, tags_hash, covered_at)`. `tag_sequence` replaces `tag_version` — it is an order stamp, not a version, which was the inaccuracy. | Whether the stream table itself (`no`, `event_name`, `created_at`) is also renamed is a question — see reply; legacy `_<sha1>` tables must keep the 1.x columns regardless |
+| 5 | **Licence check.** | Already §4.9: `LicensingException` at bootstrap for any `#[EventTag]`/`#[DecisionModel]` without Enterprise. | Done in design |
+| 6 | **Returned events go to the stream; `#[Stream]` on the handler method.** | §4.4 "Where events go". `Stream` gains `TARGET_METHOD`. | Scope question: only handlers that inject a model, or every handler returning events? — see reply |
+| 7 | **`EcotoneLite` integration tests proving the optimistic lock.** | Pattern already in the codebase: `packages/Dbal/tests/Integration/DeduplicationModuleTest.php:141` — two `DbalConnectionFactory`s on one DSN, two `bootstrapFlowTesting` instances, `SET lock_timeout` / `innodb_lock_wait_timeout` on the second so a blocked statement fails fast instead of hanging the test. Plan task 5 adopts it verbatim. | |
+| 8 | **Models declare tag names; `#[EventTag]` only on events.** | §4.4 revision 4. Default = intersection of handled events' tags (not union — reasoning in §4.4). | |
+
 ## Part 5 — Open decisions for the maintainer
 
 | # | Decision | Recommendation |
@@ -1090,7 +1109,7 @@ it filters by event name and aggregate type, does not depend on tags or on a lic
 | 2 | **Boundaries span streams** (counters keyed by tag only). | Yes. Without it the feature is greenfield-only: 1.x users' invariants span two `_<sha1>` tables by construction. Order across streams is exact per tag via `tag_version` (§4.5a). Cost: one extra column in the index; a tag reused in two unrelated streams shares a counter (spurious retries only); different *connections* remain out of reach and fail at bootstrap |
 | 3 | **Coverage guard on by default.** | Yes. The alternative is a silent wrong decision. Cost: one deploy step when tags change on recorded events |
 | 4 | **Automatic retry** through the existing instant-retry interceptor, no new attribute parameter. | Yes |
-| 5 | **Names**: `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`; `#[Fetch]` reused for explicit tag mapping. | `EventTag` over `Tag` (self-describing; `Tag` collides with Symfony and OpenAPI attributes; Axon and patchlevel use it). `EventCriteria` over `EventQuery` ("query" already means a CQRS message here). `#[MatchingTags]` is gone |
+| 5 | **Names**: `#[EventTag]`, `#[DecisionModel(tags:)]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`; `#[Fetch]` reused for explicit tag mapping; tables per Part 4½ #4. | `EventTag` over `Tag` (self-describing; `Tag` collides with Symfony and OpenAPI attributes; Axon and patchlevel use it). `EventCriteria` over `EventQuery` ("query" already means a CQRS message here). `#[MatchingTags]` is gone |
 | ~~8~~ | ~~Tag index as a side table vs. tags in `metadata`~~ | **Decided 2026-09-23: side table.** SQLite is a supported engine and, like MariaDB, cannot index JSON array membership |
 | 7 | **A returned array from a service handler that injects a model is appended as events.** Today a service handler's return goes to the reply/output channel. | Yes — the model parameter is the explicit opt-in, and a marker attribute would be boilerplate on every handler. `outputChannelName` + injected model is a bootstrap error. The cost: such a command handler cannot also return a value to its caller, as with event-sourced aggregates |
 | 6 | **Filter-only tags** declared per key in `EventSourcingConfiguration`, in the first cut. | Yes — the Architect wanted it in the first cut, the Tech Lead wanted it per key not per usage; this is both |
@@ -1101,6 +1120,10 @@ One worker session per task, test-first, sequential, in docker. Core tests use i
 depend only on task 2, so the user-facing layer can be reviewed on the in-memory store while 3–5 proceed.
 
 0. **Every task:** new classes carry `licence Enterprise`; tests bootstrap with `LicenceTesting::VALID_LICENCE`.
+   **Task 0a — store cleanup (before any DCB task):** delete `WriteLockStrategy` and `enableWriteLockStrategy`;
+   make the table manager the single DDL path (`create()`/`hasStream()` no longer create tables); rewrite the
+   schema classes with our own DDL and remove the Prooph/BSD headers; add `SqliteEventStreamSchema`. Tests:
+   existing suites green on all four engines; `create()` on a missing table raises the §8 `ConfigurationException`.
 1. **Core — `#[EventTag]`, the tag registry, and the licence gate.** `LicensingException` at bootstrap when an
    `#[EventTag]` or `#[DecisionModel]` exists without an Enterprise licence (test it first — it is the cheapest
    test in the plan and every later task depends on it). `packages/Ecotone/Api/Attribute/EventTag.php`,
@@ -1123,7 +1146,10 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
    `delete()` cleanup. Tests on PostgreSQL, MySQL, MariaDB, inspecting the tables directly: tagged aggregate
    events; untagged aggregates write nothing; works under `#[WithoutDatabaseTransaction]` and rolls back whole.
 5. **PdoEventSourcing — `load(criteria)` and conditional append. The riskiest task** — it must prove real
-   concurrency on PostgreSQL, MySQL and MariaDB (SQLite serialises writers, so it can only prove the 0-rows path
+   concurrency on PostgreSQL, MySQL and MariaDB using the two-connection `EcotoneLite` pattern of
+   `DeduplicationModuleTest::test_deduplication_inserts_before_handler_when_transaction_is_active`
+   (`SET lock_timeout` / `innodb_lock_wait_timeout` on the second connection, an externally begun transaction on
+   the first) (SQLite serialises writers, so it can only prove the 0-rows path
    and `SQLITE_BUSY` mapping), which no in-memory test can. Two-connection tests: conflict on an existing
    counter; conflict on a never-written tag; loser wrote nothing and burned no `no`; rollback lets the waiter
    succeed; opposite-order multi-tag appends do not deadlock; aggregate save `{A,B}` vs. model on `{B}` do not
@@ -1207,4 +1233,5 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-21 | The tag index is insert-only; the per-tag counter is updated in place rather than being an insert-only unique key like the aggregate version | Claude, answering the maintainer's question | Writers with no condition have no expected version: insert-only makes them race for `MAX + 1` (transaction abort on PostgreSQL, gap-lock deadlock on InnoDB); `version = version + 1` cannot fail. Lock reach and duration are identical either way |
 | 2026-09-23 | Guarded in-place `UPDATE` confirmed as the locking mechanism; per-event index rows kept for the read side (vs. tags in `metadata`) | Claude, answering the maintainer | MariaDB has no way to index JSON array membership; backfill must not rewrite event rows; cross-stream discovery. Open Decision 8 |
 | 2026-09-23 | **SQLite is a supported engine**; tag index stays a side table | **Maintainer** / follows | SQLite cannot index JSON array membership either; a SQLite stream schema becomes a prerequisite (task 3) |
-| — | Part 5, decisions 2–7 | **open** | |
+| 2026-09-23 | Eight directives — Part 4½: no Prooph/BSD, one DDL path, no write-lock strategy, new table/column names, licence check, `#[Stream]` on handler methods, two-connection `EcotoneLite` lock tests, **models declare tag names and `#[EventTag]` lives on events only** | **Maintainer** | Default tag names = intersection of handled events' tags (Claude: union would scope `CouponRedemptions` by customer) |
+| — | Part 5, decisions 2–7; Part 4½ interpretation questions #2, #4, #6 | **open** | |

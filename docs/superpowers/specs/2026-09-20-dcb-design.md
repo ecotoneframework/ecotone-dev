@@ -491,8 +491,9 @@ to the boundary; a non-nullable one throws, naming the model and the tag.
 | `#[QueryHandler]` | the reply, untouched | none needed — a live, always-current read of "how many seats are left" with no projection to maintain |
 | `#[CommandHandler]` on an `#[EventSourcingAggregate]` | the aggregate's events, saved as today **and** under the models' condition | both checks, one transaction — see below |
 
-A handler that injects a model and also declares `outputChannelName` is a bootstrap `ConfigurationException`: its
-return value cannot mean two things. `return []` is a no-op. **Consistency protects the events the handler
+A handler that injects a model and also declares `outputChannelName` appends and publishes the events, then
+forwards them to the output channel as any handler would (maintainer, 2026-09-23: output-channel behaviour is
+kept). `return []` is a no-op. **Consistency protects the events the handler
 returns** — a handler that reads a model and then writes somewhere else (a state-stored entity, an HTTP call) has
 read a consistent snapshot but has no guarantee at write time, and the docs must say so plainly.
 
@@ -1093,11 +1094,11 @@ Not DCB, but the maintainer wants the store left clean by the same work. Each is
 | # | Directive | What it means in code | Note |
 |---|---|---|---|
 | 1 | **Remove every Prooph mention and the BSD attribution.** | `DbalEventStore`, `EventStreamSchema` and the three platform schema classes carry `licence BSD-3-Clause / code comes from prooph/pdo-event-store`. | Honest caveat: the *DDL* in those classes is currently near-verbatim Prooph, and BSD-3 requires the notice on redistributed copies of *their* code. Dropping the header is legitimate once the classes are rewritten — which #2 and #4 do anyway: new table names, new column names, our own DDL. Do #2/#4 first, then delete the headers; the `MetadataMatcher`/`FieldType`/`Operator` trio is also Prooph vocabulary and goes with `WriteLockStrategy` |
-| 2 | **One way to create stream tables.** | `EventStore::create()` today creates a table on demand (`ensureTableExists(alwaysCreate: true)`) beside the table manager — two paths. Keep the table manager (+ automatic initialization in tests/dev) as the only path; `create()` and `hasStream()` stop touching DDL. | Interpretation to confirm — see reply |
+| 2 | **One way to create stream tables; one schema.** | Confirmed 2026-09-23. The table manager (+ automatic initialization in tests/dev) is the only DDL path; `create()`/`hasStream()` stop touching DDL. **One schema, no persistence strategies: the aggregate columns are always nullable** — filled for aggregate events, empty otherwise. Real columns on every engine (`aggregate_type`, `aggregate_id`, `aggregate_version`, written explicitly by the store) instead of today's PostgreSQL expression indexes vs. MySQL generated columns. | Legacy 1.x `_<sha1>` tables keep their own layout and NOT NULL checks; §4.7 step 3 still applies to them |
 | 3 | **Delete `WriteLockStrategy`.** | `Dbal/WriteLock/*` (advisory lock / `GET_LOCK` around the insert) and `enableWriteLockStrategy` on `EventSourcingConfiguration` go. Concurrency is the aggregate unique index and, for DCB, the tag counter. | It was opt-in and off by default, so the default behaviour does not change; it was Prooph's way to reduce `no` gaps, which `GapAwarePosition` already handles |
-| 4 | **New, accurate names for the new tables and columns.** | Proposed: `ecotone_tagged_events (tag_name, tag_value, stream_name, event_no, tag_sequence)`, `ecotone_tag_versions (tag_name, tag_value, version)`, `ecotone_tag_coverage (event_name, tags_hash, covered_at)`. `tag_sequence` replaces `tag_version` — it is an order stamp, not a version, which was the inaccuracy. | Whether the stream table itself (`no`, `event_name`, `created_at`) is also renamed is a question — see reply; legacy `_<sha1>` tables must keep the 1.x columns regardless |
+| 4 | **New, accurate names — tag tables *and* the stream table.** | Confirmed 2026-09-23 for both. Tag tables: `ecotone_tagged_events (tag_name, tag_value, stream_name, event_position, tag_sequence)`, `ecotone_tag_versions (tag_name, tag_value, version)`, `ecotone_tag_coverage (event_type, tags_hash, covered_at)`. Stream table, proposed: `ecotone_event_stream (position BIGSERIAL PK, event_id UUID UNIQUE, event_type VARCHAR(255), payload JSON, metadata JSON(B), recorded_at TIMESTAMP(6), aggregate_type VARCHAR(255) NULL, aggregate_id VARCHAR(255) NULL, aggregate_version BIGINT NULL, UNIQUE (aggregate_type, aggregate_id, aggregate_version), INDEX (aggregate_type, aggregate_id, position))`. `tag_sequence` not `tag_version` — an order stamp, not a version. | **Cost:** the store must read and write two column layouts — the new one, and the 1.x one for `legacyStreamName` tables (`no`, `event_name`, `created_at`, aggregate fields inside `metadata`). One `StreamLayout` value per table, chosen from `#[Stream]`, isolates it. Projections' `GapAwarePosition` and `AggregateIdPartitionProvider` SQL go through the same layout object |
 | 5 | **Licence check.** | Already §4.9: `LicensingException` at bootstrap for any `#[EventTag]`/`#[DecisionModel]` without Enterprise. | Done in design |
-| 6 | **Returned events go to the stream; `#[Stream]` on the handler method.** | §4.4 "Where events go". `Stream` gains `TARGET_METHOD`. | Scope question: only handlers that inject a model, or every handler returning events? — see reply |
+| 6 | **Returned events go to the stream; `#[Stream]` on the handler method.** | Confirmed 2026-09-23: **only handlers that inject a `#[DecisionModel]`** append their returned events. Every other handler keeps today's semantics — the return goes to the reply / `outputChannelName`. On a model-injecting handler `outputChannelName` keeps working too: events are appended and published, then forwarded as today (no bootstrap error — revised from §4.4). `Stream` gains `TARGET_METHOD`. | Closes Open Decision 7 |
 | 7 | **`EcotoneLite` integration tests proving the optimistic lock.** | Pattern already in the codebase: `packages/Dbal/tests/Integration/DeduplicationModuleTest.php:141` — two `DbalConnectionFactory`s on one DSN, two `bootstrapFlowTesting` instances, `SET lock_timeout` / `innodb_lock_wait_timeout` on the second so a blocked statement fails fast instead of hanging the test. Plan task 5 adopts it verbatim. | |
 | 8 | **Models declare tag names; `#[EventTag]` only on events.** | §4.4 revision 4. Default = intersection of handled events' tags (not union — reasoning in §4.4). | |
 
@@ -1111,7 +1112,7 @@ Not DCB, but the maintainer wants the store left clean by the same work. Each is
 | 4 | **Automatic retry** through the existing instant-retry interceptor, no new attribute parameter. | Yes |
 | 5 | **Names**: `#[EventTag]`, `#[DecisionModel(tags:)]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`; `#[Fetch]` reused for explicit tag mapping; tables per Part 4½ #4. | `EventTag` over `Tag` (self-describing; `Tag` collides with Symfony and OpenAPI attributes; Axon and patchlevel use it). `EventCriteria` over `EventQuery` ("query" already means a CQRS message here). `#[MatchingTags]` is gone |
 | ~~8~~ | ~~Tag index as a side table vs. tags in `metadata`~~ | **Decided 2026-09-23: side table.** SQLite is a supported engine and, like MariaDB, cannot index JSON array membership |
-| 7 | **A returned array from a service handler that injects a model is appended as events.** Today a service handler's return goes to the reply/output channel. | Yes — the model parameter is the explicit opt-in, and a marker attribute would be boilerplate on every handler. `outputChannelName` + injected model is a bootstrap error. The cost: such a command handler cannot also return a value to its caller, as with event-sourced aggregates |
+| ~~7~~ | ~~Returned array from a model-injecting handler~~ | **Decided 2026-09-23:** appended as events; all other handlers unchanged; `outputChannelName` still honoured afterwards |
 | 6 | **Filter-only tags** declared per key in `EventSourcingConfiguration`, in the first cut. | Yes — the Architect wanted it in the first cut, the Tech Lead wanted it per key not per usage; this is both |
 
 ## Part 6 — Implementation plan
@@ -1121,8 +1122,11 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
 
 0. **Every task:** new classes carry `licence Enterprise`; tests bootstrap with `LicenceTesting::VALID_LICENCE`.
    **Task 0a — store cleanup (before any DCB task):** delete `WriteLockStrategy` and `enableWriteLockStrategy`;
-   make the table manager the single DDL path (`create()`/`hasStream()` no longer create tables); rewrite the
-   schema classes with our own DDL and remove the Prooph/BSD headers; add `SqliteEventStreamSchema`. Tests:
+   make the table manager the single DDL path (`create()`/`hasStream()` no longer create tables); the new stream
+   schema of Part 4½ #4 with explicit nullable aggregate columns, on all four engines, behind a `StreamLayout`
+   (new vs. legacy 1.x columns) selected per `#[Stream]`; rewrite the schema classes with our own DDL and remove
+   the Prooph/BSD headers; drop `MetadataMatcher`/`FieldType`/`Operator` in favour of the layout's own aggregate
+   query; update upgrade guide §4's schema block. Tests:
    existing suites green on all four engines; `create()` on a missing table raises the §8 `ConfigurationException`.
 1. **Core — `#[EventTag]`, the tag registry, and the licence gate.** `LicensingException` at bootstrap when an
    `#[EventTag]` or `#[DecisionModel]` exists without an Enterprise licence (test it first — it is the cheapest
@@ -1234,4 +1238,5 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-23 | Guarded in-place `UPDATE` confirmed as the locking mechanism; per-event index rows kept for the read side (vs. tags in `metadata`) | Claude, answering the maintainer | MariaDB has no way to index JSON array membership; backfill must not rewrite event rows; cross-stream discovery. Open Decision 8 |
 | 2026-09-23 | **SQLite is a supported engine**; tag index stays a side table | **Maintainer** / follows | SQLite cannot index JSON array membership either; a SQLite stream schema becomes a prerequisite (task 3) |
 | 2026-09-23 | Eight directives — Part 4½: no Prooph/BSD, one DDL path, no write-lock strategy, new table/column names, licence check, `#[Stream]` on handler methods, two-connection `EcotoneLite` lock tests, **models declare tag names and `#[EventTag]` lives on events only** | **Maintainer** | Default tag names = intersection of handled events' tags (Claude: union would scope `CouponRedemptions` by customer) |
-| — | Part 5, decisions 2–7; Part 4½ interpretation questions #2, #4, #6 | **open** | |
+| 2026-09-23 | One stream schema with always-nullable, explicit aggregate columns; stream table and columns renamed (`position`, `event_type`, `recorded_at`, …) with a legacy layout for 1.x tables; only model-injecting handlers append their return, output channel kept | **Maintainer** | Part 4½ #2, #4, #6; closes Open Decision 7 |
+| — | Part 5, decisions 2–6; stream column names (proposal in Part 4½ #4) | **open** | |

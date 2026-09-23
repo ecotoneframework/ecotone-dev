@@ -109,7 +109,6 @@ final class InMemoryEventStore implements EventStore
 
                 $refSets = $refSets === null ? $keyed : array_intersect_key($refSets, $keyed);
             }
-            $refSets ??= [];
 
             $primaryTag = $tags[0];
             $primaryRefsByKey = [];

@@ -41,4 +41,11 @@ interface TaggedEventSchema
     public function upsertIncrementVersionSql(string $tableName): string;
 
     public function supportsReturningOnUpsert(): bool;
+
+    /**
+     * The placeholder expression for a bigint parameter inside a `SELECT ? AS x` branch of a UNION ALL. Some
+     * platforms (PostgreSQL) cannot infer an untyped parameter's type from the target column of an
+     * INSERT ... SELECT across a UNION and default it to text, so it must be cast explicitly.
+     */
+    public function bigIntPlaceholder(): string;
 }

@@ -14,6 +14,8 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
+use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
@@ -39,6 +41,14 @@ use Ecotone\Modelling\Event;
 use function implode;
 use function is_object;
 use function ksort;
+use function spl_object_id;
+use function str_starts_with;
+use function uasort;
+
+use Doctrine\DBAL\Exception\RetryableException;
+use Doctrine\DBAL\Driver\Exception as DriverExceptionInterface;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\MariaDBPlatform;
 
 use Interop\Queue\ConnectionFactory;
 
@@ -61,6 +71,9 @@ final class DbalEventStore implements EventStore, AggregateEventStore
 
     /** @var array<string, bool> */
     private array $ensuredTagTables = [];
+
+    /** @var array<string, array{snapshot: int, ownBumps: int}> */
+    private array $tagBumpSnapshots = [];
 
     private EventTagRegistry $eventTagRegistry;
 
@@ -97,6 +110,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         $this->ensureTableExists($streamName);
 
         $connection = $this->connectionFor($streamName);
+        $this->resetOwnBumpTrackingIfNoTransaction($connection);
         $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
@@ -178,6 +192,224 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         unset($this->ensuredTables[$this->contextKeyFor($streamName)]);
     }
 
+    public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents
+    {
+        $connection = $this->connectionFor(StreamTableRegistry::DEFAULT_STREAM);
+        $this->resetOwnBumpTrackingIfNoTransaction($connection);
+        $tagSchema = TaggedEventSchemaFactory::for($connection);
+
+        $allTags = [];
+        foreach ($criteria as $criterion) {
+            foreach ($criterion->tags() as $tag) {
+                $allTags[$this->tagKey($tag['name'], $tag['value'])] = $tag;
+            }
+        }
+
+        if ($allTags === []) {
+            return new LoadedEvents([], AppendCondition::empty());
+        }
+
+        if (! $tagSchema->tableExists($connection, TagTableManager::TAGGED_EVENTS_TABLE) || ! $tagSchema->tableExists($connection, TagTableManager::TAG_VERSIONS_TABLE)) {
+            if (! $this->automaticTableInitialization) {
+                throw ConfigurationException::create(MissingTableInstructions::build(
+                    TagTableManager::FEATURE_NAME,
+                    TagTableManager::TAGGED_EVENTS_TABLE . ', ' . TagTableManager::TAG_VERSIONS_TABLE,
+                    $this->consoleInvocationPrefix
+                ));
+            }
+
+            $this->ensureTagTablesExist(StreamTableRegistry::DEFAULT_STREAM, $connection);
+        }
+
+        $capturedTags = $this->captureTagVersions($connection, $tagSchema, $allTags);
+        $flags = $this->fetchTagFlags($connection, $tagSchema, $allTags);
+
+        if ($flags === []) {
+            return new LoadedEvents([], AppendCondition::fromCapturedVersions(array_values($capturedTags)));
+        }
+
+        $eventsByStream = $this->fetchCandidateEvents($connection, $flags);
+
+        $matched = [];
+        foreach ($criteria as $criterion) {
+            $tags = $criterion->tags();
+            if ($tags === []) {
+                continue;
+            }
+
+            $primaryKey = $this->tagKey($tags[0]['name'], $tags[0]['value']);
+
+            foreach ($flags as $refKey => $flag) {
+                $matchesAllTags = true;
+                foreach ($tags as $tag) {
+                    if (empty($flag['has'][$this->tagKey($tag['name'], $tag['value'])])) {
+                        $matchesAllTags = false;
+
+                        break;
+                    }
+                }
+
+                if (! $matchesAllTags) {
+                    continue;
+                }
+
+                $event = $eventsByStream[$flag['stream']][$flag['eventNo']] ?? null;
+                if ($event === null || ! $criterion->matchesEventType($event->getEventName())) {
+                    continue;
+                }
+
+                $tagVersion = $flag['seq'][$primaryKey] ?? null;
+                if ($tagVersion === null) {
+                    continue;
+                }
+
+                if (! isset($matched[$refKey]) || $matched[$refKey]['tagVersion'] > $tagVersion) {
+                    $matched[$refKey] = ['tagVersion' => $tagVersion, 'eventNo' => $flag['eventNo'], 'event' => $event];
+                }
+            }
+        }
+
+        uasort($matched, static fn (array $a, array $b): int => $a['tagVersion'] <=> $b['tagVersion'] ?: $a['eventNo'] <=> $b['eventNo']);
+
+        $events = array_values(array_map(static fn (array $match) => $match['event'], $matched));
+
+        return new LoadedEvents($events, AppendCondition::fromCapturedVersions(array_values($capturedTags)));
+    }
+
+    /**
+     * @param array<string, array{name: string, value: string}> $allTags
+     * @return array<string, array{name: string, value: string, expectedVersion: int}>
+     */
+    private function captureTagVersions(Connection $connection, TaggedEventSchema $tagSchema, array $allTags): array
+    {
+        $versionsTable = $tagSchema->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
+
+        $conditions = [];
+        $parameters = [];
+        foreach ($allTags as $tag) {
+            $conditions[] = '(tag_name = ? AND tag_value = ?)';
+            $parameters[] = $tag['name'];
+            $parameters[] = $tag['value'];
+        }
+
+        $rows = $this->runGuarded(
+            fn () => $connection->executeQuery("SELECT tag_name, tag_value, version FROM {$versionsTable} WHERE " . implode(' OR ', $conditions), $parameters)->fetchAllAssociative()
+        );
+
+        $captured = [];
+        foreach ($allTags as $key => $tag) {
+            $captured[$key] = ['name' => $tag['name'], 'value' => $tag['value'], 'expectedVersion' => 0];
+        }
+
+        foreach ($rows as $row) {
+            $key = $this->tagKey($row['tag_name'], $row['tag_value']);
+            if (! isset($captured[$key])) {
+                continue;
+            }
+
+            $version = (int) $row['version'];
+            $captured[$key]['expectedVersion'] = $version;
+            $this->checkOwnBumpSnapshotHazard($connection, $row['tag_name'], $row['tag_value'], $version);
+        }
+
+        return $captured;
+    }
+
+    /**
+     * @param array<string, array{name: string, value: string}> $allTags
+     * @return array<string, array{stream: string, eventNo: int, has: array<string, bool>, seq: array<string, ?int>}>
+     */
+    private function fetchTagFlags(Connection $connection, TaggedEventSchema $tagSchema, array $allTags): array
+    {
+        $indexTable = $tagSchema->quoteIdentifier(TagTableManager::TAGGED_EVENTS_TABLE);
+
+        $selectColumns = [];
+        $selectParameters = [];
+        $whereConditions = [];
+        $whereParameters = [];
+        $tagIndexes = [];
+
+        $i = 0;
+        foreach ($allTags as $key => $tag) {
+            $tagIndexes[$key] = $i;
+
+            $selectColumns[] = "MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN tag_sequence END) AS seq_{$i}";
+            $selectParameters[] = $tag['name'];
+            $selectParameters[] = $tag['value'];
+
+            $selectColumns[] = "MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN 1 ELSE 0 END) AS has_{$i}";
+            $selectParameters[] = $tag['name'];
+            $selectParameters[] = $tag['value'];
+
+            $whereConditions[] = '(tag_name = ? AND tag_value = ?)';
+            $whereParameters[] = $tag['name'];
+            $whereParameters[] = $tag['value'];
+
+            $i++;
+        }
+
+        $sql = 'SELECT stream_name, event_no, ' . implode(', ', $selectColumns)
+            . " FROM {$indexTable} WHERE " . implode(' OR ', $whereConditions)
+            . ' GROUP BY stream_name, event_no';
+
+        $rows = $this->runGuarded(
+            fn () => $connection->executeQuery($sql, [...$selectParameters, ...$whereParameters])->fetchAllAssociative()
+        );
+
+        $flags = [];
+        foreach ($rows as $row) {
+            $refKey = $row['stream_name'] . "\0" . $row['event_no'];
+            $has = [];
+            $seq = [];
+            foreach ($tagIndexes as $key => $idx) {
+                $has[$key] = ((int) $row["has_{$idx}"]) === 1;
+                $seq[$key] = $row["seq_{$idx}"] !== null ? (int) $row["seq_{$idx}"] : null;
+            }
+
+            $flags[$refKey] = [
+                'stream' => $row['stream_name'],
+                'eventNo' => (int) $row['event_no'],
+                'has' => $has,
+                'seq' => $seq,
+            ];
+        }
+
+        return $flags;
+    }
+
+    /**
+     * @param array<string, array{stream: string, eventNo: int}> $flags
+     * @return array<string, array<int, Event>>
+     */
+    private function fetchCandidateEvents(Connection $connection, array $flags): array
+    {
+        $eventNosByStream = [];
+        foreach ($flags as $flag) {
+            $eventNosByStream[$flag['stream']][] = $flag['eventNo'];
+        }
+
+        $schema = EventStreamSchemaFactory::for($connection);
+        $eventsByStream = [];
+        foreach ($eventNosByStream as $streamTable => $eventNos) {
+            $placeholders = implode(', ', array_fill(0, count($eventNos), '?'));
+            $types = array_fill(0, count($eventNos), ParameterType::INTEGER);
+
+            $rows = $this->runGuarded(
+                fn () => $connection->executeQuery(
+                    'SELECT no, event_name, payload, metadata FROM ' . $schema->quoteIdentifier($streamTable) . " WHERE no IN ({$placeholders})",
+                    $eventNos,
+                    $types
+                )->fetchAllAssociative()
+            );
+
+            foreach ($rows as $row) {
+                $eventsByStream[$streamTable][(int) $row['no']] = $this->convertToEvent($row, true);
+            }
+        }
+
+        return $eventsByStream;
+    }
+
     private function tagKey(string $name, string $value): string
     {
         return $name . "\0" . $value;
@@ -210,7 +442,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         }
 
         try {
-            $connection->executeStatement($sql, $parameters);
+            $this->runGuarded(fn () => $connection->executeStatement($sql, $parameters));
         } catch (UniqueConstraintViolationException $exception) {
             throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
         }
@@ -219,10 +451,11 @@ final class DbalEventStore implements EventStore, AggregateEventStore
     private function bumpGuardedTagVersion(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value, int $capturedVersion): int
     {
         $versionsTable = $tagSchema->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
+        $this->trackOwnBumpBeforeFirstTouch($connection, $tagSchema, $name, $value);
 
         if ($capturedVersion === 0) {
             try {
-                $affected = (int) $connection->executeStatement($tagSchema->insertInitialVersionSql(TagTableManager::TAG_VERSIONS_TABLE), [$name, $value]);
+                $affected = (int) $this->runGuarded(fn () => $connection->executeStatement($tagSchema->insertInitialVersionSql(TagTableManager::TAG_VERSIONS_TABLE), [$name, $value]));
             } catch (UniqueConstraintViolationException) {
                 $affected = 0;
             }
@@ -231,32 +464,137 @@ final class DbalEventStore implements EventStore, AggregateEventStore
                 throw DecisionModelConcurrencyException::forConflict($name, $value, $capturedVersion, $this->currentTagVersion($connection, $tagSchema, $name, $value));
             }
 
+            $this->recordOwnBump($connection, $name, $value);
+
             return 1;
         }
 
-        $affected = (int) $connection->executeStatement(
+        $affected = (int) $this->runGuarded(fn () => $connection->executeStatement(
             "UPDATE {$versionsTable} SET version = version + 1 WHERE tag_name = ? AND tag_value = ? AND version = ?",
             [$name, $value, $capturedVersion]
-        );
+        ));
 
         if ($affected === 0) {
             throw DecisionModelConcurrencyException::forConflict($name, $value, $capturedVersion, $this->currentTagVersion($connection, $tagSchema, $name, $value));
         }
+
+        $this->recordOwnBump($connection, $name, $value);
 
         return $capturedVersion + 1;
     }
 
     private function bumpUnconditionalTagVersion(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value): int
     {
+        $this->trackOwnBumpBeforeFirstTouch($connection, $tagSchema, $name, $value);
+
         $sql = $tagSchema->upsertIncrementVersionSql(TagTableManager::TAG_VERSIONS_TABLE);
 
-        if ($tagSchema->supportsReturningOnUpsert()) {
-            return (int) $connection->executeQuery($sql, [$name, $value])->fetchOne();
+        $newVersion = $tagSchema->supportsReturningOnUpsert()
+            ? (int) $this->runGuarded(fn () => $connection->executeQuery($sql, [$name, $value])->fetchOne())
+            : (function () use ($connection, $tagSchema, $sql, $name, $value): int {
+                $this->runGuarded(fn () => $connection->executeStatement($sql, [$name, $value]));
+
+                return $this->currentTagVersion($connection, $tagSchema, $name, $value);
+            })();
+
+        $this->recordOwnBump($connection, $name, $value);
+
+        return $newVersion;
+    }
+
+    private function runGuarded(callable $operation): mixed
+    {
+        try {
+            return $operation();
+        } catch (RetryableException $exception) {
+            throw new ConcurrencyException($exception->getMessage(), 0, $exception);
+        } catch (DriverExceptionInterface $exception) {
+            if ($exception->getCode() === 1020) {
+                throw new ConcurrencyException($exception->getMessage(), 0, $exception);
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function trackOwnBumpBeforeFirstTouch(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value): void
+    {
+        if (! $this->isInnoDbMySql($connection) || ! $connection->isTransactionActive()) {
+            return;
         }
 
-        $connection->executeStatement($sql, [$name, $value]);
+        $trackingKey = $this->ownBumpTrackingKey($connection, $name, $value);
+        if (isset($this->tagBumpSnapshots[$trackingKey])) {
+            return;
+        }
 
-        return $this->currentTagVersion($connection, $tagSchema, $name, $value);
+        $this->tagBumpSnapshots[$trackingKey] = [
+            'snapshot' => $this->currentTagVersion($connection, $tagSchema, $name, $value),
+            'ownBumps' => 0,
+        ];
+    }
+
+    private function recordOwnBump(Connection $connection, string $name, string $value): void
+    {
+        if (! $this->isInnoDbMySql($connection) || ! $connection->isTransactionActive()) {
+            return;
+        }
+
+        $trackingKey = $this->ownBumpTrackingKey($connection, $name, $value);
+        if (isset($this->tagBumpSnapshots[$trackingKey])) {
+            $this->tagBumpSnapshots[$trackingKey]['ownBumps']++;
+        }
+    }
+
+    private function checkOwnBumpSnapshotHazard(Connection $connection, string $name, string $value, int $capturedVersion): void
+    {
+        if (! $this->isInnoDbMySql($connection) || ! $connection->isTransactionActive()) {
+            return;
+        }
+
+        $trackingKey = $this->ownBumpTrackingKey($connection, $name, $value);
+        if (! isset($this->tagBumpSnapshots[$trackingKey])) {
+            return;
+        }
+
+        $tracked = $this->tagBumpSnapshots[$trackingKey];
+        $expected = $tracked['snapshot'] + $tracked['ownBumps'];
+
+        if ($capturedVersion !== $expected) {
+            throw ConcurrencyException::create(sprintf(
+                "Snapshot isolation hazard on tag %s:%s -- captured version %d does not match this transaction's own view (%d); a foreign commit landed between the snapshot and this transaction's own bump. Retry in a fresh transaction.",
+                $name,
+                $value,
+                $capturedVersion,
+                $expected,
+            ));
+        }
+    }
+
+    private function resetOwnBumpTrackingIfNoTransaction(Connection $connection): void
+    {
+        if ($connection->isTransactionActive()) {
+            return;
+        }
+
+        $prefix = spl_object_id($connection) . '|';
+        foreach (array_keys($this->tagBumpSnapshots) as $key) {
+            if (str_starts_with($key, $prefix)) {
+                unset($this->tagBumpSnapshots[$key]);
+            }
+        }
+    }
+
+    private function ownBumpTrackingKey(Connection $connection, string $name, string $value): string
+    {
+        return spl_object_id($connection) . '|' . $this->tagKey($name, $value);
+    }
+
+    private function isInnoDbMySql(Connection $connection): bool
+    {
+        $platform = $connection->getDatabasePlatform();
+
+        return $platform instanceof AbstractMySQLPlatform && ! $platform instanceof MariaDBPlatform;
     }
 
     private function currentTagVersion(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value): int
@@ -278,18 +616,24 @@ final class DbalEventStore implements EventStore, AggregateEventStore
     {
         $selects = [];
         $parameters = [];
+        $types = [];
 
         foreach ($eventIds as $i => $eventId) {
             foreach ($perEventTags[$i] as $tag) {
                 $tagSequence = $this->eventTagRegistry->isFilterOnly($tag['name']) ? 0 : $newVersions[$this->tagKey($tag['name'], $tag['value'])];
 
-                $selects[] = 'SELECT ? AS tag_name, ? AS tag_value, ? AS stream_name, s.no AS event_no, ? AS tag_sequence FROM '
+                $selects[] = 'SELECT ? AS tag_name, ? AS tag_value, ? AS stream_name, s.no AS event_no, ' . $tagSchema->bigIntPlaceholder() . ' AS tag_sequence FROM '
                     . $tagSchema->quoteIdentifier($tableName) . ' s WHERE s.event_id = ?';
                 $parameters[] = $tag['name'];
+                $types[] = ParameterType::STRING;
                 $parameters[] = $tag['value'];
+                $types[] = ParameterType::STRING;
                 $parameters[] = $tableName;
+                $types[] = ParameterType::STRING;
                 $parameters[] = $tagSequence;
+                $types[] = ParameterType::INTEGER;
                 $parameters[] = $eventId;
+                $types[] = ParameterType::STRING;
             }
         }
 
@@ -300,7 +644,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         $indexTable = $tagSchema->quoteIdentifier(TagTableManager::TAGGED_EVENTS_TABLE);
         $sql = "INSERT INTO {$indexTable} (tag_name, tag_value, stream_name, event_no, tag_sequence) " . implode(' UNION ALL ', $selects);
 
-        $connection->executeStatement($sql, $parameters);
+        $connection->executeStatement($sql, $parameters, $types);
     }
 
     private function ensureTagTablesExist(string $streamName, Connection $connection): void

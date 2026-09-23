@@ -82,4 +82,9 @@ final class PostgresTaggedEventSchema implements TaggedEventSchema
     {
         return true;
     }
+
+    public function bigIntPlaceholder(): string
+    {
+        return 'CAST(? AS BIGINT)';
+    }
 }

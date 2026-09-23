@@ -82,4 +82,9 @@ final class SqliteTaggedEventSchema implements TaggedEventSchema
     {
         return true;
     }
+
+    public function bigIntPlaceholder(): string
+    {
+        return '?';
+    }
 }

@@ -77,4 +77,9 @@ class MySqlTaggedEventSchema implements TaggedEventSchema
     {
         return false;
     }
+
+    public function bigIntPlaceholder(): string
+    {
+        return '?';
+    }
 }

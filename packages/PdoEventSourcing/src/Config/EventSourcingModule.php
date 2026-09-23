@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
@@ -17,10 +18,12 @@ use Ecotone\EventSourcing\AggregateTypeMapping;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
+use Ecotone\EventSourcing\Dbal\DbalTaggedEventStore;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
+use Ecotone\EventSourcing\EventStore\InMemoryTaggedEventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\SerializingEventStore;
@@ -192,6 +195,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     new Reference(EventSerializer::class),
                 ])
             );
+            $messagingConfiguration->registerServiceDefinition(
+                TaggedEventStore::class,
+                new Definition(InMemoryTaggedEventStore::class, [new Reference(InMemoryEventStore::class)])
+            );
 
             return;
         }
@@ -202,7 +209,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         }
 
         $messagingConfiguration->registerServiceDefinition(
-            EventStoreReference::EVENT_STORE_INSTANCE,
+            DbalEventStore::class,
             new Definition(DbalEventStore::class, [
                 new Reference(StreamTableRegistry::class),
                 $connectionFactories,
@@ -212,6 +219,14 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $consoleInvocationPrefix,
                 new Reference(EventTagRegistry::class),
             ])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            EventStoreReference::EVENT_STORE_INSTANCE,
+            new Reference(DbalEventStore::class)
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            TaggedEventStore::class,
+            new Definition(DbalTaggedEventStore::class, [new Reference(DbalEventStore::class)])
         );
     }
 

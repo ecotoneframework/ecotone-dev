@@ -109,7 +109,12 @@ final class DecisionModelDefinitionBuilder
                 throw ConfigurationException::create("{$interfaceToCall} is Event Sourcing Handler and should have first parameter as Event Class type hint.");
             }
 
-            $handledEventClasses[] = $interfaceToCall->getFirstParameter()->getTypeHint();
+            $firstParameterTypeHint = $interfaceToCall->getFirstParameter()->getTypeHint();
+            if (interface_exists($firstParameterTypeHint) && ! class_exists($firstParameterTypeHint)) {
+                throw ConfigurationException::create("{$interfaceToCall} is a DecisionModel Event Sourcing Handler and its first parameter must be a concrete Event class, an interface or union type is not allowed, as its tag names could not be derived.");
+            }
+
+            $handledEventClasses[] = $firstParameterTypeHint;
         }
 
         return array_values(array_unique($handledEventClasses));

@@ -34,6 +34,74 @@ final class DecisionModelFetchTest extends TestCase
 
         $this->assertSame(['acc-1' => 1, 'acc-2' => 1], TransferHandlerForFetchTest::$observedCounts);
     }
+
+    public function test_fetch_expression_resolving_a_map_scopes_a_multi_tag_model(): void
+    {
+        $handler = new RedeemCouponHandlerForFetchTest();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, CustomerCouponUseForFetchTest::class, OrderPlacedForFetchTest::class],
+            containerOrAvailableServices: [$handler],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->withEvents([new OrderPlacedForFetchTest('order-1', 'alice', 'SUMMER24')]);
+
+        $ecotone->sendCommand(new RedeemCouponForFetchTest('alice', 'SUMMER24'));
+
+        $this->assertTrue(RedeemCouponHandlerForFetchTest::$observedAlreadyUsed);
+    }
+}
+
+final readonly class RedeemCouponForFetchTest
+{
+    public function __construct(
+        public string $customerId,
+        public string $couponCode,
+    ) {
+    }
+}
+
+final readonly class OrderPlacedForFetchTest
+{
+    public function __construct(
+        public string $orderId,
+        #[EventTag('customer')] public string $customerId,
+        #[EventTag('coupon')] public string $couponCode,
+    ) {
+    }
+}
+
+#[DecisionModel(tags: ['customer', 'coupon'])]
+final class CustomerCouponUseForFetchTest
+{
+    private bool $used = false;
+
+    #[EventSourcingHandler]
+    public function redeemed(OrderPlacedForFetchTest $event): void
+    {
+        $this->used = true;
+    }
+
+    public function alreadyUsed(): bool
+    {
+        return $this->used;
+    }
+}
+
+final class RedeemCouponHandlerForFetchTest
+{
+    public static bool $observedAlreadyUsed = false;
+
+    #[CommandHandler]
+    public function redeem(
+        RedeemCouponForFetchTest $command,
+        #[Fetch("{'customer': payload.customerId, 'coupon': payload.couponCode}")] CustomerCouponUseForFetchTest $usage,
+    ): array {
+        self::$observedAlreadyUsed = $usage->alreadyUsed();
+
+        return [];
+    }
 }
 
 final readonly class TransferMoneyForFetchTest

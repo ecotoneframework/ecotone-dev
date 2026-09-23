@@ -67,7 +67,7 @@ final class DbalEventStore implements EventStore
 
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
     {
-        $this->ensureTableExists($streamName, alwaysCreate: true);
+        $this->ensureTableExists($streamName);
 
         if ($streamEvents !== []) {
             $this->appendTo($streamName, $streamEvents);
@@ -180,7 +180,7 @@ final class DbalEventStore implements EventStore
         return $events;
     }
 
-    public function ensureTableExists(string $streamName, bool $alwaysCreate = false): void
+    public function ensureTableExists(string $streamName): void
     {
         $contextKey = $this->contextKeyFor($streamName);
         if (isset($this->ensuredTables[$contextKey])) {
@@ -196,7 +196,7 @@ final class DbalEventStore implements EventStore
             return;
         }
 
-        if (! $alwaysCreate && ! $this->automaticTableInitialization) {
+        if (! $this->automaticTableInitialization) {
             throw ConfigurationException::create(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix));
         }
 

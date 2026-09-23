@@ -11,6 +11,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Type\ObjectType;
 use Ecotone\Messaging\Handler\Type\UnionType;
 
@@ -53,6 +54,8 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
 
     public function compile(InterfaceToCall $interfaceToCall): Definition
     {
+        $payloadParameterName = $interfaceToCall->getFirstParameter()->getName();
+
         return new Definition(DecisionModelConverter::class, [
             $this->modelClassName,
             $this->doesAllowNulls,
@@ -60,6 +63,7 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
             Reference::to(TaggedEventStore::class),
             new Reference(DecisionModelExecutorRegistry::serviceIdFor($this->modelClassName)),
             Reference::to(DecisionModelAppendConditionCollector::class),
+            PayloadBuilder::create($payloadParameterName)->compile($interfaceToCall),
         ]);
     }
 }

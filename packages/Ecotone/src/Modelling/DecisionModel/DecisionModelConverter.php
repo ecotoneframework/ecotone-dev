@@ -24,13 +24,14 @@ final class DecisionModelConverter implements ParameterConverter
         private readonly TaggedEventStore $taggedEventStore,
         private readonly EventSourcingHandlerExecutor $eventSourcingHandlerExecutor,
         private readonly DecisionModelAppendConditionCollector $collector,
+        private readonly ParameterConverter $payloadConverter,
     ) {
     }
 
     public function getArgumentFrom(Message $message): ?object
     {
         $definition = $this->decisionModelDefinitionRegistry->get($this->modelClassName);
-        $payload = $message->getPayload();
+        $payload = $this->payloadConverter->getArgumentFrom($message);
 
         $tagValues = [];
         foreach ($definition->tagNames() as $tagName) {

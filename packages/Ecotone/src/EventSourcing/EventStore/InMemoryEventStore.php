@@ -187,6 +187,10 @@ final class InMemoryEventStore implements EventStore
             $tags = is_object($payload) ? $this->eventTagRegistry->tagsFor($payload) : [];
             $perEventTags[] = $tags;
             foreach ($tags as $tag) {
+                if ($this->eventTagRegistry->isFilterOnly($tag['name'])) {
+                    continue;
+                }
+
                 $tagsInvolved[$this->tagVersionKey($tag['name'], $tag['value'])] = $tag;
             }
         }
@@ -226,7 +230,7 @@ final class InMemoryEventStore implements EventStore
                 $this->tagIndex[$tag['name']][$tag['value']][] = [
                     'stream' => $streamName,
                     'eventNo' => $eventNo,
-                    'tagVersion' => $newVersions[$key],
+                    'tagVersion' => $this->eventTagRegistry->isFilterOnly($tag['name']) ? 0 : $newVersions[$key],
                 ];
             }
         }

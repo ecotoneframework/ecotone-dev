@@ -8,6 +8,7 @@ use function array_keys;
 use function array_map;
 use function array_unique;
 use function array_values;
+use function in_array;
 
 /**
  * licence Enterprise
@@ -16,9 +17,11 @@ final class EventTagRegistry
 {
     /**
      * @param array<class-string, array<array{kind: string, name: string, member: ?string, value: ?string}>> $rawDefinitions
+     * @param string[] $filterOnlyTagNames
      */
     private function __construct(
         private readonly array $rawDefinitions,
+        private readonly array $filterOnlyTagNames = [],
     ) {
     }
 
@@ -29,10 +32,16 @@ final class EventTagRegistry
 
     /**
      * @param array<class-string, array<array{kind: string, name: string, member: ?string, value: ?string}>> $rawDefinitions
+     * @param string[] $filterOnlyTagNames
      */
-    public static function createWith(array $rawDefinitions): self
+    public static function createWith(array $rawDefinitions, array $filterOnlyTagNames = []): self
     {
-        return new self($rawDefinitions);
+        return new self($rawDefinitions, $filterOnlyTagNames);
+    }
+
+    public function isFilterOnly(string $tagName): bool
+    {
+        return in_array($tagName, $this->filterOnlyTagNames, true);
     }
 
     /**

@@ -289,6 +289,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
     private function getTimestamp(string $dateString): int
     {
+        $dateString = str_replace('T', ' ', $dateString);
         if (strlen($dateString) === 19) {
             $dateString = $dateString . '.000';
         }

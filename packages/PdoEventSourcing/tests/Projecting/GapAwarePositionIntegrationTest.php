@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\ProjectingManager;
 use Ecotone\Api\Projecting\Projection;
@@ -91,6 +92,8 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
     public function test_gaps_are_added_to_position(): void
     {
+        $this->skipIfNoAutoIncrementGaps();
+
         for ($i = 1; $i <= 6; $i++) {
             $this->insertGaps(Ticket::STREAM_NAME);
             self::$ecotone->sendCommand(new CreateTicketCommand('ticket-' . $i));
@@ -135,6 +138,8 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
     public function test_gap_timeout_cleaning(): void
     {
+        $this->skipIfNoAutoIncrementGaps();
+
         $projectionName = 'test_projection';
         $streamFilterRegistry = new StreamFilterRegistry([
             $projectionName => [new StreamFilter(Ticket::STREAM_NAME)],
@@ -263,6 +268,13 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             }
         }
         self::fail("Stream {$streamName} not found in position: {$multiStreamPosition}");
+    }
+
+    private function skipIfNoAutoIncrementGaps(): void
+    {
+        if (self::$connectionFactory->establishConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite "no" is INTEGER PRIMARY KEY without AUTOINCREMENT, so a rolled-back insert frees its row id instead of leaving a gap.');
+        }
     }
 
     private function insertGaps(string $stream, int $count = 1): void

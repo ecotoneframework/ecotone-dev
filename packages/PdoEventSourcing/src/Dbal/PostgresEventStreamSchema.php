@@ -13,10 +13,7 @@ use function substr;
 use function var_export;
 
 /**
- * licence BSD-3-Clause
- * code comes from https://github.com/prooph/pdo-event-store
- * (c) 2016-2025 Alexander Miertsch <kontakt@codeliner.ws>
- * (c) 2016-2025 Sascha-Oliver Prolic <saschaprolic@googlemail.com>
+ * licence Apache-2.0
  */
 final class PostgresEventStreamSchema implements EventStreamSchema
 {

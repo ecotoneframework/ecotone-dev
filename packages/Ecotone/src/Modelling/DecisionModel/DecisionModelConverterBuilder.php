@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use Closure;
+use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutorCompiler;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
@@ -26,10 +30,12 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
         private readonly string $parameterName,
         private readonly string $modelClassName,
         private readonly bool $doesAllowNulls,
+        private readonly string|Closure|null $fetchExpression,
+        private readonly ?AttributeDeclaration $attributeDeclaration,
     ) {
     }
 
-    public static function create(InterfaceParameter $parameter): self
+    public static function create(InterfaceParameter $parameter, string|Closure|null $fetchExpression = null, ?AttributeDeclaration $attributeDeclaration = null): self
     {
         $type = $parameter->getTypeDescriptor();
         if ($type instanceof UnionType) {
@@ -44,7 +50,7 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
             ));
         }
 
-        return new self($parameter->getName(), $type->toString(), $parameter->doesAllowNulls());
+        return new self($parameter->getName(), $type->toString(), $parameter->doesAllowNulls(), $fetchExpression, $attributeDeclaration);
     }
 
     public function isHandling(InterfaceParameter $parameter): bool
@@ -64,6 +70,9 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
             new Reference(DecisionModelExecutorRegistry::serviceIdFor($this->modelClassName)),
             Reference::to(DecisionModelAppendConditionCollector::class),
             PayloadBuilder::create($payloadParameterName)->compile($interfaceToCall),
+            $this->fetchExpression !== null
+                ? AttributeExpressionExecutorCompiler::compile(new Fetch($this->fetchExpression), $this->attributeDeclaration)
+                : null,
         ]);
     }
 }

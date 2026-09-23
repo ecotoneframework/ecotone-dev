@@ -6,10 +6,12 @@ namespace Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 
+use function is_array;
 use function sprintf;
 
 /**
@@ -25,6 +27,7 @@ final class DecisionModelConverter implements ParameterConverter
         private readonly EventSourcingHandlerExecutor $eventSourcingHandlerExecutor,
         private readonly DecisionModelAppendConditionCollector $collector,
         private readonly ParameterConverter $payloadConverter,
+        private readonly ?AttributeExpressionExecutor $expressionExecutor = null,
     ) {
     }
 
@@ -33,6 +36,27 @@ final class DecisionModelConverter implements ParameterConverter
         $definition = $this->decisionModelDefinitionRegistry->get($this->modelClassName);
         $payload = $this->payloadConverter->getArgumentFrom($message);
 
+        $tagValues = $this->expressionExecutor !== null
+            ? $this->resolveTagValuesFromExpression($definition, $message)
+            : $this->resolveTagValuesFromPayload($definition, $payload);
+
+        if ($tagValues === null) {
+            return null;
+        }
+
+        $criteria = $definition->toCriteria($tagValues);
+        $loadedEvents = $this->taggedEventStore->load($criteria);
+
+        $this->collector->record($message->getHeaders()->getMessageId(), $loadedEvents->appendCondition);
+
+        return $this->eventSourcingHandlerExecutor->fill($loadedEvents->events, null);
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    private function resolveTagValuesFromPayload(DecisionModelDefinition $definition, mixed $payload): ?array
+    {
         $tagValues = [];
         foreach ($definition->tagNames() as $tagName) {
             $value = is_object($payload) ? MessageTagValueResolver::resolve($tagName, $payload) : null;
@@ -55,11 +79,38 @@ final class DecisionModelConverter implements ParameterConverter
             $tagValues[$tagName] = $value;
         }
 
-        $criteria = $definition->toCriteria($tagValues);
-        $loadedEvents = $this->taggedEventStore->load($criteria);
+        return $tagValues;
+    }
 
-        $this->collector->record($message->getHeaders()->getMessageId(), $loadedEvents->appendCondition);
+    /**
+     * @return array<string, string>|null
+     */
+    private function resolveTagValuesFromExpression(DecisionModelDefinition $definition, Message $message): ?array
+    {
+        $resolved = $this->expressionExecutor->execute($message);
+        $tagNames = $definition->tagNames();
 
-        return $this->eventSourcingHandlerExecutor->fill($loadedEvents->events, null);
+        $tagValues = [];
+        foreach ($tagNames as $tagName) {
+            $value = is_array($resolved)
+                ? ($resolved[$tagName] ?? null)
+                : (count($tagNames) === 1 ? $resolved : null);
+
+            if ($value === null) {
+                if ($this->doesAllowNulls) {
+                    return null;
+                }
+
+                throw ConfigurationException::create(sprintf(
+                    "#[Fetch] expression for DecisionModel %s did not resolve tag '%s'.",
+                    $this->modelClassName,
+                    $tagName
+                ));
+            }
+
+            $tagValues[$tagName] = (string) $value;
+        }
+
+        return $tagValues;
     }
 }

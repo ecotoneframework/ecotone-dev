@@ -133,12 +133,18 @@ class ParameterConverterAnnotationFactory
                     throw ConfigurationException::create(sprintf('Closure expression inside %s attribute is not supported for parameter `%s` in this context.', get_class($annotation), $interfaceParameter->getName()));
                 }
 
+                $attributeDeclaration = $expression instanceof Closure
+                    ? new AttributeDeclaration(get_class($annotation), $relatedClassInterface->getInterfaceName(), $relatedClassInterface->getMethodName(), $interfaceParameter->getName())
+                    : null;
+
+                if ($interfaceParameter->isClassOrInterface() && DecisionModelReflection::isDecisionModel($interfaceParameter->getTypeHint())) {
+                    return DecisionModelConverterBuilder::create($interfaceParameter, $expression, $attributeDeclaration);
+                }
+
                 return FetchAggregateConverterBuilder::create(
                     $interfaceParameter,
                     $expression,
-                    $expression instanceof Closure
-                        ? new AttributeDeclaration(get_class($annotation), $relatedClassInterface->getInterfaceName(), $relatedClassInterface->getMethodName(), $interfaceParameter->getName())
-                        : null,
+                    $attributeDeclaration,
                 );
             }
         }

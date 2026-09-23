@@ -9,6 +9,7 @@ namespace Ecotone\EventSourcing\Projecting\PartitionState;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
@@ -90,7 +91,7 @@ class DbalProjectionStateStorage implements ProjectionStateStorage
             WHERE projection_name = :projectionName AND partition_key = :partitionKey
             SQL;
 
-        if ($lock) {
+        if ($lock && ! $this->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
             $query .= ' FOR UPDATE';
         }
 

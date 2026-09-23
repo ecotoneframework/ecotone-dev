@@ -22,6 +22,10 @@ class ProjectingConcurrencyTest extends TestCase
 
     public function setUp(): void
     {
+        if (str_starts_with(getenv('DATABASE_DSN') ?: '', 'sqlite')) {
+            self::markTestSkipped('SQLite serialises writers with no lock-wait timeout, so the two-process gap-interleaving scenario this test drives cannot be proven the way it can on Postgres/MySQL/MariaDB.');
+        }
+
         self::$ecotone = self::bootEcotone();
     }
 

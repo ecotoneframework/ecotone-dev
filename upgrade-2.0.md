@@ -224,8 +224,30 @@ part of 2.0 as shipped — see §16.
 - `EventStreamingChannelAdapter::create(fromStream: ...)` takes a stream name, not an aggregate class; pass
   `aggregateType:` to filter.
 - Custom implementations of `Ecotone\EventSourcing\EventStore` are unaffected — the interface did not change.
+- **The write-lock option is gone.** `EventSourcingConfiguration::withWriteLockStrategy(bool)` and
+  `isWriteLockStrategyEnabled()` are removed. **Before:** an opt-in advisory lock (Postgres) / `GET_LOCK` (MySQL) held
+  around the insert, meant to shrink the window for gaps in `no`. **Now:** it is gone outright — concurrency was
+  always the `(aggregate_type, aggregate_id, aggregate_version)` unique index, not the lock, and `GapAwarePosition`
+  already tolerates the gaps the lock used to shrink. It defaulted to off, so most applications see no behaviour
+  change; delete any call to `withWriteLockStrategy()`.
+- **`EventStore::create()` now respects automatic table initialization like every other method.** **Before:**
+  `create()` always created the table if it was missing, even with automatic table initialization off (`AutoCreateLevel::None`,
+  §8). **Now:** a missing table raises the same `ConfigurationException` `appendTo()` already raised, naming the
+  `event_stream` feature, the table, and the `ecotone:migration:database:setup` command to run. **How to adapt:** if
+  you call `create()` directly against a database with automatic table initialization off, run
+  `ecotone:migration:database:setup --initialize` (or the equivalent for your integration, §8) first, the same as
+  you already do for `appendTo()`.
+- **SQLite is now a supported event store engine**, alongside PostgreSQL, MySQL and MariaDB — nothing to adapt, it is
+  additive.
+- Internal, nothing to adapt: the "licence BSD-3-Clause / code comes from prooph/pdo-event-store" headers are gone
+  from the schema and store classes — the DDL is Ecotone's own now. `EventSourcingRepository::findBy()` and the
+  partitioned-projection aggregate stream source no longer build a `MetadataMatcher` internally; they call a new
+  `Ecotone\EventSourcing\EventStore\AggregateEventStore::loadAggregateEvents()` method instead. `MetadataMatcher`,
+  `FieldType` and `Operator` are unchanged and still public — `EventStore::load()`'s signature did not change.
 
-**Schema of `ecotone_event_stream`** (PostgreSQL; MySQL/MariaDB use generated columns for the three aggregate fields):
+**Schema of `ecotone_event_stream`** (PostgreSQL; MySQL/MariaDB use generated columns for the three aggregate fields;
+SQLite uses expression indexes over `json_extract(metadata, '$._aggregate_type')` and friends, with no
+`AUTOINCREMENT` on `no`):
 
 ```sql
 CREATE TABLE ecotone_event_stream (
@@ -842,7 +864,7 @@ normal section with "How to adapt" steps when it ships.
 | Work | What it changes | Design and implementation plan |
 |---|---|---|
 | `#[ServiceContext]`-only configuration (§12) | `ServiceContext` values are actually merged; framework config files keep only bootstrap keys | `docs/superpowers/specs/2026-08-28-servicecontext-only-config-design.md` · research `docs/superpowers/research/servicecontext-only-config/report.md` |
-| DCB — decision models (§4, Enterprise) | `#[EventTag]` on events, `#[DecisionModel]` classes injected into command handlers (services and aggregates), optimistic tag-version conflict detection on top of `ecotone_event_stream` via two side tables (`ecotone_tagged_events`, `ecotone_tag_versions`); `ecotone:event-store:backfill-tags`; store cleanups (no write-lock strategy, one DDL path, no Prooph remnants) | `docs/superpowers/specs/2026-09-20-dcb-design.md` — agreed design, decision log and implementation plan (Part 6). Supersedes `2026-08-22-dcb-event-store-design.md` |
+| DCB — decision models (§4, Enterprise) | `#[EventTag]` on events, `#[DecisionModel]` classes injected into command handlers (services and aggregates), optimistic tag-version conflict detection on top of `ecotone_event_stream` via two side tables (`ecotone_tagged_events`, `ecotone_tag_versions`); `ecotone:event-store:backfill-tags`. The store cleanup this was going to ride on (no write-lock strategy, one DDL path, SQLite support, no Prooph remnants — §4) has already shipped ahead of it | `docs/superpowers/specs/2026-09-20-dcb-design.md` — agreed design, decision log and implementation plan (Part 6). Supersedes `2026-08-22-dcb-event-store-design.md` |
 | Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only; in-memory queue channels provided automatically for `#[Asynchronous]` handlers, still consumed with `run()` | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
 | Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 | `ecotone:describe` introspection | A read-only API and console command that prints how messaging is configured: channels (type, delayable, consumer command), asynchronous endpoints (channel, delay, retry and dead letter), the error channel policy, converters, projections with their commands, and how each handler resolves its aggregate or saga identifier. Answers the question coding agents ask in almost every session without reading configuration files | Not designed yet — to be discussed. Input: agent benchmark findings (catalogue item A6, "How is messaging configured here?") |

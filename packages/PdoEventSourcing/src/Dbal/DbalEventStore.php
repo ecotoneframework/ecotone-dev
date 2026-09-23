@@ -11,18 +11,15 @@ use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Doctrine\DBAL\ParameterType;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
-use Ecotone\EventSourcing\Dbal\WriteLock\MetadataLockStrategy;
-use Ecotone\EventSourcing\Dbal\WriteLock\NoLockStrategy;
-use Ecotone\EventSourcing\Dbal\WriteLock\PostgresAdvisoryLockStrategy;
-use Ecotone\EventSourcing\Dbal\WriteLock\WriteLockStrategy;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\AggregateEventStore;
 use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
@@ -44,16 +41,10 @@ use function json_encode;
 
 use Ramsey\Uuid\Uuid;
 
-use function sha1;
-use function substr;
-
 /**
- * licence BSD-3-Clause
- * code comes from https://github.com/prooph/pdo-event-store
- * (c) 2016-2025 Alexander Miertsch <kontakt@codeliner.ws>
- * (c) 2016-2025 Sascha-Oliver Prolic <saschaprolic@googlemail.com>
+ * licence Apache-2.0
  */
-final class DbalEventStore implements EventStore
+final class DbalEventStore implements EventStore, AggregateEventStore
 {
     private const COLUMNS = ['event_id', 'event_name', 'payload', 'metadata', 'created_at'];
 
@@ -68,7 +59,6 @@ final class DbalEventStore implements EventStore
         private array $connectionFactories,
         private EventSerializer $eventSerializer,
         private int $loadBatchSize,
-        private bool $enableWriteLockStrategy,
         private bool $automaticTableInitialization,
         private ?string $consoleInvocationPrefix = null,
     ) {
@@ -76,7 +66,7 @@ final class DbalEventStore implements EventStore
 
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
     {
-        $this->ensureTableExists($streamName, alwaysCreate: true);
+        $this->ensureTableExists($streamName);
 
         if ($streamEvents !== []) {
             $this->appendTo($streamName, $streamEvents);
@@ -111,18 +101,10 @@ final class DbalEventStore implements EventStore
             }
         }
 
-        $lockStrategy = $this->writeLockStrategyFor($connection);
-        $lockName = '_' . substr(sha1($tableName), 0, 32) . '_write_lock';
-        if (! $lockStrategy->getLock($connection, $lockName)) {
-            throw new ConcurrencyException('Failed to acquire write lock for stream ' . $streamName);
-        }
-
         try {
             $connection->executeStatement($sql, $parameters);
         } catch (UniqueConstraintViolationException $exception) {
             throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
-        } finally {
-            $lockStrategy->releaseLock($connection, $lockName);
         }
     }
 
@@ -161,9 +143,76 @@ final class DbalEventStore implements EventStore
             return [];
         }
 
-        [$where, $parameters] = $this->createWhereClause($schema, $metadataMatcher);
+        [$where, $parameters, $types] = $this->createWhereClause($schema, $metadataMatcher);
+
+        return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, $fromNumber, $count, $deserialize);
+    }
+
+    /**
+     * @param string[] $eventNames
+     */
+    public function loadAggregateEvents(
+        string $streamName,
+        ?string $aggregateType,
+        string $aggregateId,
+        int $fromVersion = 1,
+        ?int $count = null,
+        array $eventNames = [],
+        bool $deserialize = true
+    ): iterable {
+        if ($fromVersion < 1) {
+            throw new InvalidArgumentException('fromVersion must be >= 1');
+        }
+
+        $connection = $this->connectionFor($streamName);
+        $schema = EventStreamSchemaFactory::for($connection);
+        $tableName = $this->streamTableRegistry->tableFor($streamName);
+
+        if (! $schema->tableExists($connection, $tableName)) {
+            return [];
+        }
+
+        $where = [];
+        $parameters = [];
+        $types = [];
+
+        if ($aggregateType !== null) {
+            $where[] = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_TYPE, false) . ' = ?';
+            $parameters[] = $aggregateType;
+            $types[] = ParameterType::STRING;
+        }
+
+        $where[] = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_ID, false) . ' = ?';
+        $parameters[] = $aggregateId;
+        $types[] = ParameterType::STRING;
+
+        $where[] = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_VERSION, true) . ' >= ?';
+        $parameters[] = $fromVersion;
+        $types[] = ParameterType::INTEGER;
+
+        if ($eventNames !== []) {
+            $placeholders = implode(', ', array_fill(0, count($eventNames), '?'));
+            $where[] = "event_name IN ({$placeholders})";
+            foreach ($eventNames as $eventName) {
+                $parameters[] = $eventName;
+                $types[] = ParameterType::STRING;
+            }
+        }
+
+        return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, 1, $count, $deserialize);
+    }
+
+    /**
+     * @param array<string> $where
+     * @param array<mixed> $parameters
+     * @param array<ParameterType> $types
+     * @return Event[]
+     */
+    private function selectEvents(Connection $connection, EventStreamSchema $schema, string $tableName, array $where, array $parameters, array $types, int $fromNumber, ?int $count, bool $deserialize): array
+    {
         $where[] = 'no >= ?';
         $parameters[] = $fromNumber;
+        $types[] = ParameterType::INTEGER;
 
         $events = [];
         $position = $fromNumber;
@@ -177,7 +226,8 @@ final class DbalEventStore implements EventStore
             $rows = $connection->executeQuery(
                 'SELECT no, event_name, payload, metadata FROM ' . $schema->quoteIdentifier($tableName)
                 . ' WHERE ' . implode(' AND ', $where) . ' ORDER BY no ASC LIMIT ' . $limit,
-                $batchParameters
+                $batchParameters,
+                $types
             )->fetchAllAssociative();
 
             foreach ($rows as $row) {
@@ -197,7 +247,7 @@ final class DbalEventStore implements EventStore
         return $events;
     }
 
-    public function ensureTableExists(string $streamName, bool $alwaysCreate = false): void
+    public function ensureTableExists(string $streamName): void
     {
         $contextKey = $this->contextKeyFor($streamName);
         if (isset($this->ensuredTables[$contextKey])) {
@@ -213,7 +263,7 @@ final class DbalEventStore implements EventStore
             return;
         }
 
-        if (! $alwaysCreate && ! $this->automaticTableInitialization) {
+        if (! $this->automaticTableInitialization) {
             throw ConfigurationException::create(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix));
         }
 
@@ -268,15 +318,16 @@ final class DbalEventStore implements EventStore
     }
 
     /**
-     * @return array{0: array<string>, 1: array<mixed>}
+     * @return array{0: array<string>, 1: array<mixed>, 2: array<ParameterType>}
      */
     private function createWhereClause(EventStreamSchema $schema, ?MetadataMatcher $metadataMatcher): array
     {
         $where = [];
         $parameters = [];
+        $types = [];
 
         if ($metadataMatcher === null) {
-            return [$where, $parameters];
+            return [$where, $parameters, $types];
         }
 
         foreach ($metadataMatcher->data() as $match) {
@@ -309,6 +360,7 @@ final class DbalEventStore implements EventStore
                     : "{$field} NOT IN ({$placeholders})";
                 foreach ($value as $singleValue) {
                     $parameters[] = $singleValue;
+                    $types[] = is_int($singleValue) ? ParameterType::INTEGER : ParameterType::STRING;
                 }
 
                 continue;
@@ -316,9 +368,10 @@ final class DbalEventStore implements EventStore
 
             $where[] = "{$field} {$schema->operatorSql($operator)} ?";
             $parameters[] = $value;
+            $types[] = is_int($value) ? ParameterType::INTEGER : ParameterType::STRING;
         }
 
-        return [$where, $parameters];
+        return [$where, $parameters, $types];
     }
 
     private function connectionFor(string $streamName): Connection
@@ -334,16 +387,5 @@ final class DbalEventStore implements EventStore
         $context = (new DbalReconnectableConnectionFactory($connectionFactory))->createContext();
 
         return $context->getDbalConnection();
-    }
-
-    private function writeLockStrategyFor(Connection $connection): WriteLockStrategy
-    {
-        if (! $this->enableWriteLockStrategy) {
-            return new NoLockStrategy();
-        }
-
-        return $connection->getDatabasePlatform() instanceof PostgreSQLPlatform
-            ? new PostgresAdvisoryLockStrategy()
-            : new MetadataLockStrategy();
     }
 }

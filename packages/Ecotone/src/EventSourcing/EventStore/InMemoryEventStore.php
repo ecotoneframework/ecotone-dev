@@ -17,7 +17,7 @@ use function preg_match;
  * In-memory implementation of EventStore for testing purposes
  * licence Apache-2.0
  */
-final class InMemoryEventStore implements EventStore
+final class InMemoryEventStore implements EventStore, AggregateEventStore
 {
     private array $streams = [];
 
@@ -98,6 +98,28 @@ final class InMemoryEventStore implements EventStore
         }
 
         return $result;
+    }
+
+    public function loadAggregateEvents(
+        string $streamName,
+        ?string $aggregateType,
+        string $aggregateId,
+        int $fromVersion = 1,
+        ?int $count = null,
+        array $eventNames = [],
+        bool $deserialize = true
+    ): iterable {
+        $metadataMatcher = new MetadataMatcher();
+        if ($aggregateType !== null) {
+            $metadataMatcher = $metadataMatcher->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_TYPE, Operator::EQUALS, $aggregateType);
+        }
+        $metadataMatcher = $metadataMatcher->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_ID, Operator::EQUALS, $aggregateId);
+        $metadataMatcher = $metadataMatcher->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_VERSION, Operator::GREATER_THAN_EQUALS, $fromVersion);
+        if ($eventNames !== []) {
+            $metadataMatcher = $metadataMatcher->withMetadataMatch('event_name', Operator::IN, $eventNames, FieldType::MESSAGE_PROPERTY);
+        }
+
+        return $this->load($streamName, 1, $count, $metadataMatcher, $deserialize);
     }
 
     public function loadReverse(

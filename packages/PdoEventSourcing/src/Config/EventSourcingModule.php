@@ -194,7 +194,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $connectionFactories,
                 new Reference(EventSerializer::class),
                 $eventSourcingConfiguration->getLoadBatchSize(),
-                $eventSourcingConfiguration->isWriteLockStrategyEnabled(),
                 $eventSourcingConfiguration->isInitializedOnStart() && $dbalConfiguration->isAutomaticTableInitializationEnabled(),
                 $consoleInvocationPrefix,
             ])

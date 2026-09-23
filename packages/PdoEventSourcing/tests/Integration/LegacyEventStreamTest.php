@@ -9,6 +9,7 @@ use DateTimeZone;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\EventStore;
@@ -32,6 +33,15 @@ use Test\Ecotone\EventSourcing\Fixture\LegacyStream\PlaceLegacyOrder;
  */
 final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        if ($this->getConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite was never a supported Ecotone 1.x engine, so there is no legacy table layout to migrate from.');
+        }
+    }
+
     public function test_appending_and_reading_through_table_created_by_ecotone_1x(): void
     {
         $connection = $this->getConnection();

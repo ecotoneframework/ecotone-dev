@@ -2,8 +2,7 @@
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\EventSourcing\EventStore\MetadataMatcher;
-use Ecotone\EventSourcing\EventStore\Operator;
+use Ecotone\EventSourcing\EventStore\AggregateEventStore;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Modelling\EventSourcedRepository;
@@ -15,7 +14,7 @@ use Ecotone\Modelling\EventStream;
 class EventSourcingRepository implements EventSourcedRepository
 {
     public function __construct(
-        private EventStore $eventStore,
+        private EventStore&AggregateEventStore $eventStore,
         private array $handledAggregateClassNames,
         private AggregateStreamMapping $aggregateStreamMapping,
         private AggregateTypeMapping $aggregateTypeMapping,
@@ -29,32 +28,11 @@ class EventSourcingRepository implements EventSourcedRepository
 
     public function findBy(string $aggregateClassName, array $identifiers, int $fromVersion = 1): EventStream
     {
-        $aggregateId = reset($identifiers);
-        $aggregateVersion = $fromVersion;
+        $aggregateId = (string) reset($identifiers);
         $streamName = $this->getStreamName($aggregateClassName);
         $aggregateType = $this->getAggregateType($aggregateClassName);
 
-        $metadataMatcher = new MetadataMatcher();
-        $metadataMatcher = $metadataMatcher->withMetadataMatch(
-            MessageHeaders::EVENT_AGGREGATE_TYPE,
-            Operator::EQUALS,
-            $aggregateType
-        );
-        $metadataMatcher = $metadataMatcher->withMetadataMatch(
-            MessageHeaders::EVENT_AGGREGATE_ID,
-            Operator::EQUALS,
-            $aggregateId
-        );
-
-        if ($aggregateVersion > 0) {
-            $metadataMatcher = $metadataMatcher->withMetadataMatch(
-                MessageHeaders::EVENT_AGGREGATE_VERSION,
-                Operator::GREATER_THAN_EQUALS,
-                $aggregateVersion
-            );
-        }
-
-        $streamEvents = $this->eventStore->load($streamName, 1, null, $metadataMatcher);
+        $streamEvents = $this->eventStore->loadAggregateEvents($streamName, $aggregateType, $aggregateId, max($fromVersion, 1));
 
         if ($streamEvents === []) {
             return EventStream::createEmpty();

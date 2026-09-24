@@ -215,6 +215,11 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_turning_on_transactions_for_polling_consumer_with_tenant_connection()
     {
+        $connection = $this->getConnection();
+        (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
+        (new DocumentStoreTableManager(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, true, true))->createTable($connection);
+        (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
+
         $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [

@@ -10,6 +10,7 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Endpoint\PollingConsumer\ConnectionException;
@@ -69,6 +70,8 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     public function test_sending_and_receiving_via_channel_manager_registry()
     {
         $channelName = Uuid::v7()->toRfc4122();
+
+        (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($this->getConnection());
 
         $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [

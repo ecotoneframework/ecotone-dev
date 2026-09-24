@@ -8,6 +8,8 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\Database\DeduplicationTableManager;
+use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -62,6 +64,7 @@ final class ReconnectTest extends DbalMessagingTestCase
 
         // Create the necessary database tables
         $connectionFactory->createContext()->createDataBaseTable();
+        (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connectionFactory->createContext()->getDbalConnection());
 
         $ecotone = $this->bootstrapEcotone([
             'tenant_a_connection' => $connectionFactory,

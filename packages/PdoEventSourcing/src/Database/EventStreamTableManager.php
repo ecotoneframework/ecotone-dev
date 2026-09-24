@@ -6,6 +6,7 @@ namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Database\DbalTableManager;
+use Ecotone\Dbal\Database\DdlOutsideActiveTransaction;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -71,17 +72,16 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
-        foreach ($this->getCreateTableSql($connection) as $statement) {
-            $connection->executeStatement($statement);
-        }
+        DdlOutsideActiveTransaction::execute($connection, $this->getCreateTableSql($connection));
     }
 
     public function dropTable(Connection $connection): void
     {
         $schema = EventStreamSchemaFactory::for($connection);
-        foreach ($this->tableNames as $tableName) {
-            $connection->executeStatement($schema->dropTableSql($tableName));
-        }
+        DdlOutsideActiveTransaction::execute($connection, array_map(
+            fn (string $tableName) => $schema->dropTableSql($tableName),
+            $this->tableNames
+        ));
     }
 
     public function isInitialized(Connection $connection): bool

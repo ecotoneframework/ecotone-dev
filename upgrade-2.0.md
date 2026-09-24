@@ -159,8 +159,7 @@ table**. Aggregates that do not say otherwise all write to a single table, `ecot
 `prooph/pdo-event-store` (with `prooph/event-store` and `prooph/common`) is no longer a dependency.
 
 Tags, `AppendCondition` and Dynamic Consistency Boundary querying are built on top of this layout — see the DCB
-subsection below. The DBAL-backed persistence for tags (the side tables, backfill and verify-schema commands) is a
-separate, still-in-progress unit — see §16.
+subsection below.
 
 **How to adapt:**
 
@@ -245,6 +244,10 @@ separate, still-in-progress unit — see §16.
   partitioned-projection aggregate stream source no longer build a `MetadataMatcher` internally; they call a new
   `Ecotone\EventSourcing\EventStore\AggregateEventStore::loadAggregateEvents()` method instead. `MetadataMatcher`,
   `FieldType` and `Operator` are unchanged and still public — `EventStore::load()`'s signature did not change.
+  `EventSourcingRepository::save()` now reads a decision model's `AppendCondition` off the save metadata and passes
+  it to the event store's `appendTo()`, the same seam `InMemoryEventSourcedRepository` already used — this is what
+  makes a `#[DecisionModel]` injected into an `#[EventSourcingAggregate]` command handler (§4's DCB subsection)
+  actually enforce its condition against PostgreSQL/MySQL/MariaDB/SQLite, not only against `InMemoryEventStore`.
 
 **Schema of `ecotone_event_stream`** (PostgreSQL; MySQL/MariaDB use generated columns for the three aggregate fields;
 SQLite uses expression indexes over `json_extract(metadata, '$._aggregate_type')` and friends, with no
@@ -408,12 +411,100 @@ fires inside an already-open database transaction; that transaction is already u
 - Without any class, the same machinery is a gateway: `TaggedEventStore::load(EventCriteria::tag('course',
   $courseId)->ofTypes(...))` returns the matching events and a ready-made `AppendCondition` for
   `TaggedEventStore::appendTo($stream, $events, $condition)`.
-- **What's shipped today, what isn't yet.** `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
+- **Fully shipped, including the DBAL-backed store.** `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
   `TaggedEventStore`, `EventCriteria`, `AppendCondition`, the licence gate, and the full injection/append/retry
-  mechanism above are implemented and tested against `InMemoryEventStore` — `EcotoneLite::bootstrapFlowTesting()`
-  already exercises real conditional-append semantics, with no database. The DBAL-backed store (the
-  `ecotone_tagged_events` / `ecotone_tag_versions` tables, `ecotone:event-store:backfill-tags`,
-  `ecotone:event-store:verify-schema`) is a separate unit; see §16.
+  mechanism are implemented and tested against `InMemoryEventStore` (`EcotoneLite::bootstrapFlowTesting()` exercises
+  real conditional-append semantics with no database) **and** against PostgreSQL, MySQL, MariaDB and SQLite through
+  `DbalEventStore` — including real two-connection contention proofs (a conflicting writer waits and either loses
+  with `DecisionModelConcurrencyException` or succeeds once the blocker rolls back, opposite-order multi-tag appends
+  don't deadlock, and the InnoDB `REPEATABLE READ` own-bump snapshot hazard is guarded against). An application with
+  no `#[EventTag]` sees byte-for-byte today's single `INSERT` — no counter statements, no tag tables touched.
+
+#### DCB tag tables — schema, setup, backfill, verify-schema
+
+Two tables carry the tag index and the per-tag conflict counters, alongside whichever `ecotone_event_stream` /
+`#[Stream]` tables already exist. **No column is ever added to a stream table for DCB** — this is what keeps the
+schema upgradable while an application is still on 1.x (below).
+
+```sql
+-- PostgreSQL; MySQL/MariaDB use ENGINE=InnoDB ROW_FORMAT=DYNAMIC COLLATE utf8mb4_bin (the server default collation
+-- would merge 'coupon:ABC' with 'coupon:abc'); SQLite uses TEXT/INTEGER.
+CREATE TABLE ecotone_tagged_events (
+    tag_name     VARCHAR(100) NOT NULL,
+    tag_value    VARCHAR(255) NOT NULL,
+    stream_name  VARCHAR(128) NOT NULL,
+    event_no     BIGINT       NOT NULL,
+    tag_sequence BIGINT       NOT NULL,
+    PRIMARY KEY (tag_name, tag_value, stream_name, event_no)
+);
+
+CREATE TABLE ecotone_tag_versions (
+    tag_name VARCHAR(100) NOT NULL,
+    tag_value VARCHAR(255) NOT NULL,
+    version   BIGINT       NOT NULL,
+    PRIMARY KEY (tag_name, tag_value)
+) WITH (fillfactor = 70);   -- PostgreSQL only: in-place UPDATEs are HOT updates on a table that never grows with event volume
+```
+
+`ecotone_tagged_events` is the read side — one row per tag per tagged event, `tag_sequence` a gapless commit-ordered
+sequence per tag so a model fed from more than one stream table still folds in exact commit order
+(`ORDER BY tag_sequence, event_no`). `ecotone_tag_versions` is the write side — one row per distinct tag *value*,
+`UPDATE ... SET version = version + 1 WHERE ... AND version = :captured` is the entire locking mechanism (no
+advisory lock, no `SELECT ... FOR UPDATE`, no raised isolation level). Both tables register with
+`ecotone:migration:database:setup` under their own feature, **`event_tags`** — distinct from `event_stream` — whose
+table manager reports `isUsed()` only when the application declares an `#[EventTag]`; an open-core application never
+sees these tables in its setup output or its database (§8's feature list now includes `event_stream`, `event_tags`
+alongside `deduplication`, `dead_letter`, `document_store`, ...). Counters are keyed by tag alone, not by stream, so
+a decision model can read events from several streams on the same connection without any extra configuration; a
+model traced to a stream on a different connection is a bootstrap `ConfigurationException` (cross-database
+consistency is a saga's job, not a consistency boundary's).
+
+**Upgrading while still on 1.x — expand first, deploy code second:**
+
+| # | When | Step | Why 1.x keeps working |
+|---|---|---|---|
+| 1 | on 1.x | Create `ecotone_tagged_events` and `ecotone_tag_versions` (the DDL above, or `ecotone:event-store:verify-schema --sql` once on 2.0 to get it, applied by hand while still on 1.x) | 1.x never references them |
+| 2 | on 1.x, optional | Create `ecotone_event_stream` if not already present | 1.x never references it |
+| 3 | on 1.x, **only for a table a decision model will *write* into** | Relax the table's aggregate `NOT NULL` — see below | Only permits *more*, not less |
+| 4 | | Deploy 2.0 to **every** node | |
+| 5 | on 2.0 | Release adding `#[EventTag]` to events; deploy to every node | |
+| 6 | on 2.0 | Run `ecotone:event-store:backfill-tags` and **wait for it to finish** before the next step | |
+| 7 | on 2.0 | Release adding `#[DecisionModel]` | |
+
+Step 3 is rarely needed: because a boundary can span streams (above), a model can *read* events from existing 1.x
+tables and *write* its own to `ecotone_event_stream` without touching them at all. When a decision model's own
+events do land in a 1.x-shaped table, that table's three `NOT NULL` constraints on the aggregate columns reject an
+aggregate-less event outright — the exact failure `ecotone:event-store:verify-schema` is built to catch before it
+happens in production:
+
+| 1.x layout | PostgreSQL | MySQL | MariaDB |
+|---|---|---|---|
+| `single` / `partition` (1.x default) | `SET lock_timeout = '2s'; ALTER TABLE "..." DROP CONSTRAINT IF EXISTS aggregate_version_not_null, DROP CONSTRAINT IF EXISTS aggregate_type_not_null, DROP CONSTRAINT IF EXISTS aggregate_id_not_null;` — metadata-only once the lock is granted; the timeout keeps a busy table from queuing every writer behind it, retry on timeout | `ALTER TABLE ... MODIFY` each generated column without `NOT NULL`, restating its expression — **rebuilds the table under a write lock**, use `gh-ost` / `pt-online-schema-change` | Nothing — 1.x MariaDB columns are already nullable |
+| `simple` | No such constraints — nothing to do | | |
+
+**Mixed writers are unsupported on tagged events, by operator discipline, not by a runtime guard.** A node still
+running code from before an event's `#[EventTag]` was added appends without bumping counters or writing index rows,
+and a decision model would then approve what it should reject — this is exactly why the release order above puts
+*every node on 2.0* before *tags* before *backfill* before *decision models*. There is no coverage table and no
+runtime check for it (a deliberate maintainer decision, to keep the append path free of bookkeeping); rolling code
+back to 1.x after decision models have run means re-running the backfill before rolling forward again.
+
+**`ecotone:event-store:backfill-tags [--stream=] [--event=] [--batch-size=500] [--from-no=] [--dry-run]
+[--skip-undeserializable]`** indexes events recorded before their class declared its current tags — every 1.x event,
+and any event tagged later. Per batch, in one transaction: walk the stream by `no`, deserialize, bump the tags a
+batch touches once each (the same unit an ordinary append uses — one `appendTo()` call, however many events, bumps
+a shared tag once) and insert the index rows; the insert is idempotent on the primary key, so re-running a
+completed range is a no-op and `--from-no` resumes an interrupted one. `--dry-run` reports counts without writing. A
+payload that no longer deserializes is reported with its `no` and aborts the run unless `--skip-undeserializable` is
+given, in which case it is skipped and still reported. There is no decision-model usage until the backfill has
+finished — start using `#[DecisionModel]` only after step 6 above completes.
+
+**`ecotone:event-store:verify-schema [--legacy-stream=]`** is the CI/deploy gate for all of the above: it checks
+`ecotone_tagged_events` / `ecotone_tag_versions`'s primary keys and, on MySQL/MariaDB, that their tag columns kept
+`utf8mb4_bin` collation (a hand-applied migration with the server default would silently let `'ABC'` and `'abc'`
+collide as one tag value); for every `--legacy-stream=` table named, it checks the three aggregate `NOT NULL`
+constraints from the table above are relaxed. On any failure it prints the exact `ALTER`/`DROP CONSTRAINT`
+statement to run — the same text as the table above, generated instead of hand-typed.
 
 ## 5. Connections: Ecotone classes replace the Enqueue ones (DBAL, AMQP, SQS, Redis)
 
@@ -1017,7 +1108,6 @@ normal section with "How to adapt" steps when it ships.
 | Work | What it changes | Design and implementation plan |
 |---|---|---|
 | `#[ServiceContext]`-only configuration (§12) | `ServiceContext` values are actually merged; framework config files keep only bootstrap keys | `docs/superpowers/specs/2026-08-28-servicecontext-only-config-design.md` · research `docs/superpowers/research/servicecontext-only-config/report.md` |
-| DCB — DBAL-backed tag persistence (§4, Enterprise) | The `#[EventTag]`/`#[DecisionModel]`/`#[DecisionBoundary]` injection mechanism has **shipped in core** — see the DCB subsection of §4 — and the store cleanup (no write-lock strategy, one DDL path, SQLite support, no Prooph remnants) has shipped in §4 as well. What is still planned: the DBAL-backed tag tables (`ecotone_tagged_events`, `ecotone_tag_versions`) so tag conflict detection works against a real database (today it is proven against `InMemoryEventStore` only), `ecotone:event-store:backfill-tags` and `ecotone:event-store:verify-schema` | `docs/superpowers/specs/2026-09-20-dcb-design.md` — agreed design, decision log and implementation plan (Part 6, tasks 3–5, 9–11). Supersedes `2026-08-22-dcb-event-store-design.md` |
 | Simpler EcotoneLite testing | Flow tests load every installed package with in-memory test profiles, instead of Core only; in-memory queue channels provided automatically for `#[Asynchronous]` handlers, still consumed with `run()` | `docs/superpowers/research/ecotone-lite-testing-simplification/report.md` (section "Implementation sketch"; no final design yet) |
 | Service cache directory | Replace the cache-directory setting on `ServiceConfiguration` with an explicit bootstrap parameter; shared cache-clear command | `docs/superpowers/research/service-cache-directory/report.md` (section "Implementation plan"; overlaps with §12) |
 | `ecotone:describe` introspection | A read-only API and console command that prints how messaging is configured: channels (type, delayable, consumer command), asynchronous endpoints (channel, delay, retry and dead letter), the error channel policy, converters, projections with their commands, and how each handler resolves its aggregate or saga identifier. Answers the question coding agents ask in almost every session without reading configuration files | Not designed yet — to be discussed. Input: agent benchmark findings (catalogue item A6, "How is messaging configured here?") |
@@ -1038,4 +1128,7 @@ normal section with "How to adapt" steps when it ships.
 10. Rename `#[ServiceActivator]` to `#[InternalHandler]`, checking positional arguments (§7a). Add an explicit `endpointId` to every `#[Asynchronous]` `#[InternalHandler]` (§14).
 11. Review changed defaults (§9) and set explicit values where the old behaviour is required.
 12. Provide an Enterprise licence key if you use multi-tenancy (§2), `EventStreamEmitter::emit()` (§3), `changingHeaders: true` on internal handlers or `#[ChannelInterceptor]` (§14).
-13. Once they ship: move framework YAML/PHP config options into `#[ServiceContext]` (§12) and add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).
+13. Adopting DCB decision models: create the `event_tags` tables and, only for a 1.x table a model writes into,
+    relax its aggregate `NOT NULL` constraints — while still on 1.x; deploy 2.0 to every node; release `#[EventTag]`;
+    run `ecotone:event-store:backfill-tags` and wait for it to finish; only then release `#[DecisionModel]` (§4).
+14. Once they ship: move framework YAML/PHP config options into `#[ServiceContext]` (§12) and add `ecotone:migration:database:setup` (or dumped SQL) to your deployment (§8).

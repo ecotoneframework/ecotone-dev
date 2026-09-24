@@ -303,7 +303,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotoneForSharedStream(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [
                 SharedStreamProduct::class,
                 SharedStreamCategory::class,
@@ -316,6 +316,9 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 
     private function createMultiStreamPartitionedProjectionWithPartitionTracking(): object
@@ -587,7 +590,7 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotoneForDifferentStreams(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [
                 DifferentStreamProductA::class,
                 DifferentStreamProductB::class,
@@ -600,11 +603,14 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [
                 CalendarWithInternalRecorder::class,
                 MeetingWithEventSourcing::class,
@@ -617,5 +623,8 @@ final class MultiStreamPartitionedProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 }

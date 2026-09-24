@@ -24,7 +24,7 @@ final class MultipleAsyncHandlersForOneMessageTest extends EventSourcingMessagin
 {
     public function test_handling_multiple_same_messages(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [TestAggregate::class, EventConverter::class],
             containerOrAvailableServices: [
                 new EventConverter(),

@@ -43,7 +43,7 @@ final class LinkingEventsWithoutProjectionTest extends EventSourcingMessagingTes
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [
                 new EventEmitter(),
                 new NotificationService(),
@@ -62,6 +62,9 @@ final class LinkingEventsWithoutProjectionTest extends EventSourcingMessagingTes
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 
     private function assertState(FlowTestSupport $ecotone, string $ticketId, int $notificationsCount): void

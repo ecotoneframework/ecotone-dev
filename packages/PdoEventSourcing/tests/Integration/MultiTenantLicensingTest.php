@@ -23,7 +23,7 @@ final class MultiTenantLicensingTest extends EventSourcingMessagingTestCase
         $this->expectExceptionMessage('Multi-tenancy');
         $this->expectExceptionMessage('https://docs.ecotone.tech/enterprise');
 
-        EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),

@@ -77,7 +77,7 @@ class StatefulEventSourcedWorkflowTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [
                 Cycle::class,
                 CycleGateway::class,

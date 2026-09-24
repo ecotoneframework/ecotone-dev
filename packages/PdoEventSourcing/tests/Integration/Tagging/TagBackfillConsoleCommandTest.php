@@ -189,7 +189,7 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
             $connection->executeStatement($statement);
         }
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [CouponIssuedForBackfillTest::class, EventsConverterForBackfillTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForBackfillTest()],
             configuration: ServiceConfiguration::createWithDefaults()

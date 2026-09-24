@@ -6,10 +6,13 @@ namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
+use Ecotone\Dbal\Database\AutomaticTableInitializationTrait;
 use Ecotone\Dbal\Database\DbalTableManager;
-use Ecotone\Dbal\Database\DdlOutsideActiveTransaction;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Messaging\Config\Container\Definition;
+
+use function is_array;
 
 /**
  * Table manager for the Projection state table.
@@ -18,6 +21,8 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class ProjectionStateTableManager implements DbalTableManager
 {
+    use AutomaticTableInitializationTrait;
+
     public const DEFAULT_TABLE_NAME = 'ecotone_projection_state';
     public const FEATURE_NAME = 'projection_state';
 
@@ -64,12 +69,19 @@ final class ProjectionStateTableManager implements DbalTableManager
             return;
         }
 
-        DdlOutsideActiveTransaction::execute($connection, $this->getCreateTableSql($connection));
+        $sql = $this->getCreateTableSql($connection);
+        if (is_array($sql)) {
+            foreach ($sql as $statement) {
+                $connection->executeStatement($statement);
+            }
+        } else {
+            $connection->executeStatement($sql);
+        }
     }
 
     public function dropTable(Connection $connection): void
     {
-        DdlOutsideActiveTransaction::execute($connection, $this->getDropTableSql($connection));
+        $connection->executeStatement($this->getDropTableSql($connection));
     }
 
     public function isInitialized(Connection $connection): bool
@@ -82,14 +94,11 @@ final class ProjectionStateTableManager implements DbalTableManager
         return new Definition(self::class, [$this->tableName, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]);
     }
 
-    public function shouldBeInitializedAutomatically(): bool
+    public function getMissingTableInstructions(Connection $connection): string
     {
-        return $this->shouldAutoInitialize;
-    }
-
-    public function getMissingTableInstructions(): string
-    {
-        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
+        return AutomaticTableInitializationSupport::isSupported($connection)
+            ? MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix)
+            : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
     }
 
     private function getPostgresCreateSql(): string

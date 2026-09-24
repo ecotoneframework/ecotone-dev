@@ -553,6 +553,17 @@ final class FlowTestSupport
         return $this->configuredMessagingSystem->getServiceFromContainer($serviceName);
     }
 
+    public function initializeDatabase(): self
+    {
+        try {
+            $databaseSetupManager = $this->getServiceFromContainer('Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager');
+            $databaseSetupManager->initializeAll();
+        } catch (InvalidArgumentException | \Ecotone\Messaging\Support\InvalidArgumentException) {
+        }
+
+        return $this;
+    }
+
     public function getInMemoryConsoleWriter(): InMemoryConsoleWriter
     {
         return $this->configuredMessagingSystem->getServiceFromContainer(InMemoryConsoleWriter::class);

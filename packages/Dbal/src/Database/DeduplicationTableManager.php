@@ -15,6 +15,8 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 class DeduplicationTableManager implements DbalTableManager
 {
+    use AutomaticTableInitializationTrait;
+
     public const FEATURE_NAME = 'deduplication';
 
     public function __construct(
@@ -56,38 +58,33 @@ class DeduplicationTableManager implements DbalTableManager
             return;
         }
 
-        DdlOutsideActiveTransaction::run($connection, function (Connection $ddlConnection): void {
-            try {
-                $ddlConnection->createSchemaManager()->createTable($this->buildTableSchema());
-            } catch (TableExistsException) {
-            }
-        });
+        try {
+            $connection->createSchemaManager()->createTable($this->buildTableSchema());
+        } catch (TableExistsException) {
+        }
     }
 
-    public function getMissingTableInstructions(): string
+    public function getMissingTableInstructions(Connection $connection): string
     {
-        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
+        return AutomaticTableInitializationSupport::isSupported($connection)
+            ? MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix)
+            : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
     }
 
     public function dropTable(Connection $connection): void
     {
-        if (! $connection->createSchemaManager()->tablesExist([$this->tableName])) {
+        $schemaManager = $connection->createSchemaManager();
+
+        if (! $schemaManager->tablesExist([$this->tableName])) {
             return;
         }
 
-        DdlOutsideActiveTransaction::run($connection, function (Connection $ddlConnection): void {
-            $ddlConnection->createSchemaManager()->dropTable($this->tableName);
-        });
+        $schemaManager->dropTable($this->tableName);
     }
 
     public function isInitialized(Connection $connection): bool
     {
         return $connection->createSchemaManager()->tableExists($this->tableName);
-    }
-
-    public function shouldBeInitializedAutomatically(): bool
-    {
-        return $this->shouldAutoInitialize;
     }
 
     public function getDefinition(): Definition

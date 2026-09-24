@@ -29,7 +29,7 @@ final class AggregateAndProjectionTriggerTest extends EventSourcingMessagingTest
 {
     public function test_triggering_projection_with_state_synchronously()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneLite = $this->bootstrapFlowTestingWithEventStore(
             [],
             [new TicketEventConverter(), new StateAndEventConverter(), new NotificationService(), new TicketCounterProjection(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()

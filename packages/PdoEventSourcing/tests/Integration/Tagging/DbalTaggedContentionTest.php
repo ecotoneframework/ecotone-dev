@@ -215,7 +215,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(?DbalConnectionFactory $connectionFactory = null): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [
                 StudentSubscribedForContentionTest::class,
                 CourseCapacityChangedForContentionTest::class,
@@ -236,6 +236,9 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 
     private function dsn(): string

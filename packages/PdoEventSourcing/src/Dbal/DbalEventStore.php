@@ -23,7 +23,7 @@ use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\Dbal\Connection\DbalContext;
-use Ecotone\Dbal\Database\DdlOutsideActiveTransaction;
+use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
@@ -198,7 +198,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
             );
         }
 
-        DdlOutsideActiveTransaction::execute($connection, $schema->dropTableSql($tableName));
+        $connection->executeStatement($schema->dropTableSql($tableName));
         unset($this->ensuredTables[$this->contextKeyFor($streamName)]);
     }
 
@@ -220,14 +220,6 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         }
 
         if (! $tagSchema->tableExists($connection, TagTableManager::TAGGED_EVENTS_TABLE) || ! $tagSchema->tableExists($connection, TagTableManager::TAG_VERSIONS_TABLE)) {
-            if (! $this->automaticTableInitialization) {
-                throw ConfigurationException::create(MissingTableInstructions::build(
-                    TagTableManager::FEATURE_NAME,
-                    TagTableManager::TAGGED_EVENTS_TABLE . ', ' . TagTableManager::TAG_VERSIONS_TABLE,
-                    $this->consoleInvocationPrefix
-                ));
-            }
-
             $this->ensureTagTablesExist(StreamTableRegistry::DEFAULT_STREAM, $connection);
         }
 
@@ -888,18 +880,23 @@ final class DbalEventStore implements EventStore, AggregateEventStore
             return;
         }
 
-        if (! $this->automaticTableInitialization) {
-            throw ConfigurationException::create(MissingTableInstructions::build(
-                TagTableManager::FEATURE_NAME,
-                TagTableManager::TAGGED_EVENTS_TABLE . ', ' . TagTableManager::TAG_VERSIONS_TABLE,
-                $this->consoleInvocationPrefix
-            ));
+        $isAutomaticInitializationSupported = AutomaticTableInitializationSupport::isSupported($connection);
+        if (! $this->automaticTableInitialization || ! $isAutomaticInitializationSupported) {
+            $tableNames = TagTableManager::TAGGED_EVENTS_TABLE . ', ' . TagTableManager::TAG_VERSIONS_TABLE;
+
+            throw ConfigurationException::create(
+                $isAutomaticInitializationSupported
+                    ? MissingTableInstructions::build(TagTableManager::FEATURE_NAME, $tableNames, $this->consoleInvocationPrefix)
+                    : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(TagTableManager::FEATURE_NAME, $tableNames, $this->consoleInvocationPrefix)
+            );
         }
 
-        DdlOutsideActiveTransaction::execute($connection, [
+        foreach ([
             ...$tagSchema->createTaggedEventsTableSql(TagTableManager::TAGGED_EVENTS_TABLE),
             ...$tagSchema->createTagVersionsTableSql(TagTableManager::TAG_VERSIONS_TABLE),
-        ]);
+        ] as $statement) {
+            $connection->executeStatement($statement);
+        }
 
         $this->ensuredTagTables[$contextKey] = true;
     }
@@ -1059,11 +1056,18 @@ final class DbalEventStore implements EventStore, AggregateEventStore
             return;
         }
 
-        if (! $this->automaticTableInitialization) {
-            throw ConfigurationException::create(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix));
+        $isAutomaticInitializationSupported = AutomaticTableInitializationSupport::isSupported($connection);
+        if (! $this->automaticTableInitialization || ! $isAutomaticInitializationSupported) {
+            throw ConfigurationException::create(
+                $isAutomaticInitializationSupported
+                    ? MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix)
+                    : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix)
+            );
         }
 
-        DdlOutsideActiveTransaction::execute($connection, EventStreamSchemaFactory::for($connection)->createTableSql($tableName));
+        foreach (EventStreamSchemaFactory::for($connection)->createTableSql($tableName) as $statement) {
+            $connection->executeStatement($statement);
+        }
     }
 
     private function contextKeyFor(string $streamName): string

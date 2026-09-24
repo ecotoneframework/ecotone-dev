@@ -121,7 +121,7 @@ final class PollingProjectionTest extends ProjectingTestCase
         $basketListProjection = $this->createBasketListProjection();
         $productsProjection = $this->createProductsProjection();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [
                 $basketListProjection::class,
                 $productsProjection::class,
@@ -142,6 +142,7 @@ final class PollingProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
 
         $ecotone->deleteProjection($basketListProjection::NAME);
         $ecotone->deleteProjection($productsProjection::NAME);
@@ -315,7 +316,7 @@ final class PollingProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
@@ -324,5 +325,8 @@ final class PollingProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 }

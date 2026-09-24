@@ -126,7 +126,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $projection = $this->createInProgressTicketListProjection();
         $notificationHandler = $this->createNotificationEventHandler();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [$projection::class, get_class($notificationHandler), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [$projection, $notificationHandler, new TicketEventConverter(), self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -152,7 +152,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $projection = $this->createInProgressTicketListProjection();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [$projection::class, Ticket::class, TicketEventConverter::class, TicketMediaTypeConverter::class, BasketMediaTypeConverter::class],
             containerOrAvailableServices: [
                 $projection,
@@ -192,7 +192,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
     {
         $projection = $this->createOrderListProjectionWithAggregateStream();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [$projection::class, Order::class, EventsConverter::class],
             containerOrAvailableServices: [$projection, new EventsConverter(), self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -201,6 +201,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
 
         $ecotone->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME);
@@ -240,7 +241,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage('must be an EventSourcingAggregate');
 
-        EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [$projection::class],
             containerOrAvailableServices: [$projection, self::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -393,7 +394,7 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
@@ -402,5 +403,8 @@ final class SynchronousEventDrivenProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 }

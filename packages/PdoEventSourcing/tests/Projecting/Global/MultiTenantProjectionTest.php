@@ -26,6 +26,9 @@ use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -51,9 +54,11 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 {
     public function test_building_synchronous_event_driven_projection_with_multi_tenancy(): void
     {
+        $this->initializeMultiTenantDefaultStream();
+
         $projection = $this->createMultiTenantProjection();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [get_class($projection), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [
                 $projection,
@@ -121,9 +126,11 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     public function test_building_asynchronous_event_driven_projection_with_multi_tenancy(): void
     {
+        $this->initializeMultiTenantDefaultStream();
+
         $projection = $this->createAsyncMultiTenantProjection();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [get_class($projection), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [
                 $projection,
@@ -198,9 +205,11 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
     public function test_multi_tenancy_do_work_with_polling_endpoint(): void
     {
+        $this->initializeMultiTenantDefaultStream();
+
         $projection = $this->createPollingMultiTenantProjection();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [get_class($projection), Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [
                 $projection,
@@ -249,7 +258,7 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
 
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [$projection::class],
             [$projection],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -449,5 +458,14 @@ final class MultiTenantProjectionTest extends ProjectingTestCase
                 return $connectionFactory->createContext()->getDbalConnection();
             }
         };
+    }
+
+    private function initializeMultiTenantDefaultStream(): void
+    {
+        foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
+            $connection = $connectionFactory->createContext()->getDbalConnection();
+            (new EventStreamTableManager([StreamTableRegistry::DEFAULT_STREAM], true, true))->createTable($connection);
+            (new ProjectionStateTableManager(ProjectionStateTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
+        }
     }
 }

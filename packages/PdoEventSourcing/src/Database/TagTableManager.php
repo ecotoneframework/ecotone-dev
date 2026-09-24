@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
+use Ecotone\Dbal\Database\AutomaticTableInitializationTrait;
 use Ecotone\Dbal\Database\DbalTableManager;
-use Ecotone\Dbal\Database\DdlOutsideActiveTransaction;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -16,6 +17,8 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class TagTableManager implements DbalTableManager
 {
+    use AutomaticTableInitializationTrait;
+
     public const FEATURE_NAME = 'event_tags';
     public const TAGGED_EVENTS_TABLE = 'ecotone_tagged_events';
     public const TAG_VERSIONS_TABLE = 'ecotone_tag_versions';
@@ -59,16 +62,16 @@ final class TagTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
-        DdlOutsideActiveTransaction::execute($connection, $this->getCreateTableSql($connection));
+        foreach ($this->getCreateTableSql($connection) as $statement) {
+            $connection->executeStatement($statement);
+        }
     }
 
     public function dropTable(Connection $connection): void
     {
         $schema = TaggedEventSchemaFactory::for($connection);
-        DdlOutsideActiveTransaction::execute($connection, [
-            $schema->dropTableSql(self::TAGGED_EVENTS_TABLE),
-            $schema->dropTableSql(self::TAG_VERSIONS_TABLE),
-        ]);
+        $connection->executeStatement($schema->dropTableSql(self::TAGGED_EVENTS_TABLE));
+        $connection->executeStatement($schema->dropTableSql(self::TAG_VERSIONS_TABLE));
     }
 
     public function isInitialized(Connection $connection): bool
@@ -84,17 +87,18 @@ final class TagTableManager implements DbalTableManager
         return new Definition(self::class, [$this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]);
     }
 
-    public function shouldBeInitializedAutomatically(): bool
+    public function getMissingTableInstructions(Connection $connection): string
     {
-        return $this->shouldAutoInitialize;
-    }
-
-    public function getMissingTableInstructions(): string
-    {
-        return MissingTableInstructions::build(
-            self::FEATURE_NAME,
-            self::TAGGED_EVENTS_TABLE . ', ' . self::TAG_VERSIONS_TABLE,
-            $this->consoleInvocationPrefix
-        );
+        return AutomaticTableInitializationSupport::isSupported($connection)
+            ? MissingTableInstructions::build(
+                self::FEATURE_NAME,
+                self::TAGGED_EVENTS_TABLE . ', ' . self::TAG_VERSIONS_TABLE,
+                $this->consoleInvocationPrefix
+            )
+            : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(
+                self::FEATURE_NAME,
+                self::TAGGED_EVENTS_TABLE . ', ' . self::TAG_VERSIONS_TABLE,
+                $this->consoleInvocationPrefix
+            );
     }
 }

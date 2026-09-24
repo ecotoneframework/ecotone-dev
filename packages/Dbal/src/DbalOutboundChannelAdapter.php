@@ -55,8 +55,8 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             return;
         }
 
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        if (! $this->tableManager->shouldBeInitializedAutomatically($connection)) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions($connection));
         }
 
         $this->tableManager->createTable($connection);

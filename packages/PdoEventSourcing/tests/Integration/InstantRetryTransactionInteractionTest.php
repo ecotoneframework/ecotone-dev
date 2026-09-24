@@ -30,7 +30,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
     public function test_retry_happens_inside_aborted_transaction_with_concurrency_conflict(): void
     {
         $logger = new TestRetryLogger();
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Customer::class, RegisterCustomer::class, CustomerRegistered::class, EventsConverter::class],
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => self::getConnectionFactory(),
@@ -75,7 +75,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
     public function test_retry_with_nested_command_handlers_on_factory_conflict(): void
     {
         $logger = new TestRetryLogger();
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Customer::class, RegisterCustomer::class, CustomerRegistered::class, EventsConverter::class, CreateCustomerCaller::class],
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => self::getConnectionFactory(),
@@ -126,7 +126,7 @@ final class InstantRetryTransactionInteractionTest extends EventSourcingMessagin
         $logger = new TestRetryLogger();
         $connectionFactory = self::getConnectionFactory();
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [
                 Customer::class,
                 RegisterCustomer::class,

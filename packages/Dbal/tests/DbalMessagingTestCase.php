@@ -3,6 +3,8 @@
 namespace Test\Ecotone\Dbal;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
@@ -11,8 +13,11 @@ use Ecotone\Dbal\EcotoneManagerRegistryConnectionFactory;
 use Ecotone\Dbal\ManagerRegistryEmulator;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Enqueue\ConnectionFactory;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Test\ComponentTestBuilder;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 /**
@@ -191,5 +196,31 @@ abstract class DbalMessagingTestCase extends TestCase
     private static function getSchemaManager(Connection $connection): \Doctrine\DBAL\Schema\AbstractSchemaManager
     {
         return $connection->createSchemaManager();
+    }
+
+    protected function bootstrapFlowTesting(
+        array $classesToResolve = [],
+        ContainerInterface|array $containerOrAvailableServices = [],
+        ?ServiceConfiguration $configuration = null,
+        array $configurationVariables = [],
+        ?string $pathToRootCatalog = null,
+        bool $allowGatewaysToBeRegisteredInContainer = false,
+        bool $addInMemoryStateStoredRepository = true,
+        bool $addInMemoryEventSourcedRepository = true,
+        ?TestConfiguration $testConfiguration = null,
+        ?string $licenceKey = null,
+    ): FlowTestSupport {
+        return EcotoneLite::bootstrapFlowTesting(
+            $classesToResolve,
+            $containerOrAvailableServices,
+            $configuration,
+            $configurationVariables,
+            $pathToRootCatalog,
+            $allowGatewaysToBeRegisteredInContainer,
+            $addInMemoryStateStoredRepository,
+            $addInMemoryEventSourcedRepository,
+            $testConfiguration,
+            $licenceKey,
+        )->initializeDatabase();
     }
 }

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
+use Ecotone\Dbal\Database\AutomaticTableInitializationTrait;
 use Ecotone\Dbal\Database\DbalTableManager;
-use Ecotone\Dbal\Database\DdlOutsideActiveTransaction;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -16,6 +17,8 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class EventStreamTableManager implements DbalTableManager
 {
+    use AutomaticTableInitializationTrait;
+
     public const FEATURE_NAME = 'event_stream';
 
     /**
@@ -72,16 +75,17 @@ final class EventStreamTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
-        DdlOutsideActiveTransaction::execute($connection, $this->getCreateTableSql($connection));
+        foreach ($this->getCreateTableSql($connection) as $statement) {
+            $connection->executeStatement($statement);
+        }
     }
 
     public function dropTable(Connection $connection): void
     {
         $schema = EventStreamSchemaFactory::for($connection);
-        DdlOutsideActiveTransaction::execute($connection, array_map(
-            fn (string $tableName) => $schema->dropTableSql($tableName),
-            $this->tableNames
-        ));
+        foreach ($this->tableNames as $tableName) {
+            $connection->executeStatement($schema->dropTableSql($tableName));
+        }
     }
 
     public function isInitialized(Connection $connection): bool
@@ -101,13 +105,10 @@ final class EventStreamTableManager implements DbalTableManager
         return new Definition(self::class, [$this->tableNames, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]);
     }
 
-    public function shouldBeInitializedAutomatically(): bool
+    public function getMissingTableInstructions(Connection $connection): string
     {
-        return $this->shouldAutoInitialize;
-    }
-
-    public function getMissingTableInstructions(): string
-    {
-        return MissingTableInstructions::build(self::FEATURE_NAME, implode(', ', $this->tableNames), $this->consoleInvocationPrefix);
+        return AutomaticTableInitializationSupport::isSupported($connection)
+            ? MissingTableInstructions::build(self::FEATURE_NAME, implode(', ', $this->tableNames), $this->consoleInvocationPrefix)
+            : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(self::FEATURE_NAME, implode(', ', $this->tableNames), $this->consoleInvocationPrefix);
     }
 }

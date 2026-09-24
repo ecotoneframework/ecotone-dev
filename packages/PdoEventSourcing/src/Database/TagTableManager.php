@@ -6,6 +6,7 @@ namespace Ecotone\EventSourcing\Database;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Dbal\Database\DbalTableManager;
+use Ecotone\Dbal\Database\DdlOutsideActiveTransaction;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -58,16 +59,16 @@ final class TagTableManager implements DbalTableManager
 
     public function createTable(Connection $connection): void
     {
-        foreach ($this->getCreateTableSql($connection) as $statement) {
-            $connection->executeStatement($statement);
-        }
+        DdlOutsideActiveTransaction::execute($connection, $this->getCreateTableSql($connection));
     }
 
     public function dropTable(Connection $connection): void
     {
         $schema = TaggedEventSchemaFactory::for($connection);
-        $connection->executeStatement($schema->dropTableSql(self::TAGGED_EVENTS_TABLE));
-        $connection->executeStatement($schema->dropTableSql(self::TAG_VERSIONS_TABLE));
+        DdlOutsideActiveTransaction::execute($connection, [
+            $schema->dropTableSql(self::TAGGED_EVENTS_TABLE),
+            $schema->dropTableSql(self::TAG_VERSIONS_TABLE),
+        ]);
     }
 
     public function isInitialized(Connection $connection): bool

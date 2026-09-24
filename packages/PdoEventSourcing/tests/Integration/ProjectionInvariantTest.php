@@ -21,6 +21,7 @@ use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionInitialization;
 use Ecotone\Api\Projecting\ProjectionReset;
 use Ecotone\Api\Projecting\QueryHandler;
+use Ecotone\Dbal\Database\DdlOutsideActiveTransaction;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -109,7 +110,7 @@ final class ProjectionInvariantTest extends EventSourcingMessagingTestCase
             #[ProjectionInitialization]
             public function initialization(): void
             {
-                $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS partitioned_coupon_projection_table (code VARCHAR(50))');
+                DdlOutsideActiveTransaction::execute($this->connection, 'CREATE TABLE IF NOT EXISTS partitioned_coupon_projection_table (code VARCHAR(50))');
             }
 
             #[ProjectionDelete]
@@ -148,7 +149,7 @@ final class ProjectionInvariantTest extends EventSourcingMessagingTestCase
             #[ProjectionInitialization]
             public function initialization(): void
             {
-                $this->connection->executeStatement('CREATE TABLE IF NOT EXISTS global_coupon_projection_table (code VARCHAR(50))');
+                DdlOutsideActiveTransaction::execute($this->connection, 'CREATE TABLE IF NOT EXISTS global_coupon_projection_table (code VARCHAR(50))');
             }
 
             #[ProjectionDelete]

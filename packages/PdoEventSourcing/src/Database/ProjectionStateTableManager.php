@@ -7,10 +7,9 @@ namespace Ecotone\EventSourcing\Database;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Ecotone\Dbal\Database\DbalTableManager;
+use Ecotone\Dbal\Database\DdlOutsideActiveTransaction;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Messaging\Config\Container\Definition;
-
-use function is_array;
 
 /**
  * Table manager for the Projection state table.
@@ -65,19 +64,12 @@ final class ProjectionStateTableManager implements DbalTableManager
             return;
         }
 
-        $sql = $this->getCreateTableSql($connection);
-        if (is_array($sql)) {
-            foreach ($sql as $statement) {
-                $connection->executeStatement($statement);
-            }
-        } else {
-            $connection->executeStatement($sql);
-        }
+        DdlOutsideActiveTransaction::execute($connection, $this->getCreateTableSql($connection));
     }
 
     public function dropTable(Connection $connection): void
     {
-        $connection->executeStatement($this->getDropTableSql($connection));
+        DdlOutsideActiveTransaction::execute($connection, $this->getDropTableSql($connection));
     }
 
     public function isInitialized(Connection $connection): bool

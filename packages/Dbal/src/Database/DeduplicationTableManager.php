@@ -56,10 +56,12 @@ class DeduplicationTableManager implements DbalTableManager
             return;
         }
 
-        try {
-            $connection->createSchemaManager()->createTable($this->buildTableSchema());
-        } catch (TableExistsException) {
-        }
+        DdlOutsideActiveTransaction::run($connection, function (Connection $ddlConnection): void {
+            try {
+                $ddlConnection->createSchemaManager()->createTable($this->buildTableSchema());
+            } catch (TableExistsException) {
+            }
+        });
     }
 
     public function getMissingTableInstructions(): string
@@ -69,13 +71,13 @@ class DeduplicationTableManager implements DbalTableManager
 
     public function dropTable(Connection $connection): void
     {
-        $schemaManager = $connection->createSchemaManager();
-
-        if (! $schemaManager->tablesExist([$this->tableName])) {
+        if (! $connection->createSchemaManager()->tablesExist([$this->tableName])) {
             return;
         }
 
-        $schemaManager->dropTable($this->tableName);
+        DdlOutsideActiveTransaction::run($connection, function (Connection $ddlConnection): void {
+            $ddlConnection->createSchemaManager()->dropTable($this->tableName);
+        });
     }
 
     public function isInitialized(Connection $connection): bool

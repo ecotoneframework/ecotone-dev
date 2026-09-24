@@ -10,14 +10,20 @@ use function count;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Driver\Exception as DriverExceptionInterface;
 use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
+use Doctrine\DBAL\Exception\RetryableException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
+use Doctrine\DBAL\Platforms\MariaDBPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\Dbal\Connection\DbalContext;
+use Ecotone\Dbal\Database\DdlOutsideActiveTransaction;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
@@ -41,26 +47,24 @@ use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Event;
 
 use function implode;
-use function is_object;
-use function ksort;
-use function spl_object_id;
-use function str_starts_with;
-use function uasort;
-
-use Doctrine\DBAL\Exception\RetryableException;
-use Doctrine\DBAL\Driver\Exception as DriverExceptionInterface;
-use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Doctrine\DBAL\Platforms\MariaDBPlatform;
-use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 
 use Interop\Queue\ConnectionFactory;
 
 use function is_bool;
 use function is_int;
+use function is_object;
 use function json_decode;
 use function json_encode;
+use function ksort;
 
 use Ramsey\Uuid\Uuid;
+
+use function spl_object_id;
+use function str_starts_with;
+
+use Throwable;
+
+use function uasort;
 
 /**
  * licence Apache-2.0
@@ -194,7 +198,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
             );
         }
 
-        $connection->executeStatement($schema->dropTableSql($tableName));
+        DdlOutsideActiveTransaction::execute($connection, $schema->dropTableSql($tableName));
         unset($this->ensuredTables[$this->contextKeyFor($streamName)]);
     }
 
@@ -341,7 +345,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
 
                 try {
                     $event = $this->convertToEvent($row, true);
-                } catch (\Throwable $exception) {
+                } catch (Throwable $exception) {
                     if (! $skipUndeserializable) {
                         throw ConfigurationException::create(sprintf(
                             "Event no %d in stream '%s' could not be deserialized: %s. Re-run with --skip-undeserializable to skip it.",
@@ -639,7 +643,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         }
     }
 
-    private function legacyAggregateConstraintException(Connection $connection, string $tableName, \Throwable $previous): ConfigurationException
+    private function legacyAggregateConstraintException(Connection $connection, string $tableName, Throwable $previous): ConfigurationException
     {
         // The insert failed mid-transaction; PostgreSQL refuses further statements once a transaction is aborted,
         // so the fix is built from the platform and the known 1.x constraint names rather than a live re-query.
@@ -659,7 +663,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
 
         return ConfigurationException::create(sprintf(
             "An event with no aggregate metadata could not be appended to '%s' -- this stream still enforces its "
-            . "1.x NOT NULL constraints on the aggregate columns, which reject an aggregate-less decision-model "
+            . '1.x NOT NULL constraints on the aggregate columns, which reject an aggregate-less decision-model '
             . "event. Fix:\n%s\n\n(Driver message: %s)",
             $tableName,
             $fix,
@@ -892,12 +896,10 @@ final class DbalEventStore implements EventStore, AggregateEventStore
             ));
         }
 
-        foreach ($tagSchema->createTaggedEventsTableSql(TagTableManager::TAGGED_EVENTS_TABLE) as $statement) {
-            $connection->executeStatement($statement);
-        }
-        foreach ($tagSchema->createTagVersionsTableSql(TagTableManager::TAG_VERSIONS_TABLE) as $statement) {
-            $connection->executeStatement($statement);
-        }
+        DdlOutsideActiveTransaction::execute($connection, [
+            ...$tagSchema->createTaggedEventsTableSql(TagTableManager::TAGGED_EVENTS_TABLE),
+            ...$tagSchema->createTagVersionsTableSql(TagTableManager::TAG_VERSIONS_TABLE),
+        ]);
 
         $this->ensuredTagTables[$contextKey] = true;
     }
@@ -1061,9 +1063,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
             throw ConfigurationException::create(MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix));
         }
 
-        foreach (EventStreamSchemaFactory::for($connection)->createTableSql($tableName) as $statement) {
-            $connection->executeStatement($statement);
-        }
+        DdlOutsideActiveTransaction::execute($connection, EventStreamSchemaFactory::for($connection)->createTableSql($tableName));
     }
 
     private function contextKeyFor(string $streamName): string
@@ -1096,7 +1096,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
             "Cannot append event {$eventName} without an aggregate to stream '{$streamName}': "
             . "projection '{$projectionName}' is registered with #[Partitioned] or #[FromAggregateStream], "
             . 'and reads this stream filtered by aggregate type, so it would never see this event. '
-            . "Use #[FromStream] on a global projection instead if it also needs to handle aggregate-less events on this stream."
+            . 'Use #[FromStream] on a global projection instead if it also needs to handle aggregate-less events on this stream.'
         );
     }
 

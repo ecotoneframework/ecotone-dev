@@ -732,6 +732,13 @@ final class EcotoneConfiguration
   auto-create through `DbalConfiguration` only.
 - Remove any application code that relied on the implicit commit (for example, DDL issued from inside a handler on
   MySQL) — it is no longer swallowed, and a genuinely failing commit now throws.
+- Ecotone's own automatic table creation and dropping (event stream, tag, projection state, document store, enqueue,
+  dead letter and deduplication tables) is safe to trigger from inside an already-open message transaction on
+  MySQL/MariaDB: the framework commits the surrounding transaction, runs the DDL, then reopens a fresh transaction on
+  the same connection before your handler continues, so the implicit commit those engines force on DDL never leaves
+  the later commit/rollback without a transaction to act on. This only covers DDL the framework issues for its own
+  tables — DDL your own handler code issues directly (for example inside `#[ProjectionInitialization]`) is not
+  wrapped this way and can still break a surrounding transaction on MySQL/MariaDB the same way it always could.
 - `#[ProjectionInitialization]` handlers now run **before** the projection-state transaction is opened, instead of
   inside it. Previously a partition's first batch opened the transaction and then called your initialization handler
   from within it, so DDL in that handler triggered MySQL's implicit commit and broke the later commit. Your handler

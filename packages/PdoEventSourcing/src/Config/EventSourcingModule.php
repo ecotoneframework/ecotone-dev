@@ -29,6 +29,7 @@ use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryTaggedEventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\EventSourcing\Mapping\EventMapper;
+use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
 use Ecotone\EventSourcing\SerializingEventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
@@ -224,6 +225,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $eventSourcingConfiguration->isInitializedOnStart() && $dbalConfiguration->isAutomaticTableInitializationEnabled(),
                 $consoleInvocationPrefix,
                 new Reference(EventTagRegistry::class),
+                new Reference(ProjectionInvariantGuard::class),
             ])
         );
         $messagingConfiguration->registerServiceDefinition(

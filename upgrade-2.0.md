@@ -211,6 +211,11 @@ subsection below.
   This matters because several aggregates now share one table: without the aggregate-type filter a projection would
   see everybody's events. `#[FromAggregateStream]` supplies it; `#[FromStream('name', aggregateType: ...)]` is the
   explicit form.
+- **Appending an aggregate-less event that a `#[Partitioned]`/aggregate-scoped projection subscribes to is now a
+  configuration error.** Such a projection reads its stream filtered by aggregate type, so it would silently never
+  see an event recorded without aggregate metadata (e.g. via `EventStore::appendTo()` directly, or a DCB decision
+  model). `appendTo()` now throws `ConfigurationException` naming the projection and event; fix it by giving the
+  event an aggregate, or by having a global `#[FromStream]` projection handle it instead.
 - **`EventStreamEmitter`.** `emit()` writes to the emitting class's `#[Stream]`, defaulting to `ecotone_event_stream`;
   it no longer invents a `projection_<name>` stream. `linkTo($streamName, ...)` still takes an explicit target, but the
   stream must be declared by a `#[Stream]` attribute somewhere — an unknown name is a configuration error instead of a

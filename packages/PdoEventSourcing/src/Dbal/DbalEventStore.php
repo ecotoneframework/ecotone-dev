@@ -31,6 +31,7 @@ use Ecotone\EventSourcing\EventStore\AggregateEventStore;
 use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
+use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -90,8 +91,10 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         private bool $automaticTableInitialization,
         private ?string $consoleInvocationPrefix = null,
         ?EventTagRegistry $eventTagRegistry = null,
+        private ?ProjectionInvariantGuard $projectionInvariantGuard = null,
     ) {
         $this->eventTagRegistry = $eventTagRegistry ?? EventTagRegistry::createEmpty();
+        $this->projectionInvariantGuard ??= new ProjectionInvariantGuard([]);
     }
 
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
@@ -123,6 +126,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
 
         foreach ($streamEvents as $eventToConvert) {
             $row = $this->convertToRow($eventToConvert);
+            $this->assertProjectionInvariant($streamName, $row[1], $eventToConvert);
             $rows[] = $row;
             $eventIds[] = $row[0];
 
@@ -1074,6 +1078,26 @@ final class DbalEventStore implements EventStore, AggregateEventStore
     public function getConnectionForStream(string $streamName): Connection
     {
         return $this->connectionFor($streamName);
+    }
+
+    private function assertProjectionInvariant(string $streamName, string $eventName, object|array $eventToConvert): void
+    {
+        $metadata = $eventToConvert instanceof Event ? $eventToConvert->getMetadata() : [];
+        if (array_key_exists(MessageHeaders::EVENT_AGGREGATE_ID, $metadata)) {
+            return;
+        }
+
+        $projectionName = $this->projectionInvariantGuard->projectionGuardingAggregatelessEvent($streamName, $eventName);
+        if ($projectionName === null) {
+            return;
+        }
+
+        throw ConfigurationException::create(
+            "Cannot append event {$eventName} without an aggregate to stream '{$streamName}': "
+            . "projection '{$projectionName}' is registered with #[Partitioned] or #[FromAggregateStream], "
+            . 'and reads this stream filtered by aggregate type, so it would never see this event. '
+            . "Use #[FromStream] on a global projection instead if it also needs to handle aggregate-less events on this stream."
+        );
     }
 
     private function convertToRow(object|array $eventToConvert): array

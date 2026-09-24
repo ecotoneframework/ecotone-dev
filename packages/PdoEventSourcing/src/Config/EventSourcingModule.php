@@ -9,21 +9,32 @@ use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
 use Ecotone\EventSourcing\AggregateStreamMapping;
 use Ecotone\EventSourcing\AggregateTypeMapping;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\TagTableManager;
+use Ecotone\EventSourcing\Console\TagBackfillConsoleCommand;
+use Ecotone\EventSourcing\Console\TagVerifySchemaConsoleCommand;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
+use Ecotone\EventSourcing\Dbal\DbalTaggedEventStore;
+use Ecotone\EventSourcing\Dbal\Tag\TagSchemaVerifier;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
+use Ecotone\EventSourcing\EventStore\InMemoryTaggedEventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\EventSourcing\Mapping\EventMapper;
+use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
 use Ecotone\EventSourcing\SerializingEventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\EventSourcing\Tagging\EventTagRegistry;
+use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
@@ -32,6 +43,7 @@ use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Compiler\ContainerImplementation;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
+use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
@@ -65,6 +77,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         private AggregateTypeMapping $aggregateTypeMapping,
         private array $streamAttributes,
         private array $projectionStreamMapping,
+        private bool $hasEventTagsDeclared,
     ) {
     }
 
@@ -98,7 +111,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             AggregateStreamMapping::createWith($aggregateToStreamMapping),
             AggregateTypeMapping::createWith($aggregateTypeMapping),
             $streamAttributes,
-            $projectionStreamMapping
+            $projectionStreamMapping,
+            EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService) !== [],
         );
     }
 
@@ -124,10 +138,19 @@ class EventSourcingModule extends NoExternalConfigurationModule
             ])
         );
 
+        $messagingConfiguration->registerServiceDefinition(
+            TagTableManager::class,
+            new Definition(TagTableManager::class, [
+                $this->hasEventTagsDeclared,
+                $dbalConfiguration->isAutomaticTableInitializationEnabled(),
+                $consoleInvocationPrefix,
+            ])
+        );
+
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
 
-        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $dbalConfiguration, $consoleInvocationPrefix);
+        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $dbalConfiguration, $consoleInvocationPrefix, $interfaceToCallRegistry);
         $this->registerEventStore($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerEventStreamEmitter($messagingConfiguration, $eventSourcingConfiguration);
     }
@@ -157,6 +180,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         StreamTableRegistry $streamTableRegistry,
         DbalConfiguration $dbalConfiguration,
         ?string $consoleInvocationPrefix,
+        InterfaceToCallRegistry $interfaceToCallRegistry,
     ): void {
         $messagingConfiguration->registerServiceDefinition(
             EventSerializer::class,
@@ -178,6 +202,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     new Reference(EventSerializer::class),
                 ])
             );
+            $messagingConfiguration->registerServiceDefinition(
+                TaggedEventStore::class,
+                new Definition(InMemoryTaggedEventStore::class, [new Reference(InMemoryEventStore::class)])
+            );
 
             return;
         }
@@ -188,7 +216,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         }
 
         $messagingConfiguration->registerServiceDefinition(
-            EventStoreReference::EVENT_STORE_INSTANCE,
+            DbalEventStore::class,
             new Definition(DbalEventStore::class, [
                 new Reference(StreamTableRegistry::class),
                 $connectionFactories,
@@ -196,8 +224,73 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $eventSourcingConfiguration->getLoadBatchSize(),
                 $eventSourcingConfiguration->isInitializedOnStart() && $dbalConfiguration->isAutomaticTableInitializationEnabled(),
                 $consoleInvocationPrefix,
+                new Reference(EventTagRegistry::class),
+                new Reference(ProjectionInvariantGuard::class),
             ])
         );
+        $messagingConfiguration->registerServiceDefinition(
+            EventStoreReference::EVENT_STORE_INSTANCE,
+            new Reference(DbalEventStore::class)
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            TaggedEventStore::class,
+            new Definition(DbalTaggedEventStore::class, [new Reference(DbalEventStore::class)])
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
+            TagBackfillConsoleCommand::class,
+            new Definition(TagBackfillConsoleCommand::class, [new Reference(DbalEventStore::class)])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            TagSchemaVerifier::class,
+            new Definition(TagSchemaVerifier::class, [])
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            TagVerifySchemaConsoleCommand::class,
+            new Definition(TagVerifySchemaConsoleCommand::class, [
+                new Reference($eventSourcingConfiguration->getConnectionReferenceName()),
+                new Reference(TagSchemaVerifier::class),
+            ])
+        );
+
+        $this->registerConsoleCommand(
+            'backfill',
+            'ecotone:event-store:backfill-tags',
+            TagBackfillConsoleCommand::class,
+            $messagingConfiguration,
+            $interfaceToCallRegistry,
+            'Indexes #[EventTag] rows for events recorded before their class declared its current tags'
+        );
+        $this->registerConsoleCommand(
+            'verify',
+            'ecotone:event-store:verify-schema',
+            TagVerifySchemaConsoleCommand::class,
+            $messagingConfiguration,
+            $interfaceToCallRegistry,
+            'Checks the tag tables\' primary keys/collation and given legacy streams\' aggregate NOT NULL constraints'
+        );
+    }
+
+    private function registerConsoleCommand(
+        string $methodName,
+        string $commandName,
+        string $className,
+        Configuration $configuration,
+        InterfaceToCallRegistry $interfaceToCallRegistry,
+        string $description = ''
+    ): void {
+        [$messageHandlerBuilder, $oneTimeCommandConfiguration] = ConsoleCommandModule::prepareConsoleCommandForReference(
+            new Reference($className),
+            new InterfaceToCallReference($className, $methodName),
+            $commandName,
+            true,
+            $interfaceToCallRegistry,
+            $description
+        );
+
+        $configuration
+            ->registerMessageHandler($messageHandlerBuilder)
+            ->registerConsoleCommand($oneTimeCommandConfiguration);
     }
 
     /**
@@ -221,6 +314,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         return [
             ...$this->buildEventSourcingRepositoryBuilder($serviceExtensions),
             new DbalTableManagerReference(EventStreamTableManager::class),
+            new DbalTableManagerReference(TagTableManager::class),
         ];
     }
 

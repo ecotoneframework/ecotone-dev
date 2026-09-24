@@ -165,6 +165,77 @@ interface EventStore
 }
 ```
 
+## 5. Dynamic Consistency Boundary (DCB) -- Enterprise
+
+Cross-aggregate invariants (a coupon redemption limit, a unique username) without a saga or an external lock. Events
+carry tags; small **decision model** classes fold events selected by tag, injected into handlers the same way an
+aggregate is loaded. The framework captures every injected model's tag version, folds it, and appends the handler's
+returned events only if none of those versions moved since -- otherwise `DecisionModelConcurrencyException`.
+
+```php
+use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Attribute\DecisionModel;
+use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
+
+final readonly class CouponIssued {
+    public function __construct(#[EventTag('coupon')] public string $code, public int $limit) {}
+}
+final readonly class OrderPlaced {
+    public function __construct(
+        public string $orderId,
+        #[EventTag('customer')] public string $customerId,
+        #[EventTag('coupon')] public ?string $couponCode,
+    ) {}
+}
+
+#[DecisionModel]   // tag names default to the intersection of every handled event's own tags -- here, 'coupon'
+final class CouponRedemptions {
+    private int $limit = 0; private int $used = 0;
+    #[EventSourcingHandler] public function issued(CouponIssued $e): void { $this->limit = $e->limit; }
+    #[EventSourcingHandler] public function redeemed(OrderPlaced $e): void { $this->used++; }
+    public function isExhausted(): bool { return $this->used >= $this->limit; }
+}
+
+final class OrderService {
+    #[CommandHandler]
+    public function place(PlaceOrder $command, ?CouponRedemptions $coupon): array {
+        if ($coupon?->isExhausted()) { throw new CouponExhausted(); }
+        return [new OrderPlaced($command->orderId, $command->customerId, $command->couponCode)];
+    }
+}
+```
+
+- Only a handler that **injects a model** appends and publishes its returned events; a handler with no injected
+  model is unaffected (its return goes to the reply / `outputChannelName` as always).
+- Tag values come from the message by name: a property carrying `#[EventTag('coupon')]`, else a property named
+  `coupon`/`couponCode`/`coupon_code`. `?CouponRedemptions $coupon` receives `null` (contributes nothing to the
+  boundary) when the value is absent; a non-nullable parameter throws instead.
+- An `#[EventSourcingAggregate]` command handler can inject a model too -- it adds a *second* guard on the same
+  save, alongside the aggregate's own version check. This is the adoption path for an existing aggregate: it stays
+  exactly as it is and gains a cross-aggregate invariant by injecting one model.
+- Without any class: `TaggedEventStore::load(EventCriteria::tag('coupon', $code))` returns the matching events and a
+  ready-made `AppendCondition` for `TaggedEventStore::appendTo($stream, $events, $condition)`.
+- **Nothing retries automatically.** Configure `InstantRetryConfiguration::createWithDefaults()
+  ->withCommandBusRetry(true, 3, [DecisionModelConcurrencyException::class])` (or Enterprise `#[InstantRetry]`) --
+  without it, a real conflict surfaces to the caller as a technical exception instead of the business answer the
+  handler would otherwise have thrown (`CouponExhausted` in the example above).
+- **All of DCB is Enterprise**: `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `TaggedEventStore`,
+  `EventCriteria`, `AppendCondition`. An `#[EventTag]`/`#[DecisionModel]` without an Enterprise licence is a
+  bootstrap `LicensingException`. Test with `EcotoneLite::bootstrapFlowTesting(..., licenceKey:
+  \Ecotone\Test\LicenceTesting::VALID_LICENCE)` -- `InMemoryEventStore` implements the full conditional-append
+  contract, no database needed.
+- **On PostgreSQL/MySQL/MariaDB/SQLite** (`PdoEventSourcing`), two tables carry this: `ecotone_tagged_events` (the
+  tag index) and `ecotone_tag_versions` (one counter per tag value -- the guarded `UPDATE ... WHERE version =
+  :captured` is the entire locking mechanism, no advisory locks). They register under their own
+  `ecotone:migration:database:setup` feature, `event_tags`, used only when the app declares an `#[EventTag]`. An
+  application with no `#[EventTag]` sees byte-for-byte the same single `INSERT` as before -- DCB is fully additive.
+  Adopting it in an existing 1.x/2.0 app: create the tables, deploy 2.0 everywhere, release `#[EventTag]`, run
+  `ecotone:event-store:backfill-tags` and wait for it to finish, *then* release `#[DecisionModel]` --
+  `ecotone:event-store:verify-schema` is the deploy gate that catches a wrong collation or an un-relaxed legacy
+  `NOT NULL` constraint before it does.
+
 ## Key Rules
 
 - Every projection needs at least one `#[FromStream]`/`#[FromAggregateStream]` -- there is no "from all streams" option; a forgotten filter is a bootstrap error, not a silent full-log scan

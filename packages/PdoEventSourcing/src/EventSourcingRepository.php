@@ -2,9 +2,11 @@
 
 namespace Ecotone\EventSourcing;
 
+use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\EventSourcing\EventStore\AggregateEventStore;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
 
@@ -49,7 +51,14 @@ class EventSourcingRepository implements EventSourcedRepository
         $aggregateId = reset($identifiers);
         Assert::notNullAndEmpty($aggregateId, sprintf('There was a problem when retrieving identifier for %s', $aggregateClassName));
 
-        $this->eventStore->appendTo($this->getStreamName($aggregateClassName), $events);
+        $appendCondition = $metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION] ?? null;
+        unset($metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION]);
+
+        $this->eventStore->appendTo(
+            $this->getStreamName($aggregateClassName),
+            $events,
+            $appendCondition instanceof AppendCondition ? $appendCondition : null,
+        );
     }
 
     private function getStreamName(string $aggregateClassName): string

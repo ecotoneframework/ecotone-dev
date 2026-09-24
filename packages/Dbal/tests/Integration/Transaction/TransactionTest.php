@@ -74,7 +74,7 @@ final class TransactionTest extends DbalMessagingTestCase
         $connection = $this->getConnection();
         $connection->close();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new OrderService(),
                 DbalConnectionFactory::class => DbalConnection::create(
@@ -173,7 +173,7 @@ final class TransactionTest extends DbalMessagingTestCase
         };
         $dbalConnectionFactory = $this->getConnectionFactory();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             [$consoleCommands::class],
             [$consoleCommands, DbalConnectionFactory::class => $dbalConnectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -218,7 +218,7 @@ final class TransactionTest extends DbalMessagingTestCase
     {
         $dbalConnectionFactory = $this->getConnectionFactory();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderService(), DbalConnectionFactory::class => DbalConnection::fromConnectionFactory($dbalConnectionFactory), 'managerRegistry' => $dbalConnectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
@@ -233,7 +233,7 @@ final class TransactionTest extends DbalMessagingTestCase
 
     private function bootstrapEcotoneWithMultiTenantConnection(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new OrderService(),
                 'tenant_a_connection' => $this->connectionForTenantA(),

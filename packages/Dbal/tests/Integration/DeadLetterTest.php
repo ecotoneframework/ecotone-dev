@@ -241,7 +241,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
         };
         $connectionFactory = $this->getConnectionFactory();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 $handler,
                 DbalConnectionFactory::class => $connectionFactory,
@@ -318,7 +318,7 @@ final class DeadLetterTest extends DbalMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        return (EcotoneLite::bootstrapFlowTesting(
+        return ($this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge($services, [
                 $orderService ?? new OrderService(),
                 DbalConnectionFactory::class => $connectionFactory,

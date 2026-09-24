@@ -169,7 +169,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
         // Bootstrap first Ecotone instance with transactions enabled
         $orderService1 = new OrderService();
-        $ecotone1 = EcotoneLite::bootstrapFlowTesting(
+        $ecotone1 = $this->bootstrapFlowTesting(
             classesToResolve: [OrderService::class, OrderSubscriber::class, Converter::class],
             containerOrAvailableServices: [$orderService1, new OrderSubscriber(), new Converter(), DbalConnectionFactory::class => $connectionFactory1],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -189,7 +189,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
         // Bootstrap second Ecotone instance
         $orderService2 = new OrderService();
-        $ecotone2 = EcotoneLite::bootstrapFlowTesting(
+        $ecotone2 = $this->bootstrapFlowTesting(
             classesToResolve: [OrderService::class, OrderSubscriber::class, Converter::class],
             containerOrAvailableServices: [$orderService2, new OrderSubscriber(), new Converter(), DbalConnectionFactory::class => $connectionFactory2],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -248,7 +248,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
         // Bootstrap first Ecotone instance WITHOUT transactions
         $orderService1 = new OrderService();
-        $ecotone1 = EcotoneLite::bootstrapFlowTesting(
+        $ecotone1 = $this->bootstrapFlowTesting(
             classesToResolve: [OrderService::class, OrderSubscriber::class, Converter::class],
             containerOrAvailableServices: [$orderService1, new OrderSubscriber(), new Converter(), DbalConnectionFactory::class => $connectionFactory1],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -268,7 +268,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
         // Bootstrap second Ecotone instance WITHOUT transactions
         $orderService2 = new OrderService();
-        $ecotone2 = EcotoneLite::bootstrapFlowTesting(
+        $ecotone2 = $this->bootstrapFlowTesting(
             classesToResolve: [OrderService::class, OrderSubscriber::class, Converter::class],
             containerOrAvailableServices: [$orderService2, new OrderSubscriber(), new Converter(), DbalConnectionFactory::class => $connectionFactory2],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -313,7 +313,7 @@ final class DeduplicationModuleTest extends DbalMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderService(), new OrderSubscriber(), new Converter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')

@@ -110,7 +110,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($converter)],
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -150,7 +150,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($converter)],
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -192,7 +192,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($converter)],
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -331,7 +331,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($converter)],
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory(), $converter],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -399,7 +399,7 @@ final class DbalDocumentStoreTest extends DbalMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')

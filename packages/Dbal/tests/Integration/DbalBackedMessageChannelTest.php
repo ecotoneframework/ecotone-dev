@@ -38,7 +38,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
@@ -70,7 +70,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 'managerRegistry' => $this->getConnectionFactory(true),
             ],
@@ -104,7 +104,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
@@ -138,7 +138,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $connectionFactory = $this->getConnectionFactory();
         $queueName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $connectionFactory,
             ],
@@ -168,7 +168,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $connectionFactory = $this->getConnectionFactory(true);
         $channelName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $connectionFactory,
             ],
@@ -198,7 +198,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $channelName = Uuid::v7()->toRfc4122();
         $clock = new StubUTCClock();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
                 ClockInterface::class => $clock,
@@ -231,7 +231,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
@@ -265,7 +265,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],
@@ -302,7 +302,7 @@ class DbalBackedMessageChannelTest extends DbalMessagingTestCase
         $queueName = Uuid::v7()->toRfc4122();
         $messagePayload = 'some';
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(true),
             ],

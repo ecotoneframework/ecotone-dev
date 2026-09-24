@@ -88,7 +88,7 @@ final class ReconnectTest extends DbalMessagingTestCase
 
     private function bootstrapEcotone(array $services, array $extensionObjects = []): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [OrderService::class, OrderRegisteringGateway::class],
             containerOrAvailableServices: array_merge($services, [new OrderService()]),
             configuration: ServiceConfiguration::createWithDefaults()

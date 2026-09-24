@@ -32,7 +32,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 {
     public function test_deduplicating_commands_with_default_message_id_via_command_bus()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, DeduplicatedCommandBus::class],
             [
                 new OrderService(),
@@ -60,7 +60,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_deduplicating_commands_with_custom_header_via_command_bus()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, CustomHeaderDeduplicatedCommandBus::class],
             [
                 new OrderService(),
@@ -88,7 +88,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_deduplicating_commands_with_expression_via_command_bus()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, ExpressionDeduplicatedCommandBus::class],
             [
                 new OrderService(),
@@ -116,7 +116,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_allowing_different_commands_with_different_deduplication_values()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, ExpressionDeduplicatedCommandBus::class],
             [
                 new OrderService(),
@@ -144,7 +144,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_deduplication_works_across_different_command_types()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, ExpressionDeduplicatedCommandBus::class],
             [
                 new OrderService(),
@@ -172,7 +172,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_using_deduplication_in_multiple_command_buses()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, ExpressionDeduplicatedCommandBus::class, CustomHeaderDeduplicatedCommandBus::class],
             [
                 new OrderService(),
@@ -203,7 +203,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
         $this->expectException(LicensingException::class);
         $this->expectExceptionMessage('Deduplicated attribute on interfaces/gateways');
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [OrderService::class, DeduplicatedCommandBus::class],
             [
                 new OrderService(),
@@ -220,7 +220,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_deduplication_isolation_with_tracking_names()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, IsolatedCommandBusOne::class, IsolatedCommandBusTwo::class],
             [
                 new OrderService(),
@@ -249,7 +249,7 @@ final class DbalCommandBusDeduplicationTest extends DbalMessagingTestCase
 
     public function test_deduplication_within_same_tracking_name()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [OrderService::class, IsolatedCommandBusOne::class],
             [
                 new OrderService(),

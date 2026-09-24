@@ -31,7 +31,7 @@ final class MultipleAsyncHandlersForOneMessageTest extends EventSourcingMessagin
                 DbalConnectionFactory::class => self::getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces(['Test\Ecotone\Modelling\Fixture\MultipleAsyncHandlersForOneMessage'])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),

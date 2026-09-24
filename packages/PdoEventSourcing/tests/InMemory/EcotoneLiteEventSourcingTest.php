@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -139,10 +140,6 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
 
     public function test_deleting_projection_table(): void
     {
-        if ($this->isMySQL()) {
-            self::markTestSkipped('#[ProjectionInitialization] issues its CREATE TABLE directly inside the transactional command bus dispatch of initializeProjection(); on MySQL/MariaDB that DDL still implicitly commits the surrounding transaction, independently of automatic table initialization.');
-        }
-
         /** @var DbalConnectionFactory $connectionFactory */
         $connectionFactory = $this->getConnectionFactory();
         $connection = $connectionFactory->createContext()->getDbalConnection();
@@ -152,7 +149,10 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connection), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
-                ->withEnvironment('test'),
+                ->withEnvironment('test')
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false),
+                ]),
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         );

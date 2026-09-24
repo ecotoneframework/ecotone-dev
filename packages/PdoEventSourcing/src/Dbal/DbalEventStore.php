@@ -10,6 +10,7 @@ use function count;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\NotNullConstraintViolationException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Api\EventSourcing\AppendCondition;
@@ -49,6 +50,7 @@ use Doctrine\DBAL\Exception\RetryableException;
 use Doctrine\DBAL\Driver\Exception as DriverExceptionInterface;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
 use Doctrine\DBAL\Platforms\MariaDBPlatform;
+use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 
 use Interop\Queue\ConnectionFactory;
 
@@ -622,7 +624,43 @@ final class DbalEventStore implements EventStore, AggregateEventStore
             $this->runGuarded(fn () => $connection->executeStatement($sql, $parameters));
         } catch (UniqueConstraintViolationException $exception) {
             throw new ConcurrencyException($exception->getMessage(), $exception->getCode(), $exception);
+        } catch (NotNullConstraintViolationException $exception) {
+            throw $this->legacyAggregateConstraintException($connection, $tableName, $exception);
+        } catch (DriverExceptionInterface $exception) {
+            if ($exception->getSQLState() === '23514') {
+                throw $this->legacyAggregateConstraintException($connection, $tableName, $exception);
+            }
+
+            throw $exception;
         }
+    }
+
+    private function legacyAggregateConstraintException(Connection $connection, string $tableName, \Throwable $previous): ConfigurationException
+    {
+        // The insert failed mid-transaction; PostgreSQL refuses further statements once a transaction is aborted,
+        // so the fix is built from the platform and the known 1.x constraint names rather than a live re-query.
+        $platform = $connection->getDatabasePlatform();
+
+        $fix = $platform instanceof PostgreSQLPlatform
+            ? sprintf(
+                'SET lock_timeout = \'2s\'; ALTER TABLE "%s" DROP CONSTRAINT IF EXISTS aggregate_version_not_null, '
+                . 'DROP CONSTRAINT IF EXISTS aggregate_type_not_null, DROP CONSTRAINT IF EXISTS aggregate_id_not_null;',
+                $tableName,
+            )
+            : sprintf(
+                'MODIFY each generated aggregate column (aggregate_version, aggregate_type, aggregate_id) on `%s` '
+                . 'without NOT NULL, restating its expression.',
+                $tableName,
+            );
+
+        return ConfigurationException::create(sprintf(
+            "An event with no aggregate metadata could not be appended to '%s' -- this stream still enforces its "
+            . "1.x NOT NULL constraints on the aggregate columns, which reject an aggregate-less decision-model "
+            . "event. Fix:\n%s\n\n(Driver message: %s)",
+            $tableName,
+            $fix,
+            $previous->getMessage(),
+        ));
     }
 
     private function bumpGuardedTagVersion(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value, int $capturedVersion): int

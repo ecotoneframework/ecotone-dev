@@ -14,6 +14,7 @@ use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
@@ -98,6 +99,25 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
 
         $problems = implode("\n", array_column($result->getRows(), 0));
         self::assertStringNotContainsString(self::LEGACY_STREAM, $problems);
+    }
+
+    public function test_appending_an_aggregate_less_event_into_an_unrelaxed_legacy_stream_raises_a_named_configuration_exception(): void
+    {
+        $this->skipUnlessPostgres();
+
+        $ecotone = $this->bootstrapEcotone();
+        $this->createLegacyProophShapedTable();
+
+        $eventStore = $ecotone->getGateway(EventStore::class);
+
+        try {
+            $eventStore->appendTo(self::LEGACY_STREAM, [new CouponIssuedForVerifySchemaTest('SUMMER24', 2)]);
+            self::fail('Expected ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            self::assertStringContainsString(self::LEGACY_STREAM, $exception->getMessage());
+            self::assertStringContainsString('DROP CONSTRAINT', $exception->getMessage());
+            self::assertStringContainsString('aggregate_version_not_null', $exception->getMessage());
+        }
     }
 
     private function createLegacyProophShapedTable(): void

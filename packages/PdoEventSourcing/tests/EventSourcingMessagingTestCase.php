@@ -42,9 +42,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
             return $this->tenantBConnection;
         }
 
-        $connectionFactory = DbalConnection::fromDsn(
-            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@127.0.0.1:3306/ecotone'
-        );
+        $connectionFactory = DbalConnection::fromDsn(SecondaryTestDatabaseConnectionFactory::resolveDsn());
 
         $this->tenantBConnection = $connectionFactory;
         return $connectionFactory;

@@ -52,6 +52,7 @@ class EventSourcingRepository implements EventSourcedRepository
         Assert::notNullAndEmpty($aggregateId, sprintf('There was a problem when retrieving identifier for %s', $aggregateClassName));
 
         $appendCondition = $metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION] ?? null;
+        unset($metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION]);
 
         $this->eventStore->appendTo(
             $this->getStreamName($aggregateClassName),

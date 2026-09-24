@@ -13,6 +13,7 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -26,11 +27,20 @@ use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
  */
 final class MultiTenantTaggedEventStoreTest extends EventSourcingMessagingTestCase
 {
+    private DbalConnectionFactory $tenantBConnectionFactory;
+
     public function setUp(): void
     {
         parent::setUp();
+
+        // Tenant B is deliberately a throwaway SQLite file, never the engine DATABASE_DSN points to for this run
+        // (which is what tenant A uses): a "second tenant" whose connection env var happens to resolve to the
+        // exact same physical database as the first must not look like isolation working by accident.
+        $this->tenantBConnectionFactory = new DbalConnectionFactory(
+            'sqlite:///' . sys_get_temp_dir() . '/ecotone_multi_tenant_test_tenant_b_' . uniqid('', true) . '.db'
+        );
+
         self::clearDataTables($this->connectionForTenantA()->createContext()->getDbalConnection());
-        self::clearDataTables($this->connectionForTenantB()->createContext()->getDbalConnection());
     }
 
     public function test_each_tenant_has_its_own_tag_counters(): void
@@ -42,7 +52,7 @@ final class MultiTenantTaggedEventStoreTest extends EventSourcingMessagingTestCa
         $ecotone->sendCommand(new IssueCouponForMultiTenantTest('batch-b1', 'SUMMER24', 5), metadata: ['tenant' => 'tenant_b']);
 
         $connectionA = $this->connectionForTenantA()->createContext()->getDbalConnection();
-        $connectionB = $this->connectionForTenantB()->createContext()->getDbalConnection();
+        $connectionB = $this->tenantBConnectionFactory->createContext()->getDbalConnection();
 
         $versionA = (int) $connectionA->executeQuery(
             "SELECT version FROM ecotone_tag_versions WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24'"
@@ -62,7 +72,7 @@ final class MultiTenantTaggedEventStoreTest extends EventSourcingMessagingTestCa
             containerOrAvailableServices: [
                 new EventsConverterForMultiTenantTest(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
-                'tenant_b_connection' => $this->connectionForTenantB(),
+                'tenant_b_connection' => $this->tenantBConnectionFactory,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)

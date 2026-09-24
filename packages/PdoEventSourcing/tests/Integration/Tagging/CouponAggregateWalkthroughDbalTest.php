@@ -7,9 +7,11 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Attribute\Headers;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -22,6 +24,7 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
@@ -136,11 +139,34 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
         self::assertSame(1, $metadata['_aggregate_version']);
     }
 
+    public function test_the_decision_model_append_condition_never_reaches_persisted_metadata_or_published_headers(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('SUMMER24', 5)]);
+
+        // A model actually resolves its tags here (unlike the null-coupon case), so
+        // DecisionModelAppendConditionCollector really has a non-empty AppendCondition to hand SaveAggregateService.
+        $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', 'SUMMER24'));
+
+        $connection = $this->getConnection();
+        $rows = $connection->executeQuery(
+            "SELECT metadata FROM ecotone_event_stream WHERE event_name LIKE '%OrderPlacedForDbalCouponTest%'"
+        )->fetchAllAssociative();
+
+        self::assertCount(1, $rows);
+        self::assertStringNotContainsString(AggregateMessage::DECISION_MODEL_APPEND_CONDITION, $rows[0]['metadata']);
+
+        /** @var PublishedEventHeadersCollectorForDbalCouponTest $collector */
+        $collector = $ecotone->getServiceFromContainer(PublishedEventHeadersCollectorForDbalCouponTest::class);
+        self::assertCount(1, $collector->capturedHeaders);
+        self::assertArrayNotHasKey(AggregateMessage::DECISION_MODEL_APPEND_CONDITION, $collector->capturedHeaders[0]);
+    }
+
     private function bootstrapEcotone(): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTestingWithEventStore(
-            classesToResolve: self::CLASSES,
-            containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalCouponTest(), new CompetingWriteInjectorForDbalCouponTest()],
+            classesToResolve: [...self::CLASSES, PublishedEventHeadersCollectorForDbalCouponTest::class],
+            containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalCouponTest(), new CompetingWriteInjectorForDbalCouponTest(), new PublishedEventHeadersCollectorForDbalCouponTest()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
@@ -323,5 +349,17 @@ final class EventsConverterForDbalCouponTest
     public function toOrderPlaced(array $event): OrderPlacedForDbalCouponTest
     {
         return new OrderPlacedForDbalCouponTest($event['orderId'], $event['customerId'], $event['couponCode']);
+    }
+}
+
+final class PublishedEventHeadersCollectorForDbalCouponTest
+{
+    /** @var array<array<string, mixed>> */
+    public array $capturedHeaders = [];
+
+    #[EventHandler]
+    public function onOrderPlaced(OrderPlacedForDbalCouponTest $event, #[Headers] array $headers): void
+    {
+        $this->capturedHeaders[] = $headers;
     }
 }

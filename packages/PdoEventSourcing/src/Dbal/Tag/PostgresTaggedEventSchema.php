@@ -87,4 +87,11 @@ final class PostgresTaggedEventSchema implements TaggedEventSchema
     {
         return 'CAST(? AS BIGINT)';
     }
+
+    public function idempotentInsertIndexRowSql(string $indexTableName, string $streamTableName): string
+    {
+        return 'INSERT INTO ' . $this->quoteIdentifier($indexTableName) . ' (tag_name, tag_value, stream_name, event_no, tag_sequence) '
+            . 'SELECT ?, ?, ?, s.no, ' . $this->bigIntPlaceholder() . ' FROM ' . $this->quoteIdentifier($streamTableName) . ' s WHERE s.event_id = ? '
+            . 'ON CONFLICT DO NOTHING';
+    }
 }

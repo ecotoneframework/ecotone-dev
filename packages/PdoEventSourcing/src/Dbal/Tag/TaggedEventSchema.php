@@ -48,4 +48,11 @@ interface TaggedEventSchema
      * INSERT ... SELECT across a UNION and default it to text, so it must be cast explicitly.
      */
     public function bigIntPlaceholder(): string;
+
+    /**
+     * INSERT ... SELECT of one tagged-event index row, silently doing nothing when the (tag_name, tag_value,
+     * stream_name, event_no) primary key already exists -- used by the backfill command so re-running it is safe.
+     * Parameters, in order: tag_name, tag_value, stream_name, tag_sequence, event_id.
+     */
+    public function idempotentInsertIndexRowSql(string $indexTableName, string $streamTableName): string;
 }

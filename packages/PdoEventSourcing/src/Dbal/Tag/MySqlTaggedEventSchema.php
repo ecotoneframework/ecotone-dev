@@ -82,4 +82,10 @@ class MySqlTaggedEventSchema implements TaggedEventSchema
     {
         return '?';
     }
+
+    public function idempotentInsertIndexRowSql(string $indexTableName, string $streamTableName): string
+    {
+        return 'INSERT IGNORE INTO ' . $this->quoteIdentifier($indexTableName) . ' (tag_name, tag_value, stream_name, event_no, tag_sequence) '
+            . 'SELECT ?, ?, ?, s.no, ? FROM ' . $this->quoteIdentifier($streamTableName) . ' s WHERE s.event_id = ?';
+    }
 }

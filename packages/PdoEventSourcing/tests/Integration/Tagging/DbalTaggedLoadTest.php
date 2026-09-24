@@ -12,6 +12,7 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
+use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -168,6 +169,10 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         $store = $ecotone->getServiceFromContainer(TaggedEventStore::class);
         $eventStore = $ecotone->getGateway(\Ecotone\EventSourcing\EventStore::class);
 
+        $connection = $this->getConnection();
+        foreach (EventStreamSchemaFactory::for($connection)->createTableSql(self::OTHER_STREAM) as $statement) {
+            $connection->executeStatement($statement);
+        }
         $eventStore->create(self::OTHER_STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]);
         $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]);
 
@@ -185,7 +190,7 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [StudentSubscribedForDbalLoadTest::class, CourseCapacityChangedForDbalLoadTest::class, EventsConverterForDbalLoadTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalLoadTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -196,6 +201,9 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 
     private function dropTagTables(): void

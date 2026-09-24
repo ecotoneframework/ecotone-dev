@@ -167,7 +167,7 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [CouponIssuedForVerifySchemaTest::class, EventsConverterForVerifySchemaTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForVerifySchemaTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -180,6 +180,9 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 
     private function dropTables(): void

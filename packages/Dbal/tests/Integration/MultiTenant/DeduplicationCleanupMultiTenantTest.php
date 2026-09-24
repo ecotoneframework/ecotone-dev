@@ -80,7 +80,7 @@ final class DeduplicationCleanupMultiTenantTest extends DbalMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [EmailCommandHandler::class],
             [
                 new EmailCommandHandler(),

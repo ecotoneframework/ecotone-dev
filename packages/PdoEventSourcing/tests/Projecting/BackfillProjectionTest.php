@@ -282,7 +282,7 @@ final class BackfillProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services, bool|array $channels, ?TestConfiguration $testConfiguration = null): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [...$classesToResolve, Ticket::class, TicketEventConverter::class],
             containerOrAvailableServices: [...$services, new TicketEventConverter(), self::getConnectionFactory()],
             configuration: (ServiceConfiguration::createWithDefaults()

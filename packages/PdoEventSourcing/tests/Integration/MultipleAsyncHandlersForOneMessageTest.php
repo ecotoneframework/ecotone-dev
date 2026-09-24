@@ -24,14 +24,14 @@ final class MultipleAsyncHandlersForOneMessageTest extends EventSourcingMessagin
 {
     public function test_handling_multiple_same_messages(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [TestAggregate::class, EventConverter::class],
             containerOrAvailableServices: [
                 new EventConverter(),
                 DbalConnectionFactory::class => self::getConnectionFactory(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces(['Test\Ecotone\Modelling\Fixture\MultipleAsyncHandlersForOneMessage'])
                 ->withExtensionObjects([
                     DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),

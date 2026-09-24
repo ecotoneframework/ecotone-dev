@@ -685,6 +685,12 @@ Behaviour is controlled by `AutoCreateLevel`:
   did, under a new name. `EcotoneLite::bootstrapFlowTesting()` / `bootstrapFlowTestingWithEventStore()` use it by
   default, so in-memory and SQLite tests are unaffected.
 
+On MySQL and MariaDB, `AutoCreateLevel::CreateOnly` (`withAutomaticTableInitialization(true)`) is not supported: a
+`CREATE TABLE` there implicitly commits the surrounding transaction, and Ecotone will not split your message
+transaction to work around it. A missing table raises the same `ConfigurationException` as `AutoCreateLevel::None`
+regardless of the level configured, naming the feature, the table, and the exact `ecotone:migration:database:setup`
+command to run instead. PostgreSQL and SQLite are unaffected and auto-create exactly as configured.
+
 **How to adapt:**
 
 ```php
@@ -706,7 +712,8 @@ final class EcotoneConfiguration
 ```
 
 - Add `ecotone:migration:database:setup --initialize` to your deploy pipeline (or `--feature=deduplication,dead_letter`
-  for a subset).
+  for a subset). On MySQL/MariaDB this is not optional — auto-create never runs there, so the setup command (or
+  `--sql` for your own migration tool) is the only way to get the tables in place before your application runs.
   - Symfony: `bin/console ecotone:migration:database:setup --initialize`
   - Laravel: `php artisan ecotone:migration:database:setup --initialize`
   - Tempest: `./tempest ecotone:migration:database:setup --initialize`
@@ -732,13 +739,6 @@ final class EcotoneConfiguration
   auto-create through `DbalConfiguration` only.
 - Remove any application code that relied on the implicit commit (for example, DDL issued from inside a handler on
   MySQL) — it is no longer swallowed, and a genuinely failing commit now throws.
-- Ecotone's own automatic table creation and dropping (event stream, tag, projection state, document store, enqueue,
-  dead letter and deduplication tables) is safe to trigger from inside an already-open message transaction on
-  MySQL/MariaDB: the framework commits the surrounding transaction, runs the DDL, then reopens a fresh transaction on
-  the same connection before your handler continues, so the implicit commit those engines force on DDL never leaves
-  the later commit/rollback without a transaction to act on. This only covers DDL the framework issues for its own
-  tables — DDL your own handler code issues directly (for example inside `#[ProjectionInitialization]`) is not
-  wrapped this way and can still break a surrounding transaction on MySQL/MariaDB the same way it always could.
 - `#[ProjectionInitialization]` handlers now run **before** the projection-state transaction is opened, instead of
   inside it. Previously a partition's first batch opened the transaction and then called your initialization handler
   from within it, so DDL in that handler triggered MySQL's implicit commit and broke the later commit. Your handler

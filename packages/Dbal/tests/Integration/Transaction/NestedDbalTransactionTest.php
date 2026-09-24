@@ -22,7 +22,7 @@ final class NestedDbalTransactionTest extends DbalMessagingTestCase
     {
         $logger = new TestCountingLogger();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             [NestedDbalHandlers::class],
             [
                 new NestedDbalHandlers(),

@@ -13,6 +13,8 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
+use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -26,15 +28,11 @@ use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
  */
 final class MultiTenantTaggedEventStoreTest extends EventSourcingMessagingTestCase
 {
-    public function setUp(): void
-    {
-        parent::setUp();
-
-        self::clearDataTables($this->connectionForTenantA()->createContext()->getDbalConnection());
-    }
-
     public function test_each_tenant_has_its_own_tag_counters(): void
     {
+        $this->initializeStreamAndTagTables($this->connectionForTenantA()->createContext()->getDbalConnection());
+        $this->initializeStreamAndTagTables($this->connectionForTenantB()->createContext()->getDbalConnection());
+
         $ecotone = $this->bootstrapEcotone();
 
         $ecotone->sendCommand(new IssueCouponForMultiTenantTest('batch-a1', 'SUMMER24', 2), metadata: ['tenant' => 'tenant_a']);
@@ -57,7 +55,7 @@ final class MultiTenantTaggedEventStoreTest extends EventSourcingMessagingTestCa
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [CouponForMultiTenantTest::class, CouponIssuedForMultiTenantTest::class, EventsConverterForMultiTenantTest::class],
             containerOrAvailableServices: [
                 new EventsConverterForMultiTenantTest(),
@@ -82,6 +80,18 @@ final class MultiTenantTaggedEventStoreTest extends EventSourcingMessagingTestCa
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+
+    private function initializeStreamAndTagTables(\Doctrine\DBAL\Connection $connection): void
+    {
+        foreach (EventStreamSchemaFactory::for($connection)->createTableSql('ecotone_event_stream') as $statement) {
+            $connection->executeStatement($statement);
+        }
+
+        $tagSchema = TaggedEventSchemaFactory::for($connection);
+        foreach ([...$tagSchema->createTaggedEventsTableSql('ecotone_tagged_events'), ...$tagSchema->createTagVersionsTableSql('ecotone_tag_versions')] as $statement) {
+            $connection->executeStatement($statement);
+        }
     }
 }
 

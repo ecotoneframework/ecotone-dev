@@ -419,7 +419,7 @@ final class TransactionRollbackTest extends ProjectingTestCase
 
     private function bootstrapEcotoneForTickets(array $classesToResolve, array $services, string $channel): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: (ServiceConfiguration::createWithDefaults()
@@ -433,7 +433,7 @@ final class TransactionRollbackTest extends ProjectingTestCase
 
     private function bootstrapEcotoneForCalendar(array $classesToResolve, array $services, string $channel): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [
                 CalendarWithInternalRecorder::class,
                 MeetingWithEventSourcing::class,

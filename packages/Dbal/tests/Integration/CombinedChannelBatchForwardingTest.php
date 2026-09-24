@@ -60,7 +60,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -102,7 +102,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -138,7 +138,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -172,7 +172,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -216,7 +216,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -244,7 +244,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -267,7 +267,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -305,7 +305,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -360,7 +360,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -395,7 +395,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -435,7 +435,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -475,7 +475,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -509,7 +509,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
@@ -548,7 +548,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
@@ -594,7 +594,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [$orderService::class],
             [$orderService],
             ServiceConfiguration::createWithDefaults()
@@ -620,7 +620,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -645,7 +645,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 }
             };
 
-            $messaging = EcotoneLite::bootstrapFlowTesting(
+            $messaging = $this->bootstrapFlowTesting(
                 [$orderService::class],
                 [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
                 ServiceConfiguration::createWithDefaults()
@@ -690,7 +690,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -716,7 +716,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -748,7 +748,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
 
         $this->expectException(ConfigurationException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -772,7 +772,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -805,7 +805,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -838,7 +838,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
                 }
             };
 
-            $messaging = EcotoneLite::bootstrapFlowTesting(
+            $messaging = $this->bootstrapFlowTesting(
                 [$orderService::class],
                 [
                     DbalConnectionFactory::class => $this->getConnectionFactory(),
@@ -881,7 +881,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
@@ -927,7 +927,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -1023,7 +1023,7 @@ final class CombinedChannelBatchForwardingTest extends DbalMessagingTestCase
             }
         };
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [$orderService::class],
             [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),

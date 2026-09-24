@@ -70,7 +70,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
     {
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [],
             [DbalConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
@@ -152,7 +152,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
                 );
             }
         };
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$commandHandler::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
             ServiceConfiguration::createWithDefaults()
@@ -271,7 +271,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
 
     private function bootstrapEcotoneWithChannel(object $orderService, ?string $licenceKey): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -291,7 +291,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
             $publisherConfiguration = $publisherConfiguration->withHighThroughputPublishing();
         }
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [],
             [DbalConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()

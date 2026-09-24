@@ -62,6 +62,7 @@ class DeduplicationModule implements AnnotationModule
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
 
         $isDeduplicatedEnabled = $dbalConfiguration->isDeduplicatedEnabled();
+        $hasDeduplicatedHandlers = ! empty($this->annotationFinder->findAnnotatedMethods(Deduplicated::class));
         $connectionFactory     = $dbalConfiguration->getDeduplicationConnectionReference();
 
         $pointcut = Deduplicated::class;
@@ -77,7 +78,7 @@ class DeduplicationModule implements AnnotationModule
             DeduplicationTableManager::class,
             new Definition(DeduplicationTableManager::class, [
                 DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE,
-                $isDeduplicatedEnabled,
+                $isDeduplicatedEnabled || $hasDeduplicatedHandlers,
                 $shouldAutoInitialize,
                 $consoleInvocationPrefix,
             ])

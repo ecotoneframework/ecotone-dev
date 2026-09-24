@@ -7,6 +7,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Config\EventStoreReference;
+use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\AggregateEventStore;
 use Ecotone\Lite\EcotoneLite;
@@ -31,6 +32,7 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
     {
         $eventStore = $this->bootstrapAggregateEventStore();
         $streamName = Uuid::v7()->toRfc4122();
+        $this->createStreamTable($streamName);
 
         $eventStore->appendTo($streamName, [
             Event::create(new TicketWasRegistered('123', 'Johnny', 'alert'), ['_aggregate_id' => '123', '_aggregate_type' => 'ticket', '_aggregate_version' => 1]),
@@ -48,6 +50,7 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
     {
         $eventStore = $this->bootstrapAggregateEventStore();
         $streamName = Uuid::v7()->toRfc4122();
+        $this->createStreamTable($streamName);
 
         $eventStore->appendTo($streamName, [
             Event::create(new TicketWasRegistered('123', 'Johnny', 'alert'), ['_aggregate_id' => '123', '_aggregate_type' => 'ticket', '_aggregate_version' => 1]),
@@ -62,11 +65,11 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
 
     private function bootstrapAggregateEventStore(): EventStore&AggregateEventStore
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
@@ -78,5 +81,10 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getServiceFromContainer(EventStoreReference::EVENT_STORE_INSTANCE);
 
         return $eventStore;
+    }
+
+    private function createStreamTable(string $streamName): void
+    {
+        (new EventStreamTableManager([$streamName], true, true))->createTable($this->getConnection());
     }
 }

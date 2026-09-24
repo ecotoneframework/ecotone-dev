@@ -38,7 +38,7 @@ final class SnapshotsTest extends EventSourcingMessagingTestCase
     #[DataProvider('enterpriseMode')]
     public function test_snapshotting_aggregates_called_in_turn(bool $enableEnterpriseMode): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Basket::class], // fixme should not be required when aggregate class is in namespace used with `withNamespaces` method
             containerOrAvailableServices: [new BasketEventConverter(), new BasketMediaTypeConverter(), new TicketEventConverter(), new TicketMediaTypeConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()

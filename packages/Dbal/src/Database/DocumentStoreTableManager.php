@@ -14,6 +14,8 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 final class DocumentStoreTableManager implements DbalTableManager
 {
+    use AutomaticTableInitializationTrait;
+
     public const FEATURE_NAME = 'document_store';
 
     public function __construct(
@@ -44,14 +46,11 @@ final class DocumentStoreTableManager implements DbalTableManager
         return new Definition(self::class, [$this->tableName, $this->isUsed, $this->shouldAutoInitialize, $this->consoleInvocationPrefix]);
     }
 
-    public function shouldBeInitializedAutomatically(): bool
+    public function getMissingTableInstructions(Connection $connection): string
     {
-        return $this->shouldAutoInitialize;
-    }
-
-    public function getMissingTableInstructions(): string
-    {
-        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
+        return AutomaticTableInitializationSupport::isSupported($connection)
+            ? MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix)
+            : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix);
     }
 
     public function createTable(Connection $connection): void
@@ -60,17 +59,15 @@ final class DocumentStoreTableManager implements DbalTableManager
             return;
         }
 
-        DdlOutsideActiveTransaction::run($connection, function (Connection $ddlConnection): void {
-            try {
-                $ddlConnection->createSchemaManager()->createTable($this->buildTableSchema());
-            } catch (TableExistsException) {
-            }
-        });
+        try {
+            $connection->createSchemaManager()->createTable($this->buildTableSchema());
+        } catch (TableExistsException) {
+        }
     }
 
     public function dropTable(Connection $connection): void
     {
-        DdlOutsideActiveTransaction::execute($connection, $this->getDropTableSql($connection));
+        $connection->executeStatement($this->getDropTableSql($connection));
     }
 
     public function getCreateTableSql(Connection $connection): array

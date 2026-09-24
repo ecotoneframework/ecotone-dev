@@ -25,7 +25,7 @@ final class ExecutionTimeLimitReceiveTimeoutTest extends DbalMessagingTestCase
     {
         $channelName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],

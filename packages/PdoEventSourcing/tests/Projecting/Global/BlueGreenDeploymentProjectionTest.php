@@ -160,7 +160,7 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
@@ -169,6 +169,9 @@ final class BlueGreenDeploymentProjectionTest extends ProjectingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 }
 

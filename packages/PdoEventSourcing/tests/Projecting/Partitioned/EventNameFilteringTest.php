@@ -137,7 +137,7 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
     {
         $classes = array_map(fn ($p) => get_class($p), $projections);
 
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classes, [MultiEventAggregate::class, FirstEvent::class, SecondEvent::class, Converters::class]),
             containerOrAvailableServices: array_merge($projections, [new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()
@@ -145,6 +145,9 @@ class EventNameFilteringTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 
     private function getProjectionHandlingAllEvents(): object

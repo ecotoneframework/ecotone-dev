@@ -116,7 +116,7 @@ class DbalDeadLetterTest extends DbalMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $connectionFactory,
             ],

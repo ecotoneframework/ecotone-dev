@@ -31,7 +31,7 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
 {
     public function test_state_based_aggregate_can_create_another_state_based_aggregate(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Calendar::class, Meeting::class],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
@@ -54,7 +54,7 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
 
     public function test_state_based_aggregate_can_create_event_sourcing_aggregate_with_internal_recorder(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [Calendar::class, MeetingWithEventSourcing::class],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
@@ -79,7 +79,7 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
 
     public function test_state_based_aggregate_with_internal_recorder_can_create_another_state_based_aggregate(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, Meeting::class],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
@@ -110,7 +110,7 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
 
     public function test_state_based_aggregate_with_internal_recorder_can_create_another_state_based_aggregate_with_its_own_internal_recorder(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithInternalRecorder::class],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([
@@ -144,7 +144,7 @@ final class CreateAggregateByStateBasedAggregateTest extends DbalMessagingTestCa
 
     public function test_state_based_aggregate_with_internal_recorder_can_create_event_sourcing_aggregate_with_internal_recorder(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withNamespaces([

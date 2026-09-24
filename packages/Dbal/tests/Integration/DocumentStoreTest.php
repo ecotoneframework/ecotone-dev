@@ -69,7 +69,7 @@ final class DocumentStoreTest extends DbalMessagingTestCase
 
     private function bootstrapDocumentStore(): DocumentStore
     {
-        return (EcotoneLite::bootstrapFlowTesting(
+        return ($this->bootstrapFlowTesting(
             containerOrAvailableServices: [new PersonJsonConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')

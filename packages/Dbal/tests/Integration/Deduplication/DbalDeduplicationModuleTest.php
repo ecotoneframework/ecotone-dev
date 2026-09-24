@@ -30,7 +30,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 {
     public function test_deduplicating_given_command_handler()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [EmailCommandHandler::class],
             [
                 new EmailCommandHandler(),
@@ -58,7 +58,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
     public function test_deduplicating_after_first_handling_was_failure_during_asynchronous_processing()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [EmailCommandHandler::class],
             [
                 new EmailCommandHandler(1),
@@ -91,7 +91,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     public function test_deduplicating_given_event_handler_with_global_deduplication()
     {
         $queueName = 'async';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [DeduplicatedEventHandler::class],
             [
                 new DeduplicatedEventHandler(),
@@ -119,7 +119,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     public function test_deduplicating_given_event_handler_with_custom_timeout()
     {
         $queueName = 'async';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [DeduplicatedEventHandler::class],
             [
                 new DeduplicatedEventHandler(),
@@ -150,7 +150,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     public function test_deduplicating_given_event_handler_with_custom_timeout_and_batch_size()
     {
         $queueName = 'async';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [DeduplicatedEventHandler::class],
             [
                 new DeduplicatedEventHandler(),
@@ -181,7 +181,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     public function test_deduplicating_given_event_handler_with_custom_header()
     {
         $queueName = 'async';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [DeduplicatedEventHandler::class],
             [
                 new DeduplicatedEventHandler(),
@@ -210,7 +210,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     {
         $queueName = Uuid::v7()->toRfc4122();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [EmailCommandHandler::class],
             [
                 new EmailCommandHandler(),
@@ -237,7 +237,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_header_expression()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExpressionDeduplicationCommandHandler::class],
             [
                 new ExpressionDeduplicationCommandHandler(),
@@ -262,7 +262,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_payload_expression()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExpressionDeduplicationCommandHandler::class],
             [
                 new ExpressionDeduplicationCommandHandler(),
@@ -287,7 +287,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_complex_expression()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExpressionDeduplicationCommandHandler::class],
             [
                 new ExpressionDeduplicationCommandHandler(),
@@ -312,7 +312,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_expression_allows_different_values()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExpressionDeduplicationCommandHandler::class],
             [
                 new ExpressionDeduplicationCommandHandler(),
@@ -338,7 +338,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
     public function test_deduplicating_with_expression_in_asynchronous_processing()
     {
         $queueName = 'async_expression';
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [ExpressionDeduplicationCommandHandler::class],
             [
                 new ExpressionDeduplicationCommandHandler(),
@@ -363,7 +363,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
     public function test_deduplicating_with_tracking_name_isolation()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [TrackingNameDeduplicationCommandHandler::class],
             [
                 new TrackingNameDeduplicationCommandHandler(),
@@ -389,7 +389,7 @@ final class DbalDeduplicationModuleTest extends DbalMessagingTestCase
 
     public function test_deduplicating_within_same_tracking_name()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [TrackingNameDeduplicationCommandHandler::class],
             [
                 new TrackingNameDeduplicationCommandHandler(),

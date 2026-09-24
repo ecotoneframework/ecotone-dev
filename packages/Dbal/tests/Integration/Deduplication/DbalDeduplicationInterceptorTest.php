@@ -49,7 +49,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -83,7 +83,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -117,7 +117,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -156,7 +156,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -195,7 +195,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -248,7 +248,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -297,7 +297,7 @@ class DbalDeduplicationInterceptorTest extends DbalMessagingTestCase
             }
         };
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [get_class($handler)],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()

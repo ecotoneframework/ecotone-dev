@@ -206,7 +206,7 @@ final class ProjectionWithStateTest extends ProjectingTestCase
 
     private function bootstrapEcotone(array $classesToResolve, array $services): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: array_merge($classesToResolve, [Ticket::class, TicketEventConverter::class]),
             containerOrAvailableServices: array_merge($services, [new TicketEventConverter(), self::getConnectionFactory()]),
             configuration: ServiceConfiguration::createWithDefaults()

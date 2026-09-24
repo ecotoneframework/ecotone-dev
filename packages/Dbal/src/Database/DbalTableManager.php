@@ -60,13 +60,14 @@ interface DbalTableManager extends DefinedObject
 
     /**
      * Returns whether this table should be automatically initialized at runtime.
-     * This combines global DbalConfiguration setting with feature-specific config.
+     * This combines global DbalConfiguration setting with feature-specific config and,
+     * on MySQL/MariaDB, is always false: automatic initialization is not supported there.
      */
-    public function shouldBeInitializedAutomatically(): bool;
+    public function shouldBeInitializedAutomatically(Connection $connection): bool;
 
     /**
      * Message explaining how to create the table this manager owns, naming the exact
      * command (or, without a console, the code) for the integration the application runs.
      */
-    public function getMissingTableInstructions(): string;
+    public function getMissingTableInstructions(Connection $connection): string;
 }

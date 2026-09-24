@@ -40,7 +40,7 @@ final class BatchForwardingMultiTenantTest extends DbalMessagingTestCase
             }
         };
 
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$orderService::class],
             [
                 $orderService,

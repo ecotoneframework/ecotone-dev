@@ -24,7 +24,7 @@ class ProjectionHandlersExecutionRoutingTest extends EventSourcingMessagingTestC
 {
     public function test_projection_with_object_routing(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [ProjectionWithObjectRouting::class, AnEvent::class, AnAggregate::class, Converters::class],
             containerOrAvailableServices: [$projection = new ProjectionWithObjectRouting(), new Converters(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()

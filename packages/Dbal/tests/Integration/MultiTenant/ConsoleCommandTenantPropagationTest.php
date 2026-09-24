@@ -115,7 +115,7 @@ final class ConsoleCommandTenantPropagationTest extends DbalMessagingTestCase
     {
         $recorder = $this->newTenantMarkerRecorder();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [$recorder::class],
             [
                 $recorder,

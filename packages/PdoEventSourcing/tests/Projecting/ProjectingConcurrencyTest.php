@@ -27,6 +27,16 @@ class ProjectingConcurrencyTest extends TestCase
         }
 
         self::$ecotone = self::bootEcotone();
+        self::$ecotone->getServiceFromContainer('Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager')->initializeAll();
+        self::$ecotone->getServiceFromContainer('Ecotone\Dbal\Connection\DbalConnectionFactory')->establishConnection()->executeStatement(<<<SQL
+            CREATE TABLE IF NOT EXISTS order_list_projection (
+                order_id VARCHAR(255) PRIMARY KEY,
+                product VARCHAR(255) NOT NULL,
+                quantity INT NOT NULL,
+                status VARCHAR(32) NOT NULL,
+                reason VARCHAR(255)
+            )
+            SQL);
     }
 
     public function test_it_can_place_order(): void

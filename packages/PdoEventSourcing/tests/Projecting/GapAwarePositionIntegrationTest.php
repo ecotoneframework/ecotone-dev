@@ -61,7 +61,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $projection = new #[Projection(DbalTicketProjection::NAME)] class (self::$connectionFactory->establishConnection()) extends DbalTicketProjection {
         };
         self::$projection = $projection;
-        self::$ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        self::$ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [$projection::class],
             containerOrAvailableServices: [
                 $projection,
@@ -72,7 +72,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
                 ]),
@@ -86,7 +86,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         if (self::$eventStore->hasStream(Ticket::STREAM_NAME)) {
             self::$eventStore->delete(Ticket::STREAM_NAME);
         }
-        self::$eventStore->create(Ticket::STREAM_NAME);
+        self::$ecotone->initializeDatabase();
         self::$projectionManager->delete();
     }
 

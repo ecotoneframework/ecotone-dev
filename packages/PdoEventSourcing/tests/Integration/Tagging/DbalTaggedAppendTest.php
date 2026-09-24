@@ -137,7 +137,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(array $classesToResolve): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [...$classesToResolve, EventsConverterForDbalAppendTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalAppendTest()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -148,6 +148,9 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 
     private function dropTagTables(): void

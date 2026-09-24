@@ -10,6 +10,8 @@ use Ecotone\Api\Dbal\ExtensionObject\DbalBackedMessageChannelBuilder;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Dbal\Database\DeadLetterTableManager;
+use Ecotone\Dbal\Database\EnqueueTableManager;
 use Ecotone\Dbal\Recoverability\DbalDeadLetterHandler;
 use Ecotone\Enqueue\ConnectionFactory;
 use Ecotone\Lite\EcotoneLite;
@@ -34,6 +36,12 @@ final class MultiTenantDeadLetterTest extends DbalMessagingTestCase
                 throw new RuntimeException('Order processing has failed');
             }
         };
+
+        foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
+            $connection = $connectionFactory->createContext()->getDbalConnection();
+            (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
+            (new DeadLetterTableManager(DbalDeadLetterHandler::DEFAULT_DEAD_LETTER_TABLE, true, true))->createTable($connection);
+        }
 
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [$orderService::class],

@@ -6,6 +6,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -25,7 +26,12 @@ final class SecondaryConnectionStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_aggregate_stream_lives_on_the_connection_its_attribute_points_at(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $secondaryConnection = $this->connectionForTenantB()->createContext()->getDbalConnection();
+        foreach (EventStreamSchemaFactory::for($secondaryConnection)->createTableSql(SecondaryOrder::STREAM) as $statement) {
+            $secondaryConnection->executeStatement($statement);
+        }
+
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [SecondaryOrder::class, SecondaryOrderConverter::class],
             containerOrAvailableServices: [
                 new SecondaryOrderConverter(),

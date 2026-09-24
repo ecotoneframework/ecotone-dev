@@ -141,7 +141,7 @@ final class DbalParameterTypeTest extends DbalMessagingTestCase
     {
         $this->setupUserTable();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge(
                 [
                     DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person']),

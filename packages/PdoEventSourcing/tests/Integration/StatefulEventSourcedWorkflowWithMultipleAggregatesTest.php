@@ -24,7 +24,7 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
 {
     public function test_stateful_event_sourced_workflow_with_multiple_aggregates_without_metadata_mapping(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [
                 AggregatesWithoutMetadataMapping\Basket::class,
                 AggregatesWithoutMetadataMapping\ItemInventory::class,
@@ -81,7 +81,7 @@ class StatefulEventSourcedWorkflowWithMultipleAggregatesTest extends EventSourci
 
     public function test_stateful_event_sourced_workflow_with_multiple_aggregates_with_metadata_mapping(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [
                 AggregatesWithMetadataMapping\Basket::class,
                 AggregatesWithMetadataMapping\ItemInventory::class,

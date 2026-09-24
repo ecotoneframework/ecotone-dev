@@ -13,6 +13,11 @@ use Ecotone\Api\ExtensionObject\ExecutionPollingMetadata;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\Dbal\Database\DeduplicationTableManager;
+use Ecotone\Dbal\Database\DocumentStoreTableManager;
+use Ecotone\Dbal\Database\EnqueueTableManager;
+use Ecotone\Dbal\Deduplication\DeduplicationInterceptor;
+use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Handler\Logger\EchoLogger;
@@ -44,7 +49,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_turning_on_transactions_for_polling_consumer()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
             ServiceConfiguration::createWithDefaults()
@@ -95,7 +100,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         }
 
         // Now create the actual test instance with the connection breaking module
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class, ConnectionBreakingModule::class],
             [
                 new MultipleInternalCommandsService(),
@@ -146,7 +151,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         }
 
         // First, create a regular EcotoneLite instance to set up the database tables
-        $setupEcotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $setupEcotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [
                 new MultipleInternalCommandsService(),
@@ -172,7 +177,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $setupEcotoneLite->run('async', ExecutionPollingMetadata::createWithTestingSetup(handledMessageLimit: 1, stopOnError: false));
 
         // Now create the actual test instance with the connection breaking module
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class, ConnectionBreakingModule::class],
             [
                 new MultipleInternalCommandsService(),
@@ -210,7 +215,12 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_turning_on_transactions_for_polling_consumer_with_tenant_connection()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $connection = $this->getConnection();
+        (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
+        (new DocumentStoreTableManager(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, true, true))->createTable($connection);
+        (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
+
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [
                 new MultipleInternalCommandsService(),
@@ -279,7 +289,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_turning_on_transactions_for_polling_consumer_with_document_store()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->connectionForTenantA()],
             ServiceConfiguration::createWithDefaults()
@@ -326,6 +336,14 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_turning_on_transactions_for_polling_consumer_with_multiple_tenant_connections_and_document_store()
     {
+        foreach ([$this->connectionForTenantA(), $this->connectionForTenantB()] as $connectionFactory) {
+            $connection = $connectionFactory->createContext()->getDbalConnection();
+            (new EnqueueTableManager(EnqueueTableManager::DEFAULT_TABLE_NAME, true, true))->createTable($connection);
+            (new DocumentStoreTableManager(DbalDocumentStore::ECOTONE_DOCUMENT_STORE, true, true))->createTable($connection);
+            (new DeduplicationTableManager(DeduplicationInterceptor::DEFAULT_DEDUPLICATION_TABLE, true, true))->createTable($connection);
+            $this->setupUserTable($connection);
+        }
+
         $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [
@@ -419,7 +437,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
 
     public function test_turning_off_transactions_for_polling_consumer()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
             ServiceConfiguration::createWithDefaults()
@@ -473,7 +491,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $connection = $connectionFactory->createContext()->getDbalConnection();
         $connection->executeStatement("INSERT INTO persons (person_id, name) VALUES (1, 'pre-existing')");
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [CommandDispatchingAsyncHandler::class],
             [
                 $handler,
@@ -517,7 +535,7 @@ final class DbalTransactionAsynchronousEndpointTest extends DbalMessagingTestCas
         $connection = $connectionFactory->createContext()->getDbalConnection();
         $connection->executeStatement("INSERT INTO persons (person_id, name) VALUES (1, 'pre-existing')");
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [CommandDispatchingAsyncHandler::class],
             [
                 $handler,

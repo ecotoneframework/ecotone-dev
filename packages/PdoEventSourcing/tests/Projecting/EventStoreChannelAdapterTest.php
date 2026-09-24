@@ -56,7 +56,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Ticket::class, TicketEventConverter::class, $consumer::class],
             containerOrAvailableServices: [
                 new TicketEventConverter(),
@@ -123,7 +123,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Ticket::class, TicketEventConverter::class, $consumer::class],
             containerOrAvailableServices: [
                 new TicketEventConverter(),
@@ -212,7 +212,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Ticket::class, TicketEventConverter::class, $ticketCounter::class, $consumer::class],
             containerOrAvailableServices: [
                 new TicketEventConverter(),
@@ -222,7 +222,7 @@ final class EventStoreChannelAdapterTest extends ProjectingTestCase
                 ConsumerPositionTracker::class => $positionTracker,
             ],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
                     EventSourcingConfiguration::createWithDefaults(),
                     SimpleMessageChannelBuilder::createStreamingChannel('event_stream'),

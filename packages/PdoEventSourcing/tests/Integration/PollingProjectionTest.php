@@ -40,7 +40,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
             ->getDbalConnection()
         ;
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneLite = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [ProjectionConfiguration::class, InProgressTicketList::class],
             containerOrAvailableServices: [new InProgressTicketList($connection), new TicketEventConverter(), DbalConnectionFactory::class => $connectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -104,7 +104,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
             ->getDbalConnection()
         ;
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneLite = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [ProjectionConfiguration::class, InProgressTicketList::class],
             containerOrAvailableServices: [new InProgressTicketList($connection), new TicketEventConverter(), DbalConnectionFactory::class => $connectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -144,7 +144,7 @@ final class PollingProjectionTest extends EventSourcingMessagingTestCase
 
     public function test_building_multiple_polling_projection(): void
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneLite = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [BasketListConfiguration::class, BasketList::class, ProductsConfiguration::class, Products::class],
             containerOrAvailableServices: [new BasketList(), new Products(), new BasketEventConverter(), DbalConnectionFactory::class => EventSourcingMessagingTestCase::getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()

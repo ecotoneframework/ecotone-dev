@@ -27,7 +27,7 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
     {
         parent::setUp();
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],
@@ -118,7 +118,7 @@ final class DbalConsumerPositionTrackerTest extends DbalMessagingTestCase
         $this->tracker->savePosition($consumerId, $position);
 
         // Create new EcotoneLite instance (simulates reconnection)
-        $newEcotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $newEcotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],

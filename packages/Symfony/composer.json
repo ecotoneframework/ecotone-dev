@@ -51,6 +51,7 @@
         "doctrine/orm": "^3.0",
         "ecotone/dbal": "~1.326.1",
         "ecotone/kafka": "~1.326.1",
+        "ecotone/pdo-event-sourcing": "~1.326.1",
         "ext-rdkafka": "*",
         "monolog/monolog": "^2.9|^3.3.1",
         "phpstan/phpstan": "^1.8|^2.0",
@@ -86,7 +87,8 @@
             "Symfony\\App\\SingleTenant\\": "tests/phpunit/SingleTenant/src",
             "Symfony\\App\\Licence\\": "tests/phpunit/Licence/src",
             "Symfony\\App\\EnvPlaceholderEndpoint\\": "tests/phpunit/EnvPlaceholderEndpoint/src",
-            "Symfony\\App\\EnvPlaceholderKafka\\": "tests/phpunit/EnvPlaceholderKafka/src"
+            "Symfony\\App\\EnvPlaceholderKafka\\": "tests/phpunit/EnvPlaceholderKafka/src",
+            "Symfony\\App\\DcbSmoke\\": "tests/phpunit/DcbSmoke/src"
         }
     },
     "scripts": {

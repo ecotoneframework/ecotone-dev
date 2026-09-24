@@ -64,6 +64,48 @@ final class SynchronousEventDrivenProjectionTest extends EventSourcingMessagingT
         self::assertEquals([['ticket_id' => '124', 'ticket_type' => 'info']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
     }
 
+    public function test_synchronous_projection_uses_the_current_transaction_after_reconnecting(): void
+    {
+        $connection = $this->getConnection();
+        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+            containerOrAvailableServices: [new InProgressTicketList($connection), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withEnvironment('prod')
+                ->withSkippedModulePackageNames(ModulePackageList::allPackagesExcept([ModulePackageList::EVENT_SOURCING_PACKAGE]))
+                ->withNamespaces([
+                    'Test\\Ecotone\\EventSourcing\\Fixture\\Ticket',
+                    'Test\\Ecotone\\EventSourcing\\Fixture\\TicketWithSynchronousEventDrivenProjection',
+                ])
+                ->withExtensionObjects([
+                    EventSourcingConfiguration::createWithDefaults(),
+                ]),
+            pathToRootCatalog: __DIR__ . '/../../',
+            runForProductionEventStore: true
+        );
+
+        $ecotone->initializeProjection(InProgressTicketList::IN_PROGRESS_TICKET_PROJECTION);
+        $ecotone->sendCommand(new RegisterTicket('123', 'Johnny', 'alert'));
+        self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+
+        $connection->close();
+        $connection->beginTransaction();
+
+        try {
+            $ecotone->sendCommand(new CloseTicket('123'));
+
+            self::assertTrue($connection->isTransactionActive());
+            self::assertEquals([], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+        } finally {
+            $connection->rollBack();
+        }
+
+        self::assertEquals([['ticket_id' => '123', 'ticket_type' => 'alert']], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+
+        $ecotone->sendCommand(new CloseTicket('123'));
+
+        self::assertEquals([], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
     public function test_synchronous_event_driven_projection_should_be_called_before_standard_event_handlers(): void
     {
         $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(

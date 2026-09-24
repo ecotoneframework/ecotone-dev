@@ -14,6 +14,7 @@ use Ecotone\Api\Projecting\FromStream;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionDelete;
 use Ecotone\Api\Projecting\ProjectionInitialization;
+use Ecotone\Dbal\Database\DdlOutsideActiveTransaction;
 use RuntimeException;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasCancelled;
 use Test\Ecotone\EventSourcing\Projecting\App\Ordering\Event\OrderWasPlaced;
@@ -82,7 +83,7 @@ class OrderListProjection
     #[ProjectionInitialization]
     public function init(): void
     {
-        $this->connection->executeStatement(<<<SQL
+        DdlOutsideActiveTransaction::execute($this->connection, <<<SQL
             CREATE TABLE IF NOT EXISTS order_list_projection (
                 order_id VARCHAR(255) PRIMARY KEY,
                 product VARCHAR(255) NOT NULL,
@@ -96,6 +97,6 @@ class OrderListProjection
     #[ProjectionDelete]
     public function delete(): void
     {
-        $this->connection->executeStatement('DROP TABLE IF EXISTS order_list_projection;');
+        DdlOutsideActiveTransaction::execute($this->connection, 'DROP TABLE IF EXISTS order_list_projection;');
     }
 }

@@ -129,10 +129,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     public function test_when_partitioned_projection_is_deleted_emitted_events_will_be_removed_too(): void
     {
-        if ($this->isMySQL()) {
-            self::markTestSkipped('The projection-linked stream is auto-created by EventStreamEmitter on first emit under a dynamically derived name that cannot be pre-declared; automatic table initialization is not supported on MySQL/MariaDB.');
-        }
-
         $projection = $this->createEmittingProjectionWithLinkToProjectionStream();
 
         $ecotone = $this->bootstrapFlowTestingWithEventStore(
@@ -154,6 +150,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         );
 
         $ecotone->deleteProjection('partitioned_emitting_linked_projection');
+        $ecotone->initializeDatabase();
         $ecotone->initializeProjection('partitioned_emitting_linked_projection');
 
         $ecotone

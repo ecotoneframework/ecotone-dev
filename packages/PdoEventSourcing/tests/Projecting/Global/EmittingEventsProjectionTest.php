@@ -125,10 +125,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     public function test_when_projection_is_deleted_emitted_events_will_be_removed_too(): void
     {
-        if ($this->isMySQL()) {
-            self::markTestSkipped('The projection-linked stream is auto-created by EventStreamEmitter on first emit under a dynamically derived name that cannot be pre-declared; automatic table initialization is not supported on MySQL/MariaDB.');
-        }
-
         $projection = $this->createEmittingProjectionWithLinkToProjectionStream();
 
         $ecotone = $this->bootstrapFlowTestingWithEventStore(
@@ -150,6 +146,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         );
 
         $ecotone->deleteProjection('emitting_linked_projection');
+        $ecotone->initializeDatabase();
         $ecotone->initializeProjection('emitting_linked_projection');
 
         $ecotone
@@ -253,10 +250,6 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     public function test_backfill_should_emit_events(): void
     {
-        if ($this->isMySQL()) {
-            self::markTestSkipped('Backfill re-emits events into a stream deleted mid-test by EventStreamEmitter, relying on it being auto-recreated on first emit; automatic table initialization is not supported on MySQL/MariaDB.');
-        }
-
         $projection = $this->createEmittingProjection();
         $notificationService = new NotificationService();
 
@@ -289,6 +282,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
         self::assertEmpty($projection->getTickets(), 'Tickets should be empty before backfill');
         self::assertFalse($eventStore->hasStream('notifications_stream'), 'Notifications stream should not exist after reset');
 
+        $ecotone->initializeDatabase();
         $ecotone->triggerProjection('emitting_projection');
 
         self::assertNotEmpty($projection->getTickets(), 'Projection should have replayed events');

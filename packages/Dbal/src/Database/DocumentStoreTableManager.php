@@ -60,15 +60,17 @@ final class DocumentStoreTableManager implements DbalTableManager
             return;
         }
 
-        try {
-            $connection->createSchemaManager()->createTable($this->buildTableSchema());
-        } catch (TableExistsException) {
-        }
+        DdlOutsideActiveTransaction::run($connection, function (Connection $ddlConnection): void {
+            try {
+                $ddlConnection->createSchemaManager()->createTable($this->buildTableSchema());
+            } catch (TableExistsException) {
+            }
+        });
     }
 
     public function dropTable(Connection $connection): void
     {
-        $connection->executeStatement($this->getDropTableSql($connection));
+        DdlOutsideActiveTransaction::execute($connection, $this->getDropTableSql($connection));
     }
 
     public function getCreateTableSql(Connection $connection): array

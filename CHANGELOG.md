@@ -3,6 +3,15 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.326.2] - 2026-09-25
+
+## What's Changed
+* fix: skip skills split, Discord, and tweet announcements on pre-release tags by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/698
+* Fix Prooph projection manager reuse after reconnect by @lifinsky in https://github.com/ecotoneframework/ecotone-dev/pull/702
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.326.1...1.326.2
+
 ## [1.326.1] - 2026-08-22
 
 ## What's Changed

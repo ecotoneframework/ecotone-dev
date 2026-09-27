@@ -12,7 +12,7 @@ use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
@@ -58,9 +58,9 @@ final class DecisionModelRetryTest extends TestCase
 
         $ecotone->sendCommand(new SubscribeToCourseForRetryTest('course-1', 'student-1'));
 
-        /** @var TaggedEventStore $taggedEventStore */
-        $taggedEventStore = $ecotone->getServiceFromContainer(TaggedEventStore::class);
-        $this->assertCount(1, $taggedEventStore->load(EventCriteria::tag('student', 'student-1'))->events);
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('student', 'student-1'))->events);
     }
 
     public function test_no_retry_happens_inside_an_outer_database_transaction(): void
@@ -111,9 +111,9 @@ final class DecisionModelRetryTest extends TestCase
 
         $ecotone->getGateway(RetryCommandBusForRetryTest::class)->send(new SubscribeToCourseForRetryTest('course-1', 'student-1'));
 
-        /** @var TaggedEventStore $taggedEventStore */
-        $taggedEventStore = $ecotone->getServiceFromContainer(TaggedEventStore::class);
-        $this->assertCount(1, $taggedEventStore->load(EventCriteria::tag('student', 'student-1'))->events);
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('student', 'student-1'))->events);
     }
 
     private function bootstrap(?InstantRetryConfiguration $retryConfiguration = null)
@@ -200,14 +200,14 @@ final class CompetingWriteInjectorForRetryTest
         $this->armed = true;
     }
 
-    public function maybeInject(TaggedEventStore $taggedEventStore): void
+    public function maybeInject(EventStore $eventStore): void
     {
         if (! $this->armed) {
             return;
         }
 
         $this->armed = false;
-        $taggedEventStore->appendTo('ecotone_event_stream', [
+        $eventStore->appendTo('ecotone_event_stream', [
             new StudentSubscribedForRetryTest('course-1', 'interloper'),
         ]);
     }
@@ -220,9 +220,9 @@ final class SubscribeHandlerForRetryTest
         SubscribeToCourseForRetryTest $command,
         CourseForRetryTest $course,
         #[Reference] CompetingWriteInjectorForRetryTest $injector,
-        #[Reference] TaggedEventStore $taggedEventStore,
+        #[Reference] EventStore $eventStore,
     ): array {
-        $injector->maybeInject($taggedEventStore);
+        $injector->maybeInject($eventStore);
 
         return [new StudentSubscribedForRetryTest($command->courseId, $command->studentId)];
     }

@@ -13,7 +13,7 @@ use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
@@ -82,9 +82,9 @@ final class CouponAggregateWalkthroughTest extends TestCase
 
         $ecotone->sendCommand(new PlaceOrderForCouponTest('o-1', 'alice', null));
 
-        /** @var TaggedEventStore $taggedEventStore */
-        $taggedEventStore = $ecotone->getServiceFromContainer(TaggedEventStore::class);
-        $this->assertCount(1, $taggedEventStore->load(EventCriteria::tag('customer', 'alice'))->events);
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('customer', 'alice'))->events);
     }
 
     public function test_a_competing_redemption_committed_mid_decision_fails_the_save(): void
@@ -124,10 +124,10 @@ final class CouponAggregateWalkthroughTest extends TestCase
         $ecotone->sendCommand(new PlaceOrderForCouponTest('o-1', 'alice', 'WINTER24'));
         $ecotone->sendCommand(new PlaceOrderForCouponTest('o-2', 'bob', 'SUMMER24'));
 
-        /** @var TaggedEventStore $taggedEventStore */
-        $taggedEventStore = $ecotone->getServiceFromContainer(TaggedEventStore::class);
-        $this->assertCount(2, $taggedEventStore->load(EventCriteria::tag('coupon', 'WINTER24'))->events);
-        $this->assertCount(2, $taggedEventStore->load(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
+        $this->assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'WINTER24'))->events);
+        $this->assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
 }
 
@@ -218,14 +218,14 @@ final class CompetingWriteInjectorForCouponTest
         $this->armed = true;
     }
 
-    public function maybeInject(TaggedEventStore $taggedEventStore): void
+    public function maybeInject(EventStore $eventStore): void
     {
         if (! $this->armed) {
             return;
         }
 
         $this->armed = false;
-        $taggedEventStore->appendTo('ecotone_event_stream', [
+        $eventStore->appendTo('ecotone_event_stream', [
             new OrderPlacedForCouponTest('o-interloper', 'carol', 'SUMMER24'),
         ]);
     }
@@ -245,7 +245,7 @@ final class OrderForCouponTest
         ?CouponRedemptionsForCouponTest $coupon,
         ?CustomerCouponUseForCouponTest $usage,
         #[Reference] CompetingWriteInjectorForCouponTest $injector,
-        #[Reference] TaggedEventStore $taggedEventStore,
+        #[Reference] EventStore $eventStore,
     ): array {
         if ($coupon?->isExhausted()) {
             throw new CouponExhaustedForCouponTest();
@@ -254,7 +254,7 @@ final class OrderForCouponTest
             throw new CouponAlreadyUsedByCustomerForCouponTest();
         }
 
-        $injector->maybeInject($taggedEventStore);
+        $injector->maybeInject($eventStore);
 
         return [new OrderPlacedForCouponTest($command->orderId, $command->customerId, $command->couponCode)];
     }

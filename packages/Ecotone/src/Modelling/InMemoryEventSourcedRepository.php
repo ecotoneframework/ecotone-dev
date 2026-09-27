@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\Repository;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\EventStore\InMemoryEventStore as ConditionalInMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -107,7 +106,7 @@ class InMemoryEventSourcedRepository implements EventSourcedRepository
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
         if ($this->eventStore !== null) {
-            $this->saveViaEventStore($aggregateClassName, $events, $metadata);
+            $this->saveViaEventStore($identifiers, $aggregateClassName, $events, $metadata, $versionBeforeHandling);
 
             return;
         }
@@ -147,22 +146,17 @@ class InMemoryEventSourcedRepository implements EventSourcedRepository
         );
     }
 
-    private function saveViaEventStore(string $aggregateClassName, array $events, array $metadata): void
+    private function saveViaEventStore(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
-        $appendCondition = $metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION] ?? null;
-        unset($metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION]);
+        $aggregateId = (string) reset($identifiers);
+        $appendCondition = AppendCondition::forAggregate($aggregateClassName, $aggregateId, $versionBeforeHandling);
 
-        if ($this->eventStore instanceof ConditionalInMemoryEventStore) {
-            $this->eventStore->appendTo(
-                AggregateDefinitionResolver::DEFAULT_STREAM,
-                $events,
-                $appendCondition instanceof AppendCondition ? $appendCondition : null,
-            );
-
-            return;
+        $decisionModelCondition = $metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION] ?? null;
+        if ($decisionModelCondition instanceof AppendCondition) {
+            $appendCondition = $appendCondition->mergeWith($decisionModelCondition);
         }
 
-        $this->eventStore->appendTo(AggregateDefinitionResolver::DEFAULT_STREAM, $events);
+        $this->eventStore->appendTo(AggregateDefinitionResolver::DEFAULT_STREAM, $events, $appendCondition);
     }
 
     private function getKey(array $identifiers): string

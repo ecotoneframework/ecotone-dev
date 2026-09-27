@@ -10,7 +10,6 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
 use Ecotone\Api\ExtensionObject\TestConfiguration;
@@ -19,8 +18,10 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\EnterpriseAppendStrategy;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
-use Ecotone\EventSourcing\EventStore\InMemoryTaggedEventStore;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
@@ -30,6 +31,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurat
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Console\ConsoleWriter;
@@ -436,20 +438,19 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
     {
         $registerInMemoryEventStoreStreamSource = false;
         if (! $serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
-            // Register InMemoryEventStore as the primary definition
+            $this->registerAppendStrategy($messagingConfiguration);
+
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class, [new Reference(EventTagRegistry::class)]),
+                new Definition(InMemoryEventStore::class, [new Reference(EventTagRegistry::class), Reference::to(AppendStrategy::class)]),
             );
-            // Register EventStore as a reference to InMemoryEventStore (same instance)
             $messagingConfiguration->registerServiceDefinition(
                 EventStore::class,
                 new Reference(InMemoryEventStore::class),
             );
-            // Register TaggedEventStore as an adapter sharing the InMemoryEventStore instance
             $messagingConfiguration->registerServiceDefinition(
-                TaggedEventStore::class,
-                new Definition(InMemoryTaggedEventStore::class, [new Reference(InMemoryEventStore::class)]),
+                EventStore::RAW_REFERENCE,
+                new Reference(InMemoryEventStore::class),
             );
             $registerInMemoryEventStoreStreamSource = true;
         } else {
@@ -482,5 +483,21 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 ])
             );
         }
+    }
+
+    private function registerAppendStrategy(Configuration $messagingConfiguration): void
+    {
+        $messagingConfiguration->registerServiceDefinition(
+            OpenCoreAppendStrategy::class,
+            new Definition(OpenCoreAppendStrategy::class),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            EnterpriseAppendStrategy::class,
+            new Definition(EnterpriseAppendStrategy::class, [Reference::to(OpenCoreAppendStrategy::class)]),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            AppendStrategy::class,
+            LicenceDecider::prepareDefinition(AppendStrategy::class, OpenCoreAppendStrategy::class, EnterpriseAppendStrategy::class),
+        );
     }
 }

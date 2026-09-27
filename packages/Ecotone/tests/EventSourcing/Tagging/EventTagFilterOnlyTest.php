@@ -6,7 +6,7 @@ namespace Test\Ecotone\EventSourcing\Tagging;
 
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
@@ -27,21 +27,21 @@ final class EventTagFilterOnlyTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        /** @var TaggedEventStore $taggedEventStore */
-        $taggedEventStore = $ecotone->getServiceFromContainer(TaggedEventStore::class);
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
 
-        $loadedEvents = $taggedEventStore->load(EventCriteria::tag('tenant', 'acme'));
+        $loadedEvents = $eventStore->loadByCriteria(EventCriteria::tag('tenant', 'acme'));
 
-        $taggedEventStore->appendTo('ecotone_event_stream', [new TenantScopedEventForFilterOnlyTest('acme', 'x')]);
-        $taggedEventStore->appendTo('ecotone_event_stream', [new TenantScopedEventForFilterOnlyTest('acme', 'y')]);
+        $eventStore->appendTo('ecotone_event_stream', [new TenantScopedEventForFilterOnlyTest('acme', 'x')]);
+        $eventStore->appendTo('ecotone_event_stream', [new TenantScopedEventForFilterOnlyTest('acme', 'y')]);
 
-        $taggedEventStore->appendTo(
+        $eventStore->appendTo(
             'ecotone_event_stream',
             [new TenantScopedEventForFilterOnlyTest('acme', 'z')],
             $loadedEvents->appendCondition,
         );
 
-        $this->assertCount(3, $taggedEventStore->load(EventCriteria::tag('tenant', 'acme'))->events);
+        $this->assertCount(3, $eventStore->loadByCriteria(EventCriteria::tag('tenant', 'acme'))->events);
     }
 }
 

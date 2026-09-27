@@ -9,8 +9,12 @@ use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendableStore;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Event;
 
@@ -29,7 +33,7 @@ use function uasort;
  * In-memory implementation of EventStore for testing purposes
  * licence Apache-2.0
  */
-final class InMemoryEventStore implements EventStore, AggregateEventStore
+final class InMemoryEventStore implements EventStore, AppendableStore
 {
     private array $streams = [];
 
@@ -45,9 +49,17 @@ final class InMemoryEventStore implements EventStore, AggregateEventStore
 
     private readonly EventTagRegistry $eventTagRegistry;
 
-    public function __construct(?EventTagRegistry $eventTagRegistry = null)
+    private AppendStrategy $appendStrategy;
+
+    public function __construct(?EventTagRegistry $eventTagRegistry = null, ?AppendStrategy $appendStrategy = null)
     {
         $this->eventTagRegistry = $eventTagRegistry ?? EventTagRegistry::createEmpty();
+        $this->appendStrategy = $appendStrategy ?? new OpenCoreAppendStrategy();
+    }
+
+    public function useAppendStrategy(AppendStrategy $appendStrategy): void
+    {
+        $this->appendStrategy = $appendStrategy;
     }
 
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
@@ -61,7 +73,9 @@ final class InMemoryEventStore implements EventStore, AggregateEventStore
             'metadata' => $streamMetadata,
         ];
 
-        $this->doAppend($streamName, $streamEvents, null);
+        if ($streamEvents !== []) {
+            $this->appendStrategy->append($this, $streamName, $this->convertToEvents($streamEvents), null);
+        }
     }
 
     public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void
@@ -73,7 +87,7 @@ final class InMemoryEventStore implements EventStore, AggregateEventStore
             ];
         }
 
-        $this->doAppend($streamName, $streamEvents, $appendCondition);
+        $this->appendStrategy->append($this, $streamName, $this->convertToEvents($streamEvents), $appendCondition);
     }
 
     public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents
@@ -172,12 +186,34 @@ final class InMemoryEventStore implements EventStore, AggregateEventStore
         return $this->loadEvents($streamName, $fromNumber, $count, $metadataMatcher);
     }
 
-    /**
-     * @param Event[]|object[]|array[] $streamEvents
-     */
-    private function doAppend(string $streamName, array $streamEvents, ?AppendCondition $appendCondition): void
+    public function appendEventsUnconditionally(string $streamName, array $events): void
     {
-        $events = $this->convertToEvents($streamEvents);
+        $this->appendPlainEvents($streamName, $events);
+    }
+
+    public function appendEventsWithAggregateCondition(string $streamName, array $events, AppendCondition $appendCondition): void
+    {
+        $this->assertAggregateVersionMatches($streamName, $appendCondition);
+        $this->appendPlainEvents($streamName, $events);
+    }
+
+    public function anyEventCarriesTag(array $events): bool
+    {
+        foreach ($events as $event) {
+            $payload = $event instanceof Event ? $event->getPayload() : $event;
+            if (is_object($payload) && $this->eventTagRegistry->tagsFor($payload) !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function appendEventsWithTagCondition(string $streamName, array $events, ?AppendCondition $appendCondition): void
+    {
+        if ($appendCondition !== null && $appendCondition->hasAggregateCondition()) {
+            $this->assertAggregateVersionMatches($streamName, $appendCondition);
+        }
 
         $perEventTags = [];
         $tagsInvolved = [];
@@ -233,6 +269,62 @@ final class InMemoryEventStore implements EventStore, AggregateEventStore
                 ];
             }
         }
+    }
+
+    /**
+     * @param Event[] $events
+     */
+    private function appendPlainEvents(string $streamName, array $events): void
+    {
+        foreach ($events as $event) {
+            $this->streams[$streamName]['events'][] = $event;
+        }
+    }
+
+    private function assertAggregateVersionMatches(string $streamName, AppendCondition $appendCondition): void
+    {
+        $aggregateType = $appendCondition->aggregateType();
+        $aggregateId = $appendCondition->aggregateId();
+        $expectedVersion = $appendCondition->expectedAggregateVersion();
+
+        $currentVersion = $this->currentAggregateVersion($streamName, $aggregateType, $aggregateId);
+        if ($currentVersion !== $expectedVersion) {
+            throw ConcurrencyException::create(sprintf(
+                "Aggregate %s:%s expected version %d, but current version is %d",
+                $aggregateType,
+                $aggregateId,
+                $expectedVersion,
+                $currentVersion,
+            ));
+        }
+    }
+
+    private function currentAggregateVersion(string $streamName, ?string $aggregateType, ?string $aggregateId): int
+    {
+        if (! isset($this->streams[$streamName])) {
+            return 0;
+        }
+
+        $maxVersion = 0;
+        foreach ($this->streams[$streamName]['events'] as $event) {
+            $metadata = $event->getMetadata();
+            $eventAggregateId = $metadata[MessageHeaders::EVENT_AGGREGATE_ID] ?? null;
+            if (! is_scalar($eventAggregateId) || (string) $eventAggregateId !== $aggregateId) {
+                continue;
+            }
+
+            $eventAggregateType = $metadata[MessageHeaders::EVENT_AGGREGATE_TYPE] ?? null;
+            if ($aggregateType !== null && (string) $eventAggregateType !== $aggregateType) {
+                continue;
+            }
+
+            $version = $metadata[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? 0;
+            if ($version > $maxVersion) {
+                $maxVersion = $version;
+            }
+        }
+
+        return $maxVersion;
     }
 
     private function tagVersionKey(string $name, string $value): string

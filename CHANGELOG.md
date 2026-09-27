@@ -3,6 +3,14 @@
 All notable changes to Ecotone will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.327.0] - 2026-09-27
+
+## What's Changed
+* fix: wait legacy projection gap retries in milliseconds, not microseconds (fixes #701) by @dgafka in https://github.com/ecotoneframework/ecotone-dev/pull/704
+
+
+**Full Changelog**: https://github.com/ecotoneframework/ecotone-dev/compare/1.326.2...1.327.0
+
 ## [1.326.2] - 2026-09-25
 
 ## What's Changed

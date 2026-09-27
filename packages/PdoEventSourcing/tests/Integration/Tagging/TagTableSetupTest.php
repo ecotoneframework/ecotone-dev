@@ -7,6 +7,7 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
@@ -38,7 +39,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         parent::tearDown();
     }
 
-    public function test_no_event_tag_declared_lists_and_creates_no_tag_tables(): void
+    public function test_no_event_tag_declared_lists_no_tag_migration_feature(): void
     {
         $ecotone = $this->bootstrapEcotone([]);
 
@@ -46,14 +47,9 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         $featureNames = array_column($result->getRows(), 0);
 
         self::assertNotContains(TagTableManager::FEATURE_NAME, $featureNames);
-
-        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
-
-        self::assertFalse(self::tableExists($this->getConnection(), TagTableManager::TAGGED_EVENTS_TABLE));
-        self::assertFalse(self::tableExists($this->getConnection(), TagTableManager::TAG_VERSIONS_TABLE));
     }
 
-    public function test_with_tags_declared_setup_creates_and_lists_both_tag_tables(): void
+    public function test_with_tags_declared_setup_lists_and_initializes_a_working_tag_index(): void
     {
         $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
 
@@ -63,8 +59,10 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
 
         $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
 
-        self::assertTrue(self::tableExists($this->getConnection(), TagTableManager::TAGGED_EVENTS_TABLE));
-        self::assertTrue(self::tableExists($this->getConnection(), TagTableManager::TAG_VERSIONS_TABLE));
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]);
+
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
 
     public function test_sql_prints_both_tag_tables(): void
@@ -95,27 +93,16 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]);
     }
 
-    public function test_tag_versions_table_keeps_case_sensitive_tag_values(): void
+    public function test_tag_values_are_case_sensitive(): void
     {
         $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
-        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
+        $eventStore = $ecotone->getGateway(EventStore::class);
 
-        $connection = $this->getConnection();
-        $connection->executeStatement(
-            'INSERT INTO ' . TagTableManager::TAG_VERSIONS_TABLE . ' (tag_name, tag_value, version) VALUES (?, ?, ?)',
-            ['course', 'ABC', 1]
-        );
-        $connection->executeStatement(
-            'INSERT INTO ' . TagTableManager::TAG_VERSIONS_TABLE . ' (tag_name, tag_value, version) VALUES (?, ?, ?)',
-            ['course', 'abc', 1]
-        );
+        $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('ABC', 1)]);
+        $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('abc', 1)]);
 
-        $count = (int) $connection->executeQuery(
-            'SELECT COUNT(*) FROM ' . TagTableManager::TAG_VERSIONS_TABLE . ' WHERE tag_name = ? AND tag_value = ?',
-            ['course', 'ABC']
-        )->fetchOne();
-
-        self::assertSame(1, $count);
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'ABC'))->events);
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'abc'))->events);
     }
 
     private function bootstrapEcotone(array $classesToResolve, bool $automaticTableInitialization = true): FlowTestSupport

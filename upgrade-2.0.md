@@ -228,7 +228,55 @@ subsection below.
   table initialization is on, otherwise create it yourself.
 - `EventStreamingChannelAdapter::create(fromStream: ...)` takes a stream name, not an aggregate class; pass
   `aggregateType:` to filter.
-- Custom implementations of `Ecotone\EventSourcing\EventStore` are unaffected — the interface did not change.
+- **`EventStore` gains two methods and a parameter; `TaggedEventStore` and `AggregateEventStore` are gone.**
+  **Before:** `EventStore::appendTo(string $streamName, array $streamEvents): void` took no condition. Loading a
+  single aggregate's events, or loading/appending by tag, went through two separate interfaces —
+  `Ecotone\EventSourcing\EventStore\AggregateEventStore::loadAggregateEvents()` and, Enterprise only,
+  `Ecotone\Api\EventSourcing\TaggedEventStore::load()`/`appendTo()`. **Now:** both are folded into `EventStore`
+  itself:
+
+  ```php
+  interface EventStore
+  {
+      public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void;
+      public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void;
+      public function delete(string $streamName): void;
+      public function hasStream(string $streamName): bool;
+      public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null, bool $deserialize = true): iterable;
+      public function loadAggregateEvents(string $streamName, ?string $aggregateType, string $aggregateId, int $fromVersion = 1, ?int $count = null, array $eventNames = [], bool $deserialize = true): iterable;
+      public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents;
+  }
+  ```
+
+  `appendTo()` gains a third, optional `?AppendCondition $appendCondition = null` parameter — every existing call
+  site without a third argument is unaffected. **How to adapt a custom `EventStore` implementation:** add
+  `loadAggregateEvents()` and `loadByCriteria()` (delegate to your existing aggregate-loading and tag-index code, or
+  throw if you don't support tags), and widen `appendTo()`'s signature with the new optional parameter. Replace
+  `Ecotone\EventSourcing\EventStore\AggregateEventStore` type-hints with plain `EventStore` — the method moved, the
+  type did not gain a second interface to intersect. Replace `Ecotone\Api\EventSourcing\TaggedEventStore` the same
+  way: `$taggedEventStore->load($criteria)` becomes `$eventStore->loadByCriteria($criteria)`,
+  `$taggedEventStore->appendTo(...)` becomes `$eventStore->appendTo(...)` unchanged. `TaggedEventStore` and
+  `AggregateEventStore` are deleted, along with their `Dbal`/`InMemory` adapter classes — there is one store, one
+  interface. `EventStore::loadByCriteria()` is not reachable through the `EventStore` gateway (the messaging layer
+  doesn't support variadic gateway parameters yet); obtain the concrete store instance to call it, the same way
+  `TaggedEventStore` was never exposed as a gateway either.
+- **`AppendCondition` now expresses an aggregate's optimistic-lock expectation too, not only tags — and the
+  append path is licence-split.** **Before:** an aggregate save's concurrency check was purely the
+  `(aggregate_type, aggregate_id, aggregate_version)` unique index; `AppendCondition` only ever carried tag
+  expectations (Enterprise). **Now:** `AppendCondition::forAggregate(string $aggregateType, string $aggregateId, int
+  $expectedVersion)` builds a condition from the version an aggregate was loaded at (`0` for a new one); a condition
+  can carry an aggregate part, a tag part, both (via `mergeWith()`), or neither. `EventSourcingRepository::save()`
+  (Pdo) and `InMemoryEventSourcedRepository::save()` now build this condition themselves and pass it to
+  `appendTo()` — the unique index is still what actually enforces it on PostgreSQL/MySQL/MariaDB/SQLite, and
+  `InMemoryEventStore` gained an explicit version comparison it did not have before (previously an in-memory
+  aggregate save never raised `ConcurrencyException` at all). Internally, appending now goes through an **append
+  strategy**, chosen once at bootstrap by licence: the open-core strategy (`licence Apache-2.0`) handles the
+  aggregate part only and rejects a hand-built condition carrying a tag part with `LicensingException`; the
+  Enterprise strategy handles the tag part (the counters-first protocol) and delegates the aggregate-only case to
+  the open-core strategy. **How to adapt:** nothing, unless you called `AppendCondition`'s constructor-adjacent
+  factories directly — `empty()` and `fromCapturedVersions()` are unchanged, `forAggregate()` is additive. Without
+  any tags and without Enterprise, the DBAL append path stays byte-for-byte today's single `INSERT` — the aggregate
+  condition costs nothing beyond the unique index that was already there.
 - **The write-lock option is gone.** `EventSourcingConfiguration::withWriteLockStrategy(bool)` and
   `isWriteLockStrategyEnabled()` are removed. **Before:** an opt-in advisory lock (Postgres) / `GET_LOCK` (MySQL) held
   around the insert, meant to shrink the window for gaps in `no`. **Now:** it is gone outright — concurrency was
@@ -246,12 +294,13 @@ subsection below.
   additive.
 - Internal, nothing to adapt: the "licence BSD-3-Clause / code comes from prooph/pdo-event-store" headers are gone
   from the schema and store classes — the DDL is Ecotone's own now. `EventSourcingRepository::findBy()` and the
-  partitioned-projection aggregate stream source no longer build a `MetadataMatcher` internally; they call a new
-  `Ecotone\EventSourcing\EventStore\AggregateEventStore::loadAggregateEvents()` method instead. `MetadataMatcher`,
-  `FieldType` and `Operator` are unchanged and still public — `EventStore::load()`'s signature did not change.
-  `EventSourcingRepository::save()` now reads a decision model's `AppendCondition` off the save metadata and passes
-  it to the event store's `appendTo()`, the same seam `InMemoryEventSourcedRepository` already used — this is what
-  makes a `#[DecisionModel]` injected into an `#[EventSourcingAggregate]` command handler (§4's DCB subsection)
+  partitioned-projection aggregate stream source no longer build a `MetadataMatcher` internally; they call
+  `EventStore::loadAggregateEvents()` instead (see above — folded in from the now-deleted `AggregateEventStore`).
+  `MetadataMatcher`, `FieldType` and `Operator` are unchanged and still public — `EventStore::load()`'s signature
+  did not change. `EventSourcingRepository::save()` builds the aggregate's `AppendCondition` from
+  `versionBeforeHandling`, merges in any decision model's condition found on the save metadata, and passes the
+  result to the event store's `appendTo()`, the same seam `InMemoryEventSourcedRepository` already used — this is
+  what makes a `#[DecisionModel]` injected into an `#[EventSourcingAggregate]` command handler (§4's DCB subsection)
   actually enforce its condition against PostgreSQL/MySQL/MariaDB/SQLite, not only against `InMemoryEventStore`.
 
 **Schema of `ecotone_event_stream`** (PostgreSQL; MySQL/MariaDB use generated columns for the three aggregate fields;
@@ -410,18 +459,22 @@ fires inside an already-open database transaction; that transaction is already u
   ```
 
   A decision model scoped by a filter-only tag name is a bootstrap `ConfigurationException`.
-- **Licence.** The whole of DCB — `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `TaggedEventStore`,
-  `EventCriteria`, `AppendCondition` — is Enterprise. Any `#[EventTag]` or `#[DecisionModel]` found without an
-  Enterprise licence is a `LicensingException` at bootstrap, before any message is handled.
-- Without any class, the same machinery is a gateway: `TaggedEventStore::load(EventCriteria::tag('course',
-  $courseId)->ofTypes(...))` returns the matching events and a ready-made `AppendCondition` for
-  `TaggedEventStore::appendTo($stream, $events, $condition)`.
+- **Licence.** The tag-carrying half of DCB — `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
+  `EventCriteria`, and a tag-bearing `AppendCondition` — is Enterprise. Any `#[EventTag]` or `#[DecisionModel]`
+  found without an Enterprise licence is a `LicensingException` at bootstrap, before any message is handled; a
+  hand-built `AppendCondition` carrying a tag part, passed to `appendTo()` without Enterprise, is a second,
+  runtime `LicensingException` from the append strategy (§4, "AppendCondition now expresses an aggregate's
+  optimistic-lock expectation too"). `EventStore` and `AppendCondition` themselves stay Apache-2.0 — an aggregate's
+  own optimistic-lock condition (`AppendCondition::forAggregate()`) is open-core and works without any licence.
+- Without any class, the same machinery is a gateway on the store itself:
+  `$eventStore->loadByCriteria(EventCriteria::tag('course', $courseId)->ofTypes(...))` returns the matching events
+  and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)`.
 - **Fully shipped, including the DBAL-backed store.** `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
-  `TaggedEventStore`, `EventCriteria`, `AppendCondition`, the licence gate, and the full injection/append/retry
-  mechanism are implemented and tested against `InMemoryEventStore` (`EcotoneLite::bootstrapFlowTesting()` exercises
-  real conditional-append semantics with no database) **and** against PostgreSQL, MySQL, MariaDB and SQLite through
-  `DbalEventStore` — including real two-connection contention proofs (a conflicting writer waits and either loses
-  with `DecisionModelConcurrencyException` or succeeds once the blocker rolls back, opposite-order multi-tag appends
+  `EventCriteria`, the licence gate, and the full injection/append/retry mechanism are implemented and tested
+  against `InMemoryEventStore` (`EcotoneLite::bootstrapFlowTesting()` exercises real conditional-append semantics
+  with no database) **and** against PostgreSQL, MySQL, MariaDB and SQLite through `DbalEventStore` — including
+  real two-connection contention proofs (a conflicting writer waits and either loses with
+  `DecisionModelConcurrencyException` or succeeds once the blocker rolls back, opposite-order multi-tag appends
   don't deadlock, and the InnoDB `REPEATABLE READ` own-bump snapshot hazard is guarded against). An application with
   no `#[EventTag]` sees byte-for-byte today's single `INSERT` — no counter statements, no tag tables touched.
 
@@ -854,8 +907,8 @@ objects, and gateways/buses alike — lives under `Ecotone\Api`, organized by ki
 
 New classes, not renamed from 1.x, follow the same rules: DCB's attributes (`#[EventTag]`, `#[DecisionModel]`,
 `#[DecisionBoundary]` — cross-cutting modelling vocabulary, same precedent as `#[EventSourcingAggregate]`) are
-`Ecotone\Api\Attribute\*`; its core interfaces and value objects (`TaggedEventStore`, `EventCriteria`,
-`AppendCondition`, `DecisionModelConcurrencyException`) are module-scoped, `Ecotone\Api\EventSourcing\*` — living in
+`Ecotone\Api\Attribute\*`; its core interfaces and value objects (`EventCriteria`, `AppendCondition`,
+`DecisionModelConcurrencyException`) are module-scoped, `Ecotone\Api\EventSourcing\*` — living in
 core (`packages/Ecotone`) even though that namespace is also where `PdoEventSourcing`'s own `Api` classes
 (`EventSourcingConfiguration`, `Stream`) live; Composer merges both packages' directories under the one namespace.
 

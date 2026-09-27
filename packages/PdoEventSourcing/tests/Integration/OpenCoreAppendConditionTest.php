@@ -38,8 +38,7 @@ final class OpenCoreAppendConditionTest extends EventSourcingMessagingTestCase
 
         $eventStore->appendTo(self::STREAM, [new UntaggedEventForOpenCoreAppendConditionTest('o-1')], AppendCondition::forAggregate('Order', 'o-1', 0));
 
-        $rows = $this->getConnection()->executeQuery('SELECT event_name FROM ' . self::STREAM)->fetchAllAssociative();
-        self::assertCount(1, $rows);
+        self::assertCount(1, $eventStore->load(self::STREAM));
     }
 
     private function bootstrapEcotone(): FlowTestSupport

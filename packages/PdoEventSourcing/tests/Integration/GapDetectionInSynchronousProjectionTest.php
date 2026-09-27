@@ -120,6 +120,17 @@ final class GapDetectionInSynchronousProjectionTest extends EventSourcingMessagi
         );
     }
 
+    public function test_retry_delays_are_waited_in_milliseconds_before_skipping_gap(): void
+    {
+        $ecotone = $this->bootstrapEcotoneWithGapDetection(new GapDetection([0, 300], new DateInterval('PT60S')));
+
+        $startedAt = microtime(true);
+        $ecotone->sendCommand(new CloseTicket('124'));
+        $elapsedMilliseconds = (microtime(true) - $startedAt) * 1000;
+
+        self::assertGreaterThanOrEqual(300, $elapsedMilliseconds);
+    }
+
     public function test_running_projection_without_gap_detection(): void
     {
         $ecotone = $this->bootstrapEcotoneWithGapDetection(null);

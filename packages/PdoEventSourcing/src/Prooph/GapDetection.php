@@ -25,6 +25,18 @@ final class GapDetection implements DefinedObject
 
     public function build(): ProophGapDetection
     {
-        return new ProophGapDetection($this->retryConfig, $this->detectionWindow?->build());
+        return new ProophGapDetection($this->retryDelaysInMicroseconds(), $this->detectionWindow?->build());
+    }
+
+    private function retryDelaysInMicroseconds(): ?array
+    {
+        if ($this->retryConfig === null) {
+            return null;
+        }
+
+        return array_map(
+            static fn (int $delayInMilliseconds): int => $delayInMilliseconds * 1000,
+            $this->retryConfig,
+        );
     }
 }

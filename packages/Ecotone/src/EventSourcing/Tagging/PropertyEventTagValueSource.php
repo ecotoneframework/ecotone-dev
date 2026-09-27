@@ -11,10 +11,14 @@ use ReflectionProperty;
  */
 final class PropertyEventTagValueSource implements EventTagValueSource
 {
+    private readonly ReflectionProperty $reflectionProperty;
+
     public function __construct(
         private readonly string $tagName,
-        private readonly string $propertyName,
+        string $className,
+        string $propertyName,
     ) {
+        $this->reflectionProperty = new ReflectionProperty($className, $propertyName);
     }
 
     public function tagName(): string
@@ -24,12 +28,10 @@ final class PropertyEventTagValueSource implements EventTagValueSource
 
     public function resolveValues(object $event): array
     {
-        $reflectionProperty = new ReflectionProperty($event, $this->propertyName);
-
-        if (! $reflectionProperty->isInitialized($event)) {
+        if (! $this->reflectionProperty->isInitialized($event)) {
             return [];
         }
 
-        return EventTagValueNormalizer::normalize($this->tagName, $reflectionProperty->getValue($event));
+        return EventTagValueNormalizer::normalize($this->tagName, $this->reflectionProperty->getValue($event));
     }
 }

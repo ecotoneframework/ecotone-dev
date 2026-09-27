@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClassDefinition;
@@ -36,6 +39,7 @@ final class DecisionModelDefinitionBuilder
         $className = $classDefinition->getClassType()->toString();
 
         self::assertPublicNoArgumentConstructor($className);
+        self::assertNoMessageHandlerDeclaredOnTheModelItself($classDefinition, $interfaceToCallRegistry);
 
         $handledEventClasses = self::findHandledEventClasses($classDefinition, $interfaceToCallRegistry);
 
@@ -81,6 +85,29 @@ final class DecisionModelDefinitionBuilder
 
             if (! $constructor->isPublic()) {
                 throw ConfigurationException::create("Constructor for DecisionModel {$className} should be public.");
+            }
+        }
+    }
+
+    private static function assertNoMessageHandlerDeclaredOnTheModelItself(ClassDefinition $classDefinition, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        $className = $classDefinition->getClassType()->toString();
+
+        foreach ([CommandHandler::class, EventHandler::class, QueryHandler::class] as $handlerAnnotationClass) {
+            $annotationType = Type::object($handlerAnnotationClass);
+
+            foreach ($classDefinition->getPublicMethodNames() as $method) {
+                $interfaceToCall = $interfaceToCallRegistry->getFor($className, $method);
+
+                if ($interfaceToCall->hasMethodAnnotation($annotationType)) {
+                    throw ConfigurationException::create(sprintf(
+                        '%s::%s is a %s, but %s is a DecisionModel -- models are injected, they never own handlers.',
+                        $className,
+                        $method,
+                        $handlerAnnotationClass,
+                        $className,
+                    ));
+                }
             }
         }
     }

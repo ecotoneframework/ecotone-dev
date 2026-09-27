@@ -8,6 +8,8 @@ use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\EnterpriseAppendStrategy;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
+use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagConditionalStore;
+use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\LicensingException;
@@ -62,7 +64,10 @@ final class InMemoryEventStoreAppendConditionTest extends TestCase
 
     public function test_enterprise_strategy_still_enforces_the_aggregate_condition_alongside_a_tag_condition(): void
     {
-        $eventStore = new InMemoryEventStore(appendStrategy: new EnterpriseAppendStrategy(new OpenCoreAppendStrategy()));
+        $eventStore = new InMemoryEventStore(
+            appendStrategy: new EnterpriseAppendStrategy(),
+            tagCollaborator: new InMemoryTagConditionalStore(EventTagRegistry::createEmpty()),
+        );
         $eventStore->appendTo('ecotone_event_stream', [$this->aggregateEvent('order-1', 1)], AppendCondition::forAggregate('Order', 'order-1', 0));
 
         $condition = AppendCondition::forAggregate('Order', 'order-1', 0)

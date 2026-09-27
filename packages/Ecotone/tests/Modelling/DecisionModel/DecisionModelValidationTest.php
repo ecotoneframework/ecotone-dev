@@ -48,6 +48,54 @@ final class DecisionModelValidationTest extends TestCase
         );
     }
 
+    public function test_command_handler_directly_on_a_decision_model_class_is_rejected_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [ModelWithCommandHandlerForValidationTest::class, TaggedEventForValidationTest::class],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_same_model_class_injected_twice_without_fetch_is_rejected_at_bootstrap(): void
+    {
+        $handler = new HandlerInjectingSameModelTwiceWithoutFetchForValidationTest();
+
+        $this->expectException(ConfigurationException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class],
+            containerOrAvailableServices: [$handler],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_decision_model_with_no_handled_events_is_rejected_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [ModelWithNoHandledEventsForValidationTest::class],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    public function test_non_nullable_model_param_with_a_null_tag_value_throws_naming_model_and_tag(): void
+    {
+        $handler = new HandlerRequiringModelForNullTagValueForValidationTest();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class, CommandWithNullTagPropertyForValidationTest::class],
+            containerOrAvailableServices: [$handler],
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $this->expectExceptionMessage('course');
+
+        $ecotone->sendCommand(new CommandWithNullTagPropertyForValidationTest(null));
+    }
+
     public function test_unresolvable_tag_throws_naming_the_model_and_the_tag(): void
     {
         $handler = new HandlerRequiringModelForValidationTest();
@@ -129,6 +177,52 @@ final readonly class CommandWithoutTagPropertyForValidationTest
     public function __construct(
         public string $unrelatedField,
     ) {
+    }
+}
+
+#[DecisionModel]
+final class ModelWithCommandHandlerForValidationTest
+{
+    #[EventSourcingHandler]
+    public function when(TaggedEventForValidationTest $event): void
+    {
+    }
+
+    #[CommandHandler]
+    public function handle(CommandWithoutTagPropertyForValidationTest $command): array
+    {
+        return [];
+    }
+}
+
+final class HandlerInjectingSameModelTwiceWithoutFetchForValidationTest
+{
+    #[CommandHandler]
+    public function handle(CommandWithoutTagPropertyForValidationTest $command, ModelForValidationTest $modelA, ModelForValidationTest $modelB): array
+    {
+        return [];
+    }
+}
+
+#[DecisionModel]
+final class ModelWithNoHandledEventsForValidationTest
+{
+}
+
+final readonly class CommandWithNullTagPropertyForValidationTest
+{
+    public function __construct(
+        public ?string $courseId,
+    ) {
+    }
+}
+
+final class HandlerRequiringModelForNullTagValueForValidationTest
+{
+    #[CommandHandler]
+    public function handle(CommandWithNullTagPropertyForValidationTest $command, ModelForValidationTest $model): array
+    {
+        return [];
     }
 }
 

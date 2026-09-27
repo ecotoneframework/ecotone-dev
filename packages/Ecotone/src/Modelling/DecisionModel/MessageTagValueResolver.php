@@ -9,14 +9,44 @@ use Ecotone\EventSourcing\Tagging\EventTagValueNormalizer;
 use ReflectionClass;
 use ReflectionProperty;
 
+use function array_key_exists;
+
 /**
  * licence Enterprise
  */
 final class MessageTagValueResolver
 {
+    /**
+     * @var array<string, ?ReflectionProperty>
+     */
+    private static array $resolvedAccessors = [];
+
     public static function resolve(string $tagName, object $payload): ?string
     {
-        $reflectionClass = new ReflectionClass($payload);
+        $property = self::accessorFor($payload::class, $tagName);
+
+        if ($property === null || ! $property->isInitialized($payload)) {
+            return null;
+        }
+
+        $values = EventTagValueNormalizer::normalize($tagName, $property->getValue($payload));
+
+        return $values[0] ?? null;
+    }
+
+    private static function accessorFor(string $payloadClassName, string $tagName): ?ReflectionProperty
+    {
+        $cacheKey = $payloadClassName . "\0" . $tagName;
+        if (array_key_exists($cacheKey, self::$resolvedAccessors)) {
+            return self::$resolvedAccessors[$cacheKey];
+        }
+
+        return self::$resolvedAccessors[$cacheKey] = self::resolveAccessor($payloadClassName, $tagName);
+    }
+
+    private static function resolveAccessor(string $payloadClassName, string $tagName): ?ReflectionProperty
+    {
+        $reflectionClass = new ReflectionClass($payloadClassName);
 
         foreach ($reflectionClass->getProperties() as $property) {
             foreach ($property->getAttributes(EventTag::class) as $attribute) {
@@ -24,28 +54,17 @@ final class MessageTagValueResolver
                 $eventTag = $attribute->newInstance();
 
                 if ($eventTag->name === $tagName) {
-                    return self::readProperty($property, $payload, $tagName);
+                    return $property;
                 }
             }
         }
 
         foreach ([$tagName, $tagName . 'Id', $tagName . '_id'] as $candidateName) {
             if ($reflectionClass->hasProperty($candidateName)) {
-                return self::readProperty($reflectionClass->getProperty($candidateName), $payload, $tagName);
+                return $reflectionClass->getProperty($candidateName);
             }
         }
 
         return null;
-    }
-
-    private static function readProperty(ReflectionProperty $property, object $payload, string $tagName): ?string
-    {
-        if (! $property->isInitialized($payload)) {
-            return null;
-        }
-
-        $values = EventTagValueNormalizer::normalize($tagName, $property->getValue($payload));
-
-        return $values[0] ?? null;
     }
 }

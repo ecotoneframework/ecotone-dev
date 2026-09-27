@@ -63,6 +63,32 @@ final class DecisionModelRetryTest extends TestCase
         $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('student', 'student-1'))->events);
     }
 
+    public function test_retry_exhaustion_surfaces_the_concurrency_exception_to_the_caller(): void
+    {
+        $handler = new SubscribeHandlerForExhaustionRetryTest();
+        $injector = new AlwaysConflictingWriteInjectorForRetryTest();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, CourseForRetryTest::class, CourseDefinedForRetryTest::class, StudentSubscribedForRetryTest::class, AlwaysConflictingWriteInjectorForRetryTest::class],
+            containerOrAvailableServices: [$handler, $injector],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withExtensionObjects([
+                    InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 2, [DecisionModelConcurrencyException::class]),
+                ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->withEvents([new CourseDefinedForRetryTest('course-1', 5)]);
+
+        $this->expectException(DecisionModelConcurrencyException::class);
+
+        try {
+            $ecotone->sendCommand(new SubscribeToCourseForRetryTest('course-1', 'student-1'));
+        } finally {
+            $this->assertSame(3, $injector->attempts, 'Expected the initial attempt plus 2 retries, all conflicting.');
+        }
+    }
+
     public function test_no_retry_happens_inside_an_outer_database_transaction(): void
     {
         $ecotone = $this->bootstrap(
@@ -220,6 +246,34 @@ final class SubscribeHandlerForRetryTest
         SubscribeToCourseForRetryTest $command,
         CourseForRetryTest $course,
         #[Reference] CompetingWriteInjectorForRetryTest $injector,
+        #[Reference] EventStore $eventStore,
+    ): array {
+        $injector->maybeInject($eventStore);
+
+        return [new StudentSubscribedForRetryTest($command->courseId, $command->studentId)];
+    }
+}
+
+final class AlwaysConflictingWriteInjectorForRetryTest
+{
+    public int $attempts = 0;
+
+    public function maybeInject(EventStore $eventStore): void
+    {
+        $this->attempts++;
+        $eventStore->appendTo('ecotone_event_stream', [
+            new StudentSubscribedForRetryTest('course-1', 'interloper-' . $this->attempts),
+        ]);
+    }
+}
+
+final class SubscribeHandlerForExhaustionRetryTest
+{
+    #[CommandHandler]
+    public function subscribe(
+        SubscribeToCourseForRetryTest $command,
+        CourseForRetryTest $course,
+        #[Reference] AlwaysConflictingWriteInjectorForRetryTest $injector,
         #[Reference] EventStore $eventStore,
     ): array {
         $injector->maybeInject($eventStore);

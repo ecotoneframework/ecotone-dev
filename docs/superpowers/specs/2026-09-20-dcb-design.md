@@ -549,21 +549,28 @@ and a model is a plain class, so its fold is unit-testable with `new CourseCapac
 — so flow tests exercise real conditional-append semantics without a database. A conflict is forced
 deterministically by injecting a service that appends a competing event on first call.
 
-**Without any class**, the same machinery is a gateway:
+**Without any class**, the same machinery is a gateway on the store itself — **revision 5, maintainer direction,
+2026-09-27: there is one `EventStore`, not a second `TaggedEventStore` interface beside it.** `loadByCriteria()` and
+`appendTo()`'s optional `AppendCondition` moved onto `Ecotone\EventSourcing\EventStore` directly, alongside
+`loadAggregateEvents()` (folded in from the now-deleted `AggregateEventStore`):
 
 ```php
-$decision = $taggedEventStore->load(
+$decision = $eventStore->loadByCriteria(
     EventCriteria::tag('course', $courseId)->ofTypes(CourseDefined::class, StudentSubscribedToCourse::class)
 );
 // fold $decision->events
-$taggedEventStore->appendTo('ecotone_event_stream', [new StudentSubscribedToCourse(...)], $decision->appendCondition);
+$eventStore->appendTo('ecotone_event_stream', [new StudentSubscribedToCourse(...)], $decision->appendCondition);
 ```
 
-`load()` returns the events **and** the ready-made condition; user code never touches a version.
-`TaggedEventStore` is a **new** interface beside `Ecotone\EventSourcing\EventStore`, which stays exactly as upgrade
-guide §4 promised. Both live in core (`packages/Ecotone`), as do the attributes — `InMemoryEventStore` and the
-decision-model flow are core, and core cannot depend on `PdoEventSourcing`. Only schema, DBAL implementation and
-the console commands live in `PdoEventSourcing`.
+`loadByCriteria()` returns the events **and** the ready-made condition; user code never touches a version.
+`EventStore` lives in core (`packages/Ecotone`), as do the attributes — `InMemoryEventStore` and the decision-model
+flow are core, and core cannot depend on `PdoEventSourcing`. Only schema, DBAL implementation and the console
+commands live in `PdoEventSourcing`. `loadByCriteria(EventCriteria $criteria)` takes a single, non-variadic
+argument — an OR of several criteria is expressed on `EventCriteria` itself (`EventCriteria::tag(...)->or(...)`) —
+so it stays reachable through the `EventStore` *gateway* (`GatewayProxyBuilder`) the same way every other
+`EventStore` method is; `$eventStore` above is whatever `EventStore` the container hands you, gateway or concrete
+store alike. §4.9 covers the licence split this merge introduces: the aggregate part of `AppendCondition` is
+open-core, only the tag part requires Enterprise.
 
 **Where events go:** the default stream, or a `#[Stream]` on the handler's class or — new, maintainer 2026-09-23
 — on the **handler method** itself (`Stream` gains `TARGET_METHOD`; the method wins over the class); for an
@@ -1042,29 +1049,42 @@ no index on `event_name`, so a large stream is a full scan: hours on tens of mil
 
 ### 4.9 Licence — DCB is Enterprise
 
-Maintainer decision (2026-09-21): **the whole of DCB is under the Enterprise licence** — `#[EventTag]`,
-`#[DecisionModel]`, `#[MatchingTags]`, `#[DecisionBoundary]`, `TaggedEventStore`, `EventCriteria`,
-`AppendCondition`, the tag tables and the console commands. Every new class carries `licence Enterprise`.
+Maintainer decision (2026-09-21), **narrowed 2026-09-27**: the tag-carrying half of DCB is under the Enterprise
+licence — `#[EventTag]`, `#[DecisionModel]`, `#[MatchingTags]`, `#[DecisionBoundary]`, `EventCriteria`, and a
+tag-bearing `AppendCondition`. **What changed on 2026-09-27:** the maintainer allowed folding `TaggedEventStore` and
+`AggregateEventStore` into `Ecotone\EventSourcing\EventStore` (one store, §4.4), and let `AppendCondition` also
+carry an aggregate's optimistic-lock expectation (`AppendCondition::forAggregate()`) — that half is open-core,
+because it only formalizes the unique-index check aggregate saves already relied on. `EventStore` and
+`AppendCondition` themselves are `licence Apache-2.0`; only actually populating a tag part, or a `#[EventTag]`
+class existing at all, requires Enterprise.
 
 Gated the way projections' enterprise features already are (`ProjectingModule.php:69-72`), at bootstrap, in the
-module's `prepare()`:
+module's `prepare()`, **plus a second, runtime line for the store itself:**
 
 - Any `#[EventTag]` or `#[DecisionModel]` found while `isRunningForEnterpriseLicence()` is false →
   `LicensingException` naming the class and the feature. Failing at bootstrap rather than on first command matters
   here: an application that *silently ignored* `#[EventTag]` without a licence would record events with no index
   rows, and would need a backfill the day the licence is added.
-- `TaggedEventStore` is registered unconditionally (the project rule: no nullable services, gate at runtime) and
-  throws `LicensingException` from `load()` and the conditional `appendTo()` without a licence.
+- **Appending is split into an append strategy, chosen once at bootstrap by licence** (`AppendStrategy`, core,
+  `packages/Ecotone/src/EventSourcing/EventStore/AppendStrategy`): the open-core strategy handles the aggregate
+  part only and throws `LicensingException` the moment a hand-built `AppendCondition` carries a tag part — the
+  runtime line for a hand-built condition through the gateway or the raw store, since no `#[EventTag]` class needs
+  to exist for that. The Enterprise strategy handles the tag part (the counters-first protocol) and delegates the
+  aggregate-only case to the open-core strategy by composition. `AppendStrategy` is registered unconditionally
+  (the project rule: no nullable services, gate at runtime) via `LicenceDecider::prepareDefinition()`, exactly like
+  `AggregateMethodInvoker` already is.
 - Consequences that fall out for free: an open-core application has no tags, so **the append path is byte-for-byte
   today's single INSERT** — no counter statements, no own-transaction wrapper, no tag tables. The store's
-  behaviour for existing users does not change at all.
+  behaviour for existing users does not change at all; only the aggregate's own unique-index check, which was
+  already there, is now also expressed as an explicit `AppendCondition`.
 - Tests use the existing `LicenceTesting::VALID_LICENCE` with `EcotoneLite::bootstrapFlowTesting(...,
   enterpriseLicenceKey: ...)`.
 - The 1.x expand-first runbook (§4.7) is unaffected: the DDL is published in the docs, and creating three unused
   tables needs no licence.
 
-What stays open-core: nothing in this plan. SQL-side projection filtering (§4.6) is a separate work item and, where
-it filters by event name and aggregate type, does not depend on tags or on a licence.
+What stays open-core: the aggregate half of `AppendCondition` and `EventStore` itself (§4.4, revision 5). SQL-side
+projection filtering (§4.6) is a separate work item and, where it filters by event name and aggregate type, does
+not depend on tags or on a licence.
 
 ### 4.10 Deliberately not in this plan
 
@@ -1238,3 +1258,5 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-23 | Eight directives — Part 4½: no Prooph/BSD, one DDL path, no write-lock strategy, new table/column names, licence check, `#[Stream]` on handler methods, two-connection `EcotoneLite` lock tests, **models declare tag names and `#[EventTag]` lives on events only** | **Maintainer** | Default tag names = intersection of handled events' tags (Claude: union would scope `CouponRedemptions` by customer) |
 | 2026-09-23 | One stream schema, aggregate fields always nullable, unique index kept; **stream column names unchanged** — only the new tag tables get new names; only model-injecting handlers append their return, output channel kept | **Maintainer** | Part 4½ #2, #4, #6; closes Open Decision 7. A full stream rename was proposed and withdrawn the same day: one layout for default and legacy tables beats two |
 | 2026-09-23 | Boundaries span streams — yes; no runtime backfill guard, user waits for `backfill-tags`; no automatic retry, users configure it; names and filter-only tags as proposed | **Maintainer** | Closes Part 5. Claude's recommendations on 3 and 4 (guard on by default, retry registered automatically) were declined: the maintainer prefers explicit operator control over framework-enforced safety here — documented loudly instead |
+| 2026-09-27 | **One `EventStore`, not `TaggedEventStore` beside it.** `TaggedEventStore` and `AggregateEventStore` deleted, folded into `EventStore` (`loadByCriteria`, `loadAggregateEvents`, optional `AppendCondition` on `appendTo`). `AppendCondition::forAggregate()` added — open-core, since it only formalizes the existing unique-index check. Appending split into `AppendStrategy` (open-core, aggregate only, rejects a tag part) composed with an Enterprise strategy (tag protocol, delegates the aggregate-only case) | **Maintainer** | Implemented in `implement-unified-event-store`. `loadByCriteria()` turned out not to be exposable through the `EventStore` gateway — the messaging layer has no variadic-parameter support — so it stays reachable only on the concrete/raw store, same as `TaggedEventStore` always was |
+| 2026-09-27 | **Review fix: `EventCriteria` gained `->or()`/`branches()`, `loadByCriteria()` made non-variadic, and it is now registered as a gateway action.** `EventCriteria::or(self $other): self` composes an OR of criteria into one object; `branches(): self[]` iterates the single-criterion leaves for `DbalEventStore`/`InMemoryEventStore`. `loadByCriteria(EventCriteria $criteria): LoadedEvents` replaces the variadic form everywhere, so `EventStore` obtained from the container or the gateway both expose it | **Maintainer**, review follow-up | The variadic signature was never reachable through the `EventStore` gateway, which the design doc's own §4.4 example assumes; "obtain the concrete store" is not acceptable for a public API. `EventStoreGatewayLoadByCriteriaTest` (in-memory) and `DbalTaggedLoadTest::test_loading_events_by_criteria_through_the_gateway_returns_the_event_that_carries_it` (PostgreSQL) cover the gateway path |

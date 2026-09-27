@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
@@ -28,7 +28,7 @@ final class DecisionModelAppendInterceptor
      * @param array<string, string> $decisionBoundaryMethods keyed by "Class::method", value is the boundary method name on that same class
      */
     public function __construct(
-        private readonly TaggedEventStore $taggedEventStore,
+        private readonly EventStore $eventStore,
         private readonly DecisionModelAppendConditionCollector $collector,
         private readonly ConversionService $conversionService,
         private readonly HeaderMapper $headerMapper,
@@ -77,7 +77,7 @@ final class DecisionModelAppendInterceptor
             $methodInvocation->getMethodName(),
         );
 
-        $this->taggedEventStore->appendTo(
+        $this->eventStore->appendTo(
             $streamName,
             $events,
             $appendCondition->isEmpty() ? null : $appendCondition,
@@ -105,7 +105,7 @@ final class DecisionModelAppendInterceptor
         $command = $arguments[0] ?? null;
 
         $criteria = $className::{$boundaryMethodName}($command);
-        $loadedEvents = $this->taggedEventStore->load($criteria);
+        $loadedEvents = $this->eventStore->loadByCriteria($criteria);
 
         return $appendCondition->mergeWith($loadedEvents->appendCondition);
     }

@@ -9,7 +9,6 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Config\EventStoreReference;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\EventStore\AggregateEventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Modelling\Event;
@@ -30,7 +29,7 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
 {
     public function test_loading_events_by_aggregate_type_id_and_from_version(): void
     {
-        $eventStore = $this->bootstrapAggregateEventStore();
+        $eventStore = $this->bootstrapEventStore();
         $streamName = Uuid::v7()->toRfc4122();
         $this->createStreamTable($streamName);
 
@@ -48,7 +47,7 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
 
     public function test_loading_events_filtered_by_event_names(): void
     {
-        $eventStore = $this->bootstrapAggregateEventStore();
+        $eventStore = $this->bootstrapEventStore();
         $streamName = Uuid::v7()->toRfc4122();
         $this->createStreamTable($streamName);
 
@@ -63,7 +62,7 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
         self::assertEquals(new TicketWasClosed('123'), $events[0]->getPayload());
     }
 
-    private function bootstrapAggregateEventStore(): EventStore&AggregateEventStore
+    private function bootstrapEventStore(): EventStore
     {
         $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
@@ -77,7 +76,7 @@ final class EventStreamAggregateQueryTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true
         );
 
-        /** @var EventStore&AggregateEventStore $eventStore */
+        /** @var EventStore $eventStore */
         $eventStore = $ecotone->getServiceFromContainer(EventStoreReference::EVENT_STORE_INSTANCE);
 
         return $eventStore;

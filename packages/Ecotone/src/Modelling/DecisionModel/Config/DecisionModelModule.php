@@ -11,9 +11,9 @@ use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
@@ -134,7 +134,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         $messagingConfiguration->registerServiceDefinition(
             self::INTERCEPTOR_REFERENCE_NAME,
             new Definition(DecisionModelAppendInterceptor::class, [
-                Reference::to(TaggedEventStore::class),
+                Reference::to(EventStore::RAW_REFERENCE),
                 Reference::to(DecisionModelAppendConditionCollector::class),
                 Reference::to(ConversionService::REFERENCE_NAME),
                 DefaultHeaderMapper::createAllHeadersMapping()->getDefinition(),

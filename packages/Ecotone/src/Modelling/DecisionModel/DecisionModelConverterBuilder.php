@@ -6,7 +6,7 @@ namespace Ecotone\Modelling\DecisionModel;
 
 use Closure;
 use Ecotone\Api\Attribute\Fetch;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -66,7 +66,7 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
             $this->modelClassName,
             $this->doesAllowNulls,
             Reference::to(DecisionModelDefinitionRegistry::class),
-            Reference::to(TaggedEventStore::class),
+            Reference::to(EventStore::RAW_REFERENCE),
             new Reference(DecisionModelExecutorRegistry::serviceIdFor($this->modelClassName)),
             Reference::to(DecisionModelAppendConditionCollector::class),
             PayloadBuilder::create($payloadParameterName)->compile($interfaceToCall),

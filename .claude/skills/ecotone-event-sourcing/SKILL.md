@@ -215,13 +215,14 @@ final class OrderService {
 - An `#[EventSourcingAggregate]` command handler can inject a model too -- it adds a *second* guard on the same
   save, alongside the aggregate's own version check. This is the adoption path for an existing aggregate: it stays
   exactly as it is and gains a cross-aggregate invariant by injecting one model.
-- Without any class: `TaggedEventStore::load(EventCriteria::tag('coupon', $code))` returns the matching events and a
-  ready-made `AppendCondition` for `TaggedEventStore::appendTo($stream, $events, $condition)`.
+- Without any class: `$eventStore->loadByCriteria(EventCriteria::tag('coupon', $code))` returns the matching events
+  and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)` -- `$eventStore` is
+  the `EventStore` gateway/container reference, an OR of criteria is `EventCriteria::tag(...)->or(EventCriteria::tag(...))`.
 - **Nothing retries automatically.** Configure `InstantRetryConfiguration::createWithDefaults()
   ->withCommandBusRetry(true, 3, [DecisionModelConcurrencyException::class])` (or Enterprise `#[InstantRetry]`) --
   without it, a real conflict surfaces to the caller as a technical exception instead of the business answer the
   handler would otherwise have thrown (`CouponExhausted` in the example above).
-- **All of DCB is Enterprise**: `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `TaggedEventStore`,
+- **All of DCB is Enterprise**: `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `EventStore::loadByCriteria()`,
   `EventCriteria`, `AppendCondition`. An `#[EventTag]`/`#[DecisionModel]` without an Enterprise licence is a
   bootstrap `LicensingException`. Test with `EcotoneLite::bootstrapFlowTesting(..., licenceKey:
   \Ecotone\Test\LicenceTesting::VALID_LICENCE)` -- `InMemoryEventStore` implements the full conditional-append

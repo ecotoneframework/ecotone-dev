@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
-use Ecotone\Api\EventSourcing\TaggedEventStore;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ParameterConverter;
@@ -23,7 +23,7 @@ final class DecisionModelConverter implements ParameterConverter
         private readonly string $modelClassName,
         private readonly bool $doesAllowNulls,
         private readonly DecisionModelDefinitionRegistry $decisionModelDefinitionRegistry,
-        private readonly TaggedEventStore $taggedEventStore,
+        private readonly EventStore $eventStore,
         private readonly EventSourcingHandlerExecutor $eventSourcingHandlerExecutor,
         private readonly DecisionModelAppendConditionCollector $collector,
         private readonly ParameterConverter $payloadConverter,
@@ -45,7 +45,7 @@ final class DecisionModelConverter implements ParameterConverter
         }
 
         $criteria = $definition->toCriteria($tagValues);
-        $loadedEvents = $this->taggedEventStore->load($criteria);
+        $loadedEvents = $this->eventStore->loadByCriteria($criteria);
 
         $this->collector->record($message->getHeaders()->getMessageId(), $loadedEvents->appendCondition);
 

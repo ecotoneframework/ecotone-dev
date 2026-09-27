@@ -33,7 +33,9 @@ use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchema;
 use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\EventStore\AggregateEventStore;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendableStore;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
 use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
@@ -69,7 +71,7 @@ use function uasort;
 /**
  * licence Apache-2.0
  */
-final class DbalEventStore implements EventStore, AggregateEventStore
+final class DbalEventStore implements EventStore, AppendableStore
 {
     private const COLUMNS = ['event_id', 'event_name', 'payload', 'metadata', 'created_at'];
 
@@ -84,6 +86,8 @@ final class DbalEventStore implements EventStore, AggregateEventStore
 
     private EventTagRegistry $eventTagRegistry;
 
+    private AppendStrategy $appendStrategy;
+
     /**
      * @param array<string, ConnectionFactory|null> $connectionFactories
      */
@@ -96,9 +100,11 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         private ?string $consoleInvocationPrefix = null,
         ?EventTagRegistry $eventTagRegistry = null,
         private ?ProjectionInvariantGuard $projectionInvariantGuard = null,
+        ?AppendStrategy $appendStrategy = null,
     ) {
         $this->eventTagRegistry = $eventTagRegistry ?? EventTagRegistry::createEmpty();
         $this->projectionInvariantGuard ??= new ProjectionInvariantGuard([]);
+        $this->appendStrategy = $appendStrategy ?? new OpenCoreAppendStrategy();
     }
 
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
@@ -118,6 +124,43 @@ final class DbalEventStore implements EventStore, AggregateEventStore
 
         $this->ensureTableExists($streamName);
 
+        $this->appendStrategy->append($this, $streamName, $streamEvents, $appendCondition);
+    }
+
+    public function appendEventsUnconditionally(string $streamName, array $events): void
+    {
+        $connection = $this->connectionFor($streamName);
+        $schema = EventStreamSchemaFactory::for($connection);
+        $tableName = $this->streamTableRegistry->tableFor($streamName);
+
+        $rows = [];
+        foreach ($events as $eventToConvert) {
+            $row = $this->convertToRow($eventToConvert);
+            $this->assertProjectionInvariant($streamName, $row[1], $eventToConvert);
+            $rows[] = $row;
+        }
+
+        $this->insertEventRows($connection, $schema, $tableName, $rows);
+    }
+
+    public function appendEventsWithAggregateCondition(string $streamName, array $events, AppendCondition $appendCondition): void
+    {
+        $this->appendEventsUnconditionally($streamName, $events);
+    }
+
+    public function anyEventCarriesTag(array $events): bool
+    {
+        foreach ($events as $event) {
+            if ($this->resolveTags($event) !== []) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function appendEventsWithTagCondition(string $streamName, array $events, ?AppendCondition $appendCondition): void
+    {
         $connection = $this->connectionFor($streamName);
         $this->resetOwnBumpTrackingIfNoTransaction($connection);
         $schema = EventStreamSchemaFactory::for($connection);
@@ -128,7 +171,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         $perEventTags = [];
         $tagsInvolved = [];
 
-        foreach ($streamEvents as $eventToConvert) {
+        foreach ($events as $eventToConvert) {
             $row = $this->convertToRow($eventToConvert);
             $this->assertProjectionInvariant($streamName, $row[1], $eventToConvert);
             $rows[] = $row;
@@ -202,14 +245,16 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         unset($this->ensuredTables[$this->contextKeyFor($streamName)]);
     }
 
-    public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents
+    public function loadByCriteria(EventCriteria $criteria): LoadedEvents
     {
+        $branches = $criteria->branches();
+
         $connection = $this->connectionFor(StreamTableRegistry::DEFAULT_STREAM);
         $this->resetOwnBumpTrackingIfNoTransaction($connection);
         $tagSchema = TaggedEventSchemaFactory::for($connection);
 
         $allTags = [];
-        foreach ($criteria as $criterion) {
+        foreach ($branches as $criterion) {
             foreach ($criterion->tags() as $tag) {
                 $allTags[$this->tagKey($tag['name'], $tag['value'])] = $tag;
             }
@@ -233,7 +278,7 @@ final class DbalEventStore implements EventStore, AggregateEventStore
         $eventsByStream = $this->fetchCandidateEvents($connection, $flags);
 
         $matched = [];
-        foreach ($criteria as $criterion) {
+        foreach ($branches as $criterion) {
             $tags = $criterion->tags();
             if ($tags === []) {
                 continue;

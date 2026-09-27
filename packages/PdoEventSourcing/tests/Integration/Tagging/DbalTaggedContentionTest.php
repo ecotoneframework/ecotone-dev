@@ -13,7 +13,7 @@ use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\TagTableManager;
@@ -46,10 +46,10 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
     public function test_conflict_on_an_existing_counter_rejects_the_loser_and_burns_no_no(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
 
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
-        $stale = $store->load(EventCriteria::tag('course', 'course-1'));
+        $stale = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
 
@@ -66,9 +66,9 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
     public function test_conflict_on_a_never_written_tag(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
 
-        $captured = $store->load(EventCriteria::tag('customer', 'bob'));
+        $captured = $store->loadByCriteria(EventCriteria::tag('customer', 'bob'));
         self::assertSame(0, $captured->appendCondition->expectedTagVersions()[0]['expectedVersion']);
 
         $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'bob')]);
@@ -79,13 +79,13 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
     public function test_rollback_of_first_lets_the_waiter_succeed(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
 
         // Ensure the stream and tag tables exist before opening a manual transaction below --
         // MySQL implicitly commits on DDL, which would otherwise end that transaction early.
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('priming-course', 1)]);
 
-        $original = $store->load(EventCriteria::tag('course', 'course-1'));
+        $original = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
         $connection = $this->getConnection();
         $connection->beginTransaction();
@@ -94,7 +94,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
         $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $original->appendCondition);
 
-        $reloaded = $store->load(EventCriteria::tag('course', 'course-1'));
+        $reloaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
         self::assertCount(1, $reloaded->events);
     }
 
@@ -102,7 +102,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
     {
         $this->skipUnlessLockTimeoutSupported();
 
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
 
         $connectionFactory2 = new DbalConnectionFactory($this->dsn());
@@ -116,7 +116,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         );
 
         try {
-            $store2 = $this->bootstrapTaggedEventStore($connectionFactory2);
+            $store2 = $this->bootstrapEventStore($connectionFactory2);
 
             $this->expectException(ConcurrencyException::class);
             $store2->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 11)]);
@@ -132,24 +132,24 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $factoryT = new DbalConnectionFactory($this->dsn());
         $factoryE = new DbalConnectionFactory($this->dsn());
 
-        $storeBaseline = $this->bootstrapTaggedEventStore();
+        $storeBaseline = $this->bootstrapEventStore();
         $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
 
-        $storeT = $this->bootstrapTaggedEventStore($factoryT);
-        $storeE = $this->bootstrapTaggedEventStore($factoryE);
+        $storeT = $this->bootstrapEventStore($factoryT);
+        $storeE = $this->bootstrapEventStore($factoryE);
 
         $connectionT = $factoryT->establishConnection();
         $connectionT->beginTransaction();
 
         try {
-            $storeT->load(EventCriteria::tag('course', 'course-1'));
+            $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
             $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
 
             $storeT->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]);
 
             $this->expectException(ConcurrencyException::class);
-            $storeT->load(EventCriteria::tag('course', 'course-1'));
+            $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
         } finally {
             if ($connectionT->isTransactionActive()) {
                 $connectionT->rollBack();
@@ -161,9 +161,9 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
     {
         $this->skipUnlessSqlite();
 
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
-        $stale = $store->load(EventCriteria::tag('course', 'course-1'));
+        $stale = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
 
@@ -175,7 +175,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
     {
         $this->skipUnlessSqlite();
 
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
 
         $connection1 = $this->getConnection();
@@ -188,7 +188,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         try {
             $connectionFactory2 = new DbalConnectionFactory($this->dsn());
             $connectionFactory2->establishConnection()->executeStatement('PRAGMA busy_timeout = 200');
-            $store2 = $this->bootstrapTaggedEventStore($connectionFactory2);
+            $store2 = $this->bootstrapEventStore($connectionFactory2);
 
             $this->expectException(ConcurrencyException::class);
             $store2->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 11)]);
@@ -199,18 +199,18 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
     public function test_opposite_declaration_order_multi_tag_appends_succeed(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
 
         $store->appendTo(self::STREAM, [new TransferForContentionTest('account-a', 'account-b', 10)]);
         $store->appendTo(self::STREAM, [new TransferForContentionTest('account-b', 'account-a', 5)]);
 
-        $loaded = $store->load(EventCriteria::tag('account', 'account-a'));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('account', 'account-a'));
         self::assertCount(2, $loaded->events);
     }
 
-    private function bootstrapTaggedEventStore(?DbalConnectionFactory $connectionFactory = null): TaggedEventStore
+    private function bootstrapEventStore(?DbalConnectionFactory $connectionFactory = null): EventStore
     {
-        return $this->bootstrapEcotone($connectionFactory)->getServiceFromContainer(TaggedEventStore::class);
+        return $this->bootstrapEcotone($connectionFactory)->getServiceFromContainer(EventStore::RAW_REFERENCE);
     }
 
     private function bootstrapEcotone(?DbalConnectionFactory $connectionFactory = null): FlowTestSupport

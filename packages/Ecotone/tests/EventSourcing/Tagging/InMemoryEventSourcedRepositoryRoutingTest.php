@@ -10,7 +10,7 @@ use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
@@ -30,10 +30,10 @@ final class InMemoryEventSourcedRepositoryRoutingTest extends TestCase
 
         $ecotone->sendCommand(new PlaceOrderForRoutingTest('order-1', 'coupon-1'));
 
-        /** @var TaggedEventStore $taggedEventStore */
-        $taggedEventStore = $ecotone->getServiceFromContainer(TaggedEventStore::class);
+        /** @var EventStore $eventStore */
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::class);
 
-        $loadedEvents = $taggedEventStore->load(EventCriteria::tag('coupon', 'coupon-1'));
+        $loadedEvents = $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'coupon-1'));
 
         $this->assertCount(1, $loadedEvents->events);
         $this->assertInstanceOf(OrderPlacedForRoutingTest::class, $loadedEvents->events[0]->getPayload());

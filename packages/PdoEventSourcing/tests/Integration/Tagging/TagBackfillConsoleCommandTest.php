@@ -10,7 +10,7 @@ use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
@@ -60,8 +60,8 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         )->fetchOne();
         self::assertSame(1, $version, 'One backfill batch touching the same tag twice bumps its counter once, like a single append does');
 
-        $taggedEventStore = $ecotone->getServiceFromContainer(TaggedEventStore::class);
-        self::assertCount(2, $taggedEventStore->load(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
 
     public function test_backfill_is_idempotent_on_rerun(): void
@@ -89,9 +89,9 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
 
         $this->runBackfill($ecotone, ['fromNo' => $secondNo]);
 
-        $taggedEventStore = $ecotone->getServiceFromContainer(TaggedEventStore::class);
-        self::assertCount(0, $taggedEventStore->load(EventCriteria::tag('coupon', 'SUMMER24'))->events);
-        self::assertCount(1, $taggedEventStore->load(EventCriteria::tag('coupon', 'WINTER24'))->events);
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        self::assertCount(0, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'WINTER24'))->events);
     }
 
     public function test_dry_run_reports_counts_without_writing(): void

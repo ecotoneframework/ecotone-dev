@@ -232,10 +232,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 new Reference(EventSerializer::class),
                 $eventSourcingConfiguration->getLoadBatchSize(),
                 $eventSourcingConfiguration->isInitializedOnStart() && $dbalConfiguration->isAutomaticTableInitializationEnabled(),
-                $consoleInvocationPrefix,
                 new Reference(DbalTagCollaborator::class),
                 new Reference(ProjectionInvariantGuard::class),
                 new Reference(AppendStrategy::class),
+                $consoleInvocationPrefix,
             ])
         );
         $messagingConfiguration->registerServiceDefinition(

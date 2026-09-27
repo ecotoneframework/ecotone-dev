@@ -24,14 +24,11 @@ use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
-use Ecotone\EventSourcing\Dbal\Tag\DbalEventRowAccess;
 use Ecotone\EventSourcing\Dbal\Tag\DbalTagCollaborator;
-use Ecotone\EventSourcing\Dbal\Tag\OpenCoreDbalTagCollaborator;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendableStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
 use Ecotone\EventSourcing\EventStore\FieldType;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
@@ -59,7 +56,7 @@ use Throwable;
 /**
  * licence Apache-2.0
  */
-final class DbalEventStore implements EventStore, AppendableStore, DbalEventRowAccess
+final class DbalEventStore implements EventStore, AppendableStore
 {
     private const COLUMNS = ['event_id', 'event_name', 'payload', 'metadata', 'created_at'];
 
@@ -79,14 +76,13 @@ final class DbalEventStore implements EventStore, AppendableStore, DbalEventRowA
         private EventSerializer $eventSerializer,
         private int $loadBatchSize,
         private bool $automaticTableInitialization,
+        DbalTagCollaborator $tagCollaborator,
+        private ProjectionInvariantGuard $projectionInvariantGuard,
+        AppendStrategy $appendStrategy,
         private ?string $consoleInvocationPrefix = null,
-        ?DbalTagCollaborator $tagCollaborator = null,
-        private ?ProjectionInvariantGuard $projectionInvariantGuard = null,
-        ?AppendStrategy $appendStrategy = null,
     ) {
-        $this->tagCollaborator = $tagCollaborator ?? new OpenCoreDbalTagCollaborator();
-        $this->projectionInvariantGuard ??= new ProjectionInvariantGuard([]);
-        $this->appendStrategy = $appendStrategy ?? new OpenCoreAppendStrategy();
+        $this->tagCollaborator = $tagCollaborator;
+        $this->appendStrategy = $appendStrategy;
     }
 
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void

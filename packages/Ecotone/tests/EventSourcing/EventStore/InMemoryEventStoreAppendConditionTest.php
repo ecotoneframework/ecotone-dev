@@ -9,6 +9,7 @@ use Ecotone\EventSourcing\EventStore\AppendStrategy\EnterpriseAppendStrategy;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagConditionalStore;
+use Ecotone\EventSourcing\EventStore\Tag\OpenCoreInMemoryTagCollaborator;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
@@ -23,7 +24,7 @@ final class InMemoryEventStoreAppendConditionTest extends TestCase
 {
     public function test_aggregate_condition_matching_the_current_version_appends_successfully(): void
     {
-        $eventStore = new InMemoryEventStore();
+        $eventStore = new InMemoryEventStore(new OpenCoreAppendStrategy(), new OpenCoreInMemoryTagCollaborator());
 
         $eventStore->appendTo('ecotone_event_stream', [$this->aggregateEvent('order-1', 1)], AppendCondition::forAggregate('Order', 'order-1', 0));
 
@@ -32,7 +33,7 @@ final class InMemoryEventStoreAppendConditionTest extends TestCase
 
     public function test_aggregate_condition_with_a_stale_version_raises_concurrency_exception(): void
     {
-        $eventStore = new InMemoryEventStore();
+        $eventStore = new InMemoryEventStore(new OpenCoreAppendStrategy(), new OpenCoreInMemoryTagCollaborator());
         $eventStore->appendTo('ecotone_event_stream', [$this->aggregateEvent('order-1', 1)], AppendCondition::forAggregate('Order', 'order-1', 0));
 
         $this->expectException(ConcurrencyException::class);
@@ -42,7 +43,7 @@ final class InMemoryEventStoreAppendConditionTest extends TestCase
 
     public function test_an_unrelated_aggregate_instance_does_not_conflict(): void
     {
-        $eventStore = new InMemoryEventStore();
+        $eventStore = new InMemoryEventStore(new OpenCoreAppendStrategy(), new OpenCoreInMemoryTagCollaborator());
         $eventStore->appendTo('ecotone_event_stream', [$this->aggregateEvent('order-1', 1)], AppendCondition::forAggregate('Order', 'order-1', 0));
 
         $eventStore->appendTo('ecotone_event_stream', [$this->aggregateEvent('order-2', 1)], AppendCondition::forAggregate('Order', 'order-2', 0));
@@ -52,7 +53,7 @@ final class InMemoryEventStoreAppendConditionTest extends TestCase
 
     public function test_open_core_store_rejects_a_hand_built_tag_condition(): void
     {
-        $eventStore = new InMemoryEventStore(appendStrategy: new OpenCoreAppendStrategy());
+        $eventStore = new InMemoryEventStore(appendStrategy: new OpenCoreAppendStrategy(), tagCollaborator: new OpenCoreInMemoryTagCollaborator());
 
         $this->expectException(LicensingException::class);
 

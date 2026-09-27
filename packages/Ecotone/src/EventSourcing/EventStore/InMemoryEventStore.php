@@ -10,10 +10,7 @@ use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendableStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
-use Ecotone\EventSourcing\EventStore\Tag\InMemoryStreamAccess;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
-use Ecotone\EventSourcing\EventStore\Tag\OpenCoreInMemoryTagCollaborator;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -30,7 +27,7 @@ use function preg_match;
  * In-memory implementation of EventStore for testing purposes
  * licence Apache-2.0
  */
-final class InMemoryEventStore implements EventStore, AppendableStore, InMemoryStreamAccess
+final class InMemoryEventStore implements EventStore, AppendableStore
 {
     private array $streams = [];
 
@@ -38,10 +35,10 @@ final class InMemoryEventStore implements EventStore, AppendableStore, InMemoryS
 
     private InMemoryTagCollaborator $tagCollaborator;
 
-    public function __construct(?AppendStrategy $appendStrategy = null, ?InMemoryTagCollaborator $tagCollaborator = null)
+    public function __construct(AppendStrategy $appendStrategy, InMemoryTagCollaborator $tagCollaborator)
     {
-        $this->appendStrategy = $appendStrategy ?? new OpenCoreAppendStrategy();
-        $this->tagCollaborator = $tagCollaborator ?? new OpenCoreInMemoryTagCollaborator();
+        $this->appendStrategy = $appendStrategy;
+        $this->tagCollaborator = $tagCollaborator;
     }
 
     public function useAppendStrategy(AppendStrategy $appendStrategy): void

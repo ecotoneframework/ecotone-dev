@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 use Ecotone\Enqueue\ConnectionFactory;
@@ -45,6 +46,7 @@ class OrderService
     }
 
     #[CommandHandler('order.register_with_table_creation', 'orderRegister2')]
+    #[WithoutDatabaseTransaction]
     public function registerWithTableCreation(string $order, OrderRegisteringGateway $orderRegisteringGateway, #[Reference(DbalConnectionFactory::class)] ConnectionFactory $connection): void
     {
         $connection = $connection->createContext()->getDbalConnection();

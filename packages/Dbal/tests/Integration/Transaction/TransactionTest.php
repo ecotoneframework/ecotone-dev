@@ -20,6 +20,8 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\Transaction\ClassRouted\ClassRoutedOrderService;
+use Test\Ecotone\Dbal\Fixture\Transaction\ClassRouted\PrepareOrdersByClassCommand;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 /**
@@ -206,6 +208,22 @@ final class TransactionTest extends DbalMessagingTestCase
             $ecotone->sendQueryWithRouting('hasOrder', 'transactional-order-id'),
             'Transactional command should rollback data'
         );
+    }
+
+    public function test_it_can_disable_transactions_on_class_routed_command_handler(): void
+    {
+        $ecotone = $this->bootstrapFlowTesting(
+            [ClassRoutedOrderService::class],
+            [new ClassRoutedOrderService(), DbalConnectionFactory::class => $this->getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnvironment('prod')
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+        );
+
+        $ecotone->sendCommand(new PrepareOrdersByClassCommand());
+
+        self::assertSame(['milk'], $ecotone->sendQueryWithRouting('classRoutedOrder.getRegistered'));
     }
 
     private function resetOrdersTable(Connection $connection): void

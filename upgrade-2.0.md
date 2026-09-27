@@ -825,6 +825,16 @@ final class EcotoneConfiguration
   may still create its read-model tables, but it is no longer covered by the projection-state transaction: if
   initialization succeeds and the batch then fails, the initialization is not rolled back. Make initialization
   idempotent — `CREATE TABLE IF NOT EXISTS` rather than a bare `CREATE TABLE` — since it may be re-attempted.
+- **Before:** a synchronous `#[CommandHandler]` marked `#[WithoutDatabaseTransaction]` was only honoured when it ran
+  through a `#[ConsoleCommand]` or an asynchronous endpoint. Dispatched through `CommandBus` (`send()` /
+  `sendWithRouting()`), the transaction was still opened around the whole gateway call before routing picked a
+  handler, so the attribute had no effect there — a handler doing its own DDL still hit MySQL/MariaDB's implicit
+  commit despite being marked `#[WithoutDatabaseTransaction]`.
+  **Now:** `#[WithoutDatabaseTransaction]` is honoured for command handlers reached through `CommandBus`, whether
+  dispatched with `send()` (routed by the command's class) or `sendWithRouting()` (routed by an explicit routing key).
+  **How to adapt:** nothing to change in application code — mark the handler `#[WithoutDatabaseTransaction]` as
+  documented and it is skipped regardless of whether it is called directly, through a console command, an
+  asynchronous endpoint, or the command bus via `send()` / `sendWithRouting()`.
 
 ## 9. Changed defaults
 

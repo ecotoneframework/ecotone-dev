@@ -3,8 +3,10 @@
 namespace Ecotone\Dbal\DbalTransaction;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -30,7 +32,7 @@ use Ecotone\Projecting\Config\ProjectingConsoleCommands;
  */
 class DbalTransactionModule implements AnnotationModule
 {
-    private function __construct()
+    private function __construct(private AnnotationFinder $annotationFinder)
     {
     }
 
@@ -39,7 +41,7 @@ class DbalTransactionModule implements AnnotationModule
      */
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self();
+        return new self($annotationRegistrationService);
     }
 
     /**
@@ -63,12 +65,18 @@ class DbalTransactionModule implements AnnotationModule
         $pointcut .= '&&not('. ProjectingConsoleCommands::class . '::backfillProjection)';
         $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionReference::DEFAULT];
 
+        [$commandRoutingKeysWithoutTransaction, $commandClassesWithoutTransaction] = $dbalConfiguration->isTransactionOnCommandBus()
+            ? $this->findCommandHandlersWithoutTransaction($interfaceToCallRegistry)
+            : [[], []];
+
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
             array_map(fn (string $id) => new Reference($id), $connectionFactories),
             $dbalConfiguration->getDisabledTransactionsOnAsynchronousEndpointNames(),
             new Reference(RetryRunner::class),
             new Reference(LoggingGateway::class),
             new Reference(TransactionStatusTracker::class),
+            $commandRoutingKeysWithoutTransaction,
+            $commandClassesWithoutTransaction,
         ]);
 
         $messagingConfiguration
@@ -80,6 +88,38 @@ class DbalTransactionModule implements AnnotationModule
                     $pointcut
                 )
             );
+    }
+
+    /**
+     * @return array{0: string[], 1: string[]}
+     */
+    private function findCommandHandlersWithoutTransaction(InterfaceToCallRegistry $interfaceToCallRegistry): array
+    {
+        $routingKeys = [];
+        $commandClasses = [];
+        foreach ($this->annotationFinder->findAnnotatedMethods(WithoutDatabaseTransaction::class) as $annotatedMethod) {
+            if (! $annotatedMethod->hasMethodAnnotation(CommandHandler::class)) {
+                continue;
+            }
+
+            foreach ($annotatedMethod->getMethodAnnotationsWithType(CommandHandler::class) as $commandHandler) {
+                if ($commandHandler->getInputChannelName() !== '') {
+                    $routingKeys[] = $commandHandler->getInputChannelName();
+                    continue;
+                }
+
+                $interfaceToCall = $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $annotatedMethod->getMethodName());
+                if ($interfaceToCall->hasNoParameters()) {
+                    continue;
+                }
+
+                foreach ($interfaceToCall->getFirstParameter()->getTypeDescriptor()->getUnionTypes() as $unionType) {
+                    $commandClasses[] = (string) $unionType;
+                }
+            }
+        }
+
+        return [$routingKeys, $commandClasses];
     }
 
     /**

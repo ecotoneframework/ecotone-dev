@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\EventStore\Tag;
 
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
-use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
-use Ecotone\EventSourcing\EventStore\Tag\OpenCoreInMemoryTagCollaborator;
+use Ecotone\EventSourcing\EventStore;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\Event;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -19,19 +18,37 @@ final class OpenCoreInMemoryTagCollaboratorTest extends TestCase
 {
     public function test_untagged_append_still_works_without_a_licence(): void
     {
-        $eventStore = new InMemoryEventStore(new OpenCoreAppendStrategy(), new OpenCoreInMemoryTagCollaborator());
+        $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);
 
-        $eventStore->appendTo('orders', [Event::createWithType('OrderPlaced', ['orderId' => 'o-1'])]);
+        $eventStore->appendTo('orders', [new UntaggedOrderPlacedForOpenCoreInMemoryTagCollaboratorTest('o-1')]);
 
         $this->assertCount(1, $eventStore->load('orders'));
     }
 
     public function test_loading_events_by_tag_criteria_without_a_licence_throws(): void
     {
-        $eventStore = new InMemoryEventStore(new OpenCoreAppendStrategy(), new OpenCoreInMemoryTagCollaborator());
+        $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);
 
         $this->expectException(LicensingException::class);
 
         $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
+    }
+
+    private function bootstrapEcotone(): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [UntaggedOrderPlacedForOpenCoreInMemoryTagCollaboratorTest::class],
+        );
+    }
+}
+
+/**
+ * licence Apache-2.0
+ */
+final readonly class UntaggedOrderPlacedForOpenCoreInMemoryTagCollaboratorTest
+{
+    public function __construct(
+        public string $orderId,
+    ) {
     }
 }

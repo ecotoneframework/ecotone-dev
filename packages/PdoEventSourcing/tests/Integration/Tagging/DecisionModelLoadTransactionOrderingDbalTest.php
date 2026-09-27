@@ -57,7 +57,7 @@ final class DecisionModelLoadTransactionOrderingDbalTest extends EventSourcingMe
 
         self::assertTrue(
             TransactionStatusSpyForOrderingTest::$wasInsideTransactionDuringLoad,
-            'Expected the batched DecisionModelLoadInterceptor to run after the DBAL command-bus transaction had begun, the same way the append does.',
+            'Expected the batched decision-model load to run after the DBAL command-bus transaction had begun, the same way the append does.',
         );
     }
 

@@ -36,8 +36,9 @@ class DbalTransactionInterceptor
      * @param array<string, DbalConnectionFactory|ManagerRegistryConnectionFactory> $connectionFactories
      * @param string[] $disableTransactionOnAsynchronousEndpoints
      * @param string[] $commandRoutingKeysWithoutTransaction
+     * @param string[] $commandClassesWithoutTransaction
      */
-    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private array $commandRoutingKeysWithoutTransaction = [])
+    public function __construct(private array $connectionFactories, private array $disableTransactionOnAsynchronousEndpoints, private RetryRunner $retryRunner, private LoggingGateway $logger, private TransactionStatusTracker $transactionStatusTracker, private array $commandRoutingKeysWithoutTransaction = [], private array $commandClassesWithoutTransaction = [])
     {
     }
 
@@ -132,14 +133,29 @@ class DbalTransactionInterceptor
 
     private function isRoutedToHandlerWithoutTransaction(Message $message): bool
     {
-        if ($this->commandRoutingKeysWithoutTransaction === []) {
+        if ($message->getHeaders()->containsKey(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME)) {
+            if ($this->commandRoutingKeysWithoutTransaction === []) {
+                return false;
+            }
+
+            return in_array($message->getHeaders()->get(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME), $this->commandRoutingKeysWithoutTransaction, true);
+        }
+
+        if ($this->commandClassesWithoutTransaction === []) {
             return false;
         }
 
-        if (! $message->getHeaders()->containsKey(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME)) {
+        $payload = $message->getPayload();
+        if (! is_object($payload)) {
             return false;
         }
 
-        return in_array($message->getHeaders()->get(MessageBusChannel::COMMAND_CHANNEL_NAME_BY_NAME), $this->commandRoutingKeysWithoutTransaction, true);
+        foreach ($this->commandClassesWithoutTransaction as $commandClass) {
+            if (is_a($payload, $commandClass)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

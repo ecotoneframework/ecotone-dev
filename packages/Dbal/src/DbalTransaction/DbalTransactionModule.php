@@ -65,9 +65,9 @@ class DbalTransactionModule implements AnnotationModule
         $pointcut .= '&&not('. ProjectingConsoleCommands::class . '::backfillProjection)';
         $connectionFactories = $dbalConfiguration->getDefaultConnectionReferenceNames() ?: [DbalConnectionReference::DEFAULT];
 
-        $commandRoutingKeysWithoutTransaction = $dbalConfiguration->isTransactionOnCommandBus()
-            ? $this->findCommandRoutingKeysWithoutTransaction()
-            : [];
+        [$commandRoutingKeysWithoutTransaction, $commandClassesWithoutTransaction] = $dbalConfiguration->isTransactionOnCommandBus()
+            ? $this->findCommandHandlersWithoutTransaction($interfaceToCallRegistry)
+            : [[], []];
 
         $messagingConfiguration->registerServiceDefinition(DbalTransactionInterceptor::class, [
             array_map(fn (string $id) => new Reference($id), $connectionFactories),
@@ -76,6 +76,7 @@ class DbalTransactionModule implements AnnotationModule
             new Reference(LoggingGateway::class),
             new Reference(TransactionStatusTracker::class),
             $commandRoutingKeysWithoutTransaction,
+            $commandClassesWithoutTransaction,
         ]);
 
         $messagingConfiguration
@@ -90,11 +91,12 @@ class DbalTransactionModule implements AnnotationModule
     }
 
     /**
-     * @return string[]
+     * @return array{0: string[], 1: string[]}
      */
-    private function findCommandRoutingKeysWithoutTransaction(): array
+    private function findCommandHandlersWithoutTransaction(InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
         $routingKeys = [];
+        $commandClasses = [];
         foreach ($this->annotationFinder->findAnnotatedMethods(WithoutDatabaseTransaction::class) as $annotatedMethod) {
             if (! $annotatedMethod->hasMethodAnnotation(CommandHandler::class)) {
                 continue;
@@ -103,11 +105,21 @@ class DbalTransactionModule implements AnnotationModule
             foreach ($annotatedMethod->getMethodAnnotationsWithType(CommandHandler::class) as $commandHandler) {
                 if ($commandHandler->getInputChannelName() !== '') {
                     $routingKeys[] = $commandHandler->getInputChannelName();
+                    continue;
+                }
+
+                $interfaceToCall = $interfaceToCallRegistry->getFor($annotatedMethod->getClassName(), $annotatedMethod->getMethodName());
+                if ($interfaceToCall->hasNoParameters()) {
+                    continue;
+                }
+
+                foreach ($interfaceToCall->getFirstParameter()->getTypeDescriptor()->getUnionTypes() as $unionType) {
+                    $commandClasses[] = (string) $unionType;
                 }
             }
         }
 
-        return $routingKeys;
+        return [$routingKeys, $commandClasses];
     }
 
     /**

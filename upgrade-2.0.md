@@ -826,10 +826,11 @@ final class EcotoneConfiguration
   `sendWithRouting()`), the transaction was still opened around the whole gateway call before routing picked a
   handler, so the attribute had no effect there — a handler doing its own DDL still hit MySQL/MariaDB's implicit
   commit despite being marked `#[WithoutDatabaseTransaction]`.
-  **Now:** `#[WithoutDatabaseTransaction]` is honoured for command handlers reached through `CommandBus` too.
+  **Now:** `#[WithoutDatabaseTransaction]` is honoured for command handlers reached through `CommandBus`, whether
+  dispatched with `send()` (routed by the command's class) or `sendWithRouting()` (routed by an explicit routing key).
   **How to adapt:** nothing to change in application code — mark the handler `#[WithoutDatabaseTransaction]` as
   documented and it is skipped regardless of whether it is called directly, through a console command, an
-  asynchronous endpoint, or the command bus.
+  asynchronous endpoint, or the command bus via `send()` / `sendWithRouting()`.
 
 ## 9. Changed defaults
 

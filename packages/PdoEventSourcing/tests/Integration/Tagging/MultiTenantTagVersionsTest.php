@@ -6,10 +6,9 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
+use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
-use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -18,8 +17,8 @@ use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
-use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
+use RuntimeException;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**
@@ -28,7 +27,7 @@ use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
  */
 final class MultiTenantTagVersionsTest extends EventSourcingMessagingTestCase
 {
-    public function test_each_tenant_has_its_own_tag_counters(): void
+    public function test_each_tenant_enforces_its_own_issuance_limit_independent_of_the_other_tenant(): void
     {
         $this->initializeStreamAndTagTables($this->connectionForTenantA()->createContext()->getDbalConnection());
         $this->initializeStreamAndTagTables($this->connectionForTenantB()->createContext()->getDbalConnection());
@@ -37,28 +36,21 @@ final class MultiTenantTagVersionsTest extends EventSourcingMessagingTestCase
 
         $ecotone->sendCommand(new IssueCouponForMultiTenantTest('batch-a1', 'SUMMER24', 2), metadata: ['tenant' => 'tenant_a']);
         $ecotone->sendCommand(new IssueCouponForMultiTenantTest('batch-a2', 'SUMMER24', 2), metadata: ['tenant' => 'tenant_a']);
-        $ecotone->sendCommand(new IssueCouponForMultiTenantTest('batch-b1', 'SUMMER24', 5), metadata: ['tenant' => 'tenant_b']);
 
-        $connectionA = $this->connectionForTenantA()->createContext()->getDbalConnection();
-        $connectionB = $this->connectionForTenantB()->createContext()->getDbalConnection();
+        $ecotone->sendCommand(new IssueCouponForMultiTenantTest('batch-b1', 'SUMMER24', 2), metadata: ['tenant' => 'tenant_b']);
+        $ecotone->sendCommand(new IssueCouponForMultiTenantTest('batch-b2', 'SUMMER24', 2), metadata: ['tenant' => 'tenant_b']);
 
-        $versionA = (int) $connectionA->executeQuery(
-            "SELECT version FROM ecotone_tag_versions WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24'"
-        )->fetchOne();
-        $versionB = (int) $connectionB->executeQuery(
-            "SELECT version FROM ecotone_tag_versions WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24'"
-        )->fetchOne();
-
-        self::assertSame(2, $versionA, 'Tenant A issued twice -- its own counter must read 2');
-        self::assertSame(1, $versionB, "Tenant B issued once -- its own counter must read 1, unaffected by tenant A's two writes");
+        $this->expectException(CouponIssuanceLimitReachedForMultiTenantTest::class);
+        $ecotone->sendCommand(new IssueCouponForMultiTenantTest('batch-a3', 'SUMMER24', 2), metadata: ['tenant' => 'tenant_a']);
     }
 
     private function bootstrapEcotone(): FlowTestSupport
     {
         return $this->bootstrapFlowTestingWithEventStore(
-            classesToResolve: [CouponForMultiTenantTest::class, CouponIssuedForMultiTenantTest::class, EventsConverterForMultiTenantTest::class],
+            classesToResolve: [CouponForMultiTenantTest::class, CouponIssuerForMultiTenantTest::class, CouponIssuedForMultiTenantTest::class, EventsConverterForMultiTenantTest::class],
             containerOrAvailableServices: [
                 new EventsConverterForMultiTenantTest(),
+                new CouponIssuerForMultiTenantTest(),
                 'tenant_a_connection' => $this->connectionForTenantA(),
                 'tenant_b_connection' => $this->connectionForTenantB(),
             ],
@@ -99,7 +91,7 @@ final readonly class IssueCouponForMultiTenantTest
 {
     public function __construct(
         public string $batchId,
-        public string $code,
+        #[EventTag('coupon')] public string $code,
         public int $limit,
     ) {
     }
@@ -115,24 +107,37 @@ final readonly class CouponIssuedForMultiTenantTest
     }
 }
 
-#[EventSourcingAggregate]
+final class CouponIssuanceLimitReachedForMultiTenantTest extends RuntimeException
+{
+}
+
+#[DecisionModel]
 final class CouponForMultiTenantTest
 {
-    use WithAggregateVersioning;
-
-    #[Identifier]
-    private string $batchId;
-
-    #[CommandHandler]
-    public static function issue(IssueCouponForMultiTenantTest $command): array
-    {
-        return [new CouponIssuedForMultiTenantTest($command->batchId, $command->code, $command->limit)];
-    }
+    private int $issued = 0;
 
     #[EventSourcingHandler]
     public function whenIssued(CouponIssuedForMultiTenantTest $event): void
     {
-        $this->batchId = $event->batchId;
+        $this->issued++;
+    }
+
+    public function issuedCount(): int
+    {
+        return $this->issued;
+    }
+}
+
+final class CouponIssuerForMultiTenantTest
+{
+    #[CommandHandler]
+    public function issue(IssueCouponForMultiTenantTest $command, CouponForMultiTenantTest $coupon): array
+    {
+        if ($coupon->issuedCount() >= $command->limit) {
+            throw new CouponIssuanceLimitReachedForMultiTenantTest();
+        }
+
+        return [new CouponIssuedForMultiTenantTest($command->batchId, $command->code, $command->limit)];
     }
 }
 

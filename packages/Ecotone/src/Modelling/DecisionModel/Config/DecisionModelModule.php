@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
+use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
@@ -19,6 +20,7 @@ use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -112,6 +114,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                 $extensionObjects,
                 $this->rawDefinitions,
             );
+            self::assertNoAmbiguousDuplicateModelInjection($this->annotationFinder, $interfaceToCallRegistry);
         }
 
         $messagingConfiguration->registerServiceDefinition(
@@ -169,6 +172,37 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;
+    }
+
+    private static function assertNoAmbiguousDuplicateModelInjection(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): void
+    {
+        foreach ([CommandHandler::class, EventHandler::class] as $handlerAnnotationClass) {
+            foreach ($annotationFinder->findAnnotatedMethods($handlerAnnotationClass) as $annotatedMethod) {
+                $className = $annotatedMethod->getClassName();
+                $methodName = $annotatedMethod->getMethodName();
+                $interfaceToCall = $interfaceToCallRegistry->getFor($className, $methodName);
+
+                $occurrencesByModelClass = [];
+                foreach ($interfaceToCall->getInterfaceParameters() as $parameter) {
+                    if (! $parameter->isClassOrInterface() || ! DecisionModelReflection::isDecisionModel($parameter->getTypeHint())) {
+                        continue;
+                    }
+
+                    $occurrencesByModelClass[$parameter->getTypeHint()][] = $parameter->hasAnnotation(Fetch::class);
+                }
+
+                foreach ($occurrencesByModelClass as $modelClass => $hasFetchPerParameter) {
+                    if (count($hasFetchPerParameter) > 1 && in_array(false, $hasFetchPerParameter, true)) {
+                        throw ConfigurationException::create(sprintf(
+                            '%s::%s injects %s more than once -- the naming convention alone cannot resolve which value each parameter should receive; use #[Fetch] on each occurrence.',
+                            $className,
+                            $methodName,
+                            $modelClass,
+                        ));
+                    }
+                }
+            }
+        }
     }
 
     /**

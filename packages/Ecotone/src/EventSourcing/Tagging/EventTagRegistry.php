@@ -16,6 +16,11 @@ use function in_array;
 final class EventTagRegistry
 {
     /**
+     * @var array<class-string, EventTagValueSource[]>
+     */
+    private readonly array $sourcesByClass;
+
+    /**
      * @param array<class-string, array<array{kind: string, name: string, member: ?string, value: ?string}>> $rawDefinitions
      * @param string[] $filterOnlyTagNames
      */
@@ -23,6 +28,14 @@ final class EventTagRegistry
         private readonly array $rawDefinitions,
         private readonly array $filterOnlyTagNames = [],
     ) {
+        $sourcesByClass = [];
+        foreach ($rawDefinitions as $className => $entries) {
+            foreach ($entries as $entry) {
+                $sourcesByClass[$className][] = self::sourceFor($className, $entry);
+            }
+        }
+
+        $this->sourcesByClass = $sourcesByClass;
     }
 
     public static function createEmpty(): self
@@ -49,13 +62,10 @@ final class EventTagRegistry
      */
     public function tagsFor(object $event): array
     {
-        $entries = $this->rawDefinitions[$event::class] ?? [];
-
         $result = [];
-        foreach ($entries as $entry) {
-            $source = self::sourceFor($entry);
+        foreach ($this->sourcesByClass[$event::class] ?? [] as $source) {
             foreach ($source->resolveValues($event) as $value) {
-                $result[] = ['name' => $entry['name'], 'value' => $value];
+                $result[] = ['name' => $source->tagName(), 'value' => $value];
             }
         }
 
@@ -89,10 +99,10 @@ final class EventTagRegistry
     /**
      * @param array{kind: string, name: string, member: ?string, value: ?string} $entry
      */
-    private static function sourceFor(array $entry): EventTagValueSource
+    private static function sourceFor(string $className, array $entry): EventTagValueSource
     {
         return match ($entry['kind']) {
-            'property' => new PropertyEventTagValueSource($entry['name'], $entry['member']),
+            'property' => new PropertyEventTagValueSource($entry['name'], $className, $entry['member']),
             'method' => new MethodEventTagValueSource($entry['name'], $entry['member']),
             'literal' => new LiteralEventTagValueSource($entry['name'], $entry['value']),
         };

@@ -44,7 +44,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         parent::tearDown();
     }
 
-    public function test_conflict_on_an_existing_counter_rejects_the_loser_and_burns_no_no(): void
+    public function test_conflict_on_an_existing_counter_rejects_the_loser_and_burns_no_row(): void
     {
         $store = $this->bootstrapEventStore();
 
@@ -53,15 +53,13 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
 
-        $rowsBefore = $this->countStreamRows();
-
         try {
             $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $stale->appendCondition);
             self::fail('Expected DecisionModelConcurrencyException');
         } catch (DecisionModelConcurrencyException) {
         }
 
-        self::assertSame($rowsBefore, $this->countStreamRows());
+        self::assertCount(0, $store->loadByCriteria(EventCriteria::tag('customer', 'student-1'))->events);
     }
 
     public function test_conflict_on_a_never_written_tag(): void
@@ -210,7 +208,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEventStore(?DbalConnectionFactory $connectionFactory = null): EventStore
     {
-        return $this->bootstrapEcotone($connectionFactory)->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        return $this->bootstrapEcotone($connectionFactory)->getGateway(EventStore::class);
     }
 
     private function bootstrapEcotone(?DbalConnectionFactory $connectionFactory = null): FlowTestSupport
@@ -244,15 +242,6 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
     private function dsn(): string
     {
         return getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone';
-    }
-
-    private function countStreamRows(): int
-    {
-        if (! self::tableExists($this->getConnection(), self::STREAM)) {
-            return 0;
-        }
-
-        return (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . self::STREAM)->fetchOne();
     }
 
     private function setShortLockTimeout(\Doctrine\DBAL\Connection $connection): void

@@ -244,22 +244,23 @@ subsection below.
       public function hasStream(string $streamName): bool;
       public function load(string $streamName, int $fromNumber = 1, ?int $count = null, ?MetadataMatcher $metadataMatcher = null, bool $deserialize = true): iterable;
       public function loadAggregateEvents(string $streamName, ?string $aggregateType, string $aggregateId, int $fromVersion = 1, ?int $count = null, array $eventNames = [], bool $deserialize = true): iterable;
-      public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents;
+      public function loadByCriteria(EventCriteria $criteria): LoadedEvents;
   }
   ```
 
   `appendTo()` gains a third, optional `?AppendCondition $appendCondition = null` parameter — every existing call
-  site without a third argument is unaffected. **How to adapt a custom `EventStore` implementation:** add
-  `loadAggregateEvents()` and `loadByCriteria()` (delegate to your existing aggregate-loading and tag-index code, or
-  throw if you don't support tags), and widen `appendTo()`'s signature with the new optional parameter. Replace
+  site without a third argument is unaffected. `loadByCriteria()` takes a single `EventCriteria` rather than a
+  variadic list — an OR of several criteria is now expressed on `EventCriteria` itself via `->or()` (see below), so
+  the method stays reachable through the `EventStore` *gateway*, which has no support for variadic parameters.
+  **How to adapt a custom `EventStore` implementation:** add `loadAggregateEvents()` and `loadByCriteria()` (delegate
+  to your existing aggregate-loading and tag-index code, or throw if you don't support tags), and widen
+  `appendTo()`'s signature with the new optional parameter. Replace
   `Ecotone\EventSourcing\EventStore\AggregateEventStore` type-hints with plain `EventStore` — the method moved, the
   type did not gain a second interface to intersect. Replace `Ecotone\Api\EventSourcing\TaggedEventStore` the same
   way: `$taggedEventStore->load($criteria)` becomes `$eventStore->loadByCriteria($criteria)`,
   `$taggedEventStore->appendTo(...)` becomes `$eventStore->appendTo(...)` unchanged. `TaggedEventStore` and
   `AggregateEventStore` are deleted, along with their `Dbal`/`InMemory` adapter classes — there is one store, one
-  interface. `EventStore::loadByCriteria()` is not reachable through the `EventStore` gateway (the messaging layer
-  doesn't support variadic gateway parameters yet); obtain the concrete store instance to call it, the same way
-  `TaggedEventStore` was never exposed as a gateway either.
+  interface.
 - **`AppendCondition` now expresses an aggregate's optimistic-lock expectation too, not only tags — and the
   append path is licence-split.** **Before:** an aggregate save's concurrency check was purely the
   `(aggregate_type, aggregate_id, aggregate_version)` unique index; `AppendCondition` only ever carried tag

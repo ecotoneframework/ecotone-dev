@@ -63,8 +63,7 @@ final class EventStoreTagLoadingTest extends TestCase
         ]);
 
         $loadedEvents = $eventStore->loadByCriteria(
-            EventCriteria::tag('course', 'course-1'),
-            EventCriteria::tag('course', 'course-2'),
+            EventCriteria::tag('course', 'course-1')->or(EventCriteria::tag('course', 'course-2')),
         );
 
         $this->assertCount(2, $loadedEvents->events);
@@ -96,8 +95,7 @@ final class EventStoreTagLoadingTest extends TestCase
         ]);
 
         $loadedEvents = $eventStore->loadByCriteria(
-            EventCriteria::tag('course', 'course-1'),
-            EventCriteria::tag('student', 'student-1'),
+            EventCriteria::tag('course', 'course-1')->or(EventCriteria::tag('student', 'student-1')),
         );
 
         $this->assertCount(1, $loadedEvents->events);

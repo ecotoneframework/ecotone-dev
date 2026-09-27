@@ -60,5 +60,5 @@ interface EventStore
         bool $deserialize = true
     ): iterable;
 
-    public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents;
+    public function loadByCriteria(EventCriteria $criteria): LoadedEvents;
 }

@@ -12,10 +12,12 @@ final class EventCriteria
     /**
      * @param array<array{name: string, value: string}> $tags
      * @param class-string[] $eventTypes
+     * @param self[] $branches
      */
     private function __construct(
         private readonly array $tags,
         private readonly array $eventTypes = [],
+        private readonly array $branches = [],
     ) {
     }
 
@@ -37,6 +39,19 @@ final class EventCriteria
     public function ofTypes(string ...$eventTypes): self
     {
         return new self($this->tags, $eventTypes);
+    }
+
+    public function or(self $other): self
+    {
+        return new self([], [], [...$this->branches(), ...$other->branches()]);
+    }
+
+    /**
+     * @return self[]
+     */
+    public function branches(): array
+    {
+        return $this->branches !== [] ? $this->branches : [$this];
     }
 
     /**

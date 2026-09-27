@@ -26,7 +26,7 @@ use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
  * licence Enterprise
  * @internal
  */
-final class MultiTenantTaggedEventStoreTest extends EventSourcingMessagingTestCase
+final class MultiTenantTagVersionsTest extends EventSourcingMessagingTestCase
 {
     public function test_each_tenant_has_its_own_tag_counters(): void
     {

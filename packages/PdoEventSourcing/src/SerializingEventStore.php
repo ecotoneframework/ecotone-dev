@@ -86,9 +86,9 @@ final class SerializingEventStore implements EventStore
         return $events;
     }
 
-    public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents
+    public function loadByCriteria(EventCriteria $criteria): LoadedEvents
     {
-        $loadedEvents = $this->eventStore->loadByCriteria(...$criteria);
+        $loadedEvents = $this->eventStore->loadByCriteria($criteria);
 
         $events = [];
         foreach ($loadedEvents->events as $event) {

@@ -245,14 +245,16 @@ final class DbalEventStore implements EventStore, AppendableStore
         unset($this->ensuredTables[$this->contextKeyFor($streamName)]);
     }
 
-    public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents
+    public function loadByCriteria(EventCriteria $criteria): LoadedEvents
     {
+        $branches = $criteria->branches();
+
         $connection = $this->connectionFor(StreamTableRegistry::DEFAULT_STREAM);
         $this->resetOwnBumpTrackingIfNoTransaction($connection);
         $tagSchema = TaggedEventSchemaFactory::for($connection);
 
         $allTags = [];
-        foreach ($criteria as $criterion) {
+        foreach ($branches as $criterion) {
             foreach ($criterion->tags() as $tag) {
                 $allTags[$this->tagKey($tag['name'], $tag['value'])] = $tag;
             }
@@ -276,7 +278,7 @@ final class DbalEventStore implements EventStore, AppendableStore
         $eventsByStream = $this->fetchCandidateEvents($connection, $flags);
 
         $matched = [];
-        foreach ($criteria as $criterion) {
+        foreach ($branches as $criterion) {
             $tags = $criterion->tags();
             if ($tags === []) {
                 continue;

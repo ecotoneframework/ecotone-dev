@@ -565,11 +565,12 @@ $eventStore->appendTo('ecotone_event_stream', [new StudentSubscribedToCourse(...
 `loadByCriteria()` returns the events **and** the ready-made condition; user code never touches a version.
 `EventStore` lives in core (`packages/Ecotone`), as do the attributes — `InMemoryEventStore` and the decision-model
 flow are core, and core cannot depend on `PdoEventSourcing`. Only schema, DBAL implementation and the console
-commands live in `PdoEventSourcing`. `loadByCriteria()` is not reachable through the `EventStore` *gateway*
-(`GatewayProxyBuilder`) — the messaging layer has no support for variadic gateway parameters — so this snippet
-assumes `$eventStore` is the concrete store (or, internally, resolved via `EventStore::RAW_REFERENCE`, the same way
-`DecisionModelConverter`/`DecisionModelAppendInterceptor` bypass the gateway). §4.9 covers the licence split this
-merge introduces: the aggregate part of `AppendCondition` is open-core, only the tag part requires Enterprise.
+commands live in `PdoEventSourcing`. `loadByCriteria(EventCriteria $criteria)` takes a single, non-variadic
+argument — an OR of several criteria is expressed on `EventCriteria` itself (`EventCriteria::tag(...)->or(...)`) —
+so it stays reachable through the `EventStore` *gateway* (`GatewayProxyBuilder`) the same way every other
+`EventStore` method is; `$eventStore` above is whatever `EventStore` the container hands you, gateway or concrete
+store alike. §4.9 covers the licence split this merge introduces: the aggregate part of `AppendCondition` is
+open-core, only the tag part requires Enterprise.
 
 **Where events go:** the default stream, or a `#[Stream]` on the handler's class or — new, maintainer 2026-09-23
 — on the **handler method** itself (`Stream` gains `TARGET_METHOD`; the method wins over the class); for an
@@ -1258,3 +1259,4 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-23 | One stream schema, aggregate fields always nullable, unique index kept; **stream column names unchanged** — only the new tag tables get new names; only model-injecting handlers append their return, output channel kept | **Maintainer** | Part 4½ #2, #4, #6; closes Open Decision 7. A full stream rename was proposed and withdrawn the same day: one layout for default and legacy tables beats two |
 | 2026-09-23 | Boundaries span streams — yes; no runtime backfill guard, user waits for `backfill-tags`; no automatic retry, users configure it; names and filter-only tags as proposed | **Maintainer** | Closes Part 5. Claude's recommendations on 3 and 4 (guard on by default, retry registered automatically) were declined: the maintainer prefers explicit operator control over framework-enforced safety here — documented loudly instead |
 | 2026-09-27 | **One `EventStore`, not `TaggedEventStore` beside it.** `TaggedEventStore` and `AggregateEventStore` deleted, folded into `EventStore` (`loadByCriteria`, `loadAggregateEvents`, optional `AppendCondition` on `appendTo`). `AppendCondition::forAggregate()` added — open-core, since it only formalizes the existing unique-index check. Appending split into `AppendStrategy` (open-core, aggregate only, rejects a tag part) composed with an Enterprise strategy (tag protocol, delegates the aggregate-only case) | **Maintainer** | Implemented in `implement-unified-event-store`. `loadByCriteria()` turned out not to be exposable through the `EventStore` gateway — the messaging layer has no variadic-parameter support — so it stays reachable only on the concrete/raw store, same as `TaggedEventStore` always was |
+| 2026-09-27 | **Review fix: `EventCriteria` gained `->or()`/`branches()`, `loadByCriteria()` made non-variadic, and it is now registered as a gateway action.** `EventCriteria::or(self $other): self` composes an OR of criteria into one object; `branches(): self[]` iterates the single-criterion leaves for `DbalEventStore`/`InMemoryEventStore`. `loadByCriteria(EventCriteria $criteria): LoadedEvents` replaces the variadic form everywhere, so `EventStore` obtained from the container or the gateway both expose it | **Maintainer**, review follow-up | The variadic signature was never reachable through the `EventStore` gateway, which the design doc's own §4.4 example assumes; "obtain the concrete store" is not acceptable for a public API. `EventStoreGatewayLoadByCriteriaTest` (in-memory) and `DbalTaggedLoadTest::test_loading_events_by_criteria_through_the_gateway_returns_the_event_that_carries_it` (PostgreSQL) cover the gateway path |

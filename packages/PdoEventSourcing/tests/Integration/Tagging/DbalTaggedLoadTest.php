@@ -77,8 +77,7 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         ]);
 
         $loaded = $store->loadByCriteria(
-            EventCriteria::tag('course', 'course-1'),
-            EventCriteria::tag('course', 'course-2'),
+            EventCriteria::tag('course', 'course-1')->or(EventCriteria::tag('course', 'course-2')),
         );
 
         self::assertCount(2, $loaded->events);
@@ -106,8 +105,7 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]);
 
         $loaded = $store->loadByCriteria(
-            EventCriteria::tag('course', 'course-1'),
-            EventCriteria::tag('student', 'student-1'),
+            EventCriteria::tag('course', 'course-1')->or(EventCriteria::tag('student', 'student-1')),
         );
 
         self::assertCount(1, $loaded->events);
@@ -181,6 +179,24 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         self::assertCount(2, $loaded->events);
         self::assertInstanceOf(CourseCapacityChangedForDbalLoadTest::class, $loaded->events[0]->getPayload());
         self::assertInstanceOf(StudentSubscribedForDbalLoadTest::class, $loaded->events[1]->getPayload());
+    }
+
+    public function test_loading_events_by_criteria_through_the_gateway_returns_the_event_that_carries_it(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+        $store = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        $eventStore = $ecotone->getGateway(EventStore::class);
+
+        $store->appendTo(self::STREAM, [
+            new StudentSubscribedForDbalLoadTest('course-1', 'student-1'),
+            new StudentSubscribedForDbalLoadTest('course-2', 'student-2'),
+        ]);
+
+        $loaded = $eventStore->loadByCriteria(
+            EventCriteria::tag('course', 'course-1')->or(EventCriteria::tag('course', 'course-2')),
+        );
+
+        self::assertCount(2, $loaded->events);
     }
 
     private function bootstrapEventStore(): EventStore

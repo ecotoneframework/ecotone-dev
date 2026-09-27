@@ -414,6 +414,14 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventSourcingConfiguration,
             $configuration
         );
+
+        $this->registerEventStoreAction(
+            'loadByCriteria',
+            [PayloadBuilder::create('criteria')],
+            [GatewayPayloadBuilder::create('criteria')],
+            $eventSourcingConfiguration,
+            $configuration
+        );
     }
 
     private function registerEventStoreAction(string $methodName, array $endpointConverters, array $gatewayConverters, EventSourcingConfiguration $eventSourcingConfiguration, Configuration $configuration): void

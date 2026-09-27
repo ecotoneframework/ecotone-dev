@@ -90,10 +90,12 @@ final class InMemoryEventStore implements EventStore, AppendableStore
         $this->appendStrategy->append($this, $streamName, $this->convertToEvents($streamEvents), $appendCondition);
     }
 
-    public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents
+    public function loadByCriteria(EventCriteria $criteria): LoadedEvents
     {
+        $branches = $criteria->branches();
+
         $capturedTags = [];
-        foreach ($criteria as $criterion) {
+        foreach ($branches as $criterion) {
             foreach ($criterion->tags() as $tag) {
                 $key = $this->tagVersionKey($tag['name'], $tag['value']);
                 if (! isset($capturedTags[$key])) {
@@ -107,7 +109,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore
         }
 
         $matched = [];
-        foreach ($criteria as $criterion) {
+        foreach ($branches as $criterion) {
             $tags = $criterion->tags();
             if ($tags === []) {
                 continue;

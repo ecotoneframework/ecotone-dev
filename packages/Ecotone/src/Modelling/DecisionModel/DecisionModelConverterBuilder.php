@@ -6,7 +6,6 @@ namespace Ecotone\Modelling\DecisionModel;
 
 use Closure;
 use Ecotone\Api\Attribute\Fetch;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -58,17 +57,35 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
         return $parameter->getName() === $this->parameterName;
     }
 
+    public function parameterName(): string
+    {
+        return $this->parameterName;
+    }
+
+    public function modelClassName(): string
+    {
+        return $this->modelClassName;
+    }
+
     public function compile(InterfaceToCall $interfaceToCall): Definition
+    {
+        return new Definition(DecisionModelConverter::class, [
+            $this->parameterName,
+            new Reference(DecisionModelBatchLoaderRegistry::serviceIdFor($interfaceToCall->getInterfaceName(), $interfaceToCall->getMethodName())),
+            Reference::to(DecisionModelLoadedInstancesCollector::class),
+        ]);
+    }
+
+    public function compileLoader(InterfaceToCall $interfaceToCall): Definition
     {
         $payloadParameterName = $interfaceToCall->getFirstParameter()->getName();
 
-        return new Definition(DecisionModelConverter::class, [
+        return new Definition(DecisionModelParameterLoader::class, [
+            $this->parameterName,
             $this->modelClassName,
             $this->doesAllowNulls,
             Reference::to(DecisionModelDefinitionRegistry::class),
-            Reference::to(EventStore::RAW_REFERENCE),
             new Reference(DecisionModelExecutorRegistry::serviceIdFor($this->modelClassName)),
-            Reference::to(DecisionModelAppendConditionCollector::class),
             PayloadBuilder::create($payloadParameterName)->compile($interfaceToCall),
             $this->fetchExpression !== null
                 ? AttributeExpressionExecutorCompiler::compile(new Fetch($this->fetchExpression), $this->attributeDeclaration)

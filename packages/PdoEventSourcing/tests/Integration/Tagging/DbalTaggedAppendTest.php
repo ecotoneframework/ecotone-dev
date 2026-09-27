@@ -50,7 +50,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         self::assertCount(1, $eventStore->load(self::STREAM));
     }
 
-    public function test_tagged_event_becomes_loadable_by_its_tag(): void
+    public function test_tagged_event_bumps_counter_and_writes_index_row(): void
     {
         $eventStore = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class])->getGateway(EventStore::class);
 
@@ -59,9 +59,10 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         $events = $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events;
         self::assertCount(1, $events);
         self::assertSame('SUMMER24', $events[0]->getPayload()->code);
+        self::assertSame(1, $this->tagVersion($eventStore, 'coupon', 'SUMMER24'));
     }
 
-    public function test_second_tagged_append_is_also_loadable_by_tag(): void
+    public function test_second_append_bumps_counter_to_two(): void
     {
         $eventStore = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class])->getGateway(EventStore::class);
 
@@ -69,6 +70,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
 
         self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+        self::assertSame(2, $this->tagVersion($eventStore, 'coupon', 'SUMMER24'));
     }
 
     public function test_untagged_event_in_app_with_other_tagged_classes_never_shows_up_in_a_tag_query(): void
@@ -81,14 +83,15 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
 
-    public function test_appended_event_is_immediately_visible_on_both_the_stream_and_its_tag(): void
+    public function test_appends_without_ambient_transaction_are_atomic(): void
     {
         $eventStore = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class])->getGateway(EventStore::class);
 
         $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
 
-        self::assertTrue($eventStore->hasStream(self::STREAM));
+        self::assertCount(1, $eventStore->load(self::STREAM));
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+        self::assertSame(1, $this->tagVersion($eventStore, 'coupon', 'SUMMER24'));
     }
 
     public function test_event_whose_only_tag_is_filter_only_is_indexed_but_never_causes_a_conflict(): void
@@ -116,6 +119,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         ]);
 
         $eventStore->appendTo(self::STREAM, [$aggregateEvent(1)]);
+        self::assertSame(1, $this->tagVersion($eventStore, 'widget', 'w-1'));
 
         try {
             $eventStore->appendTo(self::STREAM, [$aggregateEvent(1)]);
@@ -123,9 +127,8 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         } catch (ConcurrencyException) {
         }
 
-        $eventStore->appendTo(self::STREAM, [$aggregateEvent(2)]);
-
-        self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('widget', 'w-1'))->events);
+        self::assertSame(1, $this->tagVersion($eventStore, 'widget', 'w-1'), 'The tag counter bump from the failed aggregate insert must have rolled back with it.');
+        self::assertCount(1, $eventStore->load(self::STREAM), 'The failed attempt must not have left a burned event row behind.');
     }
 
     public function test_delete_stream_clears_its_tag_index_rows(): void
@@ -137,6 +140,11 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         $eventStore->delete(self::STREAM);
 
         self::assertCount(0, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+    }
+
+    private function tagVersion(EventStore $eventStore, string $tagName, string $tagValue): int
+    {
+        return $eventStore->loadByCriteria(EventCriteria::tag($tagName, $tagValue))->appendCondition->expectedTagVersions()[0]['expectedVersion'];
     }
 
     private function bootstrapEcotone(array $classesToResolve): FlowTestSupport

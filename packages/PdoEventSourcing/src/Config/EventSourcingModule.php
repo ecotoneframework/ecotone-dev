@@ -19,6 +19,9 @@ use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Console\TagBackfillConsoleCommand;
 use Ecotone\EventSourcing\Console\TagVerifySchemaConsoleCommand;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
+use Ecotone\EventSourcing\Dbal\Tag\DbalTagCollaborator;
+use Ecotone\EventSourcing\Dbal\Tag\EnterpriseDbalTagCollaborator;
+use Ecotone\EventSourcing\Dbal\Tag\OpenCoreDbalTagCollaborator;
 use Ecotone\EventSourcing\Dbal\Tag\TagSchemaVerifier;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
@@ -196,6 +199,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         $this->registerAppendStrategy($messagingConfiguration);
         $this->registerInMemoryTagCollaborator($messagingConfiguration);
+        $this->registerDbalTagCollaborator($messagingConfiguration);
 
         if ($eventSourcingConfiguration->isInMemory()) {
             $messagingConfiguration->registerServiceDefinition(
@@ -229,7 +233,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $eventSourcingConfiguration->getLoadBatchSize(),
                 $eventSourcingConfiguration->isInitializedOnStart() && $dbalConfiguration->isAutomaticTableInitializationEnabled(),
                 $consoleInvocationPrefix,
-                new Reference(EventTagRegistry::class),
+                new Reference(DbalTagCollaborator::class),
                 new Reference(ProjectionInvariantGuard::class),
                 new Reference(AppendStrategy::class),
             ])
@@ -302,6 +306,22 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $messagingConfiguration->registerServiceDefinition(
             InMemoryTagCollaborator::class,
             LicenceDecider::prepareDefinition(InMemoryTagCollaborator::class, OpenCoreInMemoryTagCollaborator::class, InMemoryTagConditionalStore::class),
+        );
+    }
+
+    private function registerDbalTagCollaborator(Configuration $messagingConfiguration): void
+    {
+        $messagingConfiguration->registerServiceDefinition(
+            OpenCoreDbalTagCollaborator::class,
+            new Definition(OpenCoreDbalTagCollaborator::class),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            EnterpriseDbalTagCollaborator::class,
+            new Definition(EnterpriseDbalTagCollaborator::class, [Reference::to(EventTagRegistry::class)]),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            DbalTagCollaborator::class,
+            LicenceDecider::prepareDefinition(DbalTagCollaborator::class, OpenCoreDbalTagCollaborator::class, EnterpriseDbalTagCollaborator::class),
         );
     }
 

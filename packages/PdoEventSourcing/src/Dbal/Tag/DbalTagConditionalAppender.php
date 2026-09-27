@@ -17,10 +17,6 @@ use function is_object;
 use function ksort;
 
 /**
- * The counters-first conditional-append protocol: resolves each event's tags,
- * bumps every involved tag's version in one merged sorted pass, then writes
- * the event rows and their tag-index rows in the same transaction.
- *
  * licence Enterprise
  */
 final class DbalTagConditionalAppender

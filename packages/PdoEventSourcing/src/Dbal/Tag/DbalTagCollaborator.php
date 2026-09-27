@@ -11,9 +11,6 @@ use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 
 /**
- * The three DCB entry points DbalEventStore delegates to, chosen once at
- * bootstrap by licence via LicenceDecider (the same way AppendStrategy is).
- *
  * licence Apache-2.0
  */
 interface DbalTagCollaborator

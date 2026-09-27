@@ -24,11 +24,6 @@ use function sprintf;
 use function str_starts_with;
 
 /**
- * The tag_versions register: table existence, the counters-first bump
- * protocol (guarded and unconditional), the MySQL/InnoDB own-bump snapshot
- * hazard bookkeeping, and driver-exception-to-ConcurrencyException mapping.
- * Shared by every DCB entry point that reads or writes a tag's version.
- *
  * licence Enterprise
  */
 final class DbalTagVersionRegister

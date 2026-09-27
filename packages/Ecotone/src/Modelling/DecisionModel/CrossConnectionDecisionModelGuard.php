@@ -21,14 +21,6 @@ use ReflectionClass;
 use function sprintf;
 
 /**
- * A #[DecisionModel] is loaded from, and its condition enforced on, the
- * connection of the stream the handler that injected it appends to (§4.5a).
- * A model traced -- via its handled events' recording aggregates -- to a
- * stream on a different connection would silently miss those events, the
- * exact failure mode this design refuses everywhere else, so it is rejected
- * at bootstrap instead. Events recorded only by a service handler (not an
- * aggregate) cannot be traced this way and are not checked.
- *
  * licence Enterprise
  */
 final class CrossConnectionDecisionModelGuard

@@ -9,11 +9,6 @@ use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 use Ecotone\Modelling\Event;
 
 /**
- * The DCB tag collaborator needs to write/read plain event rows and apply the
- * open-core projection-invariant/legacy-constraint rules that have nothing to
- * do with tags -- this is DbalEventStore's own core behaviour, exposed back to
- * the collaborator instead of duplicated inside it.
- *
  * licence Apache-2.0
  */
 interface DbalEventRowAccess

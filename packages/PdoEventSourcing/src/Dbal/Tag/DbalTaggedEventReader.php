@@ -22,9 +22,6 @@ use function implode;
 use function uasort;
 
 /**
- * The DCB read side: capture-then-read, one indexed flag query and one
- * per-stream event fetch, matched against every branch of the criteria.
- *
  * licence Enterprise
  */
 final class DbalTaggedEventReader

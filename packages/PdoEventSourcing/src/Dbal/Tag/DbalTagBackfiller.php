@@ -19,10 +19,6 @@ use function ksort;
 use function sprintf;
 
 /**
- * Indexes #[EventTag] rows for events recorded before their class declared
- * its current tags: scans a stream in batches, bumping each batch's involved
- * tags once and writing their index rows idempotently.
- *
  * licence Enterprise
  */
 final class DbalTagBackfiller

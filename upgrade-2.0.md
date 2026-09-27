@@ -574,14 +574,18 @@ apart by commit order — only same-stream order survives, via `no`. Size it dow
 precise cross-stream ordering for a tag. `--dry-run` reports counts without writing. A
 payload that no longer deserializes is reported with its `no` and aborts the run unless `--skip-undeserializable` is
 given, in which case it is skipped and still reported. There is no decision-model usage until the backfill has
-finished — start using `#[DecisionModel]` only after step 6 above completes.
+finished — start using `#[DecisionModel]` only after step 6 above completes. On a multi-tenant setup, the `tenant`
+header selects which tenant's connection and tag tables get backfilled — `ecotone:event-store:backfill-tags --header
+"tenant:a"` indexes tenant `a` only, and the command must be run once per tenant.
 
 **`ecotone:event-store:verify-schema [--legacy-stream=]`** is the CI/deploy gate for all of the above: it checks
 `ecotone_tagged_events` / `ecotone_tag_versions`'s primary keys and, on MySQL/MariaDB, that their tag columns kept
 `utf8mb4_bin` collation (a hand-applied migration with the server default would silently let `'ABC'` and `'abc'`
 collide as one tag value); for every `--legacy-stream=` table named, it checks the three aggregate `NOT NULL`
 constraints from the table above are relaxed. On any failure it prints the exact `ALTER`/`DROP CONSTRAINT`
-statement to run — the same text as the table above, generated instead of hand-typed.
+statement to run — the same text as the table above, generated instead of hand-typed. Like the backfill command, it
+is tenant-selected via the `tenant` header on a multi-tenant setup, and refuses to run against a default connection
+when the header is missing.
 
 ## 5. Connections: Ecotone classes replace the Enqueue ones (DBAL, AMQP, SQS, Redis)
 

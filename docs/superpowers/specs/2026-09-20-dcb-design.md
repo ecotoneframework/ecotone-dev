@@ -1045,7 +1045,11 @@ tags, bump the affected counters in sorted order and insert the missing index ro
 so re-running is safe). `tag_sequence` for backfilled rows is assigned in `(created_at, stream, no)` order. A
 payload that no longer deserializes is reported with its `no` and skipped only under `--skip-undeserializable`.
 Progress is per-batch: the command prints the last `no` processed per stream, and `--from-no=` resumes. There is
-no index on `event_name`, so a large stream is a full scan: hours on tens of millions of rows, once.
+no index on `event_name`, so a large stream is a full scan: hours on tens of millions of rows, once. On a
+multi-tenant setup (§4.5a), the `tenant` header selects which tenant's connection and tag tables the backfill (and
+`verify-schema`) run against — `--header "tenant:a"` backfills tenant `a` only, run once per tenant — and running
+either command with no header fails with the same tenant-context error every other console command raises, rather
+than silently touching a default connection.
 
 ### 4.9 Licence — DCB is Enterprise
 

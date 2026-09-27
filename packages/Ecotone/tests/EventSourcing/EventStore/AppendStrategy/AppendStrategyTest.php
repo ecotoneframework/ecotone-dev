@@ -5,10 +5,16 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\EventStore\AppendStrategy;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendableStore;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\EnterpriseAppendStrategy;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
+use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\Attribute\EventTag;
+use Ecotone\EventSourcing\EventStore;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\Event;
+use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -16,89 +22,82 @@ use PHPUnit\Framework\TestCase;
  */
 final class AppendStrategyTest extends TestCase
 {
-    public function test_open_core_strategy_appends_unconditionally_when_no_condition_is_given(): void
+    private const STREAM = 'ecotone_event_stream';
+
+    public function test_open_core_appends_unconditionally_when_no_condition_is_given(): void
     {
-        $store = new RecordingAppendableStoreForAppendStrategyTest();
+        $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);
 
-        (new OpenCoreAppendStrategy())->append($store, 'orders', ['event'], null);
+        $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 1)]);
 
-        $this->assertSame(['appendEventsUnconditionally'], $store->calls);
+        $this->assertCount(1, $eventStore->load(self::STREAM));
     }
 
-    public function test_open_core_strategy_uses_the_aggregate_condition_when_present(): void
+    public function test_open_core_honours_an_aggregate_only_condition(): void
     {
-        $store = new RecordingAppendableStoreForAppendStrategyTest();
-        $condition = AppendCondition::forAggregate('Order', 'order-1', 0);
+        $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);
+        $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 1)], AppendCondition::forAggregate('Order', 'order-1', 0));
 
-        (new OpenCoreAppendStrategy())->append($store, 'orders', ['event'], $condition);
+        $this->expectException(ConcurrencyException::class);
 
-        $this->assertSame(['appendEventsWithAggregateCondition'], $store->calls);
+        $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 2)], AppendCondition::forAggregate('Order', 'order-1', 0));
     }
 
-    public function test_open_core_strategy_rejects_a_condition_carrying_a_tag_part(): void
+    public function test_open_core_rejects_a_condition_carrying_a_tag_part(): void
     {
-        $store = new RecordingAppendableStoreForAppendStrategyTest();
-        $condition = AppendCondition::fromCapturedVersions([
-            ['name' => 'coupon', 'value' => 'SUMMER24', 'expectedVersion' => 1],
-        ]);
+        $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);
 
         $this->expectException(LicensingException::class);
 
-        (new OpenCoreAppendStrategy())->append($store, 'orders', ['event'], $condition);
-    }
-
-    public function test_enterprise_strategy_always_delegates_to_the_tag_protocol_even_for_an_aggregate_only_condition(): void
-    {
-        $store = new RecordingAppendableStoreForAppendStrategyTest();
-        $condition = AppendCondition::forAggregate('Order', 'order-1', 0);
-
-        (new EnterpriseAppendStrategy())->append($store, 'orders', ['event'], $condition);
-
-        $this->assertSame(['appendEventsWithTagCondition'], $store->calls);
-    }
-
-    public function test_enterprise_strategy_uses_the_tag_protocol_when_the_condition_carries_a_tag_part(): void
-    {
-        $store = new RecordingAppendableStoreForAppendStrategyTest();
-        $condition = AppendCondition::fromCapturedVersions([
+        $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 1)], AppendCondition::fromCapturedVersions([
             ['name' => 'coupon', 'value' => 'SUMMER24', 'expectedVersion' => 1],
-        ]);
-
-        (new EnterpriseAppendStrategy())->append($store, 'orders', ['event'], $condition);
-
-        $this->assertSame(['appendEventsWithTagCondition'], $store->calls);
+        ]));
     }
 
-    public function test_enterprise_strategy_uses_the_tag_protocol_when_there_is_no_condition_at_all(): void
+    public function test_enterprise_still_indexes_a_tagged_event_by_its_tag_even_without_an_explicit_condition(): void
     {
-        $store = new RecordingAppendableStoreForAppendStrategyTest();
+        $eventStore = $this->bootstrapEcotone(LicenceTesting::VALID_LICENCE, [CouponIssuedForAppendStrategyTest::class])->getGateway(EventStore::class);
 
-        (new EnterpriseAppendStrategy())->append($store, 'orders', ['event'], null);
+        $eventStore->appendTo(self::STREAM, [new CouponIssuedForAppendStrategyTest('SUMMER24')]);
 
-        $this->assertSame(['appendEventsWithTagCondition'], $store->calls);
+        $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+    }
+
+    public function test_enterprise_still_enforces_an_aggregate_only_condition_through_the_tag_protocol(): void
+    {
+        $eventStore = $this->bootstrapEcotone(LicenceTesting::VALID_LICENCE)->getGateway(EventStore::class);
+        $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 1)], AppendCondition::forAggregate('Order', 'order-1', 0));
+
+        $this->expectException(ConcurrencyException::class);
+
+        $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 2)], AppendCondition::forAggregate('Order', 'order-1', 0));
+    }
+
+    private function bootstrapEcotone(?string $licenceKey = null, array $classesToResolve = []): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: $classesToResolve,
+            licenceKey: $licenceKey,
+        );
+    }
+
+    private function aggregateEvent(string $aggregateId, int $version): Event
+    {
+        return Event::createWithType('OrderPlaced', ['orderId' => $aggregateId], [
+            MessageHeaders::EVENT_AGGREGATE_TYPE => 'Order',
+            MessageHeaders::EVENT_AGGREGATE_ID => $aggregateId,
+            MessageHeaders::EVENT_AGGREGATE_VERSION => $version,
+        ]);
     }
 }
 
 /**
  * licence Apache-2.0
  */
-final class RecordingAppendableStoreForAppendStrategyTest implements AppendableStore
+final readonly class CouponIssuedForAppendStrategyTest
 {
-    /** @var string[] */
-    public array $calls = [];
-
-    public function appendEventsUnconditionally(string $streamName, array $events): void
-    {
-        $this->calls[] = 'appendEventsUnconditionally';
-    }
-
-    public function appendEventsWithAggregateCondition(string $streamName, array $events, AppendCondition $appendCondition): void
-    {
-        $this->calls[] = 'appendEventsWithAggregateCondition';
-    }
-
-    public function appendEventsWithTagCondition(string $streamName, array $events, ?AppendCondition $appendCondition): void
-    {
-        $this->calls[] = 'appendEventsWithTagCondition';
+    public function __construct(
+        #[EventTag('coupon')] public string $code,
+    ) {
     }
 }

@@ -18,24 +18,17 @@ use function stripos;
  */
 final class QueryCountingDbalConnection extends Connection
 {
-    /**
-     * Counts DbalTaggedEventReader::fetchTagFlags() calls only -- its "GROUP BY stream_name, event_no"
-     * shape is unique to that one query, fired exactly once per loadByCriteria(), regardless of how many
-     * branches were or()'d together or which DB engine is used. Unlike a table-name match, this can't be
-     * confused with the append side's own tag-version-bump SELECTs (DbalTagVersionRegister::currentTagVersion()),
-     * whose count varies with how many tags the appended event carries, not with the number of injected models.
-     */
-    public static int $loadByCriteriaSelectCount = 0;
+    public static int $fetchTagFlagsSelectCount = 0;
 
     public static function resetCount(): void
     {
-        self::$loadByCriteriaSelectCount = 0;
+        self::$fetchTagFlagsSelectCount = 0;
     }
 
     public function executeQuery(string $sql, array $params = [], array $types = [], ?QueryCacheProfile $qcp = null): Result
     {
         if (self::isFetchTagFlagsSelect($sql)) {
-            self::$loadByCriteriaSelectCount++;
+            self::$fetchTagFlagsSelectCount++;
         }
 
         return parent::executeQuery($sql, $params, $types, $qcp);

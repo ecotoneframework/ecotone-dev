@@ -15,11 +15,6 @@ use Ecotone\Modelling\Event;
 use function is_object;
 
 /**
- * Shared by every DecisionModelConverter of one handler invocation: whichever of its injected
- * model parameters gets resolved first performs the batched load for all of them -- one
- * loadByCriteria() combining every model's EventCriteria with or() -- and the rest simply read
- * the already-folded instances back out of the collector.
- *
  * licence Enterprise
  */
 final class DecisionModelBatchLoader

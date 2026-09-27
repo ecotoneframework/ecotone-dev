@@ -22,11 +22,6 @@ use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
 /**
- * Regression coverage for review finding M1: an injected handler's decision models used to each pay their own
- * loadByCriteria() round trip. DecisionModelLoadInterceptor now batches every model's criteria with
- * EventCriteria::or() into a single call, so a handler with N models costs the read-side statements of one,
- * not N of them -- exactly the design's "three models cost the same three statements as one".
- *
  * licence Enterprise
  * @internal
  */
@@ -75,7 +70,7 @@ final class DecisionModelLoadQueryCountDbalTest extends EventSourcingMessagingTe
 
         self::assertSame(
             1,
-            QueryCountingDbalConnection::$loadByCriteriaSelectCount,
+            QueryCountingDbalConnection::$fetchTagFlagsSelectCount,
             'Expected the single-model changeCapacity handler to make exactly one loadByCriteria() call.',
         );
 
@@ -84,7 +79,7 @@ final class DecisionModelLoadQueryCountDbalTest extends EventSourcingMessagingTe
 
         self::assertSame(
             1,
-            QueryCountingDbalConnection::$loadByCriteriaSelectCount,
+            QueryCountingDbalConnection::$fetchTagFlagsSelectCount,
             'Expected the three-model subscribe handler to still make exactly one loadByCriteria() call -- a batched single load, not one per injected model.',
         );
     }
@@ -99,7 +94,7 @@ final class DecisionModelLoadQueryCountDbalTest extends EventSourcingMessagingTe
 
         self::assertSame(
             1,
-            QueryCountingDbalConnection::$loadByCriteriaSelectCount,
+            QueryCountingDbalConnection::$fetchTagFlagsSelectCount,
             'Expected the aggregate factory injecting two decision models (coupon, usage) to still make exactly one loadByCriteria() call, not one per model.',
         );
     }

@@ -5,21 +5,32 @@ declare(strict_types=1);
 namespace Ecotone\Api\EventSourcing;
 
 /**
- * licence Enterprise
+ * licence Apache-2.0
  */
 final class AppendCondition
 {
     /**
      * @param array<string, array{name: string, value: string, expectedVersion: int}> $expectedTagVersions
+     * @param array{aggregateType: string, aggregateId: string, expectedVersion: int}|null $aggregateExpectation
      */
     private function __construct(
         private readonly array $expectedTagVersions,
+        private readonly ?array $aggregateExpectation,
     ) {
     }
 
     public static function empty(): self
     {
-        return new self([]);
+        return new self([], null);
+    }
+
+    public static function forAggregate(string $aggregateType, string $aggregateId, int $expectedVersion): self
+    {
+        return new self([], [
+            'aggregateType' => $aggregateType,
+            'aggregateId' => $aggregateId,
+            'expectedVersion' => $expectedVersion,
+        ]);
     }
 
     /**
@@ -32,12 +43,15 @@ final class AppendCondition
             $indexed[self::key($expectedTagVersion['name'], $expectedTagVersion['value'])] = $expectedTagVersion;
         }
 
-        return new self($indexed);
+        return new self($indexed, null);
     }
 
     public function mergeWith(self $other): self
     {
-        return new self([...$this->expectedTagVersions, ...$other->expectedTagVersions]);
+        return new self(
+            [...$this->expectedTagVersions, ...$other->expectedTagVersions],
+            $this->aggregateExpectation ?? $other->aggregateExpectation,
+        );
     }
 
     /**
@@ -48,9 +62,34 @@ final class AppendCondition
         return array_values($this->expectedTagVersions);
     }
 
+    public function hasTagCondition(): bool
+    {
+        return $this->expectedTagVersions !== [];
+    }
+
+    public function hasAggregateCondition(): bool
+    {
+        return $this->aggregateExpectation !== null;
+    }
+
+    public function aggregateType(): ?string
+    {
+        return $this->aggregateExpectation['aggregateType'] ?? null;
+    }
+
+    public function aggregateId(): ?string
+    {
+        return $this->aggregateExpectation['aggregateId'] ?? null;
+    }
+
+    public function expectedAggregateVersion(): ?int
+    {
+        return $this->aggregateExpectation['expectedVersion'] ?? null;
+    }
+
     public function isEmpty(): bool
     {
-        return $this->expectedTagVersions === [];
+        return $this->expectedTagVersions === [] && $this->aggregateExpectation === null;
     }
 
     private static function key(string $name, string $value): string

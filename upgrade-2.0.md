@@ -307,6 +307,10 @@ subsection below.
   result to the event store's `appendTo()`, the same seam `InMemoryEventSourcedRepository` already used — this is
   what makes a `#[DecisionModel]` injected into an `#[EventSourcingAggregate]` command handler (§4's DCB subsection)
   actually enforce its condition against PostgreSQL/MySQL/MariaDB/SQLite, not only against `InMemoryEventStore`.
+  `InMemoryEventStore` and `DbalEventStore` no longer default their `AppendStrategy`/tag-collaborator/
+  `ProjectionInvariantGuard` constructor arguments to `null`, and `InMemoryEventSourcedRepository` no longer takes an
+  optional `EventStore` — a repository backed by one is `EventStoreEventSourcedRepository` instead; only code that
+  constructed these directly (bootstrap wiring does it for you) needs to pass the collaborator explicitly.
 
 **Schema of `ecotone_event_stream`** (PostgreSQL; MySQL/MariaDB use generated columns for the three aggregate fields;
 SQLite uses expression indexes over `json_extract(metadata, '$._aggregate_type')` and friends, with no

@@ -9,6 +9,7 @@ use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\Database\TagTableManager;
+use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 
@@ -32,13 +33,13 @@ final class EnterpriseDbalTagCollaborator implements DbalTagCollaborator
         $this->backfiller = new DbalTagBackfiller($eventTagRegistry, $versionRegister);
     }
 
-    public function loadByCriteria(DbalEventRowAccess $rowAccess, Connection $connection, EventCriteria $criteria): LoadedEvents
+    public function loadByCriteria(DbalEventStore $eventStore, Connection $connection, EventCriteria $criteria): LoadedEvents
     {
-        return $this->reader->loadByCriteria($rowAccess, $connection, $criteria);
+        return $this->reader->loadByCriteria($eventStore, $connection, $criteria);
     }
 
     public function appendEventsWithTagCondition(
-        DbalEventRowAccess $rowAccess,
+        DbalEventStore $eventStore,
         Connection $connection,
         EventStreamSchema $schema,
         string $tableName,
@@ -46,11 +47,11 @@ final class EnterpriseDbalTagCollaborator implements DbalTagCollaborator
         array $events,
         ?AppendCondition $appendCondition,
     ): void {
-        $this->appender->appendEventsWithTagCondition($rowAccess, $connection, $schema, $tableName, $streamName, $events, $appendCondition);
+        $this->appender->appendEventsWithTagCondition($eventStore, $connection, $schema, $tableName, $streamName, $events, $appendCondition);
     }
 
     public function backfillTagsForStream(
-        DbalEventRowAccess $rowAccess,
+        DbalEventStore $eventStore,
         Connection $connection,
         EventStreamSchema $schema,
         string $tableName,
@@ -61,7 +62,7 @@ final class EnterpriseDbalTagCollaborator implements DbalTagCollaborator
         bool $dryRun,
         bool $skipUndeserializable,
     ): array {
-        return $this->backfiller->backfillTagsForStream($rowAccess, $connection, $schema, $tableName, $streamName, $onlyEventName, $fromNo, $batchSize, $dryRun, $skipUndeserializable);
+        return $this->backfiller->backfillTagsForStream($eventStore, $connection, $schema, $tableName, $streamName, $onlyEventName, $fromNo, $batchSize, $dryRun, $skipUndeserializable);
     }
 
     public function deleteTagIndexFor(Connection $connection, string $tableName): void

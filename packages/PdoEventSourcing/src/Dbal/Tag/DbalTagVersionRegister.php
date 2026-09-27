@@ -14,6 +14,7 @@ use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
 use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\EventSourcing\Database\TagTableManager;
+use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\ConcurrencyException;
 
@@ -39,9 +40,9 @@ final class DbalTagVersionRegister
         return $name . "\0" . $value;
     }
 
-    public function ensureTagTablesExist(DbalEventRowAccess $rowAccess, Connection $connection, string $streamName): void
+    public function ensureTagTablesExist(DbalEventStore $eventStore, Connection $connection, string $streamName): void
     {
-        $contextKey = $rowAccess->tagTableContextKeyFor($streamName);
+        $contextKey = $eventStore->tagTableContextKeyFor($streamName);
         if (isset($this->ensuredTagTables[$contextKey])) {
             return;
         }
@@ -55,13 +56,13 @@ final class DbalTagVersionRegister
         }
 
         $isAutomaticInitializationSupported = AutomaticTableInitializationSupport::isSupported($connection);
-        if (! $rowAccess->isAutomaticTableInitializationEnabled() || ! $isAutomaticInitializationSupported) {
+        if (! $eventStore->isAutomaticTableInitializationEnabled() || ! $isAutomaticInitializationSupported) {
             $tableNames = TagTableManager::TAGGED_EVENTS_TABLE . ', ' . TagTableManager::TAG_VERSIONS_TABLE;
 
             throw ConfigurationException::create(
                 $isAutomaticInitializationSupported
-                    ? MissingTableInstructions::build(TagTableManager::FEATURE_NAME, $tableNames, $rowAccess->consoleInvocationPrefix())
-                    : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(TagTableManager::FEATURE_NAME, $tableNames, $rowAccess->consoleInvocationPrefix())
+                    ? MissingTableInstructions::build(TagTableManager::FEATURE_NAME, $tableNames, $eventStore->consoleInvocationPrefix())
+                    : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(TagTableManager::FEATURE_NAME, $tableNames, $eventStore->consoleInvocationPrefix())
             );
         }
 

@@ -27,7 +27,7 @@ final class DecisionModelParameterLoader
         private readonly DecisionModelDefinitionRegistry $decisionModelDefinitionRegistry,
         private readonly EventSourcingHandlerExecutor $eventSourcingHandlerExecutor,
         private readonly ParameterConverter $payloadConverter,
-        private readonly ?AttributeExpressionExecutor $expressionExecutor = null,
+        private readonly AttributeExpressionExecutor $expressionExecutor,
     ) {
     }
 
@@ -41,7 +41,7 @@ final class DecisionModelParameterLoader
         $definition = $this->decisionModelDefinitionRegistry->get($this->modelClassName);
         $payload = $this->payloadConverter->getArgumentFrom($message);
 
-        $tagValues = $this->expressionExecutor !== null
+        $tagValues = $this->expressionExecutor->hasExpression()
             ? $this->resolveTagValuesFromExpression($definition, $message)
             : $this->resolveTagValuesFromPayload($definition, $payload);
 

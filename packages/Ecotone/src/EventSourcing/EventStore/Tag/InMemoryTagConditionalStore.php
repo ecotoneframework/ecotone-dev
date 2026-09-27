@@ -8,6 +8,7 @@ use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
+use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Modelling\Event;
 
@@ -38,7 +39,7 @@ final class InMemoryTagConditionalStore implements InMemoryTagCollaborator
     ) {
     }
 
-    public function loadByCriteria(InMemoryStreamAccess $streamAccess, EventCriteria $criteria): LoadedEvents
+    public function loadByCriteria(InMemoryEventStore $eventStore, EventCriteria $criteria): LoadedEvents
     {
         $branches = $criteria->branches();
 
@@ -81,7 +82,7 @@ final class InMemoryTagConditionalStore implements InMemoryTagCollaborator
             }
 
             foreach ($refSets as $refKey => $ref) {
-                $event = $streamAccess->eventAt($ref['stream'], $ref['eventNo']);
+                $event = $eventStore->eventAt($ref['stream'], $ref['eventNo']);
                 if ($event === null || ! $criterion->matchesEventType($event->getEventName())) {
                     continue;
                 }
@@ -107,7 +108,7 @@ final class InMemoryTagConditionalStore implements InMemoryTagCollaborator
         return new LoadedEvents($events, AppendCondition::fromCapturedVersions(array_values($capturedTags)));
     }
 
-    public function appendEventsWithTagCondition(InMemoryStreamAccess $streamAccess, string $streamName, array $events, ?AppendCondition $appendCondition): void
+    public function appendEventsWithTagCondition(InMemoryEventStore $eventStore, string $streamName, array $events, ?AppendCondition $appendCondition): void
     {
         $perEventTags = [];
         $tagsInvolved = [];
@@ -150,7 +151,7 @@ final class InMemoryTagConditionalStore implements InMemoryTagCollaborator
         }
 
         foreach ($events as $i => $event) {
-            $eventNo = $streamAccess->appendEvent($streamName, $event);
+            $eventNo = $eventStore->appendEvent($streamName, $event);
 
             foreach ($perEventTags[$i] as $tag) {
                 $key = $this->tagVersionKey($tag['name'], $tag['value']);

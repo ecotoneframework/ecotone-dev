@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
+use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 
 /**
@@ -15,13 +16,13 @@ use Ecotone\EventSourcing\Dbal\EventStreamSchema;
  */
 interface DbalTagCollaborator
 {
-    public function loadByCriteria(DbalEventRowAccess $rowAccess, Connection $connection, EventCriteria $criteria): LoadedEvents;
+    public function loadByCriteria(DbalEventStore $eventStore, Connection $connection, EventCriteria $criteria): LoadedEvents;
 
     /**
      * @param object[]|array[] $events
      */
     public function appendEventsWithTagCondition(
-        DbalEventRowAccess $rowAccess,
+        DbalEventStore $eventStore,
         Connection $connection,
         EventStreamSchema $schema,
         string $tableName,
@@ -34,7 +35,7 @@ interface DbalTagCollaborator
      * @return array{lastNo: int, eventsScanned: int, eventsTagged: int, tagsBumped: int, undeserializable: array<int>}
      */
     public function backfillTagsForStream(
-        DbalEventRowAccess $rowAccess,
+        DbalEventStore $eventStore,
         Connection $connection,
         EventStreamSchema $schema,
         string $tableName,

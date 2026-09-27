@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\EventSourcing\Database\TagTableManager;
+use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Modelling\Event;
@@ -31,7 +32,7 @@ final class DbalTagConditionalAppender
      * @param object[]|array[] $events
      */
     public function appendEventsWithTagCondition(
-        DbalEventRowAccess $rowAccess,
+        DbalEventStore $eventStore,
         Connection $connection,
         EventStreamSchema $schema,
         string $tableName,
@@ -47,8 +48,8 @@ final class DbalTagConditionalAppender
         $tagsInvolved = [];
 
         foreach ($events as $eventToConvert) {
-            $row = $rowAccess->convertToRow($eventToConvert);
-            $rowAccess->assertProjectionInvariant($streamName, $row[1], $eventToConvert);
+            $row = $eventStore->convertToRow($eventToConvert);
+            $eventStore->assertProjectionInvariant($streamName, $row[1], $eventToConvert);
             $rows[] = $row;
             $eventIds[] = $row[0];
 
@@ -73,17 +74,17 @@ final class DbalTagConditionalAppender
         }
 
         if ($tagsInvolved === [] && ! self::anyEventHasATag($perEventTags)) {
-            $rowAccess->insertEventRows($connection, $schema, $tableName, $rows);
+            $eventStore->insertEventRows($connection, $schema, $tableName, $rows);
 
             return;
         }
 
-        $this->versionRegister->ensureTagTablesExist($rowAccess, $connection, $streamName);
+        $this->versionRegister->ensureTagTablesExist($eventStore, $connection, $streamName);
         $tagSchema = TaggedEventSchemaFactory::for($connection);
 
         ksort($tagsInvolved);
 
-        $write = function () use ($rowAccess, $connection, $tagSchema, $schema, $tableName, $rows, $eventIds, $perEventTags, $tagsInvolved, $conditionTags): void {
+        $write = function () use ($eventStore, $connection, $tagSchema, $schema, $tableName, $rows, $eventIds, $perEventTags, $tagsInvolved, $conditionTags): void {
             $newVersions = [];
             foreach ($tagsInvolved as $key => $tag) {
                 $newVersions[$key] = isset($conditionTags[$key])
@@ -91,7 +92,7 @@ final class DbalTagConditionalAppender
                     : $this->versionRegister->bumpUnconditionalTagVersion($connection, $tagSchema, $tag['name'], $tag['value']);
             }
 
-            $rowAccess->insertEventRows($connection, $schema, $tableName, $rows);
+            $eventStore->insertEventRows($connection, $schema, $tableName, $rows);
             $this->insertTagIndexRows($connection, $tagSchema, $tableName, $eventIds, $perEventTags, $newVersions);
         };
 

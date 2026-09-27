@@ -8,7 +8,7 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Modelling\InMemoryEventSourcedRepository;
+use Ecotone\Modelling\EventStoreEventSourcedRepository;
 use Ecotone\Modelling\InMemoryStateStoredRepository;
 use Ecotone\Modelling\RepositoryBuilder;
 
@@ -59,11 +59,10 @@ final class InMemoryRepositoryBuilder implements RepositoryBuilder
     {
         return match ($this->isEventSourced) {
             true => new Definition(
-                InMemoryEventSourcedRepository::class,
+                EventStoreEventSourcedRepository::class,
                 [
-                    [],
-                    $this->aggregateClassNames,
                     new Reference(EventStore::class),
+                    $this->aggregateClassNames,
                 ]
             ),
             false => new Definition(

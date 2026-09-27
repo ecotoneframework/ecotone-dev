@@ -7,6 +7,7 @@ namespace Ecotone\EventSourcing\EventStore\Tag;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
+use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\Modelling\Event;
 
 /**
@@ -14,12 +15,12 @@ use Ecotone\Modelling\Event;
  */
 interface InMemoryTagCollaborator
 {
-    public function loadByCriteria(InMemoryStreamAccess $streamAccess, EventCriteria $criteria): LoadedEvents;
+    public function loadByCriteria(InMemoryEventStore $eventStore, EventCriteria $criteria): LoadedEvents;
 
     /**
      * @param Event[] $events
      */
-    public function appendEventsWithTagCondition(InMemoryStreamAccess $streamAccess, string $streamName, array $events, ?AppendCondition $appendCondition): void;
+    public function appendEventsWithTagCondition(InMemoryEventStore $eventStore, string $streamName, array $events, ?AppendCondition $appendCondition): void;
 
     public function deleteTagIndexFor(string $streamName): void;
 }

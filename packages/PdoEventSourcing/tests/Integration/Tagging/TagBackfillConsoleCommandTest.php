@@ -21,7 +21,6 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
-use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Test\LicenceTesting;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -46,22 +45,19 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         parent::tearDown();
     }
 
-    public function test_backfill_indexes_historical_events_and_conflict_detection_still_works_afterward(): void
+    public function test_backfill_indexes_historical_events_and_bumps_counters_once(): void
     {
         $ecotone = $this->bootstrapEcotone();
         $this->insertHistoricalEvent('SUMMER24', 2);
         $this->insertHistoricalEvent('SUMMER24', 3);
 
-        $eventStore = $ecotone->getGateway(EventStore::class);
-        $staleCondition = $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->appendCondition;
-
         $result = $this->runBackfill($ecotone, []);
 
         self::assertSame('2', $this->rowValue($result, 'Events tagged'));
-        self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
 
-        $this->expectException(ConcurrencyException::class);
-        $eventStore->appendTo(self::STREAM, [new CouponIssuedForBackfillTest('SUMMER24', 1)], $staleCondition);
+        $loaded = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
+        self::assertCount(2, $loaded->events);
+        self::assertSame(1, $loaded->appendCondition->expectedTagVersions()[0]['expectedVersion'], 'One backfill batch touching the same tag twice bumps its counter once, like a single append does');
     }
 
     public function test_backfill_is_idempotent_on_rerun(): void
@@ -72,8 +68,9 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         $this->runBackfill($ecotone, []);
         $this->runBackfill($ecotone, []);
 
-        $eventStore = $ecotone->getGateway(EventStore::class);
-        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events, 'Re-running the backfill must not index an already-indexed event again');
+        $loaded = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
+        self::assertCount(1, $loaded->events);
+        self::assertSame(1, $loaded->appendCondition->expectedTagVersions()[0]['expectedVersion'], 'Re-running the backfill must not bump an already-indexed tag again');
     }
 
     public function test_from_no_resumes_a_backfill(): void
@@ -92,23 +89,15 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
     public function test_a_batch_size_of_one_orders_the_tag_sequence_by_no(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $firstNo = $this->insertHistoricalEvent('SUMMER24', 2);
-        $secondNo = $this->insertHistoricalEvent('SUMMER24', 2);
+        $this->insertHistoricalEvent('SUMMER24', 2);
+        $this->insertHistoricalEvent('SUMMER24', 3);
 
         $this->runBackfill($ecotone, ['batchSize' => 1]);
 
-        $sequencesByNo = $this->getConnection()->executeQuery(
-            'SELECT event_no, tag_sequence FROM ' . TagTableManager::TAGGED_EVENTS_TABLE . " WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24' ORDER BY event_no ASC"
-        )->fetchAllAssociative();
+        $loaded = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
 
-        self::assertCount(2, $sequencesByNo);
-        self::assertSame($firstNo, (int) $sequencesByNo[0]['event_no']);
-        self::assertSame($secondNo, (int) $sequencesByNo[1]['event_no']);
-        self::assertLessThan(
-            (int) $sequencesByNo[1]['tag_sequence'],
-            (int) $sequencesByNo[0]['tag_sequence'],
-            'A batch size fine enough to isolate each event must order tag_sequence strictly by no.'
-        );
+        self::assertSame(2, $loaded->appendCondition->expectedTagVersions()[0]['expectedVersion'], 'A batch size of one must give each event its own tag sequence');
+        self::assertSame([2, 3], array_values(array_map(static fn ($event): int => $event->getPayload()->limit, $loaded->events)), 'Events must fold in the order they were originally written');
     }
 
     public function test_dry_run_reports_counts_without_writing(): void

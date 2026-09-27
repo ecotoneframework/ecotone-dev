@@ -10,7 +10,6 @@ namespace Ecotone\EventSourcing\Projecting\StreamSource;
 use function count;
 
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\EventStore\AggregateEventStore;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamFilter;
@@ -28,7 +27,7 @@ class EventStoreAggregateStreamSource implements StreamSource
      * @param string[] $handledProjectionNames
      */
     public function __construct(
-        private EventStore&AggregateEventStore $eventStore,
+        private EventStore $eventStore,
         private StreamFilterRegistry $streamFilterRegistry,
         private array $handledProjectionNames,
     ) {

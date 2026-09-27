@@ -4,15 +4,16 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing;
 
-use Ecotone\EventSourcing\EventStore\AggregateEventStore;
+use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
-use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Event;
 
 /**
  * licence Apache-2.0
  */
-final class SerializingEventStore implements EventStore, AggregateEventStore
+final class SerializingEventStore implements EventStore
 {
     public function __construct(
         private EventStore $eventStore,
@@ -25,9 +26,9 @@ final class SerializingEventStore implements EventStore, AggregateEventStore
         $this->eventStore->create($streamName, $this->serialize($streamEvents), $streamMetadata);
     }
 
-    public function appendTo(string $streamName, array $streamEvents): void
+    public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void
     {
-        $this->eventStore->appendTo($streamName, $this->serialize($streamEvents));
+        $this->eventStore->appendTo($streamName, $this->serialize($streamEvents), $appendCondition);
     }
 
     public function delete(string $streamName): void
@@ -72,10 +73,6 @@ final class SerializingEventStore implements EventStore, AggregateEventStore
         array $eventNames = [],
         bool $deserialize = true
     ): iterable {
-        if (! $this->eventStore instanceof AggregateEventStore) {
-            throw new InvalidArgumentException(sprintf('%s does not implement %s', $this->eventStore::class, AggregateEventStore::class));
-        }
-
         $events = [];
         foreach ($this->eventStore->loadAggregateEvents($streamName, $aggregateType, $aggregateId, $fromVersion, $count, $eventNames, $deserialize) as $event) {
             $events[] = $this->eventSerializer->deserialize(
@@ -87,6 +84,23 @@ final class SerializingEventStore implements EventStore, AggregateEventStore
         }
 
         return $events;
+    }
+
+    public function loadByCriteria(EventCriteria ...$criteria): LoadedEvents
+    {
+        $loadedEvents = $this->eventStore->loadByCriteria(...$criteria);
+
+        $events = [];
+        foreach ($loadedEvents->events as $event) {
+            $events[] = $this->eventSerializer->deserialize(
+                $event->getEventName(),
+                $event->getPayload(),
+                $event->getMetadata(),
+                true
+            );
+        }
+
+        return new LoadedEvents($events, $loadedEvents->appendCondition);
     }
 
     /**

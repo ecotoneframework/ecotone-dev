@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
@@ -20,13 +19,14 @@ use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Console\TagBackfillConsoleCommand;
 use Ecotone\EventSourcing\Console\TagVerifySchemaConsoleCommand;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
-use Ecotone\EventSourcing\Dbal\DbalTaggedEventStore;
 use Ecotone\EventSourcing\Dbal\Tag\TagSchemaVerifier;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\EnterpriseAppendStrategy;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
-use Ecotone\EventSourcing\EventStore\InMemoryTaggedEventStore;
 use Ecotone\EventSourcing\EventStreamEmitter;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
@@ -45,6 +45,7 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -190,10 +191,13 @@ class EventSourcingModule extends NoExternalConfigurationModule
             ])
         );
 
+        $this->registerAppendStrategy($messagingConfiguration);
+
         if ($eventSourcingConfiguration->isInMemory()) {
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class, [], [EventSourcingConfiguration::class, 'getInMemoryEventStore'])
+                (new Definition(InMemoryEventStore::class, [], [EventSourcingConfiguration::class, 'getInMemoryEventStore']))
+                    ->addMethodCall('useAppendStrategy', [Reference::to(AppendStrategy::class)])
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStoreReference::EVENT_STORE_INSTANCE,
@@ -201,10 +205,6 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     new Reference(InMemoryEventStore::class),
                     new Reference(EventSerializer::class),
                 ])
-            );
-            $messagingConfiguration->registerServiceDefinition(
-                TaggedEventStore::class,
-                new Definition(InMemoryTaggedEventStore::class, [new Reference(InMemoryEventStore::class)])
             );
 
             return;
@@ -226,15 +226,12 @@ class EventSourcingModule extends NoExternalConfigurationModule
                 $consoleInvocationPrefix,
                 new Reference(EventTagRegistry::class),
                 new Reference(ProjectionInvariantGuard::class),
+                new Reference(AppendStrategy::class),
             ])
         );
         $messagingConfiguration->registerServiceDefinition(
             EventStoreReference::EVENT_STORE_INSTANCE,
             new Reference(DbalEventStore::class)
-        );
-        $messagingConfiguration->registerServiceDefinition(
-            TaggedEventStore::class,
-            new Definition(DbalTaggedEventStore::class, [new Reference(DbalEventStore::class)])
         );
 
         $messagingConfiguration->registerServiceDefinition(
@@ -268,6 +265,22 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $messagingConfiguration,
             $interfaceToCallRegistry,
             'Checks the tag tables\' primary keys/collation and given legacy streams\' aggregate NOT NULL constraints'
+        );
+    }
+
+    private function registerAppendStrategy(Configuration $messagingConfiguration): void
+    {
+        $messagingConfiguration->registerServiceDefinition(
+            OpenCoreAppendStrategy::class,
+            new Definition(OpenCoreAppendStrategy::class),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            EnterpriseAppendStrategy::class,
+            new Definition(EnterpriseAppendStrategy::class, [Reference::to(OpenCoreAppendStrategy::class)]),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            AppendStrategy::class,
+            LicenceDecider::prepareDefinition(AppendStrategy::class, OpenCoreAppendStrategy::class, EnterpriseAppendStrategy::class),
         );
     }
 
@@ -348,8 +361,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
         $this->registerEventStoreAction(
             'appendTo',
-            [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')],
-            [GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents')],
+            [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents'), HeaderBuilder::createOptional('appendCondition', 'ecotone.eventSourcing.eventStore.appendCondition')],
+            [GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), GatewayPayloadBuilder::create('streamEvents'), GatewayHeaderBuilder::create('appendCondition', 'ecotone.eventSourcing.eventStore.appendCondition')],
             $eventSourcingConfiguration,
             $configuration
         );
@@ -377,6 +390,30 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $eventSourcingConfiguration,
             $configuration
         );
+
+        $this->registerEventStoreAction(
+            'loadAggregateEvents',
+            [
+                HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'),
+                HeaderBuilder::createOptional('aggregateType', 'ecotone.eventSourcing.eventStore.aggregateType'),
+                HeaderBuilder::create('aggregateId', 'ecotone.eventSourcing.eventStore.aggregateId'),
+                HeaderBuilder::create('fromVersion', 'ecotone.eventSourcing.eventStore.fromVersion'),
+                HeaderBuilder::createOptional('count', 'ecotone.eventSourcing.eventStore.count'),
+                HeaderBuilder::create('eventNames', 'ecotone.eventSourcing.eventStore.eventNames'),
+                HeaderBuilder::create('deserialize', 'ecotone.eventSourcing.eventStore.deserialize'),
+            ],
+            [
+                GatewayHeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'),
+                GatewayHeaderBuilder::create('aggregateType', 'ecotone.eventSourcing.eventStore.aggregateType'),
+                GatewayHeaderBuilder::create('aggregateId', 'ecotone.eventSourcing.eventStore.aggregateId'),
+                GatewayHeaderBuilder::create('fromVersion', 'ecotone.eventSourcing.eventStore.fromVersion'),
+                GatewayHeaderBuilder::create('count', 'ecotone.eventSourcing.eventStore.count'),
+                GatewayHeaderBuilder::create('eventNames', 'ecotone.eventSourcing.eventStore.eventNames'),
+                GatewayHeaderBuilder::create('deserialize', 'ecotone.eventSourcing.eventStore.deserialize'),
+            ],
+            $eventSourcingConfiguration,
+            $configuration
+        );
     }
 
     private function registerEventStoreAction(string $methodName, array $endpointConverters, array $gatewayConverters, EventSourcingConfiguration $eventSourcingConfiguration, Configuration $configuration): void
@@ -392,7 +429,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
 
     private function registerEventStreamEmitter(Configuration $configuration, EventSourcingConfiguration $eventSourcingConfiguration): void
     {
-        $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents')], $eventSourcingConfiguration, new Reference(EventStoreReference::EVENT_STORE_INSTANCE))
+        $eventStoreHandler = EventStoreBuilder::create('appendTo', [HeaderBuilder::create('streamName', 'ecotone.eventSourcing.eventStore.streamName'), PayloadBuilder::create('streamEvents'), HeaderBuilder::createOptional('appendCondition', 'ecotone.eventSourcing.eventStore.appendCondition')], $eventSourcingConfiguration, new Reference(EventStoreReference::EVENT_STORE_INSTANCE))
             ->withInputChannelName(Uuid::v7()->toRfc4122())
         ;
         $configuration->registerMessageHandler($eventStoreHandler);

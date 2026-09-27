@@ -6,9 +6,9 @@ namespace Test;
 
 use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\Gateway\CommandBus;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\SymfonyBundle\DependencyInjection\Compiler\CacheClearer;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
@@ -52,9 +52,9 @@ final class DcbSmokeTest extends TestCase
         $commandBus->send(new IssueCoupon('SUMMER24', 1));
         $commandBus->send(new RedeemCoupon('SUMMER24'));
 
-        /** @var TaggedEventStore $taggedEventStore */
-        $taggedEventStore = $container->get(TaggedEventStore::class);
-        $loaded = $taggedEventStore->load(EventCriteria::tag('coupon', 'SUMMER24'));
+        /** @var DbalEventStore $eventStore */
+        $eventStore = $container->get(DbalEventStore::class);
+        $loaded = $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
 
         self::assertCount(2, $loaded->events);
 

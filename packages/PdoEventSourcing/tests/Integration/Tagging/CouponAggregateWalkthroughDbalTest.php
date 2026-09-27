@@ -17,7 +17,6 @@ use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\EventStore;
@@ -89,8 +88,8 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
 
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', null));
 
-        $taggedEventStore = $ecotone->getServiceFromContainer(TaggedEventStore::class);
-        self::assertCount(1, $taggedEventStore->load(EventCriteria::tag('customer', 'alice'))->events);
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('customer', 'alice'))->events);
     }
 
     public function test_a_competing_redemption_committed_mid_decision_fails_the_save(): void
@@ -118,9 +117,9 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', 'WINTER24'));
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-2', 'bob', 'SUMMER24'));
 
-        $taggedEventStore = $ecotone->getServiceFromContainer(TaggedEventStore::class);
-        self::assertCount(2, $taggedEventStore->load(EventCriteria::tag('coupon', 'WINTER24'))->events);
-        self::assertCount(2, $taggedEventStore->load(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+        $eventStore = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'WINTER24'))->events);
+        self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
 
     public function test_aggregate_version_check_still_fires_independently(): void
@@ -280,14 +279,14 @@ final class CompetingWriteInjectorForDbalCouponTest
         $this->armed = true;
     }
 
-    public function maybeInject(TaggedEventStore $taggedEventStore): void
+    public function maybeInject(EventStore $eventStore): void
     {
         if (! $this->armed) {
             return;
         }
 
         $this->armed = false;
-        $taggedEventStore->appendTo('ecotone_event_stream', [
+        $eventStore->appendTo('ecotone_event_stream', [
             new OrderPlacedForDbalCouponTest('o-interloper', 'carol', 'SUMMER24'),
         ]);
     }
@@ -307,7 +306,7 @@ final class OrderForDbalCouponTest
         ?CouponRedemptionsForDbalCouponTest $coupon,
         ?CustomerCouponUseForDbalCouponTest $usage,
         #[Reference] CompetingWriteInjectorForDbalCouponTest $injector,
-        #[Reference] TaggedEventStore $taggedEventStore,
+        #[Reference] EventStore $eventStore,
     ): array {
         if ($coupon?->isExhausted()) {
             throw new CouponExhaustedForDbalCouponTest();
@@ -316,7 +315,7 @@ final class OrderForDbalCouponTest
             throw new CouponAlreadyUsedByCustomerForDbalCouponTest();
         }
 
-        $injector->maybeInject($taggedEventStore);
+        $injector->maybeInject($eventStore);
 
         return [new OrderPlacedForDbalCouponTest($command->orderId, $command->customerId, $command->couponCode)];
     }

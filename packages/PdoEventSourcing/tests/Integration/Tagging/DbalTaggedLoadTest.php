@@ -9,7 +9,7 @@ use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\Api\EventSourcing\TaggedEventStore;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
@@ -42,11 +42,11 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
 
     public function test_loading_events_by_tag_returns_the_event_that_carries_it(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
 
         $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]);
 
-        $loaded = $store->load(EventCriteria::tag('course', 'course-1'));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
         self::assertCount(1, $loaded->events);
         self::assertSame('course-1', $loaded->events[0]->getPayload()->courseId);
@@ -54,14 +54,14 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
 
     public function test_and_criteria_requires_all_tags_to_be_present(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
 
         $store->appendTo(self::STREAM, [
             new StudentSubscribedForDbalLoadTest('course-1', 'student-1'),
             new StudentSubscribedForDbalLoadTest('course-1', 'student-2'),
         ]);
 
-        $loaded = $store->load(EventCriteria::tag('course', 'course-1')->andTag('student', 'student-2'));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1')->andTag('student', 'student-2'));
 
         self::assertCount(1, $loaded->events);
         self::assertSame('student-2', $loaded->events[0]->getPayload()->studentId);
@@ -69,14 +69,14 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
 
     public function test_or_criteria_returns_events_matching_either(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
 
         $store->appendTo(self::STREAM, [
             new StudentSubscribedForDbalLoadTest('course-1', 'student-1'),
             new StudentSubscribedForDbalLoadTest('course-2', 'student-2'),
         ]);
 
-        $loaded = $store->load(
+        $loaded = $store->loadByCriteria(
             EventCriteria::tag('course', 'course-1'),
             EventCriteria::tag('course', 'course-2'),
         );
@@ -86,14 +86,14 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
 
     public function test_type_filter_excludes_other_event_types(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
 
         $store->appendTo(self::STREAM, [
             new StudentSubscribedForDbalLoadTest('course-1', 'student-1'),
             new CourseCapacityChangedForDbalLoadTest('course-1', 10),
         ]);
 
-        $loaded = $store->load(EventCriteria::tag('course', 'course-1')->ofTypes(CourseCapacityChangedForDbalLoadTest::class));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1')->ofTypes(CourseCapacityChangedForDbalLoadTest::class));
 
         self::assertCount(1, $loaded->events);
         self::assertInstanceOf(CourseCapacityChangedForDbalLoadTest::class, $loaded->events[0]->getPayload());
@@ -101,11 +101,11 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
 
     public function test_event_matching_two_criteria_is_returned_once(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
 
         $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]);
 
-        $loaded = $store->load(
+        $loaded = $store->loadByCriteria(
             EventCriteria::tag('course', 'course-1'),
             EventCriteria::tag('student', 'student-1'),
         );
@@ -115,22 +115,22 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
 
     public function test_conditional_append_succeeds_when_condition_still_valid(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]);
 
-        $loaded = $store->load(EventCriteria::tag('course', 'course-1'));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
         $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')], $loaded->appendCondition);
 
-        $reloaded = $store->load(EventCriteria::tag('course', 'course-1'));
+        $reloaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
         self::assertCount(2, $reloaded->events);
     }
 
     public function test_conditional_append_fails_when_tag_moved_since_capture(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]);
 
-        $loaded = $store->load(EventCriteria::tag('course', 'course-1'));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 5)]);
 
@@ -140,10 +140,10 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
 
     public function test_unconditional_append_invalidates_a_held_condition(): void
     {
-        $store = $this->bootstrapTaggedEventStore();
+        $store = $this->bootstrapEventStore();
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]);
 
-        $loaded = $store->load(EventCriteria::tag('course', 'course-1'));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 11)]);
 
@@ -154,19 +154,19 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
     public function test_delete_clears_the_index_so_load_returns_nothing(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $store = $ecotone->getServiceFromContainer(TaggedEventStore::class);
+        $store = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
 
         $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]);
         $ecotone->getGateway(\Ecotone\EventSourcing\EventStore::class)->delete(self::STREAM);
 
-        $loaded = $store->load(EventCriteria::tag('course', 'course-1'));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
         self::assertCount(0, $loaded->events);
     }
 
     public function test_model_fed_from_two_streams_folds_in_tag_version_order(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $store = $ecotone->getServiceFromContainer(TaggedEventStore::class);
+        $store = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
         $eventStore = $ecotone->getGateway(\Ecotone\EventSourcing\EventStore::class);
 
         $connection = $this->getConnection();
@@ -176,16 +176,16 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         $eventStore->create(self::OTHER_STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]);
         $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]);
 
-        $loaded = $store->load(EventCriteria::tag('course', 'course-1'));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
         self::assertCount(2, $loaded->events);
         self::assertInstanceOf(CourseCapacityChangedForDbalLoadTest::class, $loaded->events[0]->getPayload());
         self::assertInstanceOf(StudentSubscribedForDbalLoadTest::class, $loaded->events[1]->getPayload());
     }
 
-    private function bootstrapTaggedEventStore(): TaggedEventStore
+    private function bootstrapEventStore(): EventStore
     {
-        return $this->bootstrapEcotone()->getServiceFromContainer(TaggedEventStore::class);
+        return $this->bootstrapEcotone()->getServiceFromContainer(EventStore::RAW_REFERENCE);
     }
 
     private function bootstrapEcotone(): FlowTestSupport

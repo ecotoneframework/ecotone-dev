@@ -22,6 +22,9 @@ use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\EnterpriseAppendStrategy;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
+use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
+use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagConditionalStore;
+use Ecotone\EventSourcing\EventStore\Tag\OpenCoreInMemoryTagCollaborator;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
@@ -439,10 +442,11 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         $registerInMemoryEventStoreStreamSource = false;
         if (! $serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
             $this->registerAppendStrategy($messagingConfiguration);
+            $this->registerInMemoryTagCollaborator($messagingConfiguration);
 
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class, [new Reference(EventTagRegistry::class), Reference::to(AppendStrategy::class)]),
+                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class)]),
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStore::class,
@@ -493,11 +497,27 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         );
         $messagingConfiguration->registerServiceDefinition(
             EnterpriseAppendStrategy::class,
-            new Definition(EnterpriseAppendStrategy::class, [Reference::to(OpenCoreAppendStrategy::class)]),
+            new Definition(EnterpriseAppendStrategy::class),
         );
         $messagingConfiguration->registerServiceDefinition(
             AppendStrategy::class,
             LicenceDecider::prepareDefinition(AppendStrategy::class, OpenCoreAppendStrategy::class, EnterpriseAppendStrategy::class),
+        );
+    }
+
+    private function registerInMemoryTagCollaborator(Configuration $messagingConfiguration): void
+    {
+        $messagingConfiguration->registerServiceDefinition(
+            OpenCoreInMemoryTagCollaborator::class,
+            new Definition(OpenCoreInMemoryTagCollaborator::class),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            InMemoryTagConditionalStore::class,
+            new Definition(InMemoryTagConditionalStore::class, [Reference::to(EventTagRegistry::class)]),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            InMemoryTagCollaborator::class,
+            LicenceDecider::prepareDefinition(InMemoryTagCollaborator::class, OpenCoreInMemoryTagCollaborator::class, InMemoryTagConditionalStore::class),
         );
     }
 }

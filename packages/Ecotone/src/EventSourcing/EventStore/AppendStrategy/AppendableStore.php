@@ -25,9 +25,4 @@ interface AppendableStore
      * @param object[]|array[] $events
      */
     public function appendEventsWithTagCondition(string $streamName, array $events, ?AppendCondition $appendCondition): void;
-
-    /**
-     * @param object[]|array[] $events
-     */
-    public function anyEventCarriesTag(array $events): bool;
 }

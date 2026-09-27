@@ -47,14 +47,14 @@ final class AppendStrategyTest extends TestCase
         (new OpenCoreAppendStrategy())->append($store, 'orders', ['event'], $condition);
     }
 
-    public function test_enterprise_strategy_delegates_to_open_core_when_nothing_tag_related_is_involved(): void
+    public function test_enterprise_strategy_always_delegates_to_the_tag_protocol_even_for_an_aggregate_only_condition(): void
     {
         $store = new RecordingAppendableStoreForAppendStrategyTest();
         $condition = AppendCondition::forAggregate('Order', 'order-1', 0);
 
-        (new EnterpriseAppendStrategy(new OpenCoreAppendStrategy()))->append($store, 'orders', ['event'], $condition);
+        (new EnterpriseAppendStrategy())->append($store, 'orders', ['event'], $condition);
 
-        $this->assertSame(['appendEventsWithAggregateCondition'], $store->calls);
+        $this->assertSame(['appendEventsWithTagCondition'], $store->calls);
     }
 
     public function test_enterprise_strategy_uses_the_tag_protocol_when_the_condition_carries_a_tag_part(): void
@@ -64,16 +64,16 @@ final class AppendStrategyTest extends TestCase
             ['name' => 'coupon', 'value' => 'SUMMER24', 'expectedVersion' => 1],
         ]);
 
-        (new EnterpriseAppendStrategy(new OpenCoreAppendStrategy()))->append($store, 'orders', ['event'], $condition);
+        (new EnterpriseAppendStrategy())->append($store, 'orders', ['event'], $condition);
 
         $this->assertSame(['appendEventsWithTagCondition'], $store->calls);
     }
 
-    public function test_enterprise_strategy_uses_the_tag_protocol_when_events_carry_tags_even_without_a_condition(): void
+    public function test_enterprise_strategy_uses_the_tag_protocol_when_there_is_no_condition_at_all(): void
     {
-        $store = new RecordingAppendableStoreForAppendStrategyTest(eventsCarryTags: true);
+        $store = new RecordingAppendableStoreForAppendStrategyTest();
 
-        (new EnterpriseAppendStrategy(new OpenCoreAppendStrategy()))->append($store, 'orders', ['event'], null);
+        (new EnterpriseAppendStrategy())->append($store, 'orders', ['event'], null);
 
         $this->assertSame(['appendEventsWithTagCondition'], $store->calls);
     }
@@ -86,11 +86,6 @@ final class RecordingAppendableStoreForAppendStrategyTest implements AppendableS
 {
     /** @var string[] */
     public array $calls = [];
-
-    public function __construct(
-        private readonly bool $eventsCarryTags = false,
-    ) {
-    }
 
     public function appendEventsUnconditionally(string $streamName, array $events): void
     {
@@ -105,10 +100,5 @@ final class RecordingAppendableStoreForAppendStrategyTest implements AppendableS
     public function appendEventsWithTagCondition(string $streamName, array $events, ?AppendCondition $appendCondition): void
     {
         $this->calls[] = 'appendEventsWithTagCondition';
-    }
-
-    public function anyEventCarriesTag(array $events): bool
-    {
-        return $this->eventsCarryTags;
     }
 }

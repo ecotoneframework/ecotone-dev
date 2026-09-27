@@ -292,7 +292,11 @@ subsection below.
   `ecotone:migration:database:setup --initialize` (or the equivalent for your integration, §8) first, the same as
   you already do for `appendTo()`.
 - **SQLite is now a supported event store engine**, alongside PostgreSQL, MySQL and MariaDB — nothing to adapt, it is
-  additive.
+  additive. **DCB on SQLite needs `RETURNING`, added in SQLite 3.35 (2021-03).** `#[EventTag]`'s unconditional
+  counter bump reads the new version back via `... RETURNING version` on every engine that supports it; an older
+  bundled `libsqlite3` (PHP's own SQLite extension, not a system package) raises a plain SQL syntax error rather than
+  a named exception — check `SQLite3::libversion()` / `PDO::sqliteVersion` against 3.35 before enabling `#[EventTag]`
+  on SQLite.
 - Internal, nothing to adapt: the "licence BSD-3-Clause / code comes from prooph/pdo-event-store" headers are gone
   from the schema and store classes — the DDL is Ecotone's own now. `EventSourcingRepository::findBy()` and the
   partitioned-projection aggregate stream source no longer build a `MetadataMatcher` internally; they call

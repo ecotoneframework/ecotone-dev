@@ -31,6 +31,7 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\DecisionModel\CrossConnectionDecisionModelGuard;
 use Ecotone\Modelling\DecisionModel\DecisionModelAppendConditionCollector;
 use Ecotone\Modelling\DecisionModel\DecisionModelAppendInterceptor;
 use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionBuilder;
@@ -62,6 +63,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
      * @param array<string, string> $decisionBoundaryMethods keyed by "Class::method", value is the boundary method name on that same class
      */
     private function __construct(
+        private readonly AnnotationFinder $annotationFinder,
         private readonly array $decisionModelClasses,
         private readonly array $rawDefinitions,
         private readonly array $appendEligibleMethods,
@@ -91,7 +93,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
 
         $appendEligibleMethods = self::findAppendEligibleMethods($annotationRegistrationService, $interfaceToCallRegistry, $decisionBoundaryMethods);
 
-        return new self($decisionModelClasses, $rawDefinitions, $appendEligibleMethods, $decisionBoundaryMethods);
+        return new self($annotationRegistrationService, $decisionModelClasses, $rawDefinitions, $appendEligibleMethods, $decisionBoundaryMethods);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -101,6 +103,15 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                 'Dynamic Consistency Boundary (#[DecisionModel] used on %s) requires Ecotone Enterprise Licence.',
                 implode(', ', $this->decisionModelClasses)
             ));
+        }
+
+        if ($this->decisionModelClasses !== []) {
+            CrossConnectionDecisionModelGuard::assertNoCrossConnectionInjection(
+                $this->annotationFinder,
+                $interfaceToCallRegistry,
+                $extensionObjects,
+                $this->rawDefinitions,
+            );
         }
 
         $messagingConfiguration->registerServiceDefinition(

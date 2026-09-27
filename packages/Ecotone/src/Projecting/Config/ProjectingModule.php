@@ -69,7 +69,7 @@ class ProjectingModule implements AnnotationModule
         if (! empty($projectionBuilders) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             foreach ($projectionBuilders as $builder) {
                 if (! $builder instanceof EcotoneProjectionExecutorBuilder || ! $builder->isOpenSourceEligible()) {
-                    throw LicensingException::create('Projections with enterprise features (Partitioned, Streaming, Polling, ProjectionRebuild, ProjectionDeployment, async backfill) require Ecotone Enterprise licence.');
+                    throw LicensingException::create('Projections with enterprise features (Partitioned, Streaming, Polling, ProjectionRebuild, ProjectionDeployment, async backfill, processing streams in parallel) require Ecotone Enterprise licence.');
                 }
             }
         }
@@ -102,6 +102,7 @@ class ProjectingModule implements AnnotationModule
                     $projectionBuilder->backfillAsyncChannelName(),
                     $projectionBuilder->rebuildPartitionBatchSize(),
                     $projectionBuilder->rebuildAsyncChannelName(),
+                    $projectionBuilder instanceof EcotoneProjectionExecutorBuilder && $projectionBuilder->processStreamsInParallel(),
                 ])
             );
             $projectionRegistryMap[$projectionName] = new Reference($projectingManagerReference);
@@ -118,6 +119,7 @@ class ProjectingModule implements AnnotationModule
                                     ? new PartitionHeaderBuilder('partitionKeyValue')
                                     : ValueBuilder::create('partitionKeyValue', null)),
                             HeaderBuilder::createOptional('manualInitialization', ProjectingHeaders::MANUAL_INITIALIZATION),
+                            ValueBuilder::create('streamName', null),
                         ],
                     )
                 )
@@ -149,7 +151,9 @@ class ProjectingModule implements AnnotationModule
                             [
                                 HeaderBuilder::createOptional('partitionKeyValue', ProjectingHeaders::PROJECTION_PARTITION_KEY),
                                 HeaderBuilder::create('canInitialize', ProjectingHeaders::PROJECTION_CAN_INITIALIZE),
-                                HeaderBuilder::createOptional('shouldReset', 'projection.shouldReset'),
+                                HeaderBuilder::createOptional('shouldReset', ProjectingHeaders::PROJECTION_SHOULD_RESET),
+                                HeaderBuilder::createOptional('streamName', ProjectingHeaders::PROJECTION_STREAM_NAME),
+                                HeaderBuilder::createOptional('replayStream', ProjectingHeaders::PROJECTION_REPLAY_STREAM),
                             ],
                         )
                     )
@@ -198,6 +202,8 @@ class ProjectingModule implements AnnotationModule
                             HeaderBuilder::createOptional('aggregateType', 'partitionBatch.aggregateType'),
                             HeaderBuilder::createOptional('eventStoreReferenceName', 'partitionBatch.eventStoreReferenceName'),
                             HeaderBuilder::createOptional('shouldReset', 'partitionBatch.shouldReset'),
+                            HeaderBuilder::createOptional('tracksStreams', 'partitionBatch.tracksStreams'),
+                            HeaderBuilder::createOptional('replayStream', 'partitionBatch.replayStream'),
                         ],
                     )
                 )

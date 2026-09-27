@@ -21,16 +21,17 @@ use Ecotone\Messaging\Scheduling\DatePoint;
 use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Projecting\PerStreamSource;
+use Ecotone\Projecting\StreamFilter;
 use Ecotone\Projecting\StreamFilterRegistry;
 use Ecotone\Projecting\StreamPage;
-use Ecotone\Projecting\StreamSource;
 use Enqueue\Dbal\DbalConnectionFactory;
 use Enqueue\Dbal\ManagerRegistryConnectionFactory;
 
 use function in_array;
 use function strlen;
 
-class EventStoreGlobalStreamSource implements StreamSource
+class EventStoreGlobalStreamSource implements PerStreamSource
 {
     /**
      * @param string[] $handledProjectionNames
@@ -70,7 +71,17 @@ class EventStoreGlobalStreamSource implements StreamSource
         return $this->loadFromMultipleStreams($streamFilters, $lastPosition, $count);
     }
 
-    private function loadFromSingleStream(\Ecotone\Projecting\StreamFilter $streamFilter, ?string $lastPosition, int $count): StreamPage
+    public function loadStream(string $projectionName, StreamFilter $streamFilter, ?string $lastPosition, int $count): StreamPage
+    {
+        return $this->loadFromSingleStream($streamFilter, $lastPosition, $count);
+    }
+
+    public function splitCombinedPositionIntoStreamPositions(string $combinedPosition): array
+    {
+        return $this->decodeMultiStreamPositions($combinedPosition);
+    }
+
+    private function loadFromSingleStream(StreamFilter $streamFilter, ?string $lastPosition, int $count): StreamPage
     {
         $connection = $this->getConnection();
         $proophStreamTable = $this->tableNameProvider->generateTableNameForStream($streamFilter->streamName);
@@ -120,7 +131,7 @@ class EventStoreGlobalStreamSource implements StreamSource
     }
 
     /**
-     * @param \Ecotone\Projecting\StreamFilter[] $streamFilters
+     * @param StreamFilter[] $streamFilters
      */
     private function loadFromMultipleStreams(array $streamFilters, ?string $lastPosition, int $count): StreamPage
     {

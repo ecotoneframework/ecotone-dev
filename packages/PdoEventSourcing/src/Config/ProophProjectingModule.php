@@ -41,6 +41,7 @@ use Ecotone\Messaging\Scheduling\Duration;
 use Ecotone\Messaging\Scheduling\EcotoneClockInterface;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Projecting\Attribute\Partitioned;
+use Ecotone\Projecting\Attribute\ProjectionExecution;
 use Ecotone\Projecting\Attribute\ProjectionV2;
 use Ecotone\Projecting\Config\StreamFilterRegistryModule;
 use Ecotone\Projecting\EventStoreAdapter\EventStreamingChannelAdapter;
@@ -79,9 +80,13 @@ class ProophProjectingModule implements AnnotationModule
         [$partitionedProjectionNames, $globalStreamProjectionNames] = self::resolveProjectionTypes($annotationRegistrationService, $allStreamFilters);
 
         $projectionNames = [];
+        $projectionsProcessingStreamsInParallel = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(ProjectionV2::class) as $projectionClassName) {
             $projectionAttribute = $annotationRegistrationService->getAttributeForClass($projectionClassName, ProjectionV2::class);
             $projectionNames[] = $projectionAttribute->name;
+            if ($annotationRegistrationService->findAttributeForClass($projectionClassName, ProjectionExecution::class)?->processStreamsInParallel) {
+                $projectionsProcessingStreamsInParallel[] = $projectionAttribute->name;
+            }
         }
 
         $v2StateGateways = [];
@@ -90,6 +95,12 @@ class ProophProjectingModule implements AnnotationModule
             $attribute = $gatewayAnnotation->getAnnotationForMethod();
             if (! in_array($attribute->getProjectionName(), $projectionNames, true)) {
                 continue;
+            }
+            if (in_array($attribute->getProjectionName(), $projectionsProcessingStreamsInParallel, true)) {
+                throw ConfigurationException::create(
+                    "#[ProjectionStateGateway('{$attribute->getProjectionName()}')] on {$gatewayAnnotation->getClassName()}::{$gatewayAnnotation->getMethodName()}() cannot be used, "
+                    . "because projection '{$attribute->getProjectionName()}' processes streams in parallel and keeps separate state for each stream."
+                );
             }
 
             $interfaceToCall = $interfaceToCallRegistry->getFor(

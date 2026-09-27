@@ -113,6 +113,7 @@ class ProjectingAttributeModule implements AnnotationModule
                 rebuildAsyncChannelName: $rebuildAttribute?->asyncChannelName,
                 hasRebuild: $rebuildAttribute !== null,
                 hasDeployment: $projectionDeployment !== null,
+                processStreamsInParallel: $batchSizeAttribute?->processStreamsInParallel ?? false,
             );
 
             $asyncAttribute = self::getProjectionAsynchronousAttribute($annotationRegistrationService, $projectionClassName);

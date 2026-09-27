@@ -18,7 +18,8 @@ class ProjectionExecution
          * * This controls how many events are loaded from the stream in a single batch.
          *
          */
-        public readonly int $eventLoadingBatchSize
+        public readonly int $eventLoadingBatchSize = 1_000,
+        public readonly bool $processStreamsInParallel = false,
     ) {
     }
 }

@@ -34,6 +34,7 @@ class ProjectingManager
         private ?string                        $backfillAsyncChannelName = null,
         private int                            $rebuildPartitionBatchSize = self::DEFAULT_REBUILD_PARTITION_BATCH_SIZE,
         private ?string                        $rebuildAsyncChannelName = null,
+        private bool                           $processStreamsInParallel = false,
     ) {
         if ($eventLoadingBatchSize < 1) {
             throw new InvalidArgumentException('Event loading batch size must be at least 1');
@@ -54,7 +55,7 @@ class ProjectingManager
         return $this->projectionStateStorage;
     }
 
-    public function execute(?string $partitionKeyValue = null, bool $manualInitialization = false): void
+    public function execute(?string $partitionKeyValue = null, bool $manualInitialization = false, ?string $streamName = null): void
     {
         do {
             $processedEvents = $this->messagingEntrypoint->sendWithHeaders(
@@ -62,14 +63,22 @@ class ProjectingManager
                 [
                     ProjectingHeaders::PROJECTION_PARTITION_KEY => $partitionKeyValue,
                     ProjectingHeaders::PROJECTION_CAN_INITIALIZE => $manualInitialization || $this->automaticInitialization,
+                    ProjectingHeaders::PROJECTION_STREAM_NAME => $streamName,
                 ],
                 self::batchChannelFor($this->projectionName)
             );
         } while ($processedEvents > 0 && $this->terminationListener->shouldTerminate() !== true);
     }
 
-    public function executePartitionBatch(?string $partitionKeyValue = null, bool $canInitialize = false, bool $shouldReset = false): int
+    public function executePartitionBatch(?string $partitionKeyValue = null, bool $canInitialize = false, bool $shouldReset = false, ?string $streamName = null, bool $replayStream = false): int
     {
+        $streamSource = $this->streamSourceRegistry->getFor($this->projectionName);
+        if ($partitionKeyValue === null && $streamSource instanceof PerStreamSource) {
+            return $this->processStreamsInParallel
+                ? $this->executeStreamsInParallel($streamSource, $canInitialize, $shouldReset, $streamName, $replayStream)
+                : $this->executeStreamsSequentially($streamSource, $canInitialize, $shouldReset);
+        }
+
         $transaction = $this->getProjectionStateStorage()->beginTransaction();
         try {
             $projectionState = $this->loadOrInitializePartitionState($partitionKeyValue, $canInitialize);
@@ -89,7 +98,6 @@ class ProjectingManager
                 );
             }
 
-            $streamSource = $this->streamSourceRegistry->getFor($this->projectionName);
             $totalProcessedEvents = 0;
             $userState = $projectionState->userState;
 
@@ -178,10 +186,33 @@ class ProjectingManager
             [
                 ProjectingHeaders::PROJECTION_PARTITION_KEY => $partitionKeyValue,
                 ProjectingHeaders::PROJECTION_CAN_INITIALIZE => true,
-                'projection.shouldReset' => true,
+                ProjectingHeaders::PROJECTION_SHOULD_RESET => true,
             ],
             self::batchChannelFor($this->projectionName)
         );
+    }
+
+    public function replayStream(string $streamName): void
+    {
+        $this->messagingEntrypoint->sendWithHeaders(
+            [],
+            [
+                ProjectingHeaders::PROJECTION_PARTITION_KEY => null,
+                ProjectingHeaders::PROJECTION_CAN_INITIALIZE => true,
+                ProjectingHeaders::PROJECTION_STREAM_NAME => $streamName,
+                ProjectingHeaders::PROJECTION_REPLAY_STREAM => true,
+            ],
+            self::batchChannelFor($this->projectionName)
+        );
+    }
+
+    public function executeStreamBatch(?string $streamName, bool $shouldReset, bool $replayStream): void
+    {
+        match (true) {
+            $replayStream && $streamName !== null => $this->replayStream($streamName),
+            $shouldReset => $this->executeWithReset(),
+            default => $this->execute(null, true, $streamName),
+        };
     }
 
     public function prepareRebuild(): void
@@ -191,6 +222,11 @@ class ProjectingManager
 
     private function preparePartitionBatches(int $partitionBatchSize, ?string $asyncChannelName, bool $shouldReset): void
     {
+        if ($this->isTrackedPerStream()) {
+            $this->prepareStreamBatches($asyncChannelName, $shouldReset);
+            return;
+        }
+
         $streamFilters = $this->streamFilterRegistry->provide($this->projectionName);
 
         foreach ($streamFilters as $streamFilter) {
@@ -217,6 +253,264 @@ class ProjectingManager
                 $this->sendPartitionBatchMessage($headers, $asyncChannelName);
             }
         }
+    }
+
+    private function isTrackedPerStream(): bool
+    {
+        return $this->getPartitionProvider() instanceof SinglePartitionProvider
+            && $this->streamSourceRegistry->getFor($this->projectionName) instanceof PerStreamSource;
+    }
+
+    private function prepareStreamBatches(?string $asyncChannelName, bool $shouldReset): void
+    {
+        if (! $this->processStreamsInParallel) {
+            $this->sendPartitionBatchMessage([
+                'partitionBatch.tracksStreams' => true,
+                'partitionBatch.shouldReset' => $shouldReset,
+            ], $asyncChannelName);
+            return;
+        }
+
+        if ($shouldReset) {
+            $this->resetAllStreams();
+        }
+
+        foreach ($this->uniqueStreamFilters() as $streamFilter) {
+            $this->sendPartitionBatchMessage([
+                'partitionBatch.tracksStreams' => true,
+                'partitionBatch.streamName' => $streamFilter->streamName,
+                'partitionBatch.replayStream' => $shouldReset,
+            ], $asyncChannelName);
+        }
+    }
+
+    private function executeStreamsSequentially(PerStreamSource $streamSource, bool $canInitialize, bool $shouldReset): int
+    {
+        $transaction = $this->getProjectionStateStorage()->beginTransaction();
+        try {
+            $projectionState = $this->loadOrInitializePartitionState(null, $canInitialize);
+            if ($projectionState === null) {
+                $transaction->commit();
+                return 0;
+            }
+            $projectionState = $this->moveCombinedPositionIntoStreamPositions($streamSource, $projectionState);
+
+            if ($shouldReset) {
+                $this->projectorExecutor->reset(null);
+                $projectionState = $projectionState->withUserState(null);
+            }
+
+            $userState = $projectionState->userState;
+            $totalProcessedEvents = 0;
+            foreach ($this->uniqueStreamFilters() as $streamFilter) {
+                $streamState = $this->loadOrCreateStreamState($streamFilter->streamName);
+                [$lastPosition, $userState, $processedEvents] = $this->projectStream(
+                    $streamSource,
+                    $streamFilter,
+                    $shouldReset ? null : $streamState->lastPosition,
+                    $userState,
+                    $shouldReset,
+                );
+                $this->getProjectionStateStorage()->savePartition($streamState->withLastPosition($lastPosition));
+                $totalProcessedEvents += $processedEvents;
+            }
+
+            $projectionState = $projectionState->withUserState($userState);
+            if ($totalProcessedEvents === 0 && $canInitialize) {
+                $projectionState = $projectionState->withStatus(ProjectionInitializationStatus::INITIALIZED);
+            }
+
+            $this->getProjectionStateStorage()->savePartition($projectionState);
+            $transaction->commit();
+            return $totalProcessedEvents;
+        } catch (Throwable $e) {
+            $transaction->rollBack();
+            throw $e;
+        }
+    }
+
+    private function executeStreamsInParallel(PerStreamSource $streamSource, bool $canInitialize, bool $shouldReset, ?string $onlyStreamName, bool $replayStream): int
+    {
+        $projectionState = $this->prepareProjectionForParallelStreams($streamSource, $canInitialize);
+        if ($projectionState === null) {
+            return 0;
+        }
+
+        if ($shouldReset) {
+            $this->resetAllStreams();
+        }
+
+        $totalProcessedEvents = 0;
+        foreach ($this->uniqueStreamFilters() as $streamFilter) {
+            if ($onlyStreamName !== null && $streamFilter->streamName !== $onlyStreamName) {
+                continue;
+            }
+            $totalProcessedEvents += $this->executeStreamInItsOwnTransaction($streamSource, $streamFilter, $shouldReset || $replayStream);
+        }
+
+        if ($totalProcessedEvents === 0 && $canInitialize && $projectionState->status !== ProjectionInitializationStatus::INITIALIZED) {
+            $this->markProjectionAsInitialized();
+        }
+
+        return $totalProcessedEvents;
+    }
+
+    private function prepareProjectionForParallelStreams(PerStreamSource $streamSource, bool $canInitialize): ?ProjectionPartitionState
+    {
+        $transaction = $this->getProjectionStateStorage()->beginTransaction();
+        try {
+            $projectionState = $this->loadOrInitializePartitionState(null, $canInitialize);
+            if ($projectionState !== null) {
+                $projectionState = $this->moveCombinedPositionIntoStreamPositions($streamSource, $projectionState);
+            }
+            $transaction->commit();
+            return $projectionState;
+        } catch (Throwable $e) {
+            $transaction->rollBack();
+            throw $e;
+        }
+    }
+
+    private function executeStreamInItsOwnTransaction(PerStreamSource $streamSource, StreamFilter $streamFilter, bool $isRebuilding): int
+    {
+        $transaction = $this->getProjectionStateStorage()->beginTransaction();
+        try {
+            $streamState = $this->loadOrCreateStreamState($streamFilter->streamName);
+            [$lastPosition, $userState, $processedEvents] = $this->projectStream(
+                $streamSource,
+                $streamFilter,
+                $streamState->lastPosition,
+                $streamState->userState,
+                $isRebuilding,
+            );
+            $this->getProjectionStateStorage()->savePartition(
+                $streamState->withLastPosition($lastPosition)->withUserState($userState)
+            );
+            $transaction->commit();
+            return $processedEvents;
+        } catch (Throwable $e) {
+            $transaction->rollBack();
+            throw $e;
+        }
+    }
+
+    private function resetAllStreams(): void
+    {
+        $transaction = $this->getProjectionStateStorage()->beginTransaction();
+        try {
+            $projectionState = $this->loadOrInitializePartitionState(null, true);
+            $streamSource = $this->streamSourceRegistry->getFor($this->projectionName);
+            if ($projectionState !== null && $streamSource instanceof PerStreamSource) {
+                $this->moveCombinedPositionIntoStreamPositions($streamSource, $projectionState);
+            }
+
+            $this->projectorExecutor->reset(null);
+            foreach ($this->uniqueStreamFilters() as $streamFilter) {
+                $streamState = $this->loadOrCreateStreamState($streamFilter->streamName);
+                $this->getProjectionStateStorage()->savePartition($this->withoutProgress($streamState));
+            }
+            $transaction->commit();
+        } catch (Throwable $e) {
+            $transaction->rollBack();
+            throw $e;
+        }
+    }
+
+    private function markProjectionAsInitialized(): void
+    {
+        $transaction = $this->getProjectionStateStorage()->beginTransaction();
+        try {
+            $projectionState = $this->getProjectionStateStorage()->loadPartition($this->projectionName, null);
+            if ($projectionState !== null) {
+                $this->getProjectionStateStorage()->savePartition($projectionState->withStatus(ProjectionInitializationStatus::INITIALIZED));
+            }
+            $transaction->commit();
+        } catch (Throwable $e) {
+            $transaction->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * @return array{0: string, 1: mixed, 2: int} last position, user state, processed events
+     */
+    private function projectStream(PerStreamSource $streamSource, StreamFilter $streamFilter, ?string $lastPosition, mixed $userState, bool $isRebuilding): array
+    {
+        $totalProcessedEvents = 0;
+        do {
+            $streamPage = $streamSource->loadStream($this->projectionName, $streamFilter, $lastPosition, $this->eventLoadingBatchSize);
+
+            $batchProcessedEvents = 0;
+            foreach ($streamPage->events as $event) {
+                $userState = $this->projectorExecutor->project($event, $userState, $isRebuilding);
+                $batchProcessedEvents++;
+            }
+            if ($batchProcessedEvents > 0) {
+                $this->projectorExecutor->flush($userState, $isRebuilding);
+            }
+
+            $totalProcessedEvents += $batchProcessedEvents;
+            $lastPosition = $streamPage->lastPosition;
+        } while ($isRebuilding && $batchProcessedEvents >= $this->eventLoadingBatchSize);
+
+        return [$lastPosition, $userState, $totalProcessedEvents];
+    }
+
+    private function moveCombinedPositionIntoStreamPositions(PerStreamSource $streamSource, ProjectionPartitionState $projectionState): ProjectionPartitionState
+    {
+        if ($projectionState->lastPosition === null || $projectionState->lastPosition === '') {
+            return $projectionState->withLastPosition('');
+        }
+
+        $storage = $this->getProjectionStateStorage();
+        foreach ($streamSource->splitCombinedPositionIntoStreamPositions($projectionState->lastPosition) as $streamName => $streamPosition) {
+            if ($storage->loadPartition($this->projectionName, $streamName) === null) {
+                $storage->savePartition(new ProjectionPartitionState(
+                    $this->projectionName,
+                    $streamName,
+                    $streamPosition,
+                    null,
+                    ProjectionInitializationStatus::INITIALIZED,
+                ));
+            }
+        }
+
+        $projectionState = $projectionState->withLastPosition('');
+        $storage->savePartition($projectionState);
+
+        return $projectionState;
+    }
+
+    private function loadOrCreateStreamState(string $streamName): ProjectionPartitionState
+    {
+        $storage = $this->getProjectionStateStorage();
+        $streamState = $storage->loadPartition($this->projectionName, $streamName);
+        if ($streamState !== null) {
+            return $streamState;
+        }
+
+        $storage->initPartition($this->projectionName, $streamName);
+
+        return $storage->loadPartition($this->projectionName, $streamName)
+            ?? new ProjectionPartitionState($this->projectionName, $streamName, null, null, ProjectionInitializationStatus::INITIALIZED);
+    }
+
+    private function withoutProgress(ProjectionPartitionState $state): ProjectionPartitionState
+    {
+        return new ProjectionPartitionState($state->projectionName, $state->partitionKey, '', null, $state->status);
+    }
+
+    /**
+     * @return StreamFilter[]
+     */
+    private function uniqueStreamFilters(): array
+    {
+        $uniqueStreamFilters = [];
+        foreach ($this->streamFilterRegistry->provide($this->projectionName) as $streamFilter) {
+            $uniqueStreamFilters[$streamFilter->streamName] ??= $streamFilter;
+        }
+
+        return array_values($uniqueStreamFilters);
     }
 
     private function sendPartitionBatchMessage(array $headers, ?string $asyncChannelName): void

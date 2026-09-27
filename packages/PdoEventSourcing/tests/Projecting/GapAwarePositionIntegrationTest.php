@@ -104,7 +104,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         self::$ecotone->triggerProjection(DbalTicketProjection::NAME);
 
         self::assertSame(6, self::$projection->getTicketsCount());
-        $position = self::extractStreamPosition(self::$projectionManager->loadState()->lastPosition, Ticket::STREAM_NAME);
+        $position = GapAwarePosition::fromString(self::$projectionManager->loadState(Ticket::STREAM_NAME)->lastPosition);
         self::assertSame(12, $position->getPosition());
         self::assertSame([1, 3, 5, 7, 9, 11], $position->getGaps());
     }

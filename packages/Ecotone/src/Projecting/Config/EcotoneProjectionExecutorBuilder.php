@@ -54,6 +54,7 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         private ?string $rebuildAsyncChannelName = null,
         private bool    $hasRebuild = false,
         private bool    $hasDeployment = false,
+        private bool    $processStreamsInParallel = false,
     ) {
         if ($this->partitionHeader && ! $this->automaticInitialization) {
             throw new ConfigurationException("Cannot set partition header for projection {$this->projectionName} with automatic initialization disabled");
@@ -153,9 +154,15 @@ class EcotoneProjectionExecutorBuilder implements ProjectionExecutorBuilder
         return $this->rebuildAsyncChannelName;
     }
 
+    public function processStreamsInParallel(): bool
+    {
+        return $this->processStreamsInParallel;
+    }
+
     public function isOpenSourceEligible(): bool
     {
         return ! $this->isPartitioned()
+            && ! $this->processStreamsInParallel
             && $this->backfillAsyncChannelName === null
             && ! $this->hasRebuild
             && ! $this->hasDeployment;

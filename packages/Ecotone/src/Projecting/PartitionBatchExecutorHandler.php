@@ -27,8 +27,15 @@ class PartitionBatchExecutorHandler
         ?string $aggregateType = null,
         string $eventStoreReferenceName = '',
         bool $shouldReset = false,
+        bool $tracksStreams = false,
+        bool $replayStream = false,
     ): void {
         $projectingManager = $this->projectionRegistry->get($projectionName);
+        if ($tracksStreams) {
+            $projectingManager->executeStreamBatch($streamName !== '' ? $streamName : null, $shouldReset, $replayStream);
+            return;
+        }
+
         $streamFilter = new StreamFilter($streamName, $aggregateType, $eventStoreReferenceName);
 
         foreach ($projectingManager->getPartitionProvider()->partitions($streamFilter, $limit, $offset) as $partition) {

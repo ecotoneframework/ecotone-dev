@@ -35,6 +35,12 @@ final class AttributeExpressionExecutor
         $this->expression = $attribute instanceof WithExpression ? $attribute->getExpression() : null;
     }
 
+    public static function withoutExpression(ExpressionEvaluationService $expressionEvaluationService): self
+    {
+        return new self(new class {
+        }, $expressionEvaluationService);
+    }
+
     public function getAttribute(): object
     {
         return $this->attribute;

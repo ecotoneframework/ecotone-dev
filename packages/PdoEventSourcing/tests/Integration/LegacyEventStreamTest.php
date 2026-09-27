@@ -49,22 +49,17 @@ final class LegacyEventStreamTest extends EventSourcingMessagingTestCase
         self::createTableTheOldWay($connection, $legacyTable);
 
         $ecotone = $this->bootstrap();
+        $eventStore = $ecotone->getGateway(EventStore::class);
 
         $ecotone->sendCommandWithRouting('legacyOrder.place', new PlaceLegacyOrder('order-1'));
 
-        self::assertSame(
-            1,
-            (int) $connection->fetchOne('SELECT COUNT(*) FROM ' . self::quote($connection, $legacyTable))
-        );
+        self::assertCount(1, $eventStore->load(LegacyOrder::LEGACY_STREAM_NAME));
         self::assertFalse(self::tableExists($connection, 'ecotone_event_stream'));
 
         $ecotone->sendCommandWithRouting('legacyOrder.cancel', new CancelLegacyOrder('order-1'), metadata: ['aggregate.id' => 'order-1']);
 
         self::assertSame('cancelled', $ecotone->sendQueryWithRouting('legacyOrder.getStatus', metadata: ['aggregate.id' => 'order-1']));
-        self::assertSame(
-            2,
-            (int) $connection->fetchOne('SELECT COUNT(*) FROM ' . self::quote($connection, $legacyTable))
-        );
+        self::assertCount(2, $eventStore->load(LegacyOrder::LEGACY_STREAM_NAME));
     }
 
     public function test_reading_events_written_by_ecotone_1x(): void

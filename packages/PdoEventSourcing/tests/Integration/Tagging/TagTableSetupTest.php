@@ -96,6 +96,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
     public function test_tag_values_are_case_sensitive(): void
     {
         $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
+        $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('ABC', 1)]);

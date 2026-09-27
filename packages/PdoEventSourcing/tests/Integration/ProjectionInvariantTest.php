@@ -77,8 +77,7 @@ final class ProjectionInvariantTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
         $eventStore->appendTo(self::STREAM, [new CouponIssuedForInvariantTest('SUMMER24')]);
 
-        $count = (int) $connection->executeQuery('SELECT COUNT(*) FROM ' . self::STREAM)->fetchOne();
-        self::assertSame(1, $count);
+        self::assertCount(1, $eventStore->load(self::STREAM));
     }
 
     public function test_the_same_event_recorded_by_an_aggregate_is_accepted_even_with_a_partitioned_projection_watching(): void
@@ -89,8 +88,7 @@ final class ProjectionInvariantTest extends EventSourcingMessagingTestCase
 
         $ecotone->sendCommand(new IssueCouponForInvariantTest('coupon-1', 'SUMMER24'));
 
-        $count = (int) $connection->executeQuery('SELECT COUNT(*) FROM ' . self::STREAM)->fetchOne();
-        self::assertSame(1, $count);
+        self::assertCount(1, $ecotone->getGateway(EventStore::class)->load(self::STREAM));
     }
 
     private function createPartitionedProjection(Connection $connection): object

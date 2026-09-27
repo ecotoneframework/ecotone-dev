@@ -34,17 +34,13 @@ final class OpenCoreDbalTagCollaboratorTest extends EventSourcingMessagingTestCa
         parent::tearDown();
     }
 
-    public function test_untagged_append_is_still_a_single_insert_without_a_licence(): void
+    public function test_untagged_append_works_end_to_end_without_a_licence(): void
     {
         $eventStore = $this->bootstrapEcotoneWithoutLicence()->getGateway(EventStore::class);
 
         $eventStore->appendTo(self::STREAM, [new UntaggedOrderPlacedForOpenCoreCollaboratorTest('o-1')]);
 
-        self::assertFalse(self::tableExists($this->getConnection(), TagTableManager::TAGGED_EVENTS_TABLE));
-        self::assertFalse(self::tableExists($this->getConnection(), TagTableManager::TAG_VERSIONS_TABLE));
-
-        $rows = $this->getConnection()->executeQuery('SELECT event_name FROM ' . self::STREAM)->fetchAllAssociative();
-        self::assertCount(1, $rows);
+        self::assertCount(1, $eventStore->load(self::STREAM));
     }
 
     public function test_loading_events_by_tag_criteria_without_a_licence_throws(): void

@@ -7,6 +7,7 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
@@ -40,17 +41,13 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         parent::tearDown();
     }
 
-    public function test_no_tagged_event_classes_never_touches_tag_tables(): void
+    public function test_no_tagged_event_classes_are_loadable_via_the_gateway(): void
     {
         $eventStore = $this->bootstrapEcotone([UntaggedOrderPlacedForDbalAppendTest::class])->getGateway(EventStore::class);
 
         $eventStore->appendTo(self::STREAM, [new UntaggedOrderPlacedForDbalAppendTest('o-1')]);
 
-        self::assertFalse(self::tableExists($this->getConnection(), TagTableManager::TAGGED_EVENTS_TABLE));
-        self::assertFalse(self::tableExists($this->getConnection(), TagTableManager::TAG_VERSIONS_TABLE));
-
-        $rows = $this->getConnection()->executeQuery('SELECT event_name FROM ' . self::STREAM)->fetchAllAssociative();
-        self::assertCount(1, $rows);
+        self::assertCount(1, $eventStore->load(self::STREAM));
     }
 
     public function test_tagged_event_bumps_counter_and_writes_index_row(): void
@@ -59,23 +56,10 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
 
         $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
 
-        $connection = $this->getConnection();
-
-        $version = $connection->executeQuery(
-            'SELECT version FROM ' . TagTableManager::TAG_VERSIONS_TABLE . ' WHERE tag_name = ? AND tag_value = ?',
-            ['coupon', 'SUMMER24']
-        )->fetchOne();
-        self::assertSame(1, (int) $version);
-
-        $indexRows = $connection->executeQuery(
-            'SELECT tag_name, tag_value, stream_name, event_no, tag_sequence FROM ' . TagTableManager::TAGGED_EVENTS_TABLE
-        )->fetchAllAssociative();
-        self::assertCount(1, $indexRows);
-        self::assertSame('coupon', $indexRows[0]['tag_name']);
-        self::assertSame('SUMMER24', $indexRows[0]['tag_value']);
-        self::assertSame(self::STREAM, $indexRows[0]['stream_name']);
-        self::assertSame(1, (int) $indexRows[0]['event_no']);
-        self::assertSame(1, (int) $indexRows[0]['tag_sequence']);
+        $events = $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events;
+        self::assertCount(1, $events);
+        self::assertSame('SUMMER24', $events[0]->getPayload()->code);
+        self::assertSame(1, $this->tagVersion($eventStore, 'coupon', 'SUMMER24'));
     }
 
     public function test_second_append_bumps_counter_to_two(): void
@@ -85,29 +69,18 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
         $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
 
-        $version = $this->getConnection()->executeQuery(
-            'SELECT version FROM ' . TagTableManager::TAG_VERSIONS_TABLE . ' WHERE tag_name = ? AND tag_value = ?',
-            ['coupon', 'SUMMER24']
-        )->fetchOne();
-        self::assertSame(2, (int) $version);
-
-        $indexCount = (int) $this->getConnection()->executeQuery(
-            'SELECT COUNT(*) FROM ' . TagTableManager::TAGGED_EVENTS_TABLE
-        )->fetchOne();
-        self::assertSame(2, $indexCount);
+        self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+        self::assertSame(2, $this->tagVersion($eventStore, 'coupon', 'SUMMER24'));
     }
 
-    public function test_untagged_event_in_app_with_other_tagged_classes_writes_nothing_to_index(): void
+    public function test_untagged_event_in_app_with_other_tagged_classes_never_shows_up_in_a_tag_query(): void
     {
         $eventStore = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class, UntaggedOrderPlacedForDbalAppendTest::class])->getGateway(EventStore::class);
 
         $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
         $eventStore->appendTo(self::STREAM, [new UntaggedOrderPlacedForDbalAppendTest('o-1')]);
 
-        $indexCount = (int) $this->getConnection()->executeQuery(
-            'SELECT COUNT(*) FROM ' . TagTableManager::TAGGED_EVENTS_TABLE
-        )->fetchOne();
-        self::assertSame(1, $indexCount);
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
 
     public function test_appends_without_ambient_transaction_are_atomic(): void
@@ -116,38 +89,28 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
 
         $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
 
-        $eventCount = (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . self::STREAM)->fetchOne();
-        $versionCount = (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . TagTableManager::TAG_VERSIONS_TABLE)->fetchOne();
-        $indexCount = (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . TagTableManager::TAGGED_EVENTS_TABLE)->fetchOne();
-
-        self::assertSame(1, $eventCount);
-        self::assertSame(1, $versionCount);
-        self::assertSame(1, $indexCount);
+        self::assertCount(1, $eventStore->load(self::STREAM));
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+        self::assertSame(1, $this->tagVersion($eventStore, 'coupon', 'SUMMER24'));
     }
 
-    public function test_event_whose_only_tag_is_filter_only_writes_an_index_row_with_no_counter_bump(): void
+    public function test_event_whose_only_tag_is_filter_only_is_indexed_but_never_causes_a_conflict(): void
     {
         $eventStore = $this->bootstrapEcotoneWithFilterOnlyTags([TenantOnlyEventForDbalAppendTest::class], ['tenant'])->getGateway(EventStore::class);
 
+        $loadedEvents = $eventStore->loadByCriteria(EventCriteria::tag('tenant', 'acme'));
+
+        $eventStore->appendTo(self::STREAM, [new TenantOnlyEventForDbalAppendTest('acme')]);
         $eventStore->appendTo(self::STREAM, [new TenantOnlyEventForDbalAppendTest('acme')]);
 
-        $indexRows = $this->getConnection()->executeQuery(
-            'SELECT tag_name, tag_value, tag_sequence FROM ' . TagTableManager::TAGGED_EVENTS_TABLE
-        )->fetchAllAssociative();
-        self::assertCount(1, $indexRows);
-        self::assertSame('tenant', $indexRows[0]['tag_name']);
-        self::assertSame('acme', $indexRows[0]['tag_value']);
-        self::assertSame(0, (int) $indexRows[0]['tag_sequence']);
+        $eventStore->appendTo(self::STREAM, [new TenantOnlyEventForDbalAppendTest('acme')], $loadedEvents->appendCondition);
 
-        $versionCount = (int) $this->getConnection()->executeQuery(
-            'SELECT COUNT(*) FROM ' . TagTableManager::TAG_VERSIONS_TABLE
-        )->fetchOne();
-        self::assertSame(0, $versionCount);
+        self::assertCount(3, $eventStore->loadByCriteria(EventCriteria::tag('tenant', 'acme'))->events);
     }
 
     public function test_a_conflicting_aggregate_save_rolls_back_its_own_tag_counter_bump_too(): void
     {
-        $eventStore = $this->bootstrapEcotone([WidgetTaggedForDbalAppendTest::class])->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        $eventStore = $this->bootstrapEcotone([WidgetTaggedForDbalAppendTest::class])->getGateway(EventStore::class);
 
         $aggregateEvent = static fn (int $version): Event => Event::create(new WidgetTaggedForDbalAppendTest('w-1'), [
             MessageHeaders::EVENT_AGGREGATE_TYPE => 'Widget',
@@ -156,12 +119,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         ]);
 
         $eventStore->appendTo(self::STREAM, [$aggregateEvent(1)]);
-
-        $versionAfterFirstAppend = (int) $this->getConnection()->executeQuery(
-            'SELECT version FROM ' . TagTableManager::TAG_VERSIONS_TABLE . ' WHERE tag_name = ? AND tag_value = ?',
-            ['widget', 'w-1']
-        )->fetchOne();
-        self::assertSame(1, $versionAfterFirstAppend);
+        self::assertSame(1, $this->tagVersion($eventStore, 'widget', 'w-1'));
 
         try {
             $eventStore->appendTo(self::STREAM, [$aggregateEvent(1)]);
@@ -169,14 +127,8 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         } catch (ConcurrencyException) {
         }
 
-        $versionAfterFailedAppend = (int) $this->getConnection()->executeQuery(
-            'SELECT version FROM ' . TagTableManager::TAG_VERSIONS_TABLE . ' WHERE tag_name = ? AND tag_value = ?',
-            ['widget', 'w-1']
-        )->fetchOne();
-        self::assertSame(1, $versionAfterFailedAppend, 'The tag counter bump from the failed aggregate insert must have rolled back with it.');
-
-        $eventCount = (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . self::STREAM)->fetchOne();
-        self::assertSame(1, $eventCount, 'The failed attempt must not have left a burned event row behind.');
+        self::assertSame(1, $this->tagVersion($eventStore, 'widget', 'w-1'), 'The tag counter bump from the failed aggregate insert must have rolled back with it.');
+        self::assertCount(1, $eventStore->load(self::STREAM), 'The failed attempt must not have left a burned event row behind.');
     }
 
     public function test_delete_stream_clears_its_tag_index_rows(): void
@@ -187,10 +139,12 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
         $eventStore->delete(self::STREAM);
 
-        $indexCount = (int) $this->getConnection()->executeQuery(
-            'SELECT COUNT(*) FROM ' . TagTableManager::TAGGED_EVENTS_TABLE
-        )->fetchOne();
-        self::assertSame(0, $indexCount);
+        self::assertCount(0, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+    }
+
+    private function tagVersion(EventStore $eventStore, string $tagName, string $tagValue): int
+    {
+        return $eventStore->loadByCriteria(EventCriteria::tag($tagName, $tagValue))->appendCondition->expectedTagVersions()[0]['expectedVersion'];
     }
 
     private function bootstrapEcotone(array $classesToResolve): FlowTestSupport

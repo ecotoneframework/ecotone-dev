@@ -7,6 +7,7 @@ namespace Test\Ecotone\EventSourcing\Integration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -48,13 +49,9 @@ final class SecondaryConnectionStreamTest extends EventSourcingMessagingTestCase
         $ecotone->sendCommandWithRouting('secondaryOrder.place', new PlaceSecondaryOrder('order-1'));
 
         $primaryConnection = $this->connectionForTenantA()->createContext()->getDbalConnection();
-        $secondaryConnection = $this->connectionForTenantB()->createContext()->getDbalConnection();
 
         self::assertFalse(self::tableExists($primaryConnection, SecondaryOrder::STREAM));
-        self::assertSame(
-            1,
-            (int) $secondaryConnection->fetchOne('SELECT COUNT(*) FROM ' . $secondaryConnection->getDatabasePlatform()->quoteIdentifier(SecondaryOrder::STREAM))
-        );
+        self::assertCount(1, $ecotone->getGateway(EventStore::class)->load(SecondaryOrder::STREAM));
 
         $ecotone->sendCommandWithRouting('secondaryOrder.cancel', new CancelSecondaryOrder('order-1'), metadata: ['aggregate.id' => 'order-1']);
 

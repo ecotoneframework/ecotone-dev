@@ -55,17 +55,6 @@ final class DcbSmokeTest extends TestCase
         $commandBus->send(new IssueCoupon('SUMMER24', 1));
         $commandBus->send(new RedeemCoupon('SUMMER24'));
 
-        $connection = $this->app->make(DbalConnectionFactory::class)->createContext()->getDbalConnection();
-        $indexRows = (int) $connection->executeQuery(
-            "SELECT COUNT(*) FROM ecotone_tagged_events WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24'"
-        )->fetchOne();
-        self::assertSame(2, $indexRows, 'The issued and redeemed events must both be indexed under the coupon tag');
-
-        $counterVersion = (int) $connection->executeQuery(
-            "SELECT version FROM ecotone_tag_versions WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24'"
-        )->fetchOne();
-        self::assertSame(2, $counterVersion);
-
         $this->expectExceptionMessage('Coupon SUMMER24 is exhausted');
         $commandBus->send(new RedeemCoupon('SUMMER24'));
     }

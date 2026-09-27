@@ -23,6 +23,7 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
@@ -88,7 +89,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
 
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', null));
 
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('customer', 'alice'))->events);
     }
 
@@ -117,7 +118,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', 'WINTER24'));
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-2', 'bob', 'SUMMER24'));
 
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'WINTER24'))->events);
         self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
@@ -128,14 +129,10 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
         $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('PRIME', 0)]);
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', null));
 
-        $connection = $this->getConnection();
-        $rows = $connection->executeQuery(
-            "SELECT metadata FROM ecotone_event_stream WHERE event_name LIKE '%OrderPlacedForDbalCouponTest%'"
-        )->fetchAllAssociative();
+        $events = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('customer', 'alice'))->events;
 
-        self::assertCount(1, $rows);
-        $metadata = json_decode($rows[0]['metadata'], true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame(1, $metadata['_aggregate_version']);
+        self::assertCount(1, $events);
+        self::assertSame(1, $events[0]->getMetadata()[MessageHeaders::EVENT_AGGREGATE_VERSION]);
     }
 
     public function test_the_decision_model_append_condition_never_reaches_persisted_metadata_or_published_headers(): void
@@ -143,17 +140,11 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
         $ecotone = $this->bootstrapEcotone();
         $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('SUMMER24', 5)]);
 
-        // A model actually resolves its tags here (unlike the null-coupon case), so
-        // DecisionModelAppendConditionCollector really has a non-empty AppendCondition to hand SaveAggregateService.
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', 'SUMMER24'));
 
-        $connection = $this->getConnection();
-        $rows = $connection->executeQuery(
-            "SELECT metadata FROM ecotone_event_stream WHERE event_name LIKE '%OrderPlacedForDbalCouponTest%'"
-        )->fetchAllAssociative();
-
-        self::assertCount(1, $rows);
-        self::assertStringNotContainsString(AggregateMessage::DECISION_MODEL_APPEND_CONDITION, $rows[0]['metadata']);
+        $events = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('customer', 'alice'))->events;
+        self::assertCount(1, $events);
+        self::assertArrayNotHasKey(AggregateMessage::DECISION_MODEL_APPEND_CONDITION, $events[0]->getMetadata());
 
         /** @var PublishedEventHeadersCollectorForDbalCouponTest $collector */
         $collector = $ecotone->getServiceFromContainer(PublishedEventHeadersCollectorForDbalCouponTest::class);

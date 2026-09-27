@@ -446,7 +446,9 @@ projection objects. Here the type-hint *is* the assembly. The boundary is per ha
 message → captures all their counters in one statement → reads the index once for all criteria → loads each
 matching event once and applies it to every model whose criterion it matches → invokes the handler → appends the
 returned events under the condition built from *all* injected models → publishes them on the event bus with the
-usual metadata propagation. Three models cost the same three statements as one.
+usual metadata propagation. Three models cost the same three statements as one. This one-load-per-handler
+guarantee is protected by code review, not by a test: tests observe Ecotone only through userland, and statement
+counts are not observable there.
 
 **Tag values come from the message** by tag *name*, the way aggregate identifiers do: a message property carrying
 `#[EventTag('course')]`; else a message property named `course`, `courseId` or `course_id`; else an explicit

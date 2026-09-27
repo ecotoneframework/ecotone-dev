@@ -23,6 +23,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -44,7 +45,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         parent::tearDown();
     }
 
-    public function test_conflict_on_an_existing_counter_rejects_the_loser_and_burns_no_no(): void
+    public function test_conflict_on_an_existing_counter_rejects_the_loser_and_burns_no_row(): void
     {
         $store = $this->bootstrapEventStore();
 
@@ -53,15 +54,13 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
 
-        $rowsBefore = $this->countStreamRows();
-
         try {
             $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $stale->appendCondition);
             self::fail('Expected DecisionModelConcurrencyException');
         } catch (DecisionModelConcurrencyException) {
         }
 
-        self::assertSame($rowsBefore, $this->countStreamRows());
+        self::assertCount(0, $store->loadByCriteria(EventCriteria::tag('customer', 'student-1'))->events);
     }
 
     public function test_conflict_on_a_never_written_tag(): void
@@ -157,6 +156,55 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         }
     }
 
+    public function test_mariadb_snapshot_isolation_conflict_surfaces_as_concurrency_exception(): void
+    {
+        $this->skipUnlessMariaDb();
+
+        $factoryT = new DbalConnectionFactory($this->dsn());
+        $factoryE = new DbalConnectionFactory($this->dsn());
+
+        $storeBaseline = $this->bootstrapEventStore();
+        $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+
+        $storeT = $this->bootstrapEventStore($factoryT);
+        $storeE = $this->bootstrapEventStore($factoryE);
+
+        $connectionT = $factoryT->establishConnection();
+        $connectionT->executeStatement('SET SESSION innodb_snapshot_isolation = ON');
+        $connectionT->beginTransaction();
+
+        try {
+            $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+
+            $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
+
+            $this->expectException(ConcurrencyException::class);
+            $storeT->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]);
+        } finally {
+            if ($connectionT->isTransactionActive()) {
+                $connectionT->rollBack();
+            }
+        }
+    }
+
+    public function test_an_unrelated_database_error_is_not_reported_as_a_concurrency_conflict(): void
+    {
+        $store = $this->bootstrapEventStore();
+        $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+
+        $this->getConnection()->executeStatement('ALTER TABLE ' . TagTableManager::TAG_VERSIONS_TABLE . ' RENAME COLUMN version TO broken_version');
+
+        $thrown = null;
+        try {
+            $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+        } catch (Throwable $exception) {
+            $thrown = $exception;
+        }
+
+        self::assertNotNull($thrown);
+        self::assertNotInstanceOf(ConcurrencyException::class, $thrown);
+    }
+
     public function test_sqlite_conflict_on_existing_counter_is_a_zero_rows_path(): void
     {
         $this->skipUnlessSqlite();
@@ -210,7 +258,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEventStore(?DbalConnectionFactory $connectionFactory = null): EventStore
     {
-        return $this->bootstrapEcotone($connectionFactory)->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        return $this->bootstrapEcotone($connectionFactory)->getGateway(EventStore::class);
     }
 
     private function bootstrapEcotone(?DbalConnectionFactory $connectionFactory = null): FlowTestSupport
@@ -246,15 +294,6 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         return getenv('DATABASE_DSN') ?: 'pgsql://ecotone:secret@localhost:5432/ecotone';
     }
 
-    private function countStreamRows(): int
-    {
-        if (! self::tableExists($this->getConnection(), self::STREAM)) {
-            return 0;
-        }
-
-        return (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . self::STREAM)->fetchOne();
-    }
-
     private function setShortLockTimeout(\Doctrine\DBAL\Connection $connection): void
     {
         $platform = $connection->getDatabasePlatform();
@@ -278,6 +317,13 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $platform = self::getConnection()->getDatabasePlatform();
         if (! ($platform instanceof AbstractMySQLPlatform) || $platform instanceof MariaDBPlatform) {
             $this->markTestSkipped('The InnoDB REPEATABLE READ own-bump hazard is MySQL specific.');
+        }
+    }
+
+    private function skipUnlessMariaDb(): void
+    {
+        if (! (self::getConnection()->getDatabasePlatform() instanceof MariaDBPlatform)) {
+            $this->markTestSkipped('The snapshot-isolation "record has changed since last read" error is MariaDB specific.');
         }
     }
 

@@ -49,18 +49,26 @@ final class MultiTenantTagBackfillConsoleCommandTest extends EventSourcingMessag
     public function test_backfill_with_tenant_header_indexes_only_that_tenants_events(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $this->insertHistoricalEvent($this->connectionForTenantA()->createContext()->getDbalConnection(), 'SUMMER24', 2);
-        $this->insertHistoricalEvent($this->connectionForTenantB()->createContext()->getDbalConnection(), 'WINTER24', 5);
+        $this->insertHistoricalEvent($this->connectionForTenantA()->createContext()->getDbalConnection(), 'SUMMER24', 1);
+        $this->insertHistoricalEvent($this->connectionForTenantB()->createContext()->getDbalConnection(), 'WINTER24', 1);
 
         $ecotone->runConsoleCommand('ecotone:event-store:backfill-tags', ['header' => ['tenant:tenant_a']]);
 
-        self::assertSame(1, $this->countTaggedEventRows($this->connectionForTenantA()->createContext()->getDbalConnection()), 'tenant_a\'s historical event must be indexed');
-        self::assertSame(0, $this->countTaggedEventRows($this->connectionForTenantB()->createContext()->getDbalConnection()), 'tenant_b must be untouched -- backfill routed to tenant_a only');
+        $ecotone->sendCommand(new PlaceOrderForMultiTenantBackfillTest('order-a1', 'SUMMER24'), metadata: ['tenant' => 'tenant_a']);
+        try {
+            $ecotone->sendCommand(new PlaceOrderForMultiTenantBackfillTest('order-a2', 'SUMMER24'), metadata: ['tenant' => 'tenant_a']);
+            self::fail('Expected tenant_a\'s backfilled coupon limit to be enforced');
+        } catch (CouponExhaustedForMultiTenantBackfillTest) {
+        }
+
+        // tenant_b's historical coupon is not indexed yet, so its limit of 1 is not enforced here
+        $ecotone->sendCommand(new PlaceOrderForMultiTenantBackfillTest('order-b1', 'WINTER24'), metadata: ['tenant' => 'tenant_b']);
+        $ecotone->sendCommand(new PlaceOrderForMultiTenantBackfillTest('order-b2', 'WINTER24'), metadata: ['tenant' => 'tenant_b']);
 
         $ecotone->runConsoleCommand('ecotone:event-store:backfill-tags', ['header' => ['tenant:tenant_b']]);
 
-        self::assertSame(1, $this->countTaggedEventRows($this->connectionForTenantA()->createContext()->getDbalConnection()));
-        self::assertSame(1, $this->countTaggedEventRows($this->connectionForTenantB()->createContext()->getDbalConnection()));
+        $this->expectException(CouponExhaustedForMultiTenantBackfillTest::class);
+        $ecotone->sendCommand(new PlaceOrderForMultiTenantBackfillTest('order-b3', 'WINTER24'), metadata: ['tenant' => 'tenant_b']);
     }
 
     public function test_backfill_without_tenant_header_on_multi_tenant_setup_fails_loudly(): void
@@ -130,11 +138,6 @@ final class MultiTenantTagBackfillConsoleCommandTest extends EventSourcingMessag
         $connection->executeStatement(
             'CREATE TABLE ' . TagTableManager::TAG_VERSIONS_TABLE . ' (tag_name VARCHAR(255) NOT NULL, tag_value VARCHAR(255) NOT NULL, version BIGINT NOT NULL, PRIMARY KEY (tag_name))'
         );
-    }
-
-    private function countTaggedEventRows(Connection $connection): int
-    {
-        return (int) $connection->executeQuery('SELECT COUNT(*) FROM ' . TagTableManager::TAGGED_EVENTS_TABLE)->fetchOne();
     }
 
     private function insertHistoricalEvent(Connection $connection, string $code, int $limit): void

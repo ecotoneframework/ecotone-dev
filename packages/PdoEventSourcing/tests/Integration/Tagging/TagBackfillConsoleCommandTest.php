@@ -55,13 +55,9 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
 
         self::assertSame('2', $this->rowValue($result, 'Events tagged'));
 
-        $version = (int) $this->getConnection()->executeQuery(
-            "SELECT version FROM ecotone_tag_versions WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24'"
-        )->fetchOne();
-        self::assertSame(1, $version, 'One backfill batch touching the same tag twice bumps its counter once, like a single append does');
-
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
-        self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+        $loaded = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
+        self::assertCount(2, $loaded->events);
+        self::assertSame(1, $loaded->appendCondition->expectedTagVersions()[0]['expectedVersion'], 'One backfill batch touching the same tag twice bumps its counter once, like a single append does');
     }
 
     public function test_backfill_is_idempotent_on_rerun(): void
@@ -72,13 +68,9 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         $this->runBackfill($ecotone, []);
         $this->runBackfill($ecotone, []);
 
-        $version = (int) $this->getConnection()->executeQuery(
-            "SELECT version FROM ecotone_tag_versions WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24'"
-        )->fetchOne();
-        self::assertSame(1, $version, 'Re-running the backfill must not bump an already-indexed tag again');
-
-        $indexCount = (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . TagTableManager::TAGGED_EVENTS_TABLE)->fetchOne();
-        self::assertSame(1, $indexCount);
+        $loaded = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
+        self::assertCount(1, $loaded->events);
+        self::assertSame(1, $loaded->appendCondition->expectedTagVersions()[0]['expectedVersion'], 'Re-running the backfill must not bump an already-indexed tag again');
     }
 
     public function test_from_no_resumes_a_backfill(): void
@@ -89,7 +81,7 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
 
         $this->runBackfill($ecotone, ['fromNo' => $secondNo]);
 
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         self::assertCount(0, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'WINTER24'))->events);
     }
@@ -97,23 +89,15 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
     public function test_a_batch_size_of_one_orders_the_tag_sequence_by_no(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $firstNo = $this->insertHistoricalEvent('SUMMER24', 2);
-        $secondNo = $this->insertHistoricalEvent('SUMMER24', 2);
+        $this->insertHistoricalEvent('SUMMER24', 2);
+        $this->insertHistoricalEvent('SUMMER24', 3);
 
         $this->runBackfill($ecotone, ['batchSize' => 1]);
 
-        $sequencesByNo = $this->getConnection()->executeQuery(
-            'SELECT event_no, tag_sequence FROM ' . TagTableManager::TAGGED_EVENTS_TABLE . " WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24' ORDER BY event_no ASC"
-        )->fetchAllAssociative();
+        $loaded = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
 
-        self::assertCount(2, $sequencesByNo);
-        self::assertSame($firstNo, (int) $sequencesByNo[0]['event_no']);
-        self::assertSame($secondNo, (int) $sequencesByNo[1]['event_no']);
-        self::assertLessThan(
-            (int) $sequencesByNo[1]['tag_sequence'],
-            (int) $sequencesByNo[0]['tag_sequence'],
-            'A batch size fine enough to isolate each event must order tag_sequence strictly by no.'
-        );
+        self::assertSame(2, $loaded->appendCondition->expectedTagVersions()[0]['expectedVersion'], 'A batch size of one must give each event its own tag sequence');
+        self::assertSame([2, 3], array_values(array_map(static fn ($event): int => $event->getPayload()->limit, $loaded->events)), 'Events must fold in the order they were originally written');
     }
 
     public function test_dry_run_reports_counts_without_writing(): void
@@ -124,8 +108,9 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         $result = $this->runBackfill($ecotone, ['dryRun' => true]);
 
         self::assertSame('1', $this->rowValue($result, 'Events tagged'));
-        $indexCount = (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . TagTableManager::TAGGED_EVENTS_TABLE)->fetchOne();
-        self::assertSame(0, $indexCount, 'Dry run must not write any index rows');
+
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        self::assertCount(0, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events, 'Dry run must not write any index rows');
     }
 
     public function test_undeserializable_payload_aborts_the_backfill_by_default(): void

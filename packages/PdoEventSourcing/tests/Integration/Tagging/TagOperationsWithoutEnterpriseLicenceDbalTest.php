@@ -18,7 +18,7 @@ use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
  * licence Apache-2.0
  * @internal
  */
-final class OpenCoreDbalTagCollaboratorTest extends EventSourcingMessagingTestCase
+final class TagOperationsWithoutEnterpriseLicenceDbalTest extends EventSourcingMessagingTestCase
 {
     private const STREAM = 'ecotone_event_stream';
 

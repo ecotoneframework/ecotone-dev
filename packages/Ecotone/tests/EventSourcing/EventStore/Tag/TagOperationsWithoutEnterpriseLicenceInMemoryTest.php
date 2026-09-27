@@ -14,13 +14,13 @@ use PHPUnit\Framework\TestCase;
 /**
  * licence Apache-2.0
  */
-final class OpenCoreInMemoryTagCollaboratorTest extends TestCase
+final class TagOperationsWithoutEnterpriseLicenceInMemoryTest extends TestCase
 {
     public function test_untagged_append_still_works_without_a_licence(): void
     {
         $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);
 
-        $eventStore->appendTo('orders', [new UntaggedOrderPlacedForOpenCoreInMemoryTagCollaboratorTest('o-1')]);
+        $eventStore->appendTo('orders', [new UntaggedOrderPlacedForTagOperationsWithoutEnterpriseLicenceInMemoryTest('o-1')]);
 
         $this->assertCount(1, $eventStore->load('orders'));
     }
@@ -37,7 +37,7 @@ final class OpenCoreInMemoryTagCollaboratorTest extends TestCase
     private function bootstrapEcotone(): FlowTestSupport
     {
         return EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [UntaggedOrderPlacedForOpenCoreInMemoryTagCollaboratorTest::class],
+            classesToResolve: [UntaggedOrderPlacedForTagOperationsWithoutEnterpriseLicenceInMemoryTest::class],
         );
     }
 }
@@ -45,7 +45,7 @@ final class OpenCoreInMemoryTagCollaboratorTest extends TestCase
 /**
  * licence Apache-2.0
  */
-final readonly class UntaggedOrderPlacedForOpenCoreInMemoryTagCollaboratorTest
+final readonly class UntaggedOrderPlacedForTagOperationsWithoutEnterpriseLicenceInMemoryTest
 {
     public function __construct(
         public string $orderId,

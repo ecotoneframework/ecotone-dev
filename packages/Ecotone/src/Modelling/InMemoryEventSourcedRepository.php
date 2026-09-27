@@ -149,12 +149,7 @@ class InMemoryEventSourcedRepository implements EventSourcedRepository
     private function saveViaEventStore(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
         $aggregateId = (string) reset($identifiers);
-        $appendCondition = AppendCondition::forAggregate($aggregateClassName, $aggregateId, $versionBeforeHandling);
-
-        $decisionModelCondition = $metadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION] ?? null;
-        if ($decisionModelCondition instanceof AppendCondition) {
-            $appendCondition = $appendCondition->mergeWith($decisionModelCondition);
-        }
+        $appendCondition = AppendCondition::forAggregateFromSaveMetadata($aggregateClassName, $aggregateId, $versionBeforeHandling, $metadata);
 
         $this->eventStore->appendTo(AggregateDefinitionResolver::DEFAULT_STREAM, $events, $appendCondition);
     }

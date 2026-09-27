@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\EventSourcing\EventStore;
@@ -20,6 +21,7 @@ use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -27,6 +29,7 @@ use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Conversion\ConversionService;
+use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
 use Ecotone\Messaging\Handler\Type;
@@ -36,9 +39,13 @@ use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\DecisionModel\CrossConnectionDecisionModelGuard;
 use Ecotone\Modelling\DecisionModel\DecisionModelAppendConditionCollector;
 use Ecotone\Modelling\DecisionModel\DecisionModelAppendInterceptor;
+use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoader;
+use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoaderRegistry;
+use Ecotone\Modelling\DecisionModel\DecisionModelConverterBuilder;
 use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionBuilder;
 use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionRegistry;
 use Ecotone\Modelling\DecisionModel\DecisionModelExecutorRegistry;
+use Ecotone\Modelling\DecisionModel\DecisionModelLoadedInstancesCollector;
 use Ecotone\Modelling\DecisionModel\DecisionModelReflection;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 
@@ -63,6 +70,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
      * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[]}> $rawDefinitions
      * @param array<array{class: class-string, method: string}> $appendEligibleMethods
      * @param array<string, string> $decisionBoundaryMethods keyed by "Class::method", value is the boundary method name on that same class
+     * @param array<string, Definition[]> $loaderDefinitionsByHandler keyed by "Class::method", value is a list of DecisionModelParameterLoader definitions
      */
     private function __construct(
         private readonly AnnotationFinder $annotationFinder,
@@ -70,6 +78,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         private readonly array $rawDefinitions,
         private readonly array $appendEligibleMethods,
         private readonly array $decisionBoundaryMethods,
+        private readonly array $loaderDefinitionsByHandler,
     ) {
     }
 
@@ -95,7 +104,9 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
 
         $appendEligibleMethods = self::findAppendEligibleMethods($annotationRegistrationService, $interfaceToCallRegistry, $decisionBoundaryMethods);
 
-        return new self($annotationRegistrationService, $decisionModelClasses, $rawDefinitions, $appendEligibleMethods, $decisionBoundaryMethods);
+        $loaderDefinitionsByHandler = self::findModelLoaderDefinitionsByHandler($annotationRegistrationService, $interfaceToCallRegistry);
+
+        return new self($annotationRegistrationService, $decisionModelClasses, $rawDefinitions, $appendEligibleMethods, $decisionBoundaryMethods, $loaderDefinitionsByHandler);
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -127,12 +138,32 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
             new Definition(DecisionModelAppendConditionCollector::class),
         );
 
+        $messagingConfiguration->registerServiceDefinition(
+            DecisionModelLoadedInstancesCollector::class,
+            new Definition(DecisionModelLoadedInstancesCollector::class),
+        );
+
         foreach (array_keys($this->rawDefinitions) as $modelClass) {
             $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::create($modelClass));
 
             $messagingConfiguration->registerServiceDefinition(
                 DecisionModelExecutorRegistry::serviceIdFor($modelClass),
                 EventSourcingHandlerExecutorBuilder::createFor($classDefinition, $interfaceToCallRegistry),
+            );
+        }
+
+        foreach ($this->loaderDefinitionsByHandler as $handlerKey => $loaderDefinitions) {
+            [$className, $methodName] = explode('::', $handlerKey, 2);
+
+            $messagingConfiguration->registerServiceDefinition(
+                DecisionModelBatchLoaderRegistry::serviceIdFor($className, $methodName),
+                new Definition(DecisionModelBatchLoader::class, [
+                    Reference::to(EventStore::RAW_REFERENCE),
+                    Reference::to(EventTagRegistry::class),
+                    Reference::to(DecisionModelAppendConditionCollector::class),
+                    Reference::to(DecisionModelLoadedInstancesCollector::class),
+                    $loaderDefinitions,
+                ]),
             );
         }
 
@@ -243,6 +274,51 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         }
 
         return $pairs;
+    }
+
+    /**
+     * @return array<string, Definition[]> keyed by "Class::method", value is a list of DecisionModelParameterLoader definitions,
+     *         one per injected #[DecisionModel] parameter, for every service, aggregate, and query handler alike
+     */
+    private static function findModelLoaderDefinitionsByHandler(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    {
+        $loaderDefinitionsByHandler = [];
+        foreach ([CommandHandler::class, EventHandler::class, QueryHandler::class] as $handlerAnnotationClass) {
+            foreach ($annotationFinder->findAnnotatedMethods($handlerAnnotationClass) as $annotatedMethod) {
+                $className = $annotatedMethod->getClassName();
+                $methodName = $annotatedMethod->getMethodName();
+                $handlerKey = $className . '::' . $methodName;
+
+                if (isset($loaderDefinitionsByHandler[$handlerKey])) {
+                    continue;
+                }
+
+                $loaderDefinitions = self::findModelLoaderDefinitionsFor($interfaceToCallRegistry->getFor($className, $methodName));
+
+                if ($loaderDefinitions !== []) {
+                    $loaderDefinitionsByHandler[$handlerKey] = $loaderDefinitions;
+                }
+            }
+        }
+
+        return $loaderDefinitionsByHandler;
+    }
+
+    /**
+     * @return Definition[]
+     */
+    private static function findModelLoaderDefinitionsFor(InterfaceToCall $interfaceToCall): array
+    {
+        $loaderDefinitions = [];
+        foreach ($interfaceToCall->getInterfaceParameters() as $parameter) {
+            $converterBuilder = ParameterConverterAnnotationFactory::getConverterFor($parameter, $interfaceToCall);
+
+            if ($converterBuilder instanceof DecisionModelConverterBuilder) {
+                $loaderDefinitions[] = $converterBuilder->compileLoader($interfaceToCall);
+            }
+        }
+
+        return $loaderDefinitions;
     }
 
     /**

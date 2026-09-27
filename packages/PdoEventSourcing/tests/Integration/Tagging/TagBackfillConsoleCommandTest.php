@@ -94,6 +94,28 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'WINTER24'))->events);
     }
 
+    public function test_a_batch_size_of_one_orders_the_tag_sequence_by_no(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+        $firstNo = $this->insertHistoricalEvent('SUMMER24', 2);
+        $secondNo = $this->insertHistoricalEvent('SUMMER24', 2);
+
+        $this->runBackfill($ecotone, ['batchSize' => 1]);
+
+        $sequencesByNo = $this->getConnection()->executeQuery(
+            'SELECT event_no, tag_sequence FROM ' . TagTableManager::TAGGED_EVENTS_TABLE . " WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24' ORDER BY event_no ASC"
+        )->fetchAllAssociative();
+
+        self::assertCount(2, $sequencesByNo);
+        self::assertSame($firstNo, (int) $sequencesByNo[0]['event_no']);
+        self::assertSame($secondNo, (int) $sequencesByNo[1]['event_no']);
+        self::assertLessThan(
+            (int) $sequencesByNo[1]['tag_sequence'],
+            (int) $sequencesByNo[0]['tag_sequence'],
+            'A batch size fine enough to isolate each event must order tag_sequence strictly by no.'
+        );
+    }
+
     public function test_dry_run_reports_counts_without_writing(): void
     {
         $ecotone = $this->bootstrapEcotone();

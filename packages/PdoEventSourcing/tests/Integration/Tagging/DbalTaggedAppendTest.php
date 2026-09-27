@@ -14,6 +14,9 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
+use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\ConcurrencyException;
+use Ecotone\Modelling\Event;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
 
@@ -142,6 +145,40 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         self::assertSame(0, $versionCount);
     }
 
+    public function test_a_conflicting_aggregate_save_rolls_back_its_own_tag_counter_bump_too(): void
+    {
+        $eventStore = $this->bootstrapEcotone([WidgetTaggedForDbalAppendTest::class])->getServiceFromContainer(EventStore::RAW_REFERENCE);
+
+        $aggregateEvent = static fn (int $version): Event => Event::create(new WidgetTaggedForDbalAppendTest('w-1'), [
+            MessageHeaders::EVENT_AGGREGATE_TYPE => 'Widget',
+            MessageHeaders::EVENT_AGGREGATE_ID => 'w-1',
+            MessageHeaders::EVENT_AGGREGATE_VERSION => $version,
+        ]);
+
+        $eventStore->appendTo(self::STREAM, [$aggregateEvent(1)]);
+
+        $versionAfterFirstAppend = (int) $this->getConnection()->executeQuery(
+            'SELECT version FROM ' . TagTableManager::TAG_VERSIONS_TABLE . ' WHERE tag_name = ? AND tag_value = ?',
+            ['widget', 'w-1']
+        )->fetchOne();
+        self::assertSame(1, $versionAfterFirstAppend);
+
+        try {
+            $eventStore->appendTo(self::STREAM, [$aggregateEvent(1)]);
+            self::fail('Expected a ConcurrencyException from the duplicate aggregate version.');
+        } catch (ConcurrencyException) {
+        }
+
+        $versionAfterFailedAppend = (int) $this->getConnection()->executeQuery(
+            'SELECT version FROM ' . TagTableManager::TAG_VERSIONS_TABLE . ' WHERE tag_name = ? AND tag_value = ?',
+            ['widget', 'w-1']
+        )->fetchOne();
+        self::assertSame(1, $versionAfterFailedAppend, 'The tag counter bump from the failed aggregate insert must have rolled back with it.');
+
+        $eventCount = (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . self::STREAM)->fetchOne();
+        self::assertSame(1, $eventCount, 'The failed attempt must not have left a burned event row behind.');
+    }
+
     public function test_delete_stream_clears_its_tag_index_rows(): void
     {
         $ecotone = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class]);
@@ -219,6 +256,14 @@ final readonly class CouponIssuedForDbalAppendTest
     }
 }
 
+final readonly class WidgetTaggedForDbalAppendTest
+{
+    public function __construct(
+        #[EventTag('widget')] public string $widgetId,
+    ) {
+    }
+}
+
 final readonly class TenantOnlyEventForDbalAppendTest
 {
     public function __construct(
@@ -259,6 +304,18 @@ final class EventsConverterForDbalAppendTest
     public function toUntaggedOrderPlaced(array $event): UntaggedOrderPlacedForDbalAppendTest
     {
         return new UntaggedOrderPlacedForDbalAppendTest($event['orderId']);
+    }
+
+    #[Converter]
+    public function fromWidgetTagged(WidgetTaggedForDbalAppendTest $event): array
+    {
+        return ['widgetId' => $event->widgetId];
+    }
+
+    #[Converter]
+    public function toWidgetTagged(array $event): WidgetTaggedForDbalAppendTest
+    {
+        return new WidgetTaggedForDbalAppendTest($event['widgetId']);
     }
 
     #[Converter]

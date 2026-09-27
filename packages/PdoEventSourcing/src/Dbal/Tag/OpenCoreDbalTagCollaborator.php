@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
+use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 use Ecotone\Messaging\Support\LicensingException;
 
@@ -16,13 +17,13 @@ use Ecotone\Messaging\Support\LicensingException;
  */
 final class OpenCoreDbalTagCollaborator implements DbalTagCollaborator
 {
-    public function loadByCriteria(DbalEventRowAccess $rowAccess, Connection $connection, EventCriteria $criteria): LoadedEvents
+    public function loadByCriteria(DbalEventStore $eventStore, Connection $connection, EventCriteria $criteria): LoadedEvents
     {
         throw LicensingException::create('Loading events by tag criteria (Dynamic Consistency Boundary) requires Ecotone Enterprise');
     }
 
     public function appendEventsWithTagCondition(
-        DbalEventRowAccess $rowAccess,
+        DbalEventStore $eventStore,
         Connection $connection,
         EventStreamSchema $schema,
         string $tableName,
@@ -34,7 +35,7 @@ final class OpenCoreDbalTagCollaborator implements DbalTagCollaborator
     }
 
     public function backfillTagsForStream(
-        DbalEventRowAccess $rowAccess,
+        DbalEventStore $eventStore,
         Connection $connection,
         EventStreamSchema $schema,
         string $tableName,

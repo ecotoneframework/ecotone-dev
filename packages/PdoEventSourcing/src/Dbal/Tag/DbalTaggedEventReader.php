@@ -9,6 +9,7 @@ use Doctrine\DBAL\ParameterType;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
+use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\StreamTableRegistry;
@@ -31,7 +32,7 @@ final class DbalTaggedEventReader
     ) {
     }
 
-    public function loadByCriteria(DbalEventRowAccess $rowAccess, Connection $connection, EventCriteria $criteria): LoadedEvents
+    public function loadByCriteria(DbalEventStore $eventStore, Connection $connection, EventCriteria $criteria): LoadedEvents
     {
         $branches = $criteria->branches();
 
@@ -49,7 +50,7 @@ final class DbalTaggedEventReader
             return new LoadedEvents([], AppendCondition::empty());
         }
 
-        $this->versionRegister->ensureTagTablesExist($rowAccess, $connection, StreamTableRegistry::DEFAULT_STREAM);
+        $this->versionRegister->ensureTagTablesExist($eventStore, $connection, StreamTableRegistry::DEFAULT_STREAM);
 
         $capturedTags = $this->versionRegister->captureTagVersions($connection, $tagSchema, $allTags);
         $flags = $this->fetchTagFlags($connection, $tagSchema, $allTags);
@@ -58,7 +59,7 @@ final class DbalTaggedEventReader
             return new LoadedEvents([], AppendCondition::fromCapturedVersions(array_values($capturedTags)));
         }
 
-        $eventsByStream = $this->fetchCandidateEvents($rowAccess, $connection, $flags);
+        $eventsByStream = $this->fetchCandidateEvents($eventStore, $connection, $flags);
 
         $matched = [];
         foreach ($branches as $criterion) {
@@ -172,7 +173,7 @@ final class DbalTaggedEventReader
      * @param array<string, array{stream: string, eventNo: int}> $flags
      * @return array<string, array<int, Event>>
      */
-    private function fetchCandidateEvents(DbalEventRowAccess $rowAccess, Connection $connection, array $flags): array
+    private function fetchCandidateEvents(DbalEventStore $eventStore, Connection $connection, array $flags): array
     {
         $eventNosByStream = [];
         foreach ($flags as $flag) {
@@ -194,7 +195,7 @@ final class DbalTaggedEventReader
             );
 
             foreach ($rows as $row) {
-                $eventsByStream[$streamTable][(int) $row['no']] = $rowAccess->convertToEvent($row, true);
+                $eventsByStream[$streamTable][(int) $row['no']] = $eventStore->convertToEvent($row, true);
             }
         }
 

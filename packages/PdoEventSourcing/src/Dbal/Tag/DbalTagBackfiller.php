@@ -7,6 +7,7 @@ namespace Ecotone\EventSourcing\Dbal\Tag;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\EventSourcing\Database\TagTableManager;
+use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -33,7 +34,7 @@ final class DbalTagBackfiller
      * @return array{lastNo: int, eventsScanned: int, eventsTagged: int, tagsBumped: int, undeserializable: array<int>}
      */
     public function backfillTagsForStream(
-        DbalEventRowAccess $rowAccess,
+        DbalEventStore $eventStore,
         Connection $connection,
         EventStreamSchema $schema,
         string $tableName,
@@ -52,7 +53,7 @@ final class DbalTagBackfiller
 
         $tagSchema = TaggedEventSchemaFactory::for($connection);
         if (! $dryRun) {
-            $this->versionRegister->ensureTagTablesExist($rowAccess, $connection, $streamName);
+            $this->versionRegister->ensureTagTablesExist($eventStore, $connection, $streamName);
         }
 
         $position = $fromNo ?? 1;
@@ -87,7 +88,7 @@ final class DbalTagBackfiller
                 $report['lastNo'] = (int) $row['no'];
 
                 try {
-                    $event = $rowAccess->convertToEvent($row, true);
+                    $event = $eventStore->convertToEvent($row, true);
                 } catch (Throwable $exception) {
                     if (! $skipUndeserializable) {
                         throw ConfigurationException::create(sprintf(

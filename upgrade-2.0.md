@@ -341,7 +341,9 @@ pessimistic lock outside Ecotone's control.
 **Now:** Events tagged with `#[EventTag]` are indexed by tag, and small reusable **decision model** classes — folded
 on demand from the events matching a tag, like an aggregate but keyed by tag instead of identity — can be injected
 into `#[CommandHandler]`/`#[EventHandler]`/`#[QueryHandler]` methods, on service classes and
-`#[EventSourcingAggregate]`s alike. The framework captures every injected model's tag version before folding it, and
+`#[EventSourcingAggregate]`s alike. All of a handler's injected models load in one batched
+`EventCriteria::or()`-combined read — a handler with three models costs the same read-side statements as one, not
+three separate round trips. The framework captures every injected model's tag version before folding it, and
 appends the handler's returned events only if none of those versions moved since — a
 `DecisionModelConcurrencyException` (extends `ConcurrencyException`) otherwise. This is entirely additive: an
 application with no `#[EventTag]` sees no behaviour change, no new tables, and the append path stays today's single

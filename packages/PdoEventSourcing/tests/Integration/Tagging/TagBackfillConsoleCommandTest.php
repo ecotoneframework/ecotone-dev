@@ -21,6 +21,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Gateway\ConsoleCommandRunner;
+use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Test\LicenceTesting;
 use Ramsey\Uuid\Uuid;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -45,23 +46,22 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         parent::tearDown();
     }
 
-    public function test_backfill_indexes_historical_events_and_bumps_counters_once(): void
+    public function test_backfill_indexes_historical_events_and_conflict_detection_still_works_afterward(): void
     {
         $ecotone = $this->bootstrapEcotone();
         $this->insertHistoricalEvent('SUMMER24', 2);
         $this->insertHistoricalEvent('SUMMER24', 3);
 
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        $staleCondition = $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->appendCondition;
+
         $result = $this->runBackfill($ecotone, []);
 
         self::assertSame('2', $this->rowValue($result, 'Events tagged'));
-
-        $version = (int) $this->getConnection()->executeQuery(
-            "SELECT version FROM ecotone_tag_versions WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24'"
-        )->fetchOne();
-        self::assertSame(1, $version, 'One backfill batch touching the same tag twice bumps its counter once, like a single append does');
-
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
         self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+
+        $this->expectException(ConcurrencyException::class);
+        $eventStore->appendTo(self::STREAM, [new CouponIssuedForBackfillTest('SUMMER24', 1)], $staleCondition);
     }
 
     public function test_backfill_is_idempotent_on_rerun(): void
@@ -72,13 +72,8 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         $this->runBackfill($ecotone, []);
         $this->runBackfill($ecotone, []);
 
-        $version = (int) $this->getConnection()->executeQuery(
-            "SELECT version FROM ecotone_tag_versions WHERE tag_name = 'coupon' AND tag_value = 'SUMMER24'"
-        )->fetchOne();
-        self::assertSame(1, $version, 'Re-running the backfill must not bump an already-indexed tag again');
-
-        $indexCount = (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . TagTableManager::TAGGED_EVENTS_TABLE)->fetchOne();
-        self::assertSame(1, $indexCount);
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events, 'Re-running the backfill must not index an already-indexed event again');
     }
 
     public function test_from_no_resumes_a_backfill(): void
@@ -89,7 +84,7 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
 
         $this->runBackfill($ecotone, ['fromNo' => $secondNo]);
 
-        $eventStore = $ecotone->getServiceFromContainer(EventStore::RAW_REFERENCE);
+        $eventStore = $ecotone->getGateway(EventStore::class);
         self::assertCount(0, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'WINTER24'))->events);
     }
@@ -124,8 +119,9 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         $result = $this->runBackfill($ecotone, ['dryRun' => true]);
 
         self::assertSame('1', $this->rowValue($result, 'Events tagged'));
-        $indexCount = (int) $this->getConnection()->executeQuery('SELECT COUNT(*) FROM ' . TagTableManager::TAGGED_EVENTS_TABLE)->fetchOne();
-        self::assertSame(0, $indexCount, 'Dry run must not write any index rows');
+
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        self::assertCount(0, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events, 'Dry run must not write any index rows');
     }
 
     public function test_undeserializable_payload_aborts_the_backfill_by_default(): void

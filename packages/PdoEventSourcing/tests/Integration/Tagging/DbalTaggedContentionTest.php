@@ -23,6 +23,7 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -155,6 +156,55 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         }
     }
 
+    public function test_mariadb_snapshot_isolation_conflict_surfaces_as_concurrency_exception(): void
+    {
+        $this->skipUnlessMariaDb();
+
+        $factoryT = new DbalConnectionFactory($this->dsn());
+        $factoryE = new DbalConnectionFactory($this->dsn());
+
+        $storeBaseline = $this->bootstrapEventStore();
+        $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+
+        $storeT = $this->bootstrapEventStore($factoryT);
+        $storeE = $this->bootstrapEventStore($factoryE);
+
+        $connectionT = $factoryT->establishConnection();
+        $connectionT->executeStatement('SET SESSION innodb_snapshot_isolation = ON');
+        $connectionT->beginTransaction();
+
+        try {
+            $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+
+            $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
+
+            $this->expectException(ConcurrencyException::class);
+            $storeT->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]);
+        } finally {
+            if ($connectionT->isTransactionActive()) {
+                $connectionT->rollBack();
+            }
+        }
+    }
+
+    public function test_an_unrelated_database_error_is_not_reported_as_a_concurrency_conflict(): void
+    {
+        $store = $this->bootstrapEventStore();
+        $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+
+        $this->getConnection()->executeStatement('ALTER TABLE ' . TagTableManager::TAG_VERSIONS_TABLE . ' RENAME COLUMN version TO broken_version');
+
+        $thrown = null;
+        try {
+            $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+        } catch (Throwable $exception) {
+            $thrown = $exception;
+        }
+
+        self::assertNotNull($thrown);
+        self::assertNotInstanceOf(ConcurrencyException::class, $thrown);
+    }
+
     public function test_sqlite_conflict_on_existing_counter_is_a_zero_rows_path(): void
     {
         $this->skipUnlessSqlite();
@@ -267,6 +317,13 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $platform = self::getConnection()->getDatabasePlatform();
         if (! ($platform instanceof AbstractMySQLPlatform) || $platform instanceof MariaDBPlatform) {
             $this->markTestSkipped('The InnoDB REPEATABLE READ own-bump hazard is MySQL specific.');
+        }
+    }
+
+    private function skipUnlessMariaDb(): void
+    {
+        if (! (self::getConnection()->getDatabasePlatform() instanceof MariaDBPlatform)) {
+            $this->markTestSkipped('The snapshot-isolation "record has changed since last read" error is MariaDB specific.');
         }
     }
 

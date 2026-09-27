@@ -76,7 +76,7 @@ final class DbalTagConditionalAppender
             }
         }
 
-        if ($tagsInvolved === []) {
+        if ($tagsInvolved === [] && ! self::anyEventHasATag($perEventTags)) {
             $rowAccess->insertEventRows($connection, $schema, $tableName, $rows);
 
             return;
@@ -104,6 +104,20 @@ final class DbalTagConditionalAppender
         } else {
             $connection->transactional($write);
         }
+    }
+
+    /**
+     * @param array<array<array{name: string, value: string}>> $perEventTags
+     */
+    private static function anyEventHasATag(array $perEventTags): bool
+    {
+        foreach ($perEventTags as $tags) {
+            if ($tags !== []) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

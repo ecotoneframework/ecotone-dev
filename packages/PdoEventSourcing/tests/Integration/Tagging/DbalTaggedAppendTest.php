@@ -7,6 +7,7 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\EventStore;
@@ -121,6 +122,26 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         self::assertSame(1, $indexCount);
     }
 
+    public function test_event_whose_only_tag_is_filter_only_writes_an_index_row_with_no_counter_bump(): void
+    {
+        $eventStore = $this->bootstrapEcotoneWithFilterOnlyTags([TenantOnlyEventForDbalAppendTest::class], ['tenant'])->getGateway(EventStore::class);
+
+        $eventStore->appendTo(self::STREAM, [new TenantOnlyEventForDbalAppendTest('acme')]);
+
+        $indexRows = $this->getConnection()->executeQuery(
+            'SELECT tag_name, tag_value, tag_sequence FROM ' . TagTableManager::TAGGED_EVENTS_TABLE
+        )->fetchAllAssociative();
+        self::assertCount(1, $indexRows);
+        self::assertSame('tenant', $indexRows[0]['tag_name']);
+        self::assertSame('acme', $indexRows[0]['tag_value']);
+        self::assertSame(0, (int) $indexRows[0]['tag_sequence']);
+
+        $versionCount = (int) $this->getConnection()->executeQuery(
+            'SELECT COUNT(*) FROM ' . TagTableManager::TAG_VERSIONS_TABLE
+        )->fetchOne();
+        self::assertSame(0, $versionCount);
+    }
+
     public function test_delete_stream_clears_its_tag_index_rows(): void
     {
         $ecotone = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class]);
@@ -153,6 +174,28 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         return $ecotone;
     }
 
+    /**
+     * @param string[] $filterOnlyTagNames
+     */
+    private function bootstrapEcotoneWithFilterOnlyTags(array $classesToResolve, array $filterOnlyTagNames): FlowTestSupport
+    {
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
+            classesToResolve: [...$classesToResolve, EventsConverterForDbalAppendTest::class],
+            containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForDbalAppendTest()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
+                    EventSourcingConfiguration::createWithDefaults()->withFilterOnlyTags($filterOnlyTagNames),
+                ]),
+            runForProductionEventStore: true,
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
+    }
+
     private function dropTagTables(): void
     {
         $connection = $this->getConnection();
@@ -172,6 +215,14 @@ final readonly class CouponIssuedForDbalAppendTest
     public function __construct(
         #[EventTag('coupon')] public string $code,
         public int $limit,
+    ) {
+    }
+}
+
+final readonly class TenantOnlyEventForDbalAppendTest
+{
+    public function __construct(
+        #[EventTag('tenant')] public string $tenantId,
     ) {
     }
 }
@@ -208,5 +259,17 @@ final class EventsConverterForDbalAppendTest
     public function toUntaggedOrderPlaced(array $event): UntaggedOrderPlacedForDbalAppendTest
     {
         return new UntaggedOrderPlacedForDbalAppendTest($event['orderId']);
+    }
+
+    #[Converter]
+    public function fromTenantOnlyEvent(TenantOnlyEventForDbalAppendTest $event): array
+    {
+        return ['tenantId' => $event->tenantId];
+    }
+
+    #[Converter]
+    public function toTenantOnlyEvent(array $event): TenantOnlyEventForDbalAppendTest
+    {
+        return new TenantOnlyEventForDbalAppendTest($event['tenantId']);
     }
 }

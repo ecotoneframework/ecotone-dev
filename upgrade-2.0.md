@@ -405,7 +405,9 @@ fires inside an already-open database transaction; that transaction is already u
 
   Give `tags: [...]` explicitly when the default intersection isn't the question being asked (e.g.
   `#[DecisionModel(tags: ['student'])]` to scope by student alone). Every event the model handles must carry every
-  one of the model's tag names — a bootstrap `ConfigurationException` otherwise.
+  one of the model's tag names — a bootstrap `ConfigurationException` otherwise. Models are injected, they never
+  own handlers: `#[CommandHandler]`/`#[EventHandler]`/`#[QueryHandler]` declared directly on a `#[DecisionModel]`
+  class is a bootstrap `ConfigurationException`, the same way it would be on an aggregate mixing the two roles.
 - Inject the model into a handler by type-hint — no attribute needed, the same way an aggregate is loaded:
 
   ```php
@@ -514,9 +516,15 @@ advisory lock, no `SELECT ... FOR UPDATE`, no raised isolation level). Both tabl
 table manager reports `isUsed()` only when the application declares an `#[EventTag]`; an open-core application never
 sees these tables in its setup output or its database (§8's feature list now includes `event_stream`, `event_tags`
 alongside `deduplication`, `dead_letter`, `document_store`, ...). Counters are keyed by tag alone, not by stream, so
-a decision model can read events from several streams on the same connection without any extra configuration; a
-model traced to a stream on a different connection is a bootstrap `ConfigurationException` (cross-database
-consistency is a saga's job, not a consistency boundary's).
+a decision model can read events from several streams on the same connection without any extra configuration.
+**Cross-connection injection fails loudly at bootstrap, not silently at runtime.** Every event class a model handles
+is traced — via the `#[EventSourcingHandler]`s of the aggregates that record it — to that aggregate's `#[Stream]`
+connection; if it differs from the connection the injecting handler's own write stream lives on, bootstrap raises a
+`ConfigurationException` naming the model, the event, and both connections, instead of silently loading a model that
+can never see events committed on the other connection (cross-database consistency is a saga's job, not a
+consistency boundary's). Events recorded only by a service handler — not an aggregate — cannot be traced this way
+and are not checked; keep such a handler's stream and its injected models' aggregates on the same connection by
+convention.
 
 **Upgrading while still on 1.x — expand first, deploy code second:**
 
@@ -553,7 +561,11 @@ back to 1.x after decision models have run means re-running the backfill before 
 and any event tagged later. Per batch, in one transaction: walk the stream by `no`, deserialize, bump the tags a
 batch touches once each (the same unit an ordinary append uses — one `appendTo()` call, however many events, bumps
 a shared tag once) and insert the index rows; the insert is idempotent on the primary key, so re-running a
-completed range is a no-op and `--from-no` resumes an interrupted one. `--dry-run` reports counts without writing. A
+completed range is a no-op and `--from-no` resumes an interrupted one. **`--batch-size` trades backfill throughput
+against cross-stream ordering precision:** every event sharing a tag within one batch gets that batch's single bump
+as its `tag_sequence`, so two co-tagged events recorded on *different* streams within the same batch cannot be told
+apart by commit order — only same-stream order survives, via `no`. Size it down when backfilled history needs
+precise cross-stream ordering for a tag. `--dry-run` reports counts without writing. A
 payload that no longer deserializes is reported with its `no` and aborts the run unless `--skip-undeserializable` is
 given, in which case it is skipped and still reported. There is no decision-model usage until the backfill has
 finished — start using `#[DecisionModel]` only after step 6 above completes.

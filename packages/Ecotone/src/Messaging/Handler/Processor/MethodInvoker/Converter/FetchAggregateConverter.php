@@ -35,8 +35,7 @@ class FetchAggregateConverter implements ParameterConverter
             throw LicensingException::create('FetchAggregate attribute is available as part of Ecotone Enterprise.');
         }
 
-        /** @var string|string<string, string>|null $identifiers */
-        $identifiers = $this->resolveIdentifiers($message);
+        $identifiers = self::identifiersFrom($this->resolveIdentifiers($message), $this->aggregateClassName, $this->aggregateDefinitionRegistry);
 
         if ($identifiers === null) {
             if (! $this->doesAllowsNull) {
@@ -44,15 +43,6 @@ class FetchAggregateConverter implements ParameterConverter
             }
 
             return null;
-        }
-
-        if (! is_array($identifiers)) {
-            $identifierMapping = $this->aggregateDefinitionRegistry->getFor($this->aggregateClassName)->getAggregateIdentifierMapping();
-            if (count($identifierMapping) > 1) {
-                throw new InvalidArgumentException("Can't fetch aggregate {$this->aggregateClassName} as it has multiple identifiers. Please provide array of identifiers.");
-            }
-
-            $identifiers = [array_key_first($identifierMapping) => $identifiers];
         }
 
         $resolvedAggregate = $this->aggregateRepository->findBy(
@@ -66,6 +56,27 @@ class FetchAggregateConverter implements ParameterConverter
         }
 
         return $resolvedAggregate?->getAggregateInstance();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public static function identifiersFrom(mixed $resolvedIdentifiers, string $aggregateClassName, AggregateDefinitionRegistry $aggregateDefinitionRegistry): ?array
+    {
+        if ($resolvedIdentifiers === null) {
+            return null;
+        }
+
+        if (is_array($resolvedIdentifiers)) {
+            return $resolvedIdentifiers;
+        }
+
+        $identifierMapping = $aggregateDefinitionRegistry->getFor($aggregateClassName)->getAggregateIdentifierMapping();
+        if (count($identifierMapping) > 1) {
+            throw new InvalidArgumentException("Can't fetch aggregate {$aggregateClassName} as it has multiple identifiers. Please provide array of identifiers.");
+        }
+
+        return [array_key_first($identifierMapping) => $resolvedIdentifiers];
     }
 
     private function resolveIdentifiers(Message $message): mixed

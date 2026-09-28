@@ -18,6 +18,7 @@ use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAn
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\FetchAggregateConverterBuilder;
 
 use function in_array;
 
@@ -54,7 +55,7 @@ final class DecisionModelHandlers
 
                 $interfaceToCall = $interfaceToCallRegistry->getFor($className, $methodName);
 
-                $modelLoaderDefinitions = self::modelLoaderDefinitionsFor($interfaceToCall);
+                [$modelLoaderDefinitions, $fetchedAggregateConverters] = self::decisionConvertersOf($interfaceToCall);
                 $ambiguouslyDuplicatedModelClasses = self::ambiguouslyDuplicatedModelClassesIn($interfaceToCall, $handlerAnnotationClass);
 
                 $boundaryMethodName = $handlerAnnotationClass === QueryHandler::class
@@ -73,6 +74,8 @@ final class DecisionModelHandlers
                     continue;
                 }
 
+                $joinsFetchedAggregates = $handlerAnnotationClass !== QueryHandler::class && ($appendsItsResult || $modelLoaderDefinitions !== []);
+
                 $handlers[$key] = new DecisionModelHandler(
                     $className,
                     $methodName,
@@ -80,6 +83,9 @@ final class DecisionModelHandlers
                     $boundaryMethodName,
                     $appendsItsResult,
                     $ambiguouslyDuplicatedModelClasses,
+                    $joinsFetchedAggregates ? array_map(static fn (FetchAggregateConverterBuilder $converter): Definition => $converter->compileCounterCapture(), $fetchedAggregateConverters) : [],
+                    $joinsFetchedAggregates ? array_map(static fn (FetchAggregateConverterBuilder $converter): string => $converter->aggregateClassName(), $fetchedAggregateConverters) : [],
+                    $appendsItsResult && $boundaryMethodName !== null ? [DecisionBoundaryEvaluator::definitionFor($className, $boundaryMethodName, $interfaceToCall)] : [],
                 );
             }
         }
@@ -100,9 +106,9 @@ final class DecisionModelHandlers
     /**
      * @return DecisionModelHandler[]
      */
-    public function loadingModelsBeforeInvocation(): array
+    public function loadingBeforeInvocation(): array
     {
-        return array_values(array_filter($this->handlers, static fn (DecisionModelHandler $handler): bool => $handler->loadsModelsBeforeInvocation()));
+        return array_values(array_filter($this->handlers, static fn (DecisionModelHandler $handler): bool => $handler->loadsBeforeInvocation()));
     }
 
     /**
@@ -111,17 +117,6 @@ final class DecisionModelHandlers
     public function appendingTheirResult(): array
     {
         return array_values(array_filter($this->handlers, static fn (DecisionModelHandler $handler): bool => $handler->appendsItsResult()));
-    }
-
-    /**
-     * @return Definition[]
-     */
-    public function withBoundaryMethodAsDefinitions(): array
-    {
-        return array_values(array_map(
-            static fn (DecisionModelHandler $handler): Definition => $handler->withoutCompileTimeDefinitions(),
-            array_filter($this->handlers, static fn (DecisionModelHandler $handler): bool => $handler->hasBoundaryMethod()),
-        ));
     }
 
     public function anyTakesPartInDecisionMaking(): bool
@@ -158,20 +153,23 @@ final class DecisionModelHandlers
     }
 
     /**
-     * @return Definition[]
+     * @return array{0: Definition[], 1: FetchAggregateConverterBuilder[]}
      */
-    private static function modelLoaderDefinitionsFor(InterfaceToCall $interfaceToCall): array
+    private static function decisionConvertersOf(InterfaceToCall $interfaceToCall): array
     {
         $loaderDefinitions = [];
+        $fetchedAggregateConverters = [];
         foreach ($interfaceToCall->getInterfaceParameters() as $parameter) {
             $converterBuilder = ParameterConverterAnnotationFactory::getConverterFor($parameter, $interfaceToCall);
 
             if ($converterBuilder instanceof DecisionModelConverterBuilder) {
                 $loaderDefinitions[] = $converterBuilder->compileLoader($interfaceToCall);
+            } elseif ($converterBuilder instanceof FetchAggregateConverterBuilder) {
+                $fetchedAggregateConverters[] = $converterBuilder;
             }
         }
 
-        return $loaderDefinitions;
+        return [$loaderDefinitions, $fetchedAggregateConverters];
     }
 
     /**

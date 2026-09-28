@@ -26,7 +26,6 @@ final class DecisionModelAppendInterceptor
         private readonly EventMapper $eventMapper,
         private readonly EcotoneClockInterface $clock,
         private readonly EventBus $eventBus,
-        private readonly DecisionBoundaryEvaluator $decisionBoundaryEvaluator,
     ) {
     }
 
@@ -34,8 +33,7 @@ final class DecisionModelAppendInterceptor
     {
         $result = $methodInvocation->proceed();
 
-        $appendCondition = DecisionModelLoadedState::appendConditionCarriedBy($message)
-            ->mergeWith($this->decisionBoundaryEvaluator->conditionFor($methodInvocation));
+        $appendCondition = DecisionModelLoadedState::appendConditionCarriedBy($message);
 
         if ($result === null || $result === []) {
             return $result;

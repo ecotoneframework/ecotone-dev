@@ -6,16 +6,15 @@ namespace Ecotone\Modelling\DecisionModel;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\DecisionBoundary;
-use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
-use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
+use Ecotone\Messaging\Handler\ParameterConverter;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
+use Ecotone\Messaging\Message;
 
-use function get_class;
-use function is_object;
 use function sprintf;
 
 /**
@@ -23,13 +22,25 @@ use function sprintf;
  */
 final class DecisionBoundaryEvaluator
 {
-    /**
-     * @param DecisionModelHandler[] $handlersWithBoundaryMethod
-     */
     public function __construct(
-        private readonly EventStore $eventStore,
-        private readonly array $handlersWithBoundaryMethod,
+        private readonly string $className,
+        private readonly string $boundaryMethodName,
+        private readonly ParameterConverter $commandConverter,
     ) {
+    }
+
+    public static function definitionFor(string $className, string $boundaryMethodName, InterfaceToCall $handler): Definition
+    {
+        return new Definition(self::class, [
+            $className,
+            $boundaryMethodName,
+            PayloadBuilder::create($handler->getFirstParameter()->getName())->compile($handler),
+        ]);
+    }
+
+    public function criteriaFor(Message $message): EventCriteria
+    {
+        return $this->className::{$this->boundaryMethodName}($this->commandConverter->getArgumentFrom($message));
     }
 
     /**
@@ -61,33 +72,6 @@ final class DecisionBoundaryEvaluator
         }
 
         return $boundariesByClass;
-    }
-
-    public function conditionFor(MethodInvocation $handlerInvocation): AppendCondition
-    {
-        $objectToInvokeOn = $handlerInvocation->getObjectToInvokeOn();
-        $className = is_object($objectToInvokeOn) ? get_class($objectToInvokeOn) : $objectToInvokeOn;
-
-        $handler = $this->handlerFor($className, $handlerInvocation->getMethodName());
-        if ($handler === null) {
-            return AppendCondition::empty();
-        }
-
-        $command = $handlerInvocation->getArguments()[0] ?? null;
-        $criteria = $className::{$handler->boundaryMethodName()}($command);
-
-        return $this->eventStore->loadByCriteria($criteria)->appendCondition;
-    }
-
-    private function handlerFor(string $className, string $methodName): ?DecisionModelHandler
-    {
-        foreach ($this->handlersWithBoundaryMethod as $handler) {
-            if ($handler->matches($className, $methodName)) {
-                return $handler;
-            }
-        }
-
-        return null;
     }
 
     private static function assertBoundaryShape(InterfaceToCall $boundary): void

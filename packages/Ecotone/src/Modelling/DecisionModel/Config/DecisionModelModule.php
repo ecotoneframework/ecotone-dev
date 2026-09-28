@@ -11,7 +11,9 @@ use function array_map;
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\DecisionModel;
+use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\EventSourcing\EventStore;
@@ -37,7 +39,6 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\DecisionModel\CrossConnectionDecisionModelGuard;
-use Ecotone\Modelling\DecisionModel\DecisionBoundaryEvaluator;
 use Ecotone\Modelling\DecisionModel\DecisionModelAppendInterceptor;
 use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoader;
 use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionBuilder;
@@ -49,6 +50,9 @@ use Ecotone\Modelling\DecisionModel\DecisionModelTagResolvabilityGuard;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 
 use function implode;
+
+use ReflectionClass;
+
 use function sprintf;
 
 #[ModuleAnnotation]
@@ -130,7 +134,9 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
             );
         }
 
-        foreach ($this->handlers->loadingModelsBeforeInvocation() as $handler) {
+        self::assertNoSagaFetchedIntoADecision($this->handlers);
+
+        foreach ($this->handlers->loadingBeforeInvocation() as $handler) {
             $batchLoaderReference = self::BATCH_LOADER_REFERENCE_PREFIX . $handler->key();
 
             $messagingConfiguration->registerServiceDefinition(
@@ -139,6 +145,8 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                     Reference::to(EventStore::RAW_REFERENCE),
                     Reference::to(TagResolver::class),
                     $handler->modelLoaderDefinitions(),
+                    $handler->fetchedAggregateCaptureDefinitions(),
+                    $handler->decisionBoundaryDefinitions(),
                 ]),
             );
 
@@ -164,14 +172,6 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         ));
 
         $messagingConfiguration->registerServiceDefinition(
-            DecisionBoundaryEvaluator::class,
-            new Definition(DecisionBoundaryEvaluator::class, [
-                Reference::to(EventStore::RAW_REFERENCE),
-                $this->handlers->withBoundaryMethodAsDefinitions(),
-            ]),
-        );
-
-        $messagingConfiguration->registerServiceDefinition(
             self::INTERCEPTOR_REFERENCE_NAME,
             new Definition(DecisionModelAppendInterceptor::class, [
                 Reference::to(EventStore::RAW_REFERENCE),
@@ -180,7 +180,6 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                 Reference::to(EventMapper::class),
                 Reference::to(EcotoneClockInterface::class),
                 Reference::to(EventBus::class),
-                Reference::to(DecisionBoundaryEvaluator::class),
             ]),
         );
 
@@ -219,6 +218,26 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                     $modelClass,
                     implode("', '", $rawDefinition['tagNames']),
                     implode("', '", $rawDefinition['tagNames']),
+                ));
+            }
+        }
+    }
+
+    private static function assertNoSagaFetchedIntoADecision(DecisionModelHandlers $handlers): void
+    {
+        foreach ($handlers->all() as $handler) {
+            foreach ($handler->fetchedAggregateClasses() as $fetchedClass) {
+                $reflectionClass = new ReflectionClass($fetchedClass);
+                if ($reflectionClass->getAttributes(Saga::class) === [] && $reflectionClass->getAttributes(EventSourcingSaga::class) === []) {
+                    continue;
+                }
+
+                throw ConfigurationException::create(sprintf(
+                    'Saga %s is fetched into %s::%s, a Dynamic Consistency Boundary handler -- sagas are outside the boundary, so a decision taken on its state would be unguarded. '
+                    . 'Keep the decision state in an aggregate or a decision model, or read the saga in a handler that does not take part in the boundary.',
+                    $fetchedClass,
+                    $handler->className(),
+                    $handler->methodName(),
                 ));
             }
         }

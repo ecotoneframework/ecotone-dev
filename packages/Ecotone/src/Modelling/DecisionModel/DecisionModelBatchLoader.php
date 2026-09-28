@@ -19,11 +19,15 @@ final class DecisionModelBatchLoader
 {
     /**
      * @param DecisionModelParameterLoader[] $loaders
+     * @param FetchedAggregateCounterCapture[] $fetchedAggregateCaptures
+     * @param DecisionBoundaryEvaluator[] $decisionBoundaries
      */
     public function __construct(
         private readonly EventStore $eventStore,
         private readonly TagResolver $tagResolver,
         private readonly array $loaders,
+        private readonly array $fetchedAggregateCaptures,
+        private readonly array $decisionBoundaries,
     ) {
     }
 
@@ -33,7 +37,11 @@ final class DecisionModelBatchLoader
     public function load(Message $message): array
     {
         $criteriaByParameterName = $this->criteriaByParameterName($message);
-        $loadedEvents = $this->loadEventsFor($criteriaByParameterName);
+        $loadedEvents = $this->loadEventsFor([
+            ...$criteriaByParameterName,
+            ...$this->fetchedAggregateCriteriaByParameterName($message),
+            ...$this->decisionBoundaryCriteria($message),
+        ]);
         $instancesByParameterName = $this->foldInstances($criteriaByParameterName, $loadedEvents->events);
 
         return [DecisionModelLoadedState::HEADER_NAME => new DecisionModelLoadedState($instancesByParameterName, $loadedEvents->appendCondition)];
@@ -53,7 +61,28 @@ final class DecisionModelBatchLoader
     }
 
     /**
-     * @param array<string, ?EventCriteria> $criteriaByParameterName
+     * @return array<string, ?EventCriteria>
+     */
+    private function fetchedAggregateCriteriaByParameterName(Message $message): array
+    {
+        $criteriaByParameterName = [];
+        foreach ($this->fetchedAggregateCaptures as $fetchedAggregateCapture) {
+            $criteriaByParameterName[$fetchedAggregateCapture->parameterName()] = $fetchedAggregateCapture->resolveCriteria($message);
+        }
+
+        return $criteriaByParameterName;
+    }
+
+    /**
+     * @return EventCriteria[]
+     */
+    private function decisionBoundaryCriteria(Message $message): array
+    {
+        return array_map(static fn (DecisionBoundaryEvaluator $decisionBoundary): EventCriteria => $decisionBoundary->criteriaFor($message), $this->decisionBoundaries);
+    }
+
+    /**
+     * @param array<string|int, ?EventCriteria> $criteriaByParameterName
      */
     private function loadEventsFor(array $criteriaByParameterName): LoadedEvents
     {

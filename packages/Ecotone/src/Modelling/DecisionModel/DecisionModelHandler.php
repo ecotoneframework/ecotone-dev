@@ -16,6 +16,9 @@ final class DecisionModelHandler
     /**
      * @param Definition[] $modelLoaderDefinitions
      * @param class-string[] $ambiguouslyDuplicatedModelClasses
+     * @param Definition[] $fetchedAggregateCaptureDefinitions
+     * @param class-string[] $fetchedAggregateClasses
+     * @param Definition[] $decisionBoundaryDefinitions
      */
     public function __construct(
         private readonly string $className,
@@ -24,18 +27,10 @@ final class DecisionModelHandler
         private readonly ?string $boundaryMethodName,
         private readonly bool $appendsItsResult,
         private readonly array $ambiguouslyDuplicatedModelClasses = [],
+        private readonly array $fetchedAggregateCaptureDefinitions = [],
+        private readonly array $fetchedAggregateClasses = [],
+        private readonly array $decisionBoundaryDefinitions = [],
     ) {
-    }
-
-    public function withoutCompileTimeDefinitions(): Definition
-    {
-        return new Definition(self::class, [
-            $this->className,
-            $this->methodName,
-            [],
-            $this->boundaryMethodName,
-            $this->appendsItsResult,
-        ]);
     }
 
     public static function keyFor(string $className, string $methodName): string
@@ -46,11 +41,6 @@ final class DecisionModelHandler
     public function key(): string
     {
         return self::keyFor($this->className, $this->methodName);
-    }
-
-    public function matches(string $className, string $methodName): bool
-    {
-        return $this->className === $className && $this->methodName === $methodName;
     }
 
     public function className(): string
@@ -71,9 +61,33 @@ final class DecisionModelHandler
         return $this->modelLoaderDefinitions;
     }
 
-    public function loadsModelsBeforeInvocation(): bool
+    /**
+     * @return Definition[]
+     */
+    public function fetchedAggregateCaptureDefinitions(): array
     {
-        return $this->modelLoaderDefinitions !== [];
+        return $this->fetchedAggregateCaptureDefinitions;
+    }
+
+    /**
+     * @return class-string[]
+     */
+    public function fetchedAggregateClasses(): array
+    {
+        return $this->fetchedAggregateClasses;
+    }
+
+    /**
+     * @return Definition[]
+     */
+    public function decisionBoundaryDefinitions(): array
+    {
+        return $this->decisionBoundaryDefinitions;
+    }
+
+    public function loadsBeforeInvocation(): bool
+    {
+        return $this->modelLoaderDefinitions !== [] || $this->fetchedAggregateCaptureDefinitions !== [] || $this->decisionBoundaryDefinitions !== [];
     }
 
     public function boundaryMethodName(): ?string

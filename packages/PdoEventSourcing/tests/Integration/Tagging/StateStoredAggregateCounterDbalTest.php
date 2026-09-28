@@ -9,6 +9,9 @@ use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\AggregateType;
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\Converter as ConverterMethod;
+use Ecotone\Api\Attribute\DecisionBoundary;
+use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Api\Attribute\QueryHandler;
@@ -17,10 +20,13 @@ use Ecotone\Api\Attribute\Version;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DocumentStore\DbalDocumentStore;
 use Ecotone\EventSourcing\Database\TagTableManager;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -67,6 +73,37 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
         }
 
         self::assertSame(50, $anna->sendQueryWithRouting('docPurse.balance', metadata: ['aggregate.id' => 'p-1']));
+    }
+
+    public function test_an_aggregate_only_decision_boundary_fails_the_append_when_another_connection_saves_the_aggregate_during_the_decision(): void
+    {
+        $this->skipUnlessTwoConnectionsCanRace();
+
+        $anna = $this->bootstrapEcotone(self::getConnectionFactory());
+        $ben = $this->bootstrapEcotone(new DbalConnectionFactory($this->dsn()));
+        $anna->sendCommand(new OpenPurseForCounterDbalTest('p-1'));
+        $anna->getServiceFromContainer(CompetingWithdrawalForCounterDbalTest::class)->arm(
+            fn () => $ben->sendCommand(new WithdrawFromPurseForCounterDbalTest('p-1', 50))
+        );
+
+        try {
+            $anna->sendCommand(new AuditPurseForCounterDbalTest('p-1'));
+            $this->fail('Expected a DecisionModelConcurrencyException');
+        } catch (DecisionModelConcurrencyException $exception) {
+            self::assertStringContainsString('DocPurse p-1 changed since it was loaded', $exception->getMessage());
+        }
+
+        self::assertSame([], $anna->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('purseAudit', 'p-1'))->events);
+    }
+
+    public function test_an_aggregate_only_decision_boundary_appends_when_nobody_saved_the_aggregate(): void
+    {
+        $anna = $this->bootstrapEcotone(self::getConnectionFactory());
+        $anna->sendCommand(new OpenPurseForCounterDbalTest('p-1'));
+
+        $anna->sendCommand(new AuditPurseForCounterDbalTest('p-1'));
+
+        self::assertCount(1, $anna->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('purseAudit', 'p-1'))->events);
     }
 
     public function test_sequential_commands_on_a_state_stored_aggregate_succeed_and_its_version_property_behaves_as_without_dcb(): void
@@ -129,12 +166,18 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
         }
 
         $ecotone = $this->bootstrapFlowTestingWithEventStore(
-            classesToResolve: [PurseForCounterDbalTest::class, PurseJsonConverterForCounterDbalTest::class],
+            classesToResolve: [
+                PurseForCounterDbalTest::class,
+                PurseJsonConverterForCounterDbalTest::class,
+                ...($withDynamicConsistencyBoundary ? [PurseAuditorForCounterDbalTest::class, PurseAuditedForCounterDbalTest::class, PurseAuditedConverterForCounterDbalTest::class] : []),
+            ],
             containerOrAvailableServices: [
                 $connectionFactory,
                 'reporting_connection' => $connectionFactory,
                 new PurseJsonConverterForCounterDbalTest(),
                 new CompetingWithdrawalForCounterDbalTest(),
+                new PurseAuditorForCounterDbalTest(),
+                new PurseAuditedConverterForCounterDbalTest(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
@@ -165,7 +208,7 @@ final class StateStoredAggregateCounterDbalTest extends EventSourcingMessagingTe
     private function dropTables(): void
     {
         $connection = $this->getConnection();
-        foreach ([TagTableManager::TAGGED_EVENTS_TABLE, TagTableManager::TAG_VERSIONS_TABLE, DbalDocumentStore::ECOTONE_DOCUMENT_STORE] as $tableName) {
+        foreach ([TagTableManager::TAGGED_EVENTS_TABLE, TagTableManager::TAG_VERSIONS_TABLE, DbalDocumentStore::ECOTONE_DOCUMENT_STORE, 'ecotone_event_stream'] as $tableName) {
             if (self::tableExists($connection, $tableName)) {
                 $connection->executeStatement('DROP TABLE ' . $tableName);
             }
@@ -263,5 +306,55 @@ final class PurseJsonConverterForCounterDbalTest implements Converter
     {
         return ($sourceType->getTypeHint() === PurseForCounterDbalTest::class && $targetMediaType->isCompatibleWith(MediaType::createApplicationJson()))
             || ($sourceMediaType->isCompatibleWith(MediaType::createApplicationJson()) && $targetType->getTypeHint() === PurseForCounterDbalTest::class);
+    }
+}
+
+final readonly class AuditPurseForCounterDbalTest
+{
+    public function __construct(public string $purseId)
+    {
+    }
+}
+
+final readonly class PurseAuditedForCounterDbalTest
+{
+    public function __construct(#[EventTag('purseAudit')] public string $purseId, public int $balance)
+    {
+    }
+}
+
+final class PurseAuditorForCounterDbalTest
+{
+    #[DecisionBoundary]
+    public static function boundary(AuditPurseForCounterDbalTest $command): EventCriteria
+    {
+        return EventCriteria::aggregate(PurseForCounterDbalTest::class, $command->purseId);
+    }
+
+    #[CommandHandler]
+    public function audit(
+        AuditPurseForCounterDbalTest $command,
+        #[Reference] QueryBus $queryBus,
+        #[Reference] CompetingWithdrawalForCounterDbalTest $competingWithdrawal,
+    ): array {
+        $balance = $queryBus->sendWithRouting('docPurse.balance', metadata: ['aggregate.id' => $command->purseId]);
+        $competingWithdrawal->commitIfArmed();
+
+        return [new PurseAuditedForCounterDbalTest($command->purseId, $balance)];
+    }
+}
+
+final class PurseAuditedConverterForCounterDbalTest
+{
+    #[ConverterMethod]
+    public function fromAudited(PurseAuditedForCounterDbalTest $event): array
+    {
+        return ['purseId' => $event->purseId, 'balance' => $event->balance];
+    }
+
+    #[ConverterMethod]
+    public function toAudited(array $event): PurseAuditedForCounterDbalTest
+    {
+        return new PurseAuditedForCounterDbalTest($event['purseId'], $event['balance']);
     }
 }

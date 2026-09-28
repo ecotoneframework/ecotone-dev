@@ -4,11 +4,21 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\EventSourcing;
 
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\EventSourcing\Tagging\AggregateCounterTag;
+use Ecotone\Modelling\AggregateIdString;
+
 use function in_array;
 
 use InvalidArgumentException;
 
+use function is_array;
+
+use ReflectionClass;
+
 use function sprintf;
+
+use Stringable;
 
 /**
  * licence Enterprise
@@ -30,6 +40,26 @@ final class EventCriteria
     public static function tag(string $name, string $value): self
     {
         return new self([['name' => $name, 'value' => $value]]);
+    }
+
+    /**
+     * @param class-string $aggregateClass
+     * @param string|int|Stringable|array<string, string|int|Stringable> $identifier
+     */
+    public static function aggregate(string $aggregateClass, string|int|Stringable|array $identifier): self
+    {
+        $aggregateType = (new ReflectionClass($aggregateClass))->getAttributes(AggregateType::class)[0] ?? null;
+        if ($aggregateType === null) {
+            throw new InvalidArgumentException(sprintf(
+                'EventCriteria::aggregate() needs %s to declare #[AggregateType] -- its counter tag is named after the aggregate type.',
+                $aggregateClass,
+            ));
+        }
+
+        return self::tag(
+            AggregateCounterTag::nameFor($aggregateType->newInstance()->getName()),
+            AggregateIdString::from(is_array($identifier) ? $identifier : [$identifier]),
+        );
     }
 
     public static function any(): self

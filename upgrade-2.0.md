@@ -410,7 +410,9 @@ interface MyCommandBus extends CommandBus {}
 
 Without retry configured, a conflict surfaces to the caller as a technical exception naming the tag and the captured
 vs. current version — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
-fires inside an already-open database transaction; that transaction is already unsafe to continue.
+fires inside an already-open database transaction; that transaction is already unsafe to continue. A conflict is not
+always another writer: a handler that sends a command from inside itself, whose handler appends to the same tag in
+the same transaction, moves the tag under its own feet and fails on every retry — decide both in one handler.
 
 **Transactions are required.** Tagged appends (events carrying an `#[EventTag]`, or any append with an
 `AppendCondition`), decision-model handlers and `ecotone:event-store:backfill-tags` write the tag versions, the events

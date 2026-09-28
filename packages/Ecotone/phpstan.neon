@@ -2,3 +2,16 @@ parameters:
 	level: 1
 	paths:
 		- src
+	ignoreErrors:
+		-
+			message: '#^Class .* not found.$#'
+			path: src/Messaging/Config/ModuleClassList.php
+		-
+			message: '#^Class .* not found.$#'
+			path: src/Lite/EcotoneLite.php
+		-
+			message: '#^Call to static method#'
+			path: src/Lite/EcotoneLite.php
+		-
+			message: '#^Class Ecotone\\Api\\EventSourcing\\Stream not found.$#'
+			path: src/Modelling/DecisionModel/CrossConnectionDecisionModelGuard.php

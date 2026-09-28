@@ -94,6 +94,27 @@ final class DecisionModelFetchTest extends TestCase
         $this->assertSame(1, CountingHandlerForFetchTest::$observedCount);
     }
 
+    public function test_fetch_resolving_a_list_of_values_for_a_single_tag_model_is_rejected_naming_model_and_tag(): void
+    {
+        $handler = new CountingSeveralAccountsHandlerForFetchTest();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
+            containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        try {
+            $ecotone->sendCommand(new CountSeveralAccountsForFetchTest(['acc-1', 'acc-2']));
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(AccountActivityForFetchTest::class, $exception->getMessage());
+            $this->assertStringContainsString("'account'", $exception->getMessage());
+            $this->assertStringContainsString('one value', $exception->getMessage());
+        }
+    }
+
     private function bootstrapCountingHandler(CountingHandlerForFetchTest $handler)
     {
         return EcotoneLite::bootstrapFlowTesting(
@@ -230,6 +251,26 @@ final class CountingHandlerForFetchTest
     {
         self::$observedCount = $account->transferCount();
 
+        return [];
+    }
+}
+
+final readonly class CountSeveralAccountsForFetchTest
+{
+    /**
+     * @param string[] $references
+     */
+    public function __construct(
+        public array $references,
+    ) {
+    }
+}
+
+final class CountingSeveralAccountsHandlerForFetchTest
+{
+    #[CommandHandler]
+    public function count(CountSeveralAccountsForFetchTest $command, #[Fetch('payload.references')] AccountActivityForFetchTest $account): array
+    {
         return [];
     }
 }

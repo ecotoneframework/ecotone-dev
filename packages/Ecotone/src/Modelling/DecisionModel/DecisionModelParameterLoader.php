@@ -13,6 +13,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 
+use function array_is_list;
 use function is_array;
 use function sprintf;
 
@@ -97,7 +98,7 @@ final class DecisionModelParameterLoader
 
         $tagValues = [];
         foreach ($tagNames as $tagName) {
-            $value = $this->normalizedTagValue($tagName, is_array($resolved)
+            $value = $this->normalizedTagValue($tagName, is_array($resolved) && ! array_is_list($resolved)
                 ? ($resolved[$tagName] ?? null)
                 : (count($tagNames) === 1 ? $resolved : null));
 
@@ -121,6 +122,14 @@ final class DecisionModelParameterLoader
 
     private function normalizedTagValue(string $tagName, mixed $value): ?string
     {
+        if (is_array($value)) {
+            throw ConfigurationException::create(sprintf(
+                "Could not resolve tag '%s' for DecisionModel %s: the message supplies several values, but a model is scoped by one value per tag. Inject the model once per value with #[Fetch], or express a boundary over several values with #[DecisionBoundary].",
+                $tagName,
+                $this->modelClassName,
+            ));
+        }
+
         try {
             return EventTagValueNormalizer::normalize($tagName, $value)[0] ?? null;
         } catch (ConfigurationException $exception) {

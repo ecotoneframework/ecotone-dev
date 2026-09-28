@@ -503,7 +503,9 @@ no transaction.
   boundary, when the property holds `null`; a non-nullable one throws, naming the model and the tag.
   A value resolved from the message — by name or through `#[Fetch]` — is normalised and validated exactly like an
   `#[EventTag]` value on an event: an `int` id matches the same `int` tagged on events, and an empty, over-long or
-  trailing-whitespace value throws, naming the model and the tag.
+  trailing-whitespace value throws, naming the model and the tag. A model is scoped by one value per tag: a message
+  property or `#[Fetch]` result holding several values throws too — inject the model once per value with `#[Fetch]`,
+  or use `#[DecisionBoundary]`.
   Use `#[Fetch('payload.fromAccountId')]` for explicit mapping — needed to inject the same model class twice (a
   transfer's two accounts) or when the property-name convention doesn't apply; a multi-tag model's `#[Fetch]`
   expression returns a map (`"{'customer': payload.customerId, 'coupon': payload.couponCode}"`).

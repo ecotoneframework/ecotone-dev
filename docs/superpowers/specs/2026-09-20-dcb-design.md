@@ -477,7 +477,7 @@ public function transfer(
 
 The same model class twice, with different values — the case convention alone cannot resolve. For a multi-tag
 model the expression returns a map keyed by tag name, as `#[Fetch]` already accepts for multi-identifier
-aggregates. An array value selects several values of one key. A tag that
+aggregates. A model is scoped by **one value per tag**: an array value from the message — a property or a `#[Fetch]` result — is an exception naming the model and the tag (maintainer, 2026-09-28); inject the model once per value with `#[Fetch]`, or use `#[DecisionBoundary]` for a boundary over several values. A tag that
 cannot be resolved is a bootstrap error when statically knowable — the handler's message is a concrete class with
 no matching property, whether or not the model parameter is nullable (implemented by
 `DecisionModelTagResolvabilityGuard`; `couponCode` does not match tag `coupon` by convention) — otherwise an exception naming model, tag and

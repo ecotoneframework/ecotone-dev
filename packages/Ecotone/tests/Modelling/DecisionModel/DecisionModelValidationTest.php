@@ -151,6 +151,28 @@ final class DecisionModelValidationTest extends TestCase
         );
     }
 
+    public function test_command_property_holding_several_values_for_a_model_tag_is_rejected_naming_model_tag_and_remedies(): void
+    {
+        $handler = new HandlerForSeveralCoursesCommandForValidationTest();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class],
+            containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        try {
+            $ecotone->sendCommand(new CommandWithSeveralCoursesForValidationTest(['course-1', 'course-2']));
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(ModelForValidationTest::class, $exception->getMessage());
+            $this->assertStringContainsString("'course'", $exception->getMessage());
+            $this->assertStringContainsString('#[Fetch]', $exception->getMessage());
+            $this->assertStringContainsString('#[DecisionBoundary]', $exception->getMessage());
+        }
+    }
+
     private function assertHandlerRejectedAtBootstrapForUnresolvableTag(object $handler): void
     {
         try {
@@ -472,6 +494,26 @@ final class HandlerForCourseCodeCommandForValidationTest
 {
     #[CommandHandler]
     public function handle(CommandWithCourseCodeForValidationTest $command, ModelForValidationTest $model): array
+    {
+        return [];
+    }
+}
+
+final readonly class CommandWithSeveralCoursesForValidationTest
+{
+    /**
+     * @param string[] $courseId
+     */
+    public function __construct(
+        public array $courseId,
+    ) {
+    }
+}
+
+final class HandlerForSeveralCoursesCommandForValidationTest
+{
+    #[CommandHandler]
+    public function handle(CommandWithSeveralCoursesForValidationTest $command, ModelForValidationTest $model): array
     {
         return [];
     }

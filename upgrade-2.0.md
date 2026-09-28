@@ -452,7 +452,9 @@ no transaction.
   ```
 
   The same key may repeat across properties (a transfer's two accounts) and a property may be an array of scalars
-  (each value indexed separately). Values are scalar, `Stringable`, or arrays of those; `null` means no tag.
+  (each value indexed separately). Values are scalar, `Stringable`, or arrays of those; `null` means no tag. A value
+  must be valid UTF-8, non-empty, at most 255 characters (characters, not bytes), without a NUL byte or trailing
+  whitespace; a tag name must be non-empty and at most 100 characters (checked at bootstrap).
 - Declare a decision model with `#[DecisionModel]` and fold it with `#[EventSourcingHandler]`, exactly like an
   aggregate, with a public no-argument constructor:
 

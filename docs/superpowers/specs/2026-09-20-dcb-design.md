@@ -239,9 +239,11 @@ immediately — and lock contention cannot be tested there; `busy_timeout` must 
 - No foreign keys. `EventStore::delete($stream)` deletes that stream's index rows in the same transaction — without
   this, a re-created stream restarts `no` at 1 and stale rows join to unrelated events (every test suite that resets
   streams would hit it). Counters are left: a stale counter can only cause one spurious retry.
-- Tag values are validated in PHP before they reach SQL: non-empty, ≤ 255 characters, no trailing whitespace
-  (`utf8mb4_bin` is PAD SPACE — `'abc'` equals `'abc '` on MySQL but not on PostgreSQL). Non-strict MySQL would
-  otherwise truncate silently and the decision would silently miss events.
+- Tag values are validated in PHP before they reach SQL: valid UTF-8 (PostgreSQL and MySQL would reject the
+  bytes), no NUL byte (PostgreSQL rejects it, and it is the in-process tag key separator), non-empty, ≤ 255
+  *characters* (the columns count characters, not bytes), no trailing whitespace (`utf8mb4_bin` is PAD SPACE —
+  `'abc'` equals `'abc '` on MySQL but not on PostgreSQL). Non-strict MySQL would otherwise truncate silently and the
+  decision would silently miss events. Tag names are checked at bootstrap: non-empty, ≤ 100 characters, no NUL byte.
 - Both tables register with `ecotone:migration:database:setup` under their **own feature, `event_tags`**,
   whose table manager reports `isUsed()` only when the application declares an `#[EventTag]`. DCB is Enterprise
   (§4.10): an open-core application never sees these tables in its setup output or its database. `--sql` prints

@@ -18,7 +18,9 @@ use function array_unique;
 use function array_values;
 use function in_array;
 use function is_a;
+use function preg_match_all;
 use function sprintf;
+use function str_contains;
 
 /**
  * licence Enterprise
@@ -102,7 +104,22 @@ final class EventTagRegistryBuilder
             }
         }
 
+        foreach ($entries as $entry) {
+            self::assertTagNameFitsTheTagTables($className, $entry['name']);
+        }
+
         return $entries;
+    }
+
+    private static function assertTagNameFitsTheTagTables(string $className, string $tagName): void
+    {
+        if ($tagName === '' || str_contains($tagName, "\0") || preg_match_all('/./su', $tagName) > 100) {
+            throw ConfigurationException::create(sprintf(
+                "#[EventTag] name '%s' on %s must be a non-empty name of at most 100 characters without NUL bytes -- it is stored in the tag tables' tag_name column.",
+                $tagName,
+                $className,
+            ));
+        }
     }
 
     private static function assertPropertyTypeIsTaggable(ReflectionProperty $property, string $tagName): void

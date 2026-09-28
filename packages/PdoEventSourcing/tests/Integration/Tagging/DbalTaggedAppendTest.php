@@ -62,6 +62,18 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         self::assertSame(1, $this->tagVersion($eventStore, 'coupon', 'SUMMER24'));
     }
 
+    public function test_tag_value_of_255_multibyte_characters_is_stored_and_found_again(): void
+    {
+        $eventStore = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class])->getGateway(EventStore::class);
+        $code = str_repeat('ż', 255);
+
+        self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest($code, 2)]));
+
+        $events = $eventStore->loadByCriteria(EventCriteria::tag('coupon', $code))->events;
+        self::assertCount(1, $events);
+        self::assertSame($code, $events[0]->getPayload()->code);
+    }
+
     public function test_second_append_bumps_counter_to_two(): void
     {
         $eventStore = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class])->getGateway(EventStore::class);

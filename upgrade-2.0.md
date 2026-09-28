@@ -376,6 +376,30 @@ Without retry configured, a conflict surfaces to the caller as a technical excep
 vs. current version — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
 fires inside an already-open database transaction; that transaction is already unsafe to continue.
 
+**Transactions are required.** Tagged appends (events carrying an `#[EventTag]`, or any append with an
+`AppendCondition`), decision-model handlers and `ecotone:event-store:backfill-tags` write the tag versions, the events
+and the tag index as one unit, so they need an active database transaction. The event store never opens one itself:
+without it the append throws `Ecotone\Messaging\Config\ConfigurationException` naming the switch to turn on.
+Transactions are on by default in `DbalConfiguration::createWithDefaults()`; if you disabled them, enable the one that
+covers the entry point:
+
+```php
+#[ServiceContext]
+public function dbal(): DbalConfiguration
+{
+    return DbalConfiguration::createWithDefaults()
+        ->withTransactionOnCommandBus(true)               // command handlers
+        ->withTransactionOnAsynchronousEndpoints(true)    // asynchronous handlers
+        ->withTransactionOnConsoleCommands(true);         // ecotone:event-store:backfill-tags
+}
+```
+
+Calling `EventStore::appendTo()` with tagged events outside a handler (a script, a test) needs a transaction opened
+around the call (`$connection->transactional(fn () => $eventStore->appendTo(...))`). `EcotoneLite` tests bootstrapped
+with `bootstrapFlowTestingWithEventStore(runForProductionEventStore: true)` get `DbalConfiguration::createForTesting()`
+(all transactions off) unless they pass their own `DbalConfiguration`. Untagged appends stay a single `INSERT` and need
+no transaction.
+
 **How to adapt:**
 
 - Tag an event: promoted constructor parameter, property, method (for a computed/hashed value), or class-level with

@@ -615,9 +615,12 @@ Capture-before-read matters. A writer committing between the statements makes th
 version: a spurious retry, safe. The opposite order pairs a newer version with older events and **misses** the
 conflict.
 
-**Write side.** The store opens its own transaction if none is active — today's `appendTo()` is one atomic INSERT,
-this is several statements, and handlers under `#[WithoutDatabaseTransaction]`, streams on a non-default
-connection and direct gateway calls have no ambient transaction.
+**Write side.** A tagged append is several statements that must commit together, so it **requires an active
+transaction and never opens one itself** (maintainer, 2026-09-28). Transactions belong to `DbalTransactionInterceptor`
+(`DbalConfiguration::withTransactionOnCommandBus/AsynchronousEndpoints/ConsoleCommands`); when a tagged append, a
+conditional append or `backfill-tags` runs with none active, the store throws a `ConfigurationException` naming the
+switch to enable. Handlers under `#[WithoutDatabaseTransaction]`, streams on a non-default connection and direct
+gateway calls must open one explicitly. Untagged appends stay today's single atomic `INSERT` and need none.
 
 ```sql
 -- A. ONE pass over the union of (condition tags ∪ tags of the new events), sorted by (tag_key, tag_value).
@@ -926,14 +929,17 @@ after the other, including their synchronous `#[EventHandler]`s. No variant avoi
 missed-conflict bug. It is the price of tagging an event, paid only by events that are tagged — hence filter-only
 tags, and hence: **tag what a decision needs, nothing else.**
 
-**The MySQL/MariaDB snapshot hazard.** Under `REPEATABLE READ` a transaction reads from the snapshot opened by
-its first SELECT — *plus its own writes*. If transaction T opens a snapshot (counter = 7), a foreign event E
-commits (8), T bumps the same tag while saving a tagged aggregate event (a current read: 9), and a synchronous
-handler in T then runs a decision model on that tag — it captures 9 (its own write), reads events from the old
-snapshot (no E), and its guard passes. Fix, InnoDB only: before a transaction's first bump of a tag, read the
-snapshot value `s`; count own bumps `n`; a decision capture that differs from `s + n` throws `ConcurrencyException`
-and the retry gets a fresh snapshot. PostgreSQL snapshots per statement and is unaffected. Recent MariaDB
-(`innodb_snapshot_isolation=ON`) raises error 1020 instead — mapped below.
+**Pure optimistic locking (maintainer, 2026-09-28).** The guarded `UPDATE ... WHERE version = :captured` (0 rows →
+`DecisionModelConcurrencyException`) is the only conflict mechanism: no `SELECT ... FOR UPDATE`, no per-transaction
+snapshot tracking, and the store keeps no state between executions. The guarded `UPDATE` is a current read on every
+engine, so a foreign commit that landed after a decision captured its version fails the guard even inside an older
+InnoDB snapshot. One `REPEATABLE READ` corner remains and is accepted: if a transaction first bumps a tag itself (a
+tagged aggregate save) and a synchronous handler in the *same* transaction then decides on that tag, the capture
+reads the transaction's own write while the events come from its older snapshot, so a foreign event committed in
+between is not seen. Keep such decisions in their own transaction (asynchronous handler, or a separate command) or
+run MySQL at `READ COMMITTED`. The earlier InnoDB own-bump tracking was removed: it kept per-connection state in a
+singleton that leaked into the next transaction. Recent MariaDB (`innodb_snapshot_isolation=ON`) raises error 1020
+on such writes instead — mapped below.
 
 **Deadlocks still happen, and are conflicts.** Sorting removes cycles *within* one append. It cannot remove
 them across two appends in one transaction, nor InnoDB's three-way duplicate-insert deadlock on a never-written
@@ -1266,3 +1272,4 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-23 | Boundaries span streams — yes; no runtime backfill guard, user waits for `backfill-tags`; no automatic retry, users configure it; names and filter-only tags as proposed | **Maintainer** | Closes Part 5. Claude's recommendations on 3 and 4 (guard on by default, retry registered automatically) were declined: the maintainer prefers explicit operator control over framework-enforced safety here — documented loudly instead |
 | 2026-09-27 | **One `EventStore`, not `TaggedEventStore` beside it.** `TaggedEventStore` and `AggregateEventStore` deleted, folded into `EventStore` (`loadByCriteria`, `loadAggregateEvents`, optional `AppendCondition` on `appendTo`). `AppendCondition::forAggregate()` added — open-core, since it only formalizes the existing unique-index check. Appending split into `AppendStrategy` (open-core, aggregate only, rejects a tag part) composed with an Enterprise strategy (tag protocol, delegates the aggregate-only case) | **Maintainer** | Implemented in `implement-unified-event-store`. `loadByCriteria()` turned out not to be exposable through the `EventStore` gateway — the messaging layer has no variadic-parameter support — so it stays reachable only on the concrete/raw store, same as `TaggedEventStore` always was |
 | 2026-09-27 | **Review fix: `EventCriteria` gained `->or()`/`branches()`, `loadByCriteria()` made non-variadic, and it is now registered as a gateway action.** `EventCriteria::or(self $other): self` composes an OR of criteria into one object; `branches(): self[]` iterates the single-criterion leaves for `DbalEventStore`/`InMemoryEventStore`. `loadByCriteria(EventCriteria $criteria): LoadedEvents` replaces the variadic form everywhere, so `EventStore` obtained from the container or the gateway both expose it | **Maintainer**, review follow-up | The variadic signature was never reachable through the `EventStore` gateway, which the design doc's own §4.4 example assumes; "obtain the concrete store" is not acceptable for a public API. `EventStoreGatewayLoadByCriteriaTest` (in-memory) and `DbalTaggedLoadTest::test_loading_events_by_criteria_through_the_gateway_returns_the_event_that_carries_it` (PostgreSQL) cover the gateway path |
+| 2026-09-28 | **Stateless DCB services, pure optimistic locking, transactions required.** InnoDB own-bump snapshot tracking removed from `DbalTagVersionRegister`; the guarded `UPDATE` is the sole conflict mechanism. The event store never opens a transaction: tagged/conditional appends and `backfill-tags` throw `ConfigurationException` without one, naming the `DbalConfiguration` switch. Decision-model state is function-scoped: a per-handler before interceptor loads the batch once and carries an immutable `DecisionModelLoadedState` header (instances + `AppendCondition`) read by the converter, the append interceptor and `SaveAggregateService`; the message-id keyed collectors are deleted. `InMemoryEventStore` collaborators are constructor-only | **Maintainer** | Services injected through constructors must be stateless: the snapshot tracking leaked into the next transaction on the same connection, and the collectors leaked conditions/instances across query handlers, converter failures and retries with the same message id. A before interceptor rather than an around one, because around interceptors resolve the handler's arguments before they run and cannot hand converters a changed message |

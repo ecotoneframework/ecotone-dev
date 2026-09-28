@@ -9,7 +9,7 @@ use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 /**
  * licence Enterprise
  */
-final class InMemoryTagVersions
+final class InMemoryTagVersionRegister
 {
     /**
      * @var array<string, int>

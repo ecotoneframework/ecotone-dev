@@ -15,16 +15,16 @@ use Ecotone\EventSourcing\Tagging\TagResolver;
 /**
  * licence Enterprise
  */
-final class InMemoryTagConditionalStore implements InMemoryTagCollaborator
+final class EnterpriseInMemoryTagCollaborator implements InMemoryTagCollaborator
 {
-    private InMemoryTagVersions $versions;
+    private InMemoryTagVersionRegister $versions;
 
     private InMemoryTagIndex $index;
 
     public function __construct(
         private readonly TagResolver $tagResolver,
     ) {
-        $this->versions = new InMemoryTagVersions();
+        $this->versions = new InMemoryTagVersionRegister();
         $this->index = new InMemoryTagIndex();
     }
 

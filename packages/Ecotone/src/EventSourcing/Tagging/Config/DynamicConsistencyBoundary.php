@@ -8,8 +8,8 @@ use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\DynamicConsistencyBoundaryStrategy;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\StandardConsistencyBoundaryStrategy;
+use Ecotone\EventSourcing\EventStore\Tag\EnterpriseInMemoryTagCollaborator;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
-use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagConditionalStore;
 use Ecotone\EventSourcing\EventStore\Tag\OpenCoreInMemoryTagCollaborator;
 use Ecotone\EventSourcing\Tagging\TagResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
@@ -73,12 +73,12 @@ final class DynamicConsistencyBoundary
             new Definition(OpenCoreInMemoryTagCollaborator::class),
         );
         $messagingConfiguration->registerServiceDefinition(
-            InMemoryTagConditionalStore::class,
-            new Definition(InMemoryTagConditionalStore::class, [Reference::to(TagResolver::class)]),
+            EnterpriseInMemoryTagCollaborator::class,
+            new Definition(EnterpriseInMemoryTagCollaborator::class, [Reference::to(TagResolver::class)]),
         );
         $messagingConfiguration->registerServiceDefinition(
             InMemoryTagCollaborator::class,
-            $this->definitionFor(InMemoryTagCollaborator::class, OpenCoreInMemoryTagCollaborator::class, InMemoryTagConditionalStore::class),
+            $this->definitionFor(InMemoryTagCollaborator::class, OpenCoreInMemoryTagCollaborator::class, EnterpriseInMemoryTagCollaborator::class),
         );
     }
 

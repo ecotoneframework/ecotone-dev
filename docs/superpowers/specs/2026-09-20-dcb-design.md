@@ -558,6 +558,20 @@ and a model is a plain class, so its fold is unit-testable with `new CourseCapac
 — so flow tests exercise real conditional-append semantics without a database. A conflict is forced
 deterministically by injecting a service that appends a competing event on first call.
 
+The in-memory classes mirror the DBAL ones one for one, so the two implementations can be compared by name:
+
+| Role | DBAL | In-memory |
+|---|---|---|
+| Enterprise composition root | `EnterpriseDbalTagCollaborator` | `EnterpriseInMemoryTagCollaborator` |
+| open-core implementation | `OpenCoreDbalTagCollaborator` | `OpenCoreInMemoryTagCollaborator` |
+| counters | `DbalTagVersionRegister` | `InMemoryTagVersionRegister` |
+| index | `DbalTagIndex` | `InMemoryTagIndex` |
+| append, read | `DbalTagConditionalAppender`, `DbalTaggedEventReader` | inline in `EnterpriseInMemoryTagCollaborator` |
+| backfill | `DbalTagBackfiller` | none — in-memory events are never written without their tags |
+
+The two asymmetries are by design: the in-memory collaborator *holds* the tag state (the database holds it for DBAL),
+and there is nothing to backfill.
+
 **Without any class**, the same machinery is a gateway on the store itself — **revision 5, maintainer direction,
 2026-09-27: there is one `EventStore`, not a second `TaggedEventStore` interface beside it.** `loadByCriteria()` and
 `appendTo()`'s optional `AppendCondition` moved onto `Ecotone\EventSourcing\EventStore` directly, alongside

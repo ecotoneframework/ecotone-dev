@@ -545,7 +545,9 @@ public static function boundary(RateCourse $command): EventCriteria { /* … */ 
 
 `DecisionBoundaryEvaluator` (Enterprise) owns the escape hatch: it discovers boundary methods at bootstrap — a
 boundary is matched to the `#[CommandHandler]`/`#[EventHandler]` of its class whose **first parameter has the same type
-as the boundary's first parameter** — and, when the handler returns, calls the static method with the handler's
+as the boundary's first parameter** (a boundary that is not static, takes other than that one parameter, does not
+declare `EventCriteria` as its return type, matches no handler, or duplicates another boundary's parameter type is a
+bootstrap `ConfigurationException`) — and, when the handler returns, calls the static method with the handler's
 command and loads by the criteria it returns. **Cost:** the one-load-per-handler guarantee (see "How it runs" above) covers injected
 models only. A boundary is a **second, separate `loadByCriteria()`** on top of the batched model load, run inside the
 same transaction, and its condition is merged into the handler's `AppendCondition`. It is not folded into the batch

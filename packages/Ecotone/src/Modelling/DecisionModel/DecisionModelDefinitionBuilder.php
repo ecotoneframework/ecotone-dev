@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -178,12 +179,28 @@ final class DecisionModelDefinitionBuilder
         foreach ($handledEventClasses as $handledEventClass) {
             $eventTagNames = $eventTagRegistry->tagNamesFor($handledEventClass);
 
-            $descriptions[] = $eventTagNames === []
-                ? sprintf('%s (no #[EventTag])', $handledEventClass)
-                : sprintf('%s (%s)', $handledEventClass, implode(', ', $eventTagNames));
+            $descriptions[] = match (true) {
+                $eventTagNames !== [] => sprintf('%s (%s)', $handledEventClass, implode(', ', $eventTagNames)),
+                self::declaresEventTag($handledEventClass) => sprintf("%s (declares #[EventTag] but was not found by Ecotone's class scan -- add its namespace to the scanned namespaces)", $handledEventClass),
+                default => sprintf('%s (no #[EventTag])', $handledEventClass),
+            };
         }
 
         return implode(', ', $descriptions);
+    }
+
+    private static function declaresEventTag(string $eventClass): bool
+    {
+        for ($reflectionClass = new ReflectionClass($eventClass); $reflectionClass !== false; $reflectionClass = $reflectionClass->getParentClass()) {
+            $members = [$reflectionClass, ...$reflectionClass->getProperties(), ...$reflectionClass->getMethods()];
+            foreach ($members as $member) {
+                if ($member->getAttributes(EventTag::class) !== []) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

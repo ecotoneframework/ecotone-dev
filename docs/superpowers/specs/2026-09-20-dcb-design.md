@@ -308,6 +308,10 @@ final readonly class InvoiceIssued
   nearest tagged ancestor, resolved when the event is appended, so a subclass is indexed and guarded like its parent.
   Matching stays **exact-class**: a model's criterion lists the classes its `#[EventSourcingHandler]`s name, so a
   handler typed with the parent does not fold the subclass.
+- **Scan limitation** (maintainer, 2026-09-28): the registry is built from the annotation scan at bootstrap and is
+  not extended by reflection at append time (that would need a per-class cache — a stateful service). A tagged event
+  class outside the scanned namespaces is therefore appended without tags. A decision model handling one is rejected
+  at bootstrap with a message naming the class scan as the cause; the write side is documented, not detected.
 - Tags are stored in plaintext beside the payload and appear in diagnostics. Do not tag personal data directly —
   tag a hash through a method.
 

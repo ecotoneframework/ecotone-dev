@@ -242,6 +242,21 @@ final class DecisionModelValidationTest extends TestCase
         }
     }
 
+    public function test_model_handling_a_tagged_event_the_class_scan_did_not_find_is_rejected_naming_the_scan_as_the_cause(): void
+    {
+        try {
+            EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [ModelForValidationTest::class],
+                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(TaggedEventForValidationTest::class, $exception->getMessage());
+            $this->assertStringContainsString("not found by Ecotone's class scan", $exception->getMessage());
+        }
+    }
+
     public function test_model_whose_handled_events_share_no_tag_name_is_rejected_at_bootstrap_naming_every_event_and_both_remedies(): void
     {
         try {

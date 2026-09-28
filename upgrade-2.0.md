@@ -457,7 +457,9 @@ no transaction.
   whitespace; a tag name must be non-empty and at most 100 characters (checked at bootstrap). A subclass of a tagged
   event carries the tags of its nearest tagged ancestor, so it is indexed and guarded like its parent; a decision
   model, though, folds only the exact classes its `#[EventSourcingHandler]`s name — a handler for the parent does not
-  receive the subclass.
+  receive the subclass. Tags are known from Ecotone's class scan: an event class outside the scanned namespaces is
+  appended **without** tags (not indexed, not guarded) even if it declares `#[EventTag]` — keep tagged events in a
+  scanned namespace. A decision model handling such an event fails at bootstrap, naming the scan as the cause.
 - Declare a decision model with `#[DecisionModel]` and fold it with `#[EventSourcingHandler]`, exactly like an
   aggregate, with a public no-argument constructor:
 

@@ -15,7 +15,6 @@ use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;
@@ -109,6 +108,9 @@ final readonly class CouponIssuedForMultiTenantTest
     }
 }
 
+/**
+ * @internal
+ */
 final class CouponIssuanceLimitReachedForMultiTenantTest extends RuntimeException
 {
 }

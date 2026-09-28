@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel\Config;
 
+use function array_keys;
+use function array_map;
+
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -22,8 +25,8 @@ use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
-use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\ModulePackageList;
@@ -47,12 +50,11 @@ use Ecotone\Modelling\DecisionModel\DecisionModelExecutorRegistry;
 use Ecotone\Modelling\DecisionModel\DecisionModelReflection;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 
+use function implode;
+
 use ReflectionAttribute;
 use ReflectionClass;
 
-use function array_keys;
-use function array_map;
-use function implode;
 use function sprintf;
 
 #[ModuleAnnotation]

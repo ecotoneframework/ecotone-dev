@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Dbal\Tag;
 
+use function count;
+
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\EventSourcing\Database\TagTableManager;
@@ -11,13 +13,13 @@ use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\Config\ConfigurationException;
-use Throwable;
 
-use function count;
 use function implode;
 use function is_object;
 use function ksort;
 use function sprintf;
+
+use Throwable;
 
 /**
  * licence Enterprise

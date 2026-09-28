@@ -27,6 +27,7 @@ use Throwable;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class DecisionModelStatelessExecutionTest extends TestCase
 {

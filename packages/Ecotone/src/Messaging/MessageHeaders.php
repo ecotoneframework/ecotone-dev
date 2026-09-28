@@ -8,8 +8,8 @@ use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Scheduling\NativeClock;
 use Ecotone\Modelling\AggregateMessage;
-use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
 use Ecotone\Modelling\Config\MessageBusChannel;
+use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
 
 use function json_encode;
 

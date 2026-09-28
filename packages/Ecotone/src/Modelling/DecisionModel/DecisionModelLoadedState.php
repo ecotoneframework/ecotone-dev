@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use function array_key_exists;
+
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Message;
 
-use function array_key_exists;
 use function sprintf;
 
 /**

@@ -20,7 +20,6 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\MessageHeaders;
@@ -183,10 +182,16 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
     }
 }
 
+/**
+ * @internal
+ */
 final class CouponExhaustedForDbalCouponTest extends RuntimeException
 {
 }
 
+/**
+ * @internal
+ */
 final class CouponAlreadyUsedByCustomerForDbalCouponTest extends RuntimeException
 {
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\EventStore;
 
+use function count;
+
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
@@ -16,8 +18,6 @@ use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Event;
 
-use function count;
-use function explode;
 use function in_array;
 use function is_array;
 use function is_scalar;
@@ -143,7 +143,7 @@ final class InMemoryEventStore implements EventStore, AppendableStore
         $currentVersion = $this->currentAggregateVersion($streamName, $aggregateType, $aggregateId);
         if ($currentVersion !== $expectedVersion) {
             throw ConcurrencyException::create(sprintf(
-                "Aggregate %s:%s expected version %d, but current version is %d",
+                'Aggregate %s:%s expected version %d, but current version is %d',
                 $aggregateType,
                 $aggregateId,
                 $expectedVersion,

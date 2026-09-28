@@ -4,21 +4,22 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Dbal\Tag;
 
+use function array_fill;
+use function array_map;
+use function array_values;
+use function count;
+
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
+use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
-use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Modelling\Event;
 
-use function array_fill;
-use function array_map;
-use function array_values;
-use function count;
 use function implode;
 use function uasort;
 

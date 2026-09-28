@@ -69,6 +69,9 @@ class CourseEventForMatchingTest
     }
 }
 
+/**
+ * @internal
+ */
 final class SpecialCourseEventForMatchingTest extends CourseEventForMatchingTest
 {
 }

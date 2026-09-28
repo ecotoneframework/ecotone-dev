@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Tagging\Config;
 
+use function array_diff;
+use function count;
+
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
@@ -20,8 +23,6 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Support\LicensingException;
 
-use function array_diff;
-use function count;
 use function implode;
 use function sprintf;
 

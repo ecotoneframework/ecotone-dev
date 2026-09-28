@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use function array_diff;
+use function array_intersect;
+use function array_unique;
+use function array_values;
+
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
@@ -15,14 +20,12 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
+
+use function implode;
+
 use ReflectionAttribute;
 use ReflectionClass;
 
-use function array_diff;
-use function array_intersect;
-use function array_unique;
-use function array_values;
-use function implode;
 use function sprintf;
 
 /**

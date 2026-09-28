@@ -4,23 +4,27 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Tagging;
 
+use function array_map;
+use function array_unique;
+use function array_values;
+
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Messaging\Config\ConfigurationException;
+
+use function in_array;
+use function is_a;
+use function preg_match_all;
+
 use ReflectionClass;
 use ReflectionNamedType;
 use ReflectionProperty;
 use ReflectionUnionType;
-use Stringable;
 
-use function array_map;
-use function array_unique;
-use function array_values;
-use function in_array;
-use function is_a;
-use function preg_match_all;
 use function sprintf;
 use function str_contains;
+
+use Stringable;
 
 /**
  * licence Enterprise

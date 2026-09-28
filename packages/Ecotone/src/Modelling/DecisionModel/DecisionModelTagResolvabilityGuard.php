@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use function class_exists;
+
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
@@ -16,7 +18,6 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type\UnionType;
 use ReflectionClass;
 
-use function class_exists;
 use function sprintf;
 
 /**

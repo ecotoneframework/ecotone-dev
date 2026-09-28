@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\EventSourcing;
 
+use function in_array;
+
 use InvalidArgumentException;
 
-use function in_array;
 use function sprintf;
 
 /**

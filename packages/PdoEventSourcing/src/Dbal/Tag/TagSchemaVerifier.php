@@ -6,7 +6,6 @@ namespace Ecotone\EventSourcing\Dbal\Tag;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Doctrine\DBAL\Platforms\PostgreSQLPlatform;
 use Ecotone\EventSourcing\Database\TagTableManager;
 
@@ -137,7 +136,7 @@ final class TagSchemaVerifier
     private function verifyPostgresNotNullConstraints(Connection $connection, string $tableName): array
     {
         $rows = $connection->executeQuery(
-            "SELECT conname FROM pg_constraint c JOIN pg_class t ON c.conrelid = t.oid "
+            'SELECT conname FROM pg_constraint c JOIN pg_class t ON c.conrelid = t.oid '
             . "WHERE t.relname = ? AND c.conname IN ('aggregate_version_not_null', 'aggregate_type_not_null', 'aggregate_id_not_null')",
             [$tableName]
         )->fetchFirstColumn();
@@ -174,7 +173,7 @@ final class TagSchemaVerifier
         }
 
         return [sprintf(
-            "Table `%s` still has NOT NULL generated columns (%s) -- an aggregate-less decision-model event would be rejected. "
+            'Table `%s` still has NOT NULL generated columns (%s) -- an aggregate-less decision-model event would be rejected. '
             . 'Fix: MODIFY each generated column, restating its expression without NOT NULL, on `%s`.',
             $tableName,
             implode(', ', $rows),

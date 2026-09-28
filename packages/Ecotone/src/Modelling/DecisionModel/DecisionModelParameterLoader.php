@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use function array_is_list;
+
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\EventSourcing\Tagging\EventTagValueNormalizer;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -13,7 +15,6 @@ use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 
-use function array_is_list;
 use function is_array;
 use function sprintf;
 

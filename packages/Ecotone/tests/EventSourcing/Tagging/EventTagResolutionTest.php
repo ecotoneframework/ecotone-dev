@@ -286,6 +286,9 @@ class ParentEventTaggedForResolutionTest
     }
 }
 
+/**
+ * @internal
+ */
 final class ChildOfTaggedEventForResolutionTest extends ParentEventTaggedForResolutionTest
 {
 }

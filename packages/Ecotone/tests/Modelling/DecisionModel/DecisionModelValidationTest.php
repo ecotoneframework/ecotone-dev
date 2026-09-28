@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\CommandHandler;
-use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\DecisionModel;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;

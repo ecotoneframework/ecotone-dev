@@ -10,6 +10,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class EventCriteriaTest extends TestCase
 {

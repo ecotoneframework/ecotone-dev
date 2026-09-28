@@ -5,15 +5,16 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Tagging;
 
 use Ecotone\Messaging\Config\ConfigurationException;
-use Stringable;
 
 use function get_debug_type;
 use function is_array;
 use function is_scalar;
+use function preg_match_all;
 use function rtrim;
 use function sprintf;
-use function preg_match_all;
 use function str_contains;
+
+use Stringable;
 
 /**
  * licence Enterprise

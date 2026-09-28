@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\DecisionModel;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
-use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionBoundary;
-use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\EventSourcing\EventStore;
@@ -26,20 +24,18 @@ use function sprintf;
 final class DecisionBoundaryEvaluator
 {
     /**
-     * @param array<string, string> $boundaryMethodsByHandler keyed by "Class::method" of the handler, value is the #[DecisionBoundary] method name on that same class
+     * @param DecisionModelHandler[] $handlersWithBoundaryMethod
      */
     public function __construct(
         private readonly EventStore $eventStore,
-        private readonly array $boundaryMethodsByHandler,
+        private readonly array $handlersWithBoundaryMethod,
     ) {
     }
 
     /**
-     * A handler is matched to the #[DecisionBoundary] method of its class whose first parameter has the same type as the handler's first parameter.
-     *
-     * @return array<string, string> keyed by "Class::method" of the handler, value is the boundary method name
+     * @return array<string, array<string, string>> keyed by class name, then by the command type hint, value is the boundary method name
      */
-    public static function findBoundaryMethodsByHandler(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): array
+    public static function boundaryMethodsByCommandTypePerClass(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): array
     {
         $boundariesByClass = [];
         foreach ($annotationFinder->findAnnotatedMethods(DecisionBoundary::class) as $annotatedMethod) {
@@ -64,48 +60,34 @@ final class DecisionBoundaryEvaluator
             $boundariesByClass[$className][$commandTypeHint] = $boundaryMethodName;
         }
 
-        $boundaryMethodsByHandler = [];
-        $matchedBoundaries = [];
-        foreach ([CommandHandler::class, EventHandler::class] as $handlerAnnotationClass) {
-            foreach ($annotationFinder->findAnnotatedMethods($handlerAnnotationClass) as $annotatedMethod) {
-                $className = $annotatedMethod->getClassName();
-                $methodName = $annotatedMethod->getMethodName();
-
-                if (! isset($boundariesByClass[$className])) {
-                    continue;
-                }
-
-                $interfaceToCall = $interfaceToCallRegistry->getFor($className, $methodName);
-                $firstParameterTypeHint = $interfaceToCall->getInterfaceParameterAmount() > 0
-                    ? $interfaceToCall->getFirstParameter()->getTypeHint()
-                    : null;
-
-                if ($firstParameterTypeHint !== null && isset($boundariesByClass[$className][$firstParameterTypeHint])) {
-                    $boundaryMethodsByHandler[$className . '::' . $methodName] = $boundariesByClass[$className][$firstParameterTypeHint];
-                    $matchedBoundaries[$className][$firstParameterTypeHint] = true;
-                }
-            }
-        }
-
-        self::assertEveryBoundaryMatchesAHandler($boundariesByClass, $matchedBoundaries);
-
-        return $boundaryMethodsByHandler;
+        return $boundariesByClass;
     }
 
     public function conditionFor(MethodInvocation $handlerInvocation): AppendCondition
     {
         $objectToInvokeOn = $handlerInvocation->getObjectToInvokeOn();
         $className = is_object($objectToInvokeOn) ? get_class($objectToInvokeOn) : $objectToInvokeOn;
-        $handlerKey = $className . '::' . $handlerInvocation->getMethodName();
 
-        if (! isset($this->boundaryMethodsByHandler[$handlerKey])) {
+        $handler = $this->handlerFor($className, $handlerInvocation->getMethodName());
+        if ($handler === null) {
             return AppendCondition::empty();
         }
 
         $command = $handlerInvocation->getArguments()[0] ?? null;
-        $criteria = $className::{$this->boundaryMethodsByHandler[$handlerKey]}($command);
+        $criteria = $className::{$handler->boundaryMethodName()}($command);
 
         return $this->eventStore->loadByCriteria($criteria)->appendCondition;
+    }
+
+    private function handlerFor(string $className, string $methodName): ?DecisionModelHandler
+    {
+        foreach ($this->handlersWithBoundaryMethod as $handler) {
+            if ($handler->matches($className, $methodName)) {
+                return $handler;
+            }
+        }
+
+        return null;
     }
 
     private static function assertBoundaryShape(InterfaceToCall $boundary): void
@@ -140,7 +122,7 @@ final class DecisionBoundaryEvaluator
      * @param array<string, array<string, string>> $boundariesByClass
      * @param array<string, array<string, true>> $matchedBoundaries
      */
-    private static function assertEveryBoundaryMatchesAHandler(array $boundariesByClass, array $matchedBoundaries): void
+    public static function assertEveryBoundaryMatchesAHandler(array $boundariesByClass, array $matchedBoundaries): void
     {
         foreach ($boundariesByClass as $className => $boundaryMethodsByCommandType) {
             foreach ($boundaryMethodsByCommandType as $commandTypeHint => $boundaryMethodName) {

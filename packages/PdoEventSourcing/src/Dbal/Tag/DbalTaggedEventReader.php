@@ -40,10 +40,11 @@ final class DbalTaggedEventReader
         try {
             $captured = $this->versions->capture($connection, $tags);
             $flags = $this->index->flagsFor($connection, $tags);
-            $eventsByStream = $this->index->eventsReferencedBy($eventStore, $connection, $flags);
         } catch (TableNotFoundException) {
             throw $this->tables->missingTablesException($eventStore, $connection);
         }
+
+        $eventsByStream = $this->index->eventsReferencedBy($eventStore, $connection, $flags);
 
         return new LoadedEvents(
             $this->matchingEvents($criteria, $flags, $eventsByStream),

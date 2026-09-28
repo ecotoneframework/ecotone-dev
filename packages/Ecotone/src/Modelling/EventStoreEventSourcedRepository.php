@@ -10,6 +10,7 @@ use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
+use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
 
 /**
  * licence Apache-2.0
@@ -57,7 +58,8 @@ final class EventStoreEventSourcedRepository implements EventSourcedRepository
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
         $aggregateId = (string) reset($identifiers);
-        $appendCondition = AppendCondition::forAggregateFromSaveMetadata($aggregateClassName, $aggregateId, $versionBeforeHandling, $metadata);
+        $appendCondition = AppendCondition::forAggregate($aggregateClassName, $aggregateId, $versionBeforeHandling)
+            ->mergeWith(DecisionModelLoadedState::appendConditionIn($metadata));
 
         $this->eventStore->appendTo(AggregateDefinitionResolver::DEFAULT_STREAM, $events, $appendCondition);
     }

@@ -30,11 +30,26 @@ final class DecisionModelLoadedState
 
     public static function appendConditionCarriedBy(Message $message): AppendCondition
     {
-        $state = $message->getHeaders()->containsKey(self::HEADER_NAME)
-            ? $message->getHeaders()->get(self::HEADER_NAME)
-            : null;
+        return self::appendConditionIn($message->getHeaders()->headers());
+    }
+
+    /**
+     * @param array<string, mixed> $metadata
+     */
+    public static function appendConditionIn(array $metadata): AppendCondition
+    {
+        $state = $metadata[self::HEADER_NAME] ?? null;
 
         return $state instanceof self ? $state->appendCondition : AppendCondition::empty();
+    }
+
+    public static function carryInto(Message $message, array $metadata): array
+    {
+        if ($message->getHeaders()->containsKey(self::HEADER_NAME)) {
+            $metadata[self::HEADER_NAME] = $message->getHeaders()->get(self::HEADER_NAME);
+        }
+
+        return $metadata;
     }
 
     public static function instanceCarriedBy(Message $message, string $parameterName): ?object

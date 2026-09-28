@@ -21,8 +21,6 @@ interface AggregateMessage
     public const TARGET_VERSION = 'ecotone.modelling.aggregate.target_version';
     public const RECORDED_AGGREGATE_EVENTS = 'ecotone.modelling.called_aggregate_events';
     public const NULL_EXECUTION_RESULT = 'ecotone.modelling.is_nullable_execution_result';
-    /** Internal header carrying the Dynamic Consistency Boundary AppendCondition, stripped before persisting */
-    public const DECISION_MODEL_APPEND_CONDITION = 'ecotone.modelling.aggregate.decision_model_append_condition';
 
     // test setup state headers
     public const TEST_SETUP_AGGREGATE_VERSION = 'ecotone.modeling.test_setup.aggregate_version';

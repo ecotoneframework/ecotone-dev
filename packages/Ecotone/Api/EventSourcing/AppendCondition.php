@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Api\EventSourcing;
 
 use Ecotone\EventSourcing\Tagging\TagKey;
-use Ecotone\Modelling\AggregateMessage;
 
 /**
  * licence Apache-2.0
@@ -47,20 +46,6 @@ final class AppendCondition
         }
 
         return new self($indexed, null);
-    }
-
-    /**
-     * @param array<string, mixed> $saveMetadata
-     */
-    public static function forAggregateFromSaveMetadata(string $aggregateType, string $aggregateId, int $versionBeforeHandling, array $saveMetadata): self
-    {
-        $appendCondition = self::forAggregate($aggregateType, $aggregateId, $versionBeforeHandling);
-
-        $decisionModelCondition = $saveMetadata[AggregateMessage::DECISION_MODEL_APPEND_CONDITION] ?? null;
-
-        return $decisionModelCondition instanceof self
-            ? $appendCondition->mergeWith($decisionModelCondition)
-            : $appendCondition;
     }
 
     public function mergeWith(self $other): self

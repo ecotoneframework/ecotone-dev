@@ -24,7 +24,7 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\MessageHeaders;
-use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
 use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
@@ -144,12 +144,12 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
 
         $events = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('customer', 'alice'))->events;
         self::assertCount(1, $events);
-        self::assertArrayNotHasKey(AggregateMessage::DECISION_MODEL_APPEND_CONDITION, $events[0]->getMetadata());
+        self::assertArrayNotHasKey(DecisionModelLoadedState::HEADER_NAME, $events[0]->getMetadata());
 
         /** @var PublishedEventHeadersCollectorForDbalCouponTest $collector */
         $collector = $ecotone->getServiceFromContainer(PublishedEventHeadersCollectorForDbalCouponTest::class);
         self::assertCount(1, $collector->capturedHeaders);
-        self::assertArrayNotHasKey(AggregateMessage::DECISION_MODEL_APPEND_CONDITION, $collector->capturedHeaders[0]);
+        self::assertArrayNotHasKey(DecisionModelLoadedState::HEADER_NAME, $collector->capturedHeaders[0]);
     }
 
     private function bootstrapEcotone(): FlowTestSupport

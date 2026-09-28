@@ -164,6 +164,18 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         }
     }
 
+    public function test_a_condition_guards_its_tags_even_when_the_appended_events_carry_another_value(): void
+    {
+        $store = $this->bootstrapEventStore();
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 5)]));
+
+        $this->expectException(DecisionModelConcurrencyException::class);
+
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-2', 5)], $loaded->appendCondition));
+    }
+
     public function test_unconditional_append_invalidates_a_held_condition(): void
     {
         $store = $this->bootstrapEventStore();

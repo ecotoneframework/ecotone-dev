@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Tagging\Config;
 
 use function array_diff;
+use function array_key_exists;
 use function count;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\Tagging\AggregateCounterTagGuard;
@@ -31,6 +35,10 @@ use Ecotone\Modelling\Repository\AggregateCounter;
 use Ecotone\Modelling\Repository\OpenCoreAggregateCounter;
 
 use function implode;
+
+use ReflectionClass;
+use ReflectionMethod;
+
 use function sprintf;
 
 #[ModuleAnnotation]
@@ -42,16 +50,20 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
     /**
      * @param array<class-string, array<array{kind: string, name: string, member: ?string, value: ?string}>> $rawDefinitions
      * @param array<class-string, ?string> $aggregateTypesByClass
+     * @param array<array{class: class-string, method: string}> $aggregateHandlersWithoutTransaction
      */
-    private function __construct(private array $rawDefinitions, private array $aggregateTypesByClass)
+    private function __construct(private array $rawDefinitions, private array $aggregateTypesByClass, private array $aggregateHandlersWithoutTransaction)
     {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
+        $aggregateTypesByClass = AggregateCounterTags::declaredAggregateTypesOfCountedAggregatesIn($annotationRegistrationService);
+
         return new self(
             EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService),
-            AggregateCounterTags::declaredAggregateTypesOfCountedAggregatesIn($annotationRegistrationService),
+            $aggregateTypesByClass,
+            self::aggregateHandlersWithoutTransactionIn($annotationRegistrationService, $aggregateTypesByClass),
         );
     }
 
@@ -67,6 +79,7 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
 
         if ($dynamicConsistencyBoundary->isEnabled()) {
             AggregateCounterTagGuard::assertEveryAggregateHasACountableType($this->aggregateTypesByClass, $this->rawDefinitions);
+            $this->assertEveryAggregateHandlerRunsInATransaction();
         }
 
         $messagingConfiguration->registerServiceDefinition(
@@ -100,6 +113,45 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;
+    }
+
+    private function assertEveryAggregateHandlerRunsInATransaction(): void
+    {
+        foreach ($this->aggregateHandlersWithoutTransaction as $handler) {
+            throw ConfigurationException::create(sprintf(
+                '%s::%s is marked #[WithoutDatabaseTransaction], but with Dynamic Consistency Boundary enabled every aggregate save bumps the aggregate\'s counter tag, '
+                . 'which needs an active database transaction so the counter and the aggregate commit or roll back together. Remove #[WithoutDatabaseTransaction] from the handler.',
+                $handler['class'],
+                $handler['method'],
+            ));
+        }
+    }
+
+    /**
+     * @param array<class-string, ?string> $aggregateTypesByClass
+     * @return array<array{class: class-string, method: string}>
+     */
+    private static function aggregateHandlersWithoutTransactionIn(AnnotationFinder $annotationFinder, array $aggregateTypesByClass): array
+    {
+        $handlers = [];
+        foreach ([CommandHandler::class, EventHandler::class] as $handlerAnnotationClass) {
+            foreach ($annotationFinder->findAnnotatedMethods($handlerAnnotationClass) as $annotatedMethod) {
+                $className = $annotatedMethod->getClassName();
+                if (! array_key_exists($className, $aggregateTypesByClass)) {
+                    continue;
+                }
+
+                $methodName = $annotatedMethod->getMethodName();
+                if ((new ReflectionMethod($className, $methodName))->getAttributes(WithoutDatabaseTransaction::class) === []
+                    && (new ReflectionClass($className))->getAttributes(WithoutDatabaseTransaction::class) === []) {
+                    continue;
+                }
+
+                $handlers[] = ['class' => $className, 'method' => $methodName];
+            }
+        }
+
+        return $handlers;
     }
 
     /**

@@ -38,6 +38,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Precedence;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\DecisionModel\CrossConnectionDecisionModelGuard;
 use Ecotone\Modelling\DecisionModel\DecisionModelAppendInterceptor;
 use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoader;
@@ -180,6 +181,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                 Reference::to(EventMapper::class),
                 Reference::to(EcotoneClockInterface::class),
                 Reference::to(EventBus::class),
+                Reference::to(AggregateDefinitionRegistry::class),
             ]),
         );
 

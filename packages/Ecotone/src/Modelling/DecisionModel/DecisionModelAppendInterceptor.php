@@ -12,6 +12,8 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
+use Ecotone\Messaging\Support\InvalidArgumentException;
+use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;
 
 /**
@@ -26,12 +28,15 @@ final class DecisionModelAppendInterceptor
         private readonly EventMapper $eventMapper,
         private readonly EcotoneClockInterface $clock,
         private readonly EventBus $eventBus,
+        private readonly AggregateDefinitionRegistry $aggregateDefinitionRegistry,
     ) {
     }
 
     public function append(MethodInvocation $methodInvocation, Message $message): mixed
     {
         $result = $methodInvocation->proceed();
+
+        $this->assertNoFetchedAggregateRecordedEvents($methodInvocation);
 
         $appendCondition = DecisionModelLoadedState::appendConditionCarriedBy($message);
 
@@ -69,5 +74,34 @@ final class DecisionModelAppendInterceptor
         }
 
         return $result;
+    }
+
+    private function assertNoFetchedAggregateRecordedEvents(MethodInvocation $methodInvocation): void
+    {
+        foreach ($methodInvocation->getArguments() as $argument) {
+            if (! is_object($argument) || ! $this->aggregateDefinitionRegistry->has($argument::class)) {
+                continue;
+            }
+
+            $aggregateDefinition = $this->aggregateDefinitionRegistry->getFor($argument::class);
+            $eventRecorderMethod = $aggregateDefinition->getEventRecorderMethod();
+            if (! $aggregateDefinition->isEventSourced() || $eventRecorderMethod === null) {
+                continue;
+            }
+
+            $recordedEvents = $argument->{$eventRecorderMethod}();
+            if ($recordedEvents === []) {
+                continue;
+            }
+
+            throw InvalidArgumentException::create(sprintf(
+                '%s was fetched into %s::%s and recorded %s, but fetched aggregates are read-only -- nothing saves a fetched aggregate, so those events would be lost. '
+                . 'Send a command to the aggregate\'s own command handler instead.',
+                $argument::class,
+                is_object($methodInvocation->getObjectToInvokeOn()) ? $methodInvocation->getObjectToInvokeOn()::class : $methodInvocation->getObjectToInvokeOn(),
+                $methodInvocation->getMethodName(),
+                implode(', ', array_map(static fn (object $event): string => $event::class, $recordedEvents)),
+            ));
+        }
     }
 }

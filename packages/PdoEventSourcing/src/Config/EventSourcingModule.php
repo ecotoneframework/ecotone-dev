@@ -34,6 +34,7 @@ use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
 use Ecotone\EventSourcing\SerializingEventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\EventSourcing\Tagging\AggregateCounterTags;
 use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\EventSourcing\Tagging\TagResolver;
@@ -80,7 +81,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         private AggregateTypeMapping $aggregateTypeMapping,
         private array $streamAttributes,
         private array $projectionStreamMapping,
-        private bool $hasEventTagsDeclared,
+        private bool $declaresEventTagsOrCountedAggregates,
     ) {
     }
 
@@ -115,7 +116,8 @@ class EventSourcingModule extends NoExternalConfigurationModule
             AggregateTypeMapping::createWith($aggregateTypeMapping),
             $streamAttributes,
             $projectionStreamMapping,
-            EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService) !== [],
+            EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService) !== []
+                || AggregateCounterTags::declaredAggregateTypesOfCountedAggregatesIn($annotationRegistrationService) !== [],
         );
     }
 
@@ -145,7 +147,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $messagingConfiguration->registerServiceDefinition(
             TagTableManager::class,
             new Definition(TagTableManager::class, [
-                $this->hasEventTagsDeclared && $dynamicConsistencyBoundary->isEnabled(),
+                $this->declaresEventTagsOrCountedAggregates && $dynamicConsistencyBoundary->isEnabled(),
                 $dbalConfiguration->isAutomaticTableInitializationEnabled(),
                 $consoleInvocationPrefix,
             ])

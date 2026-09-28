@@ -17,14 +17,21 @@ final class AppendedTags
 
     /**
      * @param array<string, array{name: string, value: string, expectedVersion: int}> $conditionVersions
+     * @param array<string, array{name: string, value: string}> $aggregateCounterTags
+     * @param array<string, string> $aggregateTypesByCounterTagKey
      */
     public function __construct(
         private readonly EventsTags $eventsTags,
         private readonly array $conditionVersions,
+        array $aggregateCounterTags = [],
+        private readonly array $aggregateTypesByCounterTagKey = [],
     ) {
         $involved = $eventsTags->counted();
         foreach ($conditionVersions as $key => $conditionVersion) {
             $involved[$key] = ['name' => $conditionVersion['name'], 'value' => $conditionVersion['value']];
+        }
+        foreach ($aggregateCounterTags as $key => $aggregateCounterTag) {
+            $involved[$key] = $aggregateCounterTag;
         }
 
         ksort($involved);
@@ -46,7 +53,7 @@ final class AppendedTags
 
     /**
      * @param array<string, array{name: string, value: string, expectedVersion: int}> $captured
-     * @return array<string, array{name: string, value: string, expectedVersion: int}>
+     * @return array<string, array{name: string, value: string, expectedVersion: int, aggregateType?: string}>
      */
     public function expectedVersions(array $captured): array
     {
@@ -57,6 +64,10 @@ final class AppendedTags
                 'value' => $tag['value'],
                 'expectedVersion' => $this->conditionVersions[$key]['expectedVersion'] ?? $captured[$key]['expectedVersion'],
             ];
+
+            if (isset($this->aggregateTypesByCounterTagKey[$key])) {
+                $expected[$key]['aggregateType'] = $this->aggregateTypesByCounterTagKey[$key];
+            }
         }
 
         return $expected;

@@ -31,4 +31,17 @@ class DecisionModelConcurrencyException extends ConcurrencyException
 
         return self::create($message);
     }
+
+    public static function forAggregateConflict(string $aggregateType, string $aggregateId, int $capturedVersion, int $currentVersion): self
+    {
+        return self::create(sprintf(
+            '%s %s changed since it was loaded (it was at change %d when read, it is at change %d now): another transaction saved it, '
+            . 'or an earlier save in the same transaction did (for example a command sent from inside the handler whose own handler saves the same aggregate) '
+            . '-- the latter fails on every retry, so decide both in one handler instead.',
+            $aggregateType,
+            $aggregateId,
+            $capturedVersion,
+            $currentVersion,
+        ));
+    }
 }

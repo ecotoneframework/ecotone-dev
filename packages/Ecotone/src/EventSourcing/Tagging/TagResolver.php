@@ -17,6 +17,7 @@ final class TagResolver
 {
     public function __construct(
         private readonly EventTagRegistry $eventTagRegistry,
+        private readonly AggregateCounterTags $aggregateCounterTags,
     ) {
     }
 
@@ -43,7 +44,14 @@ final class TagResolver
             $conditionVersions[TagKey::of($expected['name'], $expected['value'])] = $expected;
         }
 
-        return new AppendedTags($this->resolveEvents($events), $conditionVersions);
+        $aggregateCounterTags = $this->counterTagOfSavedAggregate($appendCondition);
+
+        return new AppendedTags(
+            $this->resolveEvents($events),
+            $conditionVersions,
+            $aggregateCounterTags,
+            $this->aggregateTypesOfCounterTags([...$conditionVersions, ...$aggregateCounterTags]),
+        );
     }
 
     /**
@@ -112,5 +120,36 @@ final class TagResolver
         }
 
         return $tags;
+    }
+
+    /**
+     * @return array<string, array{name: string, value: string}>
+     */
+    private function counterTagOfSavedAggregate(?AppendCondition $appendCondition): array
+    {
+        if ($appendCondition === null || ! $appendCondition->hasAggregateCondition() || ! $this->aggregateCounterTags->counts($appendCondition->aggregateType())) {
+            return [];
+        }
+
+        $counterTag = $this->aggregateCounterTags->counterTagOf($appendCondition->aggregateType(), $appendCondition->aggregateId());
+
+        return [TagKey::of($counterTag['name'], $counterTag['value']) => $counterTag];
+    }
+
+    /**
+     * @param array<string, array{name: string, value: string}> $tags
+     * @return array<string, string>
+     */
+    private function aggregateTypesOfCounterTags(array $tags): array
+    {
+        $aggregateTypes = [];
+        foreach ($tags as $key => $tag) {
+            $aggregateType = $this->aggregateCounterTags->aggregateTypeCountedBy($tag['name']);
+            if ($aggregateType !== null) {
+                $aggregateTypes[$key] = $aggregateType;
+            }
+        }
+
+        return $aggregateTypes;
     }
 }

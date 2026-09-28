@@ -8,6 +8,8 @@ use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
+use Ecotone\Messaging\Handler\ClassDefinition;
+use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
@@ -33,7 +35,7 @@ final class EventStoreEventSourcedRepository implements EventSourcedRepository
         $aggregateId = reset($identifiers);
 
         $metadataMatcher = (new MetadataMatcher())
-            ->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_TYPE, Operator::EQUALS, $aggregateClassName)
+            ->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_TYPE, Operator::EQUALS, self::aggregateTypeOf($aggregateClassName))
             ->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_ID, Operator::EQUALS, $aggregateId);
 
         if ($fromVersion > 0) {
@@ -57,10 +59,14 @@ final class EventStoreEventSourcedRepository implements EventSourcedRepository
      */
     public function save(array $identifiers, string $aggregateClassName, array $events, array $metadata, int $versionBeforeHandling): void
     {
-        $aggregateId = (string) reset($identifiers);
-        $appendCondition = AppendCondition::forAggregate($aggregateClassName, $aggregateId, $versionBeforeHandling)
+        $appendCondition = AppendCondition::forAggregate(self::aggregateTypeOf($aggregateClassName), AggregateIdString::from($identifiers), $versionBeforeHandling)
             ->mergeWith(DecisionModelLoadedState::appendConditionIn($metadata));
 
         $this->eventStore->appendTo(AggregateDefinitionResolver::DEFAULT_STREAM, $events, $appendCondition);
+    }
+
+    private static function aggregateTypeOf(string $aggregateClassName): string
+    {
+        return AggregateDefinitionResolver::getAggregateType(ClassDefinition::createFor(Type::object($aggregateClassName)));
     }
 }

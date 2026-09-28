@@ -5,6 +5,7 @@ namespace Ecotone\EventSourcing;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
+use Ecotone\Modelling\AggregateIdString;
 use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventStream;
@@ -50,7 +51,7 @@ class EventSourcingRepository implements EventSourcedRepository
         $aggregateId = reset($identifiers);
         Assert::notNullAndEmpty($aggregateId, sprintf('There was a problem when retrieving identifier for %s', $aggregateClassName));
 
-        $appendCondition = AppendCondition::forAggregate($this->getAggregateType($aggregateClassName), (string) $aggregateId, $versionBeforeHandling)
+        $appendCondition = AppendCondition::forAggregate($this->getAggregateType($aggregateClassName), AggregateIdString::from($identifiers), $versionBeforeHandling)
             ->mergeWith(DecisionModelLoadedState::appendConditionIn($metadata));
 
         $this->eventStore->appendTo(

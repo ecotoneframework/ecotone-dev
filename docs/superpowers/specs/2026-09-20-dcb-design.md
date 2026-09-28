@@ -582,7 +582,7 @@ aggregate, the aggregate's stream. Events returned by a non-aggregate handler ca
 
 **Invariant, maintained by every append — conditional or not, decision model or aggregate:** for each distinct
 counted tag the appended events carry, `ecotone_event_tag_versions.version` is incremented by one in the same
-transaction as the event insert. Without the unconditional half, a conditional writer cannot see an unconditional
+transaction as the event insert, always through the guarded `UPDATE` below — never a blind upsert (2026-09-28). Without the unconditional half, a conditional writer cannot see an unconditional
 one ([ruby-dcb #42](https://github.com/kjeldahl/ruby-dcb/issues/42)).
 
 **Read side — capture first, then read:**
@@ -648,9 +648,9 @@ INSERT INTO ecotone_event_tags (tag_key, tag_value, stream, event_no, tag_versio
 SELECT :k, :v, :stream, no, :newVersion FROM <stream> WHERE event_id = :eventId;
 ```
 
-`:newVersion` is known without another read on the guarded path (`captured + 1`); on the unconditional path it
-comes from `RETURNING version` (PostgreSQL, MariaDB) or a plain `SELECT` of the row the transaction has just
-written (MySQL — a transaction always sees its own write).
+`:newVersion` is `captured + 1` on every append path — no second read. Only the backfill still uses the blind
+upsert, and there the new version comes from `RETURNING version` (PostgreSQL, MariaDB, SQLite) or a plain `SELECT` of
+the row the transaction has just written (MySQL).
 
 **Counters first, events second.** Three reasons. (1) A lost condition has written nothing — no burned `no` for
 `GapAwarePosition` to chase, and nothing for an outer transaction to commit by accident if user code swallows the
@@ -933,13 +933,38 @@ tags, and hence: **tag what a decision needs, nothing else.**
 `DecisionModelConcurrencyException`) is the only conflict mechanism: no `SELECT ... FOR UPDATE`, no per-transaction
 snapshot tracking, and the store keeps no state between executions. The guarded `UPDATE` is a current read on every
 engine, so a foreign commit that landed after a decision captured its version fails the guard even inside an older
-InnoDB snapshot. One `REPEATABLE READ` corner remains and is accepted: if a transaction first bumps a tag itself (a
-tagged aggregate save) and a synchronous handler in the *same* transaction then decides on that tag, the capture
-reads the transaction's own write while the events come from its older snapshot, so a foreign event committed in
-between is not seen. Keep such decisions in their own transaction (asynchronous handler, or a separate command) or
-run MySQL at `READ COMMITTED`. The earlier InnoDB own-bump tracking was removed: it kept per-connection state in a
+InnoDB snapshot. The blind bump that used to leave a
+`REPEATABLE READ` corner was removed on 2026-09-28 (below). The earlier InnoDB own-bump tracking was removed: it kept per-connection state in a
 singleton that leaked into the next transaction. Recent MariaDB (`innodb_snapshot_isolation=ON`) raises error 1020
 on such writes instead — mapped below.
+
+**Every tagged append is guarded (maintainer, 2026-09-28).** An append never bumps a counter blindly. For each
+counted tag the new events carry that the explicit `AppendCondition` does not already cover, the store captures the
+tag's version with a plain `SELECT` inside the caller's transaction (`DbalTagVersionRegister::captureTagVersions`)
+and bumps it with the same guarded `UPDATE ... WHERE version = :captured`; zero rows is a
+`DecisionModelConcurrencyException`. Explicit condition versions win over captured ones for the same tag. The
+capture is a consistent read: on `REPEATABLE READ` it is the version as of the transaction's snapshot — the version
+at the moment the aggregate was loaded — while the guarded `UPDATE` is a current read; on `READ COMMITTED` the
+capture is current. `InMemoryEventStore` has no snapshots, so capture equals current and only a stale explicit
+condition conflicts. The event store still opens no transaction; it only requires one.
+
+*Walkthrough — coupon `SUMMER10`, limit 3, two redemptions exist (tag version 2), MySQL `REPEATABLE READ`.*
+
+1. Anna's transaction loads her `Order` aggregate — the snapshot is pinned: two redemptions, tag version 2.
+2. Ben's transaction commits the third redemption: tag version 3.
+3. Anna's aggregate save appends `OrderPlaced` tagged `coupon:SUMMER10`. The store captures version 2 from her
+   snapshot and runs `UPDATE ... SET version = version + 1 WHERE ... AND version = 2`; the current row says 3, zero
+   rows are affected, and the save fails with `DecisionModelConcurrencyException`. Nothing was written; the
+   synchronous handler that would have injected `CouponRedemptions` never runs.
+4. The command is retried (the user-configured retry wraps the transaction): Anna's new transaction sees Ben's
+   order, the count reaches the limit and the model refuses. The coupon is never over-redeemed.
+
+Before this rule, step 3 was a blind upsert — a current read that succeeded (version 4). The synchronous handler then
+read version 4 (its own write) with events from the older snapshot, folded 3, and let a fourth redemption through.
+On `READ COMMITTED` (PostgreSQL default) step 3 captures version 3 and succeeds, but the handler's read is current
+too, so it sees Ben's order and refuses — same invariant, refused by the model instead of by the counter.
+SQLite serializes writers and cannot commit Ben's transaction while Anna's read transaction is open, so the race
+itself is not reproducible there.
 
 **Deadlocks still happen, and are conflicts.** Sorting removes cycles *within* one append. It cannot remove
 them across two appends in one transaction, nor InnoDB's three-way duplicate-insert deadlock on a never-written
@@ -1073,26 +1098,47 @@ class existing at all, requires Enterprise.
 Gated the way projections' enterprise features already are (`ProjectingModule.php:69-72`), at bootstrap, in the
 module's `prepare()`, **plus a second, runtime line for the store itself:**
 
-- Any `#[EventTag]` or `#[DecisionModel]` found while `isRunningForEnterpriseLicence()` is false →
-  `LicensingException` naming the class and the feature. Failing at bootstrap rather than on first command matters
-  here: an application that *silently ignored* `#[EventTag]` without a licence would record events with no index
-  rows, and would need a backfill the day the licence is added.
-- **Appending is split into an append strategy, chosen once at bootstrap by licence** (`AppendStrategy`, core,
-  `packages/Ecotone/src/EventSourcing/EventStore/AppendStrategy`): the open-core strategy handles the aggregate
-  part only and throws `LicensingException` the moment a hand-built `AppendCondition` carries a tag part — the
+- `DynamicConsistencyBoundaryConfiguration` registered while `isRunningForEnterpriseLicence()` is false →
+  `LicensingException` at bootstrap (2026-09-28: the extension object decides *whether* DCB runs, the licence decides
+  *may*; this replaces the earlier "any `#[EventTag]` or `#[DecisionModel]` found without a licence" check). Without
+  the extension object DCB is simply off — see *Enabling* below — so an application never silently records events
+  with a half-enabled index.
+- **Appending is split into an append strategy, chosen once at bootstrap** (`AppendStrategy`, core,
+  `packages/Ecotone/src/EventSourcing/EventStore/AppendStrategy`) — open-core when the extension object is absent,
+  `LicenceDecider`-selected when present: the open-core strategy handles the aggregate
+  part only and throws the disabled `ConfigurationException` the moment a hand-built `AppendCondition` carries a tag part — the
   runtime line for a hand-built condition through the gateway or the raw store, since no `#[EventTag]` class needs
   to exist for that. The Enterprise strategy handles the tag part (the counters-first protocol) and delegates the
   aggregate-only case to the open-core strategy by composition. `AppendStrategy` is registered unconditionally
   (the project rule: no nullable services, gate at runtime) via `LicenceDecider::prepareDefinition()`, exactly like
   `AggregateMethodInvoker` already is.
-- Consequences that fall out for free: an open-core application has no tags, so **the append path is byte-for-byte
-  today's single INSERT** — no counter statements, no own-transaction wrapper, no tag tables. The store's
+- Consequences that fall out for free: an application without the extension object indexes no tags, so **the append
+  path is byte-for-byte today's single INSERT** — no counter statements, no own-transaction wrapper, no tag tables. The store's
   behaviour for existing users does not change at all; only the aggregate's own unique-index check, which was
   already there, is now also expressed as an explicit `AppendCondition`.
 - Tests use the existing `LicenceTesting::VALID_LICENCE` with `EcotoneLite::bootstrapFlowTesting(...,
   enterpriseLicenceKey: ...)`.
 - The 1.x expand-first runbook (§4.7) is unaffected: the DDL is published in the docs, and creating three unused
   tables needs no licence.
+
+#### Enabling
+
+```php
+#[ServiceContext]
+public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfiguration
+{
+    return DynamicConsistencyBoundaryConfiguration::createWithDefaults();
+}
+```
+
+`Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration` is `licence Enterprise`, read from
+`$extensionObjects` by `EventTaggingModule`, `DecisionModelModule` and the Pdo `EventSourcingModule` (and the in-memory
+`EcotoneTestSupportModule`). Absent, the open-core (`OpenCore*`) classes are what runs — there is no third set:
+`#[DecisionModel]`, `#[DecisionBoundary]` and decision-model injection are a bootstrap `ConfigurationException`;
+`loadByCriteria()`, a tag-bearing `AppendCondition` and the `backfill-tags` / `verify-schema` commands throw the same
+runtime `ConfigurationException`; `#[EventTag]` events are stored as plain rows (one `INSERT`, no tag tables, no
+counters); the `event_tags` DDL/setup feature is inactive. Present, everything above applies, and registering it
+without an Enterprise licence is a `LicensingException`.
 
 What stays open-core: the aggregate half of `AppendCondition` and `EventStore` itself (§4.4, revision 5). SQL-side
 projection filtering (§4.6) is a separate work item and, where it filters by event name and aggregate type, does
@@ -1273,3 +1319,4 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-27 | **One `EventStore`, not `TaggedEventStore` beside it.** `TaggedEventStore` and `AggregateEventStore` deleted, folded into `EventStore` (`loadByCriteria`, `loadAggregateEvents`, optional `AppendCondition` on `appendTo`). `AppendCondition::forAggregate()` added — open-core, since it only formalizes the existing unique-index check. Appending split into `AppendStrategy` (open-core, aggregate only, rejects a tag part) composed with an Enterprise strategy (tag protocol, delegates the aggregate-only case) | **Maintainer** | Implemented in `implement-unified-event-store`. `loadByCriteria()` turned out not to be exposable through the `EventStore` gateway — the messaging layer has no variadic-parameter support — so it stays reachable only on the concrete/raw store, same as `TaggedEventStore` always was |
 | 2026-09-27 | **Review fix: `EventCriteria` gained `->or()`/`branches()`, `loadByCriteria()` made non-variadic, and it is now registered as a gateway action.** `EventCriteria::or(self $other): self` composes an OR of criteria into one object; `branches(): self[]` iterates the single-criterion leaves for `DbalEventStore`/`InMemoryEventStore`. `loadByCriteria(EventCriteria $criteria): LoadedEvents` replaces the variadic form everywhere, so `EventStore` obtained from the container or the gateway both expose it | **Maintainer**, review follow-up | The variadic signature was never reachable through the `EventStore` gateway, which the design doc's own §4.4 example assumes; "obtain the concrete store" is not acceptable for a public API. `EventStoreGatewayLoadByCriteriaTest` (in-memory) and `DbalTaggedLoadTest::test_loading_events_by_criteria_through_the_gateway_returns_the_event_that_carries_it` (PostgreSQL) cover the gateway path |
 | 2026-09-28 | **Stateless DCB services, pure optimistic locking, transactions required.** InnoDB own-bump snapshot tracking removed from `DbalTagVersionRegister`; the guarded `UPDATE` is the sole conflict mechanism. The event store never opens a transaction: tagged/conditional appends and `backfill-tags` throw `ConfigurationException` without one, naming the `DbalConfiguration` switch. Decision-model state is function-scoped: a per-handler before interceptor loads the batch once and carries an immutable `DecisionModelLoadedState` header (instances + `AppendCondition`) read by the converter, the append interceptor and `SaveAggregateService`; the message-id keyed collectors are deleted. `InMemoryEventStore` collaborators are constructor-only | **Maintainer** | Services injected through constructors must be stateless: the snapshot tracking leaked into the next transaction on the same connection, and the collectors leaked conditions/instances across query handlers, converter failures and retries with the same message id. A before interceptor rather than an around one, because around interceptors resolve the handler's arguments before they run and cannot hand converters a changed message |
+| 2026-09-28 | **DCB is opt-in through `DynamicConsistencyBoundaryConfiguration`, and every tagged append is guarded.** The extension object (Enterprise) enables decision models, event tags and append conditions; absent, bootstrap of a decision model/boundary throws `ConfigurationException`, `loadByCriteria`/tag conditions/`backfill-tags`/`verify-schema` throw it at runtime, and `#[EventTag]` events are plain rows with no tag tables. Registering it without a licence is a `LicensingException`. The unconditional counter bump on the append path is deleted: each tag not covered by the explicit condition is captured with a consistent `SELECT` and bumped with the guarded `UPDATE`; the upsert survives for the backfill only | **Maintainer** | The unconditional bump was a current read: an aggregate save made after a competing commit succeeded, and a synchronous decision-model handler in the same `REPEATABLE READ` transaction then read its own bump with events from the older snapshot and over-redeemed a coupon. The accepted §4.5 corner is gone: Anna's save now fails at step 3 |

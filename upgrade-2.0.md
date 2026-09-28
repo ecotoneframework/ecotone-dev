@@ -271,12 +271,13 @@ subsection below.
   `appendTo()` — the unique index is still what actually enforces it on PostgreSQL/MySQL/MariaDB/SQLite, and
   `InMemoryEventStore` gained an explicit version comparison it did not have before (previously an in-memory
   aggregate save never raised `ConcurrencyException` at all). Internally, appending now goes through an **append
-  strategy**, chosen once at bootstrap by licence: the open-core strategy (`licence Apache-2.0`) handles the
-  aggregate part only and rejects a hand-built condition carrying a tag part with `LicensingException`; the
-  Enterprise strategy handles the tag part (the counters-first protocol) and delegates the aggregate-only case to
-  the open-core strategy. **How to adapt:** nothing, unless you called `AppendCondition`'s constructor-adjacent
+  strategy**, chosen once at bootstrap: the open-core strategy (`licence Apache-2.0`, what runs whenever
+  `DynamicConsistencyBoundaryConfiguration` is not registered) handles the aggregate part only and rejects a
+  hand-built condition carrying a tag part with the "Dynamic Consistency Boundary is disabled" `ConfigurationException`;
+  the Enterprise strategy (chosen when the extension object is registered) handles the tag part (the counters-first
+  protocol) and delegates the aggregate-only case to the open-core strategy. **How to adapt:** nothing, unless you called `AppendCondition`'s constructor-adjacent
   factories directly — `empty()` and `fromCapturedVersions()` are unchanged, `forAggregate()` is additive. Without
-  any tags and without Enterprise, the DBAL append path stays byte-for-byte today's single `INSERT` — the aggregate
+  the extension object, the DBAL append path stays byte-for-byte today's single `INSERT` — the aggregate
   condition costs nothing beyond the unique index that was already there.
 - **The write-lock option is gone.** `EventSourcingConfiguration::withWriteLockStrategy(bool)` and
   `isWriteLockStrategyEnabled()` are removed. **Before:** an opt-in advisory lock (Postgres) / `GET_LOCK` (MySQL) held
@@ -292,11 +293,11 @@ subsection below.
   `ecotone:migration:database:setup --initialize` (or the equivalent for your integration, §8) first, the same as
   you already do for `appendTo()`.
 - **SQLite is now a supported event store engine**, alongside PostgreSQL, MySQL and MariaDB — nothing to adapt, it is
-  additive. **DCB on SQLite needs `RETURNING`, added in SQLite 3.35 (2021-03).** `#[EventTag]`'s unconditional
-  counter bump reads the new version back via `... RETURNING version` on every engine that supports it; an older
-  bundled `libsqlite3` (PHP's own SQLite extension, not a system package) raises a plain SQL syntax error rather than
-  a named exception — check `SQLite3::libversion()` / `PDO::sqliteVersion` against 3.35 before enabling `#[EventTag]`
-  on SQLite.
+  additive. **`ecotone:event-store:backfill-tags` on SQLite needs `RETURNING`, added in SQLite 3.35 (2021-03).** The
+  backfill's counter bump reads the new version back via `... RETURNING version` on every engine that supports it; an
+  older bundled `libsqlite3` (PHP's own SQLite extension, not a system package) raises a plain SQL syntax error rather
+  than a named exception — check `SQLite3::libversion()` / `PDO::sqliteVersion` against 3.35 before running the
+  backfill on SQLite. Appends and decision models do not use `RETURNING`.
 - Internal, nothing to adapt: the "licence BSD-3-Clause / code comes from prooph/pdo-event-store" headers are gone
   from the schema and store classes — the DDL is Ecotone's own now. `EventSourcingRepository::findBy()` and the
   partitioned-projection aggregate stream source no longer build a `MetadataMatcher` internally; they call
@@ -342,6 +343,40 @@ are distinct on all three engines.
 aggregate instance (a coupon redemption limit, a unique username) meant either a saga with compensating actions or a
 pessimistic lock outside Ecotone's control.
 
+**Enabling.** DCB is off until you register its extension object. Without it Ecotone behaves exactly as a
+1.x application with `#[EventTag]` unknown to it:
+
+```php
+use Ecotone\Api\Attribute\ServiceContext;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+
+#[ServiceContext]
+public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfiguration
+{
+    return DynamicConsistencyBoundaryConfiguration::createWithDefaults();
+}
+```
+
+- **Registered:** everything below. Registering it without an Enterprise licence is a `LicensingException` at
+  bootstrap, before any message is handled.
+- **Not registered:** a `#[DecisionModel]` class, a `#[DecisionBoundary]` method, or a handler injecting a decision
+  model is a `ConfigurationException` at bootstrap ("Dynamic Consistency Boundary is disabled. Register
+  DynamicConsistencyBoundaryConfiguration::createWithDefaults() as an extension object (#[ServiceContext]) to enable
+  decision models, event tags and append conditions."). `EventStore::loadByCriteria()`, `appendTo()` with a
+  tag-bearing `AppendCondition`, `ecotone:event-store:backfill-tags` and `ecotone:event-store:verify-schema` throw the
+  same exception at runtime. Events carrying `#[EventTag]` are stored as plain rows — a single `INSERT`, no tag
+  tables, no counters — and load by stream or aggregate as usual; the `event_tags` setup feature is not listed and
+  no tag table is created or verified.
+
+**Aggregate saves are guarded on their tags.** With DCB enabled, every append of tagged events — an
+`#[EventSourcingAggregate]` save included, whether or not a decision model is injected — captures each tag's
+version with a consistent `SELECT` inside the transaction and bumps it with the guarded `UPDATE ... WHERE version =
+:captured`. On `REPEATABLE READ` (InnoDB) the captured version is the one the transaction's snapshot saw when the
+aggregate was loaded, so a competing commit made after the load fails the save with
+`DecisionModelConcurrencyException` (a retry then sees it); on `READ COMMITTED` (the PostgreSQL default) the capture
+is current. An explicit `AppendCondition`/decision-model version always wins over the captured one for the same tag.
+The counters are never bumped blindly any more, except by `backfill-tags`.
+
 **Now:** Events tagged with `#[EventTag]` are indexed by tag, and small reusable **decision model** classes — folded
 on demand from the events matching a tag, like an aggregate but keyed by tag instead of identity — can be injected
 into `#[CommandHandler]`/`#[EventHandler]`/`#[QueryHandler]` methods, on service classes and
@@ -350,8 +385,8 @@ into `#[CommandHandler]`/`#[EventHandler]`/`#[QueryHandler]` methods, on service
 three separate round trips. The framework captures every injected model's tag version before folding it, and
 appends the handler's returned events only if none of those versions moved since — a
 `DecisionModelConcurrencyException` (extends `ConcurrencyException`) otherwise. This is entirely additive: an
-application with no `#[EventTag]` sees no behaviour change, no new tables, and the append path stays today's single
-`INSERT`.
+application that does not register `DynamicConsistencyBoundaryConfiguration` sees no behaviour change, no new
+tables, and the append path stays today's single `INSERT`.
 
 **Retry — read this before using decision models.** A `DecisionModelConcurrencyException` always means *the command
 should run again*; nothing retries it automatically. Configure retry explicitly:
@@ -497,11 +532,12 @@ no transaction.
 
   A decision model scoped by a filter-only tag name is a bootstrap `ConfigurationException`.
 - **Licence.** The tag-carrying half of DCB — `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
-  `EventCriteria`, and a tag-bearing `AppendCondition` — is Enterprise. Any `#[EventTag]` or `#[DecisionModel]`
-  found without an Enterprise licence is a `LicensingException` at bootstrap, before any message is handled; a
-  hand-built `AppendCondition` carrying a tag part, passed to `appendTo()` without Enterprise, is a second,
-  runtime `LicensingException` from the append strategy (§4, "AppendCondition now expresses an aggregate's
-  optimistic-lock expectation too"). `EventStore` and `AppendCondition` themselves stay Apache-2.0 — an aggregate's
+  `EventCriteria`, and a tag-bearing `AppendCondition` — is Enterprise, and it is switched on by
+  `DynamicConsistencyBoundaryConfiguration` (see "Enabling" above): the extension object decides *whether* DCB
+  runs, the licence decides *may*. Registering it without an Enterprise licence is a `LicensingException` at
+  bootstrap, before any message is handled; without the extension object nothing DCB-related runs and the
+  disabled `ConfigurationException` is what a decision model, `loadByCriteria()` or a tag-bearing
+  `AppendCondition` raises (§4, "AppendCondition now expresses an aggregate's optimistic-lock expectation too"). `EventStore` and `AppendCondition` themselves stay Apache-2.0 — an aggregate's
   own optimistic-lock condition (`AppendCondition::forAggregate()`) is open-core and works without any licence.
 - Without any class, the same machinery is a gateway on the store itself:
   `$eventStore->loadByCriteria(EventCriteria::tag('course', $courseId)->ofTypes(...))` returns the matching events
@@ -512,7 +548,8 @@ no transaction.
   with no database) **and** against PostgreSQL, MySQL, MariaDB and SQLite through `DbalEventStore` — including
   real two-connection contention proofs (a conflicting writer waits and either loses with
   `DecisionModelConcurrencyException` or succeeds once the blocker rolls back, opposite-order multi-tag appends
-  don't deadlock, and the InnoDB `REPEATABLE READ` own-bump snapshot hazard is guarded against). An application with
+  don't deadlock, and an aggregate save whose tag moved after the aggregate was loaded fails on InnoDB
+  `REPEATABLE READ`). An application with
   no `#[EventTag]` sees byte-for-byte today's single `INSERT` — no counter statements, no tag tables touched.
 
 #### DCB tag tables — schema, setup, backfill, verify-schema

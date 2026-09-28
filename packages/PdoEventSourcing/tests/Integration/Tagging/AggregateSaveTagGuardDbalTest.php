@@ -28,6 +28,7 @@ use Ecotone\Modelling\WithAggregateVersioning;
 use Ecotone\Test\LicenceTesting;
 use RuntimeException;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -88,19 +89,27 @@ final class AggregateSaveTagGuardDbalTest extends EventSourcingMessagingTestCase
         $anna->sendCommand(new StartOrderForAggregateGuardTest('anna-order'));
         $this->armBenToRedeemDuringAnnasCommand($anna, $ben, $benConnectionFactory);
 
-        try {
-            $anna->sendCommand(new PlaceOrderForAggregateGuardTest('anna-order', self::COUPON));
-            self::fail('Anna must not be able to redeem the third coupon once Ben has');
-        } catch (DecisionModelConcurrencyException|CouponExhaustedForAggregateGuardTest) {
-        }
+        $firstAttempt = $this->outcomeOf(fn () => $anna->sendCommand(new PlaceOrderForAggregateGuardTest('anna-order', self::COUPON)));
+        self::assertThat($firstAttempt, self::logicalOr(
+            self::isInstanceOf(DecisionModelConcurrencyException::class),
+            self::isInstanceOf(CouponExhaustedForAggregateGuardTest::class),
+        ));
 
-        try {
-            $anna->sendCommand(new PlaceOrderForAggregateGuardTest('anna-order', self::COUPON));
-            self::fail('The retried command must be refused by the coupon model');
-        } catch (CouponExhaustedForAggregateGuardTest) {
-        }
+        $retriedAttempt = $this->outcomeOf(fn () => $anna->sendCommand(new PlaceOrderForAggregateGuardTest('anna-order', self::COUPON)));
+        self::assertInstanceOf(CouponExhaustedForAggregateGuardTest::class, $retriedAttempt);
 
         self::assertSame(3, $this->redemptionsOf($anna));
+    }
+
+    private function outcomeOf(Closure $operation): ?Throwable
+    {
+        try {
+            $operation();
+        } catch (Throwable $exception) {
+            return $exception;
+        }
+
+        return null;
     }
 
     private function armBenToRedeemDuringAnnasCommand(FlowTestSupport $anna, FlowTestSupport $ben, DbalConnectionFactory $benConnectionFactory): void

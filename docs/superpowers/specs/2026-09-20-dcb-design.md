@@ -325,7 +325,8 @@ public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfigur
 ```
 
 A filter-only tag is indexed and never counted. A decision model that depends on one is a bootstrap
-`ConfigurationException`.
+`ConfigurationException`. A name passed to `withFilterOnlyTags()` that no `#[EventTag]` declares is one too
+(maintainer, 2026-09-28): a typo would otherwise silently leave the intended tag counted.
 
 ### 4.4 Decision models
 

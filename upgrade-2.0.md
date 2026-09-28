@@ -554,7 +554,8 @@ no transaction.
   }
   ```
 
-  A decision model scoped by a filter-only tag name is a bootstrap `ConfigurationException`.
+  A decision model scoped by a filter-only tag name is a bootstrap `ConfigurationException`. So is naming a tag in
+  `withFilterOnlyTags()` that no `#[EventTag]` declares — a typo would otherwise leave the hot tag counted.
 - **Licence.** The tag-carrying half of DCB — `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
   `EventCriteria`, and a tag-bearing `AppendCondition` — is Enterprise, and it is switched on by
   `DynamicConsistencyBoundaryConfiguration` (see "Enabling" above): the extension object decides *whether* DCB

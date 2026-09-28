@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\EventStore\Tag;
 
+use function array_intersect_key;
+use function array_map;
+use function array_values;
+
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
-use Ecotone\Modelling\Event;
 
-use function array_intersect_key;
-use function array_map;
-use function array_values;
 use function is_object;
 use function ksort;
 use function uasort;
@@ -125,29 +125,33 @@ final class InMemoryTagConditionalStore implements InMemoryTagCollaborator
             }
         }
 
+        $expectedVersions = [];
+        foreach ($tagsInvolved as $key => $tag) {
+            $expectedVersions[$key] = ['name' => $tag['name'], 'value' => $tag['value'], 'expectedVersion' => $this->currentTagVersion($tag['name'], $tag['value'])];
+        }
+
         if ($appendCondition !== null) {
             foreach ($appendCondition->expectedTagVersions() as $expected) {
-                $current = $this->currentTagVersion($expected['name'], $expected['value']);
-                if ($current !== $expected['expectedVersion']) {
-                    throw DecisionModelConcurrencyException::forConflict(
-                        $expected['name'],
-                        $expected['value'],
-                        $expected['expectedVersion'],
-                        $current,
-                    );
-                }
-
-                $tagsInvolved[$this->tagVersionKey($expected['name'], $expected['value'])] = [
-                    'name' => $expected['name'],
-                    'value' => $expected['value'],
-                ];
+                $expectedVersions[$this->tagVersionKey($expected['name'], $expected['value'])] = $expected;
             }
         }
 
-        ksort($tagsInvolved);
+        ksort($expectedVersions);
+        foreach ($expectedVersions as $expected) {
+            $current = $this->currentTagVersion($expected['name'], $expected['value']);
+            if ($current !== $expected['expectedVersion']) {
+                throw DecisionModelConcurrencyException::forConflict(
+                    $expected['name'],
+                    $expected['value'],
+                    $expected['expectedVersion'],
+                    $current,
+                );
+            }
+        }
+
         $newVersions = [];
-        foreach ($tagsInvolved as $key => $tag) {
-            $newVersions[$key] = $this->bumpTagVersion($tag['name'], $tag['value']);
+        foreach ($expectedVersions as $key => $expected) {
+            $newVersions[$key] = $this->bumpTagVersion($expected['name'], $expected['value']);
         }
 
         foreach ($events as $i => $event) {

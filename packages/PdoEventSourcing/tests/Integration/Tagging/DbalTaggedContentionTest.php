@@ -154,6 +154,74 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         }
     }
 
+    public function test_innodb_tagged_append_without_a_condition_fails_when_the_tag_moved_after_the_transaction_snapshot(): void
+    {
+        $this->skipUnlessMySqlNotMariaDb();
+
+        [$storeT, $connectionT] = $this->openTransactionWithSnapshotOnCourseOne();
+
+        try {
+            $this->expectException(DecisionModelConcurrencyException::class);
+            $storeT->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]);
+        } finally {
+            $connectionT->rollBack();
+        }
+    }
+
+    public function test_mariadb_tagged_append_without_a_condition_fails_when_the_tag_moved_after_the_transaction_snapshot(): void
+    {
+        $this->skipUnlessMariaDb();
+
+        [$storeT, $connectionT] = $this->openTransactionWithSnapshotOnCourseOne();
+
+        try {
+            $this->expectException(ConcurrencyException::class);
+            $storeT->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]);
+        } finally {
+            $connectionT->rollBack();
+        }
+    }
+
+    public function test_postgres_read_committed_tagged_append_without_a_condition_builds_on_the_current_tag_version(): void
+    {
+        if (! (self::getConnection()->getDatabasePlatform() instanceof PostgreSQLPlatform)) {
+            $this->markTestSkipped('READ COMMITTED is the PostgreSQL default; MySQL family pins the snapshot instead.');
+        }
+
+        [$storeT, $connectionT] = $this->openTransactionWithSnapshotOnCourseOne();
+
+        try {
+            $storeT->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]);
+        } finally {
+            $connectionT->commit();
+        }
+
+        self::assertCount(3, $this->bootstrapEventStore()->loadByCriteria(EventCriteria::tag('course', 'course-1'))->events);
+    }
+
+    /**
+     * @return array{0: EventStore, 1: \Doctrine\DBAL\Connection}
+     */
+    private function openTransactionWithSnapshotOnCourseOne(): array
+    {
+        $factoryT = new DbalConnectionFactory($this->dsn());
+        $factoryE = new DbalConnectionFactory($this->dsn());
+
+        $storeBaseline = $this->bootstrapEventStore();
+        self::inTransaction(fn () => $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]));
+
+        $storeT = $this->bootstrapEventStore($factoryT);
+        $storeE = $this->bootstrapEventStore($factoryE);
+
+        $connectionT = $factoryT->establishConnection();
+        $connectionT->beginTransaction();
+        $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+
+        self::inTransaction(fn () => $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]), $factoryE->establishConnection());
+
+        return [$storeT, $connectionT];
+    }
+
     public function test_innodb_tracking_does_not_leak_into_the_next_transaction(): void
     {
         $this->skipUnlessMySqlNotMariaDb();

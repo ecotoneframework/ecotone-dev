@@ -34,9 +34,8 @@ interface TaggedEventSchema
     public function insertInitialVersionSql(string $tableName): string;
 
     /**
-     * Unconditional insert-or-bump of a tag's version, used both for tags outside the append condition and for
-     * the guarded path once the row is known to exist. Returns the row's new version when supportsReturningOnUpsert()
-     * is true; otherwise the caller must SELECT it back inside the same transaction.
+     * Unconditional insert-or-bump of a tag's version, used only by the tag backfill. Returns the row's new version
+     * when supportsReturningOnUpsert() is true; otherwise the caller must SELECT it back inside the same transaction.
      */
     public function upsertIncrementVersionSql(string $tableName): string;
 

@@ -137,7 +137,7 @@ final class DbalTagBackfiller
                         continue;
                     }
 
-                    $newVersions[$key] = $this->versionRegister->bumpUnconditionalTagVersion($connection, $tagSchema, $tag['name'], $tag['value']);
+                    $newVersions[$key] = $this->versionRegister->bumpTagVersionForBackfill($connection, $tagSchema, $tag['name'], $tag['value']);
                     $report['tagsBumped']++;
                 }
 

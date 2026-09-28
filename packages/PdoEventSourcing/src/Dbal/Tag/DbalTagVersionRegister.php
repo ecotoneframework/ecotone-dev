@@ -73,6 +73,10 @@ final class DbalTagVersionRegister
      */
     public function captureTagVersions(Connection $connection, TaggedEventSchema $tagSchema, array $allTags): array
     {
+        if ($allTags === []) {
+            return [];
+        }
+
         $versionsTable = $tagSchema->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
 
         $conditions = [];
@@ -133,7 +137,7 @@ final class DbalTagVersionRegister
         return $capturedVersion + 1;
     }
 
-    public function bumpUnconditionalTagVersion(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value): int
+    public function bumpTagVersionForBackfill(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value): int
     {
         $sql = $tagSchema->upsertIncrementVersionSql(TagTableManager::TAG_VERSIONS_TABLE);
 

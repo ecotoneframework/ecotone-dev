@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Dbal\Tag;
 
+use function array_diff_key;
+
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
 use Ecotone\Api\EventSourcing\AppendCondition;
@@ -84,11 +86,16 @@ final class DbalTagConditionalAppender
 
         ksort($tagsInvolved);
 
+        $capturedTags = $this->versionRegister->captureTagVersions(
+            $connection,
+            $tagSchema,
+            array_diff_key($tagsInvolved, $conditionTags),
+        );
+
         $newVersions = [];
         foreach ($tagsInvolved as $key => $tag) {
-            $newVersions[$key] = isset($conditionTags[$key])
-                ? $this->versionRegister->bumpGuardedTagVersion($connection, $tagSchema, $tag['name'], $tag['value'], $conditionTags[$key]['expectedVersion'])
-                : $this->versionRegister->bumpUnconditionalTagVersion($connection, $tagSchema, $tag['name'], $tag['value']);
+            $expectedVersion = $conditionTags[$key]['expectedVersion'] ?? $capturedTags[$key]['expectedVersion'];
+            $newVersions[$key] = $this->versionRegister->bumpGuardedTagVersion($connection, $tagSchema, $tag['name'], $tag['value'], $expectedVersion);
         }
 
         $eventStore->insertEventRows($connection, $schema, $tableName, $rows);

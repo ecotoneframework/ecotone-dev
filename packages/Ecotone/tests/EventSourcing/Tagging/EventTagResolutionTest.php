@@ -167,6 +167,15 @@ final class EventTagResolutionTest extends TestCase
         $this->bootstrapEventStore([EventWithEmptyTagName::class]);
     }
 
+    public function test_subclass_of_a_tagged_event_carries_the_tags_it_inherits(): void
+    {
+        $eventStore = $this->bootstrapEventStore([ParentEventTaggedForResolutionTest::class]);
+
+        $eventStore->appendTo('ecotone_event_stream', [new ChildOfTaggedEventForResolutionTest('course-1')]);
+
+        $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1'))->events);
+    }
+
     /**
      * @param class-string[] $classesToResolve
      */
@@ -267,4 +276,16 @@ final readonly class EventWithEmptyTagName
         #[EventTag('')] public string $id,
     ) {
     }
+}
+
+class ParentEventTaggedForResolutionTest
+{
+    public function __construct(
+        #[EventTag('course')] public string $courseId,
+    ) {
+    }
+}
+
+final class ChildOfTaggedEventForResolutionTest extends ParentEventTaggedForResolutionTest
+{
 }

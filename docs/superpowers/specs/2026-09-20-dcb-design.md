@@ -304,6 +304,10 @@ final readonly class InvoiceIssued
   appears; models are scoped by tag names (§4.4), commands may carry it to say which property supplies a value.
   An event with no `#[EventTag]` can therefore never be folded by a decision model: handling one leaves the model
   without a tag name and is rejected at bootstrap (§4.4).
+- **Inheritance** (maintainer, 2026-09-28): an event class without its own `#[EventTag]` carries the tags of its
+  nearest tagged ancestor, resolved when the event is appended, so a subclass is indexed and guarded like its parent.
+  Matching stays **exact-class**: a model's criterion lists the classes its `#[EventSourcingHandler]`s name, so a
+  handler typed with the parent does not fold the subclass.
 - Tags are stored in plaintext beside the payload and appear in diagnostics. Do not tag personal data directly —
   tag a hash through a method.
 

@@ -8,13 +8,16 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class DecisionModelStreamTest extends TestCase
 {
@@ -29,6 +32,7 @@ final class DecisionModelStreamTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, CourseForStreamTest::class, CourseDefinedForStreamTest::class],
             containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

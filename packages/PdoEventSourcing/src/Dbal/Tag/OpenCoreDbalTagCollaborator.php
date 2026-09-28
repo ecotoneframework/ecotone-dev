@@ -10,7 +10,7 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
-use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryDisabled;
 
 /**
  * licence Apache-2.0
@@ -19,7 +19,7 @@ final class OpenCoreDbalTagCollaborator implements DbalTagCollaborator
 {
     public function loadByCriteria(DbalEventStore $eventStore, Connection $connection, EventCriteria $criteria): LoadedEvents
     {
-        throw LicensingException::create('Loading events by tag criteria (Dynamic Consistency Boundary) requires Ecotone Enterprise');
+        throw DynamicConsistencyBoundaryDisabled::exception();
     }
 
     public function appendEventsWithTagCondition(
@@ -31,7 +31,7 @@ final class OpenCoreDbalTagCollaborator implements DbalTagCollaborator
         array $events,
         ?AppendCondition $appendCondition,
     ): void {
-        throw LicensingException::create('Tag-based conditional append (Dynamic Consistency Boundary) requires Ecotone Enterprise');
+        throw DynamicConsistencyBoundaryDisabled::exception();
     }
 
     public function backfillTagsForStream(
@@ -46,7 +46,7 @@ final class OpenCoreDbalTagCollaborator implements DbalTagCollaborator
         bool $dryRun,
         bool $skipUndeserializable,
     ): array {
-        throw LicensingException::create('Backfilling tag indexes (Dynamic Consistency Boundary) requires Ecotone Enterprise');
+        throw DynamicConsistencyBoundaryDisabled::exception();
     }
 
     public function deleteTagIndexFor(Connection $connection, string $tableName): void

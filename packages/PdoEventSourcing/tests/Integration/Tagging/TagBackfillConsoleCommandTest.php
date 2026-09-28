@@ -9,13 +9,13 @@ use DateTimeZone;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\EventSourcing\Dbal\Tag\TaggedEventSchemaFactory;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
@@ -202,6 +202,7 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
+                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),

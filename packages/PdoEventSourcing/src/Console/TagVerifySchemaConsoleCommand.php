@@ -8,6 +8,7 @@ use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ConsoleParameterOption;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\EventSourcing\Dbal\Tag\TagSchemaVerifier;
+use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryDisabled;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 use Interop\Queue\ConnectionFactory;
 
@@ -19,6 +20,7 @@ final class TagVerifySchemaConsoleCommand
     public function __construct(
         private ConnectionFactory $connectionFactory,
         private TagSchemaVerifier $verifier,
+        private bool $dynamicConsistencyBoundaryEnabled,
     ) {
     }
 
@@ -26,6 +28,10 @@ final class TagVerifySchemaConsoleCommand
     public function verify(
         #[ConsoleParameterOption] array $legacyStream = [],
     ): ConsoleCommandResultSet {
+        if (! $this->dynamicConsistencyBoundaryEnabled) {
+            throw DynamicConsistencyBoundaryDisabled::exception();
+        }
+
         $connection = (new DbalReconnectableConnectionFactory($this->connectionFactory))->createContext()->getDbalConnection();
 
         $problems = [

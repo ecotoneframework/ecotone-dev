@@ -12,7 +12,9 @@ use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\WithAggregateVersioning;
@@ -22,6 +24,7 @@ use RuntimeException;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class CouponAggregateWalkthroughTest extends TestCase
 {
@@ -41,6 +44,7 @@ final class CouponAggregateWalkthroughTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [$injector],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -60,6 +64,7 @@ final class CouponAggregateWalkthroughTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [$injector],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -77,6 +82,7 @@ final class CouponAggregateWalkthroughTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [$injector],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -94,6 +100,7 @@ final class CouponAggregateWalkthroughTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [$injector],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -113,6 +120,7 @@ final class CouponAggregateWalkthroughTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [$injector],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -131,10 +139,16 @@ final class CouponAggregateWalkthroughTest extends TestCase
     }
 }
 
+/**
+ * @internal
+ */
 final class CouponExhaustedForCouponTest extends RuntimeException
 {
 }
 
+/**
+ * @internal
+ */
 final class CouponAlreadyUsedByCustomerForCouponTest extends RuntimeException
 {
 }

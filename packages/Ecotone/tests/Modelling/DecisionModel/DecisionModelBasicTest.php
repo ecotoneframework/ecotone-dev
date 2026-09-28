@@ -8,18 +8,22 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class DecisionModelBasicTest extends TestCase
 {
     public function test_command_handler_injects_a_decision_model_folded_from_tagged_events(): void
     {
-        $courseSubscriptions = new class {
+        $courseSubscriptions = new class () {
             #[CommandHandler]
             public function subscribe(SubscribeStudentToCourse $command, CourseCapacityForBasicTest $course): array
             {
@@ -34,6 +38,7 @@ final class DecisionModelBasicTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$courseSubscriptions::class, CourseCapacityForBasicTest::class, CourseDefinedForBasicTest::class, StudentSubscribedToCourseForBasicTest::class],
             containerOrAvailableServices: [$courseSubscriptions],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -73,7 +78,10 @@ final readonly class StudentSubscribedToCourseForBasicTest
     }
 }
 
-final class CourseIsFullForBasicTest extends \RuntimeException
+/**
+ * @internal
+ */
+final class CourseIsFullForBasicTest extends RuntimeException
 {
 }
 

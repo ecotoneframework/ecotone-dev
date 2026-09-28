@@ -16,6 +16,7 @@ use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
@@ -186,6 +187,7 @@ final class MultiTenantTagBackfillConsoleCommandTest extends EventSourcingMessag
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
+                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     EventSourcingConfiguration::createWithDefaults(),
                     MultiTenantConfiguration::create(
                         'tenant',
@@ -233,6 +235,9 @@ final readonly class CouponIssuedForMultiTenantBackfillTest
     }
 }
 
+/**
+ * @internal
+ */
 final class CouponExhaustedForMultiTenantBackfillTest extends RuntimeException
 {
 }

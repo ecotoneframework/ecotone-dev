@@ -7,7 +7,9 @@ namespace Test\Ecotone\Modelling\DecisionModel;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
@@ -15,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class DecisionBoundaryTest extends TestCase
 {
@@ -25,6 +28,7 @@ final class DecisionBoundaryTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, CourseRatedForBoundaryTest::class],
             containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
@@ -133,7 +134,7 @@ final class TagTransactionRequirementTest extends EventSourcingMessagingTestCase
             containerOrAvailableServices: [self::getConnectionFactory(), new TagTransactionCommandHandler(), new EventsConverterForTagTransactionTest()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withExtensionObjects([$dbalConfiguration->withAutomaticTableInitialization(true)])
+                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults(), $dbalConfiguration->withAutomaticTableInitialization(true)])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,

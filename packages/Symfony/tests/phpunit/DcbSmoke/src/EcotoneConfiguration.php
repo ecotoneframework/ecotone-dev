@@ -6,6 +6,7 @@ namespace Symfony\App\DcbSmoke;
 
 use Ecotone\Api\Attribute\ServiceContext;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 
 /**
@@ -17,6 +18,12 @@ final class EcotoneConfiguration
     public function eventSourcing(): EventSourcingConfiguration
     {
         return EventSourcingConfiguration::createWithDefaults();
+    }
+
+    #[ServiceContext]
+    public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfiguration
+    {
+        return DynamicConsistencyBoundaryConfiguration::createWithDefaults();
     }
 
     #[ServiceContext]

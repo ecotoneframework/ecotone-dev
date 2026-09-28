@@ -11,11 +11,12 @@ use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\InstantRetry;
 use Ecotone\Api\Attribute\Reference;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
-use Ecotone\EventSourcing\EventStore;
 use Ecotone\Api\ExtensionObject\InstantRetryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\CommandBus;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\Config\DatabaseTransaction\TransactionStatusTracker;
 use Ecotone\Test\LicenceTesting;
@@ -23,6 +24,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class DecisionModelRetryTest extends TestCase
 {
@@ -73,6 +75,7 @@ final class DecisionModelRetryTest extends TestCase
             containerOrAvailableServices: [$handler, $injector],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     InstantRetryConfiguration::createWithDefaults()->withCommandBusRetry(true, 2, [DecisionModelConcurrencyException::class]),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,
@@ -128,6 +131,7 @@ final class DecisionModelRetryTest extends TestCase
                 RetryCommandBusForRetryTest::class,
             ],
             containerOrAvailableServices: [$handler, $injector],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -147,9 +151,9 @@ final class DecisionModelRetryTest extends TestCase
         $handler = new SubscribeHandlerForRetryTest();
         $injector = new CompetingWriteInjectorForRetryTest();
 
-        $configuration = ServiceConfiguration::createWithDefaults();
+        $configuration = ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]);
         if ($retryConfiguration !== null) {
-            $configuration = $configuration->withExtensionObjects([$retryConfiguration]);
+            $configuration = $configuration->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults(), $retryConfiguration]);
         }
 
         return EcotoneLite::bootstrapFlowTesting(

@@ -14,7 +14,9 @@ use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\Identifier;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -117,6 +119,7 @@ final class DecisionModelStatelessExecutionTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [...$classes, WalletForStatelessTest::class, WalletFundedForStatelessTest::class, WalletChargedForStatelessTest::class, PaymentMadeForStatelessTest::class],
             containerOrAvailableServices: $services,
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }

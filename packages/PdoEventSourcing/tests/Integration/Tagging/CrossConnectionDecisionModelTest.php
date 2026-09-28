@@ -10,7 +10,9 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Modelling\WithAggregateVersioning;
@@ -33,6 +35,7 @@ final class CrossConnectionDecisionModelTest extends TestCase
                 WidgetCountForCrossConnectionDecisionModelTest::class,
                 HandlerInjectingWidgetCountForCrossConnectionDecisionModelTest::class,
             ],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -44,6 +47,7 @@ final class CrossConnectionDecisionModelTest extends TestCase
                 SameConnectionAggregateForCrossConnectionDecisionModelTest::class,
                 SameConnectionModelForCrossConnectionDecisionModelTest::class,
             ],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

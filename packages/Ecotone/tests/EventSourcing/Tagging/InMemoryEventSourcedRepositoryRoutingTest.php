@@ -9,7 +9,9 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Modelling\WithAggregateVersioning;
@@ -18,6 +20,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class InMemoryEventSourcedRepositoryRoutingTest extends TestCase
 {
@@ -25,6 +28,7 @@ final class InMemoryEventSourcedRepositoryRoutingTest extends TestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OrderForRoutingTest::class, OrderPlacedForRoutingTest::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

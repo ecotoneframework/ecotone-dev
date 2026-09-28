@@ -7,6 +7,7 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -157,6 +158,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
+                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
                 ]),
             runForProductionEventStore: true,
@@ -178,6 +180,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
+                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
                     EventSourcingConfiguration::createWithDefaults()->withFilterOnlyTags($filterOnlyTagNames),
                 ]),

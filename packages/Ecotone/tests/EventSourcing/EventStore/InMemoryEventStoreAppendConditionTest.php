@@ -5,18 +5,21 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\EventStore;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
-use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Event;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class InMemoryEventStoreAppendConditionTest extends TestCase
 {
@@ -51,20 +54,20 @@ final class InMemoryEventStoreAppendConditionTest extends TestCase
         $this->assertCount(2, $eventStore->load(self::STREAM));
     }
 
-    public function test_open_core_store_rejects_a_hand_built_tag_condition(): void
+    public function test_store_without_the_boundary_rejects_a_hand_built_tag_condition(): void
     {
         $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);
 
-        $this->expectException(LicensingException::class);
+        $this->expectException(ConfigurationException::class);
 
         $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 1)], AppendCondition::fromCapturedVersions([
             ['name' => 'coupon', 'value' => 'SUMMER24', 'expectedVersion' => 0],
         ]));
     }
 
-    public function test_enterprise_strategy_still_enforces_the_aggregate_condition_alongside_a_tag_condition(): void
+    public function test_store_with_the_boundary_still_enforces_the_aggregate_condition_alongside_a_tag_condition(): void
     {
-        $eventStore = $this->bootstrapEcotone(LicenceTesting::VALID_LICENCE)->getGateway(EventStore::class);
+        $eventStore = $this->bootstrapEcotone(true)->getGateway(EventStore::class);
         $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 1)], AppendCondition::forAggregate('Order', 'order-1', 0));
 
         $condition = AppendCondition::forAggregate('Order', 'order-1', 0)
@@ -77,10 +80,15 @@ final class InMemoryEventStoreAppendConditionTest extends TestCase
         $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 2)], $condition);
     }
 
-    private function bootstrapEcotone(?string $licenceKey = null): FlowTestSupport
+    private function bootstrapEcotone(bool $dynamicConsistencyBoundaryEnabled = false): FlowTestSupport
     {
+        if (! $dynamicConsistencyBoundaryEnabled) {
+            return EcotoneLite::bootstrapFlowTesting();
+        }
+
         return EcotoneLite::bootstrapFlowTesting(
-            licenceKey: $licenceKey,
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

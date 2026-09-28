@@ -11,12 +11,16 @@ use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class ThreeModelCourseExampleTest extends TestCase
 {
@@ -82,6 +86,7 @@ final class ThreeModelCourseExampleTest extends TestCase
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: self::CLASSES,
             containerOrAvailableServices: [new CourseSubscriptionsForThreeModelTest(), new EnrollmentNotificationSagaForThreeModelTest()],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -132,15 +137,24 @@ final readonly class StudentSubscribedToCourseForThreeModelTest
     }
 }
 
-final class CourseIsFullForThreeModelTest extends \RuntimeException
+/**
+ * @internal
+ */
+final class CourseIsFullForThreeModelTest extends RuntimeException
 {
 }
 
-final class StudentHasTooManyCoursesForThreeModelTest extends \RuntimeException
+/**
+ * @internal
+ */
+final class StudentHasTooManyCoursesForThreeModelTest extends RuntimeException
 {
 }
 
-final class CapacityBelowSubscriptionsForThreeModelTest extends \RuntimeException
+/**
+ * @internal
+ */
+final class CapacityBelowSubscriptionsForThreeModelTest extends RuntimeException
 {
 }
 

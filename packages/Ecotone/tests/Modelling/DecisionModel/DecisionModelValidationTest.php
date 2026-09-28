@@ -8,6 +8,8 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
@@ -15,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class DecisionModelValidationTest extends TestCase
 {
@@ -24,6 +27,7 @@ final class DecisionModelValidationTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [ModelWithMissingTagForValidationTest::class, EventWithoutStudentTagForValidationTest::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -34,6 +38,7 @@ final class DecisionModelValidationTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [ModelWithInterfaceTypedHandlerForValidationTest::class, TaggedEventInterfaceForValidationTest::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -44,6 +49,7 @@ final class DecisionModelValidationTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [ModelWithConstructorArgumentsForValidationTest::class, TaggedEventForValidationTest::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -54,6 +60,7 @@ final class DecisionModelValidationTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [ModelWithCommandHandlerForValidationTest::class, TaggedEventForValidationTest::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -67,6 +74,7 @@ final class DecisionModelValidationTest extends TestCase
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class],
             containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -77,6 +85,7 @@ final class DecisionModelValidationTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [ModelWithNoHandledEventsForValidationTest::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
@@ -88,6 +97,7 @@ final class DecisionModelValidationTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class, CommandWithNullTagPropertyForValidationTest::class],
             containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -103,6 +113,7 @@ final class DecisionModelValidationTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class, CommandWithoutTagPropertyForValidationTest::class],
             containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

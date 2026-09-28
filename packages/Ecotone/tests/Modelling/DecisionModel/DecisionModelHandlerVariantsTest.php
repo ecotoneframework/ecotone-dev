@@ -7,18 +7,20 @@ namespace Test\Ecotone\Modelling\DecisionModel;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
-use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Header;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class DecisionModelHandlerVariantsTest extends TestCase
 {
@@ -30,6 +32,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [HandlerWithReferenceForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler, $counter],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -48,6 +51,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [HandlerWithReferenceForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler, $counter],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -63,6 +67,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [AsyncHandlerForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -82,6 +87,7 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [QueryHandlerForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class, GetItemCountForVariantsTest::class],
             containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
@@ -100,8 +106,9 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [OutputChannelHandlerForVariantsTest::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class],
             containerOrAvailableServices: [$handler],
-            configuration: \Ecotone\Api\ExtensionObject\ServiceConfiguration::createWithDefaults()
+            configuration: ServiceConfiguration::createWithDefaults()
                 ->withExtensionObjects([
+                    DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     \Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder::createQueueChannel('forwardedChannel'),
                 ]),
             licenceKey: LicenceTesting::VALID_LICENCE,

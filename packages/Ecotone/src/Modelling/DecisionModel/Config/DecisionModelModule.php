@@ -16,13 +16,16 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\QueryHandler;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Mapping\EventMapper;
+use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryDisabled;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
+use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
@@ -39,7 +42,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Precedence;
-use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\DecisionModel\CrossConnectionDecisionModelGuard;
 use Ecotone\Modelling\DecisionModel\DecisionModelAppendInterceptor;
 use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoader;
@@ -112,11 +114,8 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if ($this->decisionModelClasses !== [] && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create(sprintf(
-                'Dynamic Consistency Boundary (#[DecisionModel] used on %s) requires Ecotone Enterprise Licence.',
-                implode(', ', $this->decisionModelClasses)
-            ));
+        if (! ExtensionObjectResolver::contains(DynamicConsistencyBoundaryConfiguration::class, $extensionObjects) && $this->usesDecisionModels()) {
+            throw DynamicConsistencyBoundaryDisabled::exception();
         }
 
         if ($this->decisionModelClasses !== []) {
@@ -201,6 +200,14 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;
+    }
+
+    private function usesDecisionModels(): bool
+    {
+        return $this->decisionModelClasses !== []
+            || $this->decisionBoundaryMethods !== []
+            || $this->loaderDefinitionsByHandler !== []
+            || $this->annotationFinder->findAnnotatedMethods(DecisionBoundary::class) !== [];
     }
 
     private static function assertNoAmbiguousDuplicateModelInjection(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): void

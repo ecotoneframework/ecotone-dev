@@ -5,9 +5,10 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Tagging;
 
 use Ecotone\Api\Attribute\EventTag;
-use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
@@ -16,6 +17,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class EventStoreTagLoadingTest extends TestCase
 {
@@ -211,6 +213,7 @@ final class EventStoreTagLoadingTest extends TestCase
     {
         $this->ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [StudentSubscribedToCourseForStoreTest::class, CourseCapacityChangedForStoreTest::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

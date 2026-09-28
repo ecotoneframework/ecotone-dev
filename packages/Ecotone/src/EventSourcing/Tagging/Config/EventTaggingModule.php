@@ -6,6 +6,7 @@ namespace Ecotone\EventSourcing\Tagging\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -18,10 +19,6 @@ use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
-
-use function array_keys;
-use function implode;
-use function sprintf;
 
 #[ModuleAnnotation]
 /**
@@ -43,13 +40,8 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        $classesWithEventTags = array_keys($this->rawDefinitions);
-
-        if ($classesWithEventTags !== [] && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
-            throw LicensingException::create(sprintf(
-                'Dynamic Consistency Boundary (#[EventTag] used on %s) requires Ecotone Enterprise Licence.',
-                implode(', ', $classesWithEventTags)
-            ));
+        if (ExtensionObjectResolver::contains(DynamicConsistencyBoundaryConfiguration::class, $extensionObjects) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+            throw LicensingException::create('Dynamic Consistency Boundary (DynamicConsistencyBoundaryConfiguration) requires Ecotone Enterprise Licence.');
         }
 
         $filterOnlyTagNames = ExtensionObjectResolver::resolveUnique(

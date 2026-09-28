@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Tagging;
 
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -14,6 +16,7 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class EventTagResolutionTest extends TestCase
 {
@@ -115,6 +118,7 @@ final class EventTagResolutionTest extends TestCase
     {
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

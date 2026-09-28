@@ -7,6 +7,7 @@ use Ecotone\Api\Attribute\AggregateType;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\EventSourcing\Stream;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -38,6 +39,7 @@ use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
 use Ecotone\EventSourcing\SerializingEventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryServices;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
@@ -51,7 +53,6 @@ use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\DefinitionHelper;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
-use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -129,6 +130,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $dbalConfiguration = ExtensionObjectResolver::resolveUnique(DbalConfiguration::class, $extensionObjects, DbalConfiguration::createDefaultFor($extensionObjects));
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
+        $dynamicConsistencyBoundaryEnabled = ExtensionObjectResolver::contains(DynamicConsistencyBoundaryConfiguration::class, $extensionObjects);
 
         $messagingConfiguration->registerServiceDefinition(EventSourcingConfiguration::class, DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
 
@@ -148,7 +150,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $messagingConfiguration->registerServiceDefinition(
             TagTableManager::class,
             new Definition(TagTableManager::class, [
-                $this->hasEventTagsDeclared,
+                $this->hasEventTagsDeclared && $dynamicConsistencyBoundaryEnabled,
                 $dbalConfiguration->isAutomaticTableInitializationEnabled(),
                 $consoleInvocationPrefix,
             ])
@@ -157,7 +159,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $moduleReferenceSearchService->store(AggregateStreamMapping::class, $this->aggregateToStreamMapping);
         $moduleReferenceSearchService->store(AggregateTypeMapping::class, $this->aggregateTypeMapping);
 
-        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $dbalConfiguration, $consoleInvocationPrefix, $interfaceToCallRegistry);
+        $this->registerEventStoreInstance($messagingConfiguration, $eventSourcingConfiguration, $streamTableRegistry, $dbalConfiguration, $consoleInvocationPrefix, $interfaceToCallRegistry, $dynamicConsistencyBoundaryEnabled);
         $this->registerEventStore($messagingConfiguration, $eventSourcingConfiguration);
         $this->registerEventStreamEmitter($messagingConfiguration, $eventSourcingConfiguration);
     }
@@ -188,6 +190,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         DbalConfiguration $dbalConfiguration,
         ?string $consoleInvocationPrefix,
         InterfaceToCallRegistry $interfaceToCallRegistry,
+        bool $dynamicConsistencyBoundaryEnabled,
     ): void {
         $messagingConfiguration->registerServiceDefinition(
             EventSerializer::class,
@@ -197,9 +200,9 @@ class EventSourcingModule extends NoExternalConfigurationModule
             ])
         );
 
-        $this->registerAppendStrategy($messagingConfiguration);
-        $this->registerInMemoryTagCollaborator($messagingConfiguration);
-        $this->registerDbalTagCollaborator($messagingConfiguration);
+        $this->registerAppendStrategy($messagingConfiguration, $dynamicConsistencyBoundaryEnabled);
+        $this->registerInMemoryTagCollaborator($messagingConfiguration, $dynamicConsistencyBoundaryEnabled);
+        $this->registerDbalTagCollaborator($messagingConfiguration, $dynamicConsistencyBoundaryEnabled);
 
         if ($eventSourcingConfiguration->isInMemory()) {
             $messagingConfiguration->registerServiceDefinition(
@@ -254,6 +257,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
             new Definition(TagVerifySchemaConsoleCommand::class, [
                 new Reference($eventSourcingConfiguration->getConnectionReferenceName()),
                 new Reference(TagSchemaVerifier::class),
+                $dynamicConsistencyBoundaryEnabled,
             ])
         );
 
@@ -275,7 +279,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         );
     }
 
-    private function registerAppendStrategy(Configuration $messagingConfiguration): void
+    private function registerAppendStrategy(Configuration $messagingConfiguration, bool $dynamicConsistencyBoundaryEnabled): void
     {
         $messagingConfiguration->registerServiceDefinition(
             OpenCoreAppendStrategy::class,
@@ -287,11 +291,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
         );
         $messagingConfiguration->registerServiceDefinition(
             AppendStrategy::class,
-            LicenceDecider::prepareDefinition(AppendStrategy::class, OpenCoreAppendStrategy::class, EnterpriseAppendStrategy::class),
+            DynamicConsistencyBoundaryServices::definitionFor($dynamicConsistencyBoundaryEnabled, AppendStrategy::class, OpenCoreAppendStrategy::class, EnterpriseAppendStrategy::class),
         );
     }
 
-    private function registerInMemoryTagCollaborator(Configuration $messagingConfiguration): void
+    private function registerInMemoryTagCollaborator(Configuration $messagingConfiguration, bool $dynamicConsistencyBoundaryEnabled): void
     {
         $messagingConfiguration->registerServiceDefinition(
             OpenCoreInMemoryTagCollaborator::class,
@@ -303,11 +307,11 @@ class EventSourcingModule extends NoExternalConfigurationModule
         );
         $messagingConfiguration->registerServiceDefinition(
             InMemoryTagCollaborator::class,
-            LicenceDecider::prepareDefinition(InMemoryTagCollaborator::class, OpenCoreInMemoryTagCollaborator::class, InMemoryTagConditionalStore::class),
+            DynamicConsistencyBoundaryServices::definitionFor($dynamicConsistencyBoundaryEnabled, InMemoryTagCollaborator::class, OpenCoreInMemoryTagCollaborator::class, InMemoryTagConditionalStore::class),
         );
     }
 
-    private function registerDbalTagCollaborator(Configuration $messagingConfiguration): void
+    private function registerDbalTagCollaborator(Configuration $messagingConfiguration, bool $dynamicConsistencyBoundaryEnabled): void
     {
         $messagingConfiguration->registerServiceDefinition(
             OpenCoreDbalTagCollaborator::class,
@@ -319,7 +323,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         );
         $messagingConfiguration->registerServiceDefinition(
             DbalTagCollaborator::class,
-            LicenceDecider::prepareDefinition(DbalTagCollaborator::class, OpenCoreDbalTagCollaborator::class, EnterpriseDbalTagCollaborator::class),
+            DynamicConsistencyBoundaryServices::definitionFor($dynamicConsistencyBoundaryEnabled, DbalTagCollaborator::class, OpenCoreDbalTagCollaborator::class, EnterpriseDbalTagCollaborator::class),
         );
     }
 

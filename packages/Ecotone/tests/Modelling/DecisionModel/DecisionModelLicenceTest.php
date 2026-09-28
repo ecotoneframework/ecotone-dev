@@ -6,12 +6,15 @@ namespace Test\Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Support\LicensingException;
 use PHPUnit\Framework\TestCase;
 
 /**
  * licence Enterprise
+ * @internal
  */
 final class DecisionModelLicenceTest extends TestCase
 {
@@ -21,6 +24,7 @@ final class DecisionModelLicenceTest extends TestCase
 
         EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [ModelForLicenceTest::class, UntaggedEventForDecisionModelLicenceTest::class],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
         );
     }
 }

@@ -4,27 +4,30 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\EventStore\AppendStrategy;
 
-use Ecotone\Api\EventSourcing\AppendCondition;
-use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
-use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\Event;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
 /**
  * licence Apache-2.0
+ * @internal
  */
 final class AppendStrategyTest extends TestCase
 {
     private const STREAM = 'ecotone_event_stream';
 
-    public function test_open_core_appends_unconditionally_when_no_condition_is_given(): void
+    public function test_without_the_boundary_appends_unconditionally_when_no_condition_is_given(): void
     {
         $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);
 
@@ -33,7 +36,7 @@ final class AppendStrategyTest extends TestCase
         $this->assertCount(1, $eventStore->load(self::STREAM));
     }
 
-    public function test_open_core_honours_an_aggregate_only_condition(): void
+    public function test_without_the_boundary_honours_an_aggregate_only_condition(): void
     {
         $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);
         $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 1)], AppendCondition::forAggregate('Order', 'order-1', 0));
@@ -43,29 +46,29 @@ final class AppendStrategyTest extends TestCase
         $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 2)], AppendCondition::forAggregate('Order', 'order-1', 0));
     }
 
-    public function test_open_core_rejects_a_condition_carrying_a_tag_part(): void
+    public function test_without_the_boundary_rejects_a_condition_carrying_a_tag_part(): void
     {
         $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);
 
-        $this->expectException(LicensingException::class);
+        $this->expectException(ConfigurationException::class);
 
         $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 1)], AppendCondition::fromCapturedVersions([
             ['name' => 'coupon', 'value' => 'SUMMER24', 'expectedVersion' => 1],
         ]));
     }
 
-    public function test_enterprise_still_indexes_a_tagged_event_by_its_tag_even_without_an_explicit_condition(): void
+    public function test_with_the_boundary_indexes_a_tagged_event_by_its_tag_even_without_an_explicit_condition(): void
     {
-        $eventStore = $this->bootstrapEcotone(LicenceTesting::VALID_LICENCE, [CouponIssuedForAppendStrategyTest::class])->getGateway(EventStore::class);
+        $eventStore = $this->bootstrapEcotone(true, [CouponIssuedForAppendStrategyTest::class])->getGateway(EventStore::class);
 
         $eventStore->appendTo(self::STREAM, [new CouponIssuedForAppendStrategyTest('SUMMER24')]);
 
         $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
 
-    public function test_enterprise_still_enforces_an_aggregate_only_condition_through_the_tag_protocol(): void
+    public function test_with_the_boundary_enforces_an_aggregate_only_condition_through_the_tag_protocol(): void
     {
-        $eventStore = $this->bootstrapEcotone(LicenceTesting::VALID_LICENCE)->getGateway(EventStore::class);
+        $eventStore = $this->bootstrapEcotone(true)->getGateway(EventStore::class);
         $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 1)], AppendCondition::forAggregate('Order', 'order-1', 0));
 
         $this->expectException(ConcurrencyException::class);
@@ -73,11 +76,16 @@ final class AppendStrategyTest extends TestCase
         $eventStore->appendTo(self::STREAM, [$this->aggregateEvent('order-1', 2)], AppendCondition::forAggregate('Order', 'order-1', 0));
     }
 
-    private function bootstrapEcotone(?string $licenceKey = null, array $classesToResolve = []): FlowTestSupport
+    private function bootstrapEcotone(bool $dynamicConsistencyBoundaryEnabled = false, array $classesToResolve = []): FlowTestSupport
     {
+        if (! $dynamicConsistencyBoundaryEnabled) {
+            return EcotoneLite::bootstrapFlowTesting(classesToResolve: $classesToResolve);
+        }
+
         return EcotoneLite::bootstrapFlowTesting(
             classesToResolve: $classesToResolve,
-            licenceKey: $licenceKey,
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
         );
     }
 

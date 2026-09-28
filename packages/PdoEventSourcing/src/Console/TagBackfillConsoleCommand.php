@@ -44,7 +44,7 @@ final class TagBackfillConsoleCommand
         );
 
         $rows = [
-            ['Last no processed', (string) $report->lastNo()],
+            ['Last no processed', (string) ($report->lastProcessedNo() ?? '-')],
             ['Events scanned', (string) $report->eventsScanned()],
             ['Events tagged', (string) $report->eventsTagged()],
             ['Tag counters bumped', (string) $report->tagsBumped()],

@@ -86,6 +86,17 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'WINTER24'))->events);
     }
 
+    public function test_from_no_past_the_last_event_reports_that_nothing_was_processed(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+        $lastNo = $this->insertHistoricalEvent('SUMMER24', 2);
+
+        $result = $this->runBackfill($ecotone, ['fromNo' => $lastNo + 100]);
+
+        self::assertSame('0', $this->rowValue($result, 'Events scanned'));
+        self::assertSame('-', $this->rowValue($result, 'Last no processed'));
+    }
+
     public function test_a_batch_size_of_one_orders_the_tag_sequence_by_no(): void
     {
         $ecotone = $this->bootstrapEcotone();

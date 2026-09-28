@@ -29,6 +29,17 @@ final class TagSchemaVerifier
         ];
 
         foreach ($expectedPrimaryKeys as $tableName => $expectedColumns) {
+            if (! $connection->createSchemaManager()->tablesExist([$tableName])) {
+                $problems[] = sprintf(
+                    "Table '%s' does not exist -- tagged appends and decision models cannot run without it. Fix:\n"
+                    . 'ecotone:migration:database:setup --initialize --feature=%s (or --sql --feature=%s to print the DDL for your migration tool)',
+                    $tableName,
+                    TagTableManager::FEATURE_NAME,
+                    TagTableManager::FEATURE_NAME,
+                );
+                continue;
+            }
+
             $problems = [...$problems, ...$this->verifyPrimaryKey($connection, $tableName, $expectedColumns)];
 
             if ($platform instanceof AbstractMySQLPlatform) {

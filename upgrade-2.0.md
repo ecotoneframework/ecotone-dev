@@ -633,7 +633,7 @@ convention.
 
 | # | When | Step | Why 1.x keeps working |
 |---|---|---|---|
-| 1 | on 1.x | Create `ecotone_tagged_events` and `ecotone_tag_versions` (the DDL above, or `ecotone:event-store:verify-schema --sql` once on 2.0 to get it, applied by hand while still on 1.x) | 1.x never references them |
+| 1 | on 1.x | Create `ecotone_tagged_events` and `ecotone_tag_versions` (the DDL above, or `ecotone:migration:database:setup --sql --feature=event_tags` once on 2.0 to get it, applied by hand while still on 1.x) | 1.x never references them |
 | 2 | on 1.x, optional | Create `ecotone_event_stream` if not already present | 1.x never references it |
 | 3 | on 1.x, **only for a table a decision model will *write* into** | Relax the table's aggregate `NOT NULL` — see below | Only permits *more*, not less |
 | 4 | | Deploy 2.0 to **every** node | |
@@ -677,7 +677,8 @@ header selects which tenant's connection and tag tables get backfilled — `ecot
 "tenant:a"` indexes tenant `a` only, and the command must be run once per tenant.
 
 **`ecotone:event-store:verify-schema [--legacy-stream=]`** is the CI/deploy gate for all of the above: it checks
-`ecotone_tagged_events` / `ecotone_tag_versions`'s primary keys and, on MySQL/MariaDB, that their tag columns kept
+that `ecotone_tagged_events` / `ecotone_tag_versions` exist (a missing one is reported with the setup command that
+creates it), their primary keys and, on MySQL/MariaDB, that their tag columns kept
 `utf8mb4_bin` collation (a hand-applied migration with the server default would silently let `'ABC'` and `'abc'`
 collide as one tag value); for every `--legacy-stream=` table named, it checks the three aggregate `NOT NULL`
 constraints from the table above are relaxed. On any failure it prints the exact `ALTER`/`DROP CONSTRAINT`

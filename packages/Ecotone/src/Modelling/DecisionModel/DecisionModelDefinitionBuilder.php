@@ -4,22 +4,28 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use function array_diff;
+use function array_intersect;
+use function array_unique;
+use function array_values;
+
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingHandler;
+use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
+
+use function implode;
+
+use ReflectionAttribute;
 use ReflectionClass;
 
-use function array_diff;
-use function array_intersect;
-use function array_unique;
-use function array_values;
-use function implode;
 use function sprintf;
 
 /**
@@ -39,6 +45,7 @@ final class DecisionModelDefinitionBuilder
         $className = $classDefinition->getClassType()->toString();
 
         self::assertPublicNoArgumentConstructor($className);
+        self::assertNotAlsoAnAggregateOrSaga($className);
         self::assertNoMessageHandlerDeclaredOnTheModelItself($classDefinition, $interfaceToCallRegistry);
 
         $handledEventClasses = self::findHandledEventClasses($classDefinition, $interfaceToCallRegistry);
@@ -53,6 +60,14 @@ final class DecisionModelDefinitionBuilder
         $tagNames = $explicitTagNames !== []
             ? array_values(array_unique($explicitTagNames))
             : self::intersectionOfTagNames($handledEventClasses, $eventTagRegistry);
+
+        if ($tagNames === []) {
+            throw ConfigurationException::create(sprintf(
+                'DecisionModel %s is scoped by no tag name, so it would fold no event and guard nothing: its handled event(s) %s share no #[EventTag] name. Add #[EventTag] to the event(s) so that every handled event carries a common tag name, or scope the model explicitly with #[DecisionModel(tags: [...])].',
+                $className,
+                self::tagNamesPerHandledEvent($handledEventClasses, $eventTagRegistry),
+            ));
+        }
 
         foreach ($handledEventClasses as $handledEventClass) {
             $eventTagNames = $eventTagRegistry->tagNamesFor($handledEventClass);
@@ -86,6 +101,17 @@ final class DecisionModelDefinitionBuilder
             if (! $constructor->isPublic()) {
                 throw ConfigurationException::create("Constructor for DecisionModel {$className} should be public.");
             }
+        }
+    }
+
+    private static function assertNotAlsoAnAggregateOrSaga(string $className): void
+    {
+        foreach ((new ReflectionClass($className))->getAttributes(Aggregate::class, ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
+            throw ConfigurationException::create(sprintf(
+                'DecisionModel %s is also declared #[%s] -- a class is either a decision model, injected into handlers, or an aggregate/saga, loaded by identifier. Move the model into its own class and inject it into the aggregate\'s handler.',
+                $className,
+                $attribute->getName(),
+            ));
         }
     }
 
@@ -145,6 +171,39 @@ final class DecisionModelDefinitionBuilder
         }
 
         return array_values(array_unique($handledEventClasses));
+    }
+
+    /**
+     * @param class-string[] $handledEventClasses
+     */
+    private static function tagNamesPerHandledEvent(array $handledEventClasses, EventTagRegistry $eventTagRegistry): string
+    {
+        $descriptions = [];
+        foreach ($handledEventClasses as $handledEventClass) {
+            $eventTagNames = $eventTagRegistry->tagNamesFor($handledEventClass);
+
+            $descriptions[] = match (true) {
+                $eventTagNames !== [] => sprintf('%s (%s)', $handledEventClass, implode(', ', $eventTagNames)),
+                self::declaresEventTag($handledEventClass) => sprintf("%s (declares #[EventTag] but was not found by Ecotone's class scan -- add its namespace to the scanned namespaces)", $handledEventClass),
+                default => sprintf('%s (no #[EventTag])', $handledEventClass),
+            };
+        }
+
+        return implode(', ', $descriptions);
+    }
+
+    private static function declaresEventTag(string $eventClass): bool
+    {
+        for ($reflectionClass = new ReflectionClass($eventClass); $reflectionClass !== false; $reflectionClass = $reflectionClass->getParentClass()) {
+            $members = [$reflectionClass, ...$reflectionClass->getProperties(), ...$reflectionClass->getMethods()];
+            foreach ($members as $member) {
+                if ($member->getAttributes(EventTag::class) !== []) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

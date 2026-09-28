@@ -10,6 +10,7 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -43,6 +44,22 @@ final class EventTagFilterOnlyTest extends TestCase
         );
 
         $this->assertCount(3, $eventStore->loadByCriteria(EventCriteria::tag('tenant', 'acme'))->events);
+    }
+
+    public function test_declaring_a_filter_only_tag_no_event_carries_is_rejected_at_bootstrap_naming_it_and_the_known_tags(): void
+    {
+        try {
+            EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [TenantScopedEventForFilterOnlyTest::class],
+                configuration: ServiceConfiguration::createWithDefaults()
+                    ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tennant'])]),
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString("'tennant'", $exception->getMessage());
+            $this->assertStringContainsString('tenant, itemId', $exception->getMessage());
+        }
     }
 }
 

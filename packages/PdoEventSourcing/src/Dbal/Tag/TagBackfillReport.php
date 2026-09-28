@@ -50,6 +50,11 @@ final class TagBackfillReport
         return $this->lastNo;
     }
 
+    public function lastProcessedNo(): ?int
+    {
+        return $this->eventsScanned === 0 ? null : $this->lastNo;
+    }
+
     public function eventsScanned(): int
     {
         return $this->eventsScanned;

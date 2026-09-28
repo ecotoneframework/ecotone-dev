@@ -62,6 +62,10 @@ final class InMemoryEventStore implements EventStore, AppendableStore
             ];
         }
 
+        if ($streamEvents === []) {
+            return;
+        }
+
         $this->appendStrategy->append($this, $streamName, $this->convertToEvents($streamEvents), $appendCondition);
     }
 

@@ -52,6 +52,21 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
         self::assertStringContainsString('consistent', $result->getRows()[0][0]);
     }
 
+    public function test_a_missing_tag_table_is_reported_with_the_command_that_creates_it(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForVerifySchemaTest('SUMMER24', 2)]));
+        $this->getConnection()->executeStatement('DROP TABLE ' . TagTableManager::TAG_VERSIONS_TABLE);
+
+        $result = $this->runVerify($ecotone, []);
+
+        $problems = implode("\n", array_column($result->getRows(), 0));
+        self::assertStringContainsString(TagTableManager::TAG_VERSIONS_TABLE, $problems);
+        self::assertStringContainsString('does not exist', $problems);
+        self::assertStringContainsString('ecotone:migration:database:setup', $problems);
+        self::assertStringNotContainsString(TagTableManager::TAGGED_EVENTS_TABLE, $problems);
+    }
+
     public function test_wrong_collation_on_tag_versions_is_caught(): void
     {
         $this->skipUnlessMySqlFamily();

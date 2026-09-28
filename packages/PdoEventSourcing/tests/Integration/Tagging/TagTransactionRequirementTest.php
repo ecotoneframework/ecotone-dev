@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Reference;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
@@ -59,6 +60,16 @@ final class TagTransactionRequirementTest extends EventSourcingMessagingTestCase
         }
 
         self::assertCount(0, $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+    }
+
+    public function test_tagged_append_from_a_handler_opting_out_of_transactions_names_the_attribute_as_the_cause(): void
+    {
+        $ecotone = $this->bootstrapEcotone(DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true));
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('#[WithoutDatabaseTransaction]');
+
+        $ecotone->sendCommand(new IssueCouponOutsideTransactionForTagTransactionTest('SUMMER24'));
     }
 
     public function test_tagged_append_from_a_command_handler_succeeds_with_transactions_on_the_command_bus(): void
@@ -189,6 +200,13 @@ final class TagTransactionCommandHandler
         $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTransactionTest($command->code)]);
     }
 
+    #[WithoutDatabaseTransaction]
+    #[CommandHandler]
+    public function issueOutsideTransaction(IssueCouponOutsideTransactionForTagTransactionTest $command, #[Reference] EventStore $eventStore): void
+    {
+        $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTransactionTest($command->code)]);
+    }
+
     #[CommandHandler]
     public function record(RecordNoteForTagTransactionTest $command, #[Reference] EventStore $eventStore): void
     {
@@ -220,5 +238,13 @@ final class EventsConverterForTagTransactionTest
     public function toNote(array $event): NoteRecordedForTagTransactionTest
     {
         return new NoteRecordedForTagTransactionTest($event['noteId']);
+    }
+}
+
+final readonly class IssueCouponOutsideTransactionForTagTransactionTest
+{
+    public function __construct(
+        public string $code,
+    ) {
     }
 }

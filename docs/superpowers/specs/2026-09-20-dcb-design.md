@@ -239,9 +239,11 @@ immediately — and lock contention cannot be tested there; `busy_timeout` must 
 - No foreign keys. `EventStore::delete($stream)` deletes that stream's index rows in the same transaction — without
   this, a re-created stream restarts `no` at 1 and stale rows join to unrelated events (every test suite that resets
   streams would hit it). Counters are left: a stale counter can only cause one spurious retry.
-- Tag values are validated in PHP before they reach SQL: non-empty, ≤ 255 characters, no trailing whitespace
-  (`utf8mb4_bin` is PAD SPACE — `'abc'` equals `'abc '` on MySQL but not on PostgreSQL). Non-strict MySQL would
-  otherwise truncate silently and the decision would silently miss events.
+- Tag values are validated in PHP before they reach SQL: valid UTF-8 (PostgreSQL and MySQL would reject the
+  bytes), no NUL byte (PostgreSQL rejects it, and it is the in-process tag key separator), non-empty, ≤ 255
+  *characters* (the columns count characters, not bytes), no trailing whitespace (`utf8mb4_bin` is PAD SPACE —
+  `'abc'` equals `'abc '` on MySQL but not on PostgreSQL). Non-strict MySQL would otherwise truncate silently and the
+  decision would silently miss events. Tag names are checked at bootstrap: non-empty, ≤ 100 characters, no NUL byte.
 - Both tables register with `ecotone:migration:database:setup` under their **own feature, `event_tags`**,
   whose table manager reports `isUsed()` only when the application declares an `#[EventTag]`. DCB is Enterprise
   (§4.10): an open-core application never sees these tables in its setup output or its database. `--sql` prints
@@ -300,6 +302,16 @@ final readonly class InvoiceIssued
 - `#[EventTag]` works on any event, including those recorded by an `#[EventSourcingAggregate]`. That is how a
   decision model includes aggregate-produced facts in its boundary. It is the **only** place the attribute
   appears; models are scoped by tag names (§4.4), commands may carry it to say which property supplies a value.
+  An event with no `#[EventTag]` can therefore never be folded by a decision model: handling one leaves the model
+  without a tag name and is rejected at bootstrap (§4.4).
+- **Inheritance** (maintainer, 2026-09-28): an event class without its own `#[EventTag]` carries the tags of its
+  nearest tagged ancestor, resolved when the event is appended, so a subclass is indexed and guarded like its parent.
+  Matching stays **exact-class**: a model's criterion lists the classes its `#[EventSourcingHandler]`s name, so a
+  handler typed with the parent does not fold the subclass.
+- **Scan limitation** (maintainer, 2026-09-28): the registry is built from the annotation scan at bootstrap and is
+  not extended by reflection at append time (that would need a per-class cache — a stateful service). A tagged event
+  class outside the scanned namespaces is therefore appended without tags. A decision model handling one is rejected
+  at bootstrap with a message naming the class scan as the cause; the write side is documented, not detected.
 - Tags are stored in plaintext beside the payload and appear in diagnostics. Do not tag personal data directly —
   tag a hash through a method.
 
@@ -316,8 +328,11 @@ public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfigur
 }
 ```
 
-A filter-only tag is indexed and never counted. A decision model that depends on one is a bootstrap
-`ConfigurationException`.
+A filter-only tag is indexed and never counted. A decision model scoped **only** by filter-only tags is a bootstrap
+`ConfigurationException` — its condition would guard nothing (maintainer, 2026-09-28, narrowing the earlier "depends on
+one"). A mixed scope such as `tenant` + `username` is allowed: it folds exactly one tenant's events and is guarded on
+the counted `username` tag, conservatively (a same-username write in another tenant costs one spurious retry). A name passed to `withFilterOnlyTags()` that no `#[EventTag]` declares is one too
+(maintainer, 2026-09-28): a typo would otherwise silently leave the intended tag counted.
 
 ### 4.4 Decision models
 
@@ -428,7 +443,10 @@ intersection, `coupon`, is the largest set of names every handled event can be m
 rule a model must satisfy anyway (a handled event that lacks one of the model's tags could never reach it). When
 the intersection is not what is wanted — `StudentCourses` handles only `StudentSubscribedToCourse`, whose tags are
 `course` and `student`, but the question is about the student alone — `tags:` says so, and a listed name absent
-from any handled event is a bootstrap `ConfigurationException`.
+from any handled event is a bootstrap `ConfigurationException`. So is a model left with **no** tag name — no
+`tags:` and handled events that share no `#[EventTag]` name, a handled event carrying none included: it would fold
+no event and guard nothing, and the message names the model, each handled event with the tags it carries, and the
+two remedies (tag the event, or give the model `tags:`).
 
 | Injected model | Criterion |
 |---|---|
@@ -470,9 +488,13 @@ public function transfer(
 
 The same model class twice, with different values — the case convention alone cannot resolve. For a multi-tag
 model the expression returns a map keyed by tag name, as `#[Fetch]` already accepts for multi-identifier
-aggregates. An array value selects several values of one key. A tag that
-cannot be resolved is a bootstrap error when statically knowable, otherwise an exception naming model, tag and
-message.
+aggregates. A model is scoped by **one value per tag**: an array value from the message — a property or a `#[Fetch]` result — is an exception naming the model and the tag (maintainer, 2026-09-28); inject the model once per value with `#[Fetch]`, or use `#[DecisionBoundary]` for a boundary over several values. A tag that
+cannot be resolved is a bootstrap error when statically knowable — the handler's message is a concrete class with
+no matching property, whether or not the model parameter is nullable (implemented by
+`DecisionModelTagResolvabilityGuard`; `couponCode` does not match tag `coupon` by convention) — otherwise an exception naming model, tag and
+message. Values resolved from the message, by name or `#[Fetch]`, go through the same `EventTagValueNormalizer` as
+event tags, so the two sides compare equal and an invalid value fails the same way (naming the model) instead of
+silently loading nothing.
 
 **A tag value that resolves to `null`** (an order placed without a coupon) follows the rule `#[Fetch]` already
 applies to aggregates: a nullable parameter (`?CouponRedemptions $coupon`) receives `null` and contributes nothing
@@ -524,7 +546,8 @@ aggregates). Every `#[EventSourcingHandler]` event class must declare all of the
 model could never receive it; bootstrap `ConfigurationException` (the inferred default satisfies this by
 construction). A model that needs a tag value in its state assigns it in a handler (`$this->courseId =
 $event->courseId`) — the framework never writes into a model. Interface or union handler parameters are
-rejected for the same reason. A model with no tagged property is allowed only if it handles events carrying a
+rejected for the same reason. A model class is never also an `#[Aggregate]`, `#[EventSourcingAggregate]` or
+`#[Saga]` — bootstrap `ConfigurationException`; one class has one role. A model with no tagged property is allowed only if it handles events carrying a
 class-level `#[EventTag(…, value: …)]` (the gapless-sequence case). Pointcuts target `DecisionModel::class`.
 `#[Reference]`, `#[Header]` and `#[Asynchronous]` work as on any handler; models are loaded when the handler
 runs, after the channel.
@@ -538,7 +561,9 @@ public static function boundary(RateCourse $command): EventCriteria { /* … */ 
 
 `DecisionBoundaryEvaluator` (Enterprise) owns the escape hatch: it discovers boundary methods at bootstrap — a
 boundary is matched to the `#[CommandHandler]`/`#[EventHandler]` of its class whose **first parameter has the same type
-as the boundary's first parameter** — and, when the handler returns, calls the static method with the handler's
+as the boundary's first parameter** (a boundary that is not static, takes other than that one parameter, does not
+declare `EventCriteria` as its return type, matches no handler, or duplicates another boundary's parameter type is a
+bootstrap `ConfigurationException`) — and, when the handler returns, calls the static method with the handler's
 command and loads by the criteria it returns. **Cost:** the one-load-per-handler guarantee (see "How it runs" above) covers injected
 models only. A boundary is a **second, separate `loadByCriteria()`** on top of the batched model load, run inside the
 same transaction, and its condition is merged into the handler's `AppendCondition`. It is not folded into the batch
@@ -589,7 +614,8 @@ $eventStore->appendTo('ecotone_event_stream', [new StudentSubscribedToCourse(...
 `EventStore` lives in core (`packages/Ecotone`), as do the attributes — `InMemoryEventStore` and the decision-model
 flow are core, and core cannot depend on `PdoEventSourcing`. Only schema, DBAL implementation and the console
 commands live in `PdoEventSourcing`. `loadByCriteria(EventCriteria $criteria)` takes a single, non-variadic
-argument — an OR of several criteria is expressed on `EventCriteria` itself (`EventCriteria::tag(...)->or(...)`) —
+argument — an OR of several criteria is expressed on `EventCriteria` itself (`EventCriteria::tag(...)->or(...)`;
+`andTag()`/`ofTypes()` narrow a single criterion and throw on an `or()` combination rather than drop its branches) —
 so it stays reachable through the `EventStore` *gateway* (`GatewayProxyBuilder`) the same way every other
 `EventStore` method is; `$eventStore` above is whatever `EventStore` the container hands you, gateway or concrete
 store alike.

@@ -50,7 +50,7 @@ final class DynamicConsistencyBoundaryDisabledDbalTest extends EventSourcingMess
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(self::DISABLED_MESSAGE);
 
-        $this->bootstrapEcotone([RenamesForDisabledBoundaryDbalTest::class, HandlerInjectingRenamesForDisabledBoundaryDbalTest::class]);
+        $this->bootstrapEcotone([RenamesForDisabledBoundaryDbalTest::class, RenamedForDisabledBoundaryDbalTest::class, HandlerInjectingRenamesForDisabledBoundaryDbalTest::class]);
     }
 
     public function test_aggregate_emitting_tagged_events_is_saved_and_reloaded_without_any_tag_tables(): void

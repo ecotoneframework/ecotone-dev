@@ -18,6 +18,7 @@ use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -134,6 +135,45 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
 
         $this->expectException(DecisionModelConcurrencyException::class);
         self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')], $loaded->appendCondition));
+    }
+
+    public function test_appending_no_events_under_a_stale_condition_is_a_no_op(): void
+    {
+        $store = $this->bootstrapEventStore();
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 5)]));
+
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [], $loaded->appendCondition));
+
+        self::assertCount(2, $store->loadByCriteria(EventCriteria::tag('course', 'course-1'))->events);
+    }
+
+    public function test_loading_after_the_stream_table_was_dropped_names_the_stream_table_not_the_tag_tables(): void
+    {
+        $store = $this->bootstrapEventStore();
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
+        $this->getConnection()->executeStatement('DROP TABLE ' . self::STREAM);
+
+        try {
+            $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+            self::fail('Expected the missing stream table to be reported');
+        } catch (Throwable $exception) {
+            self::assertStringContainsString(self::STREAM, $exception->getMessage());
+            self::assertStringNotContainsString(TagTableManager::TAG_VERSIONS_TABLE, $exception->getMessage());
+        }
+    }
+
+    public function test_a_condition_guards_its_tags_even_when_the_appended_events_carry_another_value(): void
+    {
+        $store = $this->bootstrapEventStore();
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 5)]));
+
+        $this->expectException(DecisionModelConcurrencyException::class);
+
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-2', 5)], $loaded->appendCondition));
     }
 
     public function test_unconditional_append_invalidates_a_held_condition(): void

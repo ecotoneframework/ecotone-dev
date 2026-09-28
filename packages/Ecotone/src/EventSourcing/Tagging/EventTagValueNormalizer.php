@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Tagging;
 
 use Ecotone\Messaging\Config\ConfigurationException;
-use Stringable;
 
 use function get_debug_type;
 use function is_array;
 use function is_scalar;
+use function preg_match_all;
 use function rtrim;
 use function sprintf;
-use function strlen;
+use function str_contains;
+
+use Stringable;
 
 /**
  * licence Enterprise
@@ -54,8 +56,17 @@ final class EventTagValueNormalizer
             throw ConfigurationException::create(sprintf("Tag '%s' value cannot be empty.", $tagName));
         }
 
-        if (strlen($value) > 255) {
-            throw ConfigurationException::create(sprintf("Tag '%s' value cannot be longer than 255 characters, got %d.", $tagName, strlen($value)));
+        $characterCount = preg_match_all('/./su', $value);
+        if ($characterCount === false) {
+            throw ConfigurationException::create(sprintf("Tag '%s' value must be valid UTF-8.", $tagName));
+        }
+
+        if (str_contains($value, "\0")) {
+            throw ConfigurationException::create(sprintf("Tag '%s' value cannot contain a NUL byte.", $tagName));
+        }
+
+        if ($characterCount > 255) {
+            throw ConfigurationException::create(sprintf("Tag '%s' value cannot be longer than 255 characters, got %d.", $tagName, $characterCount));
         }
 
         if (rtrim($value) !== $value) {

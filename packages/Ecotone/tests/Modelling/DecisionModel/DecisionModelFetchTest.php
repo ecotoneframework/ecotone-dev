@@ -12,6 +12,7 @@ use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -55,6 +56,73 @@ final class DecisionModelFetchTest extends TestCase
         $ecotone->sendCommand(new RedeemCouponForFetchTest('alice', 'SUMMER24'));
 
         $this->assertTrue(RedeemCouponHandlerForFetchTest::$observedAlreadyUsed);
+    }
+
+    public function test_fetch_resolving_an_empty_value_is_rejected_naming_the_model_and_the_tag(): void
+    {
+        $handler = new CountingHandlerForFetchTest();
+        $ecotone = $this->bootstrapCountingHandler($handler);
+
+        try {
+            $ecotone->sendCommand(new CountAccountActivityForFetchTest(''));
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(AccountActivityForFetchTest::class, $exception->getMessage());
+            $this->assertStringContainsString("'account'", $exception->getMessage());
+            $this->assertStringContainsString('empty', $exception->getMessage());
+        }
+    }
+
+    public function test_fetch_resolving_a_value_with_trailing_whitespace_is_rejected_like_an_event_tag_value(): void
+    {
+        $ecotone = $this->bootstrapCountingHandler(new CountingHandlerForFetchTest());
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('trailing whitespace');
+
+        $ecotone->sendCommand(new CountAccountActivityForFetchTest('acc-1 '));
+    }
+
+    public function test_fetch_resolving_an_integer_matches_the_same_integer_tagged_on_events(): void
+    {
+        $ecotone = $this->bootstrapCountingHandler(new CountingHandlerForFetchTest());
+
+        $ecotone->withEvents([new MoneyTransferredForFetchTest('7', 'acc-2', 10)]);
+
+        $ecotone->sendCommand(new CountAccountActivityForFetchTest(7));
+
+        $this->assertSame(1, CountingHandlerForFetchTest::$observedCount);
+    }
+
+    public function test_fetch_resolving_a_list_of_values_for_a_single_tag_model_is_rejected_naming_model_and_tag(): void
+    {
+        $handler = new CountingSeveralAccountsHandlerForFetchTest();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
+            containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        try {
+            $ecotone->sendCommand(new CountSeveralAccountsForFetchTest(['acc-1', 'acc-2']));
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(AccountActivityForFetchTest::class, $exception->getMessage());
+            $this->assertStringContainsString("'account'", $exception->getMessage());
+            $this->assertStringContainsString('one value', $exception->getMessage());
+        }
+    }
+
+    private function bootstrapCountingHandler(CountingHandlerForFetchTest $handler)
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, AccountActivityForFetchTest::class, MoneyTransferredForFetchTest::class],
+            containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
     }
 }
 
@@ -163,5 +231,46 @@ final class TransferHandlerForFetchTest
         ];
 
         return [new MoneyTransferredForFetchTest($command->fromAccountId, $command->toAccountId, $command->amount)];
+    }
+}
+
+final readonly class CountAccountActivityForFetchTest
+{
+    public function __construct(
+        public string|int $reference,
+    ) {
+    }
+}
+
+final class CountingHandlerForFetchTest
+{
+    public static int $observedCount = 0;
+
+    #[CommandHandler]
+    public function count(CountAccountActivityForFetchTest $command, #[Fetch('payload.reference')] AccountActivityForFetchTest $account): array
+    {
+        self::$observedCount = $account->transferCount();
+
+        return [];
+    }
+}
+
+final readonly class CountSeveralAccountsForFetchTest
+{
+    /**
+     * @param string[] $references
+     */
+    public function __construct(
+        public array $references,
+    ) {
+    }
+}
+
+final class CountingSeveralAccountsHandlerForFetchTest
+{
+    #[CommandHandler]
+    public function count(CountSeveralAccountsForFetchTest $command, #[Fetch('payload.references')] AccountActivityForFetchTest $account): array
+    {
+        return [];
     }
 }

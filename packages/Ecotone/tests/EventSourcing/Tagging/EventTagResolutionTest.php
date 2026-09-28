@@ -111,6 +111,71 @@ final class EventTagResolutionTest extends TestCase
         $this->bootstrapEventStore([EventTaggedOnNonScalarProperty::class]);
     }
 
+    public function test_tag_value_of_255_multibyte_characters_is_accepted(): void
+    {
+        $eventStore = $this->bootstrapEventStore([EventTaggedOnPlainProperty::class]);
+        $value = str_repeat('ż', 255);
+
+        $eventStore->appendTo('ecotone_event_stream', [new EventTaggedOnPlainProperty($value)]);
+
+        $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('course', $value))->events);
+    }
+
+    public function test_tag_value_of_256_multibyte_characters_is_rejected_counting_characters(): void
+    {
+        $eventStore = $this->bootstrapEventStore([EventTaggedOnPlainProperty::class]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('got 256');
+
+        $eventStore->appendTo('ecotone_event_stream', [new EventTaggedOnPlainProperty(str_repeat('ż', 256))]);
+    }
+
+    public function test_tag_value_containing_a_nul_byte_is_rejected(): void
+    {
+        $eventStore = $this->bootstrapEventStore([EventTaggedOnPlainProperty::class]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('NUL');
+
+        $eventStore->appendTo('ecotone_event_stream', [new EventTaggedOnPlainProperty("course\0-1")]);
+    }
+
+    public function test_tag_value_that_is_not_valid_utf8_is_rejected(): void
+    {
+        $eventStore = $this->bootstrapEventStore([EventTaggedOnPlainProperty::class]);
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('UTF-8');
+
+        $eventStore->appendTo('ecotone_event_stream', [new EventTaggedOnPlainProperty("course-\xff")]);
+    }
+
+    public function test_tag_name_longer_than_100_characters_is_rejected_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage('100');
+
+        $this->bootstrapEventStore([EventWithTooLongTagName::class]);
+    }
+
+    public function test_empty_tag_name_is_rejected_at_bootstrap(): void
+    {
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(EventWithEmptyTagName::class);
+
+        $this->bootstrapEventStore([EventWithEmptyTagName::class]);
+    }
+
+    public function test_subclass_of_a_tagged_event_carries_the_tags_it_inherits(): void
+    {
+        $eventStore = $this->bootstrapEventStore([ParentEventTaggedForResolutionTest::class]);
+
+        $eventStore->appendTo('ecotone_event_stream', [new ChildOfTaggedEventForResolutionTest('course-1')]);
+
+        $this->assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('course', 'course-1'))->events);
+    }
+
     /**
      * @param class-string[] $classesToResolve
      */
@@ -195,4 +260,35 @@ final readonly class EventTaggedOnNonScalarProperty
         #[EventTag('course')] public object $course,
     ) {
     }
+}
+
+final readonly class EventWithTooLongTagName
+{
+    public function __construct(
+        #[EventTag('a_tag_name_that_goes_on_and_on_well_past_the_one_hundred_characters_the_tag_name_columns_can_hold_xxx')] public string $id,
+    ) {
+    }
+}
+
+final readonly class EventWithEmptyTagName
+{
+    public function __construct(
+        #[EventTag('')] public string $id,
+    ) {
+    }
+}
+
+class ParentEventTaggedForResolutionTest
+{
+    public function __construct(
+        #[EventTag('course')] public string $courseId,
+    ) {
+    }
+}
+
+/**
+ * @internal
+ */
+final class ChildOfTaggedEventForResolutionTest extends ParentEventTaggedForResolutionTest
+{
 }

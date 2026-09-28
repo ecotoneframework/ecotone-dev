@@ -410,7 +410,9 @@ interface MyCommandBus extends CommandBus {}
 
 Without retry configured, a conflict surfaces to the caller as a technical exception naming the tag and the captured
 vs. current version — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
-fires inside an already-open database transaction; that transaction is already unsafe to continue.
+fires inside an already-open database transaction; that transaction is already unsafe to continue. A conflict is not
+always another writer: a handler that sends a command from inside itself, whose handler appends to the same tag in
+the same transaction, moves the tag under its own feet and fails on every retry — decide both in one handler.
 
 **Transactions are required.** Tagged appends (events carrying an `#[EventTag]`, or any append with an
 `AppendCondition`), decision-model handlers and `ecotone:event-store:backfill-tags` write the tag versions, the events
@@ -430,7 +432,8 @@ public function dbal(): DbalConfiguration
 }
 ```
 
-Calling `EventStore::appendTo()` with tagged events outside a handler (a script, a test) needs a transaction opened
+A handler marked `#[WithoutDatabaseTransaction]` opts out of the bus transaction, so a tagged append from it fails
+the same way, and the message names the attribute. Calling `EventStore::appendTo()` with tagged events outside a handler (a script, a test) needs a transaction opened
 around the call (`$connection->transactional(fn () => $eventStore->appendTo(...))`). `EcotoneLite` tests bootstrapped
 with `bootstrapFlowTestingWithEventStore(runForProductionEventStore: true)` get `DbalConfiguration::createForTesting()`
 (all transactions off) unless they pass their own `DbalConfiguration`. Untagged appends stay a single `INSERT` and need
@@ -452,7 +455,14 @@ no transaction.
   ```
 
   The same key may repeat across properties (a transfer's two accounts) and a property may be an array of scalars
-  (each value indexed separately). Values are scalar, `Stringable`, or arrays of those; `null` means no tag.
+  (each value indexed separately). Values are scalar, `Stringable`, or arrays of those; `null` means no tag. A value
+  must be valid UTF-8, non-empty, at most 255 characters (characters, not bytes), without a NUL byte or trailing
+  whitespace; a tag name must be non-empty and at most 100 characters (checked at bootstrap). A subclass of a tagged
+  event carries the tags of its nearest tagged ancestor, so it is indexed and guarded like its parent; a decision
+  model, though, folds only the exact classes its `#[EventSourcingHandler]`s name — a handler for the parent does not
+  receive the subclass. Tags are known from Ecotone's class scan: an event class outside the scanned namespaces is
+  appended **without** tags (not indexed, not guarded) even if it declares `#[EventTag]` — keep tagged events in a
+  scanned namespace. A decision model handling such an event fails at bootstrap, naming the scan as the cause.
 - Declare a decision model with `#[DecisionModel]` and fold it with `#[EventSourcingHandler]`, exactly like an
   aggregate, with a public no-argument constructor:
 
@@ -475,9 +485,13 @@ no transaction.
 
   Give `tags: [...]` explicitly when the default intersection isn't the question being asked (e.g.
   `#[DecisionModel(tags: ['student'])]` to scope by student alone). Every event the model handles must carry every
-  one of the model's tag names — a bootstrap `ConfigurationException` otherwise. Models are injected, they never
+  one of the model's tag names — a bootstrap `ConfigurationException` otherwise. A model left with no tag name at
+  all — no `tags:` and its handled events share no `#[EventTag]` name, including a handled event carrying none — is
+  rejected at bootstrap too: it would fold no event and guard nothing, so either tag the event or give the model
+  `tags:`. Models are injected, they never
   own handlers: `#[CommandHandler]`/`#[EventHandler]`/`#[QueryHandler]` declared directly on a `#[DecisionModel]`
-  class is a bootstrap `ConfigurationException`, the same way it would be on an aggregate mixing the two roles.
+  class is a bootstrap `ConfigurationException`, the same way it would be on an aggregate mixing the two roles; so is
+  a `#[DecisionModel]` class also declared `#[Aggregate]`, `#[EventSourcingAggregate]` or `#[Saga]`.
 - Inject the model into a handler by type-hint — no attribute needed, the same way an aggregate is loaded:
 
   ```php
@@ -490,13 +504,24 @@ no transaction.
   ```
 
   Tag values come from the message by name: a property carrying `#[EventTag('course')]`, else a property named
-  `course`/`courseId`/`course_id`. A nullable parameter (`?CourseCapacity`) receives `null`, contributing nothing to
-  the boundary, when the value can't be resolved that way; a non-nullable one throws, naming the model and the tag.
+  exactly `course`/`courseId`/`course_id` (a `courseCode` property needs `#[EventTag('course')]` or `#[Fetch]`). When
+  the handler's message is a concrete class without such a property, that is a bootstrap `ConfigurationException`
+  naming the handler, the model and the tag — for a nullable model parameter too, which would otherwise receive
+  `null` on every message. A nullable parameter (`?CourseCapacity`) receives `null`, contributing nothing to the
+  boundary, when the property holds `null`; a non-nullable one throws, naming the model and the tag.
+  A value resolved from the message — by name or through `#[Fetch]` — is normalised and validated exactly like an
+  `#[EventTag]` value on an event: an `int` id matches the same `int` tagged on events, and an empty, over-long or
+  trailing-whitespace value throws, naming the model and the tag. A model is scoped by one value per tag: a message
+  property or `#[Fetch]` result holding several values throws too — inject the model once per value with `#[Fetch]`,
+  or use `#[DecisionBoundary]`.
   Use `#[Fetch('payload.fromAccountId')]` for explicit mapping — needed to inject the same model class twice (a
   transfer's two accounts) or when the property-name convention doesn't apply; a multi-tag model's `#[Fetch]`
   expression returns a map (`"{'customer': payload.customerId, 'coupon': payload.couponCode}"`).
   `#[DecisionBoundary]` on a static method of the same class, taking the same command, is the escape hatch for a
-  boundary no model expresses. It is matched to the handler whose first parameter has the same type, and it costs
+  boundary no model expresses. It is matched to the handler whose first parameter has the same type — a boundary
+  that is not static, does not take exactly that one parameter, does not declare `EventCriteria` as its return type,
+  matches no handler of its class, or shares its parameter type with another boundary is a bootstrap
+  `ConfigurationException` — and it costs
   **one extra read**: the models a handler injects are loaded together in a single query, but the boundary's criteria
   are loaded afterwards by their own `loadByCriteria()` — inside the same transaction, guarded by the same append
   condition, so correctness is unchanged and only the round trip is added.
@@ -534,7 +559,11 @@ no transaction.
   }
   ```
 
-  A decision model scoped by a filter-only tag name is a bootstrap `ConfigurationException`.
+  A decision model scoped *only* by filter-only tag names is a bootstrap `ConfigurationException` — its append would
+  be guarded by nothing. A scope mixing a filter-only and a counted tag (`tenant` + `username`: unique per tenant) is
+  allowed: it folds exactly that tenant's events and is guarded on the counted tag. Naming a tag in
+  `withFilterOnlyTags()` that no `#[EventTag]` declares is a bootstrap `ConfigurationException` too — a typo would
+  otherwise leave the hot tag counted.
 - **Licence.** The tag-carrying half of DCB — `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
   `EventCriteria`, and a tag-bearing `AppendCondition` — is Enterprise, and it is switched on by
   `DynamicConsistencyBoundaryConfiguration` (see "Enabling" above): the extension object decides *whether* DCB
@@ -545,7 +574,10 @@ no transaction.
   own optimistic-lock condition (`AppendCondition::forAggregate()`) is open-core and works without any licence.
 - Without any class, the same machinery is a gateway on the store itself:
   `$eventStore->loadByCriteria(EventCriteria::tag('course', $courseId)->ofTypes(...))` returns the matching events
-  and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)`.
+  and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)`. Appending no events
+  is a no-op on every store: the condition is not checked, even when stale. Several criteria
+  combine with `->or(...)`; narrow each one with `andTag()`/`ofTypes()` before combining — calling either on an
+  `or()` combination throws `InvalidArgumentException`.
 - **Fully shipped, including the DBAL-backed store.** `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
   `EventCriteria`, the licence gate, and the full injection/append/retry mechanism are implemented and tested
   against `InMemoryEventStore` (`EcotoneLite::bootstrapFlowTesting()` exercises real conditional-append semantics
@@ -605,7 +637,7 @@ convention.
 
 | # | When | Step | Why 1.x keeps working |
 |---|---|---|---|
-| 1 | on 1.x | Create `ecotone_tagged_events` and `ecotone_tag_versions` (the DDL above, or `ecotone:event-store:verify-schema --sql` once on 2.0 to get it, applied by hand while still on 1.x) | 1.x never references them |
+| 1 | on 1.x | Create `ecotone_tagged_events` and `ecotone_tag_versions` (the DDL above, or `ecotone:migration:database:setup --sql --feature=event_tags` once on 2.0 to get it, applied by hand while still on 1.x) | 1.x never references them |
 | 2 | on 1.x, optional | Create `ecotone_event_stream` if not already present | 1.x never references it |
 | 3 | on 1.x, **only for a table a decision model will *write* into** | Relax the table's aggregate `NOT NULL` — see below | Only permits *more*, not less |
 | 4 | | Deploy 2.0 to **every** node | |
@@ -649,7 +681,8 @@ header selects which tenant's connection and tag tables get backfilled — `ecot
 "tenant:a"` indexes tenant `a` only, and the command must be run once per tenant.
 
 **`ecotone:event-store:verify-schema [--legacy-stream=]`** is the CI/deploy gate for all of the above: it checks
-`ecotone_tagged_events` / `ecotone_tag_versions`'s primary keys and, on MySQL/MariaDB, that their tag columns kept
+that `ecotone_tagged_events` / `ecotone_tag_versions` exist (a missing one is reported with the setup command that
+creates it), their primary keys and, on MySQL/MariaDB, that their tag columns kept
 `utf8mb4_bin` collation (a hand-applied migration with the server default would silently let `'ABC'` and `'abc'`
 collide as one tag value); for every `--legacy-stream=` table named, it checks the three aggregate `NOT NULL`
 constraints from the table above are relaxed. On any failure it prints the exact `ALTER`/`DROP CONSTRAINT`

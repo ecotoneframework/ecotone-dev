@@ -46,6 +46,7 @@ final class CrossConnectionDecisionModelTest extends TestCase
             classesToResolve: [
                 SameConnectionAggregateForCrossConnectionDecisionModelTest::class,
                 SameConnectionModelForCrossConnectionDecisionModelTest::class,
+                SameConnectionWidgetDefinedForCrossConnectionDecisionModelTest::class,
             ],
             configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,

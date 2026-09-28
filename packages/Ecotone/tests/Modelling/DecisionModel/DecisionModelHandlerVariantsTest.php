@@ -7,6 +7,7 @@ namespace Test\Ecotone\Modelling\DecisionModel;
 use Ecotone\Api\Attribute\Asynchronous;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
+use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Header;
@@ -78,6 +79,24 @@ final class DecisionModelHandlerVariantsTest extends TestCase
         $ecotone->run('async');
 
         $this->assertCount(1, $ecotone->getEventStreamEvents('ecotone_event_stream'));
+    }
+
+    public function test_event_handler_injecting_a_model_takes_the_tag_value_from_the_event_it_handles(): void
+    {
+        $handler = new EventHandlerWithModelForVariantsTest();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, CourseForVariantsTest::class, ItemAddedForVariantsTest::class, CourseOpenedForVariantsTest::class],
+            containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->publishEvent(new CourseOpenedForVariantsTest('course-1'));
+        $ecotone->publishEvent(new CourseOpenedForVariantsTest('course-1'));
+        $ecotone->publishEvent(new CourseOpenedForVariantsTest('course-2'));
+
+        $this->assertCount(2, $ecotone->getEventStreamEvents('ecotone_event_stream'));
     }
 
     public function test_query_handler_with_a_model_replies_and_appends_nothing(): void
@@ -219,5 +238,22 @@ final class OutputChannelHandlerForVariantsTest
     public function addItem(AddItemForVariantsTest $command, CourseForVariantsTest $course): array
     {
         return [new ItemAddedForVariantsTest($command->courseId)];
+    }
+}
+
+final readonly class CourseOpenedForVariantsTest
+{
+    public function __construct(
+        #[EventTag('course')] public string $courseId,
+    ) {
+    }
+}
+
+final class EventHandlerWithModelForVariantsTest
+{
+    #[EventHandler]
+    public function addFirstItem(CourseOpenedForVariantsTest $event, CourseForVariantsTest $course): array
+    {
+        return $course->items() === 0 ? [new ItemAddedForVariantsTest($event->courseId)] : [];
     }
 }

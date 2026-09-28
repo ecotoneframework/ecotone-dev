@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use function array_is_list;
+
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\EventSourcing\Tagging\EventTagValueNormalizer;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
 use Ecotone\Messaging\Handler\ParameterConverter;
@@ -63,7 +66,7 @@ final class DecisionModelParameterLoader
     {
         $tagValues = [];
         foreach ($definition->tagNames() as $tagName) {
-            $value = is_object($payload) ? MessageTagValueResolver::resolve($tagName, $payload) : null;
+            $value = is_object($payload) ? $this->normalizedTagValue($tagName, MessageTagValueResolver::resolve($tagName, $payload)) : null;
 
             if ($value === null) {
                 if ($this->doesAllowNulls) {
@@ -96,9 +99,9 @@ final class DecisionModelParameterLoader
 
         $tagValues = [];
         foreach ($tagNames as $tagName) {
-            $value = is_array($resolved)
+            $value = $this->normalizedTagValue($tagName, is_array($resolved) && ! array_is_list($resolved)
                 ? ($resolved[$tagName] ?? null)
-                : (count($tagNames) === 1 ? $resolved : null);
+                : (count($tagNames) === 1 ? $resolved : null));
 
             if ($value === null) {
                 if ($this->doesAllowNulls) {
@@ -112,9 +115,31 @@ final class DecisionModelParameterLoader
                 ));
             }
 
-            $tagValues[$tagName] = (string) $value;
+            $tagValues[$tagName] = $value;
         }
 
         return $tagValues;
+    }
+
+    private function normalizedTagValue(string $tagName, mixed $value): ?string
+    {
+        if (is_array($value)) {
+            throw ConfigurationException::create(sprintf(
+                "Could not resolve tag '%s' for DecisionModel %s: the message supplies several values, but a model is scoped by one value per tag. Inject the model once per value with #[Fetch], or express a boundary over several values with #[DecisionBoundary].",
+                $tagName,
+                $this->modelClassName,
+            ));
+        }
+
+        try {
+            return EventTagValueNormalizer::normalize($tagName, $value)[0] ?? null;
+        } catch (ConfigurationException $exception) {
+            throw ConfigurationException::create(sprintf(
+                'Could not resolve tag \'%s\' for DecisionModel %s: %s',
+                $tagName,
+                $this->modelClassName,
+                $exception->getMessage(),
+            ));
+        }
     }
 }

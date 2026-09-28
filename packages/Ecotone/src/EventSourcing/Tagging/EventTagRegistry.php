@@ -8,6 +8,7 @@ use function array_keys;
 use function array_map;
 use function array_unique;
 use function array_values;
+use function get_parent_class;
 use function in_array;
 
 /**
@@ -63,7 +64,7 @@ final class EventTagRegistry
     public function tagsFor(object $event): array
     {
         $result = [];
-        foreach ($this->sourcesByClass[$event::class] ?? [] as $source) {
+        foreach ($this->sourcesByClass[$this->nearestTaggedClassOf($event::class)] ?? [] as $source) {
             foreach ($source->resolveValues($event) as $value) {
                 $result[] = ['name' => $source->tagName(), 'value' => $value];
             }
@@ -92,8 +93,18 @@ final class EventTagRegistry
     {
         return array_values(array_unique(array_map(
             static fn (array $entry): string => $entry['name'],
-            $this->rawDefinitions[$eventClass] ?? [],
+            $this->rawDefinitions[$this->nearestTaggedClassOf($eventClass)] ?? [],
         )));
+    }
+
+    private function nearestTaggedClassOf(string $eventClass): string
+    {
+        $candidate = $eventClass;
+        while ($candidate !== false && ! isset($this->rawDefinitions[$candidate])) {
+            $candidate = get_parent_class($candidate);
+        }
+
+        return $candidate === false ? $eventClass : $candidate;
     }
 
     /**

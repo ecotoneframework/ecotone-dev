@@ -25,6 +25,10 @@ class DecisionModelConcurrencyException extends ConcurrencyException
             $message .= sprintf(' while deciding %s', $modelClass);
         }
 
+        $message .= '. The tag moved after it was read: another transaction committed to it, or an earlier append in the same '
+            . 'transaction did (for example a command sent from inside the handler whose own handler appends to the same tag) '
+            . '-- the latter fails on every retry, so decide both in one handler instead.';
+
         return self::create($message);
     }
 }

@@ -571,7 +571,8 @@ no transaction.
   own optimistic-lock condition (`AppendCondition::forAggregate()`) is open-core and works without any licence.
 - Without any class, the same machinery is a gateway on the store itself:
   `$eventStore->loadByCriteria(EventCriteria::tag('course', $courseId)->ofTypes(...))` returns the matching events
-  and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)`. Several criteria
+  and a ready-made `AppendCondition` for `$eventStore->appendTo($stream, $events, $condition)`. Appending no events
+  is a no-op on every store: the condition is not checked, even when stale. Several criteria
   combine with `->or(...)`; narrow each one with `andTag()`/`ofTypes()` before combining — calling either on an
   `or()` combination throws `InvalidArgumentException`.
 - **Fully shipped, including the DBAL-backed store.** `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,

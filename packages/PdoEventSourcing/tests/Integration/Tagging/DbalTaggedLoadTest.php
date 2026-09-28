@@ -136,6 +136,18 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')], $loaded->appendCondition));
     }
 
+    public function test_appending_no_events_under_a_stale_condition_is_a_no_op(): void
+    {
+        $store = $this->bootstrapEventStore();
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
+        $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 5)]));
+
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [], $loaded->appendCondition));
+
+        self::assertCount(2, $store->loadByCriteria(EventCriteria::tag('course', 'course-1'))->events);
+    }
+
     public function test_unconditional_append_invalidates_a_held_condition(): void
     {
         $store = $this->bootstrapEventStore();

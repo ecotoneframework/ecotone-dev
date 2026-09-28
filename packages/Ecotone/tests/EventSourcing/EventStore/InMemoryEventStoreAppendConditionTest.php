@@ -54,6 +54,17 @@ final class InMemoryEventStoreAppendConditionTest extends TestCase
         $this->assertCount(2, $eventStore->load(self::STREAM));
     }
 
+    public function test_appending_no_events_under_a_stale_tag_condition_is_a_no_op_like_the_database_store(): void
+    {
+        $eventStore = $this->bootstrapEcotone(true)->getGateway(EventStore::class);
+
+        $eventStore->appendTo(self::STREAM, [], AppendCondition::fromCapturedVersions([
+            ['name' => 'coupon', 'value' => 'SUMMER24', 'expectedVersion' => 5],
+        ]));
+
+        $this->assertCount(0, $eventStore->load(self::STREAM));
+    }
+
     public function test_store_without_the_boundary_rejects_a_hand_built_tag_condition(): void
     {
         $eventStore = $this->bootstrapEcotone()->getGateway(EventStore::class);

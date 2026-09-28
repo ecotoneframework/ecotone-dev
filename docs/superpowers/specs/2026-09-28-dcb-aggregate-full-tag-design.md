@@ -1,130 +1,38 @@
-# Full tags for event-sourced aggregates — design
+# Event-sourced aggregates as decision models — design
 
-*Written 2026-09-28 in `design-dcb-aggregate-full-tag`, on `dgafka/ecotone-2-0-dcb-design` @ `156cbd10`.
-Proposal for the maintainer's approval. No production code or test was changed.*
+*File kept at its original name (`…-dcb-aggregate-full-tag-design.md`) so the launch record's trail holds.*
 
-**The question (maintainer, 2026-09-28).** The counter-only aggregate boundary has shipped: every aggregate keeps
-one row in `ecotone_tag_versions` under `aggregate_<AggregateType>` / `<aggregateId>`, bumped by every save,
-captured for fetched aggregates and boundaries, and **never indexed** — `loadByCriteria()` on it returns no events.
-Propose the **full tag**: index rows in `ecotone_tagged_events` for an event-sourced aggregate's own events under
-that same tag, so the aggregate becomes **loadable by `EventCriteria`** — injectable and foldable like a decision
-model, ordered with other tags by `tag_sequence`, and usable as a criterion branch that actually returns events.
+**Revision 2 — maintainer redirect, 2026-09-28.** Revision 1 proposed the "full tag": index rows in
+`ecotone_tagged_events` for every event of an event-sourced aggregate, so the aggregate became loadable through the
+tag index. The maintainer's answer:
 
-**The answer in one paragraph.** Full tagging is a two-line change in `TagResolver` and nothing else on the write
-path: the aggregate's counter tag, which is already captured and bumped, additionally joins every appended event's
-carried tags, so the existing index insert stamps one row per event with `tag_sequence` = the bumped counter. That
-makes `loadByCriteria(EventCriteria::aggregateEvents(Wallet::class, 'w-1'))` return the wallet's whole history in
-commit order, a `#[DecisionModel(aggregate: Wallet::class)]` fold it without any `#[EventTag]` on the event classes,
-and a `#[DecisionBoundary]` branch return real events. It should be **opt-in per aggregate class**, because it
-roughly doubles the index of an aggregate-heavy application and, unlike the counter, it **cannot be trusted until a
-backfill has run** — the one promise ("no backfill") the shipped boundary makes loudest. The backfill is far cheaper
-than the `#[EventTag]` one: the tag is derivable from `_aggregate_type`/`_aggregate_id`/`_aggregate_version` in SQL,
-so it is a set-based `INSERT … SELECT` with no payload deserialisation, with `tag_sequence = aggregate_version`. The
-aggregate keeps its own load path — `loadAggregateEvents()` plus snapshots — because a criteria load cannot start
-from a snapshot and has no `fromVersion`; full tag adds a second, read-only path for everyone *else*. And because an
-aggregate's history has a known shape, the rolling-deploy hazard that the `#[EventTag]` index could only document
-becomes a free, exact runtime assertion here: the folded events' `_aggregate_version` must run `1..n` without gaps,
-or the fold throws and names the backfill command instead of deciding on half a history.
+> there should be simpler solution, we already have the events in event stream. Therefore DecisionModel backed by
+> aggregate type attribute plus ability to point what matches aggregate id would be sufficient to build the model,
+> and then existing aggregate tags would do the trick. we dont need to backfill or populate aggregate type
+> identifier on daily basics
+
+That is right, and it is smaller than revision 1 by an order of magnitude. Revision 1's analysis is kept in Part 5,
+because its cost arithmetic is now the *justification* for not building it.
 
 ---
 
-## Part 1 — What "full tag" adds, precisely
+## Part 0 — The answer in one paragraph
 
-### 1.1 The one fact everything else follows from
-
-The shipped code already distinguishes two roles a tag can play in an append, and the aggregate counter plays only
-the first:
-
-| Role | Where it lives in the code | What it produces |
-|---|---|---|
-| **condition tag** — captured, then bumped with the guarded `UPDATE` | `AppendedTags::$involved`, fed by `TagResolver::counterTagOfSavedAggregate()` | one row touched in `ecotone_tag_versions` |
-| **carried tag** — the event publishes this value under this name | `EventsTags::$perEvent`, fed by `TagResolver::tagsCarriedBy()` from `#[EventTag]` | one row per (event, tag) in `ecotone_tagged_events`, stamped with `tag_sequence` |
-
-`AppendedTags::sequencedAfterBump()` builds the index rows from `EventsTags` alone. The aggregate counter tag
-reaches `$involved` but never `$perEvent`, which is exactly why it is guarded and never indexed.
-
-**Full tag = the aggregate's counter tag also becomes a carried tag of every event of that aggregate's append.**
-
-`AppendedTags` keys `$involved` by `TagKey`, so the tag arriving from both sides collapses to one entry: one
-capture, one guarded bump, unchanged. `EventsTags::sequencedBy()` then stamps every event of the append with
-`expectedVersion + 1` — the bumped counter, which is what the question asks for.
-
-### 1.2 The rows an event-sourced save writes
-
-`Wallet w-1` is at counter 4. A command records two events, `PayoutApproved` (which also carries
-`#[EventTag('payout')]`) and `WalletDebited` (no `#[EventTag]` at all). The stream is `ecotone_event_stream`,
-next `no` is 41.
-
-**Today (counter only)**
-
-| table | rows |
-|---|---|
-| `ecotone_tag_versions` | `aggregate_Wallet` / `w-1` : 4 → **5** (guarded `UPDATE … WHERE version = 4`); `payout` / `p-9` : 0 → **1** |
-| `ecotone_event_stream` | `no` 41 `PayoutApproved`, `no` 42 `WalletDebited`, both with `_aggregate_type = Wallet`, `_aggregate_id = w-1`, `_aggregate_version` 5 and 6 |
-| `ecotone_tagged_events` | `payout` / `p-9` / `ecotone_event_stream` / 41 / **1** |
-
-**With full tag on `Wallet`** — the first two tables are byte-for-byte identical; the third gains two rows:
-
-| tag_name | tag_value | stream_name | event_no | tag_sequence |
-|---|---|---|---|---|
-| aggregate_Wallet | w-1 | ecotone_event_stream | 41 | **5** |
-| aggregate_Wallet | w-1 | ecotone_event_stream | 42 | **5** |
-| payout | p-9 | ecotone_event_stream | 41 | 1 |
-
-Note what the two new rows are *not*: they are not a second counter, not a second guard, and not a change to the
-stream table or its unique index. They are the same shape as the `payout` row next to them, and they are written by
-the same `DbalTagIndex::insertRows()` statement in the same transaction.
-
-**Both events of one append share `tag_sequence` 5.** That is the shipped rule for every tag (`EventsTags::sequencedBy()`
-uses one version-after-bump per tag key, not per event), and it is correct: one append goes to one stream, so `no`
-orders within it, and `MatchedEvents::inSequenceOrder()` sorts by `(tag_sequence, event_no)`.
-
-### 1.3 What `loadByCriteria()` then returns, and in which order
+The consistency boundary for an event-sourced aggregate **already shipped**: `aggregate_<AggregateType>` /
+`<aggregateId>` is a counter in `ecotone_tag_versions`, bumped by every save, and `EventCriteria::aggregate()`
+already captures it into a handler's `AppendCondition`. And the aggregate's events are **already queryable** by the
+pair the boundary is keyed on: `EventStore::loadAggregateEvents($stream, $type, $id, $fromVersion, $count,
+$eventNames)` reads them from the stream's own `(aggregate_type, aggregate_id, no)` index, in `aggregate_version`
+order, with the event-name filter pushed into SQL. So nothing needs to be indexed, backfilled, or written on save:
+what is missing is only a **declaration** that lets a decision model say *"my events are `Wallet`'s events"* and
+*"here is which property of the message is the wallet id"*. That is one new argument on `#[DecisionModel]`, one new
+loader class beside the existing one, and one extra fold pass in `DecisionModelBatchLoader`. The counter capture the
+batch loader already performs for `#[Fetch]`-ed aggregates is reused verbatim as the guard, so the boundary is not
+extended at all — only read from. **No schema change, no index rows, no backfill, no per-save cost, no
+configuration, no `EventCriteria` change, no `TagResolver` change, no reader change.**
 
 ```php
-$loaded = $eventStore->loadByCriteria(EventCriteria::aggregateEvents(Wallet::class, 'w-1'));
-```
-
-returns `LoadedEvents` holding
-
-- **the events**: every event of `Wallet w-1` that has an index row, deserialized, with their metadata — including
-  `_aggregate_version`, which is how the fold can be checked (§1.6) and how a version can be recovered;
-- **the `AppendCondition`**: the captured version of `aggregate_Wallet` / `w-1`, exactly as the capture-only leaf
-  produces today, so the guard story of the shipped design is untouched.
-
-**The order is `(tag_sequence, event_no)`**, which for one aggregate is commit order of its saves, then position
-within a save — i.e. **`aggregate_version` order**, the same sequence `loadAggregateEvents()` returns. Two
-independent mechanisms produce that agreement: the counter is bumped under its own row lock before any event row is
-written (§4.5 "counters first, events second", so for one tag `no` order equals commit order), and the stream's
-unique index on `(aggregate_type, aggregate_id, aggregate_version)` refuses to let two saves claim one version.
-
-**Cross-stream ordering becomes real, and it is worth more than it first looks.** `loadAggregateEvents()` takes one
-`$streamName` and `EventSourcingRepository` resolves exactly one stream per aggregate class, so an aggregate whose
-history is split across two tables **cannot be loaded at all today**. That is not a hypothetical: it is the shape of
-a 1.x → 2.0 stream migration (old events in `_<sha1('Wallet')>`, new ones in `ecotone_event_stream`) and of a
-`#[Stream]` declared on one handler method. With full tags and both tables backfilled, the criteria load returns the
-merged history in one ordered sequence, because `tag_sequence` is assigned per tag and not per table. This is the
-single most concrete capability full tag adds that nothing else in 2.0 offers.
-
-### 1.4 The three read surfaces, and what the user writes
-
-**(a) The store gateway — no class at all.**
-
-```php
-$loaded = $eventStore->loadByCriteria(EventCriteria::aggregateEvents(Wallet::class, $walletId));
-foreach ($loaded->events as $event) { /* … */ }
-$eventStore->appendTo('ecotone_event_stream', [new PayoutRequested(...)], $loaded->appendCondition);
-```
-
-`EventCriteria::aggregate()` and `EventCriteria::aggregateEvents()` name the same tag pair and differ in one
-property: whether the branch is read. See §1.5 — keeping them apart is not a nicety, it is what stops the shipped
-aggregate-only boundary from silently turning into a full-history scan.
-
-**(b) A decision model scoped on the aggregate** — "injectable and foldable like a decision model", with the
-type hint still doing the assembly:
-
-```php
-#[DecisionModel(aggregate: Wallet::class)]           // criterion: aggregate_Wallet:<walletId> ∧ handled types
+#[DecisionModel(aggregate: Wallet::class)]        // criterion: Wallet's events for <walletId>, of the handled types
 final class WalletBalance
 {
     private int $balance = 0;
@@ -140,728 +48,520 @@ final class Payouts
     #[CommandHandler]
     public function payOut(RequestPayout $command, WalletBalance $wallet, PayoutsToday $today): array
     {
-        if (! $wallet->canCover($command->amount))                      { throw new InsufficientFunds(); }
-        if ($today->total() + $command->amount > self::DAILY_LIMIT)     { throw new DailyLimitExceeded(); }
+        if (! $wallet->canCover($command->amount))                  { throw new InsufficientFunds(); }
+        if ($today->total() + $command->amount > self::DAILY_LIMIT) { throw new DailyLimitExceeded(); }
 
         return [new PayoutRequested($command->walletId, $command->amount)];
     }
 }
 ```
 
-`WalletCredited` and `WalletDebited` need **no `#[EventTag]`** — that is the point. They are indexed because the
-aggregate that recorded them is loadable by criteria. The model's tag *name* comes from `Wallet`'s
-`#[AggregateType]`, so nothing in userland spells `'aggregate_Wallet'`; the tag *value* is resolved from the message
-the way every model's is (a property named `walletId`, or `#[Fetch('payload.walletId')]` when the convention cannot
-decide). The handler gets one pre-invocation `loadByCriteria()` for `WalletBalance` and `PayoutsToday` together, one
-`AppendCondition` covering both, and one guarded pass.
+`WalletCredited` and `WalletDebited` carry **no `#[EventTag]`** and never will. `RequestPayout` needs nothing but a
+property named like `Wallet`'s identifier. `PayoutsToday` is an ordinary tag-scoped model. Both models are captured
+in one statement, both are in the handler's one `AppendCondition`, and a save of `Wallet w-1` by anyone else while
+the handler thinks fails the append.
 
-Against the shipped alternative — `#[Fetch('payload.walletId')] Wallet $wallet` — this buys: a model that holds only
-the state the decision needs rather than the whole aggregate; reuse of that question across handlers; and one read
-instead of two (the capture branch and the aggregate's own query become the same statement). It costs the snapshot
-(§4). Both stay available; they are not exclusive, and a handler may inject one of each.
+---
 
-**(c) A `#[DecisionBoundary]` branch that returns events.**
+## Part 1 — Why nothing needs to be stored
 
-```php
-#[DecisionBoundary]
-public static function boundary(SettleOrder $command): EventCriteria
-{
-    return EventCriteria::aggregateEvents(Wallet::class, $command->walletId)
-        ->or(EventCriteria::tag('coupon', $command->couponCode));
-}
+### 1.1 The boundary is already there
+
+Shipped, per §4.11 of the main spec and Part 6 of `2026-09-28-dcb-fetched-aggregates-design.md`:
+
+| Piece | Where | State |
+|---|---|---|
+| a counter per aggregate instance | `ecotone_tag_versions`, `aggregate_<AggregateType>` / `<AggregateIdString>` | shipped |
+| bumped by every event-sourced save | `TagResolver::counterTagOfSavedAggregate()` → `AppendedTags` → the guarded `UPDATE` | shipped |
+| bumped by every state-stored save | `StateStoredRepositoryAdapter` → `AggregateCounter` → `GuardedTagBump` | shipped |
+| captured before invocation, into the handler's `AppendCondition` | `FetchedAggregateCounterCapture` → `EventCriteria::aggregate()` → the batch's one capture `SELECT` | shipped |
+| conflicts rendered as the aggregate | `DecisionModelConcurrencyException` | shipped |
+
+**So the guard for "I read `Wallet w-1`, then wrote something" is complete and in production on this branch.** The
+only thing a decision model cannot do today is *read the events that guard protects* — because
+`TagResolver::eventsMatching()` resolves an event's tags from `#[EventTag]`, and an aggregate's events declare none.
+
+### 1.2 The events are already queryable, by exactly the right key
+
+`EventStore::loadAggregateEvents()` (core interface, `DbalEventStore` and `InMemoryEventStore` implementing it) takes
+`($streamName, $aggregateType, $aggregateId, $fromVersion = 1, $count = null, $eventNames = [], $deserialize = true)`
+and, on the Dbal side, renders:
+
+```sql
+SELECT no, event_name, payload, metadata FROM <stream>
+WHERE <aggregate_type expr> = ? AND <aggregate_id expr> = ? AND <aggregate_version expr> >= ?
+  AND event_name IN (?, ?)            -- only when $eventNames is given
+  AND no >= ?
+ORDER BY no ASC LIMIT <batch>
 ```
 
-Both branches are ORed into the one pre-invocation load and both are guarded. Each branch is ordered by *its own*
-primary tag's `tag_sequence` — the shipped `DbalTaggedEventReader::matchingEvents()` already works per branch — so
-an aggregate branch and a tag branch sort independently and correctly even though their counters are unrelated.
+served by the stream's own index on `(aggregate_type, aggregate_id, no)`, batched, and ordered by `no` — which for
+one aggregate in one stream **is** `aggregate_version` order. Three properties matter and none of them is available
+through the tag index:
 
-### 1.5 `EventCriteria::aggregate()` must stay capture-only
+- **`$eventNames` is pushed into SQL.** A model that handles 2 of an aggregate's 12 event types reads 2, not 12.
+  `DbalTaggedEventReader` cannot do this — it loads every flagged event and filters by name in PHP afterwards
+  (revision 1 §4.4 flagged this as a defect; on this path it simply does not arise).
+- **`$fromVersion` is pushed into SQL**, so a decision-model snapshot is a later configuration change, not a new
+  mechanism (§4.4).
+- **No `IN (:nos)` list.** One range scan, whatever the history's length.
 
-The shipped `EventCriteria::aggregate()` exists for the aggregate-only boundary (D6): it names the counter so the
-handler captures and guards it, and it matches no events *because there are no index rows*. Once `Wallet` is
-indexed, that same call would load the wallet's entire history on every command and throw it away — the batch loader
-folds only model criteria, so boundary events are discarded. For a wallet with 50 000 events that is a 50 000-row
-index read plus a 50 000-row `IN (…)` fetch per command, silently introduced by enabling an unrelated option.
+### 1.3 The declaration is the only thing missing
 
-So the read intent belongs in the criterion, not in the configuration:
+Two facts, both of which the framework already holds:
 
-| Factory | Captures the counter | Reads events |
+| Fact | Already available from |
+|---|---|
+| which aggregate type, and therefore which counter tag and which `aggregate_type` value | `#[AggregateType]`, **mandatory on every aggregate once DCB is registered** (D2) — `AggregateTypeMapping`, `AggregateCounterTags` |
+| which stream holds it | `#[Stream]` on the aggregate class, else the default stream — `AggregateStreamMapping`; core resolves the same thing by reflection in `DecisionModelStreamResolver` |
+| which message property is the aggregate id | the aggregate's `#[Identifier]` / `#[IdentifierMethod]` names, and `#[Fetch]` as the explicit escape — `AggregateDefinitionRegistry`, `FetchAggregateConverter::identifiersFrom()` |
+| the identifier *string* the stream stores | `AggregateIdString::from()` (6.2 item 4 of the fetched-aggregates design made this the one identifier string) |
+
+`#[DecisionModel(aggregate: Wallet::class)]` names the class; everything above is derived from it. This is what the
+maintainer's "backed by aggregate type attribute" resolves to in the shipped code: the attribute is where the type
+name comes from, and naming the class rather than the type string is what makes the stream, the identifier names and
+the counter tag derivable and checkable at bootstrap instead of being three more strings to keep in sync.
+
+---
+
+## Part 2 — The design
+
+### 2.1 The rule
+
+> **A `#[DecisionModel(aggregate: X::class)]` is scoped by one instance of the event-sourced aggregate `X`: its
+> events, of the types the model handles, read from `X`'s own stream by `X`'s own columns, in
+> `aggregate_version` order. Its boundary is `X`'s counter tag, captured before the read and guarded on the
+> append — the counter that already exists and is already bumped by every save of `X`.**
+
+A model declares `aggregate:` **or** `tags:`, never both: ANDing an aggregate's identity with a user tag would
+require every folded event to carry both, which no event does, and ORing them would ask two questions in one class,
+which the design has refused since revision 2 of §4.4 ("Two questions are two models").
+
+### 2.2 How the identifier is resolved
+
+By the rule `#[Fetch]`-ed aggregates already follow, with one convenience added — in order:
+
+1. **`#[Fetch]` on the parameter**, for the explicit case and for composite identifiers (an expression returning a
+   map, exactly as for aggregates):
+   ```php
+   #[CommandHandler]
+   public function transfer(
+       TransferMoney $command,
+       #[Fetch('payload.fromWalletId')] WalletBalance $from,
+       #[Fetch('payload.toWalletId')]   WalletBalance $to,
+   ): array
+   ```
+   The same model class twice with different values — the case the convention cannot resolve, and the same shape
+   §4.4 already documents for tag-scoped models.
+2. **By convention**, when no `#[Fetch]` is given: a message property named like the aggregate's identifier
+   (`walletId` for `#[Identifier] private string $walletId`). This is what `#[Fetch]` on an aggregate parameter
+   deliberately does *not* offer today, and it is worth offering here because it removes the
+   `symfony/expression-language` requirement that 6.2 item 9 of the fetched-aggregates design ran into.
+3. **Unresolvable** → a bootstrap `ConfigurationException` when the handler's message is a concrete class with no
+   matching property, mirroring `DecisionModelTagResolvabilityGuard`; otherwise a runtime exception naming the
+   model, the aggregate and the message. A nullable parameter (`?WalletBalance $wallet`) receives `null`, contributes
+   nothing to the boundary, and the handler still appends — the rule already applied to models and fetched
+   aggregates.
+
+The resolved identifiers go through `AggregateIdString::from()` twice over, for the two things that must agree: the
+`aggregate_id` value handed to `loadAggregateEvents()`, and the counter tag value handed to
+`EventCriteria::aggregate()`. One function, so they cannot disagree.
+
+### 2.3 How it runs, statement by statement
+
+For a handler injecting `WalletBalance` (aggregate-backed) and `PayoutsToday` (tag-scoped):
+
+| # | Step | Statement |
 |---|---|---|
-| `EventCriteria::aggregate(Wallet::class, $id)` | yes | **no** (unchanged from what shipped) |
-| `EventCriteria::aggregateEvents(Wallet::class, $id)` | yes | yes |
+| 1 | **capture everything first** — `DecisionModelBatchLoader` ORs the tag-scoped models' criteria, the fetched aggregates' capture leaves, the `#[DecisionBoundary]` criteria **and now the aggregate-backed models' `EventCriteria::aggregate()` leaves** into the one `loadByCriteria()` it already issues | one `SELECT` on `ecotone_tag_versions` for `{aggregate_Wallet:w-1, wallet:w-1}` |
+| 2 | read the tag index for the tag branches (the aggregate leaf matches nothing, by design — unchanged) | one `SELECT` on `ecotone_tagged_events`, then one per stream |
+| 3 | **read the aggregate-backed models' events** | one `loadAggregateEvents()` per distinct `(aggregate type, id)`, narrowed to the union of the handled event names of the models on that instance |
+| 4 | fold | tag-scoped models via `TagResolver::eventsMatching()` as today; aggregate-backed models from their own result, in query order, through the same `EventSourcingHandlerExecutor::fill($events, null)` |
+| 5 | invoke, append under the one `AppendCondition`, publish | unchanged |
 
-Mechanically: an `EventCriteria` branch answers `readsEvents()`, and `TagResolver::tagsOfCriteria()` splits into the
-tags to **capture** (every branch, as today) and the tags to **read** (reading branches only). The Dbal reader passes
-the read set to `DbalTagIndex::flagsFor()` and skips non-reading branches in `matchingEvents()`; the in-memory index
-does the same in `eventsMatching()`. `FetchedAggregateCounterCapture` keeps building the capture-only leaf, so a
-`#[Fetch]`-ed aggregate costs exactly what it costs today, indexed or not.
+**Capture-before-read holds** (§4.5's load-bearing rule): step 1 precedes step 3, so a save committing in between
+makes the events newer than the captured version and the guarded `UPDATE` fails — a spurious retry, in the safe
+direction. Getting this backwards would pair a newer version with older events and miss the conflict.
 
-### 1.6 The read side has to learn the tag too — and gets a free integrity check
+**On "one load per handler".** The guarantee becomes *one tag load plus one stream read per distinct aggregate
+instance in the boundary*. That is the same query count the user pays today for `#[Fetch]`-ing those aggregates, so
+nothing regresses; and two models on the same instance share one query. Revision 1 would have folded step 3 into
+step 2 at the cost of an index row per event forever — see Part 5.
 
-`TagResolver::eventsMatching()` decides which loaded events belong to which model by **re-resolving each event's
-tags from its payload** through `tagsCarriedBy()`, which reads `#[EventTag]` and nothing else. An aggregate-scoped
-model's criterion requires `aggregate_Wallet:w-1`; `WalletDebited` declares no attribute, so without a change the
-model would match nothing and fold an empty history — a silently wrong decision, the failure mode this design
-refuses everywhere.
+### 2.4 The walkthrough, with rows
 
-The fix keeps one source of truth: `tagsCarriedBy()` derives the counter tag from the **event's own aggregate
-metadata** (`_aggregate_type`, `_aggregate_id`) when that type is loadable by criteria, which is the same pair the
-write side derived it from. It is a property of the event, resolvable both from the object being appended (via the
-`AppendCondition`'s aggregate part) and from the `Event` being read (via its metadata), and the two agree by
-construction.
+`Wallet w-1` (`#[AggregateType('Wallet')]`, stream `_wallet`, a 1.x table) has 6 events, `aggregate_version` 1–6,
+and its counter is at 6. `PayoutsToday` for `wallet:w-1` is at 7. Anna requests a 60 payout; the wallet holds 100.
 
-That metadata carries one more thing no user tag has: `_aggregate_version`. An aggregate's history has a **known
-shape** — versions `1..n`, gapless — so a fold over an aggregate branch can assert it at zero cost, on data already
-in memory:
+**a. capture** — one statement, both pairs:
 
-> **`AggregateHistoryCompleteness`** — when events matched for an aggregate branch do not form a gapless
-> `1..n` run of `_aggregate_version`, throw, naming the aggregate, the first missing version, and
-> `ecotone:event-store:backfill-aggregate-tags`.
+```sql
+SELECT tag_name, tag_value, version FROM ecotone_tag_versions
+WHERE (tag_name = 'aggregate_Wallet' AND tag_value = 'w-1')
+   OR (tag_name = 'wallet'           AND tag_value = 'w-1');
+```
 
-This is what turns the backfill from an operator rule into a loud failure, and it is available **only** for
-aggregates: for `#[EventTag]` there is nothing to compare against, which is why §4.8 of the main spec had to decline
-a coverage guard. It catches a missing backfill, an interrupted backfill, a rolling deploy where an older node
-appended without index rows, and a stream whose index rows were dropped by `EventStore::delete()`. It does not catch
-a *type-narrowed* read — see §4.4, where the narrowing happens in PHP after the full branch is loaded, which is
-precisely why the check still holds.
+| tag_name | tag_value | version |
+|---|---|---|
+| aggregate_Wallet | w-1 | 6 |
+| wallet | w-1 | 7 |
 
-### 1.7 What does *not* change
+**b. read, tag side** — the index query for `wallet:w-1`; the `aggregate_Wallet` pair matches nothing, exactly as
+it does today.
 
-A claim worth stating precisely, because it is the measure of whether this design is the right size:
+**c. read, aggregate side** — `loadAggregateEvents('_wallet', 'Wallet', 'w-1', 1, null, [WalletCredited::class,
+WalletDebited::class])` → 6 events in `no` order. **No index row was consulted and none exists.**
+
+**d. decide** — balance 100 ≥ 60, today's total under the limit → returns `PayoutRequested('w-1', 60)`, carrying
+`#[EventTag('wallet')]`.
+
+**e. guard**, one sorted pass over `{aggregate_Wallet:w-1, wallet:w-1}`:
+
+```sql
+UPDATE ecotone_tag_versions SET version = version + 1
+WHERE tag_name = 'aggregate_Wallet' AND tag_value = 'w-1' AND version = 6;   -- 1 row → 7
+UPDATE ecotone_tag_versions SET version = version + 1
+WHERE tag_name = 'wallet' AND tag_value = 'w-1' AND version = 7;             -- 1 row → 8
+```
+
+**f. events** — `INSERT INTO ecotone_event_stream …` for `PayoutRequested`, aggregate columns null.
+
+**g. index** — one row, for the `wallet` tag only: `wallet / w-1 / ecotone_event_stream / 41 / 8`. **No
+`aggregate_Wallet` row, on this or any other append.**
+
+**h. COMMIT.**
+
+**The competing save.** A `CreditWallet` command against `Wallet w-1` captured `aggregate_Wallet:w-1` = 6 at load.
+Its save runs `UPDATE … WHERE version = 6`: if it arrives after step e it blocks on Anna's row lock, then finds 7 →
+**0 rows** → `DecisionModelConcurrencyException`, *"Wallet w-1 changed since it was loaded"*, nothing written, retry —
+which re-reads the wallet's 7 events and decides on current state. If it commits first, Anna's step e fails instead.
+Exactly one of the two decisions is taken on current state.
+
+**Every row and every statement above except step c is verbatim what ships today.** Step c is a `SELECT` on an index
+the stream has always had.
+
+### 2.5 Consistency notes
+
+- **The guard granularity is per aggregate instance**, which is exactly the question the model asks. A save
+  recording an event type the model ignores still bumps the counter and still invalidates the decision — a spurious
+  retry, conservative, and the same trade the design already makes for a mixed tag scope (§4.3).
+- **The aggregate need not exist.** No events → the model folds from nothing; the counter is captured at 0; the
+  guarded path for 0 is `INSERT … ON CONFLICT DO NOTHING`, which conflicts exactly when someone else created the
+  aggregate in between. Deciding on the *absence* of an aggregate is safe, as it already is for a fetched one.
+- **Ordering.** An aggregate-backed model's events come ordered by `no` from one query; they carry no `tag_sequence`
+  and need none, because models are folded independently, each in its own order (§4.5a). `MatchedEvents` is not
+  involved on this path.
+- **The unique index on `(aggregate_type, aggregate_id, aggregate_version)` is untouched** and remains the
+  aggregate's own guard for its own event sequence.
+- **One connection.** `loadAggregateEvents()` resolves the connection from the stream name, so an aggregate whose
+  `#[Stream]` is on another connection cannot be in the boundary — and here the check is **exact**, because the
+  aggregate's stream is statically known. `CrossConnectionDecisionModelGuard` gains the certainty it currently has
+  only for events it can trace.
+- **Transactions.** Unchanged. The read adds no requirement; the guarded append already requires a transaction, and
+  every aggregate save already does (D10).
+
+### 2.6 Bootstrap guards
+
+All in `DecisionModelDefinitionBuilder`, beside the checks it already performs:
+
+- `aggregate:` together with `tags:` → `ConfigurationException`; one scope per model.
+- `aggregate:` naming a class that is not an `#[EventSourcingAggregate]`:
+  - a **state-stored** `#[Aggregate]` → names it and says it records no events, so it cannot back a model; fetch it
+    with `#[Fetch]` instead, which is already guarded by its counter;
+  - a `#[Saga]` / `#[EventSourcingSaga]` → rejected, as fetching a saga into a decision-model handler already is;
+  - anything else → rejected.
+- a handled event class that the named aggregate **does not record** (traced from the aggregate's own
+  `#[EventSourcingHandler]`s, the trace §4.5a already performs) → `ConfigurationException` naming the model, the
+  event and the aggregate. This replaces the tag-name rule on this path and is strictly stronger: it is the exact
+  statement of "this model could never receive that event".
+- the identifier unresolvable from a concrete message class → `ConfigurationException`, mirroring
+  `DecisionModelTagResolvabilityGuard`.
+- the aggregate's stream on a different connection than the handler's write stream → `ConfigurationException`
+  naming both.
+
+And one message improvement that makes the feature discoverable: the existing *"DecisionModel %s is scoped by no tag
+name…"* exception — which is exactly what a user hits today when they write a model over an aggregate's untagged
+events — gains a third remedy: *"…or, if these are one aggregate's own events, scope the model with
+`#[DecisionModel(aggregate: Wallet::class)]`."*
+
+---
+
+## Part 3 — What changes, names only
+
+Core (`packages/Ecotone`), and nothing outside it:
 
 | Class | Change |
 |---|---|
-| `AppendedTags` | **none** — the tag collapses by `TagKey`; one capture, one guarded bump |
-| `DbalTagConditionalAppender`, `DbalTagIndex`, `DbalTagVersionRegister` | **none** on the write path |
-| `InMemoryTagIndex`, `EnterpriseInMemoryTagCollaborator` | **none** |
-| `EventStore`, `AppendCondition`, `EventSourcedRepository`, `StateStoredRepository` | **none** |
-| `ecotone_tagged_events`, `ecotone_tag_versions`, every stream table | **no schema change** |
-| the aggregate's unique index and `#[Version]` | untouched |
-| state-stored aggregates | untouched — they record no events, so there is nothing to index (a state-stored class opted in is a bootstrap `ConfigurationException`) |
+| `Api\Attribute\DecisionModel` | one argument: `aggregate: ?string` (a class name) |
+| `DecisionModelDefinition` | carries either tag names or the aggregate class; `toCriteria()` unchanged for the tag kind |
+| `AggregateBackedDecisionModelDefinition` *(new, or a second shape on the existing one)* | aggregate class, resolved `#[AggregateType]`, stream name, identifier names, handled event classes |
+| `DecisionModelDefinitionBuilder` | the `aggregate:` branch and the six guards of §2.6 |
+| `AggregateBackedDecisionModelLoader` *(new)* | mirrors `DecisionModelParameterLoader`: resolves identifiers (`#[Fetch]` or convention), yields the capture leaf `EventCriteria::aggregate()`, folds from `loadAggregateEvents()` |
+| `DecisionModelBatchLoader` | the aggregate-backed loaders' capture leaves join the one `loadByCriteria()`; one extra fold pass reading their events |
+| `DecisionModelModule` / `DecisionModelHandlers` | one more thing the single handler scan (readability item 6, shipped as step 0) produces per handler |
+| `CrossConnectionDecisionModelGuard` | the exact stream/connection check for an aggregate-backed model |
 
-The write-side change is confined to `TagResolver::resolveAppend()`; the read-side change to
-`TagResolver::tagsCarriedBy()`, `TagResolver::tagsOfCriteria()` and the two readers' branch filtering.
+**Unchanged, and this is the measure of the design:** `EventCriteria`, `AppendCondition`, `LoadedEvents`,
+`TagResolver`, `AppendedTags`, `EventsTags`, `DbalTaggedEventReader`, `DbalTagIndex`, `DbalTagConditionalAppender`,
+`DbalTagVersionRegister`, `DbalTagBackfiller`, `InMemoryTagIndex`, `EnterpriseInMemoryTagCollaborator`,
+`EventStore`, `EventSourcingRepository`, `EventSourcedRepositoryAdapter`, `StateStoredRepositoryAdapter`,
+`TagSchemaVerifier`, both console commands, `DynamicConsistencyBoundaryConfiguration`, and every table.
 
----
-
-## Part 2 — Opt-in or always
-
-### 2.1 The cost, with the spec's own arithmetic
-
-§4.2 of the main spec sizes an index row at **~220 bytes on PostgreSQL** (≈110 B heap plus as much again in the
-primary key) and **roughly half that on InnoDB**, which clusters the table on its primary key. Full tag writes
-**exactly one row per aggregate event** — no more, no fewer, regardless of how many `#[EventTag]`s the event carries.
-
-| Application | Aggregate events | Index today | Index with full tag on every aggregate |
-|---|---|---|---|
-| 1.x app newly on 2.0, no `#[EventTag]` yet | 10 M | **0** | ~2.2 GB (PG) / ~1.1 GB (InnoDB) |
-| DCB app, two user tags on half its events | 10 M aggregate + 2 M decision-model events | ~2.6 GB (PG) | ~4.8 GB (PG) |
-
-The second row is the honest headline: **for an aggregate-heavy application the index roughly doubles.** For the
-first row it goes from nothing to a table the size of a small event store.
-
-Three further costs, in decreasing order of how much they matter:
-
-1. **The backfill is mandatory before the read can be trusted.** The shipped boundary's loudest promise is "No
-   backfill" (§4.9 of the fetched-aggregates design, repeated in `upgrade-2.0.md`): a missing counter row is version
-   0 and the guarded insert conflicts correctly. An index row has no such property — a missing row is an event the
-   fold does not see. Turning full tag on for every aggregate means every application enabling DCB inherits a
-   full-scan migration of every stream before any aggregate-scoped model is safe.
-2. **Write amplification is small but not nil.** An aggregate save whose events carry no `#[EventTag]` today issues
-   no index statement at all; with full tag it issues one, inserting one row per event. Measured against the append
-   it already performs (counter `UPDATE` + event `INSERT`, inside a transaction that is now mandatory), that is one
-   extra statement per save and `n` extra rows.
-3. **`stream_name` is the fattest column** (§4.2) — about a fifth of a row for `ecotone_event_stream`, a third for a
-   41-character legacy `_<sha1>` name. Legacy 1.x aggregate streams are exactly where the aggregate rows land, so
-   full tag is the workload that would most benefit from the stream-name lookup table §4.2 deliberately deferred.
-
-On the other side of the ledger, the shape of the aggregate tag is kind to the index: the primary key is
-`(tag_name, tag_value, stream_name, event_no)`, so one aggregate type's rows cluster together and one instance's rows
-are contiguous and appended in order — good read locality, and no single insert hot spot, because the hot point is
-per aggregate id.
-
-### 2.2 The recommendation: opt in, per aggregate class, on the extension object
-
-```php
-#[ServiceContext]
-public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfiguration
-{
-    return DynamicConsistencyBoundaryConfiguration::createWithDefaults()
-        ->withAggregatesLoadableByCriteria([Wallet::class, Order::class]);
-}
-```
-
-**Why opt-in rather than always.** The costs above are not paid for a benefit — they are paid per aggregate, and the
-benefit is only collected for aggregates something actually reads by criteria, which in any real application is a
-handful. Doubling the index of every aggregate so that two of them can be folded is the wrong default, and the
-mandatory backfill makes "always" a breaking operational change to an upgrade path whose selling point is that it
-has none.
-
-**Why the extension object rather than an attribute on the aggregate class.** The previous design answered the
-mirror question the other way (OQ 2: derive membership from handler signatures, do not declare it) and was right to:
-*boundary membership* is a consistency decision, and the accident it guards against is one we want to happen
-automatically. This is a different kind of decision. Indexing is a **storage decision with a migration attached** —
-adding a class to the list means a table grows and a backfill must run before the next release relies on it. That
-belongs where an operator can grep for it, next to `withFilterOnlyTags()`, on the one object that already decides
-whether DCB runs at all, and not scattered across aggregate classes where a merge can enable it without anyone
-noticing. It is also the level at which it is *reversible*: removing a class stops new index rows; the old ones are
-dead weight until `EventStore::delete()` or a manual `DELETE`.
-
-**Why per class rather than one global switch.** So the backfill is per stream and can be run, verified and rolled
-out one aggregate at a time — which is what makes the operator runbook in §3.5 short.
-
-The name says what it buys rather than how it is stored: an aggregate on this list is **loadable by
-`EventCriteria`**. `withAggregatesLoadableByCriteria()` reads as the capability; `withIndexedAggregates()` would read
-as the mechanism.
-
-**Bootstrap guards** (`AggregateCounterTagGuard`, which already owns the counter-name rules):
-
-- a class in the list that is not an `#[Aggregate]`/`#[EventSourcingAggregate]` → `ConfigurationException`;
-- a **state-stored** aggregate in the list → `ConfigurationException` naming it and saying that a state-stored
-  aggregate records no events, so there is nothing to index (its counter still works, and that is the boundary it
-  has);
-- a `#[Saga]`/`#[EventSourcingSaga]` in the list → `ConfigurationException`, for the same reason sagas are exempt
-  from the counter;
-- `#[DecisionModel(aggregate: X::class)]` where `X` is not in the list → `ConfigurationException` naming both the
-  model and the `with*` call that would fix it. This is the check that makes the whole opt-in safe: a model can
-  never be written against an aggregate whose events are not indexed.
+**`PdoEventSourcing`: no change at all.** Nothing new is written, read differently, migrated or verified.
 
 ---
 
-## Part 3 — Backfill and migration
+## Part 4 — The questions the brief asked, answered on this design
 
-### 3.1 Why this backfill is a different animal
+### 4.1 Opt-in or always?
 
-`ecotone:event-store:backfill-tags` must **deserialize every event** to ask its class for `#[EventTag]` values —
-"hours on tens of millions of rows", a full scan through PHP, with `--skip-undeserializable` for payloads that no
-longer decode.
+**Neither — there is nothing to switch on.** Revision 1 needed an opt-in list because index rows cost storage and a
+backfill. Here the cost of an aggregate that no model reads is exactly zero: no row, no statement, no column. The
+feature is "write the model", and the only gate is the one already in place — DCB registered, Enterprise licence.
+`DynamicConsistencyBoundaryConfiguration` gains no option.
 
-The aggregate tag needs none of that. Everything it requires is in columns the store already indexes:
+### 4.2 Backfill and migration?
 
-| Index column | Source |
-|---|---|
-| `tag_name` | `'aggregate_' ‖ _aggregate_type` |
-| `tag_value` | `_aggregate_id` |
-| `stream_name` | the table being scanned |
-| `event_no` | `no` |
-| `tag_sequence` | `_aggregate_version` (§3.3) |
+**None, and nothing to verify.** The stream's `aggregate_type` / `aggregate_id` / `aggregate_version` columns are
+the source of truth; they have been written by 1.x and by 2.0 alike since the beginning, for every aggregate event
+that exists. An aggregate with ten years of history is foldable by a model on the first command after the upgrade.
 
-`EventStreamSchema::metadataFieldExpression()` already renders each of those per engine — real generated columns on
-MySQL/MariaDB, `metadata->>'…'` on PostgreSQL, `json_extract()` on SQLite — and the stream carries an index on
-`(aggregate_type, aggregate_id, no)`. So the backfill is a **set-based `INSERT … SELECT`**, one statement per batch,
-no PHP deserialisation, no `--skip-undeserializable`, and it reads only rows that have aggregate metadata.
+Three consequences worth stating as plainly as revision 1 had to state their opposites:
 
-That is why it deserves its own command rather than a flag on the existing one: the mechanics share nothing but the
-destination table.
+- `ecotone:event-store:backfill-tags` is **not involved**. No new console command.
+- `ecotone:event-store:verify-schema` needs **no coverage check**; there is no coverage to be incomplete.
+- There is **no rolling-deploy hazard**. Revision 1's worst problem — a node on the previous release saving without
+  writing index rows, leaving a hole in the middle of a history that a fold would silently accept — cannot occur,
+  because the fold reads the events themselves. Revision 1 needed a `1..n` gapless-version assertion to make that
+  window safe; here the assertion would have nothing to detect. The one operator rule that remains is the one
+  already shipped for the counter: during a rolling deploy nodes on the previous release still bump the counter,
+  because the counter shipped before this feature.
 
-```
-ecotone:event-store:backfill-aggregate-tags
-    [--aggregate=Wallet]      # one #[AggregateType]; default: every aggregate on the loadable-by-criteria list
-    [--stream=]               # default: the aggregate's own stream; repeat for a split history (§1.3)
-    [--batch-size=1000]
-    [--from-no=]
-    [--dry-run]
-```
+The 1.x note that *does* apply is an existing one: an event-sourced aggregate with existing history must declare the
+`#[AggregateType]` its stream already stores (`upgrade-2.0.md`, D2) — otherwise neither its own load nor a model
+over it finds anything. That is already documented and already a bootstrap requirement.
 
-`--dry-run` reports what it would write without writing; the report mirrors `TagBackfillReport` (last `no`
-processed, rows scanned, index rows written, counters raised).
+### 4.3 Snapshots and performance?
 
-### 3.2 The two statements, per batch, in one transaction
+**Nothing is lost, because the aggregate's own load path is the path this uses.** Revision 1's central problem — a
+criteria read has no `fromVersion`, so it cannot start from a snapshot and must read the whole history every time —
+does not arise: `loadAggregateEvents()` is the same call `EventSourcingRepository::findBy()` makes, with the same
+push-downs.
 
-**Counters first, as everywhere else in this design.** For every `(aggregate_type, aggregate_id)` in the batch, raise
-the counter to at least the aggregate's highest version:
-
-```sql
--- missing row
-INSERT INTO ecotone_tag_versions (tag_name, tag_value, version) VALUES (:k, :v, :maxVersion)
-ON CONFLICT DO NOTHING;                             -- MySQL/MariaDB: INSERT IGNORE
-
--- existing row: raise, never lower
-UPDATE ecotone_tag_versions SET version = :maxVersion
-WHERE tag_name = :k AND tag_value = :v AND version < :maxVersion;
-```
-
-Then the index rows, idempotent on the primary key:
-
-```sql
-INSERT INTO ecotone_tagged_events (tag_name, tag_value, stream_name, event_no, tag_sequence)
-SELECT 'aggregate_' || <type expr>, <id expr>, :streamName, no, <version expr>
-FROM <stream>
-WHERE no >= :fromNo AND no < :toNo AND <type expr> = :aggregateType
-ON CONFLICT (tag_name, tag_value, stream_name, event_no) DO NOTHING;
-```
-
-`ON CONFLICT DO NOTHING` / `INSERT IGNORE` makes the whole command **re-runnable**, which is the same property
-`DbalTagIndex::insertRowsIdempotently()` gives the `#[EventTag]` backfill — but here it falls out of the primary key
-without the sentinel "was the first tagged event of this batch already indexed?" probe that `DbalTagBackfiller` needs.
-
-### 3.3 `tag_sequence` for historical events: `aggregate_version`
-
-Three candidates, and the arithmetic settles it.
-
-| Rule | Orders correctly | Derivable in SQL | Agrees with live appends |
+| | `#[Fetch]`-ed aggregate | `#[DecisionModel(aggregate: …)]` | revision 1's tag-index read |
 |---|---|---|---|
-| **`aggregate_version`** | yes — it *is* the aggregate's order | yes, one column | yes, once the counter is raised to `MAX(aggregate_version)` |
-| a counter bumped once per backfilled *event* | yes | no — needs a read-back per row | drifts: the counter would end far above any save count |
-| the shipped live rule, one bump per *append* | there is no recorded append boundary in history | no | — |
+| statements | 1 | 1 | 2 (index, then events) |
+| access path | the stream's `(type, id, no)` index | the same | `(tag_name, tag_value)` then `no IN (…)` |
+| event-type narrowing | none — the whole aggregate is rebuilt | **SQL-side** (`event_name IN`) | PHP-side, after loading everything |
+| `fromVersion` | used, for snapshots | available | impossible |
+| state held | the whole aggregate | only what the decision needs | only what the decision needs |
 
-The third is not available: history does not record which events were written together, so the live rule cannot be
-reconstructed. The second costs a round trip per row and throws away a number already in the table. The first is
-exact, gapless, monotonic, free, and — the property that matters — **it is the same order the live rule produces**,
-because a live append stamps all of its events with the bumped counter and the counter is raised to
-`MAX(aggregate_version)` first. Concretely, for `Wallet w-1` with 6 historical events and then a two-event save:
+So an aggregate-backed model is **cheaper than fetching the aggregate** whenever it handles fewer event types than
+the aggregate does, and never more expensive.
 
-| event | `_aggregate_version` | `tag_sequence` | assigned by |
-|---|---|---|---|
-| 1 … 6 | 1 … 6 | 1 … 6 | backfill |
-| 7 | 7 | **7** | live append (counter 6 → 7) |
-| 8 | 8 | **7** | the same live append |
-
-Sorting by `(tag_sequence, event_no)` yields `1,2,3,4,5,6,7,8` — aggregate-version order, which is what
-`loadAggregateEvents()` returns. The counter's absolute value changes meaning slightly (it counted saves; after a
-backfill it counts at least as high as events), which is harmless: §4.9 of the fetched-aggregates design already
-establishes that only "did it move" is ever read, and raising it can only cause a spurious conflict, never miss one.
-
-### 3.4 Raising the counter is a write — and that is the right behaviour
-
-A save committing while the backfill runs is the interesting case. The counter raise happens **before** the index
-insert and under the counter's row lock, so:
-
-- a save that captured the counter at 4 and reaches its guarded `UPDATE … WHERE version = 4` after the backfill set
-  it to 6 affects **0 rows** → `DecisionModelConcurrencyException` → nothing written → the configured retry re-reads
-  and succeeds against the raised counter. A spurious conflict, in the safe direction.
-- a save that commits *first* raises `MAX(aggregate_version)` by one; the backfill's `WHERE version < :maxVersion`
-  then leaves the higher value alone, and its `INSERT … SELECT` picks up the new rows too, or the next batch does.
-
-So the backfill is **online-safe**: it costs some retries on aggregates it is passing through, bounded to the
-duration of the run, and it never produces a wrong order. Applications that cannot absorb retries run it in a quiet
-window, per aggregate — which the `--aggregate=` scoping is for. Both facts belong in the runbook, not in a caveat.
-
-Two operational notes inherited unchanged from the shipped design: a tagged write **requires an active transaction**,
-so the backfill runs under `DbalConfiguration::withTransactionOnConsoleCommands()`, and on a multi-tenant setup the
-`tenant` header selects the connection, so the command is run once per tenant (`--header "tenant:a"`) and fails
-loudly with no header.
-
-### 3.5 The operator runbook
-
-Per aggregate, and the order is the whole point:
-
-| # | Step | Why this order |
-|---|---|---|
-| 1 | Deploy 2.0 with the aggregate boundary (already done — this is the shipped baseline) | counters exist and are bumped |
-| 2 | Release adding `->withAggregatesLoadableByCriteria([Wallet::class])`, **to every node** | from here on, every `Wallet` save writes index rows. Until every node is on it, some saves do not — which is exactly what step 4 detects and step 3 repairs |
-| 3 | `ecotone:event-store:backfill-aggregate-tags --aggregate=Wallet`, and **wait for it to finish**; repeat per stream if the history is split (§1.3), and per tenant | re-runnable; run it again after step 2 has fully rolled out to sweep up anything a lagging node missed |
-| 4 | `ecotone:event-store:verify-schema` — the coverage check (§3.6) reports `Wallet` complete | the deploy gate |
-| 5 | Release adding `#[DecisionModel(aggregate: Wallet::class)]` / `EventCriteria::aggregateEvents()` | nothing reads the index before it is complete |
-
-**Rollback.** Removing the class from the list at step 2 stops new index rows immediately; the rows already written
-are inert (nothing queries that tag) and can be deleted at leisure. Nothing in the stream tables, the counters or
-the aggregate's own load path changed, so there is no state to undo. This is a materially better rollback story
-than the `#[EventTag]` index has, and it is a direct consequence of the aggregate keeping its own load path (§4).
-
-**The residual hazard** is the window in step 2 — a node on the previous release saves a `Wallet` without writing
-index rows, leaving a hole in the middle of the history. The shipped design could only document the equivalent
-hazard for `#[EventTag]`. Here step 3-after-rollout closes it, and `AggregateHistoryCompleteness` (§1.6) catches it
-at read time if it was not. That combination is why I am comfortable recommending full tag at all.
-
-### 3.6 `verify-schema` gains a coverage check
-
-`TagSchemaVerifier` today checks *structure* — the tag tables' primary keys and collations, and nullability on
-streams. Coverage is a different kind of question, and for aggregates it is answerable exactly and cheaply, which it
-is not for `#[EventTag]`. Per aggregate on the list, two grouped counts against one stream:
-
-```sql
-SELECT count(*) FROM <stream> WHERE <type expr> = :aggregateType;
-SELECT count(*) FROM ecotone_tagged_events WHERE tag_name = :counterName AND stream_name = :streamName;
-```
-
-Equal → complete. Unequal → the command prints the shortfall and the exact
-`ecotone:event-store:backfill-aggregate-tags --aggregate=… --stream=…` to run. It is reported as a *data* check,
-visually separated from the schema checks, and it is the CI/deploy gate for step 4. Both queries are index-only on
-every engine.
-
----
-
-## Part 4 — Snapshots and performance
-
-### 4.1 The two read paths, priced
-
-| | `loadAggregateEvents()` (today) | `loadByCriteria(aggregateEvents(...))` |
-|---|---|---|
-| statements | **1** | **2** — index flags, then events per stream |
-| access path | range scan on the stream's own `(aggregate_type, aggregate_id, no)` index | index seek on `(tag_name, tag_value)`, then `no IN (…)` on the stream |
-| `fromVersion` push-down | **yes** (`WHERE aggregate_version >= :from`) | **no** — the criterion has no version vocabulary |
-| snapshots | **yes** — `EventSourcedRepositoryAdapter` loads the snapshot and asks for `version + 1` onwards | **no** — there is nothing to start from |
-| event-type narrowing | `$eventNames` in the query | **no** — `DbalTaggedEventReader` filters by type in PHP *after* loading every flagged event (§4.4) |
-| crosses streams | **no** | **yes** (§1.3) |
-| cost for a 1 000-event aggregate with a snapshot at 900 | 100 rows, 1 query | 1 000 index rows + 1 000 event rows, 2 queries, `IN` list of 1 000 |
-
-### 4.2 What is lost, and the recommendation
-
-An aggregate loaded by criteria bypasses the two things that make a long-lived aggregate affordable: the snapshot
-and `fromVersion`. For an aggregate with a configured snapshot, the criteria path is not marginally worse — it is
-the whole history versus the tail, every time.
-
-**Recommendation: the aggregate keeps its own load path, unconditionally.** `EventSourcingRepository::findBy()`,
-`EventSourcedRepositoryAdapter`'s snapshot handling and `#[Fetch]`'s `FetchAggregateConverter` are untouched by this
-proposal. Full tag adds a **second, read-only** path, used by `loadByCriteria()`, by `#[DecisionBoundary]` branches
-and by aggregate-scoped decision models — never by the aggregate instance itself.
-
-This is the answer to the brief's either/or: **other models gain the ability to fold an aggregate's events; the
-aggregate does not change how it loads.** Three reasons, in order of weight:
-
-1. the snapshot arithmetic above;
-2. it keeps the change additive and the rollback trivial (§3.5) — the aggregate's correctness never depends on the
-   index being complete;
-3. folding a `#[Fetch]`-ed aggregate from the batch buys one round trip and closes a *spurious*-retry window (today
-   the capture and the aggregate's own read are two statements; a commit in between makes the instance newer than
-   the capture, which fails the guard and retries — safe, just wasteful). One round trip is not worth the snapshot.
-
-**When to load which way**
+**Which to use when**
 
 | Situation | Path |
 |---|---|
-| the aggregate's own `#[CommandHandler]` | `loadAggregateEvents()` — always, snapshots included |
-| `#[Fetch]`-ed aggregate in a decision-model handler | `loadAggregateEvents()` + the capture-only counter leaf, exactly as shipped |
-| a question about the aggregate's past, in a handler that appends | `#[DecisionModel(aggregate: …)]` — folds only the event types it handles, holds only the state it needs |
-| an aggregate whose history is split across streams (1.x migration, `#[Stream]` on a method) | `loadByCriteria(aggregateEvents(…))` — the only path that returns it merged and ordered |
-| ad-hoc read in a `#[QueryHandler]`, no projection wanted | `loadByCriteria(aggregateEvents(…))` |
+| the aggregate's own `#[CommandHandler]` | `loadAggregateEvents()` + snapshot, exactly as today |
+| a decision needs the whole aggregate's behaviour (methods, invariants) | `#[Fetch]` — unchanged, read-only, guarded by its counter |
+| a decision needs one question about the aggregate's past | `#[DecisionModel(aggregate: …)]` |
+| a question spanning several aggregates or non-aggregate events | a tag-scoped `#[DecisionModel]` with `#[EventTag]`, as today |
 
-### 4.3 Per-tag snapshots are the thing that would change this answer
+### 4.4 Snapshots for decision models become straightforward
 
-§4.10 of the main spec lists per-tag snapshots as a follow-up, and OQ 5 of the fetched-aggregates design already
-recorded that they are what makes a readable aggregate tag "a rename rather than a new mechanism". The shape is
-now clearer, and full tag is its **prerequisite**, not the other way round: a snapshot keyed
-`(tag_name, tag_value)` storing a folded state plus the `tag_sequence` it covers lets the index read start at
-`WHERE tag_sequence > :covered`, which is the `fromVersion` push-down the criteria path lacks — and it works for
-decision models too, which have no aggregate columns to fall back on. Deliberately out of scope here; recorded so
-the question is not reopened from scratch.
+§4.10 of the main spec lists decision-model snapshots as a follow-up, and revision 1 could only offer *per-tag*
+snapshots — a new mechanism, requiring `tag_sequence` as a resumable position. For an aggregate-backed model the
+resumable position already exists and is already a SQL argument: store the folded model plus the
+`aggregate_version` it covers, resume with `loadAggregateEvents(..., fromVersion: covered + 1)`. The document store
+and the `aggregate_snapshots_` collection convention are already in place for aggregates
+(`EventSourcedRepositoryAdapter::SNAPSHOT_COLLECTION`). Deliberately out of scope here; recorded because this
+design makes it a configuration change rather than a design.
 
-### 4.4 Two read-path inefficiencies this exposes
+### 4.5 What this does *not* do, that revision 1 would have
 
-Neither is caused by full tag, but full tag is what makes them bite, so they belong in the record:
+One capability, and it is out of DCB's scope:
 
-1. **`ofTypes()` does not narrow the read.** `DbalTaggedEventReader::loadByCriteria()` calls
-   `eventsReferencedBy()` on *every* flagged event and filters by event name in PHP. §4.5 of the main spec sketched
-   `AND event_name IN (:types)` in statement 3; the shipped code does not do it. For a decision model over a tag
-   with a handful of events that is invisible; for an aggregate-scoped model that handles 2 of an aggregate's 12
-   event types it means loading six times what it folds. Worth a separate work item — and note that
-   `AggregateHistoryCompleteness` (§1.6) depends on the current behaviour, so if the narrowing lands, the check
-   must move to the flags (which carry `event_no` for the unnarrowed branch) rather than to the folded events.
-2. **The `IN (…)` list is unbounded.** A 50 000-event aggregate produces a 50 000-element `IN` list. The existing
-   code has the same exposure for a hot tag; an aggregate makes long histories ordinary. Batching
-   `loadEventsByNumbers()`, or reading by `no` range when the flags are contiguous (which for one aggregate in one
-   stream they very often are), is the obvious follow-up. Also a separate work item.
+**A merged history for an aggregate whose events are split across two streams** — the 1.x → 2.0 stream-migration
+shape (old events in `_<sha1('Wallet')>`, new ones in `ecotone_event_stream`), or a `#[Stream]` declared on one
+handler method. `loadAggregateEvents()` takes one stream, so a model backed by `Wallet` reads exactly what `Wallet`
+itself reads — no better, no worse. Revision 1's index would have merged them, ordered by `tag_sequence`.
 
----
+That is not a reason to build the index. An aggregate whose history is split cannot be *loaded* today either, so the
+model has the same reach as the aggregate and there is no new limitation; and the tool for a split history is a
+stream copy (§4 of the upgrade guide already tells users to consolidate), not a second read path that has to be
+populated and backfilled forever to paper over it.
 
-## Part 5 — Consistency semantics
-
-### 5.1 The claim
-
-With index rows, the aggregate's events participate in cross-stream `tag_sequence` ordering — **and the guard does
-not change at all**, because the counter was already bumped once per save and the index row merely copies the
-value it was bumped to. The unique index remains the aggregate's own guard for its own event sequence.
-
-### 5.2 Walkthrough — a coupon and a wallet, one handler
-
-`Wallet` is `#[EventSourcingAggregate]`, on the legacy stream `_wallet` (a 1.x table), and is on the
-loadable-by-criteria list. `CouponRedemptions` is a `#[DecisionModel]` scoped on the user tag `coupon`, folding
-`CouponIssued` and `OrderPlaced` from `ecotone_event_stream`. `WalletBalance` is
-`#[DecisionModel(aggregate: Wallet::class)]`.
-
-```php
-#[CommandHandler]
-public function settle(
-    SettleOrder $command,
-    WalletBalance $wallet,           // aggregate_Wallet : w-1
-    CouponRedemptions $coupon,       // coupon : SUMMER24
-): array
-```
-
-**Starting state.** `Wallet w-1` has three events, backfilled: `_aggregate_version` 1–3, `tag_sequence` 1–3, counter
-`aggregate_Wallet:w-1` = 3. The coupon has one event, `tag_sequence` 1, counter `coupon:SUMMER24` = 1.
-
-`ecotone_tagged_events`
-
-| tag_name | tag_value | stream_name | event_no | tag_sequence |
-|---|---|---|---|---|
-| aggregate_Wallet | w-1 | _wallet | 1 | 1 |
-| aggregate_Wallet | w-1 | _wallet | 2 | 2 |
-| aggregate_Wallet | w-1 | _wallet | 3 | 3 |
-| coupon | SUMMER24 | ecotone_event_stream | 1 | 1 |
-
-**① A wallet command runs first**, recording `WalletCredited` — an ordinary aggregate save, no decision model
-involved:
-
-| step | statement | result |
-|---|---|---|
-| capture (in-transaction) | `SELECT … WHERE tag_name='aggregate_Wallet' AND tag_value='w-1'` | 3 |
-| guard | `UPDATE … SET version = version+1 WHERE … AND version = 3` | 1 row → **4** |
-| event | `INSERT INTO _wallet …`, `_aggregate_version = 4` | `no` = 4; the unique index on `(Wallet, w-1, 4)` is checked here, as today |
-| index | one row: `aggregate_Wallet / w-1 / _wallet / 4 / 4` | **new with full tag** |
-| COMMIT | | |
-
-**② The handler runs.** Nothing is locked while it thinks.
-
-| step | statement | result |
-|---|---|---|
-| a. capture — one statement, both pairs | `SELECT … WHERE (tag_name,tag_value) IN (('aggregate_Wallet','w-1'),('coupon','SUMMER24'))` | `aggregate_Wallet:w-1` = **4**, `coupon:SUMMER24` = **1** |
-| b. read index — one statement, both pairs | `… FROM ecotone_tagged_events WHERE … GROUP BY stream_name, event_no` | 5 rows: four `_wallet` events (sequences 1–4), one `ecotone_event_stream` event (sequence 1) |
-| c. read events — one statement **per stream** | `SELECT … FROM _wallet WHERE no IN (1,2,3,4)`; `SELECT … FROM ecotone_event_stream WHERE no IN (1)` | |
-| d. fold | `WalletBalance` gets the four wallet events in `(tag_sequence, event_no)` = 1,2,3,4; `CouponRedemptions` gets the coupon event. Each branch folds in **its own** primary tag's sequence | |
-| e. decide | returns `OrderSettled(…)`, carrying `#[EventTag('coupon')]` | |
-
-The two models were fed from **two different tables** by one index query, each in its own exact order, and neither
-declared which stream it reads — §4.5a's promise, now extended to aggregate events.
-
-| step | statement | result |
-|---|---|---|
-| f. guard, one sorted pass over `{aggregate_Wallet:w-1, coupon:SUMMER24}` | `UPDATE … 'aggregate_Wallet','w-1' … AND version = 4` | 1 row → **5** |
-| | `UPDATE … 'coupon','SUMMER24' … AND version = 1` | 1 row → **2** |
-| g. event | `INSERT INTO ecotone_event_stream …`, aggregate columns null | `no` = 2 |
-| h. index | `coupon / SUMMER24 / ecotone_event_stream / 2 / 2`. **No `aggregate_Wallet` row** — the handler is not a `Wallet` save, so the wallet tag is a condition tag here, exactly as it is today | |
-| i. COMMIT | | |
-
-**③ A competing wallet save, racing step ②.** It captures `aggregate_Wallet:w-1` = 4 at load and reaches its guarded
-`UPDATE … WHERE version = 4`. If it arrives after step f it blocks on the row lock, then finds 5 → **0 rows** →
-`DecisionModelConcurrencyException` rendered as *"Wallet w-1 changed since it was loaded"*; nothing written, no `no`
-burned, retry. If it commits first, step f fails instead. Exactly one of the two decisions is taken on current
-state — and this is **verbatim the shipped behaviour**: the index rows played no part in it.
-
-### 5.3 What the guard sees, restated
-
-- The aggregate counter is bumped **once per append**, by the same sorted guarded pass, whether or not index rows
-  are written. `AppendedTags` keys `$involved` by `TagKey`, so the tag arriving both as a carried tag and as the
-  condition's aggregate tag collapses to one entry and one `UPDATE`. There is **no double bump** and no new
-  statement.
-- `tag_sequence` is copied, never compared or incremented (§4.2). It is an order stamp. Adding rows that carry it
-  cannot change any conflict decision.
-- The **unique index on `(aggregate_type, aggregate_id, aggregate_version)` remains** and remains the aggregate's
-  own guard: two concurrent saves of one aggregate still collide there first on `READ COMMITTED`, as a plain
-  `ConcurrencyException` with the database's message; on `REPEATABLE READ` the counter catches it and names the
-  aggregate (D4, kept literally).
-- The `ecotone_tagged_events` primary key `(tag_name, tag_value, stream_name, event_no)` remains, and it is what
-  makes the backfill idempotent (§3.2). A duplicate index row for one aggregate event is impossible.
-- Ordering across branches is per branch, by that branch's primary tag sequence — so a wallet branch and a coupon
-  branch, whose counters are unrelated, never interleave by accident.
-- One boundary still lives on one connection (§4.5a). An aggregate on another connection has its index rows in
-  *that* connection's tag tables, and the existing cross-connection guards apply unchanged.
+The other thing revision 1 advertised — an `EventCriteria` branch that returns an aggregate's events, for the raw
+gateway and for `#[DecisionBoundary]` — is **not delivered**, and `EventStore::loadAggregateEvents()` is the public
+read that covers it. A gateway user who wants events *and* the matching condition makes two calls today. See OQ 2.
 
 ---
 
-## Part 6 — Parity, gating, licence, docs, tests
+## Part 5 — Why the index rows are not worth it (revision 1, kept for the record)
 
-### 6.1 In-memory parity is free
+Revision 1's proposal was: the aggregate's counter tag also becomes a *carried* tag of its events, so
+`AppendedTags::sequencedAfterBump()` writes one `ecotone_tagged_events` row per event with
+`tag_sequence` = the bumped counter. Mechanically it was small — two changes in `TagResolver`, nothing else on the
+write path. The costs were not.
 
-The write-side change is entirely inside `TagResolver::resolveAppend()`, which is core and shared:
-`EnterpriseInMemoryTagCollaborator::appendEventsWithTagCondition()` already calls it and already passes
-`sequencedAfterBump()` to `InMemoryTagIndex::record()`. The read-side change is in `TagResolver::tagsCarriedBy()` and
-`tagsOfCriteria()`, likewise shared; `InMemoryTagIndex::eventsMatching()` needs the same "skip non-reading branches"
-line the Dbal reader gets. **`InMemoryTagIndex` and `InMemoryTagVersionRegister` are otherwise unchanged.**
+| | revision 1 (index rows) | revision 2 (this design) |
+|---|---|---|
+| storage | +1 index row per aggregate event: **~2.2 GB per 10 M events** on PostgreSQL, ~1.1 GB on InnoDB (§4.2's own arithmetic). The index of an aggregate-heavy application roughly **doubles** | **0** |
+| per-save cost | one extra `INSERT` statement and `n` extra rows, on **every save, forever** — the "populate on daily basics" the maintainer declined | **0** |
+| backfill before it can be trusted | mandatory, full scan of every stream, per tenant, with a counter raise to `MAX(aggregate_version)` and a `tag_sequence` rule to invent | **none** |
+| deploy gate | a new `verify-schema` coverage check | none needed |
+| rolling-deploy hazard | a hole mid-history that a fold accepts silently; needed a `1..n` gapless assertion to become safe | cannot occur |
+| configuration | an opt-in list per aggregate class, and a rollout order to get right | none |
+| event-type narrowing | PHP-side, after loading the whole branch | **SQL-side** |
+| snapshots | impossible without per-tag snapshots (a new mechanism) | `fromVersion` is already an argument |
+| `EventCriteria` / `LoadedEvents` / readers / schema | all touched | **all untouched** |
+| new console command | yes | no |
+| buys | one merged cross-stream history (§4.5); one saved round trip | — |
 
-Two in-memory specifics worth checking during implementation:
+The two things it bought were a saved round trip and a merged split history. The round trip is the query the user
+already pays for `#[Fetch]`, and the split history is a migration artefact with a migration fix. Neither is worth a
+permanent per-save write, a mandatory backfill and a doubled index.
 
-- `EcotoneLite::bootstrapFlowTesting()` routes event-sourced aggregates through `EventStoreEventSourcedRepository`
-  over `InMemoryEventStore`, and `FlowTestSupport::withEventsFor()` seeds history through the save flow, so seeded
-  events get index rows exactly as real saves do. **`withEvents()` writes to the default stream with no aggregate
-  metadata**, so it produces no aggregate index rows — which is correct, and which is the seam a test uses to
-  simulate a missing backfill.
-- There is **nothing to backfill in memory**, mirroring the table in §4.4 of the main spec: in-memory events are
-  never written without their tags. The backfill is Dbal-only, and `AggregateHistoryCompleteness` is the only part
-  of §3 that in-memory tests can exercise (via `withEvents()`).
+**Recorded so the question is not reopened from scratch** (as OQ 5 of the fetched-aggregates design asked for):
+the blocker on readable aggregate *tags* is not the mechanism — it is that the events are already readable by a
+better key, so the index rows would be a second copy of an index the stream already has.
 
-### 6.2 Gating and licence — nothing new
+---
 
-`DynamicConsistencyBoundaryConfiguration` remains the single switch and gains one `with*` method. The licence split
-is unchanged: the aggregate counter tag is a tag, so it is the Enterprise half of `AppendCondition` (§4.9 of the main
-spec), and `DynamicConsistencyBoundaryConfiguration` is `licence Enterprise`. `EventCriteria` is already Enterprise.
+## Part 6 — Licence, gating, parity, docs, tests
 
-**DCB off, or the aggregate not on the list: byte-for-byte unchanged.** `TagResolver` is only reached through the
-Enterprise collaborators; with DCB off the open-core append is today's single `INSERT`. With DCB on and `Wallet` off
-the list, `resolveAppend()` takes the branch it takes today and writes no index row. `EventCriteria::aggregate()`
-stays capture-only in every configuration, so the shipped aggregate-only boundary behaves identically whether or not
-anything is indexed. This is the invariant the test plan pins first.
+**Licence and gating: nothing new.** `#[DecisionModel]` is Enterprise and `DynamicConsistencyBoundaryConfiguration`
+is the single switch, both unchanged. `EventStore::loadAggregateEvents()` is open-core
+(`licence Apache-2.0`) and stays so — it is reached here from an Enterprise loader, which is the same split
+`EventSourcingRepository` (open-core) already has when it carries a decision model's condition. With DCB
+unregistered, `#[DecisionModel(aggregate: …)]` is the same bootstrap `ConfigurationException` any decision model is,
+and the append path is byte-for-byte today's single `INSERT`.
 
-### 6.3 Docs
+**In-memory parity is free.** `InMemoryEventStore::loadAggregateEvents()` already implements the contract, and
+`EcotoneLite::bootstrapFlowTesting()` routes event-sourced aggregates through `EventStoreEventSourcedRepository`
+over it, so `FlowTestSupport::withEventsFor()` seeds exactly the rows a model reads. `InMemoryTagIndex` and
+`InMemoryTagVersionRegister` are untouched. The change is entirely in core classes shared by both stores, so there is
+no Dbal-only behaviour to mirror.
 
-- **`upgrade-2.0.md`**, in the DCB section, after "Aggregates are inside the boundary": a sub-bullet
-  *"Making an aggregate loadable by `EventCriteria`"* — the `with*` call, that it writes one index row per event, that
-  it requires the backfill and the step order of §3.5, that `EventCriteria::aggregate()` stays capture-only while
-  `EventCriteria::aggregateEvents()` reads, and that the aggregate's own load and snapshots are unchanged.
-- **Main spec §4.11**: a paragraph recording that the counter-only rule is the baseline and full tag is the opt-in
-  extension, with a pointer here; §4.10's "Decision-model snapshots" row gains the note that per-tag snapshots are
-  what would let an aggregate load *by* criteria (§4.3 here).
-- **`docs.ecotone.tech` DCB page**: the aggregate-scoped decision model example from §1.4(b), and the split-stream
-  migration case from §1.3, which is the most likely reason a reader turns this on.
-- **Fetched-aggregates design**: OQ 5 ("should the identity tag also be readable, later?") is answered by this
-  document; its §6.3 follow-up list gets the cross-reference.
+**Docs**
 
-### 6.4 Test plan — black box, four engines plus in-memory
+- `upgrade-2.0.md`, in the DCB section after "`#[Fetch]` in a decision-model handler": a bullet — a decision model
+  can be backed by an event-sourced aggregate with `#[DecisionModel(aggregate: Wallet::class)]`; its events come
+  from the aggregate's own stream, narrowed to the types it handles; the boundary is the aggregate's counter, which
+  already exists; no `#[EventTag]`, no migration, no configuration; `aggregate:` and `tags:` are exclusive; the
+  aggregate must be event-sourced and on the handler's connection.
+- Main spec §4.4: a paragraph after the criterion table — a model is scoped either by tag names or by one
+  aggregate; §4.11: a pointer here. §4.10's "Decision-model snapshots" row gains the note from §4.4 above.
+- `docs.ecotone.tech` DCB page: the `WalletBalance` example, and the sentence that makes the feature findable —
+  *"an aggregate's events need no `#[EventTag]` to be folded by a decision model."*
+- `2026-09-28-dcb-fetched-aggregates-design.md`: OQ 5 is answered "no, and here is why" with a pointer to Part 5.
 
-Every test through `EcotoneLite` and userland APIs only; no reflection, no direct SQL against Ecotone tables.
-Coverage is asserted through `EventStore::loadByCriteria()`, handler outcomes and exceptions.
+**Test plan — black box, four engines plus in-memory.** Every test through `EcotoneLite` and userland APIs; no
+reflection, no direct SQL against Ecotone tables.
 
 *Flow tests (`packages/Ecotone/tests/Modelling/DecisionModel/`, `InMemoryEventStore`)*
 
-1. **The pin test, first.** With `Wallet` **not** on the list, `loadByCriteria(EventCriteria::aggregateEvents(...))`
-   returns no events and `EventCriteria::aggregate(...)` still captures — i.e. everything on `main` behaves as on
-   `main`. Repeated with DCB disabled.
-2. `EventCriteria::aggregate()` on a **listed** aggregate returns no events (capture-only is a property of the
-   criterion, not of the configuration) while `aggregateEvents()` on the same aggregate returns them all.
-3. A listed aggregate's saves are readable by `aggregateEvents()` in aggregate-version order, including a command
-   that records several events in one save (they share a `tag_sequence`, and `event_no` orders them).
-4. `#[DecisionModel(aggregate: Wallet::class)]` folds the aggregate's events with **no `#[EventTag]` anywhere** and
-   decides correctly; a competing `Wallet` save injected through a service during the handler makes the append fail
-   with `DecisionModelConcurrencyException` — the existing `DecisionModelRetryTest` pattern.
-5. One handler injecting an aggregate-scoped model **and** a tag-scoped model: both folded from one load, both in
-   the handler's condition, a competing write to either tag fails the append.
-6. A `#[DecisionBoundary]` returning `aggregateEvents(...)->or(tag(...))`: both branches guarded; each branch's
-   events ordered by its own tag's sequence.
-7. `AggregateHistoryCompleteness`: history seeded with `withEvents()` so the index has a hole → the fold throws,
-   naming the aggregate, the first missing version and the backfill command.
-8. Bootstrap guards: a state-stored aggregate on the list; a saga on the list; a non-aggregate class on the list;
-   `#[DecisionModel(aggregate: X::class)]` where `X` is not on the list. Each names the class and the fix.
-9. A `#[Fetch]`-ed aggregate in a decision-model handler behaves exactly as shipped whether or not it is listed —
-   same instance, same counter leaf, no extra events loaded. (The non-regression test for §1.5.)
+1. A model backed by an event-sourced aggregate, with **no `#[EventTag]` on any event class**, folds the
+   aggregate's history seeded by `withEventsFor()` and decides correctly.
+2. Only the handled event types reach the model; an event type it does not handle is not folded (and, on Dbal, not
+   read — asserted through behaviour, not statement counts).
+3. A competing save of that aggregate, injected through a service called during the handler, fails the append with
+   `DecisionModelConcurrencyException` rendered as the aggregate; the retry decides on current state. The existing
+   `DecisionModelRetryTest` pattern.
+4. One handler injecting an aggregate-backed model **and** a tag-scoped model: both captured in one statement, both
+   in one `AppendCondition`; a competing write to either fails the append.
+5. Two instances of the same aggregate-backed model in one handler via `#[Fetch]` (the transfer shape); both
+   expectations enforced, opposite parameter order in a second handler still commits.
+6. Identifier by convention (a message property named like the aggregate's identifier) and by `#[Fetch]`; a
+   composite identifier through a map.
+7. `?WalletBalance $wallet` receiving `null` contributes nothing and the handler still appends.
+8. An aggregate that does not exist yet: the model folds empty, and a concurrent creation fails the append.
+9. Bootstrap guards, one test each: `aggregate:` with `tags:`; a state-stored aggregate; a saga; a non-aggregate
+   class; a handled event the aggregate does not record; an unresolvable identifier.
+10. The improved "scoped by no tag name" message names the `aggregate:` remedy.
+11. DCB disabled: `#[DecisionModel(aggregate: …)]` is the same bootstrap exception any model is; a `#[Fetch]`
+    handler behaves as on `main`.
 
 *Dbal integration (`packages/PdoEventSourcing/tests/Integration/Tagging/`, PostgreSQL / MySQL / MariaDB / SQLite)*
 
-10. The §5.2 walkthrough end to end, asserted through `EventStore` and the handler's outcome.
-11. **Split history**: the same aggregate's events in a legacy stream and in `ecotone_event_stream`, both
-    backfilled; `aggregateEvents()` returns one merged, correctly ordered history, which `loadAggregateEvents()`
-    cannot. (The capability test for §1.3.)
-12. `backfill-aggregate-tags` over a stream with existing history: coverage complete afterwards, `--dry-run` writes
-    nothing, a second run writes nothing new (idempotence), `--from-no` resumes, `--aggregate=` scopes.
-13. The backfill raises the counter to `MAX(aggregate_version)`, and the first live save afterwards is readable in
-    order after the historical events (the §3.3 table, asserted as the order `loadByCriteria()` returns).
-14. A save committing during the backfill: one of the two fails with `DecisionModelConcurrencyException` and the
-    retry succeeds; the resulting history is complete and ordered either way. Two connections, the
-    `DbalTaggedContentionTest` / `DeduplicationModuleTest.php:141` pattern.
-15. `verify-schema` reports a shortfall before the backfill and completeness after, and prints the exact command.
-16. `EventStore::delete($stream)` removes the aggregate's index rows with the rest; a subsequent fold raises the
-    completeness error rather than deciding on nothing.
-17. Multi-tenant: `--header "tenant:a"` backfills tenant `a` only; no header fails with the existing tenant-context
-    error.
-18. Snapshots: a listed aggregate with a configured snapshot still loads through its snapshot in its own command
-    handler (the §4.2 recommendation, pinned).
+12. The §2.4 walkthrough end to end, asserted through the handler's outcome and `EventStore`.
+13. An aggregate on a **legacy-shaped stream** (`#[Stream]`, 1.x table) folded by a model — the case that needs no
+    migration and is the main reason to use this.
+14. An aggregate with existing history and **no tag row anywhere**: the model folds it and the boundary holds from
+    the first command (the no-backfill proof).
+15. Two connections, the `DbalTaggedContentionTest` pattern: a second connection's aggregate save blocks on the
+    counter row, then loses with `DecisionModelConcurrencyException`; and the mirror case where the blocker rolls
+    back and the waiter proceeds.
+16. InnoDB `REPEATABLE READ`: a model folded before a competing commit fails its append.
+17. An aggregate whose `#[Stream]` is on another connection → bootstrap `ConfigurationException`.
+18. A model backed by an aggregate with a configured snapshot: the aggregate's own command handler still loads
+    through its snapshot; the model reads the full history (pinning that the two paths are independent).
+19. No new rows: `ecotone_tagged_events` is unchanged by an aggregate save, asserted through
+    `loadByCriteria(EventCriteria::aggregate(...))` returning no events — i.e. the shipped capture-only behaviour is
+    still exactly that.
 
 ---
 
 ## Part 7 — Open questions, each with a recommended answer
 
-**OQ 1 — `EventCriteria::aggregate()` capture-only, or reading once the aggregate is listed?**
-Making the shipped factory read would need no new name, and "a criterion branch that actually returns events" is how
-the question was phrased. It would also turn every aggregate-only `#[DecisionBoundary]` into a full-history scan the
-moment an unrelated option is enabled, silently and proportionally to history length.
-*Recommended:* keep `aggregate()` capture-only, add `aggregateEvents()`. Two factories, one extra `readsEvents()`
-predicate on the branch, and the shipped path is provably unchanged (test 9).
+**OQ 1 — `aggregate: Wallet::class`, or the type string on the model?**
+Naming the class derives the `#[AggregateType]`, the stream, the identifier names and the counter tag, and all four
+are checkable at bootstrap. Naming the type string (`#[DecisionModel] #[AggregateType('Wallet')]` on the model, plus
+`#[Stream]`) would let a model be written for a type whose aggregate class does not exist in this service — a
+read-side or distributed deployment.
+*Recommended:* the class, now. The string form is additive if a real case appears, and until then it is three
+strings to keep in sync with a class that is usually right there.
 
-**OQ 2 — opt-in on the extension object, an attribute on the aggregate, or always on?**
-*Recommended:* `DynamicConsistencyBoundaryConfiguration::withAggregatesLoadableByCriteria([...])`. Always-on doubles
-the index of every aggregate-heavy application and converts the boundary's "no backfill" promise into a mandatory
-full-scan migration. A class attribute hides a storage-and-migration decision in a place a merge can flip without an
-operator noticing. The extension object is where DCB is already configured, it is greppable, and it scopes the
-backfill per class. (Note this answers the mirror of OQ 2 in the fetched-aggregates design in the opposite
-direction, deliberately: boundary *membership* should be derived, storage *format* should be declared.)
+**OQ 2 — should `loadByCriteria()` learn to fulfil an aggregate branch, so the gateway and `#[DecisionBoundary]`
+get the read too?**
+It would make `loadByCriteria(EventCriteria::aggregate(Wallet::class, 'w-1'))` return events **and** the condition in
+one call, which is the original brief's "a criterion branch that actually returns events" — delivered from the
+aggregate's own columns rather than from index rows. The blocker is that `LoadedEvents` returns one flat `Event[]`
+and each model re-filters it by tag; aggregate events carry no tag, so fulfilling aggregate branches inside
+`loadByCriteria()` requires per-branch grouping in `LoadedEvents`, which is a userland-visible `Api/` shape, and a
+capture-only form for `FetchedAggregateCounterCapture` so a fetched aggregate is not read twice.
+*Recommended:* not in this change. Ship the loader-side read (§2.3 step 3), which needs none of that, and revisit
+`LoadedEvents` when readability item 3 ("give the design's nouns types") opens those value objects anyway — that is
+the right moment to decide whether a branch carries its own results.
 
-**OQ 3 — how does a decision model name an aggregate?**
-`#[DecisionModel(tags: ['aggregate_Wallet'])]` works today with no framework change, and is stringly typed, couples
-userland to the naming scheme, and cannot be checked against `#[AggregateType]`.
-*Recommended:* `#[DecisionModel(aggregate: Wallet::class)]`. The tag name is derived from the class's
-`#[AggregateType]`; the value is resolved from the message exactly as every other model's is; and handled-event
-validation becomes stronger and clearer than the tag-name rule — every `#[EventSourcingHandler]`'s event class must
-be one the aggregate itself records, traced from the aggregate's own `#[EventSourcingHandler]`s, which is the trace
-§4.5a already performs. A model may declare `aggregate:` **or** `tags:`, not both: ANDing an aggregate tag with a
-user tag would require every event to carry both, which no event does.
+**OQ 3 — identifier resolution by convention, or `#[Fetch]` only?**
+`#[Fetch]`-ed *aggregates* require an expression today, and an expression string requires
+`symfony/expression-language` (6.2 item 9). A convention — a message property named like the aggregate's identifier —
+removes that for the common case and matches what tag-scoped models already do.
+*Recommended:* both, convention first and `#[Fetch]` as the escape, with a bootstrap error when neither resolves. It
+is the same two-tier rule §4.4 documents for tag values, so it is not a new concept.
 
-**OQ 4 — `tag_sequence` for backfilled aggregate events.**
-*Recommended:* `aggregate_version`, with the counter raised to `MAX(aggregate_version)` before the index rows are
-written. It is the only candidate that is derivable in SQL, exact, and continuous with the live rule (§3.3). The
-side effect — the counter's absolute value jumps from "saves since DCB was enabled" to "at least the event count" —
-is harmless, because only movement is ever read, and raising can only cause a spurious conflict.
+**OQ 4 — should the aggregate backing a model be inferable?**
+A model whose handled events are all recorded by exactly one aggregate and carry no `#[EventTag]` is, today, a
+bootstrap error. Inferring `aggregate:` there would make it simply work, in the spirit of the intersection default
+for tags. It is ambiguous when two aggregates record the same event class.
+*Recommended:* do not infer; instead extend the existing error message with the `aggregate:` remedy (§2.6). The
+error is the discovery mechanism, and it names the fix.
 
-**OQ 5 — should the completeness assertion exist, given that a backfill-coverage guard was declined?**
-The maintainer declined a runtime coverage guard for `#[EventTag]` on 2026-09-23, and rightly: there is nothing to
-compare a tag's coverage against, so any guard would have been a tracking table. An aggregate is different — its
-history is `1..n` by construction and the versions are already in the events being folded.
-*Recommended:* accept it. It costs no query and no state, it is the difference between a silently wrong decision and
-a named error during exactly the window §3.5 cannot fully close, and it is what makes the opt-in safe enough to
-recommend at all. If it must be optional, it is a `with*` on the same extension object — but I would not ship it
-off by default.
+**OQ 5 — a model spanning an aggregate's events *and* tagged events, in one order?**
+Not possible under either revision: a model is one criterion with AND-ed tags, and no event carries both an
+aggregate's identity and a user tag. The existing answer stands and is documented in §4.3 of the main spec — put
+`#[EventTag]` on the aggregate's event, which makes it foldable by a tag-scoped model.
+*Recommended:* keep the rule, and say so in the docs bullet, because "back it with the aggregate" will be the first
+thing a user reaches for when they actually want a shared tag.
 
-**OQ 6 — should a `#[Fetch]`-ed aggregate fold from the batch instead of `loadAggregateEvents()`?**
-This is the literal reading of "injectable and foldable like a decision model", and it buys one round trip plus a
-closed spurious-retry window.
-*Recommended:* not now. It costs the snapshot and `fromVersion` (§4.1), makes the aggregate's own correctness depend
-on index completeness, and turns a trivially reversible option into one that cannot be rolled back while a handler
-depends on it. Revisit when per-tag snapshots ship (§4.3) — at that point it is a configuration flag, not a new
-mechanism. An aggregate-scoped `#[DecisionModel]` already gives a user who wants a folded read exactly that, with
-less state and without touching the aggregate.
-
-**OQ 7 — the two read-path inefficiencies (§4.4): in scope, or separate?**
-`ofTypes()` not narrowing the SQL read, and an unbounded `IN (…)` list, both predate this work and both get worse
-when a branch routinely matches thousands of rows.
-*Recommended:* separate work items, sequenced **before** full tag ships to users, because an aggregate-scoped model
-that folds 2 of 12 event types is the first workload that makes the first one visible. If the narrowing lands,
-`AggregateHistoryCompleteness` must read versions from the flags rather than from the folded events (§4.4).
-
-**OQ 8 — the `tag_value` budget for composite identifiers.**
-`AggregateIdString::from()` renders a composite identifier as a JSON map, which can exceed the 255-character
-`tag_value` column. The counter path has this exposure today and it fails at insert time with a database error
-rather than a named exception; full tag lands the same value in `ecotone_tagged_events` as well, doubling the
-surface. `TagResolver` does not run counter values through `EventTagValueNormalizer`, which every user tag value
-goes through.
-*Recommended:* normalize and validate the counter value on the same path as user tag values, so an over-long or
-invalid identifier fails naming the aggregate and its identifiers. Small, independent of this proposal, and worth
-doing whether or not full tag is approved.
+**OQ 6 — is the per-instance guard too coarse?**
+A save recording an event type the model ignores still invalidates the decision. Narrowing would need a counter per
+event type, which is a second counter and a new schema.
+*Recommended:* accept it. It is conservative, it costs at most a retry, and it is the trade already accepted for
+mixed tag scopes.
 
 ---
 
-## Part 8 — Collaborators that change, names only
-
-Core (`packages/Ecotone`):
-
-| Class | Change |
-|---|---|
-| `DynamicConsistencyBoundaryConfiguration` | `withAggregatesLoadableByCriteria(array $aggregateClasses)` |
-| `DynamicConsistencyBoundary` (Config) | exposes the resolved set of aggregate types loadable by criteria |
-| `AggregateCounterTags` | answers `isLoadableByCriteria(string $aggregateType)`; the set is built beside the existing aggregate-type scan |
-| `AggregateCounterTagGuard` | the four new bootstrap guards of §2.2 |
-| `TagResolver::resolveAppend()` | when the condition's aggregate type is loadable by criteria, the counter tag joins every event's carried tags |
-| `TagResolver::tagsCarriedBy()` | derives the counter tag from an `Event`'s `_aggregate_type` / `_aggregate_id` for the read side |
-| `TagResolver::tagsOfCriteria()` | splits into tags to capture (all branches) and tags to read (reading branches) |
-| `EventCriteria` | `aggregateEvents()`; branches answer `readsEvents()` |
-| `DecisionModelDefinitionBuilder` / `DecisionModelDefinition` | `#[DecisionModel(aggregate: X::class)]`: tag name from `#[AggregateType]`, handled events validated against the aggregate's own `#[EventSourcingHandler]`s |
-| `AggregateHistoryCompleteness` *(new)* | the gapless-`_aggregate_version` assertion over an aggregate branch's events |
-
-`PdoEventSourcing`:
-
-| Class | Change |
-|---|---|
-| `DbalTaggedEventReader` | skips non-reading branches; passes only the read set to `flagsFor()` |
-| `DbalAggregateTagBackfiller` *(new)* | the set-based `INSERT … SELECT` and the counter raise of §3.2 |
-| `AggregateTagBackfillConsoleCommand` *(new)* | `ecotone:event-store:backfill-aggregate-tags` |
-| `TagSchemaVerifier` / `verify-schema` | the per-aggregate coverage check of §3.6, reported as a data check |
-| `EventStreamSchema` implementations | the aggregate-metadata expressions already exist; the backfill reuses them |
-
-In-memory: `InMemoryTagIndex::eventsMatching()` skips non-reading branches. Nothing else.
-
-**No schema change**: same two tables, same columns, same keys, same `event_tags` setup feature.
-
----
-
-## Part 9 — Summary of recommendations
+## Part 8 — Summary
 
 | # | Recommendation |
 |---|---|
-| 1 | The aggregate's counter tag also becomes a carried tag of its events — one index row per event, `tag_sequence` = the bumped counter. Confined to `TagResolver`; no schema, appender, index or store change |
-| 2 | **Opt in per aggregate class**, on `DynamicConsistencyBoundaryConfiguration::withAggregatesLoadableByCriteria()`. Always-on doubles the index and imposes a mandatory backfill on every DCB application |
-| 3 | `EventCriteria::aggregate()` stays capture-only; `EventCriteria::aggregateEvents()` reads. The shipped aggregate-only boundary is provably unchanged |
-| 4 | `#[DecisionModel(aggregate: Wallet::class)]` is the injectable-and-foldable surface — no `#[EventTag]` on the aggregate's events, no stringly-typed tag name |
-| 5 | **The aggregate keeps its own load path**, snapshots included. Full tag is a second, read-only path for everyone else. `#[Fetch]` is unchanged |
-| 6 | `ecotone:event-store:backfill-aggregate-tags`: set-based `INSERT … SELECT`, no deserialisation, `tag_sequence = aggregate_version`, counter raised to `MAX(aggregate_version)` first, idempotent on the primary key, online-safe at the cost of some retries |
-| 7 | `AggregateHistoryCompleteness` — gapless `_aggregate_version` or a named error. Free, exact, and what closes the rolling-deploy window |
-| 8 | `verify-schema` gains a per-aggregate coverage check as the deploy gate |
-| 9 | The read-path inefficiencies of §4.4 are separate work items, sequenced before this ships |
-| 10 | Licence, gating and in-memory parity are unchanged; DCB-off and not-listed are byte-for-byte today's behaviour |
+| 1 | `#[DecisionModel(aggregate: Wallet::class)]` — a model scoped by one instance of an event-sourced aggregate, folded from the aggregate's own stream by its own columns, narrowed to the handled event types in SQL |
+| 2 | The boundary is the **already shipped** `aggregate_<AggregateType>` counter, captured by the batch loader's existing capture leaf and guarded by the existing append. Nothing about the boundary changes |
+| 3 | **No index rows, no backfill, no per-save cost, no configuration, no schema change, no `PdoEventSourcing` change.** The change is one attribute argument, one loader class, one fold pass and six bootstrap guards, all in core |
+| 4 | Identifier resolution reuses the aggregate's own vocabulary: convention on the identifier name, `#[Fetch]` as the escape, `AggregateIdString` for the one identifier string |
+| 5 | `aggregate:` and `tags:` are exclusive; the aggregate must be event-sourced, must record every handled event, and must be on the handler's connection — all checked at bootstrap |
+| 6 | The aggregate keeps its own load path and its snapshots; `#[Fetch]` is unchanged; decision-model snapshots become a configuration change because `fromVersion` is already an argument |
+| 7 | Revision 1's index rows are declined: ~2.2 GB per 10 M events, a permanent per-save write and a mandatory backfill, to buy a round trip the user already pays and a split-stream history that a stream copy fixes |

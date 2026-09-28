@@ -477,7 +477,9 @@ The same model class twice, with different values — the case convention alone 
 model the expression returns a map keyed by tag name, as `#[Fetch]` already accepts for multi-identifier
 aggregates. An array value selects several values of one key. A tag that
 cannot be resolved is a bootstrap error when statically knowable, otherwise an exception naming model, tag and
-message.
+message. Values resolved from the message, by name or `#[Fetch]`, go through the same `EventTagValueNormalizer` as
+event tags, so the two sides compare equal and an invalid value fails the same way (naming the model) instead of
+silently loading nothing.
 
 **A tag value that resolves to `null`** (an order placed without a coupon) follows the rule `#[Fetch]` already
 applies to aggregates: a nullable parameter (`?CouponRedemptions $coupon`) receives `null` and contributes nothing

@@ -495,6 +495,9 @@ no transaction.
   Tag values come from the message by name: a property carrying `#[EventTag('course')]`, else a property named
   `course`/`courseId`/`course_id`. A nullable parameter (`?CourseCapacity`) receives `null`, contributing nothing to
   the boundary, when the value can't be resolved that way; a non-nullable one throws, naming the model and the tag.
+  A value resolved from the message — by name or through `#[Fetch]` — is normalised and validated exactly like an
+  `#[EventTag]` value on an event: an `int` id matches the same `int` tagged on events, and an empty, over-long or
+  trailing-whitespace value throws, naming the model and the tag.
   Use `#[Fetch('payload.fromAccountId')]` for explicit mapping — needed to inject the same model class twice (a
   transfer's two accounts) or when the property-name convention doesn't apply; a multi-tag model's `#[Fetch]`
   expression returns a map (`"{'customer': payload.customerId, 'coupon': payload.couponCode}"`).

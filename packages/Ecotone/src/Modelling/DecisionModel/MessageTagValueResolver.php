@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\EventTag;
-use Ecotone\EventSourcing\Tagging\EventTagValueNormalizer;
 use ReflectionClass;
 use ReflectionProperty;
 
@@ -14,7 +13,7 @@ use ReflectionProperty;
  */
 final class MessageTagValueResolver
 {
-    public static function resolve(string $tagName, object $payload): ?string
+    public static function resolve(string $tagName, object $payload): mixed
     {
         $property = self::accessorFor($payload::class, $tagName);
 
@@ -22,9 +21,7 @@ final class MessageTagValueResolver
             return null;
         }
 
-        $values = EventTagValueNormalizer::normalize($tagName, $property->getValue($payload));
-
-        return $values[0] ?? null;
+        return $property->getValue($payload);
     }
 
     private static function accessorFor(string $payloadClassName, string $tagName): ?ReflectionProperty

@@ -378,6 +378,59 @@ aggregate was loaded, so a competing commit made after the load fails the save w
 is current. An explicit `AppendCondition`/decision-model version always wins over the captured one for the same tag.
 The counters are never bumped blindly any more, except by `backfill-tags`.
 
+**Aggregates are inside the boundary.** With DCB enabled, every aggregate class — `#[EventSourcingAggregate]` and
+state-stored `#[Aggregate]` alike; `#[Saga]` and `#[EventSourcingSaga]` are process managers and are exempt — keeps
+one counter per instance in `ecotone_tag_versions`: tag name `aggregate_<AggregateType>`, tag value the aggregate's
+identifier (the string the stream's `aggregate_id` column stores; a composite identifier is the JSON map of its
+parts). Every save of the aggregate bumps it with the same guarded `UPDATE` a tag uses. The counter is never indexed:
+`loadByCriteria()` on it returns no events, only its captured version, and the aggregate is still loaded from its
+own stream or repository, snapshots included.
+
+- **`#[AggregateType]` is required on every aggregate** once DCB is registered — a bootstrap
+  `ConfigurationException` names the class otherwise. For an event-sourced aggregate with existing history, declare
+  the type its stream already stores (the fully qualified class name unless you declared one), or its history no
+  longer loads. `aggregate_<AggregateType>` must fit the 100-character `tag_name` column (a longer type is a
+  bootstrap error pointing at a shorter `#[AggregateType]`), and no `#[EventTag]` may be named like an aggregate's
+  counter tag. Not registered: nothing changes — no requirement, no counters, a single `INSERT`.
+- **Event-sourced saves** bump the counter in the same sorted pass as the events' tags; the stream's unique index on
+  `(aggregate_type, aggregate_id, aggregate_version)` stays the aggregate's own guard for its own events. Two
+  concurrent saves of the *same* aggregate therefore usually fail on that index, as a plain `ConcurrencyException`
+  with the database's message; on `REPEATABLE READ` (InnoDB) the counter catches it first and the message names the
+  aggregate.
+- **State-stored aggregates get an optimistic lock — new behaviour.** The counter is captured before the repository's
+  `findBy()` and bumped guarded before the repository's `save()`. Two concurrent commands on one instance, which
+  used to end in a silent last-write-wins, now let one succeed and fail the other with
+  `DecisionModelConcurrencyException` — configure retry (below). The aggregate's own `#[Version]` property is not
+  used for this and behaves as before. The repository must write on the event store's connection so the counter
+  and the aggregate commit together: a Dbal document-store or Doctrine ORM repository on another connection is a
+  bootstrap `ConfigurationException`; for a repository Ecotone cannot inspect (your own, Eloquent, Tempest) this is
+  your responsibility.
+- **Transactions are mandatory for every aggregate save**, not only for tagged ones — see "Transactions are
+  required" below. `#[WithoutDatabaseTransaction]` on an aggregate's command or event handler is a bootstrap
+  `ConfigurationException`.
+- **`#[Fetch]` in a decision-model handler.** A handler that injects a decision model or declares a
+  `#[DecisionBoundary]` captures the counter of every aggregate it fetches with `#[Fetch]`, before invocation and in
+  the same read as its models, and appends its events only if none of those aggregates was saved meanwhile. A
+  fetched aggregate that does not exist yet is captured at version 0, so deciding on its absence is safe; a
+  `#[Fetch]` expression that resolves to no identifier contributes nothing. A `#[Fetch]` handler that is not a
+  decision-model handler behaves exactly as before. A boundary made only of an aggregate is written with
+  `EventCriteria::aggregate(Wallet::class, $command->walletId)` — a leaf that captures the counter and matches no
+  events. Fetching a saga into a decision-model handler is a bootstrap `ConfigurationException`.
+- **Fetched aggregates are read-only.** In a decision-model handler, an event-sourced aggregate fetched with
+  `#[Fetch]` that has recorded events when the handler returns throws ("fetched aggregates are read-only") and nothing
+  is appended — those events were silently dropped before. Send a command to the aggregate instead. Outside
+  decision-model handlers `#[Fetch]` is unchanged.
+- **Conflicts name the aggregate**: "Wallet w-1 changed since it was loaded", still a
+  `DecisionModelConcurrencyException`.
+- **No backfill.** A missing counter row is version 0, and the guarded path for 0 is an insert that conflicts when
+  someone else inserted first, so an aggregate with years of history is guarded from its first save after the
+  upgrade. The one operator rule: during a rolling deploy, nodes still on the previous release save aggregates without
+  bumping — deploy to every node before relying on the boundary. `ecotone:migration:database:setup` now lists the
+  `event_tags` feature whenever DCB is registered and the application has an aggregate, even without any
+  `#[EventTag]`.
+- **Flow testing:** an event-sourced aggregate declaring `#[AggregateType]` is now reloaded correctly by
+  `EcotoneLite::bootstrapFlowTesting()` (it used to be looked up by class name and not found).
+
 **Now:** Events tagged with `#[EventTag]` are indexed by tag, and small reusable **decision model** classes — folded
 on demand from the events matching a tag, like an aggregate but keyed by tag instead of identity — can be injected
 into `#[CommandHandler]`/`#[EventHandler]`/`#[QueryHandler]` methods, on service classes and
@@ -408,15 +461,15 @@ or, Enterprise, on a custom command bus interface:
 interface MyCommandBus extends CommandBus {}
 ```
 
-Without retry configured, a conflict surfaces to the caller as a technical exception naming the tag and the captured
-vs. current version — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
+Without retry configured, a conflict surfaces to the caller as a technical exception naming the tag (or the aggregate)
+and the captured vs. current version — not a business answer. Asynchronous endpoints already retry 3 times by default. Retry never
 fires inside an already-open database transaction; that transaction is already unsafe to continue. A conflict is not
 always another writer: a handler that sends a command from inside itself, whose handler appends to the same tag in
 the same transaction, moves the tag under its own feet and fails on every retry — decide both in one handler.
 
 **Transactions are required.** Tagged appends (events carrying an `#[EventTag]`, or any append with an
-`AppendCondition`), decision-model handlers and `ecotone:event-store:backfill-tags` write the tag versions, the events
-and the tag index as one unit, so they need an active database transaction. The event store never opens one itself:
+`AppendCondition`), every aggregate save, decision-model handlers and `ecotone:event-store:backfill-tags` write the tag
+versions, the events or the aggregate, and the tag index as one unit, so they need an active database transaction. The event store never opens one itself:
 without it the append throws `Ecotone\Messaging\Config\ConfigurationException` naming the switch to turn on.
 Transactions are on by default in `DbalConfiguration::createWithDefaults()`; if you disabled them, enable the one that
 covers the entry point:
@@ -521,10 +574,9 @@ no transaction.
   boundary no model expresses. It is matched to the handler whose first parameter has the same type — a boundary
   that is not static, does not take exactly that one parameter, does not declare `EventCriteria` as its return type,
   matches no handler of its class, or shares its parameter type with another boundary is a bootstrap
-  `ConfigurationException` — and it costs
-  **one extra read**: the models a handler injects are loaded together in a single query, but the boundary's criteria
-  are loaded afterwards by their own `loadByCriteria()` — inside the same transaction, guarded by the same append
-  condition, so correctness is unchanged and only the round trip is added.
+  `ConfigurationException`. Its criteria are evaluated with the handler's command **before invocation**, in the same
+  single read as the handler's models and fetched aggregates, so a write committed to them while the handler runs
+  fails the append.
 - Only a `#[CommandHandler]`/`#[EventHandler]` that injects a model appends and publishes its returned events;
   `#[QueryHandler]` replies as always, appending nothing. `return []` is a no-op. `outputChannelName` keeps working
   on a model-injecting handler: events are appended and published, then forwarded as today.

@@ -563,12 +563,13 @@ public static function boundary(RateCourse $command): EventCriteria { /* … */ 
 boundary is matched to the `#[CommandHandler]`/`#[EventHandler]` of its class whose **first parameter has the same type
 as the boundary's first parameter** (a boundary that is not static, takes other than that one parameter, does not
 declare `EventCriteria` as its return type, matches no handler, or duplicates another boundary's parameter type is a
-bootstrap `ConfigurationException`) — and, when the handler returns, calls the static method with the handler's
-command and loads by the criteria it returns. **Cost:** the one-load-per-handler guarantee (see "How it runs" above) covers injected
-models only. A boundary is a **second, separate `loadByCriteria()`** on top of the batched model load, run inside the
-same transaction, and its condition is merged into the handler's `AppendCondition`. It is not folded into the batch
-because the batch runs as a before-interceptor over the message, while a boundary takes the handler's converted first
-argument; a handler with only a boundary has no batch at all. Correctness is unaffected — only an extra read.
+bootstrap `ConfigurationException`) — and builds, per handler, a `DecisionBoundaryEvaluator` that converts the
+message's payload into the handler's command (the same compiled `PayloadBuilder` a model loader uses) and calls the
+static method with it. The batch loader ORs the boundary's criteria into the **same single `loadByCriteria()`** as the
+handler's models and fetched aggregates, before invocation — so the one-load-per-handler guarantee covers boundaries
+too, a handler with only a boundary gets a batch of its own, and a write committed to the boundary's tags while the
+handler runs fails the append (until 2026-09-28 the boundary was loaded after the handler returned, which let such a
+write through; see Part 8).
 
 **Testing** needs nothing new — tags are on the events:
 
@@ -1217,6 +1218,44 @@ not depend on tags or on a licence.
 
 ---
 
+### 4.11 Aggregates inside the boundary (2026-09-28)
+
+Design: `2026-09-28-dcb-fetched-aggregates-design.md`, as decided in its Part 6.
+
+**Rule.** With DCB enabled, every aggregate class except sagas keeps one counter per instance in
+`ecotone_tag_versions` — `tag_name = 'aggregate_' . #[AggregateType]`, `tag_value =` the identifier string the
+stream's `aggregate_id` stores (`AggregateIdString`: one identifier as-is, several as a JSON map). The counter is a
+condition-only tag: bumped with the guarded `UPDATE`, never indexed, so `loadByCriteria()` on it returns no events.
+`#[AggregateType]` is required on every aggregate once DCB is registered; the counter name must fit `tag_name`; no
+`#[EventTag]` may equal it.
+
+**Writers.**
+
+- *Event-sourced save.* `AppendCondition::forAggregate()`'s aggregate part implies the counter:
+  `TagResolver::resolveAppend()` adds it to the involved tags, `AppendedTags` captures it in-transaction and bumps it
+  in the same sorted pass as the events' tags. The unique index stays the aggregate's own guard.
+- *State-stored save.* `StateStoredRepositoryAdapter` asks an `AggregateCounter` (open-core no-op unless DCB is on;
+  `EventStoreAggregateCounter` otherwise) to capture the counter before the user's `findBy()` and to bump it guarded
+  before the user's `save()`, through the store's `GuardedTagBump` (a guarded bump without events — appending zero
+  events stays a no-op). The captured version travels from load to save in its own header,
+  `AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD`, never propagated, and a `ResolvedAggregate` field;
+  `versionBeforeHandling` and `#[Version]` are untouched. A save that loaded nothing captures in-transaction.
+
+**Readers.** In a decision-model handler (one that appends its result, or an aggregate handler that loads models) each
+`#[Fetch]`-ed aggregate adds a `FetchedAggregateCounterCapture` to the handler's batch: its criterion
+`EventCriteria::tag('aggregate_<type>', id)`, resolved from the same `#[Fetch]` expression, is ORed into the one
+pre-invocation `loadByCriteria()`, so the captured version lands in `DecisionModelLoadedState`'s `AppendCondition`.
+`EventCriteria::aggregate(Class::class, $id)` builds the same leaf for a `#[DecisionBoundary]`.
+
+**Guards.** Bootstrap: missing `#[AggregateType]`, counter name too long, `#[EventTag]` collision, a Dbal
+document-store/ORM repository on another connection than the event store, `#[WithoutDatabaseTransaction]` on an
+aggregate handler, a saga fetched into a decision-model handler. Runtime: a tagged append — now every aggregate
+save — without a transaction; a fetched event-sourced aggregate that recorded events in a decision-model handler
+("fetched aggregates are read-only"). A counter conflict renders as the aggregate
+("Wallet w-1 changed since it was loaded").
+
+**No backfill**: a missing row is version 0 and the guarded path for 0 conflicts when someone inserted first.
+
 ## Part 4½ — Store cleanups pulled into scope (maintainer, 2026-09-23)
 
 Not DCB, but the maintainer wants the store left clean by the same work. Each is a plan task.
@@ -1376,3 +1415,5 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-28 | **Stateless DCB services, pure optimistic locking, transactions required.** InnoDB own-bump snapshot tracking removed from `DbalTagVersionRegister`; the guarded `UPDATE` is the sole conflict mechanism. The event store never opens a transaction: tagged/conditional appends and `backfill-tags` throw `ConfigurationException` without one, naming the `DbalConfiguration` switch. Decision-model state is function-scoped: a per-handler before interceptor loads the batch once and carries an immutable `DecisionModelLoadedState` header (instances + `AppendCondition`) read by the converter, the append interceptor and `SaveAggregateService`; the message-id keyed collectors are deleted. `InMemoryEventStore` collaborators are constructor-only | **Maintainer** | Services injected through constructors must be stateless: the snapshot tracking leaked into the next transaction on the same connection, and the collectors leaked conditions/instances across query handlers, converter failures and retries with the same message id. A before interceptor rather than an around one, because around interceptors resolve the handler's arguments before they run and cannot hand converters a changed message |
 | 2026-09-28 | **DCB is opt-in through `DynamicConsistencyBoundaryConfiguration`, and every tagged append is guarded.** The extension object (Enterprise) enables decision models, event tags and append conditions; absent, bootstrap of a decision model/boundary throws `ConfigurationException`, `loadByCriteria`/tag conditions/`backfill-tags`/`verify-schema` throw it at runtime, and `#[EventTag]` events are plain rows with no tag tables. Registering it without a licence is a `LicensingException`. The unconditional counter bump on the append path is deleted: each tag not covered by the explicit condition is captured with a consistent `SELECT` and bumped with the guarded `UPDATE`; the upsert survives for the backfill only | **Maintainer** | The unconditional bump was a current read: an aggregate save made after a competing commit succeeded, and a synchronous decision-model handler in the same `REPEATABLE READ` transaction then read its own bump with events from the older snapshot and over-redeemed a coupon. The accepted §4.5 corner is gone: Anna's save now fails at step 3 |
 | 2026-09-28 | **DCB options move onto `DynamicConsistencyBoundaryConfiguration`; one class resolves the flag.** `withFilterOnlyTags()` is deleted from `BaseEventSourcingConfiguration`/`EventSourcingConfiguration` (2.0 branch, no shim) and lives on `DynamicConsistencyBoundaryConfiguration`. `Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary` reads the extension object once and registers the append-strategy and in-memory collaborator pairs for both the Pdo and the flow-testing module | **Maintainer**, readability review item 9 | Enabling and configuring DCB happened on two unrelated objects, and four modules each re-asked whether the extension object was present |
+| 2026-09-28 | **Aggregates are counted tags inside the boundary.** Once DCB is registered every aggregate except sagas maintains `aggregate_<AggregateType>` (counter only, never indexed); `#[AggregateType]` required; event-sourced saves bump it via the condition's aggregate part, state-stored saves capture at load and bump guarded at save (the first optimistic lock for state-stored aggregates); `#[Fetch]` in a decision-model handler captures it before invocation; `EventCriteria::aggregate()` for boundaries; fetched event-sourced aggregates are read-only in decision-model handlers; conflicts render as the aggregate; no backfill | **Maintainer** (D1–D12) | A decision taken on a fetched aggregate was unguarded, and state-stored aggregates had no enforced lock at all. §4.11 and `2026-09-28-dcb-fetched-aggregates-design.md` Part 6 |
+| 2026-09-28 | **`#[DecisionBoundary]` criteria are captured before invocation, in the handler's single batched read** — the separate post-handler `loadByCriteria()` is gone | **Maintainer** | Captured after the handler, an aggregate-only boundary could not see a save of the aggregate made while the handler decided; the batch loader already builds the command from the message for model loaders, so folding the boundary in costs nothing and restores one load per handler |

@@ -1,6 +1,6 @@
 # Aggregates inside the Dynamic Consistency Boundary — design
 
-Status: **proposal**, nothing implemented
+Status: **approved 2026-09-28 with decisions D1–D12 and implemented** — see Part 6; where Part 6 differs from Parts 1–5, Part 6 wins
 Date: 2026-09-28
 Base: `dgafka/ecotone-2-0-dcb-design` at `40eacaa2`
 Builds on: `docs/superpowers/specs/2026-09-20-dcb-design.md` (Parts 4–8 are the shipped design and are taken as
@@ -911,3 +911,74 @@ the nouns types") gains one more decorated form, the identity tag, and `AppendCo
 signatures.
 *Recommended answer:* land item 6 first, then this; item 3 either before this or not for a while, but not
 half-and-half.
+
+---
+
+## Part 6 — Decisions and outcome (2026-09-28)
+
+The maintainer approved the design with twelve decisions, which override Parts 2–5 where they differ. Implemented in
+`implement-dcb-aggregate-boundary`; the shipped mechanics are summarised in the main spec §4.11.
+
+### 6.1 Decisions
+
+| # | Decision | Differs from the proposal |
+|---|---|---|
+| D1 | Universal: once `DynamicConsistencyBoundaryConfiguration` is registered, every aggregate class maintains a counter | §4.7 derived the set from DCB-handler parameters; OQ 2 is answered "neither derived nor declared — all" |
+| D2 | Tag name `aggregate_` + `#[AggregateType]`, which becomes required on every aggregate under DCB; tag value = the identifier string the stream stores | §2.2 proposed `_aggregate` / `'<type>:<id>'`; OQ 4's length check survives as a bootstrap guard on the name |
+| D3 | Counter only (A1) | as proposed; OQ 5 answered "not now" |
+| D4 | Event-sourced save: the condition's aggregate part implies the counter; captured in-transaction, bumped in the same sorted pass; the unique index stays | as proposed in §4.6 |
+| D5 | State-stored save: capture at `findBy`, bump guarded at `save` before the user's repository; `#[Version]` ignored and untouched; missing row = 0 | as §3.2, and OQ 3 accepted: the optimistic lock is new behaviour |
+| D6 | A `#[Fetch]`-ed aggregate joins only a handler that already is a DCB handler; `EventCriteria::aggregate()` for the aggregate-only case | OQ 1 answered as recommended |
+| D7 | Bootstrap guards: cross-connection state-stored repository, `#[WithoutDatabaseTransaction]` on an aggregate handler, `#[EventTag]` equal to a counter name, counter name longer than `tag_name` | — |
+| D8 | A fetched event-sourced aggregate that recorded events → "fetched aggregates are read-only" | as §2.5 |
+| D9 | Conflicts render as the aggregate; `DecisionModelConcurrencyException` keeps its class | OQ 4's message part |
+| D10 | Every aggregate save is a tagged append and needs a transaction | §4.7's cost, accepted rather than avoided by a derived set |
+| D11 | Readability item 6 first: one scan producing named decision-model handlers | OQ 6 answered as recommended |
+| D12 | DCB disabled / open core byte-for-byte unchanged; in-memory parity | — |
+
+Answered during implementation (coordinator, on the maintainer's standing approval):
+
+- **Sagas are exempt** from D1/D2 — `#[Saga]` and `#[EventSourcingSaga]` (the latter extends `EventSourcingAggregate`,
+  not `Saga`, so both are named): no `#[AggregateType]` requirement, no counter. A saga fetched into a DCB handler is a
+  bootstrap `ConfigurationException`.
+- **D8 applies to DCB handlers only**; a plain `#[Fetch]` handler and DCB-off keep today's behaviour.
+- **D4 kept literally.** Two concurrent saves of the same event-sourced aggregate usually meet the unique index first
+  (a plain `ConcurrencyException` with the database message); only on `REPEATABLE READ` does the counter catch it and
+  name the aggregate.
+- **`#[DecisionBoundary]` is evaluated before invocation, inside the batch** (option A), for every boundary, not only
+  aggregate leaves.
+
+### 6.2 What did not survive contact with the code
+
+1. **D5's carrier.** `ResolvedAggregate::versionBeforeHandling` from `findBy()` never reaches the save:
+   `LoadAggregateMessageProcessor` keeps only the instance, and the save gets a `ResolvedAggregate` rebuilt from
+   `TARGET_VERSION`/`#[Version]`, whose value is also handed to the user's repository. The captured counter travels
+   in its own header (`AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD`, excluded from propagation) and a
+   dedicated `ResolvedAggregate` field instead.
+2. **No bump primitive.** Appending zero events is a pinned no-op in both stores, so the state-stored bump could not
+   reuse `appendTo()`. Both stores gained `GuardedTagBump::bumpTagsGuarded()` through their open-core/Enterprise tag
+   collaborators; `AggregateCounter` (open-core no-op / `EventStoreAggregateCounter`) is what the adapter calls.
+3. **Boundary timing.** The shipped `#[DecisionBoundary]` was loaded after the handler returned, which made an
+   aggregate-only boundary unable to see a save during the decision — fixed by folding it into the batch (6.1).
+4. **One identifier string.** Event-sourced repositories keyed by `reset($identifiers)`, the document store by
+   `array_pop()`. `AggregateIdString` now feeds every counter value: one identifier as-is (the stream's `aggregate_id`),
+   several as a JSON map.
+5. **Flow testing could not reload an aggregate declaring `#[AggregateType]`**: the flow-testing event-sourced
+   repository matched `_aggregate_type` against the class name. Fixed, since D2 makes the attribute mandatory.
+6. **The `event_tags` setup feature** counted as used only when an `#[EventTag]` existed; an application whose only
+   boundary participants are aggregates would never get its tables from `database:setup`. Fixed.
+7. **The cross-connection guard is static.** It covers the Dbal document-store and Doctrine ORM repositories; a
+   repository Ecotone cannot inspect (user, Eloquent, Tempest) is documented, and the runtime transaction assertion
+   still fires when no transaction is active on the event store's connection.
+8. **In-memory state-stored aggregates are shared instances**, so a lost update is observable only on the Dbal
+   document store; the in-memory tests assert the conflict, the Dbal ones also the surviving state.
+9. **`#[Fetch]` string expressions** need `symfony/expression-language`, which the PdoEventSourcing test vendor lacks;
+   the Dbal test of an aggregate-only boundary reads the aggregate through the query bus instead of `#[Fetch]`.
+
+### 6.3 Open follow-ups
+
+- A state-stored aggregate command handler that injects a decision model has its models' condition unenforced (a
+  state-stored save appends nothing to carry it) — pre-existing, outside D1–D12.
+- A fetched *state-stored* aggregate that records events (`WithEvents`) in a DCB handler still drops them silently;
+  D8 names event-sourced aggregates only.
+- Per-tag snapshots would make A2 (readable aggregate tags) a rename rather than a new mechanism (OQ 5).

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Test\Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Api\Attribute\CommandHandler;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
@@ -154,6 +157,31 @@ final class DecisionModelValidationTest extends TestCase
             $this->assertStringContainsString(StudentTaggedEventForValidationTest::class, $exception->getMessage());
             $this->assertStringContainsString('#[EventTag]', $exception->getMessage());
             $this->assertStringContainsString('#[DecisionModel(tags:', $exception->getMessage());
+        }
+    }
+
+    public function test_decision_model_also_declared_as_an_aggregate_is_rejected_at_bootstrap(): void
+    {
+        $this->assertModelRejectedAtBootstrapFor(ModelAlsoAggregateForValidationTest::class, EventSourcingAggregate::class);
+    }
+
+    public function test_decision_model_also_declared_as_a_saga_is_rejected_at_bootstrap(): void
+    {
+        $this->assertModelRejectedAtBootstrapFor(ModelAlsoSagaForValidationTest::class, Saga::class);
+    }
+
+    private function assertModelRejectedAtBootstrapFor(string $modelClass, string $conflictingAttribute): void
+    {
+        try {
+            EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [$modelClass, TaggedEventForValidationTest::class],
+                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString($modelClass, $exception->getMessage());
+            $this->assertStringContainsString($conflictingAttribute, $exception->getMessage());
         }
     }
 }
@@ -316,6 +344,32 @@ final class ModelHandlingDisjointlyTaggedEventsForValidationTest
 
     #[EventSourcingHandler]
     public function whenStudentTagged(StudentTaggedEventForValidationTest $event): void
+    {
+    }
+}
+
+#[DecisionModel]
+#[EventSourcingAggregate]
+final class ModelAlsoAggregateForValidationTest
+{
+    #[Identifier]
+    public string $courseId = '';
+
+    #[EventSourcingHandler]
+    public function when(TaggedEventForValidationTest $event): void
+    {
+    }
+}
+
+#[DecisionModel]
+#[Saga]
+final class ModelAlsoSagaForValidationTest
+{
+    #[Identifier]
+    public string $courseId = '';
+
+    #[EventSourcingHandler]
+    public function when(TaggedEventForValidationTest $event): void
     {
     }
 }

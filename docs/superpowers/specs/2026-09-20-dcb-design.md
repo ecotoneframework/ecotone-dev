@@ -531,7 +531,8 @@ aggregates). Every `#[EventSourcingHandler]` event class must declare all of the
 model could never receive it; bootstrap `ConfigurationException` (the inferred default satisfies this by
 construction). A model that needs a tag value in its state assigns it in a handler (`$this->courseId =
 $event->courseId`) — the framework never writes into a model. Interface or union handler parameters are
-rejected for the same reason. A model with no tagged property is allowed only if it handles events carrying a
+rejected for the same reason. A model class is never also an `#[Aggregate]`, `#[EventSourcingAggregate]` or
+`#[Saga]` — bootstrap `ConfigurationException`; one class has one role. A model with no tagged property is allowed only if it handles events carrying a
 class-level `#[EventTag(…, value: …)]` (the gapless-sequence case). Pointcuts target `DecisionModel::class`.
 `#[Reference]`, `#[Header]` and `#[Asynchronous]` work as on any handler; models are loaded when the handler
 runs, after the channel.

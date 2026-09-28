@@ -480,7 +480,8 @@ no transaction.
   rejected at bootstrap too: it would fold no event and guard nothing, so either tag the event or give the model
   `tags:`. Models are injected, they never
   own handlers: `#[CommandHandler]`/`#[EventHandler]`/`#[QueryHandler]` declared directly on a `#[DecisionModel]`
-  class is a bootstrap `ConfigurationException`, the same way it would be on an aggregate mixing the two roles.
+  class is a bootstrap `ConfigurationException`, the same way it would be on an aggregate mixing the two roles; so is
+  a `#[DecisionModel]` class also declared `#[Aggregate]`, `#[EventSourcingAggregate]` or `#[Saga]`.
 - Inject the model into a handler by type-hint — no attribute needed, the same way an aggregate is loaded:
 
   ```php

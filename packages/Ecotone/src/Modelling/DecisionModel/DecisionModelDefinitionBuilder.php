@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\EventSourcingHandler;
@@ -13,6 +14,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClassDefinition;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Type;
+use ReflectionAttribute;
 use ReflectionClass;
 
 use function array_diff;
@@ -39,6 +41,7 @@ final class DecisionModelDefinitionBuilder
         $className = $classDefinition->getClassType()->toString();
 
         self::assertPublicNoArgumentConstructor($className);
+        self::assertNotAlsoAnAggregateOrSaga($className);
         self::assertNoMessageHandlerDeclaredOnTheModelItself($classDefinition, $interfaceToCallRegistry);
 
         $handledEventClasses = self::findHandledEventClasses($classDefinition, $interfaceToCallRegistry);
@@ -94,6 +97,17 @@ final class DecisionModelDefinitionBuilder
             if (! $constructor->isPublic()) {
                 throw ConfigurationException::create("Constructor for DecisionModel {$className} should be public.");
             }
+        }
+    }
+
+    private static function assertNotAlsoAnAggregateOrSaga(string $className): void
+    {
+        foreach ((new ReflectionClass($className))->getAttributes(Aggregate::class, ReflectionAttribute::IS_INSTANCEOF) as $attribute) {
+            throw ConfigurationException::create(sprintf(
+                'DecisionModel %s is also declared #[%s] -- a class is either a decision model, injected into handlers, or an aggregate/saga, loaded by identifier. Move the model into its own class and inject it into the aggregate\'s handler.',
+                $className,
+                $attribute->getName(),
+            ));
         }
     }
 

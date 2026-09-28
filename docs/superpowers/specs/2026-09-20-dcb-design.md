@@ -60,7 +60,7 @@ read from the code at `d7402683`, not from the upgrade guide's prose.
 | CLI — `migrate-aggregate-streams`, `audit-legacy-metadata` | **Superseded** | §4 answered 1.x migration with `legacyStreamName` (no migration at all) plus a hand-written `INSERT … SELECT` for stream-per-aggregate. No command was built and none is now needed for *that* problem. A **tag backfill** command may be needed — different problem, see Part 2 |
 | CLI — `verify-gaps` | **Deferred with the gap work** | |
 | Schema per platform — PostgreSQL / MySQL / MariaDB / SQLite | **Rewrite** | The shipped schema classes are `PostgresEventStreamSchema`, `MySqlEventStreamSchema`, `MariaDbEventStreamSchema` behind `EventStreamSchemaFactory`. There is **no SQLite schema** — the old spec assumed one. Tests use `InMemoryEventStore` |
-| Query execution — the `event_tags` JOIN with `HAVING COUNT(DISTINCT tag_key)` | **Still the right technique**, applies to whatever side table we settle on | |
+| Query execution — the `event_tags` JOIN with `HAVING COUNT(DISTINCT tag_name)` | **Still the right technique**, applies to whatever side table we settle on | |
 | Write shape — O(1) round trips in event count | **Still valid** | |
 | UUID v7 | **Still valid, still undone** | Both `ramsey/uuid ^4.0` and `symfony/uid` are present. Unchanged question |
 | `#[Version]` / `#[TargetVersion]` | **Reasoning stale in its premises** | It argued against counting events and for the CAS row. The shipped store still stamps `EVENT_AGGREGATE_VERSION` into metadata and still enforces it with a unique index, so "the version number is the concurrency token" is *more* entrenched than when the spec was written |
@@ -177,7 +177,7 @@ A **decision model** is a small reusable class that answers one question about t
 the events selected *by tag* instead of by aggregate id. Message handlers — on services, on aggregates — declare
 the models they need as parameters; the framework loads them and guarantees the events the handler returns are
 appended only if none of those models has gone stale. `ecotone_event_stream` does not change. Two side tables are
-added: **`ecotone_event_tags`** (which event carries which tag — for reads) and **`ecotone_event_tag_versions`**
+added: **`ecotone_tagged_events`** (which event carries which tag — for reads) and **`ecotone_tag_versions`**
 (one counter per tag value — for conflict detection). Events declare tags with `#[EventTag]`. Every append bumps
 the counters of the tags it carries, then writes the events and their tag rows. A decision model's events are
 appended on the condition that none of the counters it depends on moved since it read. Aggregates are untouched:
@@ -189,26 +189,22 @@ same columns, same unique index, same `#[Version]`.
 constraint 4 cheap. PostgreSQL:
 
 ```sql
-CREATE TABLE ecotone_event_tags (
-    tag_key    VARCHAR(100) NOT NULL,
-    tag_value  VARCHAR(255) NOT NULL,
-    stream     VARCHAR(128) NOT NULL,
-    event_no    BIGINT       NOT NULL,
-    tag_version BIGINT       NOT NULL,
-    PRIMARY KEY (tag_key, tag_value, stream, event_no)
+CREATE TABLE ecotone_tagged_events (
+    tag_name     VARCHAR(100) NOT NULL,
+    tag_value    VARCHAR(255) NOT NULL,
+    stream_name  VARCHAR(128) NOT NULL,
+    event_no     BIGINT       NOT NULL,
+    tag_sequence BIGINT       NOT NULL,
+    PRIMARY KEY (tag_name, tag_value, stream_name, event_no)
 );
 
-CREATE TABLE ecotone_event_tag_versions (
-    tag_key    VARCHAR(100) NOT NULL,
+CREATE TABLE ecotone_tag_versions (
+    tag_name   VARCHAR(100) NOT NULL,
     tag_value  VARCHAR(255) NOT NULL,
     version    BIGINT       NOT NULL,
-    PRIMARY KEY (tag_key, tag_value)
+    PRIMARY KEY (tag_name, tag_value)
 ) WITH (fillfactor = 70);
 ```
-
-*(Final names per Part 4½ #4: `ecotone_tagged_events` with `tag_name`/`stream_name`/`tag_sequence`, and
-`ecotone_tag_versions` with `tag_name`. The DDL above keeps the draft names for continuity with the worked
-examples.)*
 
 MySQL / MariaDB: identical shape, `ENGINE=InnoDB ROW_FORMAT=DYNAMIC`, **`COLLATE utf8mb4_bin`** — the server
 default `utf8mb4_0900_ai_ci` would merge `course:ABC` with `course:abc`. SQLite (supported engine, maintainer
@@ -226,15 +222,16 @@ immediately — and lock contention cannot be tested there; `busy_timeout` must 
   point of DCB — therefore spans tables. The index records *which* table each event is in; the counter is about the
   tag alone. **A boundary may span every stream on one connection** (§4.5a). It cannot span connections: there is
   no transaction to hold it.
-- `stream` is the physical table name. `event_no` is that table's `no`. `tag_version` is the value the tag's counter
-  took in the append that wrote the event — a per-tag sequence that is the same across every stream, which is what
-  orders a model's events when they come from more than one table (§4.5a). Filter-only tags store 0.
+- `stream_name` is the physical table name. `event_no` is that table's `no`. `tag_sequence` is the version the tag's
+  counter took in the append that wrote the event — an order stamp, not a version: it is copied once, never compared
+  or incremented, and it is the same across every stream, which is what orders a model's events when they come from
+  more than one table (§4.5a). Filter-only tags store 0.
 - **Only tagged events are indexed.** An event whose class declares no `#[EventTag]` — by default, every aggregate
   event in an existing application — writes nothing to either table; aggregates keep loading through their own
   columns and never need their id as a tag. A tagged event writes one index row per tag value. *Estimated, not
   measured:* on PostgreSQL an index row is roughly 110 bytes of heap plus about as much in the primary key, so
   ~220 bytes per tag per event — 10 million events with two tags each ≈ 4–5 GB, against typically 10–20 GB for
-  those events' own rows. InnoDB clusters the table on its primary key, so roughly half that. The `stream` string is
+  those events' own rows. InnoDB clusters the table on its primary key, so roughly half that. The `stream_name` string is
   the fattest part of the row (about a fifth of it for `ecotone_event_stream`, a third for a 41-character legacy
   `_<sha1>` name); replacing it with a small integer from a lookup table is a known optimisation, deliberately not
   taken in the first cut — it costs a join and debuggability — and is to be decided on measurements from task 5.
@@ -571,7 +568,12 @@ commands live in `PdoEventSourcing`. `loadByCriteria(EventCriteria $criteria)` t
 argument — an OR of several criteria is expressed on `EventCriteria` itself (`EventCriteria::tag(...)->or(...)`) —
 so it stays reachable through the `EventStore` *gateway* (`GatewayProxyBuilder`) the same way every other
 `EventStore` method is; `$eventStore` above is whatever `EventStore` the container hands you, gateway or concrete
-store alike. §4.9 covers the licence split this merge introduces: the aggregate part of `AppendCondition` is
+store alike.
+
+Framework callers — the decision-model load and append interceptors — do not go through that gateway. They take
+`EventStore::RAW_REFERENCE`, the concrete store: a gateway call re-enters the messaging bus, and the load and the
+guarded append must stay inside the caller's own transaction and on its connection, which a nested bus invocation
+would not guarantee. Users get the gateway; the framework gets the store. §4.9 covers the licence split this merge introduces: the aggregate part of `AppendCondition` is
 open-core, only the tag part requires Enterprise.
 
 **Where events go:** the default stream, or a `#[Stream]` on the handler's class or — new, maintainer 2026-09-23
@@ -581,7 +583,7 @@ aggregate, the aggregate's stream. Events returned by a non-aggregate handler ca
 ### 4.5 Concurrency, in full
 
 **Invariant, maintained by every append — conditional or not, decision model or aggregate:** for each distinct
-counted tag the appended events carry, `ecotone_event_tag_versions.version` is incremented by one in the same
+counted tag the appended events carry, `ecotone_tag_versions.version` is incremented by one in the same
 transaction as the event insert, always through the guarded `UPDATE` below — never a blind upsert (2026-09-28). Without the unconditional half, a conditional writer cannot see an unconditional
 one ([ruby-dcb #42](https://github.com/kjeldahl/ruby-dcb/issues/42)).
 
@@ -589,16 +591,16 @@ one ([ruby-dcb #42](https://github.com/kjeldahl/ruby-dcb/issues/42)).
 
 ```sql
 -- 1. capture (a missing row is version 0)
-SELECT tag_key, tag_value, version FROM ecotone_event_tag_versions
-WHERE (tag_key, tag_value) IN ((:k1, :v1), (:k2, :v2));
+SELECT tag_name, tag_value, version FROM ecotone_tag_versions
+WHERE (tag_name, tag_value) IN ((:k1, :v1), (:k2, :v2));
 
 -- 2. which events, in which stream, matching which criterion
-SELECT stream, event_no, MAX(tag_version) ...,   -- per guard tag, see §4.5a
-       MAX(CASE WHEN tag_key = :k1 AND tag_value = :v1 THEN 1 ELSE 0 END) AS has_t1,
-       MAX(CASE WHEN tag_key = :k2 AND tag_value = :v2 THEN 1 ELSE 0 END) AS has_t2
-FROM ecotone_event_tags
-WHERE (tag_key, tag_value) IN ((:k1, :v1), (:k2, :v2))
-GROUP BY stream, event_no;
+SELECT stream_name, event_no, MAX(tag_sequence) ...,   -- per guard tag, see §4.5a
+       MAX(CASE WHEN tag_name = :k1 AND tag_value = :v1 THEN 1 ELSE 0 END) AS has_t1,
+       MAX(CASE WHEN tag_name = :k2 AND tag_value = :v2 THEN 1 ELSE 0 END) AS has_t2
+FROM ecotone_tagged_events
+WHERE (tag_name, tag_value) IN ((:k1, :v1), (:k2, :v2))
+GROUP BY stream_name, event_no;
 
 -- 3. per stream: the events themselves
 SELECT no, event_name, payload, metadata, created_at FROM <stream>
@@ -608,7 +610,7 @@ WHERE no IN (:nos) AND event_name IN (:types) ORDER BY no;
 Statement 2 drives from the primary key and yields each event **once**, however many criteria it matches — a
 `UNION` would double-apply `StudentSubscribedToCourse(c1, s1)`, and `DISTINCT` over `payload` fails outright on
 PostgreSQL (`json` has no equality operator). Criteria with event-type and AND conditions are evaluated in PHP from
-the flags. Each model is folded in the order of **its own guard tag's `tag_version`, then `event_no`** — exact
+the flags. Each model is folded in the order of **its own guard tag's `tag_sequence`, then `event_no`** — exact
 commit order for that tag, across streams (§4.5a).
 
 Capture-before-read matters. A writer committing between the statements makes the events *newer* than the captured
@@ -623,29 +625,29 @@ switch to enable. Handlers under `#[WithoutDatabaseTransaction]`, streams on a n
 gateway calls must open one explicitly. Untagged appends stay today's single atomic `INSERT` and need none.
 
 ```sql
--- A. ONE pass over the union of (condition tags ∪ tags of the new events), sorted by (tag_key, tag_value).
+-- A. ONE pass over the union of (condition tags ∪ tags of the new events), sorted by (tag_name, tag_value).
 --    Per tag, one of:
 
 --    in the condition, captured > 0
-UPDATE ecotone_event_tag_versions SET version = version + 1
-WHERE tag_key = :k AND tag_value = :v AND version = :captured;          -- 0 rows → ConcurrencyException
+UPDATE ecotone_tag_versions SET version = version + 1
+WHERE tag_name = :k AND tag_value = :v AND version = :captured;          -- 0 rows → ConcurrencyException
 
 --    in the condition, captured = 0
-INSERT INTO ecotone_event_tag_versions (tag_key, tag_value, version) VALUES (:k, :v, 1)
+INSERT INTO ecotone_tag_versions (tag_name, tag_value, version) VALUES (:k, :v, 1)
 ON CONFLICT DO NOTHING;                                                  -- 0 rows → ConcurrencyException
 --    MySQL/MariaDB: plain INSERT, duplicate key → ConcurrencyException
 
 --    not in the condition
-INSERT INTO ecotone_event_tag_versions (tag_key, tag_value, version) VALUES (:k, :v, 1)
-ON CONFLICT (tag_key, tag_value) DO UPDATE SET version = ecotone_event_tag_versions.version + 1;
+INSERT INTO ecotone_tag_versions (tag_name, tag_value, version) VALUES (:k, :v, 1)
+ON CONFLICT (tag_name, tag_value) DO UPDATE SET version = ecotone_tag_versions.version + 1;
 --    MySQL/MariaDB: ON DUPLICATE KEY UPDATE version = version + 1
 
 -- B. events
 INSERT INTO <stream> (event_id, event_name, payload, metadata, created_at) VALUES ...;
 
 -- C. tag index, resolving no by the unique event_id
-INSERT INTO ecotone_event_tags (tag_key, tag_value, stream, event_no, tag_version)
-SELECT :k, :v, :stream, no, :newVersion FROM <stream> WHERE event_id = :eventId;
+INSERT INTO ecotone_tagged_events (tag_name, tag_value, stream_name, event_no, tag_sequence)
+SELECT :k, :v, :streamName, no, :newVersion FROM <stream> WHERE event_id = :eventId;
 ```
 
 `:newVersion` is `captured + 1` on every append path — no second read. Only the backfill still uses the blind
@@ -682,11 +684,11 @@ Or a handler injects `CouponRedemptions` (coupon stream) and `CustomerCredit` (c
   `created_at` is application-assigned, often at one-second resolution, and a fold like "capacity changed, then a
   seat was taken" is order-sensitive. But counters-first ordering already serialises every append of a tag behind
   that tag's row lock, **across all streams** — so the counter value an append produced is a gapless, commit-ordered
-  sequence for that tag. Storing it in the index row (`tag_version`) costs one column and gives each model a total
-  order over its events no matter how many tables they came from: `ORDER BY tag_version, event_no` (one append goes
-  to one stream, so `event_no` orders within it). A multi-tag model uses its guard tag's version. Models in one
+  sequence for that tag. Storing it in the index row (`tag_sequence`) costs one column and gives each model a total
+  order over its events no matter how many tables they came from: `ORDER BY tag_sequence, event_no` (one append goes
+  to one stream, so `event_no` orders within it). A multi-tag model uses its guard tag's sequence. Models in one
   handler are folded independently, each in its own order.
-- *Backfilled history* has no commit order to recover. The backfill assigns `tag_version` in
+- *Backfilled history* has no commit order to recover. The backfill assigns `tag_sequence` in
   `(created_at, stream, no)` order — the best available, the same rule multi-stream projections use today — and
   everything appended afterwards is exact.
 
@@ -775,15 +777,15 @@ duplicate issue — captured version 0, so the guarded step is the `INSERT`).
 |---|---|---|---|
 | 1 | CouponIssued | `{code: SUMMER24, limit: 2}` | *null / null* |
 
-`ecotone_event_tags`
+`ecotone_tagged_events`
 
-| tag_key | tag_value | stream | event_no | tag_version |
+| tag_name | tag_value | stream_name | event_no | tag_sequence |
 |---|---|---|---|---|
 | coupon | SUMMER24 | ecotone_event_stream | 1 | 1 |
 
-`ecotone_event_tag_versions`
+`ecotone_tag_versions`
 
-| tag_key | tag_value | version |
+| tag_name | tag_value | version |
 |---|---|---|
 | coupon | SUMMER24 | **1** |
 
@@ -791,8 +793,8 @@ duplicate issue — captured version 0, so the guarded step is the `INSERT`).
 
 | Step | SQL | Result |
 |---|---|---|
-| a. capture | `SELECT … FROM ecotone_event_tag_versions WHERE (tag_key,tag_value) IN ((coupon,SUMMER24),(customer,alice))` | coupon:SUMMER24 = **1**, customer:alice = **0** (no row) |
-| b. read index | `… FROM ecotone_event_tags WHERE (tag_key,tag_value) IN (…) GROUP BY stream, event_no` | event 1 — has `coupon`, not `customer` |
+| a. capture | `SELECT … FROM ecotone_tag_versions WHERE (tag_name,tag_value) IN ((coupon,SUMMER24),(customer,alice))` | coupon:SUMMER24 = **1**, customer:alice = **0** (no row) |
+| b. read index | `… FROM ecotone_tagged_events WHERE (tag_name,tag_value) IN (…) GROUP BY stream_name, event_no` | event 1 — has `coupon`, not `customer` |
 | c. fold + decide | `CouponRedemptions`: limit 2, used 0. `CustomerCouponUse` needs both tags → event 1 not applied → unused | returns `OrderPlaced(o-1, alice, SUMMER24)` |
 | d. guard, sorted | `UPDATE … SET version = version+1 WHERE coupon/SUMMER24 AND version = 1` | **1 row** → 2 |
 | | `INSERT … (customer, alice, 1) ON CONFLICT DO NOTHING` | **1 row** |
@@ -800,15 +802,15 @@ duplicate issue — captured version 0, so the guarded step is the `INSERT`).
 | f. index | two rows for event 2 | |
 | g. `COMMIT` | | row locks from step d released |
 
-`ecotone_event_tags` now:
+`ecotone_tagged_events` now:
 
-| tag_key | tag_value | stream | event_no | tag_version |
+| tag_name | tag_value | stream_name | event_no | tag_sequence |
 |---|---|---|---|---|
 | coupon | SUMMER24 | ecotone_event_stream | 1 | 1 |
 | coupon | SUMMER24 | ecotone_event_stream | 2 | 2 |
 | customer | alice | ecotone_event_stream | 2 | 1 |
 
-`ecotone_event_tag_versions`: coupon:SUMMER24 = **2**, customer:alice = **1**.
+`ecotone_tag_versions`: coupon:SUMMER24 = **2**, customer:alice = **1**.
 
 **③ Bob (`o-2`) and Carol (`o-3`) race for the last redemption.**
 
@@ -835,9 +837,9 @@ Final state:
 | 2 | OrderPlaced (alice) | o-1 / 1 |
 | 3 | OrderPlaced (bob) | o-2 / 1 |
 
-`ecotone_event_tags`
+`ecotone_tagged_events`
 
-| tag_key | tag_value | event_no | tag_version |
+| tag_name | tag_value | event_no | tag_sequence |
 |---|---|---|---|
 | coupon | SUMMER24 | 1 | 1 |
 | coupon | SUMMER24 | 2 | 2 |
@@ -845,7 +847,7 @@ Final state:
 | customer | alice | 2 | 1 |
 | customer | bob | 3 | 1 |
 
-`ecotone_event_tag_versions`: coupon:SUMMER24 = **3**, customer:alice = 1, customer:bob = 1.
+`ecotone_tag_versions`: coupon:SUMMER24 = **3**, customer:alice = 1, customer:bob = 1.
 
 **What the example shows.** *Two guards, side by side:* the counter protects the coupon limit; the aggregate's
 unique index still protects each `Order` (two commands racing on `o-1` collide on `(Order, o-1, version)` exactly
@@ -872,17 +874,17 @@ If T1 rolls back, T2 finds 7 and proceeds. PostgreSQL `READ COMMITTED` re-checks
 against the newly committed row; an InnoDB `UPDATE` is a current read regardless of the transaction's snapshot.
 No raised isolation level, no advisory lock, no `SELECT … FOR UPDATE`.
 
-**Two tables, two write patterns — and why the counter is an `UPDATE`.** `ecotone_event_tags` is a *list*: which
+**Two tables, two write patterns — and why the counter is an `UPDATE`.** `ecotone_tagged_events` is a *list*: which
 events carry a tag. It is append-only; every tagged event INSERTs its rows and nothing is ever updated — an update
-would erase the earlier events from the boundary. `ecotone_event_tag_versions` is a *register*: one row per tag
+would erase the earlier events from the boundary. `ecotone_tag_versions` is a *register*: one row per tag
 value, INSERTed the first time the value appears and UPDATEd in place ever after.
 
-The obvious alternative is to make the register insert-only as well — put `UNIQUE (tag_key, tag_value,
-tag_version)` on the index, let a conditional writer insert `captured + 1`, and treat a unique violation as the
+The obvious alternative is to make the register insert-only as well — put `UNIQUE (tag_name, tag_value,
+tag_sequence)` on the index, let a conditional writer insert `captured + 1`, and treat a unique violation as the
 conflict. That is exactly how aggregates work today, it would remove a table, and it was considered seriously.
 It fails on one case aggregates never have: **a writer with no expected version.** Every aggregate save knows the
 version it loaded. A tagged event appended by a handler that injected no model does not know the tag's version —
-and it has no condition, so it must never fail. Insert-only, it has to compute `MAX(tag_version) + 1` and insert
+and it has no condition, so it must never fail. Insert-only, it has to compute `MAX(tag_sequence) + 1` and insert
 it, racing every other such writer for the same number: on PostgreSQL the loser's unique violation aborts its
 whole transaction (or needs a savepoint-and-retry loop inside the store); on InnoDB `INSERT … SELECT MAX()` takes
 next-key locks on the very gap both writers then insert into — the textbook deadlock. With a register the same
@@ -897,7 +899,7 @@ the page, and autovacuum reclaims them — and the table is tiny.
 
 **Alternative reviewed (maintainer, 2026-09-23): drop the per-event index rows, keep only the guarded `UPDATE`.**
 The guarded `UPDATE … WHERE version = :captured → 0 rows = conflict` *is* the design's locking mechanism, and it
-already creates no row per action: `ecotone_event_tag_versions` has one row per tag value, updated in place. The
+already creates no row per action: `ecotone_tag_versions` has one row per tag value, updated in place. The
 per-event rows are in the *other* table, and they exist for the read side only — the store has to find the events
 a model folds. Removing them means storing tags on the event row instead, in `metadata` (`_tags: {coupon:
 [SUMMER24], customer: [alice]}`), indexed by an expression index on `metadata->'_tags'` (rows without tags produce
@@ -912,7 +914,7 @@ no index entries, so untagged aggregates pay nothing). Compared honestly:
 | Read, MariaDB | same | **no multi-valued JSON index exists** → full scan of the stream table per decision |
 | Read, SQLite | same | **no indexable containment on JSON arrays** (`json_each` cannot use an index) → full scan |
 | Backfill (1.x history, tags added later) | INSERT only; event rows untouched | **`UPDATE` of every matching event row** — rewrites immutable events, a full tuple copy per row on PostgreSQL (bloat, TOAST churn, GIN rebuild); tens of millions of rows |
-| Cross-stream models (§4.5a) | one query, discovers streams from data | one query **per declared stream table**, union in PHP; per-tag order needs `_tag_versions` in `metadata` too |
+| Cross-stream models (§4.5a) | one query, discovers streams from data | one query **per declared stream table**, union in PHP; per-tag order needs `_tag_sequences` in `metadata` too |
 | Stream table | untouched | new expression index on the hottest table, incl. legacy `_<sha1>` tables (allowed by constraint 4, but each is a separate DDL) |
 | Cleanup on `delete()` | one DELETE | none needed |
 
@@ -1087,7 +1089,7 @@ than silently touching a default connection.
 ### 4.9 Licence — DCB is Enterprise
 
 Maintainer decision (2026-09-21), **narrowed 2026-09-27**: the tag-carrying half of DCB is under the Enterprise
-licence — `#[EventTag]`, `#[DecisionModel]`, `#[MatchingTags]`, `#[DecisionBoundary]`, `EventCriteria`, and a
+licence — `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`, `EventCriteria`, and a
 tag-bearing `AppendCondition`. **What changed on 2026-09-27:** the maintainer allowed folding `TaggedEventStore` and
 `AggregateEventStore` into `Ecotone\EventSourcing\EventStore` (one store, §4.4), and let `AppendCondition` also
 carry an aggregate's optimistic-lock expectation (`AppendCondition::forAggregate()`) — that half is open-core,
@@ -1151,7 +1153,7 @@ not depend on tags or on a licence.
 | `pg_snapshot_xmin` gap detection | Independent of tags. Own design |
 | UUID v7 for the store's fallback id | One-line change, unrelated |
 | Replacing `MetadataMatcher` / the `EventStore` interface | §4 promised it unchanged |
-| Tag-partitioned projections | Follow-up; `tag_version` is the per-tag position they need |
+| Tag-partitioned projections | Follow-up; `tag_sequence` is the per-tag position they need |
 | Decision-model snapshots | Follow-up; same |
 | `#[CommandHandler]` directly on a `#[DecisionModel]` class | Dropped 2026-09-23 after wave 1: one shape only, models are injected |
 | An OR *inside* one model (`#[MatchingTags]` from revision 2) | Removed. Two questions are two models; the OR happens where they are injected |

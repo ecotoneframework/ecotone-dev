@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Tagging;
 
 use function array_filter;
-use function array_map;
-use function array_values;
 use function count;
 
 use Ecotone\Messaging\Support\InvalidArgumentException;
@@ -60,14 +58,6 @@ final class EventsTags
         }
 
         return $counted;
-    }
-
-    public function countedOnly(): self
-    {
-        return new self(array_map(
-            static fn (array $tags): array => array_values(array_filter($tags, static fn (array $tag): bool => $tag['counted'])),
-            $this->perEvent,
-        ));
     }
 
     /**

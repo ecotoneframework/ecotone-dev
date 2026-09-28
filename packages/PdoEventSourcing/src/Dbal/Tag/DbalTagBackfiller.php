@@ -84,7 +84,7 @@ final class DbalTagBackfiller
         $report->recordBumped(count($pendingTags));
 
         $versionsAfterBump = $this->versions->currentVersions($connection, $pendingTags);
-        $this->index->insertRowsIdempotently($connection, $tableName, $batch->eventIds(), $batch->tags()->countedOnly()->sequencedBy($versionsAfterBump));
+        $this->index->insertRowsIdempotently($connection, $tableName, $batch->eventIds(), $batch->tags()->sequencedBy($versionsAfterBump));
     }
 
     /**

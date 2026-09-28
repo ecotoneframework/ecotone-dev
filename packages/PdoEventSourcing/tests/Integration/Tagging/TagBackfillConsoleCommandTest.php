@@ -11,6 +11,7 @@ use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
@@ -100,6 +101,35 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         self::assertSame([2, 3], array_values(array_map(static fn ($event): int => $event->getPayload()->limit, $loaded->events)), 'Events must fold in the order they were originally written');
     }
 
+    public function test_backfill_indexes_filter_only_tags_so_they_can_filter_the_load(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+        $this->insertHistoricalTenantEvent('SUMMER24', 'acme');
+        $this->insertHistoricalTenantEvent('SUMMER24', 'globex');
+        $this->insertHistoricalTenantEvent('WINTER24', 'acme');
+
+        $result = $this->runBackfill($ecotone, []);
+
+        $eventStore = $ecotone->getGateway(EventStore::class);
+        self::assertSame('3', $this->rowValue($result, 'Events tagged'));
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24')->andTag('tenant', 'acme'))->events);
+        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24')->andTag('tenant', 'globex'))->events);
+        self::assertCount(0, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24')->andTag('tenant', 'initech'))->events);
+    }
+
+    public function test_rerunning_the_backfill_keeps_filter_only_tags_indexed_once(): void
+    {
+        $ecotone = $this->bootstrapEcotone();
+        $this->insertHistoricalTenantEvent('SUMMER24', 'acme');
+
+        $this->runBackfill($ecotone, []);
+        $this->runBackfill($ecotone, []);
+
+        $loaded = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24')->andTag('tenant', 'acme'));
+        self::assertCount(1, $loaded->events);
+        self::assertSame(1, $loaded->appendCondition->expectedTagVersions()[0]['expectedVersion']);
+    }
+
     public function test_dry_run_reports_counts_without_writing(): void
     {
         $ecotone = $this->bootstrapEcotone();
@@ -161,6 +191,20 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         return (int) $connection->executeQuery('SELECT MAX(no) FROM ' . self::STREAM)->fetchOne();
     }
 
+    private function insertHistoricalTenantEvent(string $code, string $tenant): void
+    {
+        $this->getConnection()->executeStatement(
+            'INSERT INTO ' . self::STREAM . ' (event_id, event_name, payload, metadata, created_at) VALUES (?, ?, ?, ?, ?)',
+            [
+                Uuid::uuid4()->toString(),
+                TenantCouponIssuedForBackfillTest::class,
+                json_encode(['code' => $code, 'tenant' => $tenant], JSON_THROW_ON_ERROR),
+                '{}',
+                (new DateTimeImmutable('now', new DateTimeZone('UTC')))->format('Y-m-d\TH:i:s.u'),
+            ]
+        );
+    }
+
     private function runBackfill(FlowTestSupport $ecotone, array $parameters): ConsoleCommandResultSet
     {
         $runner = $ecotone->getGateway(ConsoleCommandRunner::class);
@@ -197,13 +241,14 @@ final class TagBackfillConsoleCommandTest extends EventSourcingMessagingTestCase
         }
 
         return $this->bootstrapFlowTestingWithEventStore(
-            classesToResolve: [CouponIssuedForBackfillTest::class, EventsConverterForBackfillTest::class],
+            classesToResolve: [CouponIssuedForBackfillTest::class, TenantCouponIssuedForBackfillTest::class, EventsConverterForBackfillTest::class],
             containerOrAvailableServices: [self::getConnectionFactory(), new EventsConverterForBackfillTest()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
                 ->withExtensionObjects([
                     DynamicConsistencyBoundaryConfiguration::createWithDefaults(),
                     DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true),
+                    EventSourcingConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant']),
                 ])
                 ->withCacheDirectoryPath(sys_get_temp_dir() . '/ecotone-test-' . uniqid()),
             pathToRootCatalog: __DIR__ . '/../../',
@@ -232,8 +277,29 @@ final readonly class CouponIssuedForBackfillTest
     }
 }
 
+final readonly class TenantCouponIssuedForBackfillTest
+{
+    public function __construct(
+        #[EventTag('coupon')] public string $code,
+        #[EventTag('tenant')] public string $tenant,
+    ) {
+    }
+}
+
 final class EventsConverterForBackfillTest
 {
+    #[Converter]
+    public function fromTenantCoupon(TenantCouponIssuedForBackfillTest $event): array
+    {
+        return ['code' => $event->code, 'tenant' => $event->tenant];
+    }
+
+    #[Converter]
+    public function toTenantCoupon(array $event): TenantCouponIssuedForBackfillTest
+    {
+        return new TenantCouponIssuedForBackfillTest($event['code'], $event['tenant']);
+    }
+
     #[Converter]
     public function from(CouponIssuedForBackfillTest $event): array
     {

@@ -631,7 +631,8 @@ back to 1.x after decision models have run means re-running the backfill before 
 [--skip-undeserializable]`** indexes events recorded before their class declared its current tags — every 1.x event,
 and any event tagged later. Per batch, in one transaction: walk the stream by `no`, deserialize, bump the tags a
 batch touches once each (the same unit an ordinary append uses — one `appendTo()` call, however many events, bumps
-a shared tag once) and insert the index rows; the insert is idempotent on the primary key, so re-running a
+a shared tag once) and insert the index rows — one per tag the event carries, filter-only tags included, so events that predate
+the tags stay filterable by them; the insert is idempotent on the primary key, so re-running a
 completed range is a no-op and `--from-no` resumes an interrupted one. **`--batch-size` trades backfill throughput
 against cross-stream ordering precision:** every event sharing a tag within one batch gets that batch's single bump
 as its `tag_sequence`, so two co-tagged events recorded on *different* streams within the same batch cannot be told

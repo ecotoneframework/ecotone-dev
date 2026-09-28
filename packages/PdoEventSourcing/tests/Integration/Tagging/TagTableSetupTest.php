@@ -60,7 +60,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
 
         $eventStore = $ecotone->getGateway(EventStore::class);
-        $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]);
+        self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]));
 
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
@@ -90,7 +90,7 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         $this->expectException(ConfigurationException::class);
         $this->expectExceptionMessage(TagTableManager::FEATURE_NAME);
 
-        $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]);
+        self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]));
     }
 
     public function test_tag_values_are_case_sensitive(): void
@@ -99,8 +99,8 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         $this->executeConsoleCommand($ecotone, 'ecotone:migration:database:setup', ['initialize' => true]);
         $eventStore = $ecotone->getGateway(EventStore::class);
 
-        $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('ABC', 1)]);
-        $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('abc', 1)]);
+        self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('ABC', 1)]));
+        self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('abc', 1)]));
 
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'ABC'))->events);
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'abc'))->events);

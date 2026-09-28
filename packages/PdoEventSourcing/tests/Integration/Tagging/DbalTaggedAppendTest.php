@@ -14,6 +14,7 @@ use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
+use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\ConcurrencyException;
@@ -54,7 +55,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
     {
         $eventStore = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class])->getGateway(EventStore::class);
 
-        $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
+        self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]));
 
         $events = $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events;
         self::assertCount(1, $events);
@@ -66,8 +67,8 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
     {
         $eventStore = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class])->getGateway(EventStore::class);
 
-        $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
-        $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
+        self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]));
+        self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]));
 
         self::assertCount(2, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
         self::assertSame(2, $this->tagVersion($eventStore, 'coupon', 'SUMMER24'));
@@ -77,21 +78,23 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
     {
         $eventStore = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class, UntaggedOrderPlacedForDbalAppendTest::class])->getGateway(EventStore::class);
 
-        $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
+        self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]));
         $eventStore->appendTo(self::STREAM, [new UntaggedOrderPlacedForDbalAppendTest('o-1')]);
 
         self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
 
-    public function test_appends_without_ambient_transaction_are_atomic(): void
+    public function test_tagged_append_outside_a_transaction_is_refused_and_writes_nothing(): void
     {
         $eventStore = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class])->getGateway(EventStore::class);
 
-        $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
+        try {
+            $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
+            self::fail('Expected ConfigurationException');
+        } catch (ConfigurationException) {
+        }
 
-        self::assertCount(1, $eventStore->load(self::STREAM));
-        self::assertCount(1, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
-        self::assertSame(1, $this->tagVersion($eventStore, 'coupon', 'SUMMER24'));
+        self::assertCount(0, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
     }
 
     public function test_event_whose_only_tag_is_filter_only_is_indexed_but_never_causes_a_conflict(): void
@@ -100,10 +103,10 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
 
         $loadedEvents = $eventStore->loadByCriteria(EventCriteria::tag('tenant', 'acme'));
 
-        $eventStore->appendTo(self::STREAM, [new TenantOnlyEventForDbalAppendTest('acme')]);
-        $eventStore->appendTo(self::STREAM, [new TenantOnlyEventForDbalAppendTest('acme')]);
+        self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [new TenantOnlyEventForDbalAppendTest('acme')]));
+        self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [new TenantOnlyEventForDbalAppendTest('acme')]));
 
-        $eventStore->appendTo(self::STREAM, [new TenantOnlyEventForDbalAppendTest('acme')], $loadedEvents->appendCondition);
+        self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [new TenantOnlyEventForDbalAppendTest('acme')], $loadedEvents->appendCondition));
 
         self::assertCount(3, $eventStore->loadByCriteria(EventCriteria::tag('tenant', 'acme'))->events);
     }
@@ -118,11 +121,11 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
             MessageHeaders::EVENT_AGGREGATE_VERSION => $version,
         ]);
 
-        $eventStore->appendTo(self::STREAM, [$aggregateEvent(1)]);
+        self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [$aggregateEvent(1)]));
         self::assertSame(1, $this->tagVersion($eventStore, 'widget', 'w-1'));
 
         try {
-            $eventStore->appendTo(self::STREAM, [$aggregateEvent(1)]);
+            self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [$aggregateEvent(1)]));
             self::fail('Expected a ConcurrencyException from the duplicate aggregate version.');
         } catch (ConcurrencyException) {
         }
@@ -136,7 +139,7 @@ final class DbalTaggedAppendTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapEcotone([CouponIssuedForDbalAppendTest::class]);
         $eventStore = $ecotone->getGateway(EventStore::class);
 
-        $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]);
+        self::inTransaction(fn () => $eventStore->appendTo(self::STREAM, [new CouponIssuedForDbalAppendTest('SUMMER24', 2)]));
         $eventStore->delete(self::STREAM);
 
         self::assertCount(0, $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);

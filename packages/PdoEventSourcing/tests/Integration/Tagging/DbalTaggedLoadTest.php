@@ -44,7 +44,7 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
     {
         $store = $this->bootstrapEventStore();
 
-        $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]));
 
         $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
@@ -56,10 +56,10 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
     {
         $store = $this->bootstrapEventStore();
 
-        $store->appendTo(self::STREAM, [
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [
             new StudentSubscribedForDbalLoadTest('course-1', 'student-1'),
             new StudentSubscribedForDbalLoadTest('course-1', 'student-2'),
-        ]);
+        ]));
 
         $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1')->andTag('student', 'student-2'));
 
@@ -71,10 +71,10 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
     {
         $store = $this->bootstrapEventStore();
 
-        $store->appendTo(self::STREAM, [
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [
             new StudentSubscribedForDbalLoadTest('course-1', 'student-1'),
             new StudentSubscribedForDbalLoadTest('course-2', 'student-2'),
-        ]);
+        ]));
 
         $loaded = $store->loadByCriteria(
             EventCriteria::tag('course', 'course-1')->or(EventCriteria::tag('course', 'course-2')),
@@ -87,10 +87,10 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
     {
         $store = $this->bootstrapEventStore();
 
-        $store->appendTo(self::STREAM, [
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [
             new StudentSubscribedForDbalLoadTest('course-1', 'student-1'),
             new CourseCapacityChangedForDbalLoadTest('course-1', 10),
-        ]);
+        ]));
 
         $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1')->ofTypes(CourseCapacityChangedForDbalLoadTest::class));
 
@@ -102,7 +102,7 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
     {
         $store = $this->bootstrapEventStore();
 
-        $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]));
 
         $loaded = $store->loadByCriteria(
             EventCriteria::tag('course', 'course-1')->or(EventCriteria::tag('student', 'student-1')),
@@ -114,10 +114,10 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
     public function test_conditional_append_succeeds_when_condition_still_valid(): void
     {
         $store = $this->bootstrapEventStore();
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
 
         $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
-        $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')], $loaded->appendCondition);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')], $loaded->appendCondition));
 
         $reloaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
         self::assertCount(2, $reloaded->events);
@@ -126,27 +126,27 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
     public function test_conditional_append_fails_when_tag_moved_since_capture(): void
     {
         $store = $this->bootstrapEventStore();
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
 
         $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 5)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 5)]));
 
         $this->expectException(DecisionModelConcurrencyException::class);
-        $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')], $loaded->appendCondition);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')], $loaded->appendCondition));
     }
 
     public function test_unconditional_append_invalidates_a_held_condition(): void
     {
         $store = $this->bootstrapEventStore();
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
 
         $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 11)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 11)]));
 
         $this->expectException(DecisionModelConcurrencyException::class);
-        $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')], $loaded->appendCondition);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')], $loaded->appendCondition));
     }
 
     public function test_delete_clears_the_index_so_load_returns_nothing(): void
@@ -154,7 +154,7 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
         $store = $ecotone->getGateway(EventStore::class);
 
-        $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]));
         $store->delete(self::STREAM);
 
         $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
@@ -170,8 +170,8 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         foreach (EventStreamSchemaFactory::for($connection)->createTableSql(self::OTHER_STREAM) as $statement) {
             $connection->executeStatement($statement);
         }
-        $store->create(self::OTHER_STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]);
-        $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]);
+        self::inTransaction(fn () => $store->create(self::OTHER_STREAM, [new CourseCapacityChangedForDbalLoadTest('course-1', 10)]));
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForDbalLoadTest('course-1', 'student-1')]));
 
         $loaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
@@ -185,10 +185,10 @@ final class DbalTaggedLoadTest extends EventSourcingMessagingTestCase
         $ecotone = $this->bootstrapEcotone();
         $store = $ecotone->getGateway(EventStore::class);
 
-        $store->appendTo(self::STREAM, [
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [
             new StudentSubscribedForDbalLoadTest('course-1', 'student-1'),
             new StudentSubscribedForDbalLoadTest('course-2', 'student-2'),
-        ]);
+        ]));
 
         $loaded = $store->loadByCriteria(
             EventCriteria::tag('course', 'course-1')->or(EventCriteria::tag('course', 'course-2')),

@@ -49,13 +49,13 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
     {
         $store = $this->bootstrapEventStore();
 
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]));
         $stale = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]));
 
         try {
-            $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $stale->appendCondition);
+            self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $stale->appendCondition));
             self::fail('Expected DecisionModelConcurrencyException');
         } catch (DecisionModelConcurrencyException) {
         }
@@ -70,10 +70,10 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $captured = $store->loadByCriteria(EventCriteria::tag('customer', 'bob'));
         self::assertSame(0, $captured->appendCondition->expectedTagVersions()[0]['expectedVersion']);
 
-        $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'bob')]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'bob')]));
 
         $this->expectException(DecisionModelConcurrencyException::class);
-        $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-2', 'bob')], $captured->appendCondition);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-2', 'bob')], $captured->appendCondition));
     }
 
     public function test_rollback_of_first_lets_the_waiter_succeed(): void
@@ -82,7 +82,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
 
         // Ensure the stream and tag tables exist before opening a manual transaction below --
         // MySQL implicitly commits on DDL, which would otherwise end that transaction early.
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('priming-course', 1)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('priming-course', 1)]));
 
         $original = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
@@ -91,7 +91,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 999)]);
         $connection->rollBack();
 
-        $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $original->appendCondition);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $original->appendCondition));
 
         $reloaded = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
         self::assertCount(1, $reloaded->events);
@@ -102,7 +102,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $this->skipUnlessLockTimeoutSupported();
 
         $store = $this->bootstrapEventStore();
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]));
 
         $connectionFactory2 = new DbalConnectionFactory($this->dsn());
         $this->setShortLockTimeout($connectionFactory2->establishConnection());
@@ -118,7 +118,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
             $store2 = $this->bootstrapEventStore($connectionFactory2);
 
             $this->expectException(ConcurrencyException::class);
-            $store2->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 11)]);
+            self::inTransaction(fn () => $store2->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 11)]), $connectionFactory2->establishConnection());
         } finally {
             $connection1->rollBack();
         }
@@ -132,7 +132,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $factoryE = new DbalConnectionFactory($this->dsn());
 
         $storeBaseline = $this->bootstrapEventStore();
-        $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+        self::inTransaction(fn () => $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]));
 
         $storeT = $this->bootstrapEventStore($factoryT);
         $storeE = $this->bootstrapEventStore($factoryE);
@@ -143,7 +143,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         try {
             $loaded = $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
-            $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
+            self::inTransaction(fn () => $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]), $factoryE->establishConnection());
 
             $this->expectException(DecisionModelConcurrencyException::class);
             $storeT->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $loaded->appendCondition);
@@ -162,7 +162,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $factoryE = new DbalConnectionFactory($this->dsn());
 
         $storeBaseline = $this->bootstrapEventStore();
-        $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+        self::inTransaction(fn () => $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]));
 
         $storeT = $this->bootstrapEventStore($factoryT);
         $storeE = $this->bootstrapEventStore($factoryE);
@@ -172,7 +172,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $storeT->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
         $connectionT->commit();
 
-        $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]);
+        self::inTransaction(fn () => $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]), $factoryE->establishConnection());
 
         $connectionT->beginTransaction();
         try {
@@ -193,7 +193,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $factoryE = new DbalConnectionFactory($this->dsn());
 
         $storeBaseline = $this->bootstrapEventStore();
-        $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+        self::inTransaction(fn () => $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]));
 
         $storeT = $this->bootstrapEventStore($factoryT);
         $storeE = $this->bootstrapEventStore($factoryE);
@@ -205,7 +205,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         try {
             $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
-            $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
+            self::inTransaction(fn () => $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]), $factoryE->establishConnection());
 
             $this->expectException(ConcurrencyException::class);
             $storeT->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]);
@@ -219,7 +219,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
     public function test_an_unrelated_database_error_is_not_reported_as_a_concurrency_conflict(): void
     {
         $store = $this->bootstrapEventStore();
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]));
 
         $this->getConnection()->executeStatement('ALTER TABLE ' . TagTableManager::TAG_VERSIONS_TABLE . ' RENAME COLUMN version TO broken_version');
 
@@ -239,13 +239,13 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $this->skipUnlessSqlite();
 
         $store = $this->bootstrapEventStore();
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]));
         $stale = $store->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]));
 
         $this->expectException(DecisionModelConcurrencyException::class);
-        $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $stale->appendCondition);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $stale->appendCondition));
     }
 
     public function test_sqlite_busy_from_a_second_connection_maps_to_concurrency_exception(): void
@@ -253,7 +253,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $this->skipUnlessSqlite();
 
         $store = $this->bootstrapEventStore();
-        $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]));
 
         $connection1 = $this->getConnection();
         $connection1->beginTransaction();
@@ -268,7 +268,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
             $store2 = $this->bootstrapEventStore($connectionFactory2);
 
             $this->expectException(ConcurrencyException::class);
-            $store2->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 11)]);
+            self::inTransaction(fn () => $store2->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 11)]), $connectionFactory2->establishConnection());
         } finally {
             $connection1->rollBack();
         }
@@ -278,8 +278,8 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
     {
         $store = $this->bootstrapEventStore();
 
-        $store->appendTo(self::STREAM, [new TransferForContentionTest('account-a', 'account-b', 10)]);
-        $store->appendTo(self::STREAM, [new TransferForContentionTest('account-b', 'account-a', 5)]);
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new TransferForContentionTest('account-a', 'account-b', 10)]));
+        self::inTransaction(fn () => $store->appendTo(self::STREAM, [new TransferForContentionTest('account-b', 'account-a', 5)]));
 
         $loaded = $store->loadByCriteria(EventCriteria::tag('account', 'account-a'));
         self::assertCount(2, $loaded->events);

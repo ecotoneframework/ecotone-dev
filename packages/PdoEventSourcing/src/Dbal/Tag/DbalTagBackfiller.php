@@ -53,6 +53,7 @@ final class DbalTagBackfiller
 
         $tagSchema = TaggedEventSchemaFactory::for($connection);
         if (! $dryRun) {
+            TagTransactionRequirement::assertActiveForTagBackfill($connection);
             $this->versionRegister->ensureTagTablesExist($eventStore, $connection, $streamName);
         }
 
@@ -128,26 +129,18 @@ final class DbalTagBackfiller
                 ksort($batchTagsInvolved);
                 $alreadyBackfilled = $this->tagsAlreadyIndexedFor($connection, $tagSchema, $tableName, $eventIds[0]);
 
-                $write = function () use ($connection, $tagSchema, $tableName, $eventIds, $perEventTags, $batchTagsInvolved, $alreadyBackfilled, &$report): void {
-                    $newVersions = [];
-                    foreach ($batchTagsInvolved as $key => $tag) {
-                        if (isset($alreadyBackfilled[$key])) {
-                            continue;
-                        }
-
-                        $newVersions[$key] = $this->versionRegister->bumpUnconditionalTagVersion($connection, $tagSchema, $tag['name'], $tag['value']);
-                        $report['tagsBumped']++;
+                $newVersions = [];
+                foreach ($batchTagsInvolved as $key => $tag) {
+                    if (isset($alreadyBackfilled[$key])) {
+                        continue;
                     }
 
-                    if ($newVersions !== []) {
-                        $this->insertTagIndexRowsIdempotent($connection, $tagSchema, $tableName, $eventIds, $perEventTags, $newVersions);
-                    }
-                };
+                    $newVersions[$key] = $this->versionRegister->bumpUnconditionalTagVersion($connection, $tagSchema, $tag['name'], $tag['value']);
+                    $report['tagsBumped']++;
+                }
 
-                if ($connection->isTransactionActive()) {
-                    $write();
-                } else {
-                    $connection->transactional($write);
+                if ($newVersions !== []) {
+                    $this->insertTagIndexRowsIdempotent($connection, $tagSchema, $tableName, $eventIds, $perEventTags, $newVersions);
                 }
             } elseif ($eventIds !== []) {
                 $report['tagsBumped'] += count($batchTagsInvolved);

@@ -51,7 +51,7 @@ final class DecisionModelLoadTransactionOrderingDbalTest extends EventSourcingMe
         TransactionStatusSpyForOrderingTest::$wasInsideTransactionDuringLoad = null;
 
         $ecotone = $this->bootstrapEcotone();
-        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CourseDefinedForOrderingTest('course-1', 5)]);
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CourseDefinedForOrderingTest('course-1', 5)]));
 
         $ecotone->sendCommand(new SubscribeToCourseForOrderingTest('course-1', 'student-1'));
 

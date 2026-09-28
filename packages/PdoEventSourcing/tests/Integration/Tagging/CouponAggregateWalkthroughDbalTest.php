@@ -61,7 +61,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
     public function test_a_coupon_limited_to_two_redemptions_refuses_a_third_order(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('SUMMER24', 2)]);
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('SUMMER24', 2)]));
 
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', 'SUMMER24'));
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-2', 'bob', 'SUMMER24'));
@@ -73,7 +73,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
     public function test_the_same_customer_cannot_redeem_the_same_coupon_twice(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('SUMMER24', 5)]);
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('SUMMER24', 5)]));
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', 'SUMMER24'));
 
         $this->expectException(CouponAlreadyUsedByCustomerForDbalCouponTest::class);
@@ -85,7 +85,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
         $ecotone = $this->bootstrapEcotone();
         // Prime the stream and tag tables outside of the command bus's transaction --
         // MySQL/MariaDB implicitly commit on DDL, which would end a transactional sendCommand early (pre-existing framework issue).
-        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('PRIME', 0)]);
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('PRIME', 0)]));
 
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', null));
 
@@ -96,7 +96,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
     public function test_a_competing_redemption_committed_mid_decision_fails_the_save(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('SUMMER24', 2)]);
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('SUMMER24', 2)]));
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', 'SUMMER24'));
 
         /** @var CompetingWriteInjectorForDbalCouponTest $injector */
@@ -110,10 +110,10 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
     public function test_a_concurrent_unrelated_order_does_not_conflict(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [
             new CouponIssuedForDbalCouponTest('SUMMER24', 5),
             new CouponIssuedForDbalCouponTest('WINTER24', 5),
-        ]);
+        ]));
 
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', 'WINTER24'));
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-2', 'bob', 'SUMMER24'));
@@ -126,7 +126,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
     public function test_aggregate_version_check_still_fires_independently(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('PRIME', 0)]);
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('PRIME', 0)]));
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', null));
 
         $events = $ecotone->getGateway(EventStore::class)->loadByCriteria(EventCriteria::tag('customer', 'alice'))->events;
@@ -138,7 +138,7 @@ final class CouponAggregateWalkthroughDbalTest extends EventSourcingMessagingTes
     public function test_the_decision_model_append_condition_never_reaches_persisted_metadata_or_published_headers(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('SUMMER24', 5)]);
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForDbalCouponTest('SUMMER24', 5)]));
 
         $ecotone->sendCommand(new PlaceOrderForDbalCouponTest('o-1', 'alice', 'SUMMER24'));
 

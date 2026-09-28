@@ -44,7 +44,7 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
     public function test_consistent_schema_reports_no_problems(): void
     {
         $ecotone = $this->bootstrapEcotone();
-        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForVerifySchemaTest('SUMMER24', 2)]);
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForVerifySchemaTest('SUMMER24', 2)]));
 
         $result = $this->runVerify($ecotone, []);
 
@@ -57,7 +57,7 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
         $this->skipUnlessMySqlFamily();
 
         $ecotone = $this->bootstrapEcotone();
-        $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForVerifySchemaTest('SUMMER24', 2)]);
+        self::inTransaction(fn () => $ecotone->getGateway(EventStore::class)->appendTo('ecotone_event_stream', [new CouponIssuedForVerifySchemaTest('SUMMER24', 2)]));
 
         $connection = $this->getConnection();
         $connection->executeStatement('ALTER TABLE ' . TagTableManager::TAG_VERSIONS_TABLE . ' CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci');
@@ -111,7 +111,7 @@ final class TagVerifySchemaConsoleCommandTest extends EventSourcingMessagingTest
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         try {
-            $eventStore->appendTo(self::LEGACY_STREAM, [new CouponIssuedForVerifySchemaTest('SUMMER24', 2)]);
+            self::inTransaction(fn () => $eventStore->appendTo(self::LEGACY_STREAM, [new CouponIssuedForVerifySchemaTest('SUMMER24', 2)]));
             self::fail('Expected ConfigurationException');
         } catch (ConfigurationException $exception) {
             self::assertStringContainsString(self::LEGACY_STREAM, $exception->getMessage());

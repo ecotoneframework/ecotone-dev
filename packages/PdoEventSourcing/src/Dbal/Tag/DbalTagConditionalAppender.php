@@ -77,28 +77,22 @@ final class DbalTagConditionalAppender
             return;
         }
 
+        TagTransactionRequirement::assertActiveForTaggedAppend($connection);
+
         $this->versionRegister->ensureTagTablesExist($eventStore, $connection, $streamName);
         $tagSchema = TaggedEventSchemaFactory::for($connection);
 
         ksort($tagsInvolved);
 
-        $write = function () use ($eventStore, $connection, $tagSchema, $schema, $tableName, $rows, $eventIds, $perEventTags, $tagsInvolved, $conditionTags): void {
-            $newVersions = [];
-            foreach ($tagsInvolved as $key => $tag) {
-                $newVersions[$key] = isset($conditionTags[$key])
-                    ? $this->versionRegister->bumpGuardedTagVersion($connection, $tagSchema, $tag['name'], $tag['value'], $conditionTags[$key]['expectedVersion'])
-                    : $this->versionRegister->bumpUnconditionalTagVersion($connection, $tagSchema, $tag['name'], $tag['value']);
-            }
-
-            $eventStore->insertEventRows($connection, $schema, $tableName, $rows);
-            $this->insertTagIndexRows($connection, $tagSchema, $tableName, $eventIds, $perEventTags, $newVersions);
-        };
-
-        if ($connection->isTransactionActive()) {
-            $write();
-        } else {
-            $connection->transactional($write);
+        $newVersions = [];
+        foreach ($tagsInvolved as $key => $tag) {
+            $newVersions[$key] = isset($conditionTags[$key])
+                ? $this->versionRegister->bumpGuardedTagVersion($connection, $tagSchema, $tag['name'], $tag['value'], $conditionTags[$key]['expectedVersion'])
+                : $this->versionRegister->bumpUnconditionalTagVersion($connection, $tagSchema, $tag['name'], $tag['value']);
         }
+
+        $eventStore->insertEventRows($connection, $schema, $tableName, $rows);
+        $this->insertTagIndexRows($connection, $tagSchema, $tableName, $eventIds, $perEventTags, $newVersions);
     }
 
     /**

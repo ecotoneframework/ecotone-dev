@@ -93,6 +93,11 @@ abstract class EventSourcingMessagingTestCase extends TestCase
         return self::getConnectionFactory()->createContext()->getDbalConnection();
     }
 
+    protected static function inTransaction(callable $operation, ?Connection $connection = null): mixed
+    {
+        return ($connection ?? self::getConnection())->transactional($operation);
+    }
+
     protected function getReferenceSearchServiceWithConnection(array $objects = [], bool $connectionAsRegistry = false)
     {
         return InMemoryReferenceSearchService::createWith(

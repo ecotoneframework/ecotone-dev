@@ -9,6 +9,7 @@ use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\Dbal\ExtensionObject\MultiTenantConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -58,6 +59,7 @@ final class MultiTenantTagVersionsTest extends EventSourcingMessagingTestCase
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
                 ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withExtensionObjects([
+                    DbalConfiguration::createForTesting()->withTransactionOnCommandBus(true),
                     EventSourcingConfiguration::createWithDefaults(),
                     MultiTenantConfiguration::create(
                         'tenant',

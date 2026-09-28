@@ -10,7 +10,7 @@ use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryDisabled;
 /**
  * licence Apache-2.0
  */
-final class OpenCoreAppendStrategy implements AppendStrategy
+final class StandardConsistencyBoundaryStrategy implements AppendStrategy
 {
     public function append(AppendableStore $store, string $streamName, array $events, ?AppendCondition $appendCondition): void
     {

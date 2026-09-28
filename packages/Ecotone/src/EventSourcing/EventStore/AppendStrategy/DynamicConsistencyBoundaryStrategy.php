@@ -9,7 +9,7 @@ use Ecotone\Api\EventSourcing\AppendCondition;
 /**
  * licence Enterprise
  */
-final class EnterpriseAppendStrategy implements AppendStrategy
+final class DynamicConsistencyBoundaryStrategy implements AppendStrategy
 {
     public function append(AppendableStore $store, string $streamName, array $events, ?AppendCondition $appendCondition): void
     {

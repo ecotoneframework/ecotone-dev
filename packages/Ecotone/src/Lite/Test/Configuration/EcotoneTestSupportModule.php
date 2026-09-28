@@ -20,8 +20,8 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\EnterpriseAppendStrategy;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\DynamicConsistencyBoundaryStrategy;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\StandardConsistencyBoundaryStrategy;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagConditionalStore;
@@ -487,16 +487,16 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
     private function registerAppendStrategy(Configuration $messagingConfiguration, bool $dynamicConsistencyBoundaryEnabled): void
     {
         $messagingConfiguration->registerServiceDefinition(
-            OpenCoreAppendStrategy::class,
-            new Definition(OpenCoreAppendStrategy::class),
+            StandardConsistencyBoundaryStrategy::class,
+            new Definition(StandardConsistencyBoundaryStrategy::class),
         );
         $messagingConfiguration->registerServiceDefinition(
-            EnterpriseAppendStrategy::class,
-            new Definition(EnterpriseAppendStrategy::class),
+            DynamicConsistencyBoundaryStrategy::class,
+            new Definition(DynamicConsistencyBoundaryStrategy::class),
         );
         $messagingConfiguration->registerServiceDefinition(
             AppendStrategy::class,
-            DynamicConsistencyBoundaryServices::definitionFor($dynamicConsistencyBoundaryEnabled, AppendStrategy::class, OpenCoreAppendStrategy::class, EnterpriseAppendStrategy::class),
+            DynamicConsistencyBoundaryServices::definitionFor($dynamicConsistencyBoundaryEnabled, AppendStrategy::class, StandardConsistencyBoundaryStrategy::class, DynamicConsistencyBoundaryStrategy::class),
         );
     }
 

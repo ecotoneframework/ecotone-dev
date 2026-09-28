@@ -31,24 +31,10 @@ final class InMemoryEventStore implements EventStore, AppendableStore
 {
     private array $streams = [];
 
-    private AppendStrategy $appendStrategy;
-
-    private InMemoryTagCollaborator $tagCollaborator;
-
-    public function __construct(AppendStrategy $appendStrategy, InMemoryTagCollaborator $tagCollaborator)
-    {
-        $this->appendStrategy = $appendStrategy;
-        $this->tagCollaborator = $tagCollaborator;
-    }
-
-    public function useAppendStrategy(AppendStrategy $appendStrategy): void
-    {
-        $this->appendStrategy = $appendStrategy;
-    }
-
-    public function useTagCollaborator(InMemoryTagCollaborator $tagCollaborator): void
-    {
-        $this->tagCollaborator = $tagCollaborator;
+    public function __construct(
+        private readonly AppendStrategy $appendStrategy,
+        private readonly InMemoryTagCollaborator $tagCollaborator,
+    ) {
     }
 
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void

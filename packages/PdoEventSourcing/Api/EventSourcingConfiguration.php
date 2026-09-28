@@ -4,9 +4,6 @@ namespace Ecotone\Api\EventSourcing;
 
 use Ecotone\Api\Dbal\ExtensionObject\DbalConnectionReference;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\OpenCoreAppendStrategy;
-use Ecotone\EventSourcing\EventStore\InMemoryEventStore as EcotoneInMemoryEventStore;
-use Ecotone\EventSourcing\EventStore\Tag\OpenCoreInMemoryTagCollaborator;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Modelling\BaseEventSourcingConfiguration;
 
@@ -24,7 +21,6 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     private string $eventStoreReferenceName;
     private string $connectionReferenceName;
     private bool $isInMemory = false;
-    private ?EcotoneInMemoryEventStore $inMemoryEventStore = null;
 
     private function __construct(string $connectionReferenceName = DbalConnectionReference::DEFAULT, string $eventStoreReferenceName = EventStore::class)
     {
@@ -48,14 +44,8 @@ class EventSourcingConfiguration extends BaseEventSourcingConfiguration
     {
         $eventSourcingConfiguration = new self();
         $eventSourcingConfiguration->isInMemory = true;
-        $eventSourcingConfiguration->inMemoryEventStore = new EcotoneInMemoryEventStore(new OpenCoreAppendStrategy(), new OpenCoreInMemoryTagCollaborator());
 
         return $eventSourcingConfiguration;
-    }
-
-    public function getInMemoryEventStore(): ?EcotoneInMemoryEventStore
-    {
-        return $this->inMemoryEventStore;
     }
 
     /**

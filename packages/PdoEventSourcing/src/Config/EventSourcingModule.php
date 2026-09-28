@@ -204,9 +204,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         if ($eventSourcingConfiguration->isInMemory()) {
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                (new Definition(InMemoryEventStore::class, [], [EventSourcingConfiguration::class, 'getInMemoryEventStore']))
-                    ->addMethodCall('useAppendStrategy', [Reference::to(AppendStrategy::class)])
-                    ->addMethodCall('useTagCollaborator', [Reference::to(InMemoryTagCollaborator::class)])
+                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class)])
             );
             $messagingConfiguration->registerServiceDefinition(
                 EventStoreReference::EVENT_STORE_INSTANCE,

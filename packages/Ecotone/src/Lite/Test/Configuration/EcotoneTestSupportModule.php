@@ -458,19 +458,12 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
             );
             $registerInMemoryEventStoreStreamSource = true;
         } else {
-            /**
-             * This is to honour current PdoEventSourcing implementation, as current one is initializing In Memory in EventSourcingConfiguration.
-             * We register the InMemoryEventStore by getting it from the EventSourcingConfiguration service,
-             * which ensures we use the same instance that's used by the event store.
-             */
             foreach ($extensionObjects as $extensionObject) {
                 if (class_exists(EventSourcingConfiguration::class) && $extensionObject instanceof EventSourcingConfiguration) {
                     if ($extensionObject->isInMemory()) {
-                        // Register InMemoryEventStore by calling getInMemoryEventStore() on the EventSourcingConfiguration service
-                        // This ensures we use the same instance that's used by the event store
                         $messagingConfiguration->registerServiceDefinition(
                             InMemoryEventStore::class,
-                            new Definition(InMemoryEventStore::class, [], [EventSourcingConfiguration::class, 'getInMemoryEventStore'])
+                            new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class)]),
                         );
                         $registerInMemoryEventStoreStreamSource = true;
                     }

@@ -475,7 +475,10 @@ no transaction.
 
   Give `tags: [...]` explicitly when the default intersection isn't the question being asked (e.g.
   `#[DecisionModel(tags: ['student'])]` to scope by student alone). Every event the model handles must carry every
-  one of the model's tag names — a bootstrap `ConfigurationException` otherwise. Models are injected, they never
+  one of the model's tag names — a bootstrap `ConfigurationException` otherwise. A model left with no tag name at
+  all — no `tags:` and its handled events share no `#[EventTag]` name, including a handled event carrying none — is
+  rejected at bootstrap too: it would fold no event and guard nothing, so either tag the event or give the model
+  `tags:`. Models are injected, they never
   own handlers: `#[CommandHandler]`/`#[EventHandler]`/`#[QueryHandler]` declared directly on a `#[DecisionModel]`
   class is a bootstrap `ConfigurationException`, the same way it would be on an aggregate mixing the two roles.
 - Inject the model into a handler by type-hint — no attribute needed, the same way an aggregate is loaded:

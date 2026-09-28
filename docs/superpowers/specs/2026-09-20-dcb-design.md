@@ -300,6 +300,8 @@ final readonly class InvoiceIssued
 - `#[EventTag]` works on any event, including those recorded by an `#[EventSourcingAggregate]`. That is how a
   decision model includes aggregate-produced facts in its boundary. It is the **only** place the attribute
   appears; models are scoped by tag names (§4.4), commands may carry it to say which property supplies a value.
+  An event with no `#[EventTag]` can therefore never be folded by a decision model: handling one leaves the model
+  without a tag name and is rejected at bootstrap (§4.4).
 - Tags are stored in plaintext beside the payload and appear in diagnostics. Do not tag personal data directly —
   tag a hash through a method.
 
@@ -428,7 +430,10 @@ intersection, `coupon`, is the largest set of names every handled event can be m
 rule a model must satisfy anyway (a handled event that lacks one of the model's tags could never reach it). When
 the intersection is not what is wanted — `StudentCourses` handles only `StudentSubscribedToCourse`, whose tags are
 `course` and `student`, but the question is about the student alone — `tags:` says so, and a listed name absent
-from any handled event is a bootstrap `ConfigurationException`.
+from any handled event is a bootstrap `ConfigurationException`. So is a model left with **no** tag name — no
+`tags:` and handled events that share no `#[EventTag]` name, a handled event carrying none included: it would fold
+no event and guard nothing, and the message names the model, each handled event with the tags it carries, and the
+two remedies (tag the event, or give the model `tags:`).
 
 | Injected model | Criterion |
 |---|---|

@@ -121,6 +121,41 @@ final class DecisionModelValidationTest extends TestCase
 
         $ecotone->sendCommand(new CommandWithoutTagPropertyForValidationTest('irrelevant'));
     }
+
+    public function test_model_handling_an_untagged_event_is_rejected_at_bootstrap_naming_the_event_and_both_remedies(): void
+    {
+        try {
+            EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [ModelHandlingUntaggedEventForValidationTest::class, UntaggedEventForValidationTest::class],
+                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(ModelHandlingUntaggedEventForValidationTest::class, $exception->getMessage());
+            $this->assertStringContainsString(UntaggedEventForValidationTest::class, $exception->getMessage());
+            $this->assertStringContainsString('#[EventTag]', $exception->getMessage());
+            $this->assertStringContainsString('#[DecisionModel(tags:', $exception->getMessage());
+        }
+    }
+
+    public function test_model_whose_handled_events_share_no_tag_name_is_rejected_at_bootstrap_naming_every_event_and_both_remedies(): void
+    {
+        try {
+            EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [ModelHandlingDisjointlyTaggedEventsForValidationTest::class, TaggedEventForValidationTest::class, StudentTaggedEventForValidationTest::class],
+                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(ModelHandlingDisjointlyTaggedEventsForValidationTest::class, $exception->getMessage());
+            $this->assertStringContainsString(TaggedEventForValidationTest::class, $exception->getMessage());
+            $this->assertStringContainsString(StudentTaggedEventForValidationTest::class, $exception->getMessage());
+            $this->assertStringContainsString('#[EventTag]', $exception->getMessage());
+            $this->assertStringContainsString('#[DecisionModel(tags:', $exception->getMessage());
+        }
+    }
 }
 
 final readonly class TaggedEventForValidationTest
@@ -243,5 +278,44 @@ final class HandlerRequiringModelForValidationTest
     public function handle(CommandWithoutTagPropertyForValidationTest $command, ModelForValidationTest $model): array
     {
         return [];
+    }
+}
+
+final readonly class UntaggedEventForValidationTest
+{
+    public function __construct(
+        public string $courseId,
+    ) {
+    }
+}
+
+final readonly class StudentTaggedEventForValidationTest
+{
+    public function __construct(
+        #[EventTag('student')] public string $studentId,
+    ) {
+    }
+}
+
+#[DecisionModel]
+final class ModelHandlingUntaggedEventForValidationTest
+{
+    #[EventSourcingHandler]
+    public function when(UntaggedEventForValidationTest $event): void
+    {
+    }
+}
+
+#[DecisionModel]
+final class ModelHandlingDisjointlyTaggedEventsForValidationTest
+{
+    #[EventSourcingHandler]
+    public function whenCourseTagged(TaggedEventForValidationTest $event): void
+    {
+    }
+
+    #[EventSourcingHandler]
+    public function whenStudentTagged(StudentTaggedEventForValidationTest $event): void
+    {
     }
 }

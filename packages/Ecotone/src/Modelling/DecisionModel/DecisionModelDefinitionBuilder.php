@@ -54,6 +54,14 @@ final class DecisionModelDefinitionBuilder
             ? array_values(array_unique($explicitTagNames))
             : self::intersectionOfTagNames($handledEventClasses, $eventTagRegistry);
 
+        if ($tagNames === []) {
+            throw ConfigurationException::create(sprintf(
+                'DecisionModel %s is scoped by no tag name, so it would fold no event and guard nothing: its handled event(s) %s share no #[EventTag] name. Add #[EventTag] to the event(s) so that every handled event carries a common tag name, or scope the model explicitly with #[DecisionModel(tags: [...])].',
+                $className,
+                self::tagNamesPerHandledEvent($handledEventClasses, $eventTagRegistry),
+            ));
+        }
+
         foreach ($handledEventClasses as $handledEventClass) {
             $eventTagNames = $eventTagRegistry->tagNamesFor($handledEventClass);
             $missing = array_diff($tagNames, $eventTagNames);
@@ -145,6 +153,23 @@ final class DecisionModelDefinitionBuilder
         }
 
         return array_values(array_unique($handledEventClasses));
+    }
+
+    /**
+     * @param class-string[] $handledEventClasses
+     */
+    private static function tagNamesPerHandledEvent(array $handledEventClasses, EventTagRegistry $eventTagRegistry): string
+    {
+        $descriptions = [];
+        foreach ($handledEventClasses as $handledEventClass) {
+            $eventTagNames = $eventTagRegistry->tagNamesFor($handledEventClass);
+
+            $descriptions[] = $eventTagNames === []
+                ? sprintf('%s (no #[EventTag])', $handledEventClass)
+                : sprintf('%s (%s)', $handledEventClass, implode(', ', $eventTagNames));
+        }
+
+        return implode(', ', $descriptions);
     }
 
     /**

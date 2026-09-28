@@ -23,6 +23,7 @@ final class TagTransactionRequirement
             . 'so the tag versions and the events commit or roll back together. '
             . 'Enable transactions with DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true) for command handlers, '
             . 'DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true) for asynchronous handlers, '
+            . 'remove #[WithoutDatabaseTransaction] from the handler if it carries one, '
             . 'or begin a transaction yourself around EventStore::appendTo().'
         );
     }

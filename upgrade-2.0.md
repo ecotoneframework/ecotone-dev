@@ -430,7 +430,8 @@ public function dbal(): DbalConfiguration
 }
 ```
 
-Calling `EventStore::appendTo()` with tagged events outside a handler (a script, a test) needs a transaction opened
+A handler marked `#[WithoutDatabaseTransaction]` opts out of the bus transaction, so a tagged append from it fails
+the same way, and the message names the attribute. Calling `EventStore::appendTo()` with tagged events outside a handler (a script, a test) needs a transaction opened
 around the call (`$connection->transactional(fn () => $eventStore->appendTo(...))`). `EcotoneLite` tests bootstrapped
 with `bootstrapFlowTestingWithEventStore(runForProductionEventStore: true)` get `DbalConfiguration::createForTesting()`
 (all transactions off) unless they pass their own `DbalConfiguration`. Untagged appends stay a single `INSERT` and need

@@ -27,7 +27,7 @@ use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagConditionalStore;
 use Ecotone\EventSourcing\EventStore\Tag\OpenCoreInMemoryTagCollaborator;
 use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryServices;
-use Ecotone\EventSourcing\Tagging\EventTagRegistry;
+use Ecotone\EventSourcing\Tagging\TagResolver;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -508,7 +508,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
         );
         $messagingConfiguration->registerServiceDefinition(
             InMemoryTagConditionalStore::class,
-            new Definition(InMemoryTagConditionalStore::class, [Reference::to(EventTagRegistry::class)]),
+            new Definition(InMemoryTagConditionalStore::class, [Reference::to(TagResolver::class)]),
         );
         $messagingConfiguration->registerServiceDefinition(
             InMemoryTagCollaborator::class,

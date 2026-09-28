@@ -25,6 +25,7 @@ use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
 use Ecotone\EventSourcing\Database\EventStreamTableManager;
 use Ecotone\EventSourcing\Dbal\Tag\DbalTagCollaborator;
+use Ecotone\EventSourcing\Dbal\Tag\TagBackfillReport;
 use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendableStore;
@@ -50,7 +51,6 @@ use function json_decode;
 use function json_encode;
 
 use Ramsey\Uuid\Uuid;
-
 use Throwable;
 
 /**
@@ -111,6 +111,15 @@ final class DbalEventStore implements EventStore, AppendableStore
         $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
+        $this->insertEventRows($connection, $schema, $tableName, $this->rowsToAppend($streamName, $events));
+    }
+
+    /**
+     * @param object[]|array[] $events
+     * @return array<array{0: string, 1: string, 2: string, 3: string, 4: string}>
+     */
+    public function rowsToAppend(string $streamName, array $events): array
+    {
         $rows = [];
         foreach ($events as $eventToConvert) {
             $row = $this->convertToRow($eventToConvert);
@@ -118,7 +127,7 @@ final class DbalEventStore implements EventStore, AppendableStore
             $rows[] = $row;
         }
 
-        $this->insertEventRows($connection, $schema, $tableName, $rows);
+        return $rows;
     }
 
     public function appendEventsWithAggregateCondition(string $streamName, array $events, AppendCondition $appendCondition): void
@@ -154,9 +163,6 @@ final class DbalEventStore implements EventStore, AppendableStore
         return $this->tagCollaborator->loadByCriteria($this, $connection, $criteria);
     }
 
-    /**
-     * @return array{lastNo: int, eventsScanned: int, eventsTagged: int, tagsBumped: int, undeserializable: array<int>}
-     */
     public function backfillTagsForStream(
         string $streamName,
         ?string $onlyEventName,
@@ -164,12 +170,57 @@ final class DbalEventStore implements EventStore, AppendableStore
         int $batchSize,
         bool $dryRun,
         bool $skipUndeserializable,
-    ): array {
+        TagBackfillReport $report,
+    ): void {
         $connection = $this->connectionFor($streamName);
         $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
-        return $this->tagCollaborator->backfillTagsForStream($this, $connection, $schema, $tableName, $streamName, $onlyEventName, $fromNo, $batchSize, $dryRun, $skipUndeserializable);
+        $this->tagCollaborator->backfillTagsForStream($this, $connection, $schema, $tableName, $streamName, $onlyEventName, $fromNo, $batchSize, $dryRun, $skipUndeserializable, $report);
+    }
+
+    /**
+     * @param int[] $eventNos
+     * @return array<int, Event>
+     */
+    public function loadEventsByNumbers(Connection $connection, string $tableName, array $eventNos): array
+    {
+        $placeholders = implode(', ', array_fill(0, count($eventNos), '?'));
+
+        $rows = $connection->executeQuery(
+            'SELECT no, event_name, payload, metadata FROM ' . EventStreamSchemaFactory::for($connection)->quoteIdentifier($tableName) . " WHERE no IN ({$placeholders})",
+            $eventNos,
+            array_fill(0, count($eventNos), ParameterType::INTEGER)
+        )->fetchAllAssociative();
+
+        $events = [];
+        foreach ($rows as $row) {
+            $events[(int) $row['no']] = $this->convertToEvent($row, true);
+        }
+
+        return $events;
+    }
+
+    /**
+     * @return array<array<string, mixed>>
+     */
+    public function loadRowBatch(Connection $connection, EventStreamSchema $schema, string $tableName, int $fromNo, ?string $onlyEventName, int $limit): array
+    {
+        $where = ['no >= ?'];
+        $parameters = [$fromNo];
+        $types = [ParameterType::INTEGER];
+        if ($onlyEventName !== null) {
+            $where[] = 'event_name = ?';
+            $parameters[] = $onlyEventName;
+            $types[] = ParameterType::STRING;
+        }
+
+        return $connection->executeQuery(
+            'SELECT no, event_id, event_name, payload, metadata FROM ' . $schema->quoteIdentifier($tableName)
+            . ' WHERE ' . implode(' AND ', $where) . ' ORDER BY no ASC LIMIT ' . $limit,
+            $parameters,
+            $types
+        )->fetchAllAssociative();
     }
 
     /**

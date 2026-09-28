@@ -75,12 +75,7 @@ final class PostgresTaggedEventSchema implements TaggedEventSchema
         $quoted = $this->quoteIdentifier($tableName);
 
         return "INSERT INTO {$quoted} (tag_name, tag_value, version) VALUES (?, ?, 1) "
-            . "ON CONFLICT (tag_name, tag_value) DO UPDATE SET version = {$quoted}.version + 1 RETURNING version";
-    }
-
-    public function supportsReturningOnUpsert(): bool
-    {
-        return true;
+            . "ON CONFLICT (tag_name, tag_value) DO UPDATE SET version = {$quoted}.version + 1";
     }
 
     public function bigIntPlaceholder(): string

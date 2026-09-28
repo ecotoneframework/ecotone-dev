@@ -24,6 +24,7 @@ use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryDisabled;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
+use Ecotone\EventSourcing\Tagging\TagResolver;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -149,7 +150,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                 $batchLoaderReference,
                 new Definition(DecisionModelBatchLoader::class, [
                     Reference::to(EventStore::RAW_REFERENCE),
-                    Reference::to(EventTagRegistry::class),
+                    Reference::to(TagResolver::class),
                     $loaderDefinitions,
                 ]),
             );

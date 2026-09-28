@@ -7,6 +7,7 @@ namespace Ecotone\EventSourcing\Console;
 use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ConsoleParameterOption;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
+use Ecotone\EventSourcing\Dbal\Tag\TagBackfillReport;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\Config\ConsoleCommandResultSet;
 
@@ -31,21 +32,23 @@ final class TagBackfillConsoleCommand
         #[ConsoleParameterOption] bool|string $dryRun = false,
         #[ConsoleParameterOption] bool|string $skipUndeserializable = false,
     ): ConsoleCommandResultSet {
-        $report = $this->dbalEventStore->backfillTagsForStream(
+        $report = TagBackfillReport::startingFrom($fromNo);
+        $this->dbalEventStore->backfillTagsForStream(
             $stream ?? StreamTableRegistry::DEFAULT_STREAM,
             $event,
             $fromNo,
             $batchSize,
             $this->normalizeBoolean($dryRun),
             $this->normalizeBoolean($skipUndeserializable),
+            $report,
         );
 
         $rows = [
-            ['Last no processed', (string) $report['lastNo']],
-            ['Events scanned', (string) $report['eventsScanned']],
-            ['Events tagged', (string) $report['eventsTagged']],
-            ['Tag counters bumped', (string) $report['tagsBumped']],
-            ['Undeserializable events (skipped)', implode(', ', $report['undeserializable']) ?: '-'],
+            ['Last no processed', (string) $report->lastNo()],
+            ['Events scanned', (string) $report->eventsScanned()],
+            ['Events tagged', (string) $report->eventsTagged()],
+            ['Tag counters bumped', (string) $report->tagsBumped()],
+            ['Undeserializable events (skipped)', implode(', ', $report->undeserializableNumbers()) ?: '-'],
         ];
 
         return ConsoleCommandResultSet::create(['Metric', 'Value'], $rows);

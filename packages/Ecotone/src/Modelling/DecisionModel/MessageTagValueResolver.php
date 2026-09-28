@@ -9,18 +9,11 @@ use Ecotone\EventSourcing\Tagging\EventTagValueNormalizer;
 use ReflectionClass;
 use ReflectionProperty;
 
-use function array_key_exists;
-
 /**
  * licence Enterprise
  */
 final class MessageTagValueResolver
 {
-    /**
-     * @var array<string, ?ReflectionProperty>
-     */
-    private static array $resolvedAccessors = [];
-
     public static function resolve(string $tagName, object $payload): ?string
     {
         $property = self::accessorFor($payload::class, $tagName);
@@ -35,16 +28,6 @@ final class MessageTagValueResolver
     }
 
     private static function accessorFor(string $payloadClassName, string $tagName): ?ReflectionProperty
-    {
-        $cacheKey = $payloadClassName . "\0" . $tagName;
-        if (array_key_exists($cacheKey, self::$resolvedAccessors)) {
-            return self::$resolvedAccessors[$cacheKey];
-        }
-
-        return self::$resolvedAccessors[$cacheKey] = self::resolveAccessor($payloadClassName, $tagName);
-    }
-
-    private static function resolveAccessor(string $payloadClassName, string $tagName): ?ReflectionProperty
     {
         $reflectionClass = new ReflectionClass($payloadClassName);
 

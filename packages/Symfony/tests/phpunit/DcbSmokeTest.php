@@ -15,6 +15,9 @@ use PHPUnit\Framework\TestCase;
 use Symfony\App\DcbSmoke\IssueCoupon;
 use Symfony\App\DcbSmoke\Kernel;
 use Symfony\App\DcbSmoke\RedeemCoupon;
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\NullOutput;
 
 /**
  * licence Enterprise
@@ -46,6 +49,7 @@ final class DcbSmokeTest extends TestCase
         $connectionFactory = $container->get(DbalConnectionFactory::class);
         $connection = $connectionFactory->createContext()->getDbalConnection();
         $this->dropTables($connection);
+        $this->initializeDatabase($kernel);
 
         /** @var CommandBus $commandBus */
         $commandBus = $container->get(CommandBus::class);
@@ -60,6 +64,13 @@ final class DcbSmokeTest extends TestCase
 
         $this->expectExceptionMessage('Coupon SUMMER24 is exhausted');
         $commandBus->send(new RedeemCoupon('SUMMER24'));
+    }
+
+    private function initializeDatabase(Kernel $kernel): void
+    {
+        $application = new Application($kernel);
+        $application->setAutoExit(false);
+        $application->run(new ArrayInput(['command' => 'ecotone:migration:database:setup', '--initialize' => true]), new NullOutput());
     }
 
     private function dropTables(Connection $connection): void

@@ -31,9 +31,6 @@ interface DbalTagCollaborator
         ?AppendCondition $appendCondition,
     ): void;
 
-    /**
-     * @return array{lastNo: int, eventsScanned: int, eventsTagged: int, tagsBumped: int, undeserializable: array<int>}
-     */
     public function backfillTagsForStream(
         DbalEventStore $eventStore,
         Connection $connection,
@@ -45,7 +42,8 @@ interface DbalTagCollaborator
         int $batchSize,
         bool $dryRun,
         bool $skipUndeserializable,
-    ): array;
+        TagBackfillReport $report,
+    ): void;
 
     public function deleteTagIndexFor(Connection $connection, string $tableName): void;
 }

@@ -45,7 +45,8 @@ final class OpenCoreDbalTagCollaborator implements DbalTagCollaborator
         int $batchSize,
         bool $dryRun,
         bool $skipUndeserializable,
-    ): array {
+        TagBackfillReport $report,
+    ): void {
         throw DynamicConsistencyBoundaryDisabled::exception();
     }
 

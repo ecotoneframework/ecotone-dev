@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Api\EventSourcing;
 
+use Ecotone\EventSourcing\Tagging\TagKey;
 use Ecotone\Modelling\AggregateMessage;
 
 /**
@@ -42,7 +43,7 @@ final class AppendCondition
     {
         $indexed = [];
         foreach ($expectedTagVersions as $expectedTagVersion) {
-            $indexed[self::key($expectedTagVersion['name'], $expectedTagVersion['value'])] = $expectedTagVersion;
+            $indexed[TagKey::of($expectedTagVersion['name'], $expectedTagVersion['value'])] = $expectedTagVersion;
         }
 
         return new self($indexed, null);
@@ -106,10 +107,5 @@ final class AppendCondition
     public function isEmpty(): bool
     {
         return $this->expectedTagVersions === [] && $this->aggregateExpectation === null;
-    }
-
-    private static function key(string $name, string $value): string
-    {
-        return $name . "\0" . $value;
     }
 }

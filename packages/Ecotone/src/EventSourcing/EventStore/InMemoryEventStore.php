@@ -112,11 +112,9 @@ final class InMemoryEventStore implements EventStore, AppendableStore
         $this->tagCollaborator->appendEventsWithTagCondition($this, $streamName, $events, $appendCondition);
     }
 
-    public function appendEvent(string $streamName, Event $event): int
+    public function nextEventNumber(string $streamName): int
     {
-        $this->streams[$streamName]['events'][] = $event;
-
-        return count($this->streams[$streamName]['events']);
+        return count($this->streams[$streamName]['events']) + 1;
     }
 
     public function eventAt(string $streamName, int $eventNo): ?Event

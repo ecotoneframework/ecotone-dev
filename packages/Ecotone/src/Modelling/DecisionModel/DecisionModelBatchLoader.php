@@ -8,11 +8,9 @@ use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\Tagging\EventTagRegistry;
+use Ecotone\EventSourcing\Tagging\TagResolver;
 use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Event;
-
-use function is_object;
 
 /**
  * licence Enterprise
@@ -24,7 +22,7 @@ final class DecisionModelBatchLoader
      */
     public function __construct(
         private readonly EventStore $eventStore,
-        private readonly EventTagRegistry $eventTagRegistry,
+        private readonly TagResolver $tagResolver,
         private readonly array $loaders,
     ) {
     }
@@ -34,83 +32,59 @@ final class DecisionModelBatchLoader
      */
     public function load(Message $message): array
     {
+        $criteriaByParameterName = $this->criteriaByParameterName($message);
+        $loadedEvents = $this->loadEventsFor($criteriaByParameterName);
+        $instancesByParameterName = $this->foldInstances($criteriaByParameterName, $loadedEvents->events);
+
+        return [DecisionModelLoadedState::HEADER_NAME => new DecisionModelLoadedState($instancesByParameterName, $loadedEvents->appendCondition)];
+    }
+
+    /**
+     * @return array<string, ?EventCriteria>
+     */
+    private function criteriaByParameterName(Message $message): array
+    {
         $criteriaByParameterName = [];
         foreach ($this->loaders as $loader) {
             $criteriaByParameterName[$loader->parameterName()] = $loader->resolveCriteria($message);
         }
 
+        return $criteriaByParameterName;
+    }
+
+    /**
+     * @param array<string, ?EventCriteria> $criteriaByParameterName
+     */
+    private function loadEventsFor(array $criteriaByParameterName): LoadedEvents
+    {
         $combinedCriteria = null;
         foreach ($criteriaByParameterName as $criteria) {
-            if ($criteria === null) {
-                continue;
+            if ($criteria !== null) {
+                $combinedCriteria = $combinedCriteria?->or($criteria) ?? $criteria;
             }
-
-            $combinedCriteria = $combinedCriteria === null ? $criteria : $combinedCriteria->or($criteria);
         }
 
-        $loadedEvents = $combinedCriteria === null
+        return $combinedCriteria === null
             ? new LoadedEvents([], AppendCondition::empty())
             : $this->eventStore->loadByCriteria($combinedCriteria);
+    }
 
+    /**
+     * @param array<string, ?EventCriteria> $criteriaByParameterName
+     * @param Event[] $events
+     * @return array<string, ?object>
+     */
+    private function foldInstances(array $criteriaByParameterName, array $events): array
+    {
         $instancesByParameterName = [];
         foreach ($this->loaders as $loader) {
             $criteria = $criteriaByParameterName[$loader->parameterName()];
 
             $instancesByParameterName[$loader->parameterName()] = $criteria === null
                 ? null
-                : $loader->fold(self::eventsMatching($loadedEvents->events, $criteria, $this->eventTagRegistry));
+                : $loader->fold($this->tagResolver->eventsMatching($events, $criteria));
         }
 
-        return [DecisionModelLoadedState::HEADER_NAME => new DecisionModelLoadedState($instancesByParameterName, $loadedEvents->appendCondition)];
-    }
-
-    /**
-     * @param Event[] $events
-     * @return Event[]
-     */
-    private static function eventsMatching(array $events, EventCriteria $criteria, EventTagRegistry $eventTagRegistry): array
-    {
-        $requiredTags = $criteria->tags();
-
-        $matching = [];
-        foreach ($events as $event) {
-            if (! $criteria->matchesEventType($event->getEventName())) {
-                continue;
-            }
-
-            if ($requiredTags !== [] && ! self::eventCarriesAllTags($event, $requiredTags, $eventTagRegistry)) {
-                continue;
-            }
-
-            $matching[] = $event;
-        }
-
-        return $matching;
-    }
-
-    /**
-     * @param array<array{name: string, value: string}> $requiredTags
-     */
-    private static function eventCarriesAllTags(Event $event, array $requiredTags, EventTagRegistry $eventTagRegistry): bool
-    {
-        $payload = $event->getPayload();
-        $eventTags = is_object($payload) ? $eventTagRegistry->tagsFor($payload) : [];
-
-        foreach ($requiredTags as $requiredTag) {
-            $found = false;
-            foreach ($eventTags as $eventTag) {
-                if ($eventTag['name'] === $requiredTag['name'] && $eventTag['value'] === $requiredTag['value']) {
-                    $found = true;
-
-                    break;
-                }
-            }
-
-            if (! $found) {
-                return false;
-            }
-        }
-
-        return true;
+        return $instancesByParameterName;
     }
 }

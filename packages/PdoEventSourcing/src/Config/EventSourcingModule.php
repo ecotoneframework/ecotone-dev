@@ -40,8 +40,8 @@ use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
 use Ecotone\EventSourcing\SerializingEventStore;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryServices;
-use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
+use Ecotone\EventSourcing\Tagging\TagResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
@@ -303,7 +303,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         );
         $messagingConfiguration->registerServiceDefinition(
             InMemoryTagConditionalStore::class,
-            new Definition(InMemoryTagConditionalStore::class, [Reference::to(EventTagRegistry::class)]),
+            new Definition(InMemoryTagConditionalStore::class, [Reference::to(TagResolver::class)]),
         );
         $messagingConfiguration->registerServiceDefinition(
             InMemoryTagCollaborator::class,
@@ -319,7 +319,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         );
         $messagingConfiguration->registerServiceDefinition(
             EnterpriseDbalTagCollaborator::class,
-            new Definition(EnterpriseDbalTagCollaborator::class, [Reference::to(EventTagRegistry::class)]),
+            new Definition(EnterpriseDbalTagCollaborator::class, [Reference::to(TagResolver::class)]),
         );
         $messagingConfiguration->registerServiceDefinition(
             DbalTagCollaborator::class,

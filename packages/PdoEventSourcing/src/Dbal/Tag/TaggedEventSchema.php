@@ -33,13 +33,7 @@ interface TaggedEventSchema
      */
     public function insertInitialVersionSql(string $tableName): string;
 
-    /**
-     * Unconditional insert-or-bump of a tag's version, used only by the tag backfill. Returns the row's new version
-     * when supportsReturningOnUpsert() is true; otherwise the caller must SELECT it back inside the same transaction.
-     */
     public function upsertIncrementVersionSql(string $tableName): string;
-
-    public function supportsReturningOnUpsert(): bool;
 
     /**
      * The placeholder expression for a bigint parameter inside a `SELECT ? AS x` branch of a UNION ALL. Some

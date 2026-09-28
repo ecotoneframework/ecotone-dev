@@ -4,197 +4,53 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\EventStore\Tag;
 
-use function array_intersect_key;
-use function array_map;
 use function array_values;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
-use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
-use Ecotone\EventSourcing\Tagging\EventTagRegistry;
-
-use function is_object;
-use function ksort;
-use function uasort;
+use Ecotone\EventSourcing\Tagging\TagResolver;
 
 /**
  * licence Enterprise
  */
 final class InMemoryTagConditionalStore implements InMemoryTagCollaborator
 {
-    /**
-     * @var array<string, array<string, array<array{stream: string, eventNo: int, tagVersion: int}>>>
-     */
-    private array $tagIndex = [];
+    private InMemoryTagVersions $versions;
 
-    /**
-     * @var array<string, int>
-     */
-    private array $tagVersions = [];
+    private InMemoryTagIndex $index;
 
     public function __construct(
-        private readonly EventTagRegistry $eventTagRegistry,
+        private readonly TagResolver $tagResolver,
     ) {
+        $this->versions = new InMemoryTagVersions();
+        $this->index = new InMemoryTagIndex();
     }
 
     public function loadByCriteria(InMemoryEventStore $eventStore, EventCriteria $criteria): LoadedEvents
     {
-        $branches = $criteria->branches();
+        $captured = $this->versions->capture($this->tagResolver->tagsOfCriteria($criteria));
+        $events = $this->index->eventsMatching($eventStore, $criteria);
 
-        $capturedTags = [];
-        foreach ($branches as $criterion) {
-            foreach ($criterion->tags() as $tag) {
-                $key = $this->tagVersionKey($tag['name'], $tag['value']);
-                if (! isset($capturedTags[$key])) {
-                    $capturedTags[$key] = [
-                        'name' => $tag['name'],
-                        'value' => $tag['value'],
-                        'expectedVersion' => $this->currentTagVersion($tag['name'], $tag['value']),
-                    ];
-                }
-            }
-        }
-
-        $matched = [];
-        foreach ($branches as $criterion) {
-            $tags = $criterion->tags();
-            if ($tags === []) {
-                continue;
-            }
-
-            $refSets = null;
-            foreach ($tags as $tag) {
-                $refs = $this->tagIndex[$tag['name']][$tag['value']] ?? [];
-                $keyed = [];
-                foreach ($refs as $ref) {
-                    $keyed[$ref['stream'] . "\0" . $ref['eventNo']] = $ref;
-                }
-
-                $refSets = $refSets === null ? $keyed : array_intersect_key($refSets, $keyed);
-            }
-
-            $primaryTag = $tags[0];
-            $primaryRefsByKey = [];
-            foreach ($this->tagIndex[$primaryTag['name']][$primaryTag['value']] ?? [] as $ref) {
-                $primaryRefsByKey[$ref['stream'] . "\0" . $ref['eventNo']] = $ref;
-            }
-
-            foreach ($refSets as $refKey => $ref) {
-                $event = $eventStore->eventAt($ref['stream'], $ref['eventNo']);
-                if ($event === null || ! $criterion->matchesEventType($event->getEventName())) {
-                    continue;
-                }
-
-                $tagVersion = $primaryRefsByKey[$refKey]['tagVersion'] ?? $ref['tagVersion'];
-
-                if (! isset($matched[$refKey]) || $matched[$refKey]['tagVersion'] > $tagVersion) {
-                    $matched[$refKey] = [
-                        'eventNo' => $ref['eventNo'],
-                        'tagVersion' => $tagVersion,
-                        'event' => $event,
-                    ];
-                }
-            }
-        }
-
-        uasort($matched, static function (array $a, array $b): int {
-            return $a['tagVersion'] <=> $b['tagVersion'] ?: $a['eventNo'] <=> $b['eventNo'];
-        });
-
-        $events = array_values(array_map(static fn (array $match) => $match['event'], $matched));
-
-        return new LoadedEvents($events, AppendCondition::fromCapturedVersions(array_values($capturedTags)));
+        return new LoadedEvents($events, AppendCondition::fromCapturedVersions(array_values($captured)));
     }
 
     public function appendEventsWithTagCondition(InMemoryEventStore $eventStore, string $streamName, array $events, ?AppendCondition $appendCondition): void
     {
-        $perEventTags = [];
-        $tagsInvolved = [];
-        foreach ($events as $event) {
-            $payload = $event->getPayload();
-            $tags = is_object($payload) ? $this->eventTagRegistry->tagsFor($payload) : [];
-            $perEventTags[] = $tags;
-            foreach ($tags as $tag) {
-                if ($this->eventTagRegistry->isFilterOnly($tag['name'])) {
-                    continue;
-                }
+        $appended = $this->tagResolver->resolveAppend($events, $appendCondition);
+        $expected = $appended->expectedVersions($this->versions->capture($appended->needingCapture()));
 
-                $tagsInvolved[$this->tagVersionKey($tag['name'], $tag['value'])] = $tag;
-            }
-        }
+        $this->versions->assertUnchanged($expected);
+        $this->versions->bump($expected);
 
-        $expectedVersions = [];
-        foreach ($tagsInvolved as $key => $tag) {
-            $expectedVersions[$key] = ['name' => $tag['name'], 'value' => $tag['value'], 'expectedVersion' => $this->currentTagVersion($tag['name'], $tag['value'])];
-        }
-
-        if ($appendCondition !== null) {
-            foreach ($appendCondition->expectedTagVersions() as $expected) {
-                $expectedVersions[$this->tagVersionKey($expected['name'], $expected['value'])] = $expected;
-            }
-        }
-
-        ksort($expectedVersions);
-        foreach ($expectedVersions as $expected) {
-            $current = $this->currentTagVersion($expected['name'], $expected['value']);
-            if ($current !== $expected['expectedVersion']) {
-                throw DecisionModelConcurrencyException::forConflict(
-                    $expected['name'],
-                    $expected['value'],
-                    $expected['expectedVersion'],
-                    $current,
-                );
-            }
-        }
-
-        $newVersions = [];
-        foreach ($expectedVersions as $key => $expected) {
-            $newVersions[$key] = $this->bumpTagVersion($expected['name'], $expected['value']);
-        }
-
-        foreach ($events as $i => $event) {
-            $eventNo = $eventStore->appendEvent($streamName, $event);
-
-            foreach ($perEventTags[$i] as $tag) {
-                $key = $this->tagVersionKey($tag['name'], $tag['value']);
-                $this->tagIndex[$tag['name']][$tag['value']][] = [
-                    'stream' => $streamName,
-                    'eventNo' => $eventNo,
-                    'tagVersion' => $this->eventTagRegistry->isFilterOnly($tag['name']) ? 0 : $newVersions[$key],
-                ];
-            }
-        }
+        $firstEventNo = $eventStore->nextEventNumber($streamName);
+        $eventStore->appendEventsUnconditionally($streamName, $events);
+        $this->index->record($streamName, $firstEventNo, $appended->sequencedAfterBump($expected));
     }
 
     public function deleteTagIndexFor(string $streamName): void
     {
-        foreach ($this->tagIndex as $tagName => $tagValues) {
-            foreach ($tagValues as $tagValue => $refs) {
-                $this->tagIndex[$tagName][$tagValue] = array_values(array_filter(
-                    $refs,
-                    static fn (array $ref): bool => $ref['stream'] !== $streamName
-                ));
-            }
-        }
-    }
-
-    private function tagVersionKey(string $name, string $value): string
-    {
-        return $name . "\0" . $value;
-    }
-
-    private function currentTagVersion(string $name, string $value): int
-    {
-        return $this->tagVersions[$this->tagVersionKey($name, $value)] ?? 0;
-    }
-
-    private function bumpTagVersion(string $name, string $value): int
-    {
-        $key = $this->tagVersionKey($name, $value);
-        $this->tagVersions[$key] = ($this->tagVersions[$key] ?? 0) + 1;
-
-        return $this->tagVersions[$key];
+        $this->index->deleteStream($streamName);
     }
 }

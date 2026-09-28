@@ -11,6 +11,7 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Laravel\EcotoneCacheClear;
 use Ecotone\Laravel\EcotoneProvider;
 use Ecotone\Test\LicenceTesting;
+use Illuminate\Contracts\Console\Kernel as ConsoleKernel;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Http\Kernel;
 use PHPUnit\Framework\TestCase;
@@ -39,6 +40,8 @@ final class DcbSmokeTest extends TestCase
                 $connection->executeStatement('DROP TABLE ' . $tableName);
             }
         }
+
+        $app->make(ConsoleKernel::class)->call('ecotone:migration:database:setup', ['--initialize' => true]);
     }
 
     protected function tearDown(): void

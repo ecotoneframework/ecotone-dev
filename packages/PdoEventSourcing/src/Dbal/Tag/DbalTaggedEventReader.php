@@ -4,24 +4,18 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\Dbal\Tag;
 
-use function array_fill;
-use function array_map;
 use function array_values;
-use function count;
 
 use Doctrine\DBAL\Connection;
-use Doctrine\DBAL\ParameterType;
+use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
-use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
-use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
-use Ecotone\EventSourcing\StreamTableRegistry;
+use Ecotone\EventSourcing\Tagging\MatchedEvents;
+use Ecotone\EventSourcing\Tagging\TagKey;
+use Ecotone\EventSourcing\Tagging\TagResolver;
 use Ecotone\Modelling\Event;
-
-use function implode;
-use function uasort;
 
 /**
  * licence Enterprise
@@ -29,176 +23,76 @@ use function uasort;
 final class DbalTaggedEventReader
 {
     public function __construct(
-        private readonly DbalTagVersionRegister $versionRegister,
+        private readonly TagResolver $tagResolver,
+        private readonly DbalTagTables $tables,
+        private readonly DbalTagVersionRegister $versions,
+        private readonly DbalTagIndex $index,
     ) {
     }
 
     public function loadByCriteria(DbalEventStore $eventStore, Connection $connection, EventCriteria $criteria): LoadedEvents
     {
-        $branches = $criteria->branches();
-
-        $tagSchema = TaggedEventSchemaFactory::for($connection);
-
-        $allTags = [];
-        foreach ($branches as $criterion) {
-            foreach ($criterion->tags() as $tag) {
-                $allTags[$this->versionRegister->tagKey($tag['name'], $tag['value'])] = $tag;
-            }
-        }
-
-        if ($allTags === []) {
+        $tags = $this->tagResolver->tagsOfCriteria($criteria);
+        if ($tags === []) {
             return new LoadedEvents([], AppendCondition::empty());
         }
 
-        $this->versionRegister->ensureTagTablesExist($eventStore, $connection, StreamTableRegistry::DEFAULT_STREAM);
-
-        $capturedTags = $this->versionRegister->captureTagVersions($connection, $tagSchema, $allTags);
-        $flags = $this->fetchTagFlags($connection, $tagSchema, $allTags);
-
-        if ($flags === []) {
-            return new LoadedEvents([], AppendCondition::fromCapturedVersions(array_values($capturedTags)));
+        try {
+            $captured = $this->versions->capture($connection, $tags);
+            $flags = $this->index->flagsFor($connection, $tags);
+            $eventsByStream = $this->index->eventsReferencedBy($eventStore, $connection, $flags);
+        } catch (TableNotFoundException) {
+            throw $this->tables->missingTablesException($eventStore, $connection);
         }
 
-        $eventsByStream = $this->fetchCandidateEvents($eventStore, $connection, $flags);
+        return new LoadedEvents(
+            $this->matchingEvents($criteria, $flags, $eventsByStream),
+            AppendCondition::fromCapturedVersions(array_values($captured))
+        );
+    }
 
-        $matched = [];
-        foreach ($branches as $criterion) {
-            $tags = $criterion->tags();
-            if ($tags === []) {
+    /**
+     * @param array<array{stream: string, eventNo: int, has: array<string, bool>, seq: array<string, ?int>}> $flags
+     * @param array<string, array<int, Event>> $eventsByStream
+     * @return Event[]
+     */
+    private function matchingEvents(EventCriteria $criteria, array $flags, array $eventsByStream): array
+    {
+        $matched = new MatchedEvents();
+
+        foreach ($criteria->branches() as $branch) {
+            if ($branch->tags() === []) {
                 continue;
             }
 
-            $primaryKey = $this->versionRegister->tagKey($tags[0]['name'], $tags[0]['value']);
+            $primaryKey = TagKey::of($branch->tags()[0]['name'], $branch->tags()[0]['value']);
 
-            foreach ($flags as $refKey => $flag) {
-                $matchesAllTags = true;
-                foreach ($tags as $tag) {
-                    if (empty($flag['has'][$this->versionRegister->tagKey($tag['name'], $tag['value'])])) {
-                        $matchesAllTags = false;
-
-                        break;
-                    }
-                }
-
-                if (! $matchesAllTags) {
-                    continue;
-                }
-
+            foreach ($flags as $flag) {
                 $event = $eventsByStream[$flag['stream']][$flag['eventNo']] ?? null;
-                if ($event === null || ! $criterion->matchesEventType($event->getEventName())) {
-                    continue;
-                }
-
                 $tagVersion = $flag['seq'][$primaryKey] ?? null;
-                if ($tagVersion === null) {
+
+                if ($event === null || $tagVersion === null || ! $this->flagCarriesAllTags($flag, $branch) || ! $branch->matchesEventType($event->getEventName())) {
                     continue;
                 }
 
-                if (! isset($matched[$refKey]) || $matched[$refKey]['tagVersion'] > $tagVersion) {
-                    $matched[$refKey] = ['tagVersion' => $tagVersion, 'eventNo' => $flag['eventNo'], 'event' => $event];
-                }
+                $matched->consider($flag['stream'], $flag['eventNo'], $tagVersion, $event);
             }
         }
 
-        uasort($matched, static fn (array $a, array $b): int => $a['tagVersion'] <=> $b['tagVersion'] ?: $a['eventNo'] <=> $b['eventNo']);
-
-        $events = array_values(array_map(static fn (array $match) => $match['event'], $matched));
-
-        return new LoadedEvents($events, AppendCondition::fromCapturedVersions(array_values($capturedTags)));
+        return $matched->inTagVersionOrder();
     }
 
     /**
-     * @param array<string, array{name: string, value: string}> $allTags
-     * @return array<string, array{stream: string, eventNo: int, has: array<string, bool>, seq: array<string, ?int>}>
+     * @param array{has: array<string, bool>} $flag
      */
-    private function fetchTagFlags(Connection $connection, TaggedEventSchema $tagSchema, array $allTags): array
+    private function flagCarriesAllTags(array $flag, EventCriteria $branch): bool
     {
-        $indexTable = $tagSchema->quoteIdentifier(TagTableManager::TAGGED_EVENTS_TABLE);
-
-        $selectColumns = [];
-        $selectParameters = [];
-        $whereConditions = [];
-        $whereParameters = [];
-        $tagIndexes = [];
-
-        $i = 0;
-        foreach ($allTags as $key => $tag) {
-            $tagIndexes[$key] = $i;
-
-            $selectColumns[] = "MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN tag_sequence END) AS seq_{$i}";
-            $selectParameters[] = $tag['name'];
-            $selectParameters[] = $tag['value'];
-
-            $selectColumns[] = "MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN 1 ELSE 0 END) AS has_{$i}";
-            $selectParameters[] = $tag['name'];
-            $selectParameters[] = $tag['value'];
-
-            $whereConditions[] = '(tag_name = ? AND tag_value = ?)';
-            $whereParameters[] = $tag['name'];
-            $whereParameters[] = $tag['value'];
-
-            $i++;
-        }
-
-        $sql = 'SELECT stream_name, event_no, ' . implode(', ', $selectColumns)
-            . " FROM {$indexTable} WHERE " . implode(' OR ', $whereConditions)
-            . ' GROUP BY stream_name, event_no';
-
-        $rows = $this->versionRegister->runGuarded(
-            fn () => $connection->executeQuery($sql, [...$selectParameters, ...$whereParameters])->fetchAllAssociative()
-        );
-
-        $flags = [];
-        foreach ($rows as $row) {
-            $refKey = $row['stream_name'] . "\0" . $row['event_no'];
-            $has = [];
-            $seq = [];
-            foreach ($tagIndexes as $key => $idx) {
-                $has[$key] = ((int) $row["has_{$idx}"]) === 1;
-                $seq[$key] = $row["seq_{$idx}"] !== null ? (int) $row["seq_{$idx}"] : null;
-            }
-
-            $flags[$refKey] = [
-                'stream' => $row['stream_name'],
-                'eventNo' => (int) $row['event_no'],
-                'has' => $has,
-                'seq' => $seq,
-            ];
-        }
-
-        return $flags;
-    }
-
-    /**
-     * @param array<string, array{stream: string, eventNo: int}> $flags
-     * @return array<string, array<int, Event>>
-     */
-    private function fetchCandidateEvents(DbalEventStore $eventStore, Connection $connection, array $flags): array
-    {
-        $eventNosByStream = [];
-        foreach ($flags as $flag) {
-            $eventNosByStream[$flag['stream']][] = $flag['eventNo'];
-        }
-
-        $schema = EventStreamSchemaFactory::for($connection);
-        $eventsByStream = [];
-        foreach ($eventNosByStream as $streamTable => $eventNos) {
-            $placeholders = implode(', ', array_fill(0, count($eventNos), '?'));
-            $types = array_fill(0, count($eventNos), ParameterType::INTEGER);
-
-            $rows = $this->versionRegister->runGuarded(
-                fn () => $connection->executeQuery(
-                    'SELECT no, event_name, payload, metadata FROM ' . $schema->quoteIdentifier($streamTable) . " WHERE no IN ({$placeholders})",
-                    $eventNos,
-                    $types
-                )->fetchAllAssociative()
-            );
-
-            foreach ($rows as $row) {
-                $eventsByStream[$streamTable][(int) $row['no']] = $eventStore->convertToEvent($row, true);
+        foreach ($branch->tags() as $tag) {
+            if (! ($flag['has'][TagKey::of($tag['name'], $tag['value'])] ?? false)) {
+                return false;
             }
         }
 
-        return $eventsByStream;
+        return true;
     }
 }

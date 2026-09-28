@@ -73,11 +73,6 @@ class MySqlTaggedEventSchema implements TaggedEventSchema
         return "INSERT INTO {$quoted} (tag_name, tag_value, version) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE version = version + 1";
     }
 
-    public function supportsReturningOnUpsert(): bool
-    {
-        return false;
-    }
-
     public function bigIntPlaceholder(): string
     {
         return '?';

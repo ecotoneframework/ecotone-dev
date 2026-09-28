@@ -94,6 +94,23 @@ final class TagTableSetupTest extends EventSourcingMessagingTestCase
         self::inTransaction(fn () => $eventStore->appendTo('ecotone_event_stream', [new CouponIssuedForTagTableSetupTest('SUMMER24', 2)]));
     }
 
+    public function test_loading_by_criteria_needs_initialized_database_and_works_once_it_is(): void
+    {
+        $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);
+        $eventStore = $ecotone->getGateway(EventStore::class);
+
+        try {
+            $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'));
+            self::fail('Loading by criteria should not create the tag tables');
+        } catch (ConfigurationException $exception) {
+            self::assertStringContainsString(TagTableManager::FEATURE_NAME, $exception->getMessage());
+        }
+
+        $ecotone->initializeDatabase();
+
+        self::assertSame([], $eventStore->loadByCriteria(EventCriteria::tag('coupon', 'SUMMER24'))->events);
+    }
+
     public function test_tag_values_are_case_sensitive(): void
     {
         $ecotone = $this->bootstrapEcotone([CouponIssuedForTagTableSetupTest::class]);

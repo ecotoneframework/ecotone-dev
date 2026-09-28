@@ -10,7 +10,6 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -25,7 +24,7 @@ final class EventTagFilterOnlyTest extends TestCase
         $ecotone = EcotoneLite::bootstrapFlowTesting(
             classesToResolve: [TenantScopedEventForFilterOnlyTest::class],
             configuration: ServiceConfiguration::createWithDefaults()
-                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults(), BaseEventSourcingConfiguration::withDefaults()->withFilterOnlyTags(['tenant'])]),
+                ->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant'])]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 

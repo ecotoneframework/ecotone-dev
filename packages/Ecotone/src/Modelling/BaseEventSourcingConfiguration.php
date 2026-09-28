@@ -13,12 +13,8 @@ class BaseEventSourcingConfiguration implements DefinedObject
 {
     public const DEFAULT_SNAPSHOT_TRIGGER_THRESHOLD = 100;
 
-    /**
-     * @param string[] $filterOnlyTagNames
-     */
     public function __construct(
         private array $snapshotsAggregateClasses = [],
-        private array $filterOnlyTagNames = [],
     ) {
 
     }
@@ -60,31 +56,12 @@ class BaseEventSourcingConfiguration implements DefinedObject
         return $this->snapshotsAggregateClasses[$className]['documentStore'] ?? DocumentStore::class;
     }
 
-    /**
-     * @param string[] $tagNames
-     */
-    public function withFilterOnlyTags(array $tagNames): static
-    {
-        $this->filterOnlyTagNames = $tagNames;
-
-        return $this;
-    }
-
-    /**
-     * @return string[]
-     */
-    public function getFilterOnlyTagNames(): array
-    {
-        return $this->filterOnlyTagNames;
-    }
-
     public function getDefinition(): Definition
     {
         return new Definition(
             self::class,
             [
                 $this->snapshotsAggregateClasses,
-                $this->filterOnlyTagNames,
             ]
         );
     }

@@ -358,7 +358,8 @@ public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfigur
 ```
 
 - **Registered:** everything below. Registering it without an Enterprise licence is a `LicensingException` at
-  bootstrap, before any message is handled.
+  bootstrap, before any message is handled. It is also where DCB is configured: every option is a `with*` method on
+  this one object (today: `withFilterOnlyTags()`, below).
 - **Not registered:** a `#[DecisionModel]` class, a `#[DecisionBoundary]` method, or a handler injecting a decision
   model is a `ConfigurationException` at bootstrap ("Dynamic Consistency Boundary is disabled. Register
   DynamicConsistencyBoundaryConfiguration::createWithDefaults() as an extension object (#[ServiceContext]) to enable
@@ -524,9 +525,9 @@ no transaction.
 
   ```php
   #[ServiceContext]
-  public function eventSourcing(): BaseEventSourcingConfiguration
+  public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfiguration
   {
-      return BaseEventSourcingConfiguration::withDefaults()->withFilterOnlyTags(['tenant']);
+      return DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant']);
   }
   ```
 

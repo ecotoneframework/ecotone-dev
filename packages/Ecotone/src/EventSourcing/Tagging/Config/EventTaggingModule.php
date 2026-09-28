@@ -6,12 +6,10 @@ namespace Ecotone\EventSourcing\Tagging\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\EventSourcing\Tagging\TagResolver;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -20,7 +18,6 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Support\LicensingException;
-use Ecotone\Modelling\BaseEventSourcingConfiguration;
 
 #[ModuleAnnotation]
 /**
@@ -42,19 +39,15 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (ExtensionObjectResolver::contains(DynamicConsistencyBoundaryConfiguration::class, $extensionObjects) && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
+        $dynamicConsistencyBoundary = DynamicConsistencyBoundary::resolveFrom($extensionObjects);
+
+        if ($dynamicConsistencyBoundary->isEnabled() && ! $messagingConfiguration->isRunningForEnterpriseLicence()) {
             throw LicensingException::create('Dynamic Consistency Boundary (DynamicConsistencyBoundaryConfiguration) requires Ecotone Enterprise Licence.');
         }
 
-        $filterOnlyTagNames = ExtensionObjectResolver::resolveUnique(
-            BaseEventSourcingConfiguration::class,
-            $extensionObjects,
-            BaseEventSourcingConfiguration::withDefaults(),
-        )->getFilterOnlyTagNames();
-
         $messagingConfiguration->registerServiceDefinition(
             EventTagRegistry::class,
-            new Definition(EventTagRegistry::class, [$this->rawDefinitions, $filterOnlyTagNames], 'createWith'),
+            new Definition(EventTagRegistry::class, [$this->rawDefinitions, $dynamicConsistencyBoundary->filterOnlyTagNames()], 'createWith'),
         );
         $messagingConfiguration->registerServiceDefinition(
             TagResolver::class,

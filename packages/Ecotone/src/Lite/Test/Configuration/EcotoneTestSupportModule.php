@@ -9,7 +9,6 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\InternalHandler;
 use Ecotone\Api\Attribute\ModuleAnnotation;
-use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -20,14 +19,9 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\DynamicConsistencyBoundaryStrategy;
-use Ecotone\EventSourcing\EventStore\AppendStrategy\StandardConsistencyBoundaryStrategy;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
-use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagConditionalStore;
-use Ecotone\EventSourcing\EventStore\Tag\OpenCoreInMemoryTagCollaborator;
-use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryServices;
-use Ecotone\EventSourcing\Tagging\TagResolver;
+use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -442,9 +436,7 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
     {
         $registerInMemoryEventStoreStreamSource = false;
         if (! $serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
-            $dynamicConsistencyBoundaryEnabled = ExtensionObjectResolver::contains(DynamicConsistencyBoundaryConfiguration::class, $extensionObjects);
-            $this->registerAppendStrategy($messagingConfiguration, $dynamicConsistencyBoundaryEnabled);
-            $this->registerInMemoryTagCollaborator($messagingConfiguration, $dynamicConsistencyBoundaryEnabled);
+            DynamicConsistencyBoundary::resolveFrom($extensionObjects)->registerServicesForInMemoryStore($messagingConfiguration);
 
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
@@ -482,37 +474,5 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 ])
             );
         }
-    }
-
-    private function registerAppendStrategy(Configuration $messagingConfiguration, bool $dynamicConsistencyBoundaryEnabled): void
-    {
-        $messagingConfiguration->registerServiceDefinition(
-            StandardConsistencyBoundaryStrategy::class,
-            new Definition(StandardConsistencyBoundaryStrategy::class),
-        );
-        $messagingConfiguration->registerServiceDefinition(
-            DynamicConsistencyBoundaryStrategy::class,
-            new Definition(DynamicConsistencyBoundaryStrategy::class),
-        );
-        $messagingConfiguration->registerServiceDefinition(
-            AppendStrategy::class,
-            DynamicConsistencyBoundaryServices::definitionFor($dynamicConsistencyBoundaryEnabled, AppendStrategy::class, StandardConsistencyBoundaryStrategy::class, DynamicConsistencyBoundaryStrategy::class),
-        );
-    }
-
-    private function registerInMemoryTagCollaborator(Configuration $messagingConfiguration, bool $dynamicConsistencyBoundaryEnabled): void
-    {
-        $messagingConfiguration->registerServiceDefinition(
-            OpenCoreInMemoryTagCollaborator::class,
-            new Definition(OpenCoreInMemoryTagCollaborator::class),
-        );
-        $messagingConfiguration->registerServiceDefinition(
-            InMemoryTagConditionalStore::class,
-            new Definition(InMemoryTagConditionalStore::class, [Reference::to(TagResolver::class)]),
-        );
-        $messagingConfiguration->registerServiceDefinition(
-            InMemoryTagCollaborator::class,
-            DynamicConsistencyBoundaryServices::definitionFor($dynamicConsistencyBoundaryEnabled, InMemoryTagCollaborator::class, OpenCoreInMemoryTagCollaborator::class, InMemoryTagConditionalStore::class),
-        );
     }
 }

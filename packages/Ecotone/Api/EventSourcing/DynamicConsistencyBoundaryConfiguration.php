@@ -9,12 +9,31 @@ namespace Ecotone\Api\EventSourcing;
  */
 final class DynamicConsistencyBoundaryConfiguration
 {
-    private function __construct()
+    /**
+     * @param string[] $filterOnlyTagNames
+     */
+    private function __construct(private readonly array $filterOnlyTagNames)
     {
     }
 
     public static function createWithDefaults(): self
     {
-        return new self();
+        return new self([]);
+    }
+
+    /**
+     * @param string[] $tagNames
+     */
+    public function withFilterOnlyTags(array $tagNames): self
+    {
+        return new self($tagNames);
+    }
+
+    /**
+     * @return string[]
+     */
+    public function filterOnlyTagNames(): array
+    {
+        return $this->filterOnlyTagNames;
     }
 }

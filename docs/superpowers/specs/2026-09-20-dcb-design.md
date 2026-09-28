@@ -305,13 +305,14 @@ final readonly class InvoiceIssued
 
 **Filter-only tags.** Every tag an event carries bumps a counter row that is then held until commit. A
 low-cardinality tag (`tenant`, `region`) would make most writers queue behind each other. Declared once per key,
-so two event classes can never disagree:
+so two event classes can never disagree. The declaration lives on the object that enables DCB
+(`DynamicConsistencyBoundaryConfiguration`, §4.9), so enabling and configuring DCB happen in one place:
 
 ```php
 #[ServiceContext]
-public function eventSourcing(): EventSourcingConfiguration
+public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfiguration
 {
-    return EventSourcingConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant']);
+    return DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant']);
 }
 ```
 
@@ -1133,9 +1134,12 @@ public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfigur
 }
 ```
 
-`Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration` is `licence Enterprise`, read from
-`$extensionObjects` by `EventTaggingModule`, `DecisionModelModule` and the Pdo `EventSourcingModule` (and the in-memory
-`EcotoneTestSupportModule`). Absent, the open-core (`OpenCore*`) classes are what runs — there is no third set:
+`Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration` is `licence Enterprise` and carries every DCB
+option (`withFilterOnlyTags()`). It is resolved from `$extensionObjects` exactly once per module, by
+`Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary`, which answers `isEnabled()`, exposes the
+configured options, and registers the DCB service set: `EventTaggingModule`, `DecisionModelModule`, the Pdo
+`EventSourcingModule` and the in-memory `EcotoneTestSupportModule` all consult it instead of testing the extension object
+themselves, and the two store modules share its `registerServicesForInMemoryStore()`. Absent, the open-core (`OpenCore*`) classes are what runs — there is no third set:
 `#[DecisionModel]`, `#[DecisionBoundary]` and decision-model injection are a bootstrap `ConfigurationException`;
 `loadByCriteria()`, a tag-bearing `AppendCondition` and the `backfill-tags` / `verify-schema` commands throw the same
 runtime `ConfigurationException`; `#[EventTag]` events are stored as plain rows (one `INSERT`, no tag tables, no
@@ -1188,7 +1192,7 @@ Not DCB, but the maintainer wants the store left clean by the same work. Each is
 | 3 | Backfill coverage guard | **No guard.** `backfill-tags` command shipped, modelled on the projection backfill; the user waits for completion before enabling decision models (§4.8) |
 | 4 | Automatic retry | **No.** Each user configures retries (`InstantRetryConfiguration` / `#[InstantRetry]`); documented up front (§4.5) |
 | 5 | Names | `#[EventTag]`, `#[DecisionModel(tags:)]`, `#[DecisionBoundary]`, `EventCriteria`, `TaggedEventStore::load/appendTo`, `#[Fetch]` for explicit mapping; tables `ecotone_tagged_events`, `ecotone_tag_versions` |
-| 6 | Filter-only tags | **Yes**, per key in `EventSourcingConfiguration::withFilterOnlyTags()` |
+| 6 | Filter-only tags | **Yes**, per key in `DynamicConsistencyBoundaryConfiguration::withFilterOnlyTags()` |
 | 7 | Returned array from a model-injecting handler | Appended as events; other handlers unchanged; output channel honoured |
 | 8 | Tag index as side table | **Yes** — MariaDB and SQLite cannot index JSON array membership |
 
@@ -1209,7 +1213,7 @@ depend only on task 2, so the user-facing layer can be reviewed on the in-memory
    test in the plan and every later task depends on it). `packages/Ecotone/Api/Attribute/EventTag.php`,
    `src/EventSourcing/Tagging/*`, a module scanning with `findClassesWithAnnotatedProperties`. Tests: property,
    promoted parameter, method, class-level literal; repeated key; array value; `null` skipped; non-scalar type and
-   invalid value (empty, > 255, trailing space) rejected; filter-only keys from `EventSourcingConfiguration`.
+   invalid value (empty, > 255, trailing space) rejected; filter-only keys from `DynamicConsistencyBoundaryConfiguration`.
 2. **Core — `TaggedEventStore`, `EventCriteria`, `AppendCondition`, in-memory implementation.** Gateway
    registration; `withEvents()` writes to the default stream; `InMemoryEventSourcedRepository` writes through the
    store so a model can see aggregate facts in core-only tests. Tests: OR and AND criteria; type filter; an event
@@ -1322,3 +1326,4 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-27 | **Review fix: `EventCriteria` gained `->or()`/`branches()`, `loadByCriteria()` made non-variadic, and it is now registered as a gateway action.** `EventCriteria::or(self $other): self` composes an OR of criteria into one object; `branches(): self[]` iterates the single-criterion leaves for `DbalEventStore`/`InMemoryEventStore`. `loadByCriteria(EventCriteria $criteria): LoadedEvents` replaces the variadic form everywhere, so `EventStore` obtained from the container or the gateway both expose it | **Maintainer**, review follow-up | The variadic signature was never reachable through the `EventStore` gateway, which the design doc's own §4.4 example assumes; "obtain the concrete store" is not acceptable for a public API. `EventStoreGatewayLoadByCriteriaTest` (in-memory) and `DbalTaggedLoadTest::test_loading_events_by_criteria_through_the_gateway_returns_the_event_that_carries_it` (PostgreSQL) cover the gateway path |
 | 2026-09-28 | **Stateless DCB services, pure optimistic locking, transactions required.** InnoDB own-bump snapshot tracking removed from `DbalTagVersionRegister`; the guarded `UPDATE` is the sole conflict mechanism. The event store never opens a transaction: tagged/conditional appends and `backfill-tags` throw `ConfigurationException` without one, naming the `DbalConfiguration` switch. Decision-model state is function-scoped: a per-handler before interceptor loads the batch once and carries an immutable `DecisionModelLoadedState` header (instances + `AppendCondition`) read by the converter, the append interceptor and `SaveAggregateService`; the message-id keyed collectors are deleted. `InMemoryEventStore` collaborators are constructor-only | **Maintainer** | Services injected through constructors must be stateless: the snapshot tracking leaked into the next transaction on the same connection, and the collectors leaked conditions/instances across query handlers, converter failures and retries with the same message id. A before interceptor rather than an around one, because around interceptors resolve the handler's arguments before they run and cannot hand converters a changed message |
 | 2026-09-28 | **DCB is opt-in through `DynamicConsistencyBoundaryConfiguration`, and every tagged append is guarded.** The extension object (Enterprise) enables decision models, event tags and append conditions; absent, bootstrap of a decision model/boundary throws `ConfigurationException`, `loadByCriteria`/tag conditions/`backfill-tags`/`verify-schema` throw it at runtime, and `#[EventTag]` events are plain rows with no tag tables. Registering it without a licence is a `LicensingException`. The unconditional counter bump on the append path is deleted: each tag not covered by the explicit condition is captured with a consistent `SELECT` and bumped with the guarded `UPDATE`; the upsert survives for the backfill only | **Maintainer** | The unconditional bump was a current read: an aggregate save made after a competing commit succeeded, and a synchronous decision-model handler in the same `REPEATABLE READ` transaction then read its own bump with events from the older snapshot and over-redeemed a coupon. The accepted §4.5 corner is gone: Anna's save now fails at step 3 |
+| 2026-09-28 | **DCB options move onto `DynamicConsistencyBoundaryConfiguration`; one class resolves the flag.** `withFilterOnlyTags()` is deleted from `BaseEventSourcingConfiguration`/`EventSourcingConfiguration` (2.0 branch, no shim) and lives on `DynamicConsistencyBoundaryConfiguration`. `Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary` reads the extension object once and registers the append-strategy and in-memory collaborator pairs for both the Pdo and the flow-testing module | **Maintainer**, readability review item 9 | Enabling and configuring DCB happened on two unrelated objects, and four modules each re-asked whether the extension object was present |

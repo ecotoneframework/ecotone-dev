@@ -16,17 +16,16 @@ use Ecotone\Api\Attribute\EventHandler;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\QueryHandler;
-use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Mapping\EventMapper;
+use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
 use Ecotone\EventSourcing\Tagging\DynamicConsistencyBoundaryDisabled;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\EventSourcing\Tagging\TagResolver;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
-use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\NoExternalConfigurationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\Configuration;
@@ -115,7 +114,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
     {
-        if (! ExtensionObjectResolver::contains(DynamicConsistencyBoundaryConfiguration::class, $extensionObjects) && $this->usesDecisionModels()) {
+        if (! DynamicConsistencyBoundary::resolveFrom($extensionObjects)->isEnabled() && $this->usesDecisionModels()) {
             throw DynamicConsistencyBoundaryDisabled::exception();
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Tagging;
 
+use Ecotone\Api\Attribute\AggregateType;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
@@ -63,6 +64,7 @@ final readonly class OrderPlacedForRoutingTest
 }
 
 #[EventSourcingAggregate]
+#[AggregateType('OrderForRouting')]
 final class OrderForRoutingTest
 {
     use WithAggregateVersioning;

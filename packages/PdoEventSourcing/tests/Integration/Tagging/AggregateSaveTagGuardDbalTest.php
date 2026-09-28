@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
 use Closure;
+use Ecotone\Api\Attribute\AggregateType;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
@@ -326,6 +327,7 @@ final class CompetingRedemptionForAggregateGuardTest
 }
 
 #[EventSourcingAggregate]
+#[AggregateType('OrderForAggregateGuard')]
 final class OrderForAggregateGuardTest
 {
     use WithAggregateVersioning;

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
+use Ecotone\Api\Attribute\AggregateType;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
@@ -291,6 +292,7 @@ final class CompetingWriteInjectorForDbalCouponTest
 }
 
 #[EventSourcingAggregate]
+#[AggregateType('OrderForDbalCoupon')]
 final class OrderForDbalCouponTest
 {
     use WithAggregateVersioning;

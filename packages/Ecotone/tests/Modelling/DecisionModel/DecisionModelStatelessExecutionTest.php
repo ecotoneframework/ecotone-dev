@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\Modelling\DecisionModel;
 
+use Ecotone\Api\Attribute\AggregateType;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
@@ -275,6 +276,7 @@ final class CompetingFundingForStatelessTest
 }
 
 #[EventSourcingAggregate]
+#[AggregateType('PaymentForStateless')]
 final class PaymentForStatelessTest
 {
     use WithAggregateVersioning;

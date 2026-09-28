@@ -8,7 +8,12 @@ use function array_diff;
 use function count;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\Aggregate;
+use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\Saga;
+use Ecotone\EventSourcing\Tagging\AggregateCounterTagGuard;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\EventSourcing\Tagging\TagResolver;
@@ -24,6 +29,7 @@ use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Support\LicensingException;
 
 use function implode;
+use function in_array;
 use function sprintf;
 
 #[ModuleAnnotation]
@@ -34,14 +40,18 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
 {
     /**
      * @param array<class-string, array<array{kind: string, name: string, member: ?string, value: ?string}>> $rawDefinitions
+     * @param array<class-string, ?string> $aggregateTypesByClass
      */
-    private function __construct(private array $rawDefinitions)
+    private function __construct(private array $rawDefinitions, private array $aggregateTypesByClass)
     {
     }
 
     public static function create(AnnotationFinder $annotationRegistrationService, InterfaceToCallRegistry $interfaceToCallRegistry): static
     {
-        return new self(EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService));
+        return new self(
+            EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService),
+            self::declaredAggregateTypesByClass($annotationRegistrationService),
+        );
     }
 
     public function prepare(Configuration $messagingConfiguration, array $extensionObjects, ModuleReferenceSearchService $moduleReferenceSearchService, InterfaceToCallRegistry $interfaceToCallRegistry): void
@@ -53,6 +63,10 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
         }
 
         $this->assertEveryFilterOnlyTagIsCarriedByAnEvent($dynamicConsistencyBoundary->filterOnlyTagNames());
+
+        if ($dynamicConsistencyBoundary->isEnabled()) {
+            AggregateCounterTagGuard::assertEveryAggregateHasACountableType($this->aggregateTypesByClass, $this->rawDefinitions);
+        }
 
         $messagingConfiguration->registerServiceDefinition(
             EventTagRegistry::class,
@@ -67,6 +81,28 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
     public function getModulePackageName(): string
     {
         return ModulePackageList::CORE_PACKAGE;
+    }
+
+    /**
+     * @return array<class-string, ?string>
+     */
+    private static function declaredAggregateTypesByClass(AnnotationFinder $annotationFinder): array
+    {
+        $sagaClasses = [
+            ...$annotationFinder->findAnnotatedClasses(Saga::class),
+            ...$annotationFinder->findAnnotatedClasses(EventSourcingSaga::class),
+        ];
+
+        $aggregateTypesByClass = [];
+        foreach ($annotationFinder->findAnnotatedClasses(Aggregate::class) as $aggregateClass) {
+            if (in_array($aggregateClass, $sagaClasses, true)) {
+                continue;
+            }
+
+            $aggregateTypesByClass[$aggregateClass] = $annotationFinder->findAttributeForClass($aggregateClass, AggregateType::class)?->getName();
+        }
+
+        return $aggregateTypesByClass;
     }
 
     /**

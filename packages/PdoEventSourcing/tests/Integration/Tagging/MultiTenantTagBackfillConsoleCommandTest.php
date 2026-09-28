@@ -7,6 +7,7 @@ namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 use DateTimeImmutable;
 use DateTimeZone;
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\Attribute\AggregateType;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\Converter;
 use Ecotone\Api\Attribute\DecisionModel;
@@ -267,6 +268,7 @@ final class CouponRedemptionsForMultiTenantBackfillTest
 }
 
 #[EventSourcingAggregate]
+#[AggregateType('OrderForMultiTenantBackfill')]
 final class OrderForMultiTenantBackfillTest
 {
     use WithAggregateVersioning;

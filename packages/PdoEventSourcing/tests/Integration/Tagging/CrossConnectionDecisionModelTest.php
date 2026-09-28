@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Integration\Tagging;
 
+use Ecotone\Api\Attribute\AggregateType;
 use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingAggregate;
@@ -137,6 +138,7 @@ final readonly class SameConnectionWidgetDefinedForCrossConnectionDecisionModelT
 }
 
 #[EventSourcingAggregate]
+#[AggregateType('SameConnectionAggregate')]
 final class SameConnectionAggregateForCrossConnectionDecisionModelTest
 {
     use WithAggregateVersioning;

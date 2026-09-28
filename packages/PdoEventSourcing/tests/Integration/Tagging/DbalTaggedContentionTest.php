@@ -156,6 +156,37 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         }
     }
 
+    public function test_innodb_tracking_does_not_leak_into_the_next_transaction(): void
+    {
+        $this->skipUnlessMySqlNotMariaDb();
+
+        $factoryT = new DbalConnectionFactory($this->dsn());
+        $factoryE = new DbalConnectionFactory($this->dsn());
+
+        $storeBaseline = $this->bootstrapEventStore();
+        $storeBaseline->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 10)]);
+
+        $storeT = $this->bootstrapEventStore($factoryT);
+        $storeE = $this->bootstrapEventStore($factoryE);
+        $connectionT = $factoryT->establishConnection();
+
+        $connectionT->beginTransaction();
+        $storeT->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
+        $connectionT->commit();
+
+        $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]);
+
+        $connectionT->beginTransaction();
+        try {
+            $loaded = $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+            self::assertCount(3, $loaded->events);
+        } finally {
+            if ($connectionT->isTransactionActive()) {
+                $connectionT->rollBack();
+            }
+        }
+    }
+
     public function test_mariadb_snapshot_isolation_conflict_surfaces_as_concurrency_exception(): void
     {
         $this->skipUnlessMariaDb();

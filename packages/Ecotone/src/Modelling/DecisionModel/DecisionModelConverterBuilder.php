@@ -73,8 +73,6 @@ final class DecisionModelConverterBuilder implements ParameterConverterBuilder
     {
         return new Definition(DecisionModelConverter::class, [
             $this->parameterName,
-            new Reference(DecisionModelBatchLoaderRegistry::serviceIdFor($interfaceToCall->getInterfaceName(), $interfaceToCall->getMethodName())),
-            Reference::to(DecisionModelLoadedInstancesCollector::class),
         ]);
     }
 

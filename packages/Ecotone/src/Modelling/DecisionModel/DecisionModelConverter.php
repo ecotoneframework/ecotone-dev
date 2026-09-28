@@ -14,15 +14,11 @@ final class DecisionModelConverter implements ParameterConverter
 {
     public function __construct(
         private readonly string $parameterName,
-        private readonly DecisionModelBatchLoader $batchLoader,
-        private readonly DecisionModelLoadedInstancesCollector $collector,
     ) {
     }
 
     public function getArgumentFrom(Message $message): ?object
     {
-        $this->batchLoader->ensureLoaded($message);
-
-        return $this->collector->consume($message->getHeaders()->getMessageId(), $this->parameterName);
+        return DecisionModelLoadedState::instanceCarriedBy($message, $this->parameterName);
     }
 }

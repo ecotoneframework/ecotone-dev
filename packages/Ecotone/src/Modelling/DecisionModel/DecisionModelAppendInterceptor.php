@@ -14,7 +14,6 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInvocation;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;
-use Throwable;
 
 use function get_class;
 use function is_object;
@@ -29,7 +28,6 @@ final class DecisionModelAppendInterceptor
      */
     public function __construct(
         private readonly EventStore $eventStore,
-        private readonly DecisionModelAppendConditionCollector $collector,
         private readonly ConversionService $conversionService,
         private readonly HeaderMapper $headerMapper,
         private readonly EventMapper $eventMapper,
@@ -41,18 +39,9 @@ final class DecisionModelAppendInterceptor
 
     public function append(MethodInvocation $methodInvocation, Message $message): mixed
     {
-        $messageId = $message->getHeaders()->getMessageId();
+        $result = $methodInvocation->proceed();
 
-        try {
-            $result = $methodInvocation->proceed();
-        } catch (Throwable $exception) {
-            $this->collector->consume($messageId);
-
-            throw $exception;
-        }
-
-        $appendCondition = $this->collector->consume($messageId);
-        $appendCondition = $this->mergeDecisionBoundaryCondition($methodInvocation, $appendCondition);
+        $appendCondition = $this->mergeDecisionBoundaryCondition($methodInvocation, DecisionModelLoadedState::appendConditionCarriedBy($message));
 
         if ($result === null || $result === []) {
             return $result;

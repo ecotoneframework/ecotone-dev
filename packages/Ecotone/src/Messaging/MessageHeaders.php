@@ -8,6 +8,7 @@ use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Scheduling\NativeClock;
 use Ecotone\Modelling\AggregateMessage;
+use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
 use Ecotone\Modelling\Config\MessageBusChannel;
 
 use function json_encode;
@@ -298,6 +299,7 @@ final class MessageHeaders
             $metadata[AggregateMessage::RECORDED_AGGREGATE_EVENTS],
             $metadata[AggregateMessage::TARGET_VERSION],
             $metadata[AggregateMessage::NULL_EXECUTION_RESULT],
+            $metadata[DecisionModelLoadedState::HEADER_NAME],
         );
 
         return $metadata;

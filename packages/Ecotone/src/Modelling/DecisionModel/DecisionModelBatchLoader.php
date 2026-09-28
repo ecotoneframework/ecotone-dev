@@ -25,19 +25,15 @@ final class DecisionModelBatchLoader
     public function __construct(
         private readonly EventStore $eventStore,
         private readonly EventTagRegistry $eventTagRegistry,
-        private readonly DecisionModelAppendConditionCollector $conditionCollector,
-        private readonly DecisionModelLoadedInstancesCollector $instancesCollector,
         private readonly array $loaders,
     ) {
     }
 
-    public function ensureLoaded(Message $message): void
+    /**
+     * @return array<string, DecisionModelLoadedState>
+     */
+    public function load(Message $message): array
     {
-        $messageId = $message->getHeaders()->getMessageId();
-        if ($this->instancesCollector->hasBatchFor($messageId)) {
-            return;
-        }
-
         $criteriaByParameterName = [];
         foreach ($this->loaders as $loader) {
             $criteriaByParameterName[$loader->parameterName()] = $loader->resolveCriteria($message);
@@ -65,11 +61,7 @@ final class DecisionModelBatchLoader
                 : $loader->fold(self::eventsMatching($loadedEvents->events, $criteria, $this->eventTagRegistry));
         }
 
-        $this->instancesCollector->record($messageId, $instancesByParameterName);
-
-        if (! $loadedEvents->appendCondition->isEmpty()) {
-            $this->conditionCollector->record($messageId, $loadedEvents->appendCondition);
-        }
+        return [DecisionModelLoadedState::HEADER_NAME => new DecisionModelLoadedState($instancesByParameterName, $loadedEvents->appendCondition)];
     }
 
     /**

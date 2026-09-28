@@ -32,20 +32,18 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\AroundInterceptorBuilder;
+use Ecotone\Messaging\Handler\Processor\MethodInvoker\MethodInterceptorBuilder;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\DecisionModel\CrossConnectionDecisionModelGuard;
-use Ecotone\Modelling\DecisionModel\DecisionModelAppendConditionCollector;
 use Ecotone\Modelling\DecisionModel\DecisionModelAppendInterceptor;
 use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoader;
-use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoaderRegistry;
 use Ecotone\Modelling\DecisionModel\DecisionModelConverterBuilder;
 use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionBuilder;
 use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionRegistry;
 use Ecotone\Modelling\DecisionModel\DecisionModelExecutorRegistry;
-use Ecotone\Modelling\DecisionModel\DecisionModelLoadedInstancesCollector;
 use Ecotone\Modelling\DecisionModel\DecisionModelReflection;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 
@@ -64,6 +62,7 @@ use function sprintf;
 final class DecisionModelModule extends NoExternalConfigurationModule implements AnnotationModule
 {
     private const INTERCEPTOR_REFERENCE_NAME = 'decisionModel.appendInterceptor';
+    private const BATCH_LOADER_REFERENCE_PREFIX = 'decisionModel.batchLoader.';
 
     /**
      * @param class-string[] $decisionModelClasses
@@ -133,16 +132,6 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
             new Definition(DecisionModelDefinitionRegistry::class, [$this->rawDefinitions], 'createWith'),
         );
 
-        $messagingConfiguration->registerServiceDefinition(
-            DecisionModelAppendConditionCollector::class,
-            new Definition(DecisionModelAppendConditionCollector::class),
-        );
-
-        $messagingConfiguration->registerServiceDefinition(
-            DecisionModelLoadedInstancesCollector::class,
-            new Definition(DecisionModelLoadedInstancesCollector::class),
-        );
-
         foreach (array_keys($this->rawDefinitions) as $modelClass) {
             $classDefinition = $interfaceToCallRegistry->getClassDefinitionFor(Type::create($modelClass));
 
@@ -153,17 +142,25 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         }
 
         foreach ($this->loaderDefinitionsByHandler as $handlerKey => $loaderDefinitions) {
-            [$className, $methodName] = explode('::', $handlerKey, 2);
+            $batchLoaderReference = self::BATCH_LOADER_REFERENCE_PREFIX . $handlerKey;
 
             $messagingConfiguration->registerServiceDefinition(
-                DecisionModelBatchLoaderRegistry::serviceIdFor($className, $methodName),
+                $batchLoaderReference,
                 new Definition(DecisionModelBatchLoader::class, [
                     Reference::to(EventStore::RAW_REFERENCE),
                     Reference::to(EventTagRegistry::class),
-                    Reference::to(DecisionModelAppendConditionCollector::class),
-                    Reference::to(DecisionModelLoadedInstancesCollector::class),
                     $loaderDefinitions,
                 ]),
+            );
+
+            $messagingConfiguration->registerBeforeMethodInterceptor(
+                MethodInterceptorBuilder::create(
+                    Reference::to($batchLoaderReference),
+                    $interfaceToCallRegistry->getFor(DecisionModelBatchLoader::class, 'load'),
+                    Precedence::SYSTEM_PRECEDENCE_AFTER,
+                    $handlerKey,
+                    true,
+                )
             );
         }
 
@@ -180,7 +177,6 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
             self::INTERCEPTOR_REFERENCE_NAME,
             new Definition(DecisionModelAppendInterceptor::class, [
                 Reference::to(EventStore::RAW_REFERENCE),
-                Reference::to(DecisionModelAppendConditionCollector::class),
                 Reference::to(ConversionService::REFERENCE_NAME),
                 DefaultHeaderMapper::createAllHeadersMapping()->getDefinition(),
                 Reference::to(EventMapper::class),

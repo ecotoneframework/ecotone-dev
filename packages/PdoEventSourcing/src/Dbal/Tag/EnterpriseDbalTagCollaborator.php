@@ -73,4 +73,9 @@ final class EnterpriseDbalTagCollaborator implements DbalTagCollaborator
     {
         $this->index->deleteForStream($connection, $tableName);
     }
+
+    public function bumpTagsGuarded(DbalEventStore $eventStore, Connection $connection, AppendCondition $appendCondition): void
+    {
+        $this->appender->bumpTagsGuarded($eventStore, $connection, $appendCondition);
+    }
 }

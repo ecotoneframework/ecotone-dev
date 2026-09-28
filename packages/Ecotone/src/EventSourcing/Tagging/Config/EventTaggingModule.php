@@ -9,8 +9,11 @@ use function count;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\Tagging\AggregateCounterTagGuard;
 use Ecotone\EventSourcing\Tagging\AggregateCounterTags;
+use Ecotone\EventSourcing\Tagging\EventStoreAggregateCounter;
 use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\EventSourcing\Tagging\EventTagRegistryBuilder;
 use Ecotone\EventSourcing\Tagging\TagResolver;
@@ -24,6 +27,8 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Config\ModuleReferenceSearchService;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
 use Ecotone\Messaging\Support\LicensingException;
+use Ecotone\Modelling\Repository\AggregateCounter;
+use Ecotone\Modelling\Repository\OpenCoreAggregateCounter;
 
 use function implode;
 use function sprintf;
@@ -75,6 +80,20 @@ final class EventTaggingModule extends NoExternalConfigurationModule implements 
         $messagingConfiguration->registerServiceDefinition(
             TagResolver::class,
             new Definition(TagResolver::class, [Reference::to(EventTagRegistry::class), Reference::to(AggregateCounterTags::class)]),
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            OpenCoreAggregateCounter::class,
+            new Definition(OpenCoreAggregateCounter::class),
+        );
+        if ($dynamicConsistencyBoundary->isEnabled()) {
+            $messagingConfiguration->registerServiceDefinition(
+                EventStoreAggregateCounter::class,
+                new Definition(EventStoreAggregateCounter::class, [Reference::to(AggregateCounterTags::class), Reference::to(EventStore::RAW_REFERENCE), Reference::to(GuardedTagBump::class)]),
+            );
+        }
+        $messagingConfiguration->registerServiceDefinition(
+            AggregateCounter::class,
+            $dynamicConsistencyBoundary->definitionFor(AggregateCounter::class, OpenCoreAggregateCounter::class, EventStoreAggregateCounter::class),
         );
     }
 

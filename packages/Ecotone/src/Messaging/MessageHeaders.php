@@ -296,6 +296,7 @@ final class MessageHeaders
         unset(
             $metadata[AggregateMessage::CALLED_AGGREGATE_INSTANCE],
             $metadata[AggregateMessage::CALLED_AGGREGATE_CLASS],
+            $metadata[AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD],
             $metadata[AggregateMessage::RECORDED_AGGREGATE_EVENTS],
             $metadata[AggregateMessage::TARGET_VERSION],
             $metadata[AggregateMessage::NULL_EXECUTION_RESULT],

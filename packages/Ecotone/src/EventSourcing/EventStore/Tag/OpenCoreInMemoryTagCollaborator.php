@@ -28,4 +28,9 @@ final class OpenCoreInMemoryTagCollaborator implements InMemoryTagCollaborator
     public function deleteTagIndexFor(string $streamName): void
     {
     }
+
+    public function bumpTagsGuarded(AppendCondition $appendCondition): void
+    {
+        throw DynamicConsistencyBoundaryDisabled::exception();
+    }
 }

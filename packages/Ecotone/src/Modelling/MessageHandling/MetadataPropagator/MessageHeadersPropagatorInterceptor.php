@@ -43,6 +43,7 @@ class MessageHeadersPropagatorInterceptor
                 $userlandHeaders[AggregateMessage::AGGREGATE_ID],
                 $userlandHeaders[AggregateMessage::CALLED_AGGREGATE_CLASS],
                 $userlandHeaders[AggregateMessage::CALLED_AGGREGATE_INSTANCE],
+                $userlandHeaders[AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD],
                 $userlandHeaders[AggregateMessage::TARGET_VERSION],
             );
             $userlandHeaders[MessageHeaders::MESSAGE_ID] = $message->getHeaders()->getMessageId();

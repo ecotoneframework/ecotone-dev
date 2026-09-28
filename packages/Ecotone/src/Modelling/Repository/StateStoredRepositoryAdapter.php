@@ -17,6 +17,7 @@ class StateStoredRepositoryAdapter implements AggregateRepository
         private StateStoredRepository $standardRepository,
         private AggregateDefinitionRegistry $aggregateDefinitionRegistry,
         private bool $isDefaultRepository,
+        private AggregateCounter $aggregateCounter,
     ) {
     }
 
@@ -31,24 +32,27 @@ class StateStoredRepositoryAdapter implements AggregateRepository
 
     public function findBy(string $aggregateClassName, array $identifiers): ?ResolvedAggregate
     {
+        $counterCapturedAtLoad = $this->aggregateCounter->captureFor($aggregateClassName, $identifiers);
         $aggregate = $this->standardRepository->findBy($aggregateClassName, $identifiers);
 
         if ($aggregate === null) {
             return null;
         }
 
-        return new ResolvedAggregate(
+        return (new ResolvedAggregate(
             $this->aggregateDefinitionRegistry->getFor($aggregateClassName),
             false,
             $aggregate,
             null,
             $identifiers,
             [],
-        );
+        ))->withCounterCapturedAtLoad($counterCapturedAtLoad);
     }
 
     public function save(ResolvedAggregate $aggregate, array $metadata): int
     {
+        $this->aggregateCounter->bumpGuarded($aggregate->getAggregateClassName(), $aggregate->getIdentifiers(), $aggregate->getCounterCapturedAtLoad());
+
         $this->standardRepository->save(
             $aggregate->getIdentifiers(),
             $aggregate->getAggregateInstance(),

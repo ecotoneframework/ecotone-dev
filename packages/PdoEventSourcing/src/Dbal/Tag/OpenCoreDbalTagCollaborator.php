@@ -53,4 +53,9 @@ final class OpenCoreDbalTagCollaborator implements DbalTagCollaborator
     public function deleteTagIndexFor(Connection $connection, string $tableName): void
     {
     }
+
+    public function bumpTagsGuarded(DbalEventStore $eventStore, Connection $connection, AppendCondition $appendCondition): void
+    {
+        throw DynamicConsistencyBoundaryDisabled::exception();
+    }
 }

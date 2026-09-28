@@ -19,6 +19,7 @@ use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
 use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
@@ -450,6 +451,10 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                 EventStore::RAW_REFERENCE,
                 new Reference(InMemoryEventStore::class),
             );
+            $messagingConfiguration->registerServiceDefinition(
+                GuardedTagBump::class,
+                new Reference(InMemoryEventStore::class),
+            );
             $registerInMemoryEventStoreStreamSource = true;
         } else {
             foreach ($extensionObjects as $extensionObject) {
@@ -458,6 +463,10 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
                         $messagingConfiguration->registerServiceDefinition(
                             InMemoryEventStore::class,
                             new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class)]),
+                        );
+                        $messagingConfiguration->registerServiceDefinition(
+                            GuardedTagBump::class,
+                            new Reference(InMemoryEventStore::class),
                         );
                         $registerInMemoryEventStoreStreamSource = true;
                     }

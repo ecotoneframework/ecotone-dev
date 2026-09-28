@@ -23,4 +23,6 @@ interface InMemoryTagCollaborator
     public function appendEventsWithTagCondition(InMemoryEventStore $eventStore, string $streamName, array $events, ?AppendCondition $appendCondition): void;
 
     public function deleteTagIndexFor(string $streamName): void;
+
+    public function bumpTagsGuarded(AppendCondition $appendCondition): void;
 }

@@ -46,4 +46,6 @@ interface DbalTagCollaborator
     ): void;
 
     public function deleteTagIndexFor(Connection $connection, string $tableName): void;
+
+    public function bumpTagsGuarded(DbalEventStore $eventStore, Connection $connection, AppendCondition $appendCondition): void;
 }

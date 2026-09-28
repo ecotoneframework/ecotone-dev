@@ -19,8 +19,8 @@ final class TagTransactionRequirement
         }
 
         throw ConfigurationException::create(
-            'Appending tagged events (or events with an AppendCondition) requires an active database transaction, '
-            . 'so the tag versions and the events commit or roll back together. '
+            'Appending tagged events (or events with an AppendCondition), or saving an aggregate while Dynamic Consistency Boundary is enabled, '
+            . 'requires an active database transaction, so the tag versions and the events or the aggregate commit or roll back together. '
             . 'Enable transactions with DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(true) for command handlers, '
             . 'DbalConfiguration::createWithDefaults()->withTransactionOnAsynchronousEndpoints(true) for asynchronous handlers, '
             . 'remove #[WithoutDatabaseTransaction] from the handler if it carries one, '

@@ -27,6 +27,7 @@ class StateStoredRepositoryAdapterBuilder implements AggregateRepositoryBuilder
             new Reference($referenceId),
             new Reference(AggregateDefinitionRegistry::class),
             $isDefault,
+            new Reference(AggregateCounter::class),
         ]);
     }
 }

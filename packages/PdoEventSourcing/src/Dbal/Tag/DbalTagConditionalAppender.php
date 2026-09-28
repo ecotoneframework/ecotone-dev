@@ -10,6 +10,7 @@ use Doctrine\DBAL\Connection;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
+use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\EventSourcing\Tagging\TagResolver;
 
 /**
@@ -55,5 +56,15 @@ final class DbalTagConditionalAppender
 
         $eventStore->insertEventRows($connection, $schema, $tableName, $rows);
         $this->index->insertRows($connection, $tableName, array_column($rows, 0), $appended->sequencedAfterBump($expected));
+    }
+
+    public function bumpTagsGuarded(DbalEventStore $eventStore, Connection $connection, AppendCondition $appendCondition): void
+    {
+        $appended = $this->tagResolver->resolveAppend([], $appendCondition);
+
+        TagTransactionRequirement::assertActiveForTaggedAppend($connection);
+        $this->tables->ensureExist($eventStore, $connection, StreamTableRegistry::DEFAULT_STREAM);
+
+        $this->versions->bumpGuarded($connection, $appended->expectedVersions($this->versions->capture($connection, $appended->needingCapture())));
     }
 }

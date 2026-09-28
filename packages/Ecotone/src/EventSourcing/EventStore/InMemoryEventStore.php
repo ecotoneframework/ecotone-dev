@@ -27,7 +27,7 @@ use function preg_match;
  * In-memory implementation of EventStore for testing purposes
  * licence Apache-2.0
  */
-final class InMemoryEventStore implements EventStore, AppendableStore
+final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTagBump
 {
     private array $streams = [];
 
@@ -114,6 +114,11 @@ final class InMemoryEventStore implements EventStore, AppendableStore
         }
 
         $this->tagCollaborator->appendEventsWithTagCondition($this, $streamName, $events, $appendCondition);
+    }
+
+    public function bumpTagsGuarded(AppendCondition $appendCondition): void
+    {
+        $this->tagCollaborator->bumpTagsGuarded($appendCondition);
     }
 
     public function nextEventNumber(string $streamName): int

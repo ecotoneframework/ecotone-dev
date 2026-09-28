@@ -4,6 +4,7 @@ namespace Ecotone\EventSourcing\Config;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\AggregateType;
+use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\ModuleAnnotation;
 use Ecotone\Api\Attribute\PropagateHeaders;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -27,6 +28,7 @@ use Ecotone\EventSourcing\EventSerializer;
 use Ecotone\EventSourcing\EventSourcingRepositoryBuilder;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
 use Ecotone\EventSourcing\EventStreamEmitter;
@@ -75,6 +77,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
     /**
      * @param array<class-string, Stream> $streamAttributes
      * @param array<string, string> $projectionStreamMapping
+     * @param class-string[] $stateStoredCountedAggregateClasses
      */
     private function __construct(
         private AggregateStreamMapping $aggregateToStreamMapping,
@@ -82,6 +85,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         private array $streamAttributes,
         private array $projectionStreamMapping,
         private bool $declaresEventTagsOrCountedAggregates,
+        private array $stateStoredCountedAggregateClasses,
     ) {
     }
 
@@ -111,13 +115,15 @@ class EventSourcingModule extends NoExternalConfigurationModule
             $projectionStreamMapping[$projectionAttribute->name] = $aggregateToStreamMapping[$projectionClassName] ?? StreamTableRegistry::DEFAULT_STREAM;
         }
 
+        $countedAggregateClasses = array_keys(AggregateCounterTags::declaredAggregateTypesOfCountedAggregatesIn($annotationRegistrationService));
+
         return new self(
             AggregateStreamMapping::createWith($aggregateToStreamMapping),
             AggregateTypeMapping::createWith($aggregateTypeMapping),
             $streamAttributes,
             $projectionStreamMapping,
-            EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService) !== []
-                || AggregateCounterTags::declaredAggregateTypesOfCountedAggregatesIn($annotationRegistrationService) !== [],
+            EventTagRegistryBuilder::buildRawDefinitions($annotationRegistrationService) !== [] || $countedAggregateClasses !== [],
+            array_values(array_diff($countedAggregateClasses, $annotationRegistrationService->findAnnotatedClasses(EventSourcingAggregate::class))),
         );
     }
 
@@ -128,6 +134,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
         $serviceConfiguration = ExtensionObjectResolver::resolveUnique(ServiceConfiguration::class, $extensionObjects, ServiceConfiguration::createWithDefaults());
         $consoleInvocationPrefix = ConsoleInvocationResolver::resolveConsolePrefix($serviceConfiguration);
         $dynamicConsistencyBoundary = DynamicConsistencyBoundary::resolveFrom($extensionObjects);
+
+        if ($dynamicConsistencyBoundary->isEnabled()) {
+            CrossConnectionAggregateBoundaryGuard::assertEveryStateStoredAggregateSavesOnTheEventStoreConnection($this->stateStoredCountedAggregateClasses, $eventSourcingConfiguration, $dbalConfiguration);
+        }
 
         $messagingConfiguration->registerServiceDefinition(EventSourcingConfiguration::class, DefinitionHelper::buildDefinitionFromInstance($eventSourcingConfiguration));
 
@@ -212,6 +222,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
                     new Reference(EventSerializer::class),
                 ])
             );
+            $messagingConfiguration->registerServiceDefinition(
+                GuardedTagBump::class,
+                new Reference(InMemoryEventStore::class),
+            );
 
             return;
         }
@@ -237,6 +251,10 @@ class EventSourcingModule extends NoExternalConfigurationModule
         );
         $messagingConfiguration->registerServiceDefinition(
             EventStoreReference::EVENT_STORE_INSTANCE,
+            new Reference(DbalEventStore::class)
+        );
+        $messagingConfiguration->registerServiceDefinition(
+            GuardedTagBump::class,
             new Reference(DbalEventStore::class)
         );
 

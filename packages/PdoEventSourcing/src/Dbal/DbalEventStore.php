@@ -31,6 +31,7 @@ use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendableStore;
 use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
 use Ecotone\EventSourcing\EventStore\FieldType;
+use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\EventStore\MetadataMatcher;
 use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
@@ -56,7 +57,7 @@ use Throwable;
 /**
  * licence Apache-2.0
  */
-final class DbalEventStore implements EventStore, AppendableStore
+final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBump
 {
     private const COLUMNS = ['event_id', 'event_name', 'payload', 'metadata', 'created_at'];
 
@@ -161,6 +162,11 @@ final class DbalEventStore implements EventStore, AppendableStore
         $connection = $this->connectionFor(StreamTableRegistry::DEFAULT_STREAM);
 
         return $this->tagCollaborator->loadByCriteria($this, $connection, $criteria);
+    }
+
+    public function bumpTagsGuarded(AppendCondition $appendCondition): void
+    {
+        $this->tagCollaborator->bumpTagsGuarded($this, $this->connectionFor(StreamTableRegistry::DEFAULT_STREAM), $appendCondition);
     }
 
     public function backfillTagsForStream(

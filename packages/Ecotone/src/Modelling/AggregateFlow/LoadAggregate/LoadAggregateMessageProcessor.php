@@ -75,7 +75,9 @@ final class LoadAggregateMessageProcessor implements MessageProcessor
         }
 
         if ($aggregate) {
-            $resultMessage = $resultMessage->setHeader(AggregateMessage::CALLED_AGGREGATE_INSTANCE, $aggregate->getAggregateInstance());
+            $resultMessage = $resultMessage
+                ->setHeader(AggregateMessage::CALLED_AGGREGATE_INSTANCE, $aggregate->getAggregateInstance())
+                ->setHeader(AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD, $aggregate->getCounterCapturedAtLoad());
         }
 
         if (! $message->getHeaders()->containsKey(MessageHeaders::REPLY_CHANNEL)) {

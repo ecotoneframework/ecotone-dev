@@ -80,7 +80,6 @@ final class DecisionModelHandlers
                     $className,
                     $methodName,
                     $modelLoaderDefinitions,
-                    $boundaryMethodName,
                     $appendsItsResult,
                     $ambiguouslyDuplicatedModelClasses,
                     $joinsFetchedAggregates ? array_map(static fn (FetchAggregateConverterBuilder $converter): Definition => $converter->compileCounterCapture(), $fetchedAggregateConverters) : [],

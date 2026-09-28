@@ -24,7 +24,6 @@ final class DecisionModelHandler
         private readonly string $className,
         private readonly string $methodName,
         private readonly array $modelLoaderDefinitions,
-        private readonly ?string $boundaryMethodName,
         private readonly bool $appendsItsResult,
         private readonly array $ambiguouslyDuplicatedModelClasses = [],
         private readonly array $fetchedAggregateCaptureDefinitions = [],
@@ -88,16 +87,6 @@ final class DecisionModelHandler
     public function loadsBeforeInvocation(): bool
     {
         return $this->modelLoaderDefinitions !== [] || $this->fetchedAggregateCaptureDefinitions !== [] || $this->decisionBoundaryDefinitions !== [];
-    }
-
-    public function boundaryMethodName(): ?string
-    {
-        return $this->boundaryMethodName;
-    }
-
-    public function hasBoundaryMethod(): bool
-    {
-        return $this->boundaryMethodName !== null;
     }
 
     public function appendsItsResult(): bool

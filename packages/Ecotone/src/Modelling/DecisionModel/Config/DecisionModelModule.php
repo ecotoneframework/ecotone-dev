@@ -43,6 +43,7 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\MessageConverter\DefaultHeaderMapper;
 use Ecotone\Messaging\Precedence;
 use Ecotone\Modelling\DecisionModel\CrossConnectionDecisionModelGuard;
+use Ecotone\Modelling\DecisionModel\DecisionBoundaryEvaluator;
 use Ecotone\Modelling\DecisionModel\DecisionModelAppendInterceptor;
 use Ecotone\Modelling\DecisionModel\DecisionModelBatchLoader;
 use Ecotone\Modelling\DecisionModel\DecisionModelConverterBuilder;
@@ -103,7 +104,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
             ];
         }
 
-        $decisionBoundaryMethods = self::findDecisionBoundaryMethods($annotationRegistrationService, $interfaceToCallRegistry);
+        $decisionBoundaryMethods = DecisionBoundaryEvaluator::findBoundaryMethodsByHandler($annotationRegistrationService, $interfaceToCallRegistry);
 
         $appendEligibleMethods = self::findAppendEligibleMethods($annotationRegistrationService, $interfaceToCallRegistry, $decisionBoundaryMethods);
 
@@ -175,6 +176,14 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         ));
 
         $messagingConfiguration->registerServiceDefinition(
+            DecisionBoundaryEvaluator::class,
+            new Definition(DecisionBoundaryEvaluator::class, [
+                Reference::to(EventStore::RAW_REFERENCE),
+                $this->decisionBoundaryMethods,
+            ]),
+        );
+
+        $messagingConfiguration->registerServiceDefinition(
             self::INTERCEPTOR_REFERENCE_NAME,
             new Definition(DecisionModelAppendInterceptor::class, [
                 Reference::to(EventStore::RAW_REFERENCE),
@@ -183,7 +192,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                 Reference::to(EventMapper::class),
                 Reference::to(EcotoneClockInterface::class),
                 Reference::to(EventBus::class),
-                $this->decisionBoundaryMethods,
+                Reference::to(DecisionBoundaryEvaluator::class),
             ]),
         );
 
@@ -324,47 +333,5 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         }
 
         return $loaderDefinitions;
-    }
-
-    /**
-     * @return array<string, string> keyed by "Class::method" (the target handler), value is the boundary method name
-     */
-    private static function findDecisionBoundaryMethods(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): array
-    {
-        $boundariesByClass = [];
-        foreach ($annotationFinder->findAnnotatedMethods(DecisionBoundary::class) as $annotatedMethod) {
-            $className = $annotatedMethod->getClassName();
-            $boundaryMethodName = $annotatedMethod->getMethodName();
-
-            $boundaryInterfaceToCall = $interfaceToCallRegistry->getFor($className, $boundaryMethodName);
-            $firstParameterTypeHint = $boundaryInterfaceToCall->getInterfaceParameterAmount() > 0
-                ? $boundaryInterfaceToCall->getFirstParameter()->getTypeHint()
-                : null;
-
-            $boundariesByClass[$className][$firstParameterTypeHint] = $boundaryMethodName;
-        }
-
-        $decisionBoundaryMethods = [];
-        foreach ([CommandHandler::class, EventHandler::class] as $handlerAnnotationClass) {
-            foreach ($annotationFinder->findAnnotatedMethods($handlerAnnotationClass) as $annotatedMethod) {
-                $className = $annotatedMethod->getClassName();
-                $methodName = $annotatedMethod->getMethodName();
-
-                if (! isset($boundariesByClass[$className])) {
-                    continue;
-                }
-
-                $interfaceToCall = $interfaceToCallRegistry->getFor($className, $methodName);
-                $firstParameterTypeHint = $interfaceToCall->getInterfaceParameterAmount() > 0
-                    ? $interfaceToCall->getFirstParameter()->getTypeHint()
-                    : null;
-
-                if (isset($boundariesByClass[$className][$firstParameterTypeHint])) {
-                    $decisionBoundaryMethods[$className . '::' . $methodName] = $boundariesByClass[$className][$firstParameterTypeHint];
-                }
-            }
-        }
-
-        return $decisionBoundaryMethods;
     }
 }

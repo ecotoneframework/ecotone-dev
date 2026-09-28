@@ -536,6 +536,15 @@ runs, after the channel.
 public static function boundary(RateCourse $command): EventCriteria { /* … */ }
 ```
 
+`DecisionBoundaryEvaluator` (Enterprise) owns the escape hatch: it discovers boundary methods at bootstrap — a
+boundary is matched to the `#[CommandHandler]`/`#[EventHandler]` of its class whose **first parameter has the same type
+as the boundary's first parameter** — and, when the handler returns, calls the static method with the handler's
+command and loads by the criteria it returns. **Cost:** the one-load-per-handler guarantee (see "How it runs" above) covers injected
+models only. A boundary is a **second, separate `loadByCriteria()`** on top of the batched model load, run inside the
+same transaction, and its condition is merged into the handler's `AppendCondition`. It is not folded into the batch
+because the batch runs as a before-interceptor over the message, while a boundary takes the handler's converted first
+argument; a handler with only a boundary has no batch at all. Correctness is unaffected — only an extra read.
+
 **Testing** needs nothing new — tags are on the events:
 
 ```php

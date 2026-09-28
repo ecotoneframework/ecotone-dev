@@ -496,7 +496,10 @@ no transaction.
   transfer's two accounts) or when the property-name convention doesn't apply; a multi-tag model's `#[Fetch]`
   expression returns a map (`"{'customer': payload.customerId, 'coupon': payload.couponCode}"`).
   `#[DecisionBoundary]` on a static method of the same class, taking the same command, is the escape hatch for a
-  boundary no model expresses.
+  boundary no model expresses. It is matched to the handler whose first parameter has the same type, and it costs
+  **one extra read**: the models a handler injects are loaded together in a single query, but the boundary's criteria
+  are loaded afterwards by their own `loadByCriteria()` — inside the same transaction, guarded by the same append
+  condition, so correctness is unchanged and only the round trip is added.
 - Only a `#[CommandHandler]`/`#[EventHandler]` that injects a model appends and publishes its returned events;
   `#[QueryHandler]` replies as always, appending nothing. `return []` is a no-op. `outputChannelName` keeps working
   on a model-injecting handler: events are appended and published, then forwarded as today.

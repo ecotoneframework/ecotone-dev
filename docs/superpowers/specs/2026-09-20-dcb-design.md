@@ -594,7 +594,8 @@ $eventStore->appendTo('ecotone_event_stream', [new StudentSubscribedToCourse(...
 `EventStore` lives in core (`packages/Ecotone`), as do the attributes — `InMemoryEventStore` and the decision-model
 flow are core, and core cannot depend on `PdoEventSourcing`. Only schema, DBAL implementation and the console
 commands live in `PdoEventSourcing`. `loadByCriteria(EventCriteria $criteria)` takes a single, non-variadic
-argument — an OR of several criteria is expressed on `EventCriteria` itself (`EventCriteria::tag(...)->or(...)`) —
+argument — an OR of several criteria is expressed on `EventCriteria` itself (`EventCriteria::tag(...)->or(...)`;
+`andTag()`/`ofTypes()` narrow a single criterion and throw on an `or()` combination rather than drop its branches) —
 so it stays reachable through the `EventStore` *gateway* (`GatewayProxyBuilder`) the same way every other
 `EventStore` method is; `$eventStore` above is whatever `EventStore` the container hands you, gateway or concrete
 store alike.

@@ -52,7 +52,7 @@ final class DbalTaggedEventReader
     }
 
     /**
-     * @param array<array{stream: string, eventNo: int, has: array<string, bool>, seq: array<string, ?int>}> $flags
+     * @param array<array{stream: string, eventNo: int, has: array<string, bool>, sequences: array<string, ?int>}> $flags
      * @param array<string, array<int, Event>> $eventsByStream
      * @return Event[]
      */
@@ -69,17 +69,17 @@ final class DbalTaggedEventReader
 
             foreach ($flags as $flag) {
                 $event = $eventsByStream[$flag['stream']][$flag['eventNo']] ?? null;
-                $tagVersion = $flag['seq'][$primaryKey] ?? null;
+                $sequence = $flag['sequences'][$primaryKey] ?? null;
 
-                if ($event === null || $tagVersion === null || ! $this->flagCarriesAllTags($flag, $branch) || ! $branch->matchesEventType($event->getEventName())) {
+                if ($event === null || $sequence === null || ! $this->flagCarriesAllTags($flag, $branch) || ! $branch->matchesEventType($event->getEventName())) {
                     continue;
                 }
 
-                $matched->consider($flag['stream'], $flag['eventNo'], $tagVersion, $event);
+                $matched->consider($flag['stream'], $flag['eventNo'], $sequence, $event);
             }
         }
 
-        return $matched->inTagVersionOrder();
+        return $matched->inSequenceOrder();
     }
 
     /**

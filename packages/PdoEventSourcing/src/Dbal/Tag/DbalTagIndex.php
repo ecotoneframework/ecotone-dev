@@ -70,7 +70,7 @@ final class DbalTagIndex
 
     /**
      * @param array<string, array{name: string, value: string}> $tags
-     * @return array<array{stream: string, eventNo: int, has: array<string, bool>, seq: array<string, ?int>}>
+     * @return array<array{stream: string, eventNo: int, has: array<string, bool>, sequences: array<string, ?int>}>
      */
     public function flagsFor(Connection $connection, array $tags): array
     {
@@ -86,7 +86,7 @@ final class DbalTagIndex
         foreach ($tags as $key => $tag) {
             $tagPositions[$key] = $position;
 
-            $selectColumns[] = "MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN tag_sequence END) AS seq_{$position}";
+            $selectColumns[] = "MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN tag_sequence END) AS sequence_{$position}";
             $selectColumns[] = "MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN 1 ELSE 0 END) AS has_{$position}";
             array_push($selectParameters, $tag['name'], $tag['value'], $tag['name'], $tag['value']);
 
@@ -107,13 +107,13 @@ final class DbalTagIndex
         $flags = [];
         foreach ($rows as $row) {
             $has = [];
-            $seq = [];
+            $sequences = [];
             foreach ($tagPositions as $key => $tagPosition) {
                 $has[$key] = ((int) $row["has_{$tagPosition}"]) === 1;
-                $seq[$key] = $row["seq_{$tagPosition}"] !== null ? (int) $row["seq_{$tagPosition}"] : null;
+                $sequences[$key] = $row["sequence_{$tagPosition}"] !== null ? (int) $row["sequence_{$tagPosition}"] : null;
             }
 
-            $flags[] = ['stream' => $row['stream_name'], 'eventNo' => (int) $row['event_no'], 'has' => $has, 'seq' => $seq];
+            $flags[] = ['stream' => $row['stream_name'], 'eventNo' => (int) $row['event_no'], 'has' => $has, 'sequences' => $sequences];
         }
 
         return $flags;

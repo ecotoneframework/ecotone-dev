@@ -20,7 +20,7 @@ use Ecotone\Modelling\Event;
 final class InMemoryTagIndex
 {
     /**
-     * @var array<string, array<string, array<array{stream: string, eventNo: int, tagVersion: int}>>>
+     * @var array<string, array<string, array<array{stream: string, eventNo: int, sequence: int}>>>
      */
     private array $references = [];
 
@@ -31,7 +31,7 @@ final class InMemoryTagIndex
     {
         foreach ($sequencedTagsPerEvent as $position => $tags) {
             foreach ($tags as $tag) {
-                $this->references[$tag['name']][$tag['value']][] = ['stream' => $streamName, 'eventNo' => $firstEventNo + $position, 'tagVersion' => $tag['sequence']];
+                $this->references[$tag['name']][$tag['value']][] = ['stream' => $streamName, 'eventNo' => $firstEventNo + $position, 'sequence' => $tag['sequence']];
             }
         }
     }
@@ -52,12 +52,12 @@ final class InMemoryTagIndex
             foreach ($this->referencesCarryingAll($tags) as $reference) {
                 $event = $eventStore->eventAt($reference['stream'], $reference['eventNo']);
                 if ($event !== null && $branch->matchesEventType($event->getEventName())) {
-                    $matched->consider($reference['stream'], $reference['eventNo'], $reference['tagVersion'], $event);
+                    $matched->consider($reference['stream'], $reference['eventNo'], $reference['sequence'], $event);
                 }
             }
         }
 
-        return $matched->inTagVersionOrder();
+        return $matched->inSequenceOrder();
     }
 
     public function deleteStream(string $streamName): void
@@ -74,7 +74,7 @@ final class InMemoryTagIndex
 
     /**
      * @param array<array{name: string, value: string}> $tags
-     * @return array<string, array{stream: string, eventNo: int, tagVersion: int}>
+     * @return array<string, array{stream: string, eventNo: int, sequence: int}>
      */
     private function referencesCarryingAll(array $tags): array
     {
@@ -89,7 +89,7 @@ final class InMemoryTagIndex
 
     /**
      * @param array{name: string, value: string} $tag
-     * @return array<string, array{stream: string, eventNo: int, tagVersion: int}>
+     * @return array<string, array{stream: string, eventNo: int, sequence: int}>
      */
     private function referencesOf(array $tag): array
     {

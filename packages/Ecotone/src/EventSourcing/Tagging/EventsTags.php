@@ -61,21 +61,21 @@ final class EventsTags
     }
 
     /**
-     * @param array<string, int> $versionsByTagKey
+     * @param array<string, int> $versionsAfterBumpByTagKey
      * @return array<int, array<array{name: string, value: string, sequence: int}>>
      */
-    public function sequencedBy(array $versionsByTagKey): array
+    public function sequencedBy(array $versionsAfterBumpByTagKey): array
     {
         $sequenced = [];
         foreach ($this->perEvent as $index => $tags) {
             $sequenced[$index] = [];
             foreach ($tags as $tag) {
                 $key = TagKey::of($tag['name'], $tag['value']);
-                if ($tag['counted'] && ! isset($versionsByTagKey[$key])) {
+                if ($tag['counted'] && ! isset($versionsAfterBumpByTagKey[$key])) {
                     continue;
                 }
 
-                $sequenced[$index][] = ['name' => $tag['name'], 'value' => $tag['value'], 'sequence' => $tag['counted'] ? $versionsByTagKey[$key] : 0];
+                $sequenced[$index][] = ['name' => $tag['name'], 'value' => $tag['value'], 'sequence' => $tag['counted'] ? $versionsAfterBumpByTagKey[$key] : 0];
             }
         }
 

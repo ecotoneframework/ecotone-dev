@@ -36,7 +36,6 @@ final class DbalTaggedEventReader
     {
         $branches = $criteria->branches();
 
-        $this->versionRegister->resetOwnBumpTrackingIfNoTransaction($connection);
         $tagSchema = TaggedEventSchemaFactory::for($connection);
 
         $allTags = [];

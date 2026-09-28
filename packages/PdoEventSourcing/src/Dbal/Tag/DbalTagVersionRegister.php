@@ -8,8 +8,6 @@ use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\Exception as DriverExceptionInterface;
 use Doctrine\DBAL\Exception\RetryableException;
 use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
-use Doctrine\DBAL\Platforms\AbstractMySQLPlatform;
-use Doctrine\DBAL\Platforms\MariaDBPlatform;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
 use Ecotone\Dbal\Database\MissingTableInstructions;
@@ -18,11 +16,7 @@ use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Support\ConcurrencyException;
 
-use function array_keys;
 use function implode;
-use function spl_object_id;
-use function sprintf;
-use function str_starts_with;
 
 /**
  * licence Enterprise
@@ -31,9 +25,6 @@ final class DbalTagVersionRegister
 {
     /** @var array<string, bool> */
     private array $ensuredTagTables = [];
-
-    /** @var array<string, array{snapshot: int, ownBumps: int}> */
-    private array $tagBumpSnapshots = [];
 
     public function tagKey(string $name, string $value): string
     {
@@ -107,9 +98,7 @@ final class DbalTagVersionRegister
                 continue;
             }
 
-            $version = (int) $row['version'];
-            $captured[$key]['expectedVersion'] = $version;
-            $this->checkOwnBumpSnapshotHazard($connection, $row['tag_name'], $row['tag_value'], $version);
+            $captured[$key]['expectedVersion'] = (int) $row['version'];
         }
 
         return $captured;
@@ -118,8 +107,6 @@ final class DbalTagVersionRegister
     public function bumpGuardedTagVersion(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value, int $capturedVersion): int
     {
         $versionsTable = $tagSchema->quoteIdentifier(TagTableManager::TAG_VERSIONS_TABLE);
-        $this->trackOwnBumpBeforeFirstTouch($connection, $tagSchema, $name, $value);
-
         if ($capturedVersion === 0) {
             try {
                 $affected = (int) $this->runGuarded(fn () => $connection->executeStatement($tagSchema->insertInitialVersionSql(TagTableManager::TAG_VERSIONS_TABLE), [$name, $value]));
@@ -130,8 +117,6 @@ final class DbalTagVersionRegister
             if ($affected === 0) {
                 throw DecisionModelConcurrencyException::forConflict($name, $value, $capturedVersion, $this->currentTagVersion($connection, $tagSchema, $name, $value));
             }
-
-            $this->recordOwnBump($connection, $name, $value);
 
             return 1;
         }
@@ -145,15 +130,11 @@ final class DbalTagVersionRegister
             throw DecisionModelConcurrencyException::forConflict($name, $value, $capturedVersion, $this->currentTagVersion($connection, $tagSchema, $name, $value));
         }
 
-        $this->recordOwnBump($connection, $name, $value);
-
         return $capturedVersion + 1;
     }
 
     public function bumpUnconditionalTagVersion(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value): int
     {
-        $this->trackOwnBumpBeforeFirstTouch($connection, $tagSchema, $name, $value);
-
         $sql = $tagSchema->upsertIncrementVersionSql(TagTableManager::TAG_VERSIONS_TABLE);
 
         $newVersion = $tagSchema->supportsReturningOnUpsert()
@@ -163,8 +144,6 @@ final class DbalTagVersionRegister
 
                 return $this->currentTagVersion($connection, $tagSchema, $name, $value);
             })();
-
-        $this->recordOwnBump($connection, $name, $value);
 
         return $newVersion;
     }
@@ -177,20 +156,6 @@ final class DbalTagVersionRegister
             "SELECT version FROM {$versionsTable} WHERE tag_name = ? AND tag_value = ?",
             [$name, $value]
         )->fetchOne();
-    }
-
-    public function resetOwnBumpTrackingIfNoTransaction(Connection $connection): void
-    {
-        if ($connection->isTransactionActive()) {
-            return;
-        }
-
-        $prefix = spl_object_id($connection) . '|';
-        foreach (array_keys($this->tagBumpSnapshots) as $key) {
-            if (str_starts_with($key, $prefix)) {
-                unset($this->tagBumpSnapshots[$key]);
-            }
-        }
     }
 
     public function runGuarded(callable $operation): mixed
@@ -209,71 +174,5 @@ final class DbalTagVersionRegister
 
             throw $exception;
         }
-    }
-
-    private function trackOwnBumpBeforeFirstTouch(Connection $connection, TaggedEventSchema $tagSchema, string $name, string $value): void
-    {
-        if (! $this->isInnoDbMySql($connection) || ! $connection->isTransactionActive()) {
-            return;
-        }
-
-        $trackingKey = $this->ownBumpTrackingKey($connection, $name, $value);
-        if (isset($this->tagBumpSnapshots[$trackingKey])) {
-            return;
-        }
-
-        $this->tagBumpSnapshots[$trackingKey] = [
-            'snapshot' => $this->currentTagVersion($connection, $tagSchema, $name, $value),
-            'ownBumps' => 0,
-        ];
-    }
-
-    private function recordOwnBump(Connection $connection, string $name, string $value): void
-    {
-        if (! $this->isInnoDbMySql($connection) || ! $connection->isTransactionActive()) {
-            return;
-        }
-
-        $trackingKey = $this->ownBumpTrackingKey($connection, $name, $value);
-        if (isset($this->tagBumpSnapshots[$trackingKey])) {
-            $this->tagBumpSnapshots[$trackingKey]['ownBumps']++;
-        }
-    }
-
-    private function checkOwnBumpSnapshotHazard(Connection $connection, string $name, string $value, int $capturedVersion): void
-    {
-        if (! $this->isInnoDbMySql($connection) || ! $connection->isTransactionActive()) {
-            return;
-        }
-
-        $trackingKey = $this->ownBumpTrackingKey($connection, $name, $value);
-        if (! isset($this->tagBumpSnapshots[$trackingKey])) {
-            return;
-        }
-
-        $tracked = $this->tagBumpSnapshots[$trackingKey];
-        $expected = $tracked['snapshot'] + $tracked['ownBumps'];
-
-        if ($capturedVersion !== $expected) {
-            throw ConcurrencyException::create(sprintf(
-                "Snapshot isolation hazard on tag %s:%s -- captured version %d does not match this transaction's own view (%d); a foreign commit landed between the snapshot and this transaction's own bump. Retry in a fresh transaction.",
-                $name,
-                $value,
-                $capturedVersion,
-                $expected,
-            ));
-        }
-    }
-
-    private function ownBumpTrackingKey(Connection $connection, string $name, string $value): string
-    {
-        return spl_object_id($connection) . '|' . $this->tagKey($name, $value);
-    }
-
-    private function isInnoDbMySql(Connection $connection): bool
-    {
-        $platform = $connection->getDatabasePlatform();
-
-        return $platform instanceof AbstractMySQLPlatform && ! $platform instanceof MariaDBPlatform;
     }
 }

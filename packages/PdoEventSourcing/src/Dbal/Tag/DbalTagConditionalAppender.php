@@ -40,8 +40,6 @@ final class DbalTagConditionalAppender
         array $events,
         ?AppendCondition $appendCondition,
     ): void {
-        $this->versionRegister->resetOwnBumpTrackingIfNoTransaction($connection);
-
         $rows = [];
         $eventIds = [];
         $perEventTags = [];

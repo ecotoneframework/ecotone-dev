@@ -124,7 +124,7 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         }
     }
 
-    public function test_innodb_own_bump_snapshot_hazard_throws(): void
+    public function test_innodb_guarded_update_sees_foreign_commit_made_after_the_transaction_snapshot(): void
     {
         $this->skipUnlessMySqlNotMariaDb();
 
@@ -141,14 +141,12 @@ final class DbalTaggedContentionTest extends EventSourcingMessagingTestCase
         $connectionT->beginTransaction();
 
         try {
-            $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+            $loaded = $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
 
             $storeE->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 9)]);
 
-            $storeT->appendTo(self::STREAM, [new CourseCapacityChangedForContentionTest('course-1', 8)]);
-
-            $this->expectException(ConcurrencyException::class);
-            $storeT->loadByCriteria(EventCriteria::tag('course', 'course-1'));
+            $this->expectException(DecisionModelConcurrencyException::class);
+            $storeT->appendTo(self::STREAM, [new StudentSubscribedForContentionTest('course-1', 'student-1')], $loaded->appendCondition);
         } finally {
             if ($connectionT->isTransactionActive()) {
                 $connectionT->rollBack();

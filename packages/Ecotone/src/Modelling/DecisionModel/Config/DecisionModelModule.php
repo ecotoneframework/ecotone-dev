@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel\Config;
 
+use function array_diff;
 use function array_keys;
 use function array_map;
 
@@ -121,6 +122,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
         }
 
         if ($this->decisionModelClasses !== []) {
+            self::assertNoModelScopedOnlyByFilterOnlyTags($this->rawDefinitions, DynamicConsistencyBoundary::resolveFrom($extensionObjects)->filterOnlyTagNames());
             CrossConnectionDecisionModelGuard::assertNoCrossConnectionInjection(
                 $this->annotationFinder,
                 $interfaceToCallRegistry,
@@ -219,6 +221,24 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
             || $this->decisionBoundaryMethods !== []
             || $this->loaderDefinitionsByHandler !== []
             || $this->annotationFinder->findAnnotatedMethods(DecisionBoundary::class) !== [];
+    }
+
+    /**
+     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[]}> $rawDefinitions
+     * @param string[] $filterOnlyTagNames
+     */
+    private static function assertNoModelScopedOnlyByFilterOnlyTags(array $rawDefinitions, array $filterOnlyTagNames): void
+    {
+        foreach ($rawDefinitions as $modelClass => $rawDefinition) {
+            if (array_diff($rawDefinition['tagNames'], $filterOnlyTagNames) === []) {
+                throw ConfigurationException::create(sprintf(
+                    "DecisionModel %s is scoped only by filter-only tag(s) '%s', which are never counted, so its handler's append would be guarded by nothing. Add a counted tag to the model's scope with #[DecisionModel(tags: [...])], or stop declaring '%s' in DynamicConsistencyBoundaryConfiguration::withFilterOnlyTags().",
+                    $modelClass,
+                    implode("', '", $rawDefinition['tagNames']),
+                    implode("', '", $rawDefinition['tagNames']),
+                ));
+            }
+        }
     }
 
     private static function assertNoAmbiguousDuplicateModelInjection(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry): void

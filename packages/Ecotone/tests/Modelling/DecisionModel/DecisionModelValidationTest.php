@@ -10,6 +10,7 @@ use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Attribute\Saga;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
@@ -171,6 +172,39 @@ final class DecisionModelValidationTest extends TestCase
             $this->assertStringContainsString('#[Fetch]', $exception->getMessage());
             $this->assertStringContainsString('#[DecisionBoundary]', $exception->getMessage());
         }
+    }
+
+    public function test_model_scoped_only_by_filter_only_tags_is_rejected_at_bootstrap_naming_model_tag_and_remedies(): void
+    {
+        try {
+            EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [TenantItemsModelForValidationTest::class, TenantItemAddedForValidationTest::class],
+                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant'])]),
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(TenantItemsModelForValidationTest::class, $exception->getMessage());
+            $this->assertStringContainsString("'tenant'", $exception->getMessage());
+            $this->assertStringContainsString('tags:', $exception->getMessage());
+            $this->assertStringContainsString('withFilterOnlyTags', $exception->getMessage());
+        }
+    }
+
+    public function test_model_scoped_by_a_filter_only_tag_and_a_counted_tag_folds_only_that_tenants_events(): void
+    {
+        $handler = new TenantItemCounterForValidationTest();
+
+        $ecotone = EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, TenantItemModelForValidationTest::class, TenantItemAddedForValidationTest::class],
+            containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['tenant'])]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+
+        $ecotone->withEvents([new TenantItemAddedForValidationTest('acme', 'sku-1'), new TenantItemAddedForValidationTest('globex', 'sku-1')]);
+
+        $this->assertSame(1, $ecotone->sendQueryWithRouting('validation.tenantItemCount', new CountTenantItemForValidationTest('acme', 'sku-1')));
     }
 
     private function assertHandlerRejectedAtBootstrapForUnresolvableTag(object $handler): void
@@ -516,5 +550,53 @@ final class HandlerForSeveralCoursesCommandForValidationTest
     public function handle(CommandWithSeveralCoursesForValidationTest $command, ModelForValidationTest $model): array
     {
         return [];
+    }
+}
+
+final readonly class TenantItemAddedForValidationTest
+{
+    public function __construct(
+        #[EventTag('tenant')] public string $tenantId,
+        #[EventTag('item')] public string $itemId,
+    ) {
+    }
+}
+
+#[DecisionModel(tags: ['tenant'])]
+final class TenantItemsModelForValidationTest
+{
+    #[EventSourcingHandler]
+    public function when(TenantItemAddedForValidationTest $event): void
+    {
+    }
+}
+
+#[DecisionModel]
+final class TenantItemModelForValidationTest
+{
+    public int $count = 0;
+
+    #[EventSourcingHandler]
+    public function when(TenantItemAddedForValidationTest $event): void
+    {
+        $this->count++;
+    }
+}
+
+final readonly class CountTenantItemForValidationTest
+{
+    public function __construct(
+        public string $tenantId,
+        public string $itemId,
+    ) {
+    }
+}
+
+final class TenantItemCounterForValidationTest
+{
+    #[QueryHandler('validation.tenantItemCount')]
+    public function count(CountTenantItemForValidationTest $query, TenantItemModelForValidationTest $model): int
+    {
+        return $model->count;
     }
 }

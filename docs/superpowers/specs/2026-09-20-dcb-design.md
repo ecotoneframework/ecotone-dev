@@ -324,8 +324,10 @@ public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfigur
 }
 ```
 
-A filter-only tag is indexed and never counted. A decision model that depends on one is a bootstrap
-`ConfigurationException`. A name passed to `withFilterOnlyTags()` that no `#[EventTag]` declares is one too
+A filter-only tag is indexed and never counted. A decision model scoped **only** by filter-only tags is a bootstrap
+`ConfigurationException` — its condition would guard nothing (maintainer, 2026-09-28, narrowing the earlier "depends on
+one"). A mixed scope such as `tenant` + `username` is allowed: it folds exactly one tenant's events and is guarded on
+the counted `username` tag, conservatively (a same-username write in another tenant costs one spurious retry). A name passed to `withFilterOnlyTags()` that no `#[EventTag]` declares is one too
 (maintainer, 2026-09-28): a typo would otherwise silently leave the intended tag counted.
 
 ### 4.4 Decision models

@@ -51,6 +51,7 @@ use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionBuilder;
 use Ecotone\Modelling\DecisionModel\DecisionModelDefinitionRegistry;
 use Ecotone\Modelling\DecisionModel\DecisionModelExecutorRegistry;
 use Ecotone\Modelling\DecisionModel\DecisionModelReflection;
+use Ecotone\Modelling\DecisionModel\DecisionModelTagResolvabilityGuard;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutorBuilder;
 
 use function implode;
@@ -127,6 +128,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
                 $this->rawDefinitions,
             );
             self::assertNoAmbiguousDuplicateModelInjection($this->annotationFinder, $interfaceToCallRegistry);
+            DecisionModelTagResolvabilityGuard::assertEveryModelTagResolvableFromItsMessage($this->annotationFinder, $interfaceToCallRegistry, $this->rawDefinitions);
         }
 
         $messagingConfiguration->registerServiceDefinition(

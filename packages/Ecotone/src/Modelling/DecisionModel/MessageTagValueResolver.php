@@ -24,6 +24,11 @@ final class MessageTagValueResolver
         return $property->getValue($payload);
     }
 
+    public static function canResolve(string $tagName, string $messageClassName): bool
+    {
+        return self::accessorFor($messageClassName, $tagName) !== null;
+    }
+
     private static function accessorFor(string $payloadClassName, string $tagName): ?ReflectionProperty
     {
         $reflectionClass = new ReflectionClass($payloadClassName);

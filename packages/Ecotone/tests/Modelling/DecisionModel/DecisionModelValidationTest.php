@@ -109,20 +109,64 @@ final class DecisionModelValidationTest extends TestCase
         $ecotone->sendCommand(new CommandWithNullTagPropertyForValidationTest(null));
     }
 
-    public function test_unresolvable_tag_throws_naming_the_model_and_the_tag(): void
+    public function test_command_without_a_property_for_the_model_tag_is_rejected_at_bootstrap_naming_model_tag_and_command(): void
     {
-        $handler = new HandlerRequiringModelForValidationTest();
+        $this->assertHandlerRejectedAtBootstrapForUnresolvableTag(new HandlerRequiringModelForValidationTest());
+    }
+
+    public function test_command_without_a_property_for_a_nullable_model_tag_is_rejected_at_bootstrap_instead_of_always_injecting_null(): void
+    {
+        $this->assertHandlerRejectedAtBootstrapForUnresolvableTag(new HandlerAcceptingNullableModelForValidationTest());
+    }
+
+    public function test_tag_resolved_from_a_property_named_with_the_underscore_id_convention_is_accepted(): void
+    {
+        $handler = new HandlerForUnderscoreIdCommandForValidationTest();
 
         $ecotone = EcotoneLite::bootstrapFlowTesting(
-            classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class, CommandWithoutTagPropertyForValidationTest::class],
+            classesToResolve: [$handler::class, CountingModelForValidationTest::class, TaggedEventForValidationTest::class],
             containerOrAvailableServices: [$handler],
             configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $this->expectExceptionMessage('course');
+        $ecotone->withEvents([new TaggedEventForValidationTest('course-1')]);
+        $ecotone->sendCommand(new CommandWithUnderscoreIdForValidationTest('course-1'));
 
-        $ecotone->sendCommand(new CommandWithoutTagPropertyForValidationTest('irrelevant'));
+        $this->assertSame(1, $handler->observedEvents);
+    }
+
+    public function test_property_named_with_another_suffix_does_not_resolve_the_tag_by_convention(): void
+    {
+        $handler = new HandlerForCourseCodeCommandForValidationTest();
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage("name it 'course', 'courseId' or 'course_id'");
+
+        EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class],
+            containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
+    private function assertHandlerRejectedAtBootstrapForUnresolvableTag(object $handler): void
+    {
+        try {
+            EcotoneLite::bootstrapFlowTesting(
+                classesToResolve: [$handler::class, ModelForValidationTest::class, TaggedEventForValidationTest::class, CommandWithoutTagPropertyForValidationTest::class],
+                containerOrAvailableServices: [$handler],
+                configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
+                licenceKey: LicenceTesting::VALID_LICENCE,
+            );
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(ModelForValidationTest::class, $exception->getMessage());
+            $this->assertStringContainsString("'course'", $exception->getMessage());
+            $this->assertStringContainsString(CommandWithoutTagPropertyForValidationTest::class, $exception->getMessage());
+            $this->assertStringContainsString('#[Fetch]', $exception->getMessage());
+        }
     }
 
     public function test_model_handling_an_untagged_event_is_rejected_at_bootstrap_naming_the_event_and_both_remedies(): void
@@ -371,5 +415,64 @@ final class ModelAlsoSagaForValidationTest
     #[EventSourcingHandler]
     public function when(TaggedEventForValidationTest $event): void
     {
+    }
+}
+
+final class HandlerAcceptingNullableModelForValidationTest
+{
+    #[CommandHandler]
+    public function handle(CommandWithoutTagPropertyForValidationTest $command, ?ModelForValidationTest $model): array
+    {
+        return [];
+    }
+}
+
+final readonly class CommandWithUnderscoreIdForValidationTest
+{
+    public function __construct(
+        public string $course_id,
+    ) {
+    }
+}
+
+final class HandlerForUnderscoreIdCommandForValidationTest
+{
+    public int $observedEvents = 0;
+
+    #[CommandHandler]
+    public function handle(CommandWithUnderscoreIdForValidationTest $command, CountingModelForValidationTest $model): array
+    {
+        $this->observedEvents = $model->count;
+
+        return [];
+    }
+}
+
+#[DecisionModel]
+final class CountingModelForValidationTest
+{
+    public int $count = 0;
+
+    #[EventSourcingHandler]
+    public function when(TaggedEventForValidationTest $event): void
+    {
+        $this->count++;
+    }
+}
+
+final readonly class CommandWithCourseCodeForValidationTest
+{
+    public function __construct(
+        public string $courseCode,
+    ) {
+    }
+}
+
+final class HandlerForCourseCodeCommandForValidationTest
+{
+    #[CommandHandler]
+    public function handle(CommandWithCourseCodeForValidationTest $command, ModelForValidationTest $model): array
+    {
+        return [];
     }
 }

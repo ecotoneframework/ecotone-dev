@@ -496,8 +496,11 @@ no transaction.
   ```
 
   Tag values come from the message by name: a property carrying `#[EventTag('course')]`, else a property named
-  `course`/`courseId`/`course_id`. A nullable parameter (`?CourseCapacity`) receives `null`, contributing nothing to
-  the boundary, when the value can't be resolved that way; a non-nullable one throws, naming the model and the tag.
+  exactly `course`/`courseId`/`course_id` (a `courseCode` property needs `#[EventTag('course')]` or `#[Fetch]`). When
+  the handler's message is a concrete class without such a property, that is a bootstrap `ConfigurationException`
+  naming the handler, the model and the tag — for a nullable model parameter too, which would otherwise receive
+  `null` on every message. A nullable parameter (`?CourseCapacity`) receives `null`, contributing nothing to the
+  boundary, when the property holds `null`; a non-nullable one throws, naming the model and the tag.
   A value resolved from the message — by name or through `#[Fetch]` — is normalised and validated exactly like an
   `#[EventTag]` value on an event: an `int` id matches the same `int` tagged on events, and an empty, over-long or
   trailing-whitespace value throws, naming the model and the tag.

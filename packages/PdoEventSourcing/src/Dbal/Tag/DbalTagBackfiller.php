@@ -118,7 +118,7 @@ final class DbalTagBackfiller
             } catch (Throwable $exception) {
                 if (! $skipUndeserializable) {
                     throw ConfigurationException::create(sprintf(
-                        "Event no %d in stream '%s' could not be deserialized: %s. Re-run with --skip-undeserializable to skip it.",
+                        "Event no %d in stream '%s' could not be deserialized: %s. Re-run with --skipUndeserializable to skip it.",
                         $row['no'],
                         $streamName,
                         $exception->getMessage(),

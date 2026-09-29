@@ -77,6 +77,45 @@ final class DecisionBoundaryTest extends TestCase
         $this->assertBootstrapRejects(new DuplicateBoundaryHandlerForBoundaryTest(), 'secondBoundary');
     }
 
+    public function test_a_boundary_scoped_only_by_filter_only_tags_names_the_method_and_the_tags(): void
+    {
+        $handler = new FilterOnlyBoundaryHandlerForBoundaryTest();
+
+        $ecotone = $this->bootstrapWithRegionAsFilterOnly($handler, [RegionalCourseRatedForBoundaryTest::class]);
+
+        try {
+            $ecotone->sendCommand(new RateRegionalCourseForBoundaryTest('eu', 'course-1', 5));
+            $this->fail('Expected a ConfigurationException');
+        } catch (ConfigurationException $exception) {
+            $this->assertStringContainsString(FilterOnlyBoundaryHandlerForBoundaryTest::class . '::boundary', $exception->getMessage());
+            $this->assertStringContainsString("'region'", $exception->getMessage());
+            $this->assertStringContainsString('withFilterOnlyTags', $exception->getMessage());
+        }
+    }
+
+    public function test_a_boundary_mixing_a_filter_only_tag_with_a_counted_tag_scopes_the_append(): void
+    {
+        $handler = new MixedFilterOnlyBoundaryHandlerForBoundaryTest();
+
+        $ecotone = $this->bootstrapWithRegionAsFilterOnly($handler, [RegionalCourseRatedForBoundaryTest::class]);
+
+        $ecotone->sendCommand(new RateRegionalCourseForBoundaryTest('eu', 'course-1', 5));
+
+        $this->assertCount(1, $this->eventsMatching($ecotone, EventCriteria::tag('course', 'course-1')));
+    }
+
+    private function bootstrapWithRegionAsFilterOnly(object $handler, array $eventClasses): FlowTestSupport
+    {
+        return EcotoneLite::bootstrapFlowTesting(
+            classesToResolve: [$handler::class, ...$eventClasses],
+            containerOrAvailableServices: [$handler],
+            configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([
+                DynamicConsistencyBoundaryConfiguration::createWithDefaults()->withFilterOnlyTags(['region']),
+            ]),
+            licenceKey: LicenceTesting::VALID_LICENCE,
+        );
+    }
+
     public function test_boundary_reading_a_header_conflicts_with_a_competing_write_carrying_the_same_header_value(): void
     {
         $ecotone = $this->bootstrapTenantScopedRating();
@@ -575,5 +614,55 @@ final class FetchingBoundaryHandlerForBoundaryTest
     public function rate(RateCourseForBoundaryTest $command): array
     {
         return [];
+    }
+}
+
+final readonly class RateRegionalCourseForBoundaryTest
+{
+    public function __construct(
+        public string $region,
+        public string $courseId,
+        public int $rating,
+    ) {
+    }
+}
+
+final readonly class RegionalCourseRatedForBoundaryTest
+{
+    public function __construct(
+        #[EventTag('region')] public string $region,
+        #[EventTag('course')] public string $courseId,
+        public int $rating,
+    ) {
+    }
+}
+
+final class FilterOnlyBoundaryHandlerForBoundaryTest
+{
+    #[CommandHandler]
+    public function rate(RateRegionalCourseForBoundaryTest $command): array
+    {
+        return [new RegionalCourseRatedForBoundaryTest($command->region, $command->courseId, $command->rating)];
+    }
+
+    #[DecisionBoundary]
+    public static function boundary(RateRegionalCourseForBoundaryTest $command): EventCriteria
+    {
+        return EventCriteria::tag('region', $command->region);
+    }
+}
+
+final class MixedFilterOnlyBoundaryHandlerForBoundaryTest
+{
+    #[CommandHandler]
+    public function rate(RateRegionalCourseForBoundaryTest $command): array
+    {
+        return [new RegionalCourseRatedForBoundaryTest($command->region, $command->courseId, $command->rating)];
+    }
+
+    #[DecisionBoundary]
+    public static function boundary(RateRegionalCourseForBoundaryTest $command): EventCriteria
+    {
+        return EventCriteria::tag('region', $command->region)->andTag('course', $command->courseId);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use function array_keys;
 use function array_map;
 use function array_slice;
 
@@ -11,9 +12,11 @@ use Ecotone\AnnotationFinder\AnnotationFinder;
 use Ecotone\Api\Attribute\DecisionBoundary;
 use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\EventSourcing\Tagging\EventTagRegistry;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ParameterConverterAnnotationFactory;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\Definition;
+use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
@@ -23,6 +26,7 @@ use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\ReferenceBuilder;
 use Ecotone\Messaging\Message;
 
+use function implode;
 use function sprintf;
 
 /**
@@ -37,6 +41,7 @@ final class DecisionBoundaryEvaluator
         private readonly string $className,
         private readonly string $boundaryMethodName,
         private readonly array $parameterConverters,
+        private readonly EventTagRegistry $eventTagRegistry,
     ) {
     }
 
@@ -49,14 +54,45 @@ final class DecisionBoundaryEvaluator
                 PayloadBuilder::create($handler->getFirstParameter()->getName())->compile($handler),
                 ...self::additionalParameterDefinitionsOf($boundary),
             ],
+            Reference::to(EventTagRegistry::class),
         ]);
     }
 
     public function criteriaFor(Message $message): EventCriteria
     {
-        return $this->className::{$this->boundaryMethodName}(...array_map(
+        $criteria = $this->className::{$this->boundaryMethodName}(...array_map(
             static fn (ParameterConverter $parameterConverter): mixed => $parameterConverter->getArgumentFrom($message),
             $this->parameterConverters,
+        ));
+
+        $this->assertNotScopedOnlyByFilterOnlyTags($criteria);
+
+        return $criteria;
+    }
+
+    private function assertNotScopedOnlyByFilterOnlyTags(EventCriteria $criteria): void
+    {
+        $tagNames = [];
+        foreach ($criteria->branches() as $branch) {
+            foreach ($branch->tags() as $tag) {
+                if (! $this->eventTagRegistry->isFilterOnly($tag['name'])) {
+                    return;
+                }
+
+                $tagNames[$tag['name']] = true;
+            }
+        }
+
+        if ($tagNames === []) {
+            return;
+        }
+
+        throw ConfigurationException::create(sprintf(
+            "#[DecisionBoundary] %s::%s returns criteria scoped only by filter-only tag(s) '%s', which are never counted, so its handler's append would be guarded by nothing. Add a counted tag to the criteria the boundary returns, or stop declaring '%s' in DynamicConsistencyBoundaryConfiguration::withFilterOnlyTags().",
+            $this->className,
+            $this->boundaryMethodName,
+            implode("', '", array_keys($tagNames)),
+            implode("', '", array_keys($tagNames)),
         ));
     }
 

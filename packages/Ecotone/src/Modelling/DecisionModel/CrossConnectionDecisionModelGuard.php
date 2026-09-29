@@ -26,7 +26,7 @@ use function sprintf;
 final class CrossConnectionDecisionModelGuard
 {
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], literalTagValues: array<string, string>, handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      * @param array<object> $extensionObjects
      */
     public static function assertNoCrossConnectionInjection(
@@ -144,7 +144,7 @@ final class CrossConnectionDecisionModelGuard
     }
 
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], literalTagValues: array<string, string>, handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      * @return array<array{class: class-string, method: string, models: class-string[]}>
      */
     private static function findModelInjectingHandlers(AnnotationFinder $annotationFinder, InterfaceToCallRegistry $interfaceToCallRegistry, array $rawDefinitions): array

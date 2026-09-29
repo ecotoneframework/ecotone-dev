@@ -72,7 +72,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
 
     /**
      * @param class-string[] $decisionModelClasses
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], literalTagValues: array<string, string>, handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      */
     private function __construct(
         private readonly AnnotationFinder $annotationFinder,
@@ -225,19 +225,21 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
     }
 
     /**
-     * @return array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}
+     * @return array{tagNames: string[], literalTagValues: array<string, string>, handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}
      */
     private static function rawDefinitionOf(DecisionModelDefinition|AggregateBackedDecisionModelDefinition $definition): array
     {
         if ($definition instanceof DecisionModelDefinition) {
             return [
                 'tagNames' => $definition->tagNames(),
+                'literalTagValues' => $definition->literalTagValues(),
                 'handledEventClasses' => $definition->handledEventClasses(),
             ];
         }
 
         return [
             'tagNames' => [],
+            'literalTagValues' => [],
             'handledEventClasses' => $definition->handledEventClasses(),
             'aggregate' => [
                 'className' => $definition->aggregateClassName(),
@@ -256,7 +258,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
     }
 
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], literalTagValues: array<string, string>, handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      * @param string[] $filterOnlyTagNames
      */
     private static function assertNoModelScopedOnlyByFilterOnlyTags(array $rawDefinitions, array $filterOnlyTagNames): void
@@ -279,7 +281,7 @@ final class DecisionModelModule extends NoExternalConfigurationModule implements
 
     /**
      * @param array<class-string, array{thresholdTrigger: int, documentStore: string}> $snapshottedModelClasses
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], literalTagValues: array<string, string>, handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      */
     private static function assertEverySnapshottedClassIsADecisionModel(array $snapshottedModelClasses, array $rawDefinitions): void
     {

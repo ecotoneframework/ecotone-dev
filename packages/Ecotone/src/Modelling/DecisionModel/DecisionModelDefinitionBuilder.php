@@ -6,9 +6,12 @@ namespace Ecotone\Modelling\DecisionModel;
 
 use function array_diff;
 use function array_intersect;
+use function array_key_first;
 use function array_keys;
 use function array_unique;
 use function array_values;
+use function class_exists;
+use function count;
 
 use Ecotone\Api\Attribute\Aggregate;
 use Ecotone\Api\Attribute\CommandHandler;
@@ -27,8 +30,6 @@ use Ecotone\Messaging\Handler\Type;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionResolver;
 
 use function implode;
-
-use function class_exists;
 
 use ReflectionAttribute;
 use ReflectionClass;
@@ -97,7 +98,71 @@ final class DecisionModelDefinitionBuilder
             }
         }
 
-        return new DecisionModelDefinition($className, $tagNames, $handledEventClasses);
+        return new DecisionModelDefinition(
+            $className,
+            $tagNames,
+            $handledEventClasses,
+            self::literalTagValuesAgreedByEveryHandledEvent($className, $tagNames, $handledEventClasses, $eventTagRegistry),
+        );
+    }
+
+    /**
+     * A scope tag whose value every handled event fixes with the same class-level #[EventTag] literal
+     * is the model's value for that tag, so nothing has to supply it from the message.
+     *
+     * @param string[] $tagNames
+     * @param class-string[] $handledEventClasses
+     * @return array<string, string>
+     */
+    private static function literalTagValuesAgreedByEveryHandledEvent(
+        string $className,
+        array $tagNames,
+        array $handledEventClasses,
+        EventTagRegistry $eventTagRegistry,
+    ): array {
+        $literalValuesPerEvent = [];
+        foreach ($handledEventClasses as $handledEventClass) {
+            $literalValuesPerEvent[$handledEventClass] = $eventTagRegistry->literalTagValuesFor($handledEventClass);
+        }
+
+        $agreedLiteralValues = [];
+        foreach ($tagNames as $tagName) {
+            $declaredValues = [];
+            foreach ($literalValuesPerEvent as $handledEventClass => $literalValues) {
+                if (! isset($literalValues[$tagName])) {
+                    continue 2;
+                }
+
+                $declaredValues[$literalValues[$tagName]][] = $handledEventClass;
+            }
+
+            if (count($declaredValues) > 1) {
+                throw ConfigurationException::create(sprintf(
+                    "DecisionModel %s is scoped by tag '%s', but its handled events declare different class-level #[EventTag('%s')] literals: %s. One model folds one value per tag -- give the events the same literal, or scope the model by a tag the message supplies.",
+                    $className,
+                    $tagName,
+                    $tagName,
+                    self::describeDeclaredLiterals($declaredValues),
+                ));
+            }
+
+            $agreedLiteralValues[$tagName] = array_key_first($declaredValues);
+        }
+
+        return $agreedLiteralValues;
+    }
+
+    /**
+     * @param array<string, class-string[]> $eventClassesByLiteralValue
+     */
+    private static function describeDeclaredLiterals(array $eventClassesByLiteralValue): string
+    {
+        $descriptions = [];
+        foreach ($eventClassesByLiteralValue as $literalValue => $eventClasses) {
+            $descriptions[] = sprintf("'%s' on %s", $literalValue, implode(', ', $eventClasses));
+        }
+
+        return implode('; ', $descriptions);
     }
 
     /**

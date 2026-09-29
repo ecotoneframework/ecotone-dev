@@ -4,9 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use function array_keys;
+
 use Ecotone\Messaging\Config\ConfigurationException;
 
-use function array_keys;
 use function sprintf;
 
 /**
@@ -15,7 +16,7 @@ use function sprintf;
 final class DecisionModelDefinitionRegistry
 {
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], literalTagValues: array<string, string>, handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      */
     private function __construct(
         private readonly array $rawDefinitions,
@@ -28,7 +29,7 @@ final class DecisionModelDefinitionRegistry
     }
 
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], literalTagValues: array<string, string>, handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      */
     public static function createWith(array $rawDefinitions): self
     {
@@ -44,7 +45,7 @@ final class DecisionModelDefinitionRegistry
     {
         $raw = $this->rawDefinitionFor($className);
 
-        return new DecisionModelDefinition($className, $raw['tagNames'], $raw['handledEventClasses']);
+        return new DecisionModelDefinition($className, $raw['tagNames'], $raw['handledEventClasses'], $raw['literalTagValues']);
     }
 
     public function getAggregateBacked(string $className): AggregateBackedDecisionModelDefinition
@@ -66,7 +67,7 @@ final class DecisionModelDefinitionRegistry
     }
 
     /**
-     * @return array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}
+     * @return array{tagNames: string[], literalTagValues: array<string, string>, handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}
      */
     private function rawDefinitionFor(string $className): array
     {

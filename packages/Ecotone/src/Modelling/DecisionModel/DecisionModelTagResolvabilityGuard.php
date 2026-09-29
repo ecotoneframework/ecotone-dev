@@ -26,7 +26,7 @@ use function sprintf;
 final class DecisionModelTagResolvabilityGuard
 {
     /**
-     * @param array<class-string, array{tagNames: string[], handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
+     * @param array<class-string, array{tagNames: string[], literalTagValues: array<string, string>, handledEventClasses: class-string[], aggregate?: array{className: class-string, aggregateType: string, streamName: string, identifierNames: string[]}}> $rawDefinitions
      */
     public static function assertEveryModelTagResolvableFromItsMessage(
         AnnotationFinder $annotationFinder,
@@ -66,6 +66,10 @@ final class DecisionModelTagResolvabilityGuard
                     }
 
                     foreach ($rawDefinitions[$modelClass]['tagNames'] as $tagName) {
+                        if (isset($rawDefinitions[$modelClass]['literalTagValues'][$tagName])) {
+                            continue;
+                        }
+
                         if (! MessageTagValueResolver::canResolve($tagName, $messageClass)) {
                             throw ConfigurationException::create(sprintf(
                                 "%s injects DecisionModel %s, but its message %s has no property for tag '%s'. Add #[EventTag('%s')] to the property carrying the value, name it '%s', '%sId' or '%s_id', or map it explicitly with #[Fetch].",

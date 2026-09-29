@@ -73,7 +73,7 @@ final class DecisionModelParameterLoader
             ? $this->resolveTagValuesFromExpression($definition, $message)
             : $this->resolveTagValuesFromPayload($definition, $payload);
 
-        return $tagValues === null ? null : $definition->toCriteria($tagValues);
+        return $tagValues === null ? null : $definition->toCriteria([...$tagValues, ...$definition->literalTagValues()]);
     }
 
     /**
@@ -90,7 +90,7 @@ final class DecisionModelParameterLoader
     private function resolveTagValuesFromPayload(DecisionModelDefinition $definition, mixed $payload): ?array
     {
         $tagValues = [];
-        foreach ($definition->tagNames() as $tagName) {
+        foreach ($definition->tagNamesResolvedFromTheMessage() as $tagName) {
             $value = is_object($payload) ? $this->normalizedTagValue($tagName, MessageTagValueResolver::resolve($tagName, $payload)) : null;
 
             if ($value === null) {
@@ -120,7 +120,11 @@ final class DecisionModelParameterLoader
     private function resolveTagValuesFromExpression(DecisionModelDefinition $definition, Message $message): ?array
     {
         $resolved = $this->expressionExecutor->execute($message);
-        $tagNames = $definition->tagNames();
+        $tagNames = $definition->tagNamesResolvedFromTheMessage();
+
+        if ($tagNames === []) {
+            return [];
+        }
 
         $tagValues = [];
         foreach ($tagNames as $tagName) {

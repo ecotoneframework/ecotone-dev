@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\DecisionModel;
 
+use function array_diff;
+use function array_keys;
+use function array_values;
+
 use Ecotone\Api\EventSourcing\EventCriteria;
 
 /**
@@ -14,11 +18,13 @@ final class DecisionModelDefinition
     /**
      * @param string[] $tagNames
      * @param class-string[] $handledEventClasses
+     * @param array<string, string> $literalTagValues the scope tags every handled event fixes with a class-level #[EventTag] literal
      */
     public function __construct(
         private readonly string $className,
         private readonly array $tagNames,
         private readonly array $handledEventClasses,
+        private readonly array $literalTagValues = [],
     ) {
     }
 
@@ -41,6 +47,22 @@ final class DecisionModelDefinition
     public function handledEventClasses(): array
     {
         return $this->handledEventClasses;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function literalTagValues(): array
+    {
+        return $this->literalTagValues;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function tagNamesResolvedFromTheMessage(): array
+    {
+        return array_values(array_diff($this->tagNames, array_keys($this->literalTagValues)));
     }
 
     /**

@@ -75,6 +75,25 @@ final class TagResolver
     }
 
     /**
+     * The criterion's tags that carry a counter, so a decision folded from it is guarded by them.
+     * A filter-only tag narrows the read and is never counted, so capturing its version would
+     * serialise every writer that shares it.
+     *
+     * @return array<string, array{name: string, value: string}>
+     */
+    public function countedTagsOfCriteria(EventCriteria $criteria): array
+    {
+        $tags = [];
+        foreach ($this->tagsOfCriteria($criteria) as $key => $tag) {
+            if (! $this->eventTagRegistry->isFilterOnly($tag['name'])) {
+                $tags[$key] = $tag;
+            }
+        }
+
+        return $tags;
+    }
+
+    /**
      * The tag whose sequence positions a criterion: the first tag the index actually counts,
      * because a filter-only tag is stamped with sequence 0 and would position nothing.
      *

@@ -38,7 +38,7 @@ final class DbalTaggedEventReader
         }
 
         try {
-            $captured = $this->versions->capture($connection, $tags);
+            $captured = $this->versions->capture($connection, $this->tagResolver->countedTagsOfCriteria($criteria));
             $flags = $this->index->flagsFor($connection, $tags, $this->tagResolver->pushDownableTagSequenceLowerBounds($criteria));
         } catch (TableNotFoundException) {
             throw $this->tables->missingTablesException($eventStore, $connection);

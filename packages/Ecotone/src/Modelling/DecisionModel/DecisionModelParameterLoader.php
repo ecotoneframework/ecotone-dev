@@ -10,11 +10,14 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\EventSourcing\Tagging\EventTagValueNormalizer;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
+use Ecotone\Messaging\Handler\ExpressionEvaluationException;
+use Ecotone\Messaging\Handler\ExpressionResult;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 
+use function implode;
 use function is_array;
 use function sprintf;
 
@@ -99,7 +102,7 @@ final class DecisionModelParameterLoader
 
         $tagValues = [];
         foreach ($tagNames as $tagName) {
-            $value = $this->normalizedTagValue($tagName, is_array($resolved) && ! array_is_list($resolved)
+            $value = $this->normalizedTagValueFromExpression($tagName, $resolved, is_array($resolved) && ! array_is_list($resolved)
                 ? ($resolved[$tagName] ?? null)
                 : (count($tagNames) === 1 ? $resolved : null));
 
@@ -108,10 +111,12 @@ final class DecisionModelParameterLoader
                     return null;
                 }
 
-                throw ConfigurationException::create(sprintf(
-                    "#[Fetch] expression for DecisionModel %s did not resolve tag '%s'.",
+                throw ExpressionEvaluationException::because($this->expressionExecutor->location(), sprintf(
+                    "DecisionModel %s did not resolve tag '%s'. The expression returned %s. %s",
                     $this->modelClassName,
-                    $tagName
+                    $tagName,
+                    ExpressionResult::describe($resolved),
+                    $this->shapeGuidanceFor($tagNames),
                 ));
             }
 
@@ -119,6 +124,38 @@ final class DecisionModelParameterLoader
         }
 
         return $tagValues;
+    }
+
+    /**
+     * @param string[] $tagNames
+     */
+    private function shapeGuidanceFor(array $tagNames): string
+    {
+        return count($tagNames) === 1
+            ? 'A single-tag model needs a scalar or Stringable value; declare the parameter nullable to let it contribute nothing.'
+            : sprintf("This model is scoped by '%s'; the expression must return an array keyed by those names.", implode("' and '", $tagNames));
+    }
+
+    private function normalizedTagValueFromExpression(string $tagName, mixed $resolved, mixed $value): ?string
+    {
+        if (is_array($value)) {
+            throw ExpressionEvaluationException::because($this->expressionExecutor->location(), sprintf(
+                "DecisionModel %s cannot use the value resolved for tag '%s': the expression supplies several values, but a model is scoped by one value per tag. Inject the model once per value with #[Fetch], or express a boundary over several values with #[DecisionBoundary].",
+                $this->modelClassName,
+                $tagName,
+            ));
+        }
+
+        try {
+            return EventTagValueNormalizer::normalize($tagName, $value)[0] ?? null;
+        } catch (ConfigurationException $exception) {
+            throw ExpressionEvaluationException::because($this->expressionExecutor->location(), sprintf(
+                "DecisionModel %s cannot use the value resolved for tag '%s': %s",
+                $this->modelClassName,
+                $tagName,
+                $exception->getMessage(),
+            ));
+        }
     }
 
     private function normalizedTagValue(string $tagName, mixed $value): ?string

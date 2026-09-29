@@ -12,7 +12,7 @@ use Ecotone\Api\Attribute\Fetch;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Lite\EcotoneLite;
-use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -65,8 +65,8 @@ final class DecisionModelFetchTest extends TestCase
 
         try {
             $ecotone->sendCommand(new CountAccountActivityForFetchTest(''));
-            $this->fail('Expected a ConfigurationException');
-        } catch (ConfigurationException $exception) {
+            $this->fail('Expected an ExpressionEvaluationException');
+        } catch (ExpressionEvaluationException $exception) {
             $this->assertStringContainsString(AccountActivityForFetchTest::class, $exception->getMessage());
             $this->assertStringContainsString("'account'", $exception->getMessage());
             $this->assertStringContainsString('empty', $exception->getMessage());
@@ -77,7 +77,7 @@ final class DecisionModelFetchTest extends TestCase
     {
         $ecotone = $this->bootstrapCountingHandler(new CountingHandlerForFetchTest());
 
-        $this->expectException(ConfigurationException::class);
+        $this->expectException(ExpressionEvaluationException::class);
         $this->expectExceptionMessage('trailing whitespace');
 
         $ecotone->sendCommand(new CountAccountActivityForFetchTest('acc-1 '));
@@ -107,8 +107,8 @@ final class DecisionModelFetchTest extends TestCase
 
         try {
             $ecotone->sendCommand(new CountSeveralAccountsForFetchTest(['acc-1', 'acc-2']));
-            $this->fail('Expected a ConfigurationException');
-        } catch (ConfigurationException $exception) {
+            $this->fail('Expected an ExpressionEvaluationException');
+        } catch (ExpressionEvaluationException $exception) {
             $this->assertStringContainsString(AccountActivityForFetchTest::class, $exception->getMessage());
             $this->assertStringContainsString("'account'", $exception->getMessage());
             $this->assertStringContainsString('one value', $exception->getMessage());

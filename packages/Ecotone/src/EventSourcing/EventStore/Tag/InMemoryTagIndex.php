@@ -12,6 +12,8 @@ use function array_values;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\Tagging\MatchedEvents;
+use Ecotone\EventSourcing\Tagging\TagKey;
+use Ecotone\EventSourcing\Tagging\TagResolver;
 use Ecotone\Modelling\Event;
 
 /**
@@ -39,7 +41,7 @@ final class InMemoryTagIndex
     /**
      * @return Event[]
      */
-    public function eventsMatching(InMemoryEventStore $eventStore, EventCriteria $criteria): array
+    public function eventsMatching(InMemoryEventStore $eventStore, EventCriteria $criteria, TagResolver $tagResolver): array
     {
         $matched = new MatchedEvents();
 
@@ -49,15 +51,42 @@ final class InMemoryTagIndex
                 continue;
             }
 
-            foreach ($this->referencesCarryingAll($tags) as $reference) {
+            $positionTag = $tagResolver->positionTagOf($branch);
+            $positionTagKey = TagKey::of($positionTag['name'], $positionTag['value']);
+
+            foreach ($this->referencesCarryingAll($tags) as $referenceKey => $reference) {
+                $sequencesByTagKey = $this->sequencesOf($referenceKey, $tags);
+                $sequence = $sequencesByTagKey[$positionTagKey] ?? null;
+
+                if ($sequence === null || ($branch->tagSequenceLowerBound() > 0 && $sequence <= $branch->tagSequenceLowerBound())) {
+                    continue;
+                }
+
                 $event = $eventStore->eventAt($reference['stream'], $reference['eventNo']);
                 if ($event !== null && $branch->matchesEventType($event->getEventName())) {
-                    $matched->consider($reference['stream'], $reference['eventNo'], $reference['sequence'], $event);
+                    $matched->consider($reference['stream'], $reference['eventNo'], $sequence, $event, $sequencesByTagKey);
                 }
             }
         }
 
         return $matched->inSequenceOrder();
+    }
+
+    /**
+     * @param array<array{name: string, value: string}> $tags
+     * @return array<string, int>
+     */
+    private function sequencesOf(string $referenceKey, array $tags): array
+    {
+        $sequences = [];
+        foreach ($tags as $tag) {
+            $reference = $this->referencesOf($tag)[$referenceKey] ?? null;
+            if ($reference !== null) {
+                $sequences[TagKey::of($tag['name'], $tag['value'])] = $reference['sequence'];
+            }
+        }
+
+        return $sequences;
     }
 
     public function deleteStream(string $streamName): void

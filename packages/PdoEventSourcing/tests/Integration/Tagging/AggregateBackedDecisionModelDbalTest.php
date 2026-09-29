@@ -15,6 +15,7 @@ use Ecotone\Api\Attribute\EventSourcingAggregate;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
 use Ecotone\Api\Attribute\Identifier;
+use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Api\Attribute\QueryHandler;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
@@ -26,7 +27,6 @@ use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\Test\FlowTestSupport;
-use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Conversion\Converter as MediaTypeAwareConverter;
 use Ecotone\Messaging\Conversion\MediaType;
@@ -51,6 +51,7 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
         WalletFrozenForAggregateBackedDbalTest::class,
         EventsConverterForAggregateBackedDbalTest::class,
         WalletMediaTypeConverterForAggregateBackedDbalTest::class,
+        WalletBalanceMediaTypeConverterForAggregateBackedDbalTest::class,
     ];
 
     private const DECISION_CLASSES = [
@@ -194,17 +195,19 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
         $anna->sendCommand(new RequestPayoutForAggregateBackedDbalTest('w-1', 60));
     }
 
-    public function test_a_snapshotted_wallet_keeps_its_own_load_path_while_the_model_reads_the_full_history(): void
+    public function test_a_snapshotted_wallet_and_a_model_snapshotted_over_it_read_their_own_snapshots(): void
     {
         $anna = $this->bootstrapEcotone(self::getConnectionFactory(), withSnapshots: true);
         $anna->sendCommand(new OpenWalletForAggregateBackedDbalTest('w-1', 40));
         $anna->sendCommand(new CreditWalletForAggregateBackedDbalTest('w-1', 30));
+        $anna->sendCommand(new RequestPayoutForAggregateBackedDbalTest('w-1', 10));
+        $anna->sendCommand(new FreezeWalletForAggregateBackedDbalTest('w-1'));
         $anna->sendCommand(new CreditWalletForAggregateBackedDbalTest('w-1', 30));
 
         $anna->sendCommand(new RequestPayoutForAggregateBackedDbalTest('w-1', 100));
 
         self::assertSame(100, $anna->sendQueryWithRouting('dbalBackedWallet.balance', metadata: ['aggregate.id' => 'w-1']));
-        self::assertSame([100], PayoutsForAggregateBackedDbalTest::$observedBalances);
+        self::assertSame([70, 100], PayoutsForAggregateBackedDbalTest::$observedBalances);
     }
 
     private function counterVersionOf(FlowTestSupport $ecotone, string $walletId): int
@@ -223,7 +226,10 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
         $extensionObjects = [$withSnapshots ? $dbalConfiguration->withDocumentStore() : $dbalConfiguration];
 
         if ($withDynamicConsistencyBoundary) {
-            $extensionObjects[] = DynamicConsistencyBoundaryConfiguration::createWithDefaults();
+            $boundaryConfiguration = DynamicConsistencyBoundaryConfiguration::createWithDefaults();
+            $extensionObjects[] = $withSnapshots
+                ? $boundaryConfiguration->withSnapshotsFor(WalletBalanceForAggregateBackedDbalTest::class, 1)
+                : $boundaryConfiguration;
         }
         if ($withSnapshots) {
             $extensionObjects[] = EventSourcingConfiguration::createWithDefaults()->withSnapshotsFor(WalletForAggregateBackedDbalTest::class, 1);
@@ -239,6 +245,7 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
                 new CompetingWalletSaveForAggregateBackedDbalTest(),
                 new PayoutsForAggregateBackedDbalTest(),
                 new WalletMediaTypeConverterForAggregateBackedDbalTest(),
+                new WalletBalanceMediaTypeConverterForAggregateBackedDbalTest(),
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ModulePackageList::EVENT_SOURCING_PACKAGE])
@@ -276,7 +283,7 @@ final class AggregateBackedDecisionModelDbalTest extends EventSourcingMessagingT
     private function dropTables(): void
     {
         $connection = $this->getConnection();
-        foreach ([TagTableManager::TAGGED_EVENTS_TABLE, TagTableManager::TAG_VERSIONS_TABLE, self::STREAM, 'aggregate_snapshots_' . strtolower(WalletForAggregateBackedDbalTest::class)] as $tableName) {
+        foreach ([TagTableManager::TAGGED_EVENTS_TABLE, TagTableManager::TAG_VERSIONS_TABLE, self::STREAM, 'ecotone_document_store', 'aggregate_snapshots_' . strtolower(WalletForAggregateBackedDbalTest::class)] as $tableName) {
             if (self::tableExists($connection, $tableName)) {
                 $connection->executeStatement('DROP TABLE ' . $tableName);
             }
@@ -463,6 +470,14 @@ final class WalletBalanceForAggregateBackedDbalTest
     {
         return $this->balance >= $amount;
     }
+
+    public static function fromBalance(int $balance): self
+    {
+        $walletBalance = new self();
+        $walletBalance->balance = $balance;
+
+        return $walletBalance;
+    }
 }
 
 final class CompetingWalletSaveForAggregateBackedDbalTest
@@ -482,6 +497,23 @@ final class CompetingWalletSaveForAggregateBackedDbalTest
         if ($save !== null) {
             $save();
         }
+    }
+}
+
+#[MediaTypeConverter]
+final class WalletBalanceMediaTypeConverterForAggregateBackedDbalTest implements MediaTypeAwareConverter
+{
+    public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
+    {
+        return $targetMediaType->isCompatibleWith(MediaType::createApplicationJson())
+            ? json_encode(['balance' => $source->balance()])
+            : WalletBalanceForAggregateBackedDbalTest::fromBalance(json_decode($source, true)['balance']);
+    }
+
+    public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
+    {
+        return $sourceType->getTypeHint() === WalletBalanceForAggregateBackedDbalTest::class
+            || $targetType->getTypeHint() === WalletBalanceForAggregateBackedDbalTest::class;
     }
 }
 

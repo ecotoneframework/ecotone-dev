@@ -67,6 +67,7 @@ final class AggregateBackedDecisionModelDefinition
     public function instanceFor(array $identifiers): AggregateBackedDecisionModelInstance
     {
         return new AggregateBackedDecisionModelInstance(
+            $this->className,
             $this->aggregateClassName,
             $this->aggregateType,
             $this->streamName,

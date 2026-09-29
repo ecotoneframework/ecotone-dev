@@ -31,7 +31,7 @@ final class EnterpriseInMemoryTagCollaborator implements InMemoryTagCollaborator
     public function loadByCriteria(InMemoryEventStore $eventStore, EventCriteria $criteria): LoadedEvents
     {
         $captured = $this->versions->capture($this->tagResolver->tagsOfCriteria($criteria));
-        $events = $this->index->eventsMatching($eventStore, $criteria);
+        $events = $this->index->eventsMatching($eventStore, $criteria, $this->tagResolver);
 
         return new LoadedEvents($events, AppendCondition::fromCapturedVersions(array_values($captured)));
     }

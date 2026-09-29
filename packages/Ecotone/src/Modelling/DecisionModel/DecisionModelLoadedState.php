@@ -9,6 +9,7 @@ use function array_key_exists;
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Message;
+use Ecotone\Modelling\DecisionModel\Snapshot\PendingDecisionModelSnapshot;
 
 use function sprintf;
 
@@ -21,11 +22,25 @@ final class DecisionModelLoadedState
 
     /**
      * @param array<string, object|null> $instancesByParameterName
+     * @param PendingDecisionModelSnapshot[] $pendingSnapshots
      */
     public function __construct(
         private readonly array $instancesByParameterName,
         private readonly AppendCondition $appendCondition,
+        private readonly array $pendingSnapshots = [],
     ) {
+    }
+
+    /**
+     * @return PendingDecisionModelSnapshot[]
+     */
+    public static function pendingSnapshotsCarriedBy(Message $message): array
+    {
+        $state = $message->getHeaders()->containsKey(self::HEADER_NAME)
+            ? $message->getHeaders()->get(self::HEADER_NAME)
+            : null;
+
+        return $state instanceof self ? $state->pendingSnapshots : [];
     }
 
     public static function appendConditionCarriedBy(Message $message): AppendCondition

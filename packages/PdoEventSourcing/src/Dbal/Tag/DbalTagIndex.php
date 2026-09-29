@@ -70,9 +70,10 @@ final class DbalTagIndex
 
     /**
      * @param array<string, array{name: string, value: string}> $tags
+     * @param array<string, int> $tagSequenceLowerBounds
      * @return array<array{stream: string, eventNo: int, has: array<string, bool>, sequences: array<string, ?int>}>
      */
-    public function flagsFor(Connection $connection, array $tags): array
+    public function flagsFor(Connection $connection, array $tags, array $tagSequenceLowerBounds = []): array
     {
         $indexTable = TaggedEventSchemaFactory::for($connection)->quoteIdentifier(TagTableManager::TAGGED_EVENTS_TABLE);
 
@@ -90,8 +91,14 @@ final class DbalTagIndex
             $selectColumns[] = "MAX(CASE WHEN tag_name = ? AND tag_value = ? THEN 1 ELSE 0 END) AS has_{$position}";
             array_push($selectParameters, $tag['name'], $tag['value'], $tag['name'], $tag['value']);
 
-            $whereConditions[] = '(tag_name = ? AND tag_value = ?)';
+            $lowerBound = $tagSequenceLowerBounds[$key] ?? null;
+            $whereConditions[] = $lowerBound === null
+                ? '(tag_name = ? AND tag_value = ?)'
+                : '(tag_name = ? AND tag_value = ? AND tag_sequence > ?)';
             array_push($whereParameters, $tag['name'], $tag['value']);
+            if ($lowerBound !== null) {
+                $whereParameters[] = $lowerBound;
+            }
 
             $position++;
         }

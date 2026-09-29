@@ -1612,3 +1612,73 @@ measured effect, it is 4 and 5** — four to eight times on a 1 000-event scope,
 the honest way to present that is: option C makes every decision a little faster; snapshots stop long-lived tags and
 aggregates from getting slower forever, which is the bound §4.5 of the main spec currently addresses with tag-design
 advice.
+
+---
+
+## Part 14 — Outcome (2026-09-29)
+
+Built as `implement-decision-model-snapshots`, on the maintainer's decisions D1–D9 of the same day, which override
+this document wherever they differ. Shipped in four commits, one per unit; the main spec records it as §4.13.
+
+### 14.1 What shipped, against what Part 13 proposed
+
+| Part 13 recommendation | What shipped | Why it changed |
+|---|---|---|
+| §9.4 (b): a new `ecotone_decision_snapshots` table on the event store's connection | **The document store**, collection `decision_model_snapshots_<Model>`, configured by `DynamicConsistencyBoundaryConfiguration::withSnapshotsFor()` exactly as aggregate snapshots are | D1. Reuses a store users already configure and operate; no DDL, no setup feature, no `verify-schema` entry |
+| §9.2: `covered_position` as a column | A framework envelope `{state, covered_position, fold_shape}` stored as one document | D2. Same effect — the position stays out of the user's serialization — through the interface the document store already has |
+| §9.5 / OQ12: after commit, on its own channel | **Inline after the append**, every `thresholdTrigger` positions since the covered one — the same arithmetic as `EventSourcedRepositoryAdapter::save()` | D4. One mechanism, no consumer to run. CQS kept: the read computes the candidate, the write path stores it |
+| OQ11: the snapshot as a CTE of one combined statement | Deferred with the rest of option C | D9 |
+| OQ10: no extra index | No extra index | Unchanged |
+| OQ13: a bootstrap guard for the converter | **Bootstrap** guard for "not a `#[DecisionModel]`"; **first-use** `ConfigurationException` for the missing conversion and for an unresolvable document store reference | A static check is impossible: `#[MediaTypeConverter]` decides at runtime through `matches()`, and `Configuration` exposes no read-back of registered converters. Confirmed with the maintainer before step 1 |
+| §10.5: aggregate snapshots left exactly where they are | Aggregate snapshots gained the **same shape-based invalidation**, through a sibling marker document | D6. The stores stay separate and independent, as §10.5 argues; only the invalidation rule is now shared |
+
+### 14.2 What the design did not anticipate
+
+**One read serves several readers, and a bound alone is not enough.** §10.2 pushes `tag_sequence > covered` into the
+index read and stops there. But `DecisionModelBatchLoader` ORs every model, `#[DecisionBoundary]` and `#[Fetch]`
+capture of a handler into **one** `loadByCriteria()`, and then re-filters per model in PHP with
+`TagResolver::eventsMatching()`, which knows tags and event types — not sequences. So any other branch touching the
+same tag (a second model without a snapshot, a boundary, a fetched aggregate's capture) widens the read back to the
+whole scope, and the PHP filter re-admits exactly the events the snapshot had already folded. The bound has to be
+enforced in *both* places or the snapshotted model double-folds its own history.
+
+What shipped: `EventCriteria::afterTagSequence()` carries the bound per branch, and both readers stamp the tag
+sequences an event was matched by onto the event, so the PHP filter can apply the same cut. The stamp is internal —
+stripped alongside `DecisionModelLoadedState` and the aggregate keys in `MessageHeaders::unsetAggregateKeys()`, with
+a black-box test proving it reaches neither persisted metadata nor a published event. Pushing the bound into SQL is
+also only safe for a tag key that *every* branch uses as its position tag: elsewhere the key decides whether an
+event carries all of a branch's tags, and cutting its rows would drop matching events. `TagResolver` computes that.
+
+**§9.3's precision was a live bug, not only a hazard.** `DbalTaggedEventReader::matchingEvents()` and
+`InMemoryTagIndex::eventsMatching()` both positioned a branch by `tags()[0]`. Fixing it to the first *counted* tag
+broke a shipped test until the bound check learned to distinguish "no bound" from "sequence 0": a criterion scoped
+only by filter-only tags legitimately matches events whose stamped sequence is 0.
+
+**"Snapshot ahead" needs two different proofs, because the two scopes count differently.** For a tag scope the
+captured counter comes back from the same read, so the check is free — `covered > captured` means ignore, and the
+model is folded from an unbounded re-read. For an aggregate scope the counter counts *appends* while the position
+counts *versions* (§11.3), so there is nothing to compare against. What shipped reads from `fromVersion: covered`
+rather than `covered + 1`: the event the snapshot last folded comes back with the tail and anchors it. One extra
+row, no extra statement, and the check is exact.
+
+**A merged read can advance a position past the model's own events.** Two models on one aggregate instance share
+one read, narrowed to the union of their handled event types. The covered position is therefore computed only over
+events the model itself folds, matched by payload class, or a later read narrowed to that one model would lose its
+anchor.
+
+**The aggregate envelope had to become a sibling marker.** D6 offers "an envelope or a sibling field". An envelope
+turned out to change what `withSnapshotsFor` stores — five shipped tests assert the stored document *is* the
+aggregate — and would newly require a converter for in-memory snapshots, which are lenient today. The sibling
+marker document keeps the stored format byte-for-byte and still makes a marker-less document stale. It costs one
+extra document read per snapshotted aggregate load; swapping it for the envelope later is a contained change.
+
+### 14.3 Coverage
+
+Tests 12–21 of §13.3 landed as behaviour tests, in-memory and against PostgreSQL, MySQL, MariaDB and SQLite:
+identical decisions with and without snapshots; a partial-history snapshot plus a new event; a stale snapshot; a
+snapshot under a changed fold shape; a corrupt snapshot; a snapshot ahead of its scope; a competing append between
+the snapshot read and the commit still conflicting with nothing appended (two connections); a multi-tag model whose
+first tag is filter-only; a cross-stream fold over a snapshot; a snapshot surviving an application restart; an
+aggregate with `withSnapshotsFor` beside an aggregate-backed model, each reading its own snapshot; and a
+marker-less aggregate snapshot ignored and replaced. Statement counts and rows read are not asserted, by the
+2026-09-27 rule; Part 12's numbers stay review-protected.

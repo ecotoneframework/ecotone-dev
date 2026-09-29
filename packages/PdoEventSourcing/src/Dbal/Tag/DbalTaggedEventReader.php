@@ -39,7 +39,7 @@ final class DbalTaggedEventReader
 
         try {
             $captured = $this->versions->capture($connection, $tags);
-            $flags = $this->index->flagsFor($connection, $tags);
+            $flags = $this->index->flagsFor($connection, $tags, $this->tagResolver->pushDownableTagSequenceLowerBounds($criteria));
         } catch (TableNotFoundException) {
             throw $this->tables->missingTablesException($eventStore, $connection);
         }
@@ -66,21 +66,42 @@ final class DbalTaggedEventReader
                 continue;
             }
 
-            $primaryKey = TagKey::of($branch->tags()[0]['name'], $branch->tags()[0]['value']);
+            $positionTag = $this->tagResolver->positionTagOf($branch);
+            $positionTagKey = TagKey::of($positionTag['name'], $positionTag['value']);
 
             foreach ($flags as $flag) {
                 $event = $eventsByStream[$flag['stream']][$flag['eventNo']] ?? null;
-                $sequence = $flag['sequences'][$primaryKey] ?? null;
+                $sequence = $flag['sequences'][$positionTagKey] ?? null;
 
-                if ($event === null || $sequence === null || ! $this->flagCarriesAllTags($flag, $branch) || ! $branch->matchesEventType($event->getEventName())) {
+                if ($event === null || $sequence === null || ($branch->tagSequenceLowerBound() > 0 && $sequence <= $branch->tagSequenceLowerBound())) {
                     continue;
                 }
 
-                $matched->consider($flag['stream'], $flag['eventNo'], $sequence, $event);
+                if (! $this->flagCarriesAllTags($flag, $branch) || ! $branch->matchesEventType($event->getEventName())) {
+                    continue;
+                }
+
+                $matched->consider($flag['stream'], $flag['eventNo'], $sequence, $event, self::knownSequencesOf($flag));
             }
         }
 
         return $matched->inSequenceOrder();
+    }
+
+    /**
+     * @param array{sequences: array<string, ?int>} $flag
+     * @return array<string, int>
+     */
+    private static function knownSequencesOf(array $flag): array
+    {
+        $known = [];
+        foreach ($flag['sequences'] as $tagKey => $sequence) {
+            if ($sequence !== null) {
+                $known[$tagKey] = $sequence;
+            }
+        }
+
+        return $known;
     }
 
     /**

@@ -16,17 +16,25 @@ use function uasort;
  */
 final class MatchedEvents
 {
-    /** @var array<string, array{sequence: int, eventNo: int, event: Event}> */
+    /** @var array<string, array{sequence: int, eventNo: int, event: Event, sequencesByTagKey: array<string, int>}> */
     private array $lowestSequenceMatches = [];
 
-    public function consider(string $stream, int $eventNo, int $sequence, Event $event): void
+    /**
+     * @param array<string, int> $sequencesByTagKey
+     */
+    public function consider(string $stream, int $eventNo, int $sequence, Event $event, array $sequencesByTagKey = []): void
     {
         $reference = $stream . "\0" . $eventNo;
         $known = $this->lowestSequenceMatches[$reference] ?? null;
+        $sequencesByTagKey = [...$known['sequencesByTagKey'] ?? [], ...$sequencesByTagKey];
 
-        if ($known === null || $known['sequence'] > $sequence) {
-            $this->lowestSequenceMatches[$reference] = ['sequence' => $sequence, 'eventNo' => $eventNo, 'event' => $event];
+        if ($known !== null && $known['sequence'] <= $sequence) {
+            $this->lowestSequenceMatches[$reference]['sequencesByTagKey'] = $sequencesByTagKey;
+
+            return;
         }
+
+        $this->lowestSequenceMatches[$reference] = ['sequence' => $sequence, 'eventNo' => $eventNo, 'event' => $event, 'sequencesByTagKey' => $sequencesByTagKey];
     }
 
     /**
@@ -37,6 +45,9 @@ final class MatchedEvents
         $matches = $this->lowestSequenceMatches;
         uasort($matches, static fn (array $a, array $b): int => $a['sequence'] <=> $b['sequence'] ?: $a['eventNo'] <=> $b['eventNo']);
 
-        return array_values(array_map(static fn (array $match): Event => $match['event'], $matches));
+        return array_values(array_map(
+            static fn (array $match): Event => MatchedTagSequences::stampOn($match['event'], $match['sequencesByTagKey']),
+            $matches
+        ));
     }
 }

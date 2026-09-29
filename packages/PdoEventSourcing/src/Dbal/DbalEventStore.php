@@ -357,13 +357,14 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         string $streamName,
         ?string $aggregateType,
         string $aggregateId,
+        int $fromVersion = 1,
         array $eventNames = [],
     ): iterable {
         $connection = $this->connectionFor($streamName);
         $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
-        [$where, $parameters, $types] = $this->createAggregateWhereClause($schema, $aggregateType, $aggregateId, 1, $eventNames);
+        [$where, $parameters, $types] = $this->createAggregateWhereClause($schema, $aggregateType, $aggregateId, $fromVersion, $eventNames);
 
         try {
             return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, 1, null, true);

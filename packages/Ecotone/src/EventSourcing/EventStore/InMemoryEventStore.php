@@ -217,9 +217,10 @@ final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTa
         string $streamName,
         ?string $aggregateType,
         string $aggregateId,
+        int $fromVersion = 1,
         array $eventNames = [],
     ): iterable {
-        return $this->loadAggregateEvents($streamName, $aggregateType, $aggregateId, 1, null, $eventNames);
+        return $this->loadAggregateEvents($streamName, $aggregateType, $aggregateId, $fromVersion, null, $eventNames);
     }
 
     public function loadReverse(

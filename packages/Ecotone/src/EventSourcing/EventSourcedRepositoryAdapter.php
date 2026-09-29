@@ -23,12 +23,16 @@ use Ecotone\Modelling\BaseEventSourcingConfiguration;
 use Ecotone\Modelling\EventSourcedRepository;
 use Ecotone\Modelling\EventSourcingExecutor\GroupedEventSourcingExecutor;
 use Ecotone\Modelling\Repository\AggregateRepository;
+
+use function is_string;
+
 use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 
 class EventSourcedRepositoryAdapter implements AggregateRepository
 {
     public const SNAPSHOT_COLLECTION = 'aggregate_snapshots_';
+    public const SNAPSHOT_FOLD_SHAPE_COLLECTION = 'aggregate_snapshot_fold_shapes_';
 
     public function __construct(
         private EventSourcedRepository $eventSourcedRepository,
@@ -66,6 +70,11 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
                     $this->logger->error("Failure during loading snapshot for aggregate {$aggregateClassName} with identifiers " . json_encode($identifiers) . '. Snapshot ignored to self system system. Error: ' . $documentException->getMessage(), [
                         'exception' => $documentException,
                     ]);
+                }
+
+                if ($aggregate !== null && ! $this->foldShapeStoredWith($documentStore, $aggregateClassName, $identifiers)) {
+                    $this->logger->error("Snapshot for aggregate {$aggregateClassName} with identifiers " . json_encode($identifiers) . ' was taken with a different set of #[EventSourcingHandler] events than the class declares now. Snapshot ignored to self-heal system.');
+                    $aggregate = null;
                 }
 
                 if ($aggregate !== null && $aggregate::class === $aggregateClassName) {
@@ -123,6 +132,11 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
                         $this->eventSourcingConfiguration->getDocumentStoreReferenceFor($aggregate->getAggregateClassName())
                     );
                     $documentStore->upsertDocument(self::getSnapshotCollectionName($aggregate->getAggregateClassName()), self::getSnapshotDocumentId($aggregate->getIdentifiers()), $aggregate->getAggregateInstance());
+                    $documentStore->upsertDocument(
+                        self::getSnapshotFoldShapeCollectionName($aggregate->getAggregateClassName()),
+                        self::getSnapshotDocumentId($aggregate->getIdentifiers()),
+                        json_encode(['foldShape' => $this->eventSourcingHandlerExecutor->foldShapeOf($aggregate->getAggregateClassName())]),
+                    );
                 }
             }
         }
@@ -136,6 +150,26 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
         );
 
         return $version + count($aggregate->getEvents());
+    }
+
+    /**
+     * A snapshot is only loadable while the class still folds the events it was taken with. A
+     * document stored before Ecotone recorded the fold shape has no marker beside it, so it counts
+     * as taken with another shape and is replaced the next time a snapshot is written.
+     */
+    private function foldShapeStoredWith(DocumentStore $documentStore, string $aggregateClassName, array $identifiers): bool
+    {
+        try {
+            $marker = $documentStore->findDocument(self::getSnapshotFoldShapeCollectionName($aggregateClassName), self::getSnapshotDocumentId($identifiers));
+        } catch (DocumentException) {
+            return false;
+        }
+
+        if (! is_string($marker)) {
+            return false;
+        }
+
+        return (json_decode($marker, true)['foldShape'] ?? null) === $this->eventSourcingHandlerExecutor->foldShapeOf($aggregateClassName);
     }
 
     private function getAggregateVersion(object|array|string $aggregate): mixed
@@ -159,6 +193,11 @@ class EventSourcedRepositoryAdapter implements AggregateRepository
     private static function getSnapshotCollectionName(string $aggregateClassname): string
     {
         return self::SNAPSHOT_COLLECTION . $aggregateClassname;
+    }
+
+    public static function getSnapshotFoldShapeCollectionName(string $aggregateClassname): string
+    {
+        return self::SNAPSHOT_FOLD_SHAPE_COLLECTION . $aggregateClassname;
     }
 
     private static function getSnapshotDocumentId(array $identifiers): string

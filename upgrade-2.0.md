@@ -827,6 +827,46 @@ statement to run — the same text as the table above, generated instead of hand
 is tenant-selected via the `tenant` header on a multi-tenant setup, and refuses to run against a default connection
 when the header is missing.
 
+#### Decision-model snapshots
+
+A decision model folds its whole scope on every read. For a long-lived scope — a wallet, a subscription, an account
+— that fold grows forever. Snapshots bound it, and they are configured the way aggregate snapshots already are:
+
+```php
+use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
+use Ecotone\Api\Gateway\DocumentStore;
+
+#[ServiceContext]
+public function dynamicConsistencyBoundary(): DynamicConsistencyBoundaryConfiguration
+{
+    return DynamicConsistencyBoundaryConfiguration::createWithDefaults()
+        ->withSnapshotsFor(WalletBalance::class, thresholdTrigger: 100, documentStore: DocumentStore::class);
+}
+```
+
+The folded model is kept in the document store, in its own collection `decision_model_snapshots_<Model>`, separate
+from `aggregate_snapshots_<Class>`. A read loads it and folds only the events after the position it covers; a write
+happens inline after the handler's append, once a read has folded `thresholdTrigger` positions beyond the covered
+one. **Nothing is added to the schema** — no table, no column, no index — and the feature is entirely opt-in.
+
+- **The model needs a converter.** The stored state goes through the same `application/x-php` ↔ `application/json`
+  conversion aggregate snapshots use, so a snapshotted model needs a `#[MediaTypeConverter]` or a serializer
+  package. Without one the first snapshot raises a `ConfigurationException` naming the model. A model class that
+  carries no `#[DecisionModel]` is rejected at bootstrap, and a `documentStore` reference that does not resolve is a
+  `ConfigurationException` naming the reference.
+- **No `#[Version]` property.** The covered position and the fold shape are written by Ecotone around your state,
+  never inside it. Your converter only has to round-trip the model's own fields.
+- **A changed model re-folds itself.** The stored document records which class, handled events and tag names it was
+  folded with. Deploy a model with one more `#[EventSourcingHandler]` and its old snapshots stop matching: the next
+  read folds the whole scope and the next write stores a snapshot under the new shape. The same happens to a
+  snapshot that cannot be read, holds another class, or covers a position its scope has not reached — it is logged
+  and ignored, never trusted and never deleted mid-read.
+- **Storage is per scope value, not per model.** One document per tag value per model class. A tag with a million
+  values and two models scoped on it is two million documents. Snapshot long-lived scopes; a tag whose value lives
+  three events costs more to snapshot than to fold.
+- **Reads stay reads.** A read never writes a snapshot, so a `#[QueryHandler]` folding a snapshotted model never
+  advances it. Only a handler that appends does.
+
 ## 5. Connections: Ecotone classes replace the Enqueue ones (DBAL, AMQP, SQS, Redis)
 
 **Before:** Every transport's connection was referenced by the underlying `php-enqueue/*` package's own class name —
@@ -1261,6 +1301,22 @@ The full mapping is in `upgrade/namespace-map-2.0.csv`.
   there is nothing to change. If you referenced them anyway, use the native methods: `$connection->createQueryBuilder()`
   with its own `executeQuery()` / `executeStatement()` / `fetch*()`, and
   `$connection->createSchemaManager()->tableExists($table)`.
+
+### Aggregate snapshots are invalidated when the aggregate folds other events
+
+**Before:** A stored aggregate snapshot was loaded whenever one existed for the instance. Adding or removing an
+`#[EventSourcingHandler]` left every stored snapshot loadable, so the aggregate came back folded by the old rules
+and silently stayed that way until enough new events accumulated to overwrite it.
+
+**Now:** Every snapshot is written beside a marker recording the fold it was taken with — the aggregate class and
+its sorted `#[EventSourcingHandler]` event types — in a sibling collection `aggregate_snapshot_fold_shapes_<Class>`
+of the same document store. On load, a marker that is missing or names another fold makes the snapshot stale: it is
+logged and ignored, the aggregate is replayed from its events, and the next save writes a fresh snapshot and marker.
+
+**What to expect on upgrade:** snapshots written by 1.x carry no marker, so each snapshotted aggregate instance is
+replayed in full once, on its first load after the upgrade, and re-snapshotted on its next save. The snapshot
+documents themselves are unchanged and need no migration. Applications that do not use
+`withSnapshotsFor(...)` are unaffected.
 
 ### Expression failures name their place
 

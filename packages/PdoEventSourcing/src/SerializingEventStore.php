@@ -94,10 +94,11 @@ final class SerializingEventStore implements EventStore
         string $streamName,
         ?string $aggregateType,
         string $aggregateId,
+        int $fromVersion = 1,
         array $eventNames = [],
     ): iterable {
         $events = [];
-        foreach ($this->eventStore->loadDecisionModelAggregateEvents($streamName, $aggregateType, $aggregateId, $eventNames) as $event) {
+        foreach ($this->eventStore->loadDecisionModelAggregateEvents($streamName, $aggregateType, $aggregateId, $fromVersion, $eventNames) as $event) {
             $events[] = $this->eventSerializer->deserialize(
                 $event->getEventName(),
                 $event->getPayload(),

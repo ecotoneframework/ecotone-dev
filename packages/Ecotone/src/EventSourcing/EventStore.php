@@ -68,6 +68,7 @@ interface EventStore
         string $streamName,
         ?string $aggregateType,
         string $aggregateId,
+        int $fromVersion = 1,
         array $eventNames = [],
     ): iterable;
 

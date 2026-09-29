@@ -15,6 +15,7 @@ use Ecotone\Messaging\MessageConverter\HeaderMapper;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\SaveAggregateServiceTemplate;
+use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelSnapshotStore;
 
 /**
  * licence Enterprise
@@ -29,6 +30,7 @@ final class DecisionModelAppendInterceptor
         private readonly EcotoneClockInterface $clock,
         private readonly EventBus $eventBus,
         private readonly AggregateDefinitionRegistry $aggregateDefinitionRegistry,
+        private readonly DecisionModelSnapshotStore $snapshots,
     ) {
     }
 
@@ -68,6 +70,10 @@ final class DecisionModelAppendInterceptor
             $events,
             $appendCondition->isEmpty() ? null : $appendCondition,
         );
+
+        foreach (DecisionModelLoadedState::pendingSnapshotsCarriedBy($message) as $pendingSnapshot) {
+            $this->snapshots->write($pendingSnapshot);
+        }
 
         foreach ($events as $event) {
             $this->eventBus->publish($event->getPayload(), $event->getMetadata());

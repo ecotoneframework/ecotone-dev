@@ -3,6 +3,7 @@
 namespace Ecotone\Messaging;
 
 use Ecotone\Api\Gateway\DistributedBusHeader;
+use Ecotone\EventSourcing\Tagging\MatchedTagSequences;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
@@ -301,6 +302,7 @@ final class MessageHeaders
             $metadata[AggregateMessage::TARGET_VERSION],
             $metadata[AggregateMessage::NULL_EXECUTION_RESULT],
             $metadata[DecisionModelLoadedState::HEADER_NAME],
+            $metadata[MatchedTagSequences::HEADER_NAME],
         );
 
         return $metadata;

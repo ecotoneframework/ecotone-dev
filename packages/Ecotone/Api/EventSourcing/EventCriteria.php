@@ -34,6 +34,7 @@ final class EventCriteria
         private readonly array $tags,
         private readonly array $eventTypes = [],
         private readonly array $branches = [],
+        private readonly int $tagSequenceLowerBound = 0,
     ) {
     }
 
@@ -71,14 +72,30 @@ final class EventCriteria
     {
         $this->assertNarrowsASingleCriterion('andTag');
 
-        return new self([...$this->tags, ['name' => $name, 'value' => $value]], $this->eventTypes);
+        return new self([...$this->tags, ['name' => $name, 'value' => $value]], $this->eventTypes, [], $this->tagSequenceLowerBound);
     }
 
     public function ofTypes(string ...$eventTypes): self
     {
         $this->assertNarrowsASingleCriterion('ofTypes');
 
-        return new self($this->tags, $eventTypes);
+        return new self($this->tags, $eventTypes, [], $this->tagSequenceLowerBound);
+    }
+
+    /**
+     * Narrows the criterion to the events its position tag counted after the given sequence,
+     * which is how a snapshot's covered position reaches both the index read and the fold.
+     */
+    public function afterTagSequence(int $tagSequence): self
+    {
+        $this->assertNarrowsASingleCriterion('afterTagSequence');
+
+        return new self($this->tags, $this->eventTypes, [], $tagSequence);
+    }
+
+    public function tagSequenceLowerBound(): int
+    {
+        return $this->tagSequenceLowerBound;
     }
 
     public function or(self $other): self

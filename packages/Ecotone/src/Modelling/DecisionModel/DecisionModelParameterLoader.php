@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\DecisionModel;
 
 use function array_is_list;
+use function array_map;
 
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\EventSourcing\Tagging\EventTagValueNormalizer;
@@ -14,6 +15,7 @@ use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionResult;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
+use Ecotone\Modelling\DecisionModel\Snapshot\DecisionModelFoldShape;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 
@@ -42,6 +44,26 @@ final class DecisionModelParameterLoader
         return $this->parameterName;
     }
 
+    public function modelClassName(): string
+    {
+        return $this->modelClassName;
+    }
+
+    public function foldShape(): string
+    {
+        $definition = $this->decisionModelDefinitionRegistry->get($this->modelClassName);
+
+        return DecisionModelFoldShape::of($this->modelClassName, $definition->handledEventClasses(), $definition->tagNames());
+    }
+
+    public static function snapshotScopeKeyOf(EventCriteria $criteria): string
+    {
+        return implode('&', array_map(
+            static fn (array $tag): string => $tag['name'] . '|' . $tag['value'],
+            $criteria->tags(),
+        ));
+    }
+
     public function resolveCriteria(Message $message): ?EventCriteria
     {
         $definition = $this->decisionModelDefinitionRegistry->get($this->modelClassName);
@@ -57,9 +79,9 @@ final class DecisionModelParameterLoader
     /**
      * @param Event[] $events
      */
-    public function fold(array $events): object
+    public function fold(array $events, ?object $snapshotState = null): object
     {
-        return $this->eventSourcingHandlerExecutor->fill($events, null);
+        return $this->eventSourcingHandlerExecutor->fill($events, $snapshotState);
     }
 
     /**

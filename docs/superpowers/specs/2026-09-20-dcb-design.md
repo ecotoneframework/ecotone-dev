@@ -1230,7 +1230,7 @@ not depend on tags or on a licence.
 | UUID v7 for the store's fallback id | One-line change, unrelated |
 | Replacing `MetadataMatcher` / the `EventStore` interface | §4 promised it unchanged |
 | Tag-partitioned projections | Follow-up; `tag_sequence` is the per-tag position they need |
-| Decision-model snapshots | Follow-up; same |
+| ~~Decision-model snapshots~~ | **Shipped 2026-09-29**, §4.13 |
 | `#[CommandHandler]` directly on a `#[DecisionModel]` class | Dropped 2026-09-23 after wave 1: one shape only, models are injected |
 | An OR *inside* one model (`#[MatchingTags]` from revision 2) | Removed. Two questions are two models; the OR happens where they are injected |
 | Runtime backfill-coverage guard | Declined by the maintainer (2026-09-23); an operator rule instead |
@@ -1315,6 +1315,58 @@ another connection than the handler's. The "scoped by no tag name" message names
 **Accepted.** The guard is per aggregate instance, so a save recording an event type the model ignores still
 invalidates the decision — conservative, at most a retry, the trade §4.3 already makes for a mixed tag scope. A model
 spanning an aggregate's events *and* tagged events stays impossible: put `#[EventTag]` on the event instead.
+
+### 4.13 Decision-model snapshots (2026-09-29)
+
+Design: `2026-09-29-dcb-single-read-snapshot-design.md` revision 2, Parts 9-13, with the maintainer's decisions of
+the same day.
+
+**Rule.** `DynamicConsistencyBoundaryConfiguration::withSnapshotsFor(Model::class, $thresholdTrigger, $documentStore)`
+keeps a model's folded state in the **document store**, in its own collection `decision_model_snapshots_<Model>`,
+configured exactly the way `withSnapshotsFor` configures aggregate snapshots. A read folds the stored state and only
+the events after the position it covers; a write happens inline after the append, once the read has folded
+`$thresholdTrigger` positions beyond the covered one. **No new table, no new index, no schema change.**
+
+**The envelope.** The stored document is Ecotone's, not the user's: `{state, covered_position, fold_shape}`, where
+`state` is the model run through the same `application/x-php` ↔ `application/json` conversion aggregate snapshots
+use. The position and the shape are written by the framework, so a model never grows a `#[Version]` property.
+`fold_shape` hashes the class, its sorted handled event names and its sorted tag names or aggregate type.
+
+**The position.** An aggregate-scoped model is positioned by `aggregate_version`, and the tail is
+`loadAggregateEvents(..., fromVersion: covered)` — the read starts *at* the covered version rather than past it, so
+the event the snapshot last folded comes back and proves the snapshot is not ahead of the aggregate. A tag-scoped
+model is positioned by the `tag_sequence` of the **first counted tag** of its branch, pushed into the index read as
+`tag_sequence > covered`; a multi-tag AND uses that one scalar (§9.3 of the design). A snapshot covering a sequence
+beyond the counter the same read captured is ignored and the scope is folded whole.
+
+**One read, several models.** A criterion now carries the sequence after which its events matter
+(`EventCriteria::afterTagSequence()`), and the events a read returns are stamped with the tag sequences they were
+matched by. Both are needed because one handler's models, boundaries and fetched aggregates share a single
+`loadByCriteria()`: without the stamp, a second reader of the same tag would re-admit the events a snapshotted
+model has already folded. The stamp is internal — stripped with the other framework keys, so it never reaches
+persisted metadata or a published event.
+
+**Self-healing.** Missing, unreadable, of the wrong class, folded under another shape, or ahead of its scope: the
+snapshot is logged and ignored, the whole history is folded, and the next write replaces it. Nothing is deleted
+during a read. CQS holds: the read never writes, the write is a separate step after the append.
+
+**Aggregate snapshots gain the same invalidation.** An aggregate snapshot is now written beside a marker naming the
+fold it was taken with, in `aggregate_snapshot_fold_shapes_<Class>`, computed from the class and its sorted
+`#[EventSourcingHandler]` event types. A marker that is missing or names another fold makes the snapshot stale, so a
+snapshot written by an earlier version is re-folded once after the upgrade. The snapshot document itself is
+unchanged, so no stored data has to be converted.
+
+**Guards.** Bootstrap: a snapshotted class that carries no `#[DecisionModel]`. First use: no converter between
+`application/x-php` and `application/json` for the model, and a document store reference that does not resolve —
+both `ConfigurationException`, naming the class and the remedy. A static bootstrap check for the converter is not
+possible: a `#[MediaTypeConverter]` decides at runtime whether it matches.
+
+**Storage is the cost, and it is per tag value.** One document per scope per model class: a tag with a million
+values and two models scoped on it is two million documents. Snapshots are for long-lived scopes — a wallet, a
+subscription, an account — not for a tag whose value lives three events.
+
+**Deferred.** The combined single statement (option C and the snapshot CTE), the `#[Fetch]` hand-off, and the extra
+`(tag_name, tag_value, tag_sequence, ...)` index.
 
 ## Part 4½ — Store cleanups pulled into scope (maintainer, 2026-09-23)
 
@@ -1479,3 +1531,4 @@ per-tag counter, bumped by unconditional appends too — and all found it incomp
 | 2026-09-28 | **`#[DecisionBoundary]` criteria are captured before invocation, in the handler's single batched read** — the separate post-handler `loadByCriteria()` is gone | **Maintainer** | Captured after the handler, an aggregate-only boundary could not see a save of the aggregate made while the handler decided; the batch loader already builds the command from the message for model loaders, so folding the boundary in costs nothing and restores one load per handler |
 | 2026-09-29 | **A decision model can be backed by an event-sourced aggregate.** `#[DecisionModel(aggregate: Wallet::class)]` folds the aggregate's own stream, narrowed to the handled event types in SQL, guarded by the §4.11 counter that already exists. Revision 1's proposal — an `ecotone_tagged_events` row per aggregate event — is declined. Identifier by convention or `#[Fetch]`; `aggregate:` and `tags:` exclusive; six bootstrap guards; no schema change, no backfill, no per-save cost, no configuration, no `PdoEventSourcing` change | **Maintainer** (revision 2 redirect, every recommended answer to OQ 1-6) | The events are already queryable by the pair the boundary is keyed on, so index rows would be a second copy of an index the stream already has — ~2.2 GB per 10 M events on PostgreSQL, a permanent per-save write and a mandatory backfill, to buy a round trip the user already pays for `#[Fetch]`. §4.12 and `2026-09-28-dcb-aggregate-full-tag-design.md` Parts 5 and 9 |
 | 2026-09-29 | **`#[DecisionBoundary]` receives headers and services.** After the command, a boundary takes any number of further parameters, compiled with the same `ParameterConverterAnnotationFactory::getConverterFor()` handler parameters use, plus the container-reference-by-type-hint fallback: `#[Header]`, `#[Headers]`, `#[Reference]`, `#[ConfigurationVariable]` and a bare service type hint. The method stays `public static`; the matching rule is untouched, since only the first parameter selects the handler. An unresolvable parameter is a bootstrap `ConfigurationException` naming the method and the parameter, as is a parameter needing the read the boundary itself scopes (a `#[DecisionModel]` type hint or a `#[Fetch]` parameter). A boundary matched only by a `#[QueryHandler]` is now rejected saying a query appends no events, so the boundary would guard nothing. Event-side `#[EventTag]` expressions are declined | **Maintainer** (OQ5 of `2026-09-29-dcb-dynamic-tag-values-design.md`) | The documented escape hatch could not express the most common boundary a model cannot — a tenant-scoped one — because a static method has no route to a header or a service. Reuses the handler-parameter machinery wholesale; the two rejections keep capture-before-read intact, since the boundary is evaluated to *produce* the read's criteria |
+| 2026-09-29 | **Decision-model snapshots ship, in the document store, written inline.** `DynamicConsistencyBoundaryConfiguration::withSnapshotsFor()` mirrors the aggregate one; the stored document is a framework envelope (`state`, `covered_position`, `fold_shape`) in `decision_model_snapshots_<Model>`, so no position enters the user's serialization and no table is added. Aggregate scope is positioned by `aggregate_version` and read from the covered version so the anchor proves the snapshot is not ahead; tag scope by the `tag_sequence` of the first *counted* tag, pushed into the index read. A read never writes. Anything wrong with a snapshot is logged, ignored and replaced at the next write. Aggregate snapshots gain the same shape-based invalidation through a sibling marker document, which makes pre-upgrade snapshots re-fold once. The combined statement, the `#[Fetch]` hand-off and the extra index are deferred | **Maintainer** (D1-D9) | Design's own recommendations were a new `ecotone_decision_snapshots` table and an after-commit writer; the maintainer chose the shipped document store and the shipped inline-every-N arithmetic instead, so snapshots reuse a mechanism users already configure and operate. §4.13 and `2026-09-29-dcb-single-read-snapshot-design.md` Parts 9-13 |

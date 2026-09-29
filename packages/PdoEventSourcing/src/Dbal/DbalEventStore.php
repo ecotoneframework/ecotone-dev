@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Dbal;
 
 use function array_key_exists;
+use function array_pop;
 use function count;
 
 use DateTimeImmutable;
@@ -413,14 +414,14 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         $remaining = $count;
 
         while ($remaining === null || $remaining > 0) {
-            $limit = $remaining === null ? $this->loadBatchSize : min($remaining, $this->loadBatchSize);
+            $pageSize = $remaining === null ? $this->loadBatchSize : min($remaining, $this->loadBatchSize);
             $batchParameters = $parameters;
             $batchParameters[count($batchParameters) - 1] = $position;
 
             try {
                 $rows = $connection->executeQuery(
                     'SELECT no, event_name, payload, metadata FROM ' . $schema->quoteIdentifier($tableName)
-                    . ' WHERE ' . implode(' AND ', $where) . ' ORDER BY no ASC LIMIT ' . $limit,
+                    . ' WHERE ' . implode(' AND ', $where) . ' ORDER BY no ASC LIMIT ' . ($pageSize + 1),
                     $batchParameters,
                     $types
                 )->fetchAllAssociative();
@@ -428,12 +429,17 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
                 throw $this->missingStreamTableException($connection, $tableName);
             }
 
+            $furtherEventsFollowThisPage = count($rows) > $pageSize;
+            if ($furtherEventsFollowThisPage) {
+                array_pop($rows);
+            }
+
             foreach ($rows as $row) {
                 $events[] = $this->convertToEvent($row, $deserialize);
                 $position = ((int) $row['no']) + 1;
             }
 
-            if (count($rows) < $limit) {
+            if (! $furtherEventsFollowThisPage) {
                 break;
             }
 

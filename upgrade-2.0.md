@@ -405,6 +405,20 @@ own stream or repository, snapshots included.
   and the aggregate commit together: a Dbal document-store or Doctrine ORM repository on another connection is a
   bootstrap `ConfigurationException`; for a repository Ecotone cannot inspect (your own, Eloquent, Tempest) this is
   your responsibility.
+- **Opting a state-stored aggregate out of the new lock.** If callers of a particular state-stored aggregate rely on
+  last write wins, name it and it keeps no counter at all — nothing captured at `findBy()`, nothing bumped at
+  `save()`, exactly the 1.x behaviour:
+
+  ```php
+  return DynamicConsistencyBoundaryConfiguration::createWithDefaults()
+      ->withoutOptimisticLockFor([ImportedContact::class, LegacyBasket::class]);
+  ```
+
+  It still declares `#[AggregateType]`, because that is the name its counter tag would carry and the exclusion can be
+  lifted later. Fetching an excluded aggregate into a decision-model handler is a bootstrap `ConfigurationException`:
+  the decision would rest on state nothing guards. Naming an `#[EventSourcingAggregate]` is a bootstrap error too —
+  its stream's own version check is its lock and cannot be switched off — and so is naming a saga or a class that is
+  no aggregate at all.
 - **Transactions are mandatory for every aggregate save**, not only for tagged ones — see "Transactions are
   required" below. `#[WithoutDatabaseTransaction]` on an aggregate's command or event handler is a bootstrap
   `ConfigurationException`.
@@ -463,6 +477,15 @@ own stream or repository, snapshots included.
   decision-model handlers `#[Fetch]` is unchanged.
 - **Conflicts name the aggregate**: "Wallet w-1 changed since it was loaded", still a
   `DecisionModelConcurrencyException`.
+- **A tag conflict names what was being decided.** The batch loader knows which decision model, or which
+  `#[DecisionBoundary]` method, each captured tag belongs to, so the message says so:
+  `Concurrent append conflict on tag username:ada (expected version 0, current version 1) while deciding
+  App\Registration\UsernameAvailability. The tag moved after it was read: ...`. Several models sharing the
+  conflicting tag are listed comma-separated; a handler with only a boundary is named as
+  `while deciding App\Registration\Usernames::boundary`. An aggregate counter conflict keeps its own wording
+  ("Wallet w-1 changed since it was loaded") and names no model. The exception also exposes the conflict as data —
+  `conflictingTagName()`, `conflictingTagValue()`, `expectedVersion()`, `currentVersion()`, `decidedBy()` — so you
+  can turn it into a business answer without parsing the message.
 - **A `#[Fetch]` expression that fails names where it is written.** A syntax error, an unknown `reference()`, a
   mapper that throws, or a result that does not fit the model throws `ExpressionEvaluationException` naming the
   attribute, the parameter, the handler method, the expression and what it returned — see §14, "Expression failures
@@ -615,6 +638,31 @@ no transaction.
   Use `#[Fetch('payload.fromAccountId')]` for explicit mapping — needed to inject the same model class twice (a
   transfer's two accounts) or when the property-name convention doesn't apply; a multi-tag model's `#[Fetch]`
   expression returns a map (`"{'customer': payload.customerId, 'coupon': payload.couponCode}"`).
+  **A class-level `#[EventTag]` literal needs no value from the message.** A decision that has no natural entity — a
+  gapless invoice sequence — is scoped by a tag every one of its events fixes on the class:
+
+  ```php
+  #[EventTag('invoiceSequence', value: 'default')]
+  final readonly class InvoiceIssued
+  {
+      public function __construct(public int $number) {}
+  }
+
+  #[DecisionModel(tags: ['invoiceSequence'])]
+  final class InvoiceNumbering { /* ... */ }
+
+  #[CommandHandler]
+  public function issue(IssueInvoice $command, InvoiceNumbering $numbering): array
+  {
+      return [new InvoiceIssued($numbering->nextNumber())];
+  }
+  ```
+
+  When every event the model handles declares the same class-level literal for a scope tag, that literal *is* the
+  model's value for it: nothing is read from the command and nothing from a `#[Fetch]` expression, so `IssueInvoice`
+  needs no `invoiceSequence` property. Handled events declaring *different* literals for one scope tag are a bootstrap
+  `ConfigurationException` — one model folds one value per tag. A scope mixing a literal tag with a message-resolved
+  one (`invoiceSequence` + `region`) resolves the latter from the message as usual.
   `#[DecisionBoundary]` on a static method of the same class, taking the same command, is the escape hatch for a
   boundary no model expresses. It is matched to the handler whose first parameter has the same type — a boundary
   that is not static, does not take that command as its first parameter, does not declare `EventCriteria` as its
@@ -682,7 +730,9 @@ no transaction.
 
   A decision model scoped *only* by filter-only tag names is a bootstrap `ConfigurationException` — its append would
   be guarded by nothing. A scope mixing a filter-only and a counted tag (`tenant` + `username`: unique per tenant) is
-  allowed: it folds exactly that tenant's events and is guarded on the counted tag. Naming a tag in
+  allowed: it folds exactly that tenant's events and is guarded on the counted tag alone, so two usernames claimed in
+  one tenant never wait for each other. A unique username per tenant is the worked example, end to end
+  in `UniqueUsernamePerTenantTest` (in memory) and `UniqueUsernamePerTenantDbalTest` (four engines). Naming a tag in
   `withFilterOnlyTags()` that no `#[EventTag]` declares is a bootstrap `ConfigurationException` too — a typo would
   otherwise leave the hot tag counted.
 
@@ -715,6 +765,26 @@ no transaction.
   don't deadlock, and an aggregate save whose tag moved after the aggregate was loaded fails on InnoDB
   `REPEATABLE READ`). An application with
   no `#[EventTag]` sees byte-for-byte today's single `INSERT` — no counter statements, no tag tables touched.
+
+**Observability.** Every conflict is reported as one `notice`-level log line through the PSR logger you registered,
+with the message `Dynamic Consistency Boundary conflict` and the context keys `ecotone.dcb.conflict.tag`,
+`ecotone.dcb.conflict.expected_version`, `ecotone.dcb.conflict.current_version` and `ecotone.dcb.conflict.model`, so
+conflicts can be counted without any tracing set-up.
+
+With `ecotone/open-telemetry` installed and the tracing package enabled, each boundary handler also produces two spans:
+
+| Span | When | Attributes |
+|---|---|---|
+| `Decision Models: <Class::method>` | around the pre-invocation decision load | `ecotone.dcb.models` (the model classes folded), `ecotone.dcb.tags` (the captured `name:value` tags), `ecotone.dcb.captured_versions` (`name:value=version`), `ecotone.dcb.aggregates` (the `aggregate_<Type>:<id>` counters among them), `ecotone.dcb.events_folded` (how many events were folded) |
+| `Conditional Append: <stream>` | around an append carrying a tag condition — a decision-model handler's result and an event-sourced aggregate save alike | `ecotone.dcb.tags`, `ecotone.dcb.events_appended` |
+
+A conflict records the exception on the append span, sets its status to error, and adds a span event named
+`dcb.conflict` whose attributes are the four `ecotone.dcb.conflict.*` fields above. List-valued attributes are
+comma-separated strings.
+
+Nothing is registered when the OpenTelemetry module is absent, and the DCB code itself has no dependency on it: the
+module decorates the decision-model batch loader and the raw event store in a compiler pass. With DCB switched off no
+boundary span is produced at all.
 
 #### DCB tag tables — schema, setup, backfill, verify-schema
 

@@ -463,6 +463,10 @@ own stream or repository, snapshots included.
   decision-model handlers `#[Fetch]` is unchanged.
 - **Conflicts name the aggregate**: "Wallet w-1 changed since it was loaded", still a
   `DecisionModelConcurrencyException`.
+- **A `#[Fetch]` expression that fails names where it is written.** A syntax error, an unknown `reference()`, a
+  mapper that throws, or a result that does not fit the model throws `ExpressionEvaluationException` naming the
+  attribute, the parameter, the handler method, the expression and what it returned — see §14, "Expression failures
+  name their place". Bootstrap guards keep throwing `ConfigurationException`.
 - **No backfill.** A missing counter row is version 0, and the guarded path for 0 is an insert that conflicts when
   someone else inserted first, so an aggregate with years of history is guarded from its first save after the
   upgrade. The one operator rule: during a rolling deploy, nodes still on the previous release save aggregates without
@@ -1206,6 +1210,67 @@ The full mapping is in `upgrade/namespace-map-2.0.csv`.
   there is nothing to change. If you referenced them anyway, use the native methods: `$connection->createQueryBuilder()`
   with its own `executeQuery()` / `executeStatement()` / `fetch*()`, and
   `$connection->createSchemaManager()->tableExists($table)`.
+
+### Expression failures name their place
+
+**Before:** an expression that failed at runtime threw whatever the cause threw. A typo was a Symfony
+`SyntaxError`, a misspelled service an `\InvalidArgumentException` from the container, a mapper that blew up its own
+exception, and a `#[Fetch]` whose result did not fit the model a `ConfigurationException` reading
+`#[Fetch] expression for DecisionModel App\CouponRedemptions did not resolve tag 'coupon'.` None of them said which
+attribute, which parameter or which method the expression was written on, and none of them quoted the expression.
+
+**Now:** every expression Ecotone evaluates has one failure boundary, and every failure that crosses it is an
+`Ecotone\Messaging\Handler\ExpressionEvaluationException` — a **runtime** `MessagingException`, so a retry policy
+and a `catch` can tell it apart from a boot problem. Its message follows one template:
+
+```
+<attribute> on <target> in <Class::method> failed. Expression: <expression>. <cause>
+```
+
+```
+#[Fetch] on $coupon in App\OrderService::place failed. Expression: headers['couponCode']. DecisionModel App\CouponRedemptions did not resolve tag 'coupon'. The expression returned null. A single-tag model needs a scalar or Stringable value; declare the parameter nullable to let it contribute nothing.
+```
+
+```
+#[Payload] on $total in App\OrderService::place failed. Expression: reference('pricing').total(payload). Reference pricing was not found in definitions
+```
+
+The original exception is kept as `$previous`, so nothing is lost. An expression whose own inner expression already
+failed is not wrapped twice. A closure expression reports `Expression: closure`. A class- or method-level attribute
+such as `#[AddHeader]` or `#[Deduplicated]` has no target, so it reads `#[AddHeader] in App\OrderService::place failed.`
+The enricher and the expression transformer name the edited path and the input channel instead of a method —
+`Enricher on payload path 'token' failed.`, `Transformer in endpoint 'orders.normalise' failed.`
+
+This covers `#[Fetch]` (decision model tag values, aggregate-backed model identifiers and fetched aggregates),
+`#[Payload(expression:)]` on handlers and gateways, `#[Header(expression:)]`, `#[Reference(expression:)]`,
+`#[AddHeader]` and the attributes extending it (`#[Delayed]`, `#[Priority]`, `#[TimeToLive]`, `#[ContentType]`),
+`#[Deduplicated]`, `#[DbalParameter]`, the expression transformer and the enricher's request payload and property
+editors — string expressions and PHP 8.5 closures alike.
+
+**Runtime or bootstrap.** `ExpressionEvaluationException` is thrown per message, for things only a message can
+reveal: a syntax error in an expression that was never evaluated before, a service the container does not have, an
+absent header, a mapper that throws, a result that does not fit the model. `ConfigurationException` stays what it
+always was — a problem found while building the container, including a tag that cannot be resolved by convention
+and every `#[DecisionModel]` / `#[DecisionBoundary]` guard.
+
+**How to adapt:** nothing, unless you catch these by class. Three catches move:
+
+| Was | Is now |
+|---|---|
+| `ConfigurationException` from a `#[Fetch]` tag value or identifier that did not resolve or normalise | `ExpressionEvaluationException` |
+| `AggregateNotFoundException` from a `#[Fetch]`-ed aggregate whose expression resolved no identifier | `ExpressionEvaluationException` (a genuine not-found still throws `AggregateNotFoundException`) |
+| `InvalidArgumentException` from a required header missing for an expression-backed `#[Header]` | `ExpressionEvaluationException` |
+
+A handler *parameter* still surfaces through `MethodInvocationException` ("Cannot resolve parameter 'x' while
+calling ..."), as every parameter converter always has; the expression failure is its `$previous` and its message is
+quoted under `Reason:`.
+
+**A `bool` is no longer a tag value.** `#[Fetch('true')]` silently produced the tag value `"1"` and `#[Fetch('false')]`
+produced a confusing "value cannot be empty"; both are now rejected with
+`Tag 'account' value must be a string, int, float or Stringable, got bool. Did you mean to compare instead of return?`
+This applies to `#[EventTag]` values as well, for the same reason: a boolean tag value is always a mistake, usually a
+comparison written where a value was meant.
+
 
 ## 15. Testing and developer-experience changes
 

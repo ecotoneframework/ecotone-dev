@@ -13,11 +13,11 @@ use Ecotone\Api\Projecting\ProjectingManager;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\EventSourcing\Projecting\StreamSource\GapAwarePosition;
 use Ecotone\EventSourcing\StreamTableRegistry;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Scheduling\Duration;
@@ -120,6 +120,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             self::$clock,
             self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             maxGapOffset: 3, // Only keep gaps within 3 positions
             gapTimeout: null
@@ -166,6 +167,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             self::$clock,
             self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             gapTimeout: Duration::seconds(5)
         );
@@ -206,6 +208,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             self::$clock,
             self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             maxGapOffset: 1000,
             gapTimeout: Duration::seconds(5)
@@ -234,6 +237,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             self::$clock,
             self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             maxGapOffset: 1000,
             gapTimeout: null // No timeout

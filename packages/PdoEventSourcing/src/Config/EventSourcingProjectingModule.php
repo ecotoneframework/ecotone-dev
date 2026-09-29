@@ -21,6 +21,7 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Api\Projecting\ProjectionStateGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProvider;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorage;
@@ -287,6 +288,7 @@ class EventSourcingProjectingModule implements AnnotationModule
                 new Definition(AggregateIdPartitionProvider::class, [
                     new Reference(DbalConnectionReference::DEFAULT),
                     new Reference(StreamTableRegistry::class),
+                    new Reference(MissingEventStreamTable::class),
                     $this->partitionedProjectionNames,
                 ])
             );
@@ -330,6 +332,7 @@ class EventSourcingProjectingModule implements AnnotationModule
                 new Reference(EcotoneClockInterface::class),
                 new Reference(StreamTableRegistry::class),
                 new Reference(StreamFilterRegistry::class),
+                new Reference(MissingEventStreamTable::class),
                 $this->globalStreamProjectionNames,
                 5_000,
                 new Definition(Duration::class, [60 * 1_000_000]),

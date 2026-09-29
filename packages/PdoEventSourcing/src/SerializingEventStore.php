@@ -90,25 +90,6 @@ final class SerializingEventStore implements EventStore
      * @param string[] $eventNames
      * @return Event[]
      */
-    public function loadDecisionModelAggregateEvents(
-        string $streamName,
-        ?string $aggregateType,
-        string $aggregateId,
-        int $fromVersion = 1,
-        array $eventNames = [],
-    ): iterable {
-        $events = [];
-        foreach ($this->eventStore->loadDecisionModelAggregateEvents($streamName, $aggregateType, $aggregateId, $fromVersion, $eventNames) as $event) {
-            $events[] = $this->eventSerializer->deserialize(
-                $event->getEventName(),
-                $event->getPayload(),
-                $event->getMetadata(),
-                true
-            );
-        }
-
-        return $events;
-    }
 
     public function loadByCriteria(EventCriteria $criteria): LoadedEvents
     {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\Dbal;
 
 use function array_key_exists;
+use function array_pop;
 use function count;
 
 use DateTimeImmutable;
@@ -21,10 +22,9 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Database\AutomaticTableInitializationSupport;
-use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Dbal\DbalReconnectableConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
-use Ecotone\EventSourcing\Database\EventStreamTableManager;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Dbal\Tag\DbalTagCollaborator;
 use Ecotone\EventSourcing\Dbal\Tag\TagBackfillReport;
 use Ecotone\EventSourcing\EventSerializer;
@@ -81,6 +81,7 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         DbalTagCollaborator $tagCollaborator,
         private ProjectionInvariantGuard $projectionInvariantGuard,
         AppendStrategy $appendStrategy,
+        private MissingEventStreamTable $missingEventStreamTable,
         private ?string $consoleInvocationPrefix = null,
     ) {
         $this->tagCollaborator = $tagCollaborator;
@@ -311,10 +312,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
-        if (! $schema->tableExists($connection, $tableName)) {
-            return [];
-        }
-
         [$where, $parameters, $types] = $this->createWhereClause($schema, $metadataMatcher);
 
         return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, $fromNumber, $count, $deserialize);
@@ -340,10 +337,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         $schema = EventStreamSchemaFactory::for($connection);
         $tableName = $this->streamTableRegistry->tableFor($streamName);
 
-        if (! $schema->tableExists($connection, $tableName)) {
-            return [];
-        }
-
         [$where, $parameters, $types] = $this->createAggregateWhereClause($schema, $aggregateType, $aggregateId, $fromVersion, $eventNames);
 
         return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, 1, $count, $deserialize);
@@ -353,33 +346,10 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
      * @param string[] $eventNames
      * @return Event[]
      */
-    public function loadDecisionModelAggregateEvents(
-        string $streamName,
-        ?string $aggregateType,
-        string $aggregateId,
-        int $fromVersion = 1,
-        array $eventNames = [],
-    ): iterable {
-        $connection = $this->connectionFor($streamName);
-        $schema = EventStreamSchemaFactory::for($connection);
-        $tableName = $this->streamTableRegistry->tableFor($streamName);
-
-        [$where, $parameters, $types] = $this->createAggregateWhereClause($schema, $aggregateType, $aggregateId, $fromVersion, $eventNames);
-
-        try {
-            return $this->selectEvents($connection, $schema, $tableName, $where, $parameters, $types, 1, null, true);
-        } catch (TableNotFoundException) {
-            throw $this->missingStreamTableException($connection, $tableName);
-        }
-    }
 
     public function missingStreamTableException(Connection $connection, string $tableName): ConfigurationException
     {
-        return ConfigurationException::create(
-            AutomaticTableInitializationSupport::isSupported($connection)
-                ? MissingTableInstructions::build(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix)
-                : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(EventStreamTableManager::FEATURE_NAME, $tableName, $this->consoleInvocationPrefix)
-        );
+        return $this->missingEventStreamTable->exceptionFor($connection, $tableName);
     }
 
     /**
@@ -435,23 +405,32 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
         $remaining = $count;
 
         while ($remaining === null || $remaining > 0) {
-            $limit = $remaining === null ? $this->loadBatchSize : min($remaining, $this->loadBatchSize);
+            $pageSize = $remaining === null ? $this->loadBatchSize : min($remaining, $this->loadBatchSize);
             $batchParameters = $parameters;
             $batchParameters[count($batchParameters) - 1] = $position;
 
-            $rows = $connection->executeQuery(
-                'SELECT no, event_name, payload, metadata FROM ' . $schema->quoteIdentifier($tableName)
-                . ' WHERE ' . implode(' AND ', $where) . ' ORDER BY no ASC LIMIT ' . $limit,
-                $batchParameters,
-                $types
-            )->fetchAllAssociative();
+            try {
+                $rows = $connection->executeQuery(
+                    'SELECT no, event_name, payload, metadata FROM ' . $schema->quoteIdentifier($tableName)
+                    . ' WHERE ' . implode(' AND ', $where) . ' ORDER BY no ASC LIMIT ' . ($pageSize + 1),
+                    $batchParameters,
+                    $types
+                )->fetchAllAssociative();
+            } catch (TableNotFoundException) {
+                throw $this->missingStreamTableException($connection, $tableName);
+            }
+
+            $furtherEventsFollowThisPage = count($rows) > $pageSize;
+            if ($furtherEventsFollowThisPage) {
+                array_pop($rows);
+            }
 
             foreach ($rows as $row) {
                 $events[] = $this->convertToEvent($row, $deserialize);
                 $position = ((int) $row['no']) + 1;
             }
 
-            if (count($rows) < $limit) {
+            if (! $furtherEventsFollowThisPage) {
                 break;
             }
 

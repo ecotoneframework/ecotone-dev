@@ -12,6 +12,7 @@ use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\EventSourcing\StreamTableRegistry;
 use Ecotone\Messaging\MessageHeaders;
@@ -28,6 +29,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
     public function __construct(
         private DbalConnectionFactory|MultiTenantConnectionFactory|AlreadyConnectedDbalConnectionFactory $connectionFactory,
         private StreamTableRegistry $streamTableRegistry,
+        private MissingEventStreamTable $missingEventStreamTable,
         private array $partitionedProjections = [],
     ) {
     }
@@ -42,7 +44,8 @@ class AggregateIdPartitionProvider implements PartitionProvider
         $connection = $this->getConnection();
         $schema = EventStreamSchemaFactory::for($connection);
 
-        $streamTable = $schema->quoteIdentifier($this->streamTableRegistry->tableFor($filter->streamName));
+        $tableName = $this->streamTableRegistry->tableFor($filter->streamName);
+        $streamTable = $schema->quoteIdentifier($tableName);
         $aggregateIdExpression = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_ID, false);
         $aggregateTypeExpression = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_TYPE, false);
 
@@ -55,7 +58,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
 
             return (int) $result->fetchOne();
         } catch (TableNotFoundException) {
-            return 0;
+            throw $this->missingEventStreamTable->exceptionFor($connection, $tableName);
         }
     }
 
@@ -64,7 +67,8 @@ class AggregateIdPartitionProvider implements PartitionProvider
         $connection = $this->getConnection();
         $schema = EventStreamSchemaFactory::for($connection);
 
-        $streamTable = $schema->quoteIdentifier($this->streamTableRegistry->tableFor($filter->streamName));
+        $tableName = $this->streamTableRegistry->tableFor($filter->streamName);
+        $streamTable = $schema->quoteIdentifier($tableName);
         $aggregateIdExpression = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_ID, false);
         $aggregateTypeExpression = $schema->metadataFieldExpression(MessageHeaders::EVENT_AGGREGATE_TYPE, false);
 
@@ -87,7 +91,7 @@ class AggregateIdPartitionProvider implements PartitionProvider
                 yield "{$filter->streamName}:{$filter->aggregateType}:{$aggregateId}";
             }
         } catch (TableNotFoundException) {
-            return;
+            throw $this->missingEventStreamTable->exceptionFor($connection, $tableName);
         }
     }
 

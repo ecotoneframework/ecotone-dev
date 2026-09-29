@@ -54,4 +54,11 @@ final class MissingTableInstructions
             $featureName,
         );
     }
+
+    public static function buildForUnsupportedAutomaticInitialization(string $featureName, string $tableName, ?string $consoleInvocationPrefix, ?string $connectionReferenceName = null): string
+    {
+        return self::build($featureName, $tableName, $consoleInvocationPrefix, $connectionReferenceName)
+            . "\n\nAutomatic table initialization is not supported on MySQL/MariaDB, even with it configured on: "
+            . 'creating a table implicitly commits the surrounding transaction there, and Ecotone will not split your message transaction to do that.';
+    }
 }

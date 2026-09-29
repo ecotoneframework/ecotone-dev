@@ -253,7 +253,7 @@ final class DbalErrorChannelCommandBusTest extends DbalMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        return (EcotoneLite::bootstrapFlowTesting(
+        return ($this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge($services, [
                 DbalConnectionFactory::class => $connectionFactory,
                 'managerRegistry' => $connectionFactory,

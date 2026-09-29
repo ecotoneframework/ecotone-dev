@@ -109,6 +109,10 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
 
     public function test_projection_works_with_auto_initialization_enabled(): void
     {
+        if ($this->isMySQL()) {
+            self::markTestSkipped('Automatic table initialization is not supported on MySQL/MariaDB, see test_projection_state_auto_initialization_is_unsupported_on_mysql_and_mariadb.');
+        }
+
         $projection = $this->createPollingProjection();
 
         $ecotone = $this->bootstrapEcotone(
@@ -132,6 +136,29 @@ final class ProjectionStateTableInitializationTest extends EventSourcingMessagin
         self::assertEquals([
             ['ticket_id' => '123', 'ticket_type' => 'alert'],
         ], $ecotone->sendQueryWithRouting('getInProgressTickets'));
+    }
+
+    public function test_projection_state_auto_initialization_is_unsupported_on_mysql_and_mariadb(): void
+    {
+        if (! $this->isMySQL()) {
+            self::markTestSkipped('This asserts the MySQL/MariaDB-specific restriction, see test_projection_works_with_auto_initialization_enabled for the PostgreSQL/SQLite behaviour.');
+        }
+
+        $projection = $this->createPollingProjection();
+
+        $ecotone = $this->bootstrapEcotone(
+            [$projection::class],
+            [$projection],
+            DbalConfiguration::createWithDefaults()->withAutomaticTableInitialization(true)
+        );
+
+        self::assertFalse($this->projectionStateTableExists());
+
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(ProjectionStateTableManager::FEATURE_NAME);
+
+        $ecotone->deleteProjection($projection::NAME)
+            ->initializeProjection($projection::NAME);
     }
 
     private function createPollingProjection(): object

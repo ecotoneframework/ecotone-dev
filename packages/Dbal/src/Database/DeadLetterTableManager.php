@@ -17,6 +17,8 @@ use Ecotone\Messaging\Config\Container\Definition;
  */
 class DeadLetterTableManager implements DbalTableManager
 {
+    use AutomaticTableInitializationTrait;
+
     public const FEATURE_NAME = 'dead_letter';
 
     public function __construct(
@@ -67,9 +69,11 @@ class DeadLetterTableManager implements DbalTableManager
         }
     }
 
-    public function getMissingTableInstructions(): string
+    public function getMissingTableInstructions(Connection $connection): string
     {
-        return MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix, $this->connectionReferenceName);
+        return AutomaticTableInitializationSupport::isSupported($connection)
+            ? MissingTableInstructions::build(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix, $this->connectionReferenceName)
+            : MissingTableInstructions::buildForUnsupportedAutomaticInitialization(self::FEATURE_NAME, $this->tableName, $this->consoleInvocationPrefix, $this->connectionReferenceName);
     }
 
     public function dropTable(Connection $connection): void
@@ -86,11 +90,6 @@ class DeadLetterTableManager implements DbalTableManager
     public function isInitialized(Connection $connection): bool
     {
         return $connection->createSchemaManager()->tableExists($this->tableName);
-    }
-
-    public function shouldBeInitializedAutomatically(): bool
-    {
-        return $this->shouldAutoInitialize;
     }
 
     public function getDefinition(): Definition

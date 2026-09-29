@@ -21,9 +21,11 @@ use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Api\Projecting\ProjectionStateGateway;
 use Ecotone\Dbal\Database\DbalTableManagerReference;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Database\ProjectionStateTableManager;
 use Ecotone\EventSourcing\Projecting\AggregateIdPartitionProvider;
 use Ecotone\EventSourcing\Projecting\PartitionState\DbalProjectionStateStorage;
+use Ecotone\EventSourcing\Projecting\ProjectionInvariantGuard;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreAggregateStreamSource;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\EventSourcing\StreamTableRegistry;
@@ -64,12 +66,14 @@ class EventSourcingProjectingModule implements AnnotationModule
      * @param string[] $partitionedProjectionNames
      * @param string[] $globalStreamProjectionNames
      * @param array<array{className: string, methodName: string, projectionName: string, partitionKeyParam: ?string}> $v2StateGateways
+     * @param array<string, array<string, string>> $projectionInvariantGuardMap stream name => (event name or '*' => projection name)
      */
     public function __construct(
         private array $projectionNames,
         private array $partitionedProjectionNames,
         private array $globalStreamProjectionNames,
         private array $v2StateGateways = [],
+        private array $projectionInvariantGuardMap = [],
     ) {
     }
 
@@ -78,6 +82,7 @@ class EventSourcingProjectingModule implements AnnotationModule
         $allStreamFilters = StreamFilterRegistryModule::collectStreamFilters($annotationRegistrationService, $interfaceToCallRegistry);
 
         [$partitionedProjectionNames, $globalStreamProjectionNames] = self::resolveProjectionTypes($annotationRegistrationService, $allStreamFilters);
+        $projectionInvariantGuardMap = self::resolveProjectionInvariantGuardMap($allStreamFilters);
 
         $projectionNames = [];
         foreach ($annotationRegistrationService->findAnnotatedClasses(Projection::class) as $projectionClassName) {
@@ -132,7 +137,31 @@ class EventSourcingProjectingModule implements AnnotationModule
             $partitionedProjectionNames,
             $globalStreamProjectionNames,
             $v2StateGateways,
+            $projectionInvariantGuardMap,
         );
+    }
+
+    /**
+     * @param array<string, StreamFilter[]> $allStreamFilters
+     * @return array<string, array<string, string>> stream name => (event name or '*' => projection name)
+     */
+    private static function resolveProjectionInvariantGuardMap(array $allStreamFilters): array
+    {
+        $guardMap = [];
+        foreach ($allStreamFilters as $projectionName => $streamFilters) {
+            foreach ($streamFilters as $streamFilter) {
+                if ($streamFilter->aggregateType === null) {
+                    continue;
+                }
+
+                $eventNames = $streamFilter->eventNames === [] ? ['*'] : $streamFilter->eventNames;
+                foreach ($eventNames as $eventName) {
+                    $guardMap[$streamFilter->streamName][$eventName] ??= $projectionName;
+                }
+            }
+        }
+
+        return $guardMap;
     }
 
     /**
@@ -237,6 +266,11 @@ class EventSourcingProjectingModule implements AnnotationModule
             }
         }
 
+        $messagingConfiguration->registerServiceDefinition(
+            ProjectionInvariantGuard::class,
+            new Definition(ProjectionInvariantGuard::class, [$this->projectionInvariantGuardMap])
+        );
+
         $hasProjections = $this->projectionNames !== [] || $this->globalStreamProjectionNames !== [];
         $messagingConfiguration->registerServiceDefinition(
             ProjectionStateTableManager::class,
@@ -254,6 +288,7 @@ class EventSourcingProjectingModule implements AnnotationModule
                 new Definition(AggregateIdPartitionProvider::class, [
                     new Reference(DbalConnectionReference::DEFAULT),
                     new Reference(StreamTableRegistry::class),
+                    new Reference(MissingEventStreamTable::class),
                     $this->partitionedProjectionNames,
                 ])
             );
@@ -297,6 +332,7 @@ class EventSourcingProjectingModule implements AnnotationModule
                 new Reference(EcotoneClockInterface::class),
                 new Reference(StreamTableRegistry::class),
                 new Reference(StreamFilterRegistry::class),
+                new Reference(MissingEventStreamTable::class),
                 $this->globalStreamProjectionNames,
                 5_000,
                 new Definition(Duration::class, [60 * 1_000_000]),
@@ -313,7 +349,7 @@ class EventSourcingProjectingModule implements AnnotationModule
         $messagingConfiguration->registerServiceDefinition(
             EventStoreAggregateStreamSource::class,
             new Definition(EventStoreAggregateStreamSource::class, [
-                new Reference('Ecotone\EventSourcing\EventStore'),
+                new Reference(EventStoreReference::EVENT_STORE_INSTANCE),
                 new Reference(StreamFilterRegistry::class),
                 $this->partitionedProjectionNames,
             ])

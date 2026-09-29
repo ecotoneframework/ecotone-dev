@@ -7,16 +7,17 @@ declare(strict_types=1);
 
 namespace Test\Ecotone\EventSourcing\Projecting;
 
+use Doctrine\DBAL\Platforms\SQLitePlatform;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Projecting\ProjectingManager;
 use Ecotone\Api\Projecting\Projection;
 use Ecotone\Api\Projecting\ProjectionRegistry;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\EventStore;
 use Ecotone\EventSourcing\Projecting\StreamSource\EventStoreGlobalStreamSource;
 use Ecotone\EventSourcing\Projecting\StreamSource\GapAwarePosition;
 use Ecotone\EventSourcing\StreamTableRegistry;
-use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Messaging\Scheduling\Duration;
@@ -60,7 +61,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         $projection = new #[Projection(DbalTicketProjection::NAME)] class (self::$connectionFactory->establishConnection()) extends DbalTicketProjection {
         };
         self::$projection = $projection;
-        self::$ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        self::$ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [$projection::class],
             containerOrAvailableServices: [
                 $projection,
@@ -71,7 +72,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Projecting\Fixture\Ticket',
                 ]),
@@ -85,12 +86,14 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
         if (self::$eventStore->hasStream(Ticket::STREAM_NAME)) {
             self::$eventStore->delete(Ticket::STREAM_NAME);
         }
-        self::$eventStore->create(Ticket::STREAM_NAME);
+        self::$ecotone->initializeDatabase();
         self::$projectionManager->delete();
     }
 
     public function test_gaps_are_added_to_position(): void
     {
+        $this->skipIfNoAutoIncrementGaps();
+
         for ($i = 1; $i <= 6; $i++) {
             $this->insertGaps(Ticket::STREAM_NAME);
             self::$ecotone->sendCommand(new CreateTicketCommand('ticket-' . $i));
@@ -117,6 +120,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             self::$clock,
             self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             maxGapOffset: 3, // Only keep gaps within 3 positions
             gapTimeout: null
@@ -135,6 +139,8 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
 
     public function test_gap_timeout_cleaning(): void
     {
+        $this->skipIfNoAutoIncrementGaps();
+
         $projectionName = 'test_projection';
         $streamFilterRegistry = new StreamFilterRegistry([
             $projectionName => [new StreamFilter(Ticket::STREAM_NAME)],
@@ -161,6 +167,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             self::$clock,
             self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             gapTimeout: Duration::seconds(5)
         );
@@ -201,6 +208,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             self::$clock,
             self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             maxGapOffset: 1000,
             gapTimeout: Duration::seconds(5)
@@ -229,6 +237,7 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             self::$clock,
             self::streamTableRegistry(),
             $streamFilterRegistry,
+            new MissingEventStreamTable(),
             [$projectionName],
             maxGapOffset: 1000,
             gapTimeout: null // No timeout
@@ -263,6 +272,13 @@ class GapAwarePositionIntegrationTest extends ProjectingTestCase
             }
         }
         self::fail("Stream {$streamName} not found in position: {$multiStreamPosition}");
+    }
+
+    private function skipIfNoAutoIncrementGaps(): void
+    {
+        if (self::$connectionFactory->establishConnection()->getDatabasePlatform() instanceof SQLitePlatform) {
+            self::markTestSkipped('SQLite "no" is INTEGER PRIMARY KEY without AUTOINCREMENT, so a rolled-back insert frees its row id instead of leaving a gap.');
+        }
     }
 
     private function insertGaps(string $stream, int $count = 1): void

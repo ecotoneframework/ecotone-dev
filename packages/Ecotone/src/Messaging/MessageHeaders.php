@@ -3,12 +3,14 @@
 namespace Ecotone\Messaging;
 
 use Ecotone\Api\Gateway\DistributedBusHeader;
+use Ecotone\EventSourcing\Tagging\MatchedTagSequences;
 use Ecotone\Messaging\Conversion\MediaType;
 use Ecotone\Messaging\Gateway\MessagingEntrypointService;
 use Ecotone\Messaging\Handler\Type;
 use Ecotone\Messaging\Scheduling\NativeClock;
 use Ecotone\Modelling\AggregateMessage;
 use Ecotone\Modelling\Config\MessageBusChannel;
+use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
 
 use function json_encode;
 
@@ -295,9 +297,12 @@ final class MessageHeaders
         unset(
             $metadata[AggregateMessage::CALLED_AGGREGATE_INSTANCE],
             $metadata[AggregateMessage::CALLED_AGGREGATE_CLASS],
+            $metadata[AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD],
             $metadata[AggregateMessage::RECORDED_AGGREGATE_EVENTS],
             $metadata[AggregateMessage::TARGET_VERSION],
             $metadata[AggregateMessage::NULL_EXECUTION_RESULT],
+            $metadata[DecisionModelLoadedState::HEADER_NAME],
+            $metadata[MatchedTagSequences::HEADER_NAME],
         );
 
         return $metadata;

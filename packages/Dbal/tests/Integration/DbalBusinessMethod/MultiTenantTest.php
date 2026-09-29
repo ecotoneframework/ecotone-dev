@@ -61,7 +61,7 @@ final class MultiTenantTest extends DbalMessagingTestCase
         $this->setupUserTable($this->connectionForTenantA()->createContext()->getDbalConnection());
         $this->setupUserTable($this->connectionForTenantB()->createContext()->getDbalConnection());
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices:
                 [
                     'tenant_a_connection' => $this->connectionForTenantA(),

@@ -2,6 +2,7 @@
 
 namespace Test\Ecotone\EventSourcing\InMemory;
 
+use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
 use Ecotone\Api\EventSourcing\EventSourcingConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\ExtensionObject\SimpleMessageChannelBuilder;
@@ -28,7 +29,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
 {
     public function test_registering_in_memory_event_sourcing_repository()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
@@ -50,7 +51,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
 
     public function test_registering_with_asynchronous_package()
     {
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, InProgressTicketList::class, ProjectionConfiguration::class],
             [new TicketEventConverter(), new InProgressTicketList()],
             ServiceConfiguration::createWithDefaults()
@@ -74,7 +75,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
@@ -109,7 +110,7 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
     {
         $connectionFactory = $this->getConnectionFactory();
 
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotoneTestSupport = $this->bootstrapFlowTestingWithEventStore(
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connectionFactory->createContext()->getDbalConnection()), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
@@ -143,12 +144,15 @@ final class EcotoneLiteEventSourcingTest extends EventSourcingMessagingTestCase
         $connectionFactory = $this->getConnectionFactory();
         $connection = $connectionFactory->createContext()->getDbalConnection();
 
-        $ecotoneTestSupport = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneTestSupport = $this->bootstrapFlowTesting(
             [Ticket::class, TicketEventConverter::class, \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList::class],
             [new TicketEventConverter(), new \Test\Ecotone\EventSourcing\Fixture\TicketWithSynchronousEventDrivenProjection\InProgressTicketList($connection), DbalConnectionFactory::class => $connectionFactory],
             ServiceConfiguration::createWithDefaults()
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
-                ->withEnvironment('test'),
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
+                ->withEnvironment('test')
+                ->withExtensionObjects([
+                    DbalConfiguration::createWithDefaults()->withTransactionOnCommandBus(false),
+                ]),
             addInMemoryStateStoredRepository: false,
             addInMemoryEventSourcedRepository: false,
         );

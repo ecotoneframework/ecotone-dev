@@ -146,7 +146,7 @@ final class CollectorModuleTest extends DbalMessagingTestCase
     {
         $this->setupUserTable();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             $classesToResolve,
             $services,
             ServiceConfiguration::createWithDefaults()

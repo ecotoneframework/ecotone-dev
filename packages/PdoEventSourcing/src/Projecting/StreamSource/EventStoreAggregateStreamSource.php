@@ -10,9 +10,6 @@ namespace Ecotone\EventSourcing\Projecting\StreamSource;
 use function count;
 
 use Ecotone\EventSourcing\EventStore;
-use Ecotone\EventSourcing\EventStore\FieldType;
-use Ecotone\EventSourcing\EventStore\MetadataMatcher;
-use Ecotone\EventSourcing\EventStore\Operator;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\Assert;
 use Ecotone\Projecting\StreamFilter;
@@ -66,43 +63,13 @@ class EventStoreAggregateStreamSource implements StreamSource
 
     private function loadFromStreamFilter(StreamFilter $streamFilter, string $aggregateId, ?string $lastPosition, int $count): StreamPage
     {
-        if (! $this->eventStore->hasStream($streamFilter->streamName)) {
-            return new StreamPage([], $lastPosition ?? '');
-        }
-
-        $metadataMatcher = new MetadataMatcher();
-        if ($streamFilter->aggregateType !== null) {
-            $metadataMatcher = $metadataMatcher->withMetadataMatch(
-                MessageHeaders::EVENT_AGGREGATE_TYPE,
-                Operator::EQUALS,
-                $streamFilter->aggregateType
-            );
-        }
-        $metadataMatcher = $metadataMatcher->withMetadataMatch(
-            MessageHeaders::EVENT_AGGREGATE_ID,
-            Operator::EQUALS,
-            $aggregateId
-        );
-        $metadataMatcher = $metadataMatcher->withMetadataMatch(
-            MessageHeaders::EVENT_AGGREGATE_VERSION,
-            Operator::GREATER_THAN_EQUALS,
-            (int)$lastPosition + 1
-        );
-
-        if ($streamFilter->eventNames !== []) {
-            $metadataMatcher = $metadataMatcher->withMetadataMatch(
-                'event_name',
-                Operator::IN,
-                $streamFilter->eventNames,
-                FieldType::MESSAGE_PROPERTY
-            );
-        }
-
-        $events = $this->eventStore->load(
+        $events = $this->eventStore->loadAggregateEvents(
             $streamFilter->streamName,
-            1,
+            $streamFilter->aggregateType,
+            $aggregateId,
+            (int) $lastPosition + 1,
             $count,
-            $metadataMatcher,
+            $streamFilter->eventNames,
         );
 
         return new StreamPage($events, $this->createPositionFrom($lastPosition, $events));

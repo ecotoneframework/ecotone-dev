@@ -4,22 +4,38 @@ declare(strict_types=1);
 
 namespace Ecotone\EventSourcing\EventStore;
 
+use function count;
+
+use Ecotone\Api\EventSourcing\AppendCondition;
+use Ecotone\Api\EventSourcing\EventCriteria;
+use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendableStore;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
 use Ecotone\Messaging\MessageHeaders;
+use Ecotone\Messaging\Support\ConcurrencyException;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 use Ecotone\Modelling\Event;
 
 use function in_array;
 use function is_array;
+use function is_scalar;
 use function preg_match;
 
 /**
  * In-memory implementation of EventStore for testing purposes
  * licence Apache-2.0
  */
-final class InMemoryEventStore implements EventStore
+final class InMemoryEventStore implements EventStore, AppendableStore, GuardedTagBump
 {
     private array $streams = [];
+
+    public function __construct(
+        private readonly AppendStrategy $appendStrategy,
+        private readonly InMemoryTagCollaborator $tagCollaborator,
+    ) {
+    }
 
     public function create(string $streamName, array $streamEvents = [], array $streamMetadata = []): void
     {
@@ -28,26 +44,41 @@ final class InMemoryEventStore implements EventStore
         }
 
         $this->streams[$streamName] = [
-            'events' => $this->convertToEvents($streamEvents),
+            'events' => [],
             'metadata' => $streamMetadata,
         ];
+
+        if ($streamEvents !== []) {
+            $this->appendStrategy->append($this, $streamName, $this->convertToEvents($streamEvents), null);
+        }
     }
 
-    public function appendTo(string $streamName, array $streamEvents): void
+    public function appendTo(string $streamName, array $streamEvents, ?AppendCondition $appendCondition = null): void
     {
         if (! isset($this->streams[$streamName])) {
-            $this->create($streamName, $streamEvents);
+            $this->streams[$streamName] = [
+                'events' => [],
+                'metadata' => [],
+            ];
+        }
+
+        if ($streamEvents === []) {
             return;
         }
 
-        foreach ($this->convertToEvents($streamEvents) as $event) {
-            $this->streams[$streamName]['events'][] = $event;
-        }
+        $this->appendStrategy->append($this, $streamName, $this->convertToEvents($streamEvents), $appendCondition);
+    }
+
+    public function loadByCriteria(EventCriteria $criteria): LoadedEvents
+    {
+        return $this->tagCollaborator->loadByCriteria($this, $criteria);
     }
 
     public function delete(string $streamName): void
     {
         unset($this->streams[$streamName]);
+
+        $this->tagCollaborator->deleteTagIndexFor($streamName);
     }
 
     public function hasStream(string $streamName): bool
@@ -62,43 +93,126 @@ final class InMemoryEventStore implements EventStore
         ?MetadataMatcher $metadataMatcher = null,
         bool $deserialize = true
     ): iterable {
-        if ($fromNumber < 1) {
-            throw new InvalidArgumentException('fromNumber must be >= 1');
+        return $this->loadEvents($streamName, $fromNumber, $count, $metadataMatcher);
+    }
+
+    public function appendEventsUnconditionally(string $streamName, array $events): void
+    {
+        $this->appendPlainEvents($streamName, $events);
+    }
+
+    public function appendEventsWithAggregateCondition(string $streamName, array $events, AppendCondition $appendCondition): void
+    {
+        $this->assertAggregateVersionMatches($streamName, $appendCondition);
+        $this->appendPlainEvents($streamName, $events);
+    }
+
+    public function appendEventsWithTagCondition(string $streamName, array $events, ?AppendCondition $appendCondition): void
+    {
+        if ($appendCondition !== null && $appendCondition->hasAggregateCondition()) {
+            $this->assertAggregateVersionMatches($streamName, $appendCondition);
         }
 
-        if ($count !== null && $count < 1) {
-            throw new InvalidArgumentException('count must be >= 1 or null');
-        }
+        $this->tagCollaborator->appendEventsWithTagCondition($this, $streamName, $events, $appendCondition);
+    }
 
+    public function bumpTagsGuarded(AppendCondition $appendCondition): void
+    {
+        $this->tagCollaborator->bumpTagsGuarded($appendCondition);
+    }
+
+    public function nextEventNumber(string $streamName): int
+    {
+        return count($this->streams[$streamName]['events']) + 1;
+    }
+
+    public function eventAt(string $streamName, int $eventNo): ?Event
+    {
+        return $this->streams[$streamName]['events'][$eventNo - 1] ?? null;
+    }
+
+    /**
+     * @param Event[] $events
+     */
+    private function appendPlainEvents(string $streamName, array $events): void
+    {
+        foreach ($events as $event) {
+            $this->streams[$streamName]['events'][] = $event;
+        }
+    }
+
+    private function assertAggregateVersionMatches(string $streamName, AppendCondition $appendCondition): void
+    {
+        $aggregateType = $appendCondition->aggregateType();
+        $aggregateId = $appendCondition->aggregateId();
+        $expectedVersion = $appendCondition->expectedAggregateVersion();
+
+        $currentVersion = $this->currentAggregateVersion($streamName, $aggregateType, $aggregateId);
+        if ($currentVersion !== $expectedVersion) {
+            throw ConcurrencyException::create(sprintf(
+                'Aggregate %s:%s expected version %d, but current version is %d',
+                $aggregateType,
+                $aggregateId,
+                $expectedVersion,
+                $currentVersion,
+            ));
+        }
+    }
+
+    private function currentAggregateVersion(string $streamName, ?string $aggregateType, ?string $aggregateId): int
+    {
         if (! isset($this->streams[$streamName])) {
-            return [];
+            return 0;
         }
 
-        if ($metadataMatcher === null) {
-            $metadataMatcher = new MetadataMatcher();
-        }
+        $maxVersion = 0;
+        foreach ($this->streams[$streamName]['events'] as $event) {
+            $metadata = $event->getMetadata();
+            $eventAggregateId = $metadata[MessageHeaders::EVENT_AGGREGATE_ID] ?? null;
+            if (! is_scalar($eventAggregateId) || (string) $eventAggregateId !== $aggregateId) {
+                continue;
+            }
 
-        $found = 0;
-        $result = [];
+            $eventAggregateType = $metadata[MessageHeaders::EVENT_AGGREGATE_TYPE] ?? null;
+            if ($aggregateType !== null && (string) $eventAggregateType !== $aggregateType) {
+                continue;
+            }
 
-        foreach ($this->streams[$streamName]['events'] as $key => $event) {
-            $position = $key + 1;
-
-            if ($position >= $fromNumber
-                && $this->matchesMetadata($metadataMatcher, $event->getMetadata())
-                && $this->matchesEventProperty($metadataMatcher, $event)
-            ) {
-                ++$found;
-                $result[] = $event;
-
-                if ($found === $count) {
-                    break;
-                }
+            $version = $metadata[MessageHeaders::EVENT_AGGREGATE_VERSION] ?? 0;
+            if ($version > $maxVersion) {
+                $maxVersion = $version;
             }
         }
 
-        return $result;
+        return $maxVersion;
     }
+
+    public function loadAggregateEvents(
+        string $streamName,
+        ?string $aggregateType,
+        string $aggregateId,
+        int $fromVersion = 1,
+        ?int $count = null,
+        array $eventNames = [],
+        bool $deserialize = true
+    ): iterable {
+        $metadataMatcher = new MetadataMatcher();
+        if ($aggregateType !== null) {
+            $metadataMatcher = $metadataMatcher->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_TYPE, Operator::EQUALS, $aggregateType);
+        }
+        $metadataMatcher = $metadataMatcher->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_ID, Operator::EQUALS, $aggregateId);
+        $metadataMatcher = $metadataMatcher->withMetadataMatch(MessageHeaders::EVENT_AGGREGATE_VERSION, Operator::GREATER_THAN_EQUALS, $fromVersion);
+        if ($eventNames !== []) {
+            $metadataMatcher = $metadataMatcher->withMetadataMatch('event_name', Operator::IN, $eventNames, FieldType::MESSAGE_PROPERTY);
+        }
+
+        return $this->load($streamName, 1, $count, $metadataMatcher, $deserialize);
+    }
+
+    /**
+     * @param string[] $eventNames
+     * @return Event[]
+     */
 
     public function loadReverse(
         string $streamName,
@@ -184,6 +298,50 @@ final class InMemoryEventStore implements EventStore
                 $result[] = Event::create($event);
             }
         }
+        return $result;
+    }
+
+    private function loadEvents(
+        string $streamName,
+        int $fromNumber = 1,
+        ?int $count = null,
+        ?MetadataMatcher $metadataMatcher = null,
+    ): iterable {
+        if ($fromNumber < 1) {
+            throw new InvalidArgumentException('fromNumber must be >= 1');
+        }
+
+        if ($count !== null && $count < 1) {
+            throw new InvalidArgumentException('count must be >= 1 or null');
+        }
+
+        if (! isset($this->streams[$streamName])) {
+            return [];
+        }
+
+        if ($metadataMatcher === null) {
+            $metadataMatcher = new MetadataMatcher();
+        }
+
+        $found = 0;
+        $result = [];
+
+        foreach ($this->streams[$streamName]['events'] as $key => $event) {
+            $position = $key + 1;
+
+            if ($position >= $fromNumber
+                && $this->matchesMetadata($metadataMatcher, $event->getMetadata())
+                && $this->matchesEventProperty($metadataMatcher, $event)
+            ) {
+                ++$found;
+                $result[] = $event;
+
+                if ($found === $count) {
+                    break;
+                }
+            }
+        }
+
         return $result;
     }
 

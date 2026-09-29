@@ -17,7 +17,8 @@ use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\MessagePublisher;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
-use Ecotone\Lite\EcotoneLite;
+use Ecotone\Dbal\Database\EnqueueTableManager;
+use Ecotone\Dbal\Database\MissingTableInstructions;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\BatchMessage;
 use Ecotone\Messaging\Channel\DeliveryConfirmation\PublishingFailedException;
@@ -29,7 +30,6 @@ use Ecotone\Messaging\PollableChannel;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Test\LicenceTesting;
-use Interop\Queue\Exception\Exception;
 use Symfony\Component\Uid\Uuid;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
 use Test\Ecotone\Dbal\Fixture\HighThroughputPublishing\OrderWasPlaced;
@@ -70,7 +70,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
     {
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             [],
             [DbalConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()
@@ -152,7 +152,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
                 );
             }
         };
-        $messaging = EcotoneLite::bootstrapFlowTesting(
+        $messaging = $this->bootstrapFlowTesting(
             [$commandHandler::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $commandHandler],
             ServiceConfiguration::createWithDefaults()
@@ -213,7 +213,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
         $this->assertNull($channel->receive());
     }
 
-    public function test_publishing_after_queue_table_is_dropped_throws(): void
+    public function test_publishing_after_queue_table_is_dropped_names_the_message_queue_setup_command(): void
     {
         $queueName = Uuid::v7()->toRfc4122();
         $messaging = $this->bootstrapPublisher($queueName, highThroughputPublishing: true);
@@ -222,7 +222,8 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
 
         $this->getConnection()->executeStatement('DROP TABLE enqueue');
 
-        $this->expectException(Exception::class);
+        $this->expectException(ConfigurationException::class);
+        $this->expectExceptionMessage(MissingTableInstructions::build(EnqueueTableManager::FEATURE_NAME, EnqueueTableManager::DEFAULT_TABLE_NAME, null));
 
         $publisher->send('order published into missing table');
     }
@@ -271,7 +272,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
 
     private function bootstrapEcotoneWithChannel(object $orderService, ?string $licenceKey): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [$orderService::class],
             [DbalConnectionFactory::class => $this->getConnectionFactory(), $orderService],
             ServiceConfiguration::createWithDefaults()
@@ -291,7 +292,7 @@ final class HighThroughputPublishingTest extends DbalMessagingTestCase
             $publisherConfiguration = $publisherConfiguration->withHighThroughputPublishing();
         }
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [],
             [DbalConnectionFactory::class => $this->getConnectionFactory()],
             ServiceConfiguration::createWithDefaults()

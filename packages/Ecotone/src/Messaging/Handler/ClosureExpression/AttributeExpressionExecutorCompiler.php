@@ -13,6 +13,7 @@ use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
+use Ecotone\Messaging\Handler\ExpressionLocation;
 use Ecotone\Messaging\Handler\InterfaceParameter;
 use Ecotone\Messaging\Handler\InterfaceToCall;
 use Ecotone\Messaging\Handler\ParameterConverterBuilder;
@@ -37,7 +38,7 @@ final class AttributeExpressionExecutorCompiler
      * Compiles attribute expression into container definition with all closure parameter converters resolved at build time.
      * Declaration may be omitted only for string expressions, where attribute is serializable as it is.
      */
-    public static function compile(WithExpression $attributeWithExpression, ?AttributeDeclaration $attributeDeclaration): Definition
+    public static function compile(WithExpression $attributeWithExpression, ?AttributeDeclaration $attributeDeclaration, InterfaceToCall $owner, string $targetParameterName): Definition
     {
         if ($attributeDeclaration === null) {
             Assert::isFalse($attributeWithExpression->getExpression() instanceof Closure, sprintf('Closure expression inside %s attribute requires attribute declaration to compile.', get_class($attributeWithExpression)));
@@ -45,8 +46,9 @@ final class AttributeExpressionExecutorCompiler
             return self::executorDefinition(
                 AttributeDefinition::fromObject($attributeWithExpression),
                 $attributeWithExpression->getExpression(),
-                get_class($attributeWithExpression),
-                null,
+                $owner->getInterfaceName(),
+                $owner->getMethodName(),
+                ExpressionLocation::definitionForParameter(get_class($attributeWithExpression), $targetParameterName, $owner->getInterfaceName(), $owner->getMethodName(), $attributeWithExpression->getExpression()),
             );
         }
 
@@ -55,6 +57,7 @@ final class AttributeExpressionExecutorCompiler
             $attributeWithExpression->getExpression(),
             $attributeDeclaration->getClassName(),
             $attributeDeclaration->getMethodName(),
+            ExpressionLocation::definitionForParameter(get_class($attributeWithExpression), $targetParameterName, $attributeDeclaration->getClassName(), $attributeDeclaration->getMethodName(), $attributeWithExpression->getExpression()),
         );
     }
 
@@ -79,6 +82,7 @@ final class AttributeExpressionExecutorCompiler
             $attributeDeclaration->toAttributeDefinition(),
             Reference::to(ExpressionEvaluationService::REFERENCE),
             $parameterSpecifications,
+            ExpressionLocation::definitionForParameter(get_class($attributeWithExpression), $attributeDeclaration->getParameterName(), $attributeDeclaration->getClassName(), $attributeDeclaration->getMethodName(), $expression),
         ]);
     }
 
@@ -117,6 +121,7 @@ final class AttributeExpressionExecutorCompiler
                         self::expressionOf($endpointAnnotation->instance()),
                         $interceptedInterface->getInterfaceName(),
                         $interceptedInterface->getMethodName(),
+                        ExpressionLocation::definitionForEndpointAttribute($endpointAnnotation->getClassName(), $interceptedInterface->getInterfaceName(), $interceptedInterface->getMethodName(), self::expressionOf($endpointAnnotation->instance())),
                     );
                 }
             }
@@ -128,6 +133,7 @@ final class AttributeExpressionExecutorCompiler
                         self::expressionOf($annotation),
                         $interceptedInterface->getInterfaceName(),
                         $interceptedInterface->getMethodName(),
+                        ExpressionLocation::definitionForEndpointAttribute(get_class($annotation), $interceptedInterface->getInterfaceName(), $interceptedInterface->getMethodName(), self::expressionOf($annotation)),
                     );
                 }
             }
@@ -138,6 +144,7 @@ final class AttributeExpressionExecutorCompiler
                         self::expressionOf($annotation),
                         $interceptedInterface->getInterfaceName(),
                         null,
+                        ExpressionLocation::definitionForEndpointAttribute(get_class($annotation), $interceptedInterface->getInterfaceName(), null, self::expressionOf($annotation)),
                     );
                 }
             }
@@ -151,7 +158,7 @@ final class AttributeExpressionExecutorCompiler
         return $attribute instanceof WithExpression ? $attribute->getExpression() : null;
     }
 
-    private static function executorDefinition(AttributeDefinition $attributeArgument, Closure|string|null $expression, string $ownerClassName, ?string $ownerMethodName): Definition
+    private static function executorDefinition(AttributeDefinition $attributeArgument, Closure|string|null $expression, string $ownerClassName, ?string $ownerMethodName, Definition $expressionLocation): Definition
     {
         $closureParameterResolvers = [];
         if ($expression instanceof Closure) {
@@ -168,6 +175,7 @@ final class AttributeExpressionExecutorCompiler
             $attributeArgument,
             Reference::to(ExpressionEvaluationService::REFERENCE),
             $closureParameterResolvers,
+            $expressionLocation,
         ]);
     }
 

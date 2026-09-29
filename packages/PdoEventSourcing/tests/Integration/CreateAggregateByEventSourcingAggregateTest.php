@@ -36,7 +36,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 {
     public function test_pure_event_sourcing_aggregate_can_create_state_based_aggregate(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Calendar::class, Meeting::class, EventsConverter::class],
             containerOrAvailableServices: [new EventsConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -73,7 +73,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_pure_event_sourcing_aggregate_can_create_state_based_aggregate_with_internal_recorder(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Calendar::class, MeetingWithInternalRecorder::class, EventsConverter::class],
             containerOrAvailableServices: [new EventsConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -110,7 +110,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_pure_event_sourcing_aggregate_can_create_another_event_sourcing_aggregate_with_internal_recorder(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Calendar::class, MeetingWithEventSourcing::class, EventsConverter::class],
             containerOrAvailableServices: [new EventsConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -147,7 +147,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_event_sourced_aggregate_with_internal_recorder_can_create_state_based_aggregate(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [CalendarWithInternalRecorder::class, Meeting::class, EventsConverter::class],
             containerOrAvailableServices: [new EventsConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -183,7 +183,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_event_sourced_aggregate_with_internal_recorder_can_create_state_based_aggregate_with_internal_recorder(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithInternalRecorder::class, EventsConverter::class],
             containerOrAvailableServices: [new EventsConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -220,7 +220,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_event_sourced_aggregate_with_internal_recorder_can_create_another_event_sourcing_aggregate_with_internal_recorder(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class, CalendarProjection::class],
             containerOrAvailableServices: [new EventsConverter(), new CalendarProjection()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -264,7 +264,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_creating_new_instances_of_same_aggregate(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class, CalendarProjection::class],
             containerOrAvailableServices: [new EventsConverter(), new CalendarProjection()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -309,7 +309,7 @@ final class CreateAggregateByEventSourcingAggregateTest extends EventSourcingMes
 
     public function test_not_storing_events_twice_if_returned_aggregate_is_same_instance(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [CalendarWithInternalRecorder::class, MeetingWithEventSourcing::class, EventsConverter::class, CalendarProjection::class],
             containerOrAvailableServices: [new EventsConverter(), new CalendarProjection()],
             configuration: ServiceConfiguration::createWithDefaults()

@@ -4,11 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling;
 
-use Ecotone\Api\Attribute\EventSourcingAggregate;
-use Ecotone\Api\Attribute\EventSourcingSaga;
 use Ecotone\Api\Attribute\Repository;
-use Ecotone\Messaging\Handler\ClassDefinition;
-use Ecotone\Messaging\Handler\Type;
 
 /**
  * Class InMemoryEventSourcedRepository
@@ -21,14 +17,18 @@ use Ecotone\Messaging\Handler\Type;
 #[Repository]
 class InMemoryEventSourcedRepository implements EventSourcedRepository
 {
+    use MatchesEventSourcedAggregateTypes;
+
     /**
      * @var array<string, array<string, Event[]>>
      */
     private array $eventsPerAggregate;
     private ?array $aggregateTypes;
 
-    public function __construct(array $eventsPerAggregate = [], ?array $aggregateTypes = [])
-    {
+    public function __construct(
+        array $eventsPerAggregate = [],
+        ?array $aggregateTypes = [],
+    ) {
         $this->eventsPerAggregate = $eventsPerAggregate;
         $this->aggregateTypes = $aggregateTypes;
     }
@@ -48,23 +48,6 @@ class InMemoryEventSourcedRepository implements EventSourcedRepository
         $self->save($identifiers, $aggregateClassName, $events, [], count($events));
 
         return $self;
-    }
-
-    /**
-     * @inheritDoc
-     */
-    public function canHandle(string $aggregateClassName): bool
-    {
-        if ($this->aggregateTypes === null) {
-            return false;
-        }
-
-        if (in_array($aggregateClassName, $this->aggregateTypes)) {
-            return true;
-        }
-
-        $classDefinition = ClassDefinition::createFor(Type::object($aggregateClassName));
-        return $classDefinition->hasClassAnnotationOfPreciseType(Type::attribute(EventSourcingAggregate::class)) || $classDefinition->hasClassAnnotationOfPreciseType(Type::attribute(EventSourcingSaga::class));
     }
 
     /**

@@ -36,7 +36,7 @@ class DeletedEventClassInStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_event_sourcing_with_deleted_event_class_in_stream(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [ANamedEvent::class, AnAggregate::class, AProjection::class],
             [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),

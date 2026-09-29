@@ -88,7 +88,7 @@ final class InbuiltConvertersTest extends DbalMessagingTestCase
     {
         $this->setupActivityTable();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             array_merge([ActivityService::class], array_keys($services)),
             array_merge(
                 [

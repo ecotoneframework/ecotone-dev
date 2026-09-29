@@ -13,8 +13,9 @@ class BaseEventSourcingConfiguration implements DefinedObject
 {
     public const DEFAULT_SNAPSHOT_TRIGGER_THRESHOLD = 100;
 
-    public function __construct(private array $snapshotsAggregateClasses = [])
-    {
+    public function __construct(
+        private array $snapshotsAggregateClasses = [],
+    ) {
 
     }
 

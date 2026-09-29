@@ -6,6 +6,7 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
 use Closure;
 use Ecotone\Api\Attribute\Fetch;
+use Ecotone\EventSourcing\Tagging\AggregateCounterTags;
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Config\Container\AttributeDeclaration;
 use Ecotone\Messaging\Config\Container\Definition;
@@ -18,6 +19,7 @@ use Ecotone\Messaging\Handler\ParameterConverterBuilder;
 use Ecotone\Messaging\Handler\Type\ObjectType;
 use Ecotone\Messaging\Handler\Type\UnionType;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDefinitionRegistry;
+use Ecotone\Modelling\DecisionModel\FetchedAggregateCounterCapture;
 use Ecotone\Modelling\Repository\AllAggregateRepository;
 
 /**
@@ -46,6 +48,22 @@ class FetchAggregateConverterBuilder implements ParameterConverterBuilder
         return new self($parameter->getName(), $type->toString(), $expression, $attributeDeclaration);
     }
 
+    public function aggregateClassName(): string
+    {
+        return $this->aggregateClassName;
+    }
+
+    public function compileCounterCapture(InterfaceToCall $interfaceToCall): Definition
+    {
+        return new Definition(FetchedAggregateCounterCapture::class, [
+            $this->parameterName,
+            $this->aggregateClassName,
+            AttributeExpressionExecutorCompiler::compile(new Fetch($this->expression), $this->attributeDeclaration, $interfaceToCall, $this->parameterName),
+            Reference::to(AggregateDefinitionRegistry::class),
+            Reference::to(AggregateCounterTags::class),
+        ]);
+    }
+
     public function isHandling(InterfaceParameter $parameter): bool
     {
         return $parameter->getName() === $this->parameterName;
@@ -60,7 +78,7 @@ class FetchAggregateConverterBuilder implements ParameterConverterBuilder
         return new Definition(FetchAggregateConverter::class, [
             new Reference(AllAggregateRepository::class),
             $this->aggregateClassName,
-            AttributeExpressionExecutorCompiler::compile(new Fetch($this->expression), $this->attributeDeclaration),
+            AttributeExpressionExecutorCompiler::compile(new Fetch($this->expression), $this->attributeDeclaration, $interfaceToCall, $this->parameterName),
             $interfaceToCall->getParameterWithName($this->parameterName)->doesAllowNulls(),
             Reference::to(LicenceDecider::class),
             Reference::to(AggregateDefinitionRegistry::class),

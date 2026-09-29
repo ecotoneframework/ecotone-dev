@@ -45,7 +45,7 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
 
     private function bootstrapEcotone(array $extensionObjects = []): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new NotificationService(), new InProgressTicketList($this->getConnection()), new TicketListUpdatedConverter(), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
@@ -59,6 +59,9 @@ final class EmittingEventsProjectionTest extends EventSourcingMessagingTestCase
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+        $ecotone->initializeDatabase();
+
+        return $ecotone;
     }
 
     private function assertState(FlowTestSupport $ecotone, string $ticketId, int $notificationsCount): void

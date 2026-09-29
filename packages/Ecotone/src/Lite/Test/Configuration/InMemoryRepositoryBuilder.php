@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Ecotone\Lite\Test\Configuration;
 
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\MessagingContainerBuilder;
-use Ecotone\Modelling\InMemoryEventSourcedRepository;
+use Ecotone\Messaging\Config\Container\Reference;
+use Ecotone\Modelling\EventStoreEventSourcedRepository;
 use Ecotone\Modelling\InMemoryStateStoredRepository;
 use Ecotone\Modelling\RepositoryBuilder;
 
@@ -57,9 +59,9 @@ final class InMemoryRepositoryBuilder implements RepositoryBuilder
     {
         return match ($this->isEventSourced) {
             true => new Definition(
-                InMemoryEventSourcedRepository::class,
+                EventStoreEventSourcedRepository::class,
                 [
-                    [],
+                    new Reference(EventStore::RAW_REFERENCE),
                     $this->aggregateClassNames,
                 ]
             ),

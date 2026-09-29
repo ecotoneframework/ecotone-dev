@@ -39,7 +39,7 @@ final class GracefulShutdownOnSignalTest extends DbalMessagingTestCase
         $parentPid = posix_getpid();
         exec(sprintf('(sleep 1 && kill -TERM %d) > /dev/null 2>&1 &', $parentPid));
 
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
             ],

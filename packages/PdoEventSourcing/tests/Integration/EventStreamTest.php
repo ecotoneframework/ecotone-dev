@@ -33,11 +33,11 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_storing_and_retrieving_events()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
@@ -49,6 +49,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
+        $this->createStreamTable($streamName);
         $eventStore->appendTo(
             $streamName,
             [
@@ -75,11 +76,11 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_storing_events_without_aggregate_metadata()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
@@ -91,6 +92,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
+        $this->createStreamTable($streamName);
         $eventStore->create($streamName);
         $eventStore->appendTo(
             $streamName,
@@ -116,11 +118,11 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_storing_same_event_twice_without_aggregate_metadata()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
@@ -132,6 +134,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
+        $this->createStreamTable($streamName);
         $eventStore->create($streamName);
         $eventStore->appendTo($streamName, [new TicketWasRegistered('123', 'Johnny', 'alert')]);
         $eventStore->appendTo($streamName, [new TicketWasRegistered('123', 'Johnny', 'alert')]);
@@ -142,11 +145,11 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_storing_same_aggregate_version_twice_is_rejected()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
@@ -158,6 +161,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
+        $this->createStreamTable($streamName);
         $eventStore->create($streamName);
         $eventStore->appendTo(
             $streamName,
@@ -192,11 +196,11 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_storing_same_event_for_default_partioned_stream()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
@@ -208,6 +212,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
+        $this->createStreamTable($streamName);
         $eventStore->appendTo(
             $streamName,
             [
@@ -241,11 +246,11 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_fetching_with_pagination()
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [new InProgressTicketList($this->getConnection()), new TicketEventConverter(), DbalConnectionFactory::class => $this->getConnectionFactory()],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
@@ -257,6 +262,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $eventStore = $ecotone->getGateway(EventStore::class);
 
         $streamName = Uuid::v7()->toRfc4122();
+        $this->createStreamTable($streamName);
         $eventStore->create($streamName);
         $eventStore->appendTo(
             $streamName,
@@ -276,7 +282,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
 
     public function test_aggregates_are_stored_in_the_default_event_stream_table(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             containerOrAvailableServices: [
                 new InProgressTicketList($this->getConnection()),
                 new TicketEventConverter(),
@@ -284,7 +290,7 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
             ],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')
-                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE])
+                ->withModulePackages([ModulePackageList::EVENT_SOURCING_PACKAGE, ModulePackageList::DBAL_PACKAGE])
                 ->withNamespaces([
                     'Test\Ecotone\EventSourcing\Fixture\Ticket',
                 ]),
@@ -304,5 +310,10 @@ final class EventStreamTest extends EventSourcingMessagingTestCase
         $tableManager->dropTable($connection);
 
         $this->assertFalse(self::tableExists($connection, StreamTableRegistry::DEFAULT_STREAM));
+    }
+
+    private function createStreamTable(string $streamName): void
+    {
+        (new EventStreamTableManager([$streamName], true, true))->createTable($this->getConnection());
     }
 }

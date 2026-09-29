@@ -53,7 +53,7 @@ class DbalDeadLetterHandler
     public function list(int $limit, int $offset): array
     {
         if (! $this->doesDeadLetterTableExists()) {
-            if (! $this->tableManager->shouldBeInitializedAutomatically()) {
+            if (! $this->tableManager->shouldBeInitializedAutomatically($this->getConnection())) {
                 return [];
             }
 
@@ -214,8 +214,8 @@ class DbalDeadLetterHandler
             return;
         }
 
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        if (! $this->tableManager->shouldBeInitializedAutomatically($connection)) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions($connection));
         }
 
         $this->tableManager->createTable($connection);

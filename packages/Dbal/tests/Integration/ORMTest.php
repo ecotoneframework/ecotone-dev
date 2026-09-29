@@ -142,7 +142,7 @@ final class ORMTest extends DbalMessagingTestCase
         $this->setupUserTable($tenantAConnection->getConnection());
         $this->setupUserTable($tenantBConnection->getConnection());
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge([
                 SaveMultipleEntitiesHandler::class => new SaveMultipleEntitiesHandler(),
                 PersonQueryService::class => new PersonQueryService(),
@@ -218,7 +218,7 @@ final class ORMTest extends DbalMessagingTestCase
         $connectionFactory = $services[DbalConnectionFactory::class];
         $this->setupUserTable($connectionFactory->getConnection());
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge([
                 SaveMultipleEntitiesHandler::class => new SaveMultipleEntitiesHandler(),
                 PersonQueryService::class => new PersonQueryService(),
@@ -265,7 +265,7 @@ final class ORMTest extends DbalMessagingTestCase
         $this->setupUserTable($connectionFactory->getConnection());
         $entityManager = $connectionFactory->getRegistry()->getManager();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
@@ -298,7 +298,7 @@ final class ORMTest extends DbalMessagingTestCase
         $this->setupUserTable($connectionFactory->getConnection());
         $entityManager = $connectionFactory->getRegistry()->getManager();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: $services,
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
@@ -323,7 +323,7 @@ final class ORMTest extends DbalMessagingTestCase
 
     public function test_throwing_exception_when_setting_up_doctrine_orm_using_non_orm_registry_based_connection()
     {
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             [Person::class, MultipleInternalCommandsService::class],
             [new MultipleInternalCommandsService(), DbalConnectionFactory::class => DbalConnection::create($this->getConnection())],
             ServiceConfiguration::createWithDefaults()
@@ -348,7 +348,7 @@ final class ORMTest extends DbalMessagingTestCase
     {
         $this->setupUserTable();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__.'/../Fixture/ORM/Person'])],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)

@@ -22,7 +22,21 @@ class ProjectingConcurrencyTest extends TestCase
 
     public function setUp(): void
     {
+        if (str_starts_with(getenv('DATABASE_DSN') ?: '', 'sqlite')) {
+            self::markTestSkipped('SQLite serialises writers with no lock-wait timeout, so the two-process gap-interleaving scenario this test drives cannot be proven the way it can on Postgres/MySQL/MariaDB.');
+        }
+
         self::$ecotone = self::bootEcotone();
+        self::$ecotone->getServiceFromContainer('Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager')->initializeAll();
+        self::$ecotone->getServiceFromContainer('Ecotone\Dbal\Connection\DbalConnectionFactory')->establishConnection()->executeStatement(<<<SQL
+            CREATE TABLE IF NOT EXISTS order_list_projection (
+                order_id VARCHAR(255) PRIMARY KEY,
+                product VARCHAR(255) NOT NULL,
+                quantity INT NOT NULL,
+                status VARCHAR(32) NOT NULL,
+                reason VARCHAR(255)
+            )
+            SQL);
     }
 
     public function test_it_can_place_order(): void

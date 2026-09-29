@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver;
 
+use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\EventSourcing\Mapping\EventMapper;
 use Ecotone\Messaging\Conversion\ConversionService;
@@ -118,7 +119,7 @@ final class AggregateResolver
                     ->setHeader(AggregateMessage::CALLED_AGGREGATE_INSTANCE, $message->getPayload())
                     ->setHeader(AggregateMessage::CALLED_AGGREGATE_CLASS, $returnType->getTypeHint())
                     ->setHeader(AggregateMessage::TARGET_VERSION, 0)
-                    ->removeHeaders([AggregateMessage::AGGREGATE_ID, AggregateMessage::NULL_EXECUTION_RESULT])
+                    ->removeHeaders([AggregateMessage::AGGREGATE_ID, AggregateMessage::NULL_EXECUTION_RESULT, AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD])
                     ->build(),
                 true,
             );
@@ -178,13 +179,17 @@ final class AggregateResolver
             aggregateDefinition: $aggregateDefinition
         );
 
-        return new ResolvedAggregate(
+        return (new ResolvedAggregate(
             $aggregateDefinition,
             $isNewInstance,
             $instance,
             $versionBeforeHandling,
             $identifiers,
             $enrichedEvents,
+        ))->withCounterCapturedAtLoad(
+            $message->getHeaders()->containsKey(AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD)
+                ? $message->getHeaders()->get(AggregateMessage::CALLED_AGGREGATE_COUNTER_CAPTURED_AT_LOAD)
+                : AppendCondition::empty()
         );
     }
 

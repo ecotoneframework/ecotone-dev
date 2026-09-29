@@ -82,6 +82,10 @@ class OrderListProjection
     #[ProjectionInitialization]
     public function init(): void
     {
+        if ($this->connection->createSchemaManager()->tablesExist(['order_list_projection'])) {
+            return;
+        }
+
         $this->connection->executeStatement(<<<SQL
             CREATE TABLE IF NOT EXISTS order_list_projection (
                 order_id VARCHAR(255) PRIMARY KEY,

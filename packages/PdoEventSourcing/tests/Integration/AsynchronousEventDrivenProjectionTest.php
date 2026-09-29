@@ -170,6 +170,6 @@ final class AsynchronousEventDrivenProjectionTest extends EventSourcingMessaging
                 ], $extensionObjects)),
             pathToRootCatalog: __DIR__ . '/../../',
             runForProductionEventStore: true,
-        );
+        )->initializeDatabase();
     }
 }

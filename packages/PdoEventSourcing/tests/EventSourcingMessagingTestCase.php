@@ -3,12 +3,17 @@
 namespace Test\Ecotone\EventSourcing;
 
 use Doctrine\DBAL\Connection;
+use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\ExtensionObject\TestConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\DbalConnection;
 use Ecotone\Enqueue\ConnectionFactory;
+use Ecotone\Lite\EcotoneLite;
+use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Messaging\Handler\InMemoryReferenceSearchService;
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
+use Psr\Container\ContainerInterface;
 
 /**
  * licence Apache-2.0
@@ -42,9 +47,7 @@ abstract class EventSourcingMessagingTestCase extends TestCase
             return $this->tenantBConnection;
         }
 
-        $connectionFactory = DbalConnection::fromDsn(
-            getenv('SECONDARY_DATABASE_DSN') ? getenv('SECONDARY_DATABASE_DSN') : 'mysql://ecotone:secret@127.0.0.1:3306/ecotone'
-        );
+        $connectionFactory = DbalConnection::fromDsn(SecondaryTestDatabaseConnectionFactory::resolveDsn());
 
         $this->tenantBConnection = $connectionFactory;
         return $connectionFactory;
@@ -88,6 +91,11 @@ abstract class EventSourcingMessagingTestCase extends TestCase
     public static function getConnection(): Connection
     {
         return self::getConnectionFactory()->createContext()->getDbalConnection();
+    }
+
+    protected static function inTransaction(callable $operation, ?Connection $connection = null): mixed
+    {
+        return ($connection ?? self::getConnection())->transactional($operation);
     }
 
     protected function getReferenceSearchServiceWithConnection(array $objects = [], bool $connectionAsRegistry = false)
@@ -136,5 +144,57 @@ abstract class EventSourcingMessagingTestCase extends TestCase
     protected function isMySQL(): bool
     {
         return str_starts_with(getenv('DATABASE_DSN'), 'mysql');
+    }
+
+    protected function bootstrapFlowTesting(
+        array $classesToResolve = [],
+        ContainerInterface|array $containerOrAvailableServices = [],
+        ?ServiceConfiguration $configuration = null,
+        array $configurationVariables = [],
+        ?string $pathToRootCatalog = null,
+        bool $allowGatewaysToBeRegisteredInContainer = false,
+        bool $addInMemoryStateStoredRepository = true,
+        bool $addInMemoryEventSourcedRepository = true,
+        ?TestConfiguration $testConfiguration = null,
+        ?string $licenceKey = null,
+    ): FlowTestSupport {
+        return EcotoneLite::bootstrapFlowTesting(
+            $classesToResolve,
+            $containerOrAvailableServices,
+            $configuration,
+            $configurationVariables,
+            $pathToRootCatalog,
+            $allowGatewaysToBeRegisteredInContainer,
+            $addInMemoryStateStoredRepository,
+            $addInMemoryEventSourcedRepository,
+            $testConfiguration,
+            $licenceKey,
+        )->initializeDatabase();
+    }
+
+    protected function bootstrapFlowTestingWithEventStore(
+        array $classesToResolve = [],
+        ContainerInterface|array $containerOrAvailableServices = [],
+        ?ServiceConfiguration $configuration = null,
+        array $configurationVariables = [],
+        ?string $pathToRootCatalog = null,
+        bool $allowGatewaysToBeRegisteredInContainer = false,
+        bool $addInMemoryStateStoredRepository = true,
+        bool $runForProductionEventStore = false,
+        ?TestConfiguration $testConfiguration = null,
+        ?string $licenceKey = null,
+    ): FlowTestSupport {
+        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+            $classesToResolve,
+            $containerOrAvailableServices,
+            $configuration,
+            $configurationVariables,
+            $pathToRootCatalog,
+            $allowGatewaysToBeRegisteredInContainer,
+            $addInMemoryStateStoredRepository,
+            $runForProductionEventStore,
+            $testConfiguration,
+            $licenceKey,
+        )->initializeDatabase();
     }
 }

@@ -160,7 +160,7 @@ final class EventSourcedAggregateTestSupportFrameworkTest extends TestCase
             [Ticket::class, TicketEventConverter::class],
             [new TicketEventConverter(), DbalConnectionFactory::class => EcotoneLiteEventSourcingTest::getConnectionFactory()],
             runForProductionEventStore: true,
-        );
+        )->initializeDatabase();
 
         $ticketId = Uuid::v7()->toRfc4122();
 

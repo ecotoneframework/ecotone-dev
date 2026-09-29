@@ -20,6 +20,8 @@ use Ecotone\Messaging\Config\ModulePackageList;
 use Ecotone\Test\LicenceTesting;
 use Exception;
 use Test\Ecotone\Dbal\DbalMessagingTestCase;
+use Test\Ecotone\Dbal\Fixture\Transaction\ClassRouted\ClassRoutedOrderService;
+use Test\Ecotone\Dbal\Fixture\Transaction\ClassRouted\PrepareOrdersByClassCommand;
 use Test\Ecotone\Dbal\Fixture\Transaction\OrderService;
 
 /**
@@ -74,7 +76,7 @@ final class TransactionTest extends DbalMessagingTestCase
         $connection = $this->getConnection();
         $connection->close();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new OrderService(),
                 DbalConnectionFactory::class => DbalConnection::create(
@@ -173,7 +175,7 @@ final class TransactionTest extends DbalMessagingTestCase
         };
         $dbalConnectionFactory = $this->getConnectionFactory();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             [$consoleCommands::class],
             [$consoleCommands, DbalConnectionFactory::class => $dbalConnectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -208,6 +210,22 @@ final class TransactionTest extends DbalMessagingTestCase
         );
     }
 
+    public function test_it_can_disable_transactions_on_class_routed_command_handler(): void
+    {
+        $ecotone = $this->bootstrapFlowTesting(
+            [ClassRoutedOrderService::class],
+            [new ClassRoutedOrderService(), DbalConnectionFactory::class => $this->getConnectionFactory()],
+            configuration: ServiceConfiguration::createWithDefaults()
+                ->withLicenceKey(LicenceTesting::VALID_LICENCE)
+                ->withEnvironment('prod')
+                ->withModulePackages([ModulePackageList::DBAL_PACKAGE, ])
+        );
+
+        $ecotone->sendCommand(new PrepareOrdersByClassCommand());
+
+        self::assertSame(['milk'], $ecotone->sendQueryWithRouting('classRoutedOrder.getRegistered'));
+    }
+
     private function resetOrdersTable(Connection $connection): void
     {
         $connection->executeStatement('DROP TABLE IF EXISTS orders');
@@ -218,7 +236,7 @@ final class TransactionTest extends DbalMessagingTestCase
     {
         $dbalConnectionFactory = $this->getConnectionFactory();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderService(), DbalConnectionFactory::class => DbalConnection::fromConnectionFactory($dbalConnectionFactory), 'managerRegistry' => $dbalConnectionFactory],
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withLicenceKey(LicenceTesting::VALID_LICENCE)
@@ -233,7 +251,7 @@ final class TransactionTest extends DbalMessagingTestCase
 
     private function bootstrapEcotoneWithMultiTenantConnection(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [
                 new OrderService(),
                 'tenant_a_connection' => $this->connectionForTenantA(),

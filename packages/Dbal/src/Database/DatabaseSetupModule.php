@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Ecotone\Dbal\Database;
 
 use Ecotone\AnnotationFinder\AnnotationFinder;
+use Ecotone\Api\Attribute\ConsoleCommand;
 use Ecotone\Api\Attribute\ModuleAnnotation;
+use Ecotone\Api\Attribute\WithoutDatabaseTransaction;
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManager;
 use Ecotone\Api\Dbal\ExtensionObject\DatabaseSetupManagerRegistry;
 use Ecotone\Api\Dbal\ExtensionObject\DbalConfiguration;
@@ -16,6 +18,7 @@ use Ecotone\Messaging\Config\Annotation\AnnotationModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ConsoleCommandModule;
 use Ecotone\Messaging\Config\Annotation\ModuleConfiguration\ExtensionObjectResolver;
 use Ecotone\Messaging\Config\Configuration;
+use Ecotone\Messaging\Config\Container\AttributeDefinition;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\InterfaceToCallReference;
 use Ecotone\Messaging\Config\Container\Reference;
@@ -143,6 +146,11 @@ class DatabaseSetupModule implements AnnotationModule
             $interfaceToCallRegistry,
             $description
         );
+
+        $messageHandlerBuilder = $messageHandlerBuilder->withEndpointAnnotations([
+            new AttributeDefinition(ConsoleCommand::class, [$commandName]),
+            new AttributeDefinition(WithoutDatabaseTransaction::class),
+        ]);
 
         $configuration
             ->registerMessageHandler($messageHandlerBuilder)

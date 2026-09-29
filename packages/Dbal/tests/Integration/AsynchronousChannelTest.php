@@ -107,7 +107,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
         $connection = $this->getConnection();
         $connection->close();
 
-        $ecotone = EcotoneLite::bootstrapFlowTesting(
+        $ecotone = $this->bootstrapFlowTesting(
             containerOrAvailableServices:
                 array_merge(
                     [
@@ -138,7 +138,7 @@ final class AsynchronousChannelTest extends DbalMessagingTestCase
     {
         $dbalConnectionFactory = $this->getConnectionFactory();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: array_merge($services, [DbalConnectionFactory::class => DbalConnection::fromConnectionFactory($dbalConnectionFactory), 'managerRegistry' => $dbalConnectionFactory]),
             configuration: ServiceConfiguration::createWithDefaults()
                 ->withEnvironment('prod')

@@ -18,7 +18,11 @@ use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Api\Gateway\EventBus;
 use Ecotone\Api\Gateway\QueryBus;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\EventStore\AppendStrategy\AppendStrategy;
+use Ecotone\EventSourcing\EventStore\GuardedTagBump;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
+use Ecotone\EventSourcing\EventStore\Tag\InMemoryTagCollaborator;
+use Ecotone\EventSourcing\Tagging\Config\DynamicConsistencyBoundary;
 use Ecotone\Lite\Test\MessagingTestSupport;
 use Ecotone\Messaging\Attribute\AsynchronousRunningEndpoint;
 use Ecotone\Messaging\Config\Annotation\AnnotationModule;
@@ -433,31 +437,36 @@ final class EcotoneTestSupportModule extends NoExternalConfigurationModule imple
     {
         $registerInMemoryEventStoreStreamSource = false;
         if (! $serviceConfiguration->isModulePackageEnabled(ModulePackageList::EVENT_SOURCING_PACKAGE)) {
-            // Register InMemoryEventStore as the primary definition
+            DynamicConsistencyBoundary::resolveFrom($extensionObjects)->registerServicesForInMemoryStore($messagingConfiguration);
+
             $messagingConfiguration->registerServiceDefinition(
                 InMemoryEventStore::class,
-                new Definition(InMemoryEventStore::class),
+                new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class)]),
             );
-            // Register EventStore as a reference to InMemoryEventStore (same instance)
             $messagingConfiguration->registerServiceDefinition(
                 EventStore::class,
                 new Reference(InMemoryEventStore::class),
             );
+            $messagingConfiguration->registerServiceDefinition(
+                EventStore::RAW_REFERENCE,
+                new Reference(InMemoryEventStore::class),
+            );
+            $messagingConfiguration->registerServiceDefinition(
+                GuardedTagBump::class,
+                new Reference(InMemoryEventStore::class),
+            );
             $registerInMemoryEventStoreStreamSource = true;
         } else {
-            /**
-             * This is to honour current PdoEventSourcing implementation, as current one is initializing In Memory in EventSourcingConfiguration.
-             * We register the InMemoryEventStore by getting it from the EventSourcingConfiguration service,
-             * which ensures we use the same instance that's used by the event store.
-             */
             foreach ($extensionObjects as $extensionObject) {
                 if (class_exists(EventSourcingConfiguration::class) && $extensionObject instanceof EventSourcingConfiguration) {
                     if ($extensionObject->isInMemory()) {
-                        // Register InMemoryEventStore by calling getInMemoryEventStore() on the EventSourcingConfiguration service
-                        // This ensures we use the same instance that's used by the event store
                         $messagingConfiguration->registerServiceDefinition(
                             InMemoryEventStore::class,
-                            new Definition(InMemoryEventStore::class, [], [EventSourcingConfiguration::class, 'getInMemoryEventStore'])
+                            new Definition(InMemoryEventStore::class, [Reference::to(AppendStrategy::class), Reference::to(InMemoryTagCollaborator::class)]),
+                        );
+                        $messagingConfiguration->registerServiceDefinition(
+                            GuardedTagBump::class,
+                            new Reference(InMemoryEventStore::class),
                         );
                         $registerInMemoryEventStoreStreamSource = true;
                     }

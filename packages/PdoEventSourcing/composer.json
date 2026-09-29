@@ -62,7 +62,8 @@
         "symfony/console": "^6.4|^7.0|^8.0",
         "doctrine/orm": "^3.0",
         "doctrine/persistence": "^3.4|^4.0",
-        "symfony/cache": "^6.4|^7.0|^8.0"
+        "symfony/cache": "^6.4|^7.0|^8.0",
+        "symfony/expression-language": "^6.4|^7.0|^8.0"
     },
     "scripts": {
         "tests:phpstan": "vendor/bin/phpstan",

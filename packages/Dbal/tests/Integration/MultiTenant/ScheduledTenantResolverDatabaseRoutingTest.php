@@ -165,7 +165,7 @@ final class ScheduledTenantResolverDatabaseRoutingTest extends DbalMessagingTest
                 ->setHandledMessageLimit(1);
         }
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             array_map(static fn (object $service): string => $service::class, $services),
             array_merge(
                 $services,

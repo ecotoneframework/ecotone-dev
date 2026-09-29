@@ -38,7 +38,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
     public function test_deduplication_with_closure_expression(): void
     {
         $handler = new ClosureDeduplicatedHandler();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [ClosureDeduplicatedHandler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -58,7 +58,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
     public function test_deduplication_closure_expression_receives_attribute_declared_on_handler(): void
     {
         $handler = new PolicyDrivenDeduplicatedHandler();
-        $ecotoneLite = EcotoneLite::bootstrapFlowTesting(
+        $ecotoneLite = $this->bootstrapFlowTesting(
             classesToResolve: [PolicyDrivenDeduplicatedHandler::class],
             containerOrAvailableServices: [$handler, DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -90,7 +90,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
     {
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             classesToResolve: [ClosureDeduplicatedHandler::class],
             containerOrAvailableServices: [new ClosureDeduplicatedHandler(), DbalConnectionFactory::class => $this->getConnectionFactory(true)],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -102,7 +102,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
     {
         $this->expectException(LicensingException::class);
 
-        EcotoneLite::bootstrapFlowTesting(
+        $this->bootstrapFlowTesting(
             classesToResolve: [PersonClosureParameterApi::class],
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),
@@ -190,7 +190,7 @@ final class ClosureExpressionDbalTest extends DbalMessagingTestCase
     {
         $this->setupUserTable();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [PersonClosureParameterApi::class],
             containerOrAvailableServices: [
                 DbalConnectionFactory::class => $this->getConnectionFactory(),

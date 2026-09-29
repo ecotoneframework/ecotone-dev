@@ -52,7 +52,7 @@ class StatefulAsyncWorkflowTest extends DbalMessagingTestCase
 
     private function bootstrapEcotone(): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             classesToResolve: [
                 AsyncCycle::class,
                 AsyncCycleGateway::class,

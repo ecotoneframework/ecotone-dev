@@ -112,7 +112,7 @@ final class ProjectionMetadataPropagationTest extends EventSourcingMessagingTest
             $connection->delete(OrderProjection::TABLE, ['1' => '1']);
         }
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             containerOrAvailableServices: [new OrderProjection($connection), new OrderEventsConverter(), new NotificationService(), DbalConnectionFactory::class => $connectionFactory],
             configuration: $serviceConfiguration,
             pathToRootCatalog: __DIR__ . '/../../',

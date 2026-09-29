@@ -50,7 +50,8 @@
             "Test\\Ecotone\\Laravel\\": "tests",
             "App\\MultiTenant\\": "tests/MultiTenant/app",
             "App\\Licence\\Laravel\\": "tests/Licence/app",
-            "App\\MissingReference\\Laravel\\": "tests/MissingReference/src"
+            "App\\MissingReference\\Laravel\\": "tests/MissingReference/src",
+            "App\\DcbSmoke\\Laravel\\": "tests/DcbSmoke/app"
         }
     },
     "require": {
@@ -66,6 +67,7 @@
         "nesbot/carbon": "^2.71|^3.0",
         "moneyphp/money": "^4.1.0",
         "ecotone/dbal": "~1.326.1",
+        "ecotone/pdo-event-sourcing": "~1.326.1",
         "doctrine/dbal": "^4.0",
         "timacdonald/log-fake": "^2.0"
     },

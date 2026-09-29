@@ -50,6 +50,11 @@ final class EventSourcingHandlerMethod
         );
     }
 
+    public function handledEventType(): Type
+    {
+        return $this->handledEventType;
+    }
+
     public function canHandle(mixed $event): bool
     {
         return $this->handledEventType->accepts($event);

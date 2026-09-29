@@ -141,7 +141,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Ticket::class, TicketEventConverter::class, TicketListUpdatedConverter::class, TicketListUpdated::class, $emitting::class, $downstream::class],
             containerOrAvailableServices: [
                 $emitting,
@@ -165,7 +165,7 @@ final class EventStreamEmitterStreamTest extends EventSourcingMessagingTestCase
 
     private function bootstrap(object $projection): FlowTestSupport
     {
-        return EcotoneLite::bootstrapFlowTestingWithEventStore(
+        return $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [Ticket::class, TicketEventConverter::class, TicketListUpdatedConverter::class, TicketListUpdated::class, $projection::class],
             containerOrAvailableServices: [
                 $projection,

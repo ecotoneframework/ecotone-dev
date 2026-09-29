@@ -83,7 +83,7 @@ final class HighThroughputPublishingTransactionTest extends DbalMessagingTestCas
     {
         $this->setupUserTable();
 
-        return EcotoneLite::bootstrapFlowTesting(
+        return $this->bootstrapFlowTesting(
             [Person::class, NotificationService::class],
             [new NotificationService(), DbalConnectionFactory::class => $this->getORMConnectionFactory([__DIR__ . '/../Fixture/ORM/Person'])],
             ServiceConfiguration::createWithDefaults()

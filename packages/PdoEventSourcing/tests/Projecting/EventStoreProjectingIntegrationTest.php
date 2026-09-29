@@ -51,14 +51,14 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $projection = new #[Projection(self::NAME), FromStream(Ticket::STREAM_NAME)] class ($connectionFactory->establishConnection()) extends DbalTicketProjection {
             public const NAME = 'dbal_tickets_projection';
         };
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
             ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
@@ -87,7 +87,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             public const NAME = 'async_dbal_tickets_projection';
             public const ASYNC_CHANNEL = 'async_projection';
         };
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
@@ -95,7 +95,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             configuration: ServiceConfiguration::createWithDefaults()->addExtensionObject(SimpleMessageChannelBuilder::createQueueChannel($projection::ASYNC_CHANNEL))
         );
 
-        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME)
             ->initializeProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
@@ -126,7 +126,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
@@ -134,7 +134,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         // Send events - should auto-initialize and process
@@ -163,7 +163,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
@@ -171,7 +171,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         // Send events - should skip processing
@@ -197,7 +197,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
@@ -205,7 +205,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         // Send events first (should be skipped)
@@ -237,7 +237,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
@@ -245,7 +245,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         // Send multiple events concurrently - should only initialize once
@@ -281,14 +281,14 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         };
 
         // First run - initialize projection
-        $ecotone1 = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone1 = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone1->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone1->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         $ticketId1 = Uuid::v7()->toRfc4122();
@@ -303,7 +303,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $projection->initCallCount = 0;
 
         // Second run - projection should already be initialized
-        $ecotone2 = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone2 = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
@@ -335,7 +335,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
@@ -343,7 +343,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         // Send events for different partitions
@@ -373,7 +373,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
@@ -381,7 +381,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         );
 
         // Delete any existing data
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         // Send multiple events
@@ -420,14 +420,14 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         for ($i = 1; $i <= 5; $i++) {
@@ -455,14 +455,14 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             }
         };
 
-        EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $this->bootstrapFlowTestingWithEventStore(
             [$basketProjection::class, Basket::class, BasketEventConverter::class, BasketWasCreated::class],
             [self::getConnectionFactory(), $basketProjection, new BasketEventConverter()],
             ServiceConfiguration::createWithDefaults(),
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         )
-            ->deleteEventStream(Basket::BASKET_STREAM)
+            ->deleteEventStream(Basket::BASKET_STREAM)->initializeDatabase()
             ->deleteProjection($basketProjection::NAME)
             ->sendCommand(new CreateBasket(Uuid::v7()->toRfc4122()))
             ->sendCommand(new CreateBasket(Uuid::v7()->toRfc4122()));
@@ -484,14 +484,14 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [$connectionFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         $ecotone->triggerProjection($projection::NAME);
@@ -510,14 +510,14 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             public const NAME = 'already_connected_projection';
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ticketsCount = $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME)
             ->sendCommand(new CreateTicketCommand($ticketId = Uuid::v7()->toRfc4122()))
             ->sendCommandWithRouting(Ticket::ASSIGN_COMMAND, metadata: ['aggregate.id' => $ticketId])
@@ -545,14 +545,14 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             }
         };
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [DbalConnectionFactory::class => $alreadyConnectedFactory, $projection, new TicketEventConverter()],
             runForProductionEventStore: true,
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         $ticketId1 = Uuid::v7()->toRfc4122();
@@ -604,7 +604,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
         $entityManager = $registry->getManager();
         $projection->setEntityManager($entityManager);
 
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             [$projection::class, Ticket::class, TicketEventConverter::class, TicketAssigned::class],
             [DbalConnectionFactory::class => $ormConnectionFactory, $projection, new TicketEventConverter()],
             configuration: ServiceConfiguration::createWithDefaults()
@@ -616,7 +616,7 @@ class EventStoreProjectingIntegrationTest extends ProjectingTestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        $ecotone->deleteEventStream(Ticket::STREAM_NAME)
+        $ecotone->deleteEventStream(Ticket::STREAM_NAME)->initializeDatabase()
             ->deleteProjection($projection::NAME);
 
         for ($i = 1; $i <= 5; $i++) {

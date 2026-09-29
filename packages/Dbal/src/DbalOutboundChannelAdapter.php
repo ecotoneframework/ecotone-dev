@@ -8,6 +8,7 @@ use Ecotone\Dbal\Connection\DbalContext;
 use Ecotone\Dbal\Connection\DbalDestination;
 use Ecotone\Dbal\Connection\DbalProducer;
 use Ecotone\Dbal\Database\EnqueueTableManager;
+use Ecotone\Dbal\Database\MissingTableFailure;
 use Ecotone\Enqueue\CachedConnectionFactory;
 use Ecotone\Enqueue\EnqueueOutboundChannelAdapter;
 use Ecotone\Messaging\BatchMessage;
@@ -17,6 +18,7 @@ use Ecotone\Messaging\Conversion\ConversionService;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Interop\Queue\Context;
+use Throwable;
 
 /**
  * licence Apache-2.0
@@ -43,6 +45,15 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
         );
     }
 
+    public function handle(Message $message): void
+    {
+        try {
+            parent::handle($message);
+        } catch (Throwable $failure) {
+            throw MissingTableFailure::explained($failure, $this->tableManager, $this->connectionFactory);
+        }
+    }
+
     public function initialize(): void
     {
         /** @var DbalContext $context */
@@ -55,8 +66,8 @@ class DbalOutboundChannelAdapter extends EnqueueOutboundChannelAdapter
             return;
         }
 
-        if (! $this->tableManager->shouldBeInitializedAutomatically()) {
-            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions());
+        if (! $this->tableManager->shouldBeInitializedAutomatically($connection)) {
+            throw ConfigurationException::create($this->tableManager->getMissingTableInstructions($connection));
         }
 
         $this->tableManager->createTable($connection);

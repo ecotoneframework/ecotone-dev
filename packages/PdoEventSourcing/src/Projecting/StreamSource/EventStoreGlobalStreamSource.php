@@ -12,11 +12,13 @@ use function count;
 use DateTimeZone;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\Exception\TableNotFoundException;
 use Ecotone\Api\Gateway\EcotoneClockInterface;
 use Ecotone\Dbal\AlreadyConnectedDbalConnectionFactory;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
 use Ecotone\Dbal\Connection\ManagerRegistryConnectionFactory;
 use Ecotone\Dbal\MultiTenant\MultiTenantConnectionFactory;
+use Ecotone\EventSourcing\Database\MissingEventStreamTable;
 use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
 use Ecotone\EventSourcing\Projecting\StreamEvent;
 use Ecotone\EventSourcing\StreamTableRegistry;
@@ -42,6 +44,7 @@ class EventStoreGlobalStreamSource implements StreamSource
         private EcotoneClockInterface $clock,
         private StreamTableRegistry $streamTableRegistry,
         private StreamFilterRegistry $streamFilterRegistry,
+        private MissingEventStreamTable $missingEventStreamTable,
         private array $handledProjectionNames,
         private int $maxGapOffset = 5_000,
         private ?Duration $gapTimeout = null,
@@ -80,49 +83,49 @@ class EventStoreGlobalStreamSource implements StreamSource
         $connection = $this->getConnection();
         $schema = EventStreamSchemaFactory::for($connection);
 
-        if (! $schema->tableExists($connection, $streamTable)) {
-            return new StreamPage([], $lastPosition ?? '');
-        }
-
         $quotedTable = $schema->quoteIdentifier($streamTable);
         $tracking = GapAwarePosition::fromString($lastPosition);
         $cutoffTimestamp = $this->gapTimeout ? $this->clock->now()->sub($this->gapTimeout)->getTimestamp() : 0;
 
         $events = [];
-        do {
-            [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
-                true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => ArrayParameterType::INTEGER]],
-                false => ['', [], []],
-            };
+        try {
+            do {
+                [$gapQueryPart, $gapQueryPartParams, $gapQueryPartParamTypes] = match (($gaps = $tracking->getGaps()) > 0) {
+                    true => ['OR no IN (:gaps)', ['gaps' => $gaps], ['gaps' => ArrayParameterType::INTEGER]],
+                    false => ['', [], []],
+                };
 
-            $query = $connection->executeQuery(<<<SQL
-                SELECT no, event_name, payload, metadata, created_at
-                    FROM {$quotedTable}
-                    WHERE no > :position {$gapQueryPart}
-                ORDER BY no
-                LIMIT {$count}
-                SQL, [
-                'position' => $tracking->getPosition(),
-                ...$gapQueryPartParams,
-            ], $gapQueryPartParamTypes);
+                $query = $connection->executeQuery(<<<SQL
+                    SELECT no, event_name, payload, metadata, created_at
+                        FROM {$quotedTable}
+                        WHERE no > :position {$gapQueryPart}
+                    ORDER BY no
+                    LIMIT {$count}
+                    SQL, [
+                    'position' => $tracking->getPosition(),
+                    ...$gapQueryPartParams,
+                ], $gapQueryPartParamTypes);
 
-            $scannedRows = 0;
-            foreach ($query->iterateAssociative() as $row) {
-                $scannedRows++;
-                $metadata = json_decode($row['metadata'], true) ?? [];
-                $event = new StreamEvent(
-                    $row['event_name'],
-                    json_decode($row['payload'], true),
-                    $metadata,
-                    (int) $row['no'],
-                    $this->getTimestamp($row['created_at'])
-                );
-                if ($this->matchesAnyFilter($streamFilters, $row['event_name'], $metadata)) {
-                    $events[] = $event;
+                $scannedRows = 0;
+                foreach ($query->iterateAssociative() as $row) {
+                    $scannedRows++;
+                    $metadata = json_decode($row['metadata'], true) ?? [];
+                    $event = new StreamEvent(
+                        $row['event_name'],
+                        json_decode($row['payload'], true),
+                        $metadata,
+                        (int) $row['no'],
+                        $this->getTimestamp($row['created_at'])
+                    );
+                    if ($this->matchesAnyFilter($streamFilters, $row['event_name'], $metadata)) {
+                        $events[] = $event;
+                    }
+                    $tracking->advanceTo($event->no, $event->timestamp > $cutoffTimestamp);
                 }
-                $tracking->advanceTo($event->no, $event->timestamp > $cutoffTimestamp);
-            }
-        } while ($events === [] && $scannedRows === $count);
+            } while ($events === [] && $scannedRows === $count);
+        } catch (TableNotFoundException) {
+            throw $this->missingEventStreamTable->exceptionFor($connection, $streamTable);
+        }
 
         $tracking->cleanByMaxOffset($this->maxGapOffset);
 
@@ -289,6 +292,7 @@ class EventStoreGlobalStreamSource implements StreamSource
 
     private function getTimestamp(string $dateString): int
     {
+        $dateString = str_replace('T', ' ', $dateString);
         if (strlen($dateString) === 19) {
             $dateString = $dateString . '.000';
         }

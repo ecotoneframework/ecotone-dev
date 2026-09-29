@@ -11,6 +11,7 @@ use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
 use Ecotone\Messaging\Support\MessageBuilder;
 use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateResolver;
+use Ecotone\Modelling\DecisionModel\DecisionModelLoadedState;
 use Ecotone\Modelling\Event;
 use Ecotone\Modelling\Repository\AggregateRepository;
 
@@ -34,7 +35,10 @@ final class SaveAggregateService implements MessageProcessor
     public function process(Message $message): Message|null
     {
         $resolvedAggregates = $this->aggregateResolver->resolve($message);
-        $metadata = MessageHeaders::unsetNonUserKeys($message->getHeaders()->headers());
+        $metadata = DecisionModelLoadedState::carryInto(
+            $message,
+            MessageHeaders::unsetNonUserKeys($message->getHeaders()->headers()),
+        );
 
         if (! $resolvedAggregates) {
             return MessageBuilder::fromMessage($message)->build();

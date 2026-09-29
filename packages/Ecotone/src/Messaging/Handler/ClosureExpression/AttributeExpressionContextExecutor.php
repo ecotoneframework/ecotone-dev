@@ -8,10 +8,14 @@ use function array_key_exists;
 
 use Closure;
 use Ecotone\Messaging\Attribute\WithExpression;
+use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\ExpressionEvaluationService;
+use Ecotone\Messaging\Handler\ExpressionLocation;
 use Ecotone\Messaging\Support\InvalidArgumentException;
 
 use function is_string;
+
+use Throwable;
 
 /**
  * Carries attribute together with compiled expression bound to plain context variables,
@@ -32,6 +36,7 @@ final class AttributeExpressionContextExecutor
         WithExpression $attribute,
         private ExpressionEvaluationService $expressionEvaluationService,
         private array $parameterSpecifications,
+        private ExpressionLocation $location,
     ) {
         $expression = $attribute->getExpression();
         if ($expression === null || $expression === '') {
@@ -43,23 +48,27 @@ final class AttributeExpressionContextExecutor
 
     public function execute(array $context): mixed
     {
-        if (is_string($this->expression)) {
-            return $this->expressionEvaluationService->evaluateWithContext($this->expression, $context);
-        }
-
-        $arguments = [];
-        foreach ($this->parameterSpecifications as $index => $parameterSpecification) {
-            if (array_key_exists($parameterSpecification['name'], $context)) {
-                $arguments[] = $context[$parameterSpecification['name']];
-            } elseif ($index === 0 && array_key_exists('payload', $context)) {
-                $arguments[] = $context['payload'];
-            } elseif ($parameterSpecification['hasDefaultValue']) {
-                $arguments[] = $parameterSpecification['defaultValue'];
-            } else {
-                throw InvalidArgumentException::create(sprintf('Cannot resolve parameter `%s` of closure expression. Available context variables: %s', $parameterSpecification['name'], implode(', ', array_keys($context))));
+        try {
+            if (is_string($this->expression)) {
+                return $this->expressionEvaluationService->evaluateWithContext($this->expression, $context);
             }
-        }
 
-        return ($this->expression)(...$arguments);
+            $arguments = [];
+            foreach ($this->parameterSpecifications as $index => $parameterSpecification) {
+                if (array_key_exists($parameterSpecification['name'], $context)) {
+                    $arguments[] = $context[$parameterSpecification['name']];
+                } elseif ($index === 0 && array_key_exists('payload', $context)) {
+                    $arguments[] = $context['payload'];
+                } elseif ($parameterSpecification['hasDefaultValue']) {
+                    $arguments[] = $parameterSpecification['defaultValue'];
+                } else {
+                    throw InvalidArgumentException::create(sprintf('Cannot resolve parameter `%s` of closure expression. Available context variables: %s', $parameterSpecification['name'], implode(', ', array_keys($context))));
+                }
+            }
+
+            return ($this->expression)(...$arguments);
+        } catch (Throwable $exception) {
+            throw ExpressionEvaluationException::wrapping($this->location, $exception);
+        }
     }
 }

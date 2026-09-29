@@ -6,6 +6,8 @@ namespace Test\Ecotone\EventSourcing\Integration;
 
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
 use Ecotone\Dbal\Connection\DbalConnectionFactory;
+use Ecotone\EventSourcing\Dbal\EventStreamSchemaFactory;
+use Ecotone\EventSourcing\EventStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ModulePackageList;
 use Test\Ecotone\EventSourcing\EventSourcingMessagingTestCase;
@@ -25,7 +27,12 @@ final class SecondaryConnectionStreamTest extends EventSourcingMessagingTestCase
 {
     public function test_aggregate_stream_lives_on_the_connection_its_attribute_points_at(): void
     {
-        $ecotone = EcotoneLite::bootstrapFlowTestingWithEventStore(
+        $secondaryConnection = $this->connectionForTenantB()->createContext()->getDbalConnection();
+        foreach (EventStreamSchemaFactory::for($secondaryConnection)->createTableSql(SecondaryOrder::STREAM) as $statement) {
+            $secondaryConnection->executeStatement($statement);
+        }
+
+        $ecotone = $this->bootstrapFlowTestingWithEventStore(
             classesToResolve: [SecondaryOrder::class, SecondaryOrderConverter::class],
             containerOrAvailableServices: [
                 new SecondaryOrderConverter(),
@@ -42,13 +49,9 @@ final class SecondaryConnectionStreamTest extends EventSourcingMessagingTestCase
         $ecotone->sendCommandWithRouting('secondaryOrder.place', new PlaceSecondaryOrder('order-1'));
 
         $primaryConnection = $this->connectionForTenantA()->createContext()->getDbalConnection();
-        $secondaryConnection = $this->connectionForTenantB()->createContext()->getDbalConnection();
 
         self::assertFalse(self::tableExists($primaryConnection, SecondaryOrder::STREAM));
-        self::assertSame(
-            1,
-            (int) $secondaryConnection->fetchOne('SELECT COUNT(*) FROM ' . $secondaryConnection->getDatabasePlatform()->quoteIdentifier(SecondaryOrder::STREAM))
-        );
+        self::assertCount(1, $ecotone->getGateway(EventStore::class)->load(SecondaryOrder::STREAM));
 
         $ecotone->sendCommandWithRouting('secondaryOrder.cancel', new CancelSecondaryOrder('order-1'), metadata: ['aggregate.id' => 'order-1']);
 

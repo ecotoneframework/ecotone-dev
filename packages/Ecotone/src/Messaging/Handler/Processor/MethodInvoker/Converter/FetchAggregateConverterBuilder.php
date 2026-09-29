@@ -53,12 +53,12 @@ class FetchAggregateConverterBuilder implements ParameterConverterBuilder
         return $this->aggregateClassName;
     }
 
-    public function compileCounterCapture(): Definition
+    public function compileCounterCapture(InterfaceToCall $interfaceToCall): Definition
     {
         return new Definition(FetchedAggregateCounterCapture::class, [
             $this->parameterName,
             $this->aggregateClassName,
-            AttributeExpressionExecutorCompiler::compile(new Fetch($this->expression), $this->attributeDeclaration),
+            AttributeExpressionExecutorCompiler::compile(new Fetch($this->expression), $this->attributeDeclaration, $interfaceToCall, $this->parameterName),
             Reference::to(AggregateDefinitionRegistry::class),
             Reference::to(AggregateCounterTags::class),
         ]);
@@ -78,7 +78,7 @@ class FetchAggregateConverterBuilder implements ParameterConverterBuilder
         return new Definition(FetchAggregateConverter::class, [
             new Reference(AllAggregateRepository::class),
             $this->aggregateClassName,
-            AttributeExpressionExecutorCompiler::compile(new Fetch($this->expression), $this->attributeDeclaration),
+            AttributeExpressionExecutorCompiler::compile(new Fetch($this->expression), $this->attributeDeclaration, $interfaceToCall, $this->parameterName),
             $interfaceToCall->getParameterWithName($this->parameterName)->doesAllowNulls(),
             Reference::to(LicenceDecider::class),
             Reference::to(AggregateDefinitionRegistry::class),

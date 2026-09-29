@@ -8,6 +8,7 @@ use Ecotone\Messaging\Config\ConfigurationException;
 
 use function get_debug_type;
 use function is_array;
+use function is_bool;
 use function is_scalar;
 use function preg_match_all;
 use function rtrim;
@@ -37,6 +38,13 @@ final class EventTagValueNormalizer
             }
 
             return $result;
+        }
+
+        if (is_bool($value)) {
+            throw ConfigurationException::create(sprintf(
+                "Tag '%s' value must be a string, int, float or Stringable, got bool. Did you mean to compare instead of return?",
+                $tagName
+            ));
         }
 
         if (is_scalar($value) || $value instanceof Stringable) {

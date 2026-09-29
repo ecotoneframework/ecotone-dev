@@ -6,6 +6,8 @@ namespace Ecotone\Modelling\DecisionModel;
 
 use Ecotone\Messaging\Config\ConfigurationException;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
+use Ecotone\Messaging\Handler\ExpressionEvaluationException;
+use Ecotone\Messaging\Handler\ExpressionResult;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\FetchAggregateConverter;
 use Ecotone\Messaging\Message;
@@ -16,6 +18,8 @@ use Ecotone\Modelling\EventSourcingExecutor\EventSourcingHandlerExecutor;
 use function implode;
 use function is_object;
 use function sprintf;
+
+use Throwable;
 
 /**
  * licence Enterprise
@@ -63,11 +67,17 @@ final class AggregateBackedDecisionModelLoader
      */
     private function identifiersFromExpression(AggregateBackedDecisionModelDefinition $definition, Message $message): ?array
     {
-        $identifiers = FetchAggregateConverter::identifiersFrom(
-            $this->expressionExecutor->execute($message, ['value' => $message->getPayload()]),
-            $definition->aggregateClassName(),
-            $this->aggregateDefinitionRegistry,
-        );
+        $resolved = $this->expressionExecutor->execute($message, ['value' => $message->getPayload()]);
+
+        try {
+            $identifiers = FetchAggregateConverter::identifiersFrom(
+                $resolved,
+                $definition->aggregateClassName(),
+                $this->aggregateDefinitionRegistry,
+            );
+        } catch (Throwable $exception) {
+            throw ExpressionEvaluationException::wrapping($this->expressionExecutor->location(), $exception);
+        }
 
         if ($identifiers !== null) {
             return $identifiers;
@@ -77,10 +87,11 @@ final class AggregateBackedDecisionModelLoader
             return null;
         }
 
-        throw ConfigurationException::create(sprintf(
-            '#[Fetch] expression for DecisionModel %s did not resolve an identifier of aggregate %s.',
+        throw ExpressionEvaluationException::because($this->expressionExecutor->location(), sprintf(
+            'DecisionModel %s did not resolve an identifier of aggregate %s. The expression returned %s.',
             $this->modelClassName,
             $definition->aggregateClassName(),
+            ExpressionResult::describe($resolved),
         ));
     }
 

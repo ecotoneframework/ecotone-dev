@@ -6,6 +6,8 @@ namespace Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter;
 
 use Ecotone\Messaging\Config\LicenceDecider;
 use Ecotone\Messaging\Handler\ClosureExpression\AttributeExpressionExecutor;
+use Ecotone\Messaging\Handler\ExpressionEvaluationException;
+use Ecotone\Messaging\Handler\ExpressionResult;
 use Ecotone\Messaging\Handler\ParameterConverter;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\Support\LicensingException;
@@ -13,6 +15,7 @@ use Ecotone\Modelling\AggregateFlow\SaveAggregate\AggregateResolver\AggregateDef
 use Ecotone\Modelling\AggregateNotFoundException;
 use Ecotone\Modelling\Repository\AllAggregateRepository;
 use InvalidArgumentException;
+use Throwable;
 
 /**
  * licence Enterprise
@@ -35,11 +38,21 @@ class FetchAggregateConverter implements ParameterConverter
             throw LicensingException::create('FetchAggregate attribute is available as part of Ecotone Enterprise.');
         }
 
-        $identifiers = self::identifiersFrom($this->resolveIdentifiers($message), $this->aggregateClassName, $this->aggregateDefinitionRegistry);
+        $resolvedIdentifiers = $this->expressionExecutor->execute($message, ['value' => $message->getPayload()]);
+
+        try {
+            $identifiers = self::identifiersFrom($resolvedIdentifiers, $this->aggregateClassName, $this->aggregateDefinitionRegistry);
+        } catch (Throwable $exception) {
+            throw ExpressionEvaluationException::wrapping($this->expressionExecutor->location(), $exception);
+        }
 
         if ($identifiers === null) {
             if (! $this->doesAllowsNull) {
-                throw new AggregateNotFoundException("Aggregate {$this->aggregateClassName} was not found as identifiers is null.");
+                throw ExpressionEvaluationException::because($this->expressionExecutor->location(), sprintf(
+                    'Aggregate %s cannot be fetched: the expression returned %s. Declare the parameter nullable to accept a missing identifier.',
+                    $this->aggregateClassName,
+                    ExpressionResult::describe($resolvedIdentifiers),
+                ));
             }
 
             return null;
@@ -79,8 +92,4 @@ class FetchAggregateConverter implements ParameterConverter
         return [array_key_first($identifierMapping) => $resolvedIdentifiers];
     }
 
-    private function resolveIdentifiers(Message $message): mixed
-    {
-        return $this->expressionExecutor->execute($message, ['value' => $message->getPayload()]);
-    }
 }

@@ -4,6 +4,7 @@ namespace Test\Ecotone\Messaging\Unit\Handler\Processor\MethodInvoker\Converter;
 
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Handler\ExpressionEvaluationException;
 use Ecotone\Messaging\Handler\MethodInvocationException;
 use Ecotone\Messaging\Support\LicensingException;
 use Ecotone\Modelling\AggregateNotFoundException;
@@ -177,7 +178,7 @@ class FetchAggregateTest extends TestCase
         $this->assertSame($user, $result['user']);
     }
 
-    public function test_reference_is_not_providing_any_identifier_ending_up_with_aggregate_not_found(): void
+    public function test_expression_resolving_no_identifier_names_the_attribute_the_parameter_and_the_expression(): void
     {
         $userRepository = new UserRepository([]);
         $complexService = new ComplexService();
@@ -192,16 +193,19 @@ class FetchAggregateTest extends TestCase
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
 
-        // This will throw Ecotone's exception, as interface does not allow for null
-        $this->expectException(MethodInvocationException::class);
-
         try {
             $ecotoneLite->sendCommand(new ComplexCommand('johny@wp.pl'));
             self::fail('Should throw exception');
-        } catch (MethodInvocationException $e) {
-            $this->assertInstanceOf(AggregateNotFoundException::class, $e->getPrevious());
-
-            throw $e;
+        } catch (MethodInvocationException $exception) {
+            $expressionFailure = $exception->getPrevious();
+            $this->assertInstanceOf(ExpressionEvaluationException::class, $expressionFailure);
+            $this->assertSame(
+                '#[Fetch] on $user in ' . ComplexService::class . '::handleComplexCommand failed.'
+                . " Expression: reference('identifierMapper').map(payload.email)."
+                . ' Aggregate ' . User::class . ' cannot be fetched: the expression returned null.'
+                . ' Declare the parameter nullable to accept a missing identifier.',
+                $expressionFailure->getMessage(),
+            );
         }
     }
 

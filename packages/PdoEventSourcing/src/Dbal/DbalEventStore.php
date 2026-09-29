@@ -346,15 +346,6 @@ final class DbalEventStore implements EventStore, AppendableStore, GuardedTagBum
      * @param string[] $eventNames
      * @return Event[]
      */
-    public function loadDecisionModelAggregateEvents(
-        string $streamName,
-        ?string $aggregateType,
-        string $aggregateId,
-        int $fromVersion = 1,
-        array $eventNames = [],
-    ): iterable {
-        return $this->loadAggregateEvents($streamName, $aggregateType, $aggregateId, $fromVersion, null, $eventNames);
-    }
 
     public function missingStreamTableException(Connection $connection, string $tableName): ConfigurationException
     {

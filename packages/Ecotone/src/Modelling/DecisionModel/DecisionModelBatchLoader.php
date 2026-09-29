@@ -279,11 +279,12 @@ final class DecisionModelBatchLoader
      */
     private function readAggregateEvents(AggregateBackedDecisionModelInstance $instance, int $fromVersion, array $eventClasses): array
     {
-        return [...$this->eventStore->loadDecisionModelAggregateEvents(
+        return [...$this->eventStore->loadAggregateEvents(
             $instance->streamName(),
             $instance->aggregateType(),
             $instance->aggregateId(),
             $fromVersion,
+            null,
             $eventClasses,
         )];
     }

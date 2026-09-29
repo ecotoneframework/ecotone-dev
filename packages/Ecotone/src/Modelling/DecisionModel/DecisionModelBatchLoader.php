@@ -11,6 +11,8 @@ use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore;
+use Ecotone\EventSourcing\Tagging\MatchedTagSequences;
+use Ecotone\EventSourcing\Tagging\TagKey;
 use Ecotone\EventSourcing\Tagging\TagResolver;
 use Ecotone\Messaging\Message;
 use Ecotone\Messaging\MessageHeaders;
@@ -52,6 +54,8 @@ final class DecisionModelBatchLoader
     public function load(Message $message): array
     {
         $criteriaByParameterName = $this->criteriaByParameterName($message);
+        $tagSnapshotsByParameterName = $this->snapshotsOfEachTagScope($criteriaByParameterName);
+        $criteriaByParameterName = self::boundedBySnapshots($criteriaByParameterName, $tagSnapshotsByParameterName);
         $aggregateInstancesByParameterName = $this->aggregateInstancesByParameterName($message);
 
         $loadedEvents = $this->loadEventsFor([
@@ -63,7 +67,7 @@ final class DecisionModelBatchLoader
 
         $pendingSnapshots = [];
         $instancesByParameterName = [
-            ...$this->foldInstances($criteriaByParameterName, $loadedEvents->events),
+            ...$this->foldInstances($criteriaByParameterName, $tagSnapshotsByParameterName, $loadedEvents, $pendingSnapshots),
             ...$this->foldAggregateBackedInstances($aggregateInstancesByParameterName, $pendingSnapshots),
         ];
 
@@ -338,20 +342,134 @@ final class DecisionModelBatchLoader
 
     /**
      * @param array<string, ?EventCriteria> $criteriaByParameterName
-     * @param Event[] $events
+     * @param array<string, ?DecisionModelSnapshot> $snapshotsByParameterName
+     * @param PendingDecisionModelSnapshot[] $pendingSnapshots
      * @return array<string, ?object>
      */
-    private function foldInstances(array $criteriaByParameterName, array $events): array
+    private function foldInstances(array $criteriaByParameterName, array $snapshotsByParameterName, LoadedEvents $loadedEvents, array &$pendingSnapshots): array
     {
         $instancesByParameterName = [];
         foreach ($this->loaders as $loader) {
-            $criteria = $criteriaByParameterName[$loader->parameterName()];
+            $parameterName = $loader->parameterName();
+            $criteria = $criteriaByParameterName[$parameterName];
 
-            $instancesByParameterName[$loader->parameterName()] = $criteria === null
-                ? null
-                : $loader->fold($this->tagResolver->eventsMatching($events, $criteria));
+            if ($criteria === null) {
+                $instancesByParameterName[$parameterName] = null;
+
+                continue;
+            }
+
+            $snapshot = $snapshotsByParameterName[$parameterName];
+            if ($snapshot !== null && $this->runsAheadOfTheCapture($loader, $criteria, $snapshot, $loadedEvents->appendCondition)) {
+                $criteria = $criteria->afterTagSequence(0);
+                $snapshot = null;
+            }
+
+            $tail = $this->tagResolver->eventsMatching(
+                $snapshot === null && $criteria !== $criteriaByParameterName[$parameterName]
+                    ? $this->eventStore->loadByCriteria($criteria)->events
+                    : $loadedEvents->events,
+                $criteria,
+            );
+            $folded = $loader->fold($tail, $snapshot?->state);
+
+            $instancesByParameterName[$parameterName] = $folded;
+
+            $pendingSnapshot = $this->snapshots->pendingWriteFor(
+                $loader->modelClassName(),
+                DecisionModelParameterLoader::snapshotScopeKeyOf($criteria),
+                $loader->foldShape(),
+                $folded,
+                $this->highestPositionSequenceIn($tail, $criteria, $snapshot?->coveredPosition ?? 0),
+                $snapshot?->coveredPosition ?? 0,
+            );
+
+            if ($pendingSnapshot !== null) {
+                $pendingSnapshots[] = $pendingSnapshot;
+            }
         }
 
         return $instancesByParameterName;
+    }
+
+    /**
+     * @param array<string, ?EventCriteria> $criteriaByParameterName
+     * @return array<string, ?DecisionModelSnapshot>
+     */
+    private function snapshotsOfEachTagScope(array $criteriaByParameterName): array
+    {
+        $snapshotsByParameterName = [];
+        foreach ($this->loaders as $loader) {
+            $criteria = $criteriaByParameterName[$loader->parameterName()];
+
+            $snapshotsByParameterName[$loader->parameterName()] = $criteria === null
+                ? null
+                : $this->snapshots->load($loader->modelClassName(), DecisionModelParameterLoader::snapshotScopeKeyOf($criteria), $loader->foldShape());
+        }
+
+        return $snapshotsByParameterName;
+    }
+
+    /**
+     * @param array<string, ?EventCriteria> $criteriaByParameterName
+     * @param array<string, ?DecisionModelSnapshot> $snapshotsByParameterName
+     * @return array<string, ?EventCriteria>
+     */
+    private static function boundedBySnapshots(array $criteriaByParameterName, array $snapshotsByParameterName): array
+    {
+        foreach ($snapshotsByParameterName as $parameterName => $snapshot) {
+            if ($snapshot !== null) {
+                $criteriaByParameterName[$parameterName] = $criteriaByParameterName[$parameterName]->afterTagSequence($snapshot->coveredPosition);
+            }
+        }
+
+        return $criteriaByParameterName;
+    }
+
+    /**
+     * A snapshot written on a connection the event store does not share can commit a position the
+     * reader cannot see yet. The captured counter of the position tag is the exact bound, and it
+     * comes back from the same read.
+     */
+    private function runsAheadOfTheCapture(
+        DecisionModelParameterLoader $loader,
+        EventCriteria $criteria,
+        DecisionModelSnapshot $snapshot,
+        AppendCondition $appendCondition,
+    ): bool {
+        $positionTag = $this->tagResolver->positionTagOf($criteria);
+        foreach ($appendCondition->expectedTagVersions() as $expected) {
+            if ($expected['name'] !== $positionTag['name'] || $expected['value'] !== $positionTag['value'] || $snapshot->coveredPosition <= $expected['expectedVersion']) {
+                continue;
+            }
+
+            $this->snapshots->logIgnored($loader->modelClassName(), DecisionModelParameterLoader::snapshotScopeKeyOf($criteria), sprintf(
+                'it covers sequence %d, which is beyond the %d captured for the scope',
+                $snapshot->coveredPosition,
+                $expected['expectedVersion'],
+            ));
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param Event[] $events
+     */
+    private function highestPositionSequenceIn(array $events, EventCriteria $criteria, int $coveredPosition): int
+    {
+        $positionTag = $this->tagResolver->positionTagOf($criteria);
+        if ($positionTag === null) {
+            return $coveredPosition;
+        }
+
+        $positionTagKey = TagKey::of($positionTag['name'], $positionTag['value']);
+        foreach ($events as $event) {
+            $coveredPosition = max($coveredPosition, MatchedTagSequences::of($event, $positionTagKey) ?? 0);
+        }
+
+        return $coveredPosition;
     }
 }

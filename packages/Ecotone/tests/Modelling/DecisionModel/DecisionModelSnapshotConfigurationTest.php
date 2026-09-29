@@ -8,10 +8,16 @@ use Ecotone\Api\Attribute\CommandHandler;
 use Ecotone\Api\Attribute\DecisionModel;
 use Ecotone\Api\Attribute\EventSourcingHandler;
 use Ecotone\Api\Attribute\EventTag;
+use Ecotone\Api\Attribute\MediaTypeConverter;
 use Ecotone\Api\EventSourcing\DynamicConsistencyBoundaryConfiguration;
 use Ecotone\Api\ExtensionObject\ServiceConfiguration;
+use Ecotone\Api\Gateway\DocumentStore;
 use Ecotone\Lite\EcotoneLite;
 use Ecotone\Messaging\Config\ConfigurationException;
+use Ecotone\Messaging\Conversion\Converter;
+use Ecotone\Messaging\Conversion\MediaType;
+use Ecotone\Messaging\Handler\Type;
+use Ecotone\Messaging\Store\Document\InMemoryDocumentStore;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
 
@@ -59,8 +65,13 @@ final class DecisionModelSnapshotConfigurationTest extends TestCase
                 WalletsForSnapshotConfigurationTest::class,
                 WalletBalanceForSnapshotConfigurationTest::class,
                 WalletCreditedForSnapshotConfigurationTest::class,
+                WalletBalanceConverterForSnapshotConfigurationTest::class,
             ],
-            containerOrAvailableServices: [$wallets],
+            containerOrAvailableServices: [
+                $wallets,
+                new WalletBalanceConverterForSnapshotConfigurationTest(),
+                DocumentStore::class => InMemoryDocumentStore::createEmpty(),
+            ],
             configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([$boundaryConfiguration]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
@@ -109,10 +120,40 @@ final class WalletBalanceForSnapshotConfigurationTest
     {
         return $this->balance + $amount <= 12;
     }
+
+    public function balance(): int
+    {
+        return $this->balance;
+    }
+
+    public static function fromBalance(int $balance): self
+    {
+        $walletBalance = new self();
+        $walletBalance->balance = $balance;
+
+        return $walletBalance;
+    }
 }
 
 final class NotADecisionModelForSnapshotConfigurationTest
 {
+}
+
+#[MediaTypeConverter]
+final class WalletBalanceConverterForSnapshotConfigurationTest implements Converter
+{
+    public function convert($source, Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType)
+    {
+        return $targetMediaType->isCompatibleWith(MediaType::createApplicationJson())
+            ? json_encode(['balance' => $source->balance()])
+            : WalletBalanceForSnapshotConfigurationTest::fromBalance(json_decode($source, true)['balance']);
+    }
+
+    public function matches(Type $sourceType, MediaType $sourceMediaType, Type $targetType, MediaType $targetMediaType): bool
+    {
+        return $sourceType->getTypeHint() === WalletBalanceForSnapshotConfigurationTest::class
+            || $targetType->getTypeHint() === WalletBalanceForSnapshotConfigurationTest::class;
+    }
 }
 
 final class WalletsForSnapshotConfigurationTest

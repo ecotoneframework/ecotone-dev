@@ -51,6 +51,7 @@ final class OpenTelemetryModule extends NoExternalConfigurationModule implements
         $messageChannelBuilders = ExtensionObjectResolver::resolve(MessageChannelBuilder::class, $extensionObjects);
 
         $messagingConfiguration->addCompilerPass(new RegisterAddSpanEventLoggerCompilerPass());
+        $messagingConfiguration->addCompilerPass(new TraceDynamicConsistencyBoundaryCompilerPass());
 
         $messagingConfiguration->registerServiceDefinition(
             TracerInterceptor::class,

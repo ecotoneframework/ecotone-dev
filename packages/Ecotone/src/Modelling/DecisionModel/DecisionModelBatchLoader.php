@@ -6,6 +6,7 @@ namespace Ecotone\Modelling\DecisionModel;
 
 use function array_filter;
 use function array_values;
+use function count;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Api\EventSourcing\EventCriteria;
@@ -67,16 +68,17 @@ final class DecisionModelBatchLoader
         ]);
 
         $pendingSnapshots = [];
+        $foldedEventCount = count($loadedEvents->events);
         $instancesByParameterName = [
             ...$this->foldInstances($criteriaByParameterName, $tagSnapshotsByParameterName, $loadedEvents, $pendingSnapshots),
-            ...$this->foldAggregateBackedInstances($aggregateInstancesByParameterName, $pendingSnapshots),
+            ...$this->foldAggregateBackedInstances($aggregateInstancesByParameterName, $pendingSnapshots, $foldedEventCount),
         ];
 
         $appendCondition = $loadedEvents->appendCondition->withDecidingScopes(
             $this->decidingScopeNamesByTagKey($criteriaByParameterName, $boundaryCriteriaByLabel),
         );
 
-        return [DecisionModelLoadedState::HEADER_NAME => new DecisionModelLoadedState($instancesByParameterName, $appendCondition, $pendingSnapshots)];
+        return [DecisionModelLoadedState::HEADER_NAME => new DecisionModelLoadedState($instancesByParameterName, $appendCondition, $pendingSnapshots, $foldedEventCount)];
     }
 
     /**
@@ -210,10 +212,14 @@ final class DecisionModelBatchLoader
      * @param PendingDecisionModelSnapshot[] $pendingSnapshots
      * @return array<string, ?object>
      */
-    private function foldAggregateBackedInstances(array $instancesByParameterName, array &$pendingSnapshots): array
+    private function foldAggregateBackedInstances(array $instancesByParameterName, array &$pendingSnapshots, int &$foldedEventCount): array
     {
         $snapshotsByParameterName = $this->snapshotsOfEachAggregateInstance($instancesByParameterName);
         $eventsByReadKey = $this->readEventsOfEachAggregateInstance($instancesByParameterName, $snapshotsByParameterName);
+
+        foreach ($eventsByReadKey as $readEvents) {
+            $foldedEventCount += count($readEvents);
+        }
 
         $foldedByParameterName = [];
         foreach ($this->aggregateBackedLoaders as $loader) {

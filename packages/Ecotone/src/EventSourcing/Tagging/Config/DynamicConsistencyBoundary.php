@@ -17,6 +17,7 @@ use Ecotone\Messaging\Config\Configuration;
 use Ecotone\Messaging\Config\Container\Definition;
 use Ecotone\Messaging\Config\Container\Reference;
 use Ecotone\Messaging\Config\LicenceDecider;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 
 /**
  * licence Enterprise
@@ -90,7 +91,7 @@ final class DynamicConsistencyBoundary
         );
         $messagingConfiguration->registerServiceDefinition(
             EnterpriseInMemoryTagCollaborator::class,
-            new Definition(EnterpriseInMemoryTagCollaborator::class, [Reference::to(TagResolver::class)]),
+            new Definition(EnterpriseInMemoryTagCollaborator::class, [Reference::to(TagResolver::class), Reference::to(LoggingGateway::class)]),
         );
         $messagingConfiguration->registerServiceDefinition(
             InMemoryTagCollaborator::class,

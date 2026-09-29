@@ -60,6 +60,7 @@ use Ecotone\Messaging\Handler\Gateway\GatewayProxyBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayHeaderBuilder;
 use Ecotone\Messaging\Handler\Gateway\ParameterToMessageConverter\GatewayPayloadBuilder;
 use Ecotone\Messaging\Handler\InterfaceToCallRegistry;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\HeaderBuilder;
 use Ecotone\Messaging\Handler\Processor\MethodInvoker\Converter\PayloadBuilder;
 use Ecotone\Messaging\Handler\Router\RouterProcessorBuilder;
@@ -308,7 +309,7 @@ class EventSourcingModule extends NoExternalConfigurationModule
         );
         $messagingConfiguration->registerServiceDefinition(
             EnterpriseDbalTagCollaborator::class,
-            new Definition(EnterpriseDbalTagCollaborator::class, [Reference::to(TagResolver::class)]),
+            new Definition(EnterpriseDbalTagCollaborator::class, [Reference::to(TagResolver::class), Reference::to(LoggingGateway::class)]),
         );
         $messagingConfiguration->registerServiceDefinition(
             DbalTagCollaborator::class,

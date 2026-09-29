@@ -11,6 +11,7 @@ use Ecotone\Api\EventSourcing\EventCriteria;
 use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\EventStore\InMemoryEventStore;
 use Ecotone\EventSourcing\Tagging\TagResolver;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 
 /**
  * licence Enterprise
@@ -23,8 +24,9 @@ final class EnterpriseInMemoryTagCollaborator implements InMemoryTagCollaborator
 
     public function __construct(
         private readonly TagResolver $tagResolver,
+        LoggingGateway $logger,
     ) {
-        $this->versions = new InMemoryTagVersionRegister();
+        $this->versions = new InMemoryTagVersionRegister($logger);
         $this->index = new InMemoryTagIndex();
     }
 

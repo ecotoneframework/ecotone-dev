@@ -21,6 +21,9 @@ use Ecotone\Lite\EcotoneLite;
 use Ecotone\Lite\Test\FlowTestSupport;
 use Ecotone\Test\LicenceTesting;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\AbstractLogger;
+use Psr\Log\LogLevel;
+use Stringable;
 
 /**
  * licence Enterprise
@@ -104,9 +107,33 @@ final class DecisionModelConflictNamingTest extends TestCase
         }
     }
 
+    public function test_a_conflict_is_reported_once_as_a_structured_notice_so_it_can_be_counted_without_tracing(): void
+    {
+        $conflictRecorder = new ConflictRecordingLoggerForConflictNaming();
+
+        $ecotone = $this->bootstrap([
+            SeatCountForConflictNaming::class,
+            SeatTakenForConflictNaming::class,
+            EnrolmentHandlerForConflictNaming::class,
+            WaitlistHandlerForConflictNaming::class,
+        ], [new EnrolmentHandlerForConflictNaming(), new WaitlistHandlerForConflictNaming(), 'logger' => $conflictRecorder]);
+
+        try {
+            $ecotone->sendCommand(new EnrolForConflictNaming('course-1'));
+        } catch (DecisionModelConcurrencyException) {
+        }
+
+        $this->assertSame([[
+            DecisionModelConcurrencyException::CONFLICT_TAG_FIELD => 'course:course-1',
+            DecisionModelConcurrencyException::CONFLICT_EXPECTED_VERSION_FIELD => 0,
+            DecisionModelConcurrencyException::CONFLICT_CURRENT_VERSION_FIELD => 1,
+            DecisionModelConcurrencyException::CONFLICT_MODEL_FIELD => SeatCountForConflictNaming::class,
+        ]], $conflictRecorder->conflicts);
+    }
+
     /**
      * @param class-string[] $classesToResolve
-     * @param object[] $services
+     * @param array<int|string, object> $services
      */
     private function bootstrap(array $classesToResolve, array $services): FlowTestSupport
     {
@@ -116,6 +143,24 @@ final class DecisionModelConflictNamingTest extends TestCase
             configuration: ServiceConfiguration::createWithDefaults()->withExtensionObjects([DynamicConsistencyBoundaryConfiguration::createWithDefaults()]),
             licenceKey: LicenceTesting::VALID_LICENCE,
         );
+    }
+}
+
+/**
+ * @internal
+ */
+final class ConflictRecordingLoggerForConflictNaming extends AbstractLogger
+{
+    /**
+     * @var array<array<string, mixed>>
+     */
+    public array $conflicts = [];
+
+    public function log($level, Stringable|string $message, array $context = []): void
+    {
+        if ($level === LogLevel::NOTICE && (string) $message === DecisionModelConcurrencyException::LOG_MESSAGE) {
+            $this->conflicts[] = $context;
+        }
     }
 }
 

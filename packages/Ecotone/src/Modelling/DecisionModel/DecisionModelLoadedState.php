@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\Modelling\DecisionModel;
 
 use function array_key_exists;
+use function array_values;
 
 use Ecotone\Api\EventSourcing\AppendCondition;
 use Ecotone\Messaging\Config\ConfigurationException;
@@ -28,7 +29,36 @@ final class DecisionModelLoadedState
         private readonly array $instancesByParameterName,
         private readonly AppendCondition $appendCondition,
         private readonly array $pendingSnapshots = [],
+        private readonly int $foldedEventCount = 0,
     ) {
+    }
+
+    /**
+     * @return class-string[]
+     */
+    public function loadedModelClassNames(): array
+    {
+        $classNames = [];
+        foreach ($this->instancesByParameterName as $instance) {
+            if ($instance !== null) {
+                $classNames[$instance::class] = $instance::class;
+            }
+        }
+
+        return array_values($classNames);
+    }
+
+    /**
+     * @return array<array{name: string, value: string, expectedVersion: int, decidedBy?: string[]}>
+     */
+    public function capturedTagVersions(): array
+    {
+        return $this->appendCondition->expectedTagVersions();
+    }
+
+    public function foldedEventCount(): int
+    {
+        return $this->foldedEventCount;
     }
 
     /**

@@ -11,6 +11,7 @@ use Ecotone\Api\EventSourcing\LoadedEvents;
 use Ecotone\EventSourcing\Dbal\DbalEventStore;
 use Ecotone\EventSourcing\Dbal\EventStreamSchema;
 use Ecotone\EventSourcing\Tagging\TagResolver;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 
 /**
  * licence Enterprise
@@ -25,10 +26,10 @@ final class EnterpriseDbalTagCollaborator implements DbalTagCollaborator
 
     private DbalTagIndex $index;
 
-    public function __construct(TagResolver $tagResolver)
+    public function __construct(TagResolver $tagResolver, LoggingGateway $logger)
     {
         $tables = new DbalTagTables();
-        $versions = new DbalTagVersionRegister();
+        $versions = new DbalTagVersionRegister($logger);
         $this->index = new DbalTagIndex();
 
         $this->appender = new DbalTagConditionalAppender($tagResolver, $tables, $versions, $this->index);

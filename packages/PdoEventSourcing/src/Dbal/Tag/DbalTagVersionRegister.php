@@ -12,6 +12,7 @@ use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
 use Ecotone\EventSourcing\Database\TagTableManager;
 use Ecotone\EventSourcing\Tagging\TagKey;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 
 use function implode;
 
@@ -20,6 +21,10 @@ use function implode;
  */
 final class DbalTagVersionRegister
 {
+    public function __construct(private readonly LoggingGateway $logger)
+    {
+    }
+
     /**
      * @param array<string, array{name: string, value: string}> $tags
      * @return array<string, array{name: string, value: string, expectedVersion: int}>
@@ -114,9 +119,14 @@ final class DbalTagVersionRegister
         }
 
         if ($affected === 0) {
-            throw $aggregateType !== null
-                ? DecisionModelConcurrencyException::forAggregateConflict($aggregateType, $value, $capturedVersion, $this->versionOf($connection, $name, $value))
-                : DecisionModelConcurrencyException::forConflict($name, $value, $capturedVersion, $this->versionOf($connection, $name, $value), $decidedBy);
+            $currentVersion = $this->versionOf($connection, $name, $value);
+            $conflict = $aggregateType !== null
+                ? DecisionModelConcurrencyException::forAggregateConflict($aggregateType, $value, $capturedVersion, $currentVersion)
+                : DecisionModelConcurrencyException::forConflict($name, $value, $capturedVersion, $currentVersion, $decidedBy);
+
+            $this->logger->notice(DecisionModelConcurrencyException::LOG_MESSAGE, $conflict->conflictFields());
+
+            throw $conflict;
         }
     }
 

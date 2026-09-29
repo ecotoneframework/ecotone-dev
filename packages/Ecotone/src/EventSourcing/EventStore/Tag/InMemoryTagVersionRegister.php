@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ecotone\EventSourcing\EventStore\Tag;
 
 use Ecotone\Api\EventSourcing\DecisionModelConcurrencyException;
+use Ecotone\Messaging\Handler\Logger\LoggingGateway;
 
 /**
  * licence Enterprise
@@ -15,6 +16,10 @@ final class InMemoryTagVersionRegister
      * @var array<string, int>
      */
     private array $versions = [];
+
+    public function __construct(private readonly LoggingGateway $logger)
+    {
+    }
 
     /**
      * @param array<string, array{name: string, value: string}> $tags
@@ -38,9 +43,13 @@ final class InMemoryTagVersionRegister
         foreach ($expectedVersions as $key => $expected) {
             $current = $this->versions[$key] ?? 0;
             if ($current !== $expected['expectedVersion']) {
-                throw isset($expected['aggregateType'])
+                $conflict = isset($expected['aggregateType'])
                     ? DecisionModelConcurrencyException::forAggregateConflict($expected['aggregateType'], $expected['value'], $expected['expectedVersion'], $current)
                     : DecisionModelConcurrencyException::forConflict($expected['name'], $expected['value'], $expected['expectedVersion'], $current, $expected['decidedBy'] ?? []);
+
+                $this->logger->notice(DecisionModelConcurrencyException::LOG_MESSAGE, $conflict->conflictFields());
+
+                throw $conflict;
             }
         }
     }

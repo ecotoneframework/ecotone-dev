@@ -15,6 +15,16 @@ use function sprintf;
  */
 class DecisionModelConcurrencyException extends ConcurrencyException
 {
+    public const LOG_MESSAGE = 'Dynamic Consistency Boundary conflict';
+
+    public const CONFLICT_TAG_FIELD = 'ecotone.dcb.conflict.tag';
+
+    public const CONFLICT_EXPECTED_VERSION_FIELD = 'ecotone.dcb.conflict.expected_version';
+
+    public const CONFLICT_CURRENT_VERSION_FIELD = 'ecotone.dcb.conflict.current_version';
+
+    public const CONFLICT_MODEL_FIELD = 'ecotone.dcb.conflict.model';
+
     private string $conflictingTagName = '';
 
     private string $conflictingTagValue = '';
@@ -65,6 +75,21 @@ class DecisionModelConcurrencyException extends ConcurrencyException
         ));
 
         return self::describing($exception, AggregateCounterTag::nameFor($aggregateType), $aggregateId, $capturedVersion, $currentVersion, []);
+    }
+
+    /**
+     * The conflict as named fields, so a log line and a tracing span event report the same thing.
+     *
+     * @return array<string, string|int>
+     */
+    public function conflictFields(): array
+    {
+        return [
+            self::CONFLICT_TAG_FIELD => $this->conflictingTagName . ':' . $this->conflictingTagValue,
+            self::CONFLICT_EXPECTED_VERSION_FIELD => $this->expectedVersion,
+            self::CONFLICT_CURRENT_VERSION_FIELD => $this->currentVersion,
+            self::CONFLICT_MODEL_FIELD => implode(', ', $this->decidedBy),
+        ];
     }
 
     public function conflictingTagName(): string

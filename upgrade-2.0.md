@@ -685,6 +685,13 @@ no transaction.
   allowed: it folds exactly that tenant's events and is guarded on the counted tag. Naming a tag in
   `withFilterOnlyTags()` that no `#[EventTag]` declares is a bootstrap `ConfigurationException` too — a typo would
   otherwise leave the hot tag counted.
+
+  The same rule now covers `#[DecisionBoundary]`. A boundary builds its criteria at runtime from the command, so its
+  tag *names* are not knowable at bootstrap; the check therefore runs each time the boundary is evaluated, and a
+  boundary returning criteria whose tags are all filter-only raises a `ConfigurationException` naming the method and
+  the tags on the first message that reaches it. One counted tag anywhere in the criteria is enough, so
+  `EventCriteria::tag('tenant', $t)->andTag('course', $c)` and `EventCriteria::tag('course', $c)->or(...)` are both
+  accepted.
 - **Licence.** The tag-carrying half of DCB — `#[EventTag]`, `#[DecisionModel]`, `#[DecisionBoundary]`,
   `EventCriteria`, and a tag-bearing `AppendCondition` — is Enterprise, and it is switched on by
   `DynamicConsistencyBoundaryConfiguration` (see "Enabling" above): the extension object decides *whether* DCB
@@ -753,6 +760,15 @@ can never see events committed on the other connection (cross-database consisten
 consistency boundary's). Events recorded only by a service handler — not an aggregate — cannot be traced this way
 and are not checked; keep such a handler's stream and its injected models' aggregates on the same connection by
 convention.
+
+**A missing stream table stops a decision instead of answering it.** `EventStore::load()` and
+`loadAggregateEvents()` keep their open-core contract — a stream whose table does not exist reads as no events, which
+is what an aggregate `#[CommandHandler]` loading a not-yet-created aggregate needs. On the decision path that answer
+is wrong: an aggregate-backed `#[DecisionModel]` would fold zero events and the handler would decide on an empty
+aggregate. The decision read is a separate store method, so the two contracts never need a flag to tell them apart,
+and a missing stream table there raises the same `ConfigurationException` §8 describes, naming the `event_stream`
+feature, the table and both setup commands. `ecotone:event-store:backfill-tags` reports the same error rather than a
+report saying nothing was scanned, which is what a mistyped `--stream=` actually means.
 
 **Upgrading while still on 1.x — expand first, deploy code second:**
 
@@ -1010,6 +1026,17 @@ final class EcotoneConfiguration
     }
 }
 ```
+
+Every failure caused by a missing table carries that message, whatever triggered it — storing a dead letter,
+deduplicating a message, writing a document, appending events, reading the tag index, or a Dbal message channel built
+with `withAutoDeclare(false)`, which in 1.x surfaced Doctrine's `TableNotFoundException` on receive and Interop's
+"The transport fails to send the message due to some internal error" on send.
+
+Read paths that answer a question rather than do work still treat an absent table as "nothing there", and say so
+quietly: `DeadLetterGateway::list()`/`count()`, the document store's `findDocument()`/`getAllDocuments()`/
+`countDocuments()`, `EventStore::load()`/`loadAggregateEvents()`/`hasStream()`, and a projection reading a stream
+table that does not exist. If you need to tell "not set up" from "nothing to show" in those places, run
+`ecotone:migration:database:setup --missing` — it lists exactly the tables that are absent.
 
 - Add `ecotone:migration:database:setup --initialize` to your deploy pipeline (or `--feature=deduplication,dead_letter`
   for a subset). On MySQL/MariaDB this is not optional — auto-create never runs there, so the setup command (or
